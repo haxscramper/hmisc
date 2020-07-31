@@ -41,6 +41,7 @@ proc getFieldDescription(node: NimNode): tuple[name, fldType: string] =
         &"Cannot get field description from node of kind {node.kind}")
 
 proc getFields*(node: NimNode): seq[Field[NimNode]] =
+  # TODO ignore `void` fields
   case node.kind:
     of nnkObjConstr:
       # echo node.treeRepr()
@@ -231,9 +232,17 @@ proc unrollFieldLoop(
             if `ident(genParam.lhsObj)`.`fldId` == `ident(genParam.rhsObj)`.`fldId`:
               `caseBlock`
 
+    let comment =
+      if fld.isTuple:
+        newCommentStmtNode("Tuple field idx: " & $fld.tupleIdx)
+      else:
+        newCommentStmtNode("Field: " & $fld.name)
+
     result.node.add quote do:
       block:
+        `comment`
         `tmpRes`
+
 
 
   result.node = newBlockStmt(result.node)
@@ -294,15 +303,14 @@ fields **as defined** in object while second one shows order of fields
   )
 
   let (unrolled, _) = getFields(lhsObj).unrollFieldLoop(body, 0, genParams)
-
   result = superquote do:
 
-    block:
+    block: ## Toplevel
       var `ident(genParams.valIdxName)`: int = 0
       let `ident(genParams.lhsObj)` = `lhsObj`
       let `ident(genParams.rhsObj)` = `rhsObj`
       `unrolled`
 
-  echo "\e[41m==============\e[49m"
-  echo result.toStrLit()
-  echo "\e[41m==============\e[49m"
+  # echo "\e[41m==============\e[49m"
+  # echo result.toStrLit()
+  # echo "\e[41m==============\e[49m"

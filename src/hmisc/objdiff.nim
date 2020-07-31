@@ -118,9 +118,9 @@ proc ppDiff*[T](lhs, rhs: T): void =
     let (rhsTree, rhsNamePath) = getAtPath(rhsObjTree, path)
 
     echo "Difference at path ", lhsNamePath.toStr(), " kind: ", diffpaths[path]
-    echo "lhs val:"
+    echo "\e[4mlhs val:\e[24m"
     pprint lhsTree
-    echo "rhs val:"
+    echo "\e[4mrhs val:\e[24m"
     pprint rhsTree
 
 proc assertNoDiff*[T](lhs, rhs: T): void =
