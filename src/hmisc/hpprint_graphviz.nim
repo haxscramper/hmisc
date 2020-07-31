@@ -1,8 +1,7 @@
+import hasts/[graphviz_ast, html_ast]
 import types/[
   hnim_ast,
-  graphviz_ast,
   block_grid,
-  html_ast,
   seq2d,
   hvariant,
   hterm_buf,

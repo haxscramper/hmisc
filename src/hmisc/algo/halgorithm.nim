@@ -356,6 +356,7 @@ template ifSomeIt*[T](opt: Option[T], predicate: untyped): bool =
 
 import unittest
 proc testEq*[A, B](lhs: A, rhs: B) =
+  # TODO use LCS to highlight only parts that are different in red
   static:
     assert compiles(lhs == rhs),
      "Cannot directly compare objects of type" & $typeof(lhs) &
@@ -386,20 +387,21 @@ proc testEq*[A, B](lhs: A, rhs: B) =
         #   echo &"#{idx}: '{line[0]}' == '{line[1]}'"
 
     else:
-      if (lhsStr.len > 40 or rhsStr.len > 40):
-          echo "LHS: ...\e[32m", lhsStr[diffPos - 5 ..< diffPos], "\e[39m",
-            "\e[31m", lhsStr[diffPos ..< min(diffPos + 35, lhsStr.len)],
-            "\e[39m..."
+      if (lhsStr.len > 50 or rhsStr.len > 50):
+        let start = diffPos - 20
+        echo "LHS: ...\e[32m", lhsStr[start ..< diffPos], "\e[39m",
+          "\e[31m", lhsStr[diffPos ..< min(diffPos + 35, lhsStr.len)],
+          "\e[39m..."
 
-          echo "RHS: ...\e[32m", rhsStr[diffPos - 5 ..< diffPos], "\e[39m",
-            "\e[31m", rhsStr[diffPos ..< min(diffPos + 35, rhsStr.len)],
-            "\e[39m..."
+        echo "RHS: ...\e[32m", rhsStr[start ..< diffPos], "\e[39m",
+          "\e[31m", rhsStr[diffPos ..< min(diffPos + 35, rhsStr.len)],
+          "\e[39m..."
 
-          echo "             ", "^".repeat(35)
+        echo "             ", "^".repeat(35)
       else:
-          echo "LHS: ", lhsStr
-          echo "RHS: ", rhsStr
-          echo "    ", " ".repeat(diffPos), "^".repeat(rhsStr.len() - diffPos + 1)
+        echo "LHS: ", lhsStr
+        echo "RHS: ", rhsStr
+        echo "    ", " ".repeat(diffPos), "^".repeat(rhsStr.len() - diffPos + 1)
 
     echo ""
 

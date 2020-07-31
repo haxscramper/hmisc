@@ -42,21 +42,26 @@ IDEA provide LCS-based difference reports for sequences (if possible)
 
 ]#
 
-  when T is seq:
+  when (T is seq) or (T is array):
     if lhsIn.len() != rhsIn.len():
       result[path] = ObjDiff(kind: odkLen, lhsLen: lhsIn.len(), rhsLen: rhsIn.len())
 
     for idx, (lval, rval) in zip(lhsIn, rhsIn):
       result.merge diff(lval, rval, path & @[idx])
-  elif T is object:
+  elif (T is object) or (T is tuple):
     parallelFieldPairs(lhsIn, rhsIn):
       when isKind:
         if lhs != rhs:
           result[path] = ObjDiff(kind: odkKind)
       else:
         result.merge diff(lhs, rhs, path & @[valIdx])
+  # elif T is tuple:
+  #   var idx = 0
+  #   for lhs, rhs in fieldPairs(lhsIn, rhsIn):
 
+  #     inc idx
   else:
+    static: echo typeof(T)
     if lhsIn != rhsIn:
       result[path] = ObjDiff(kind: odkValue)
 
@@ -116,3 +121,8 @@ proc ppDiff*[T](lhs, rhs: T): void =
     pprint lhsTree
     echo "rhs val:"
     pprint rhsTree
+
+proc assertNoDiff*[T](lhs, rhs: T): void =
+  if lhs != rhs:
+    ppDiff(lhs, rhs)
+    raiseAssert("Difference")

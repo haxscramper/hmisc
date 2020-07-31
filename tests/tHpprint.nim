@@ -3,13 +3,12 @@ import unittest, shell, sugar, sequtils
 import hmisc/[helpers]
 import strutils
 
+import hasts/[graphviz_ast, html_ast]
 import hmisc/types/[
-  graphviz_ast,
   block_grid,
   hdrawing,
   hnim_ast,
   htrie,
-  html_ast
 ]
 
 import hmisc/macros/[obj_field_macros]
@@ -905,10 +904,9 @@ suite "Object diff":
     let rhs = newStmtList(newLit("hello"), newLit(1.23))
     ppDiff(lhs, rhs)
 
-    # let res = diff(lhs, rhs)
-    # for path in res.paths():
-    #   echo "Difference at path ", path, " kind: ", res[path]
-    #   echo "lhs:"
-    #   pprintAtPath(lhs, path)
-    #   echo "rhs:"
-    #   pprintAtPath(rhs, path)
+  test "{diff}":
+    ppDiff({
+      "A" : newStmtList(newLit("hello"), newLit(1.22))
+    }, {
+      "A" : newStmtList(newLit("hello"), newLit(1.23))
+    })

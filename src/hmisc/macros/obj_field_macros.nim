@@ -53,7 +53,7 @@ proc getFields*(node: NimNode): seq[Field[NimNode]] =
           # echo "Type symbol: ", typeSym.treeRepr()
           # echo "Impl: ", typeSym.getTypeImpl().treeRepr()
           result = getFields(typeSym.getTypeImpl())
-        of nnkObjectTy, nnkRefTy:
+        of nnkObjectTy, nnkRefTy, nnkTupleTy, nnkTupleConstr:
           result = getFields(node.getTypeImpl())
         else:
           raiseAssert("Unknown parameter kind: " & $kind)
@@ -76,6 +76,15 @@ proc getFields*(node: NimNode): seq[Field[NimNode]] =
 
           else:
             discard
+
+    of nnkTupleTy:
+      for fld in node:
+        result.add fld.getFields()
+    of nnkTupleConstr:
+      for idx, sym in node:
+        result.add Field[NimNode](
+          name: "field" & $idx
+        )
 
     of nnkIdentDefs:
       let descr = getFieldDescription(node)
@@ -222,7 +231,7 @@ for each field.
 :lhs, rhs: value of current fields
 :fldIdx: int. Index of current field in the object.
 :valIdx: int. Index of current *value field* in the object
-:lshObj, rhsObj: Original objects being iterated. [1]_
+:lhsObj, rhsObj: Original objects being iterated. [1]_
 :isKind:
   bool. Whether or not current field is used as case parameter for object
 
@@ -269,4 +278,6 @@ fields **as defined** in object while second one shows order of fields
       let `ident(genParams.rhsObj)` = `rhsObj`
       `unrolled`
 
-  # echo result.toStrLit()
+  echo "\e[41m==============\e[49m"
+  echo result.toStrLit()
+  echo "\e[41m==============\e[49m"
