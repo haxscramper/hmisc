@@ -65,6 +65,7 @@ proc getFields*(node: NimNode): seq[Field[NimNode]] =
         case elem.kind:
           of nnkRecCase: # Case field
             result.add Field[NimNode](
+              isTuple: false,
               isKind: true,
               branches: getBranches(elem),
               name: descr.name,
@@ -82,13 +83,12 @@ proc getFields*(node: NimNode): seq[Field[NimNode]] =
         result.add fld.getFields()
     of nnkTupleConstr:
       for idx, sym in node:
-        result.add Field[NimNode](
-          name: "field" & $idx
-        )
+        result.add Field[NimNode](isTuple: true, tupleIdx: idx)
 
     of nnkIdentDefs:
       let descr = getFieldDescription(node)
       result.add Field[NimNode](
+        isTuple: false,
         isKind: false,
         name: descr.name,
         fldType: descr.fldType
@@ -110,6 +110,7 @@ proc getKindFields*[Node](flds: seq[Field[Node]]): seq[Field[Node]] =
   for fld in flds:
     if fld.isKind:
       result.add Field[Node](
+        isTuple: false,
         isKind: true,
         name: fld.name,
         value: fld.value,
@@ -128,6 +129,7 @@ proc discardNimNode(input: seq[Field[NimNode]]): seq[ValField] =
     case fld.isKind:
       of true:
         result.add ValField(
+          isTuple: false,
           isKind: true,
           name: fld.name,
           fldType: fld.fldType,
@@ -147,6 +149,7 @@ proc discardNimNode(input: seq[Field[NimNode]]): seq[ValField] =
 
       of false:
         result.add ValField(
+          isTuple: false,
           isKind: false,
           name: fld.name,
           fldType: fld.fldType
@@ -154,7 +157,6 @@ proc discardNimNode(input: seq[Field[NimNode]]): seq[ValField] =
 
 macro makeFieldsLiteral*(node: typed): seq[ValField] =
   result = newLit(node.getFields().discardNimNode)
-
 
 proc unrollFieldLoop(
   flds: seq[Field[NimNode]],
@@ -172,13 +174,28 @@ proc unrollFieldLoop(
     # echo &"Fld idx: {fldIdx} for {fld.name}"
     let lhsId = ident(genParam.lhsName)
     let rhsId = ident(genParam.rhsName)
-    let fldId = ident(fld.name)
+
+    let valdefs =
+      if fld.isTuple:
+        let
+          tupleIdx = newLit(fld.tupleIdx)
+          fldName = newLit("Field" & $fldIdx)
+
+        superquote do:
+          let `lhsId` = `ident(genParam.lhsObj)`[`tupleIdx`]
+          let `rhsId` = `ident(genParam.rhsObj)`[`tupleIdx`]
+          const `ident(genParam.fldName)`: string = `fldName`
+      else:
+        let fldId = ident(fld.name)
+        superquote do:
+          let `lhsId` = `ident(genParam.lhsObj)`.`fldId`
+          let `rhsId` = `ident(genParam.rhsObj)`.`fldId`
+          const `ident(genParam.fldName)`: string = `newLit(fld.name)`
+
     tmpRes.add superquote do:
       const `ident(genParam.isKindName)`: bool = `newLit(fld.isKind)`
       let `ident(genParam.idxName)`: int = `newLit(fldIdx)`
-      let `lhsId` = `ident(genParam.lhsObj)`.`fldId`
-      let `rhsId` = `ident(genParam.rhsObj)`.`fldId`
-      const `ident(genParam.fldName)`: string = `newLit(fld.name)`
+      `valDefs`
       block:
         `body`
         inc `ident(genParam.valIdxName)`
@@ -202,9 +219,17 @@ proc unrollFieldLoop(
           )
         )
 
-      tmpRes.add superquote do:
-        if `ident(genParam.lhsObj)`.`fldId` == `ident(genParam.rhsObj)`.`fldId`:
-          `caseBlock`
+      tmpRes.add do:
+        if fld.isTuple:
+          let fldIdx = newLit(fld.tupleIdx)
+          superquote do:
+            if `ident(genParam.lhsObj)`[`fldIdx`] == `ident(genParam.rhsObj)`[`fldIdx`]:
+              `caseBlock`
+        else:
+          let fldId = ident(fld.name)
+          superquote do:
+            if `ident(genParam.lhsObj)`.`fldId` == `ident(genParam.rhsObj)`.`fldId`:
+              `caseBlock`
 
     result.node.add quote do:
       block:

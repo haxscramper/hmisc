@@ -19,7 +19,12 @@ type
     ## More complex representation of object's field - supports
     ## recursive fields with case objects. IMPLEMENT - not currently
     ## supported.
-    name*: string
+    case isTuple*: bool
+      of true:
+        tupleIdx*: int
+      of false:
+        name*: string
+
     fldType*: string ## Type of field value
     value*: ObjTree[Node]
     case isKind*: bool

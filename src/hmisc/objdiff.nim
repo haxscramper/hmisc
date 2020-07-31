@@ -49,6 +49,7 @@ IDEA provide LCS-based difference reports for sequences (if possible)
     for idx, (lval, rval) in zip(lhsIn, rhsIn):
       result.merge diff(lval, rval, path & @[idx])
   elif (T is object) or (T is tuple):
+    mixin parallelFieldPairs
     parallelFieldPairs(lhsIn, rhsIn):
       when isKind:
         if lhs != rhs:
