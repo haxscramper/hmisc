@@ -1,4 +1,4 @@
-import math, strutils, sequtils, random, macros, options
+import math, strutils, sequtils, random, macros, options, strformat
 import std/wordwrap
 import ../types/hprimitives
 import hmath
@@ -361,6 +361,7 @@ proc testEq*[A, B](lhs: A, rhs: B) =
      "Cannot directly compare objects of type" & $typeof(lhs) &
        " and " & $typeof(rhs)
 
+  mixin fmt
   if lhs != rhs:
     let lhsStr = $lhs
     let rhsStr = $rhs
@@ -378,16 +379,27 @@ proc testEq*[A, B](lhs: A, rhs: B) =
 
       for idx, line in zip(linesA, linesB):
         if line[0] != line[1]:
-          echo &"LHS #{idx}: '{line[0]}'"
-          echo &"RHS #{idx}: '{line[1]}'"
+          echo fmt("LHS #{idx}: '{line[0]}'")
+          echo fmt("RHS #{idx}: '{line[1]}'")
           break
         # else:
         #   echo &"#{idx}: '{line[0]}' == '{line[1]}'"
 
     else:
-      echo "LHS: ", lhsStr
-      echo "RHS: ", rhsStr
-      echo "    ", " ".repeat(diffPos), "^".repeat(rhsStr.len() - diffPos + 1)
+      if (lhsStr.len > 40 or rhsStr.len > 40):
+          echo "LHS: ...\e[32m", lhsStr[diffPos - 5 ..< diffPos], "\e[39m",
+            "\e[31m", lhsStr[diffPos ..< min(diffPos + 35, lhsStr.len)],
+            "\e[39m..."
+
+          echo "RHS: ...\e[32m", rhsStr[diffPos - 5 ..< diffPos], "\e[39m",
+            "\e[31m", rhsStr[diffPos ..< min(diffPos + 35, rhsStr.len)],
+            "\e[39m..."
+
+          echo "             ", "^".repeat(35)
+      else:
+          echo "LHS: ", lhsStr
+          echo "RHS: ", rhsStr
+          echo "    ", " ".repeat(diffPos), "^".repeat(rhsStr.len() - diffPos + 1)
 
     echo ""
 
