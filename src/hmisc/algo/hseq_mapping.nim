@@ -183,6 +183,7 @@ macro mapPairs*(
 
 
 template mapPairs*(inseq: untyped, op: untyped): untyped =
+  mixin nthType1, nthType2
   mapPairs(inseq, op, (lhs: lhs, rhs: rhs, idx: idx))
 
 #==============================  searching  ==============================#

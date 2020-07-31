@@ -1,7 +1,7 @@
 import unittest
 import hmisc/[nim_trs]
-import hmisc/algo/halgorithm
-import strutils, sequtils, strformat, sugar, options
+import hmisc/algo/[halgorithm, hseq_mapping]
+import strutils, sequtils, strformat, sugar, options, sets
 
 type
   ArithmOp = enum

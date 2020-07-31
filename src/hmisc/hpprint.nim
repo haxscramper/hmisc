@@ -13,7 +13,7 @@ import types/[hnim_ast, hprimitives]
 import helpers
 
 import strformat, tables, strutils, sequtils, unicode
-import with, gara
+import with, gara # TODO remove gara from dependencies
 
 
 #==========================  type declaration  ===========================#
@@ -402,7 +402,7 @@ proc relativePosition*(
 
   for pos, label in labels:
     with label:
-      match(pos):
+      match(pos): # XXX remove `match`, use `case`
         rpBottomRight:
           rightPad = text.len
         rpTopLeftAbove:

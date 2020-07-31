@@ -1,7 +1,7 @@
 import hmisc/[nimast_trs, helpers, nim_trs_pprint]
 import sequtils, strformat, strutils
 import hmisc/algo/halgorithm
-import unittest
+import unittest, sets
 
 type
   AstKind = enum

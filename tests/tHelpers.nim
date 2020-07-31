@@ -44,7 +44,7 @@ suite "Misc helper functions":
     assert (false).tern(1, 3) == 3
     # If second branch is executed it will raise exception - due to
     # lazy evaluation it does not happen.
-    assert (90 == 90).tern(-1, (@[90, 22])[90]) == -1
+    assert (true).tern(-1, raiseAssert("!!!")) == -1
 
   test "{`==`} Option comparison :generic:":
     assert some(12) == 12
