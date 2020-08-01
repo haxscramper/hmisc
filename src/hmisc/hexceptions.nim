@@ -6,6 +6,8 @@ type
     errpos*: LineInfo
     expr*: string
     annotation*: string
+    linerange*: int
+
 
   CodeError* = ref object of CatchableError
     errpos: LineInfo ## Position of original error
@@ -15,28 +17,57 @@ type
 proc nthLine(file: string, line: int): string =
   readLines(file, line)[line - 1]
 
+proc lineRange(file: string, linerange: (int, int)): seq[string] =
+  readLines(file, max(linerange[0], linerange[1]))[
+    (linerange[0] - 1) .. (linerange[1] - 1)
+  ]
 
 proc toColorString*(err: CodeError): string =
-  result &= "\n" & err.msg & "\n"
-
+  result &= "\n" & err.msg & "\n\n"
   for err in err.annots:
     let (dir, name, ext) = err.errpos.filename.splitFile()
+
     let position = &"{name}{ext} {err.errpos.line}:{err.errpos.column} "
     let padding = " ".repeat(position.len + err.errpos.column)
 
-    result &= position & nthLine(err.errpos.filename, err.errpos.line) & "\n"
-    result &= padding & $("^".repeat(err.expr.len()).toRed()) & "\n"
-    for line in err.annotation.split("\n"):
-      result &= padding & err.annotation & "\n"
-    result &= ""
+    if err.linerange <= 0:
+      let filelines = err.errpos.filename.lineRange((
+        err.errpos.line + err.linerange, err.errpos.line
+      ))
 
-func toCodeError*(node: NimNode, message, annotation: string): CodeError =
+      for line in filelines[0..^2]:
+        result &= " ".repeat(position.len) & line & "\n"
+
+      result &= position & filelines[^1] & "\n"
+      result &= padding & $("^".repeat(err.expr.len()).toRed()) & "\n"
+
+      for line in err.annotation.split("\n"):
+        result &= padding & err.annotation & "\n"
+    else:
+      let filelines = err.errpos.filename.lineRange((
+        err.errpos.line, err.errpos.line + err.linerange
+      ))
+
+      for line in err.annotation.split("\n"):
+        result &= padding & err.annotation & "\n"
+      result &= padding & $("v".repeat(err.expr.len()).toRed()) & "\n"
+
+      result &= position & filelines[0] & "\n"
+      for line in filelines[1..^1]:
+        result &= " ".repeat(position.len) & line & "\n"
+
+
+    result &= "\n" & $err.errpos.filename.toDefault({styleUnderscore})
+
+func toCodeError*(node: NimNode, message, annotation: string,
+                  lineRange: int = -2): CodeError =
   new(result)
   {.noSideEffect.}:
     result.msg = toColorString(CodeError(
       msg: message,
       annots: @[
         ErrorAnnotation(
+          linerange: linerange,
           errpos: node.lineInfoObj(),
           expr: $node.toStrLit,
           annotation: annotation
@@ -56,16 +87,24 @@ proc printSeparator*(msg: string): void =
 
   echo str.toDefault(style = { styleDim })
 
+proc getFileName*(f: string): string =
+  let (_, name, ext) = f.splitFile()
+  return name & ext
 
 template pprintErr*(body: untyped): untyped =
+  mixin toGreen, toDefault, toYellow, getFileName, splitFile
   template pprintStackTrace(): untyped =
     let e = getCurrentException()
     let choosenim = getHomeDir() & ".choosenim"
 
     let stackEntries = e.getStackTraceEntries()
-    echo ""
-    printSeparator("Exception")
-    echo ""
+    when nimvm:
+      discard
+    else:
+      echo ""
+      printSeparator("Exception")
+      echo ""
+
     for tr in stackEntries:
       let filename: string = $tr.filename
 
@@ -75,7 +114,7 @@ template pprintErr*(body: untyped): untyped =
 
 
       let (_, name, ext) = filename.splitFile()
-      ceUserLog0(
+      echo(
         prefix &
         $name.toDefault(style = { styleDim }) &
           ":" &
@@ -85,7 +124,7 @@ template pprintErr*(body: untyped): untyped =
 
     let idx = e.msg.find('(')
     echo ""
-    ceUserError0(
+    echo(
       (idx > 0).tern(e.msg[0 ..< idx].getFileName() & " ", "") &
       e.msg[(if idx > 0: idx else: 0)..^1])
 

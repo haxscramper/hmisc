@@ -332,9 +332,6 @@ template safeRunCommand*(
 #=====================  exception-related features  ======================#
 
 
-proc getFileName*(f: string): string =
-  let (_, name, ext) = f.splitFile()
-  return name & ext
 
 
 when isMainModule:

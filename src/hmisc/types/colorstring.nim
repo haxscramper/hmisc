@@ -29,6 +29,8 @@ func toMagenta*(str: string, style: set[Style] = {}): ColoredString =
 func toDefault*(str: string, style: set[Style] = {}): ColoredString =
   ColoredString(str: str, style: style, fg: fgDefault)
 
+# func toStyle*(str: string)
+
 proc debug*(str: ColoredString) =
   echo "str: ", str.str, " fg: ",
      str.fg, " bg: ",
