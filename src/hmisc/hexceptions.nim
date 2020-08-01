@@ -1,5 +1,65 @@
-import strformat, strutils, algorithm, sequtils
-import re
+import strformat, strutils, algorithm, sequtils, macros, os, re, terminal
+import types/colorstring
+
+type
+  ErrorAnnotation = object
+    errpos*: LineInfo
+    expr*: string
+    annotation*: string
+
+  CodeError* = ref object of CatchableError
+    errpos: LineInfo ## Position of original error
+    annots: seq[ErrorAnnotation] ## Additional error annotations
+
+
+proc nthLine(file: string, line: int): string =
+  readLines(file, line)[line - 1]
+
+
+proc toColorString*(err: CodeError): string =
+  result &= "\n" & err.msg & "\n"
+
+  for err in err.annots:
+    let (dir, name, ext) = err.errpos.filename.splitFile()
+    let position = &"{name}{ext} {err.errpos.line}:{err.errpos.column} "
+    let padding = " ".repeat(position.len + err.errpos.column)
+
+    result &= position & nthLine(err.errpos.filename, err.errpos.line) & "\n"
+    result &= padding & $("^".repeat(err.expr.len()).toRed()) & "\n"
+    for line in err.annotation.split("\n"):
+      result &= padding & err.annotation & "\n"
+    result &= ""
+
+proc toCodeError*(node: NimNode, message, annotation: string): CodeError =
+  new(result)
+  result.msg = toColorString(CodeError(
+    msg: message,
+    annots: @[
+      ErrorAnnotation(
+        errpos: node.lineInfoObj(),
+        expr: $node.toStrLit,
+        annotation: annotation
+      )
+    ]
+  ))
+
+# func raiseCodeError*(node: NimNode,
+#                      message, annotation: string
+#                     ): void {.discardable, noreturn.} =
+#   {.noSideEffect.}:
+#     raise toCodeError(node, message, annotation)
+
+template getCEx*(t: untyped): untyped =
+  cast[t](getCurrentException())
+
+proc printSeparator*(msg: string): void =
+  let str = center(
+    " " & msg & " ",
+    width = terminalWidth(),
+    fillChar = '='
+  )
+
+  echo str.toDefault(style = { styleDim })
 
 
 template pprintErr*(body: untyped): untyped =

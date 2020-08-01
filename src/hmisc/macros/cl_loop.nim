@@ -23,7 +23,8 @@ template iterValType*(arg: untyped): untyped =
   else:
     typeof(arg)
 
-proc codeAssert*(cond: bool, msg: string, annots: varargs[ErrorAnnotation]): void =
+proc codeAssert*(cond: bool,
+                 msg: string, annots: varargs[ErrorAnnotation]): void =
   if not cond:
     raise CodeError(
       annots: toSeq(annots),

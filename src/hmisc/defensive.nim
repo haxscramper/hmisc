@@ -11,9 +11,7 @@ export os
 import strutils
 import logging
 import shell
-
-import colechopkg/types
-export types
+import types/colorstring
 
 export shell
 export helpers
@@ -333,47 +331,6 @@ template safeRunCommand*(
 
 #=====================  exception-related features  ======================#
 
-type
-  ErrorAnnotation = object
-    errpos*: LineInfo
-    expr*: string
-    annotation*: string
-
-  CodeError* = ref object of CatchableError
-    errpos: LineInfo ## Position of original error
-    annots: seq[ErrorAnnotation] ## Additional error annotations
-
-
-proc nthLine(file: string, line: int): string =
-  readLines(file, line)[line - 1]
-
-proc highlightErr*(err: CodeError): void =
-
-  echo "\n", err.msg, "\n"
-
-  for err in err.annots:
-    let (dir, name, ext) = err.errpos.filename.splitFile()
-    let position = &"{name}{ext} {err.errpos.line}:{err.errpos.column} "
-    let padding = " ".repeat(position.len + err.errpos.column)
-
-    echo position, nthLine(err.errpos.filename, err.errpos.line)
-    echo padding, "^".repeat(err.expr.len()).toRed()
-    echo padding, err.annotation
-    echo ""
-
-
-
-template getCEx(t: untyped): untyped =
-  cast[t](getCurrentException())
-
-proc printSeparator*(msg: string): void =
-  let str = center(
-    " " & msg & " ",
-    width = terminalWidth(),
-    fillChar = '='
-  )
-
-  echo str.toDefault(style = { styleDim })
 
 proc getFileName*(f: string): string =
   let (_, name, ext) = f.splitFile()
