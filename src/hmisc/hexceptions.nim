@@ -30,24 +30,19 @@ proc toColorString*(err: CodeError): string =
       result &= padding & err.annotation & "\n"
     result &= ""
 
-proc toCodeError*(node: NimNode, message, annotation: string): CodeError =
+func toCodeError*(node: NimNode, message, annotation: string): CodeError =
   new(result)
-  result.msg = toColorString(CodeError(
-    msg: message,
-    annots: @[
-      ErrorAnnotation(
-        errpos: node.lineInfoObj(),
-        expr: $node.toStrLit,
-        annotation: annotation
-      )
-    ]
-  ))
-
-# func raiseCodeError*(node: NimNode,
-#                      message, annotation: string
-#                     ): void {.discardable, noreturn.} =
-#   {.noSideEffect.}:
-#     raise toCodeError(node, message, annotation)
+  {.noSideEffect.}:
+    result.msg = toColorString(CodeError(
+      msg: message,
+      annots: @[
+        ErrorAnnotation(
+          errpos: node.lineInfoObj(),
+          expr: $node.toStrLit,
+          annotation: annotation
+        )
+      ]
+    ))
 
 template getCEx*(t: untyped): untyped =
   cast[t](getCurrentException())
