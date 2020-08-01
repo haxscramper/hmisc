@@ -357,10 +357,10 @@ template ifSomeIt*[T](opt: Option[T], predicate: untyped): bool =
 import unittest
 proc testEq*[A, B](lhs: A, rhs: B) =
   # TODO use LCS to highlight only parts that are different in red
-  static:
-    assert compiles(lhs == rhs),
-     "Cannot directly compare objects of type" & $typeof(lhs) &
-       " and " & $typeof(rhs)
+  # static:
+  #   assert compiles(lhs == rhs),
+  #    "Cannot directly compare objects of type" & $typeof(lhs) &
+  #      " and " & $typeof(rhs)
 
   mixin fmt
   if lhs != rhs:
@@ -390,14 +390,14 @@ proc testEq*[A, B](lhs: A, rhs: B) =
       if (lhsStr.len > 50 or rhsStr.len > 50):
         let start = diffPos - 20
         echo "LHS: ...\e[32m", lhsStr[start ..< diffPos], "\e[39m",
-          "\e[31m", lhsStr[diffPos ..< min(diffPos + 35, lhsStr.len)],
+          "\e[31m", lhsStr[diffPos ..< min(diffPos + 40, lhsStr.len)],
           "\e[39m..."
 
         echo "RHS: ...\e[32m", rhsStr[start ..< diffPos], "\e[39m",
-          "\e[31m", rhsStr[diffPos ..< min(diffPos + 35, rhsStr.len)],
+          "\e[31m", rhsStr[diffPos ..< min(diffPos + 40, rhsStr.len)],
           "\e[39m..."
 
-        echo "             ", "^".repeat(35)
+        echo " ".repeat(28), "^".repeat(10)
       else:
         echo "LHS: ", lhsStr
         echo "RHS: ", rhsStr

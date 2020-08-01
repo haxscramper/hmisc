@@ -10,6 +10,7 @@ type
 
 
   CodeError* = ref object of CatchableError
+    raisepos*: LineInfo
     errpos: LineInfo ## Position of original error
     annots: seq[ErrorAnnotation] ## Additional error annotations
 
@@ -23,6 +24,10 @@ proc lineRange(file: string, linerange: (int, int)): seq[string] =
   ]
 
 proc toColorString*(err: CodeError): string =
+  block:
+    let (dir, name, ext) = err.raisepos.filename.splitFile()
+    result &= &"{toRed(name & ext)}:{toRed($err.raisepos.line)}:\n"
+
   result &= "\n" & err.msg & "\n\n"
   for err in err.annots:
     let (dir, name, ext) = err.errpos.filename.splitFile()
@@ -59,12 +64,15 @@ proc toColorString*(err: CodeError): string =
 
     result &= "\n" & $err.errpos.filename.toDefault({styleUnderscore})
 
-func toCodeError*(node: NimNode, message, annotation: string,
-                  lineRange: int = -2): CodeError =
+func toCodeError*(node: NimNode, message: string,
+                  annotation: string = "",
+                  lineRange: int = -2,
+                  iinfo: LineInfo = LineInfo()): CodeError =
   new(result)
   {.noSideEffect.}:
     result.msg = toColorString(CodeError(
       msg: message,
+      raisepos: iinfo,
       annots: @[
         ErrorAnnotation(
           linerange: linerange,
@@ -74,6 +82,22 @@ func toCodeError*(node: NimNode, message, annotation: string,
         )
       ]
     ))
+
+func toLineInfo*(arg: tuple[
+  filename: string, line: int, column: int]): LineInfo =
+  LineInfo(
+    filename: arg.filename,
+    line: arg.line,
+    column: arg.column
+  )
+
+template raiseCodeError*(node: NimNode, message: string,
+                         annotation: string = "",
+                         linerange: int = -2): untyped =
+  raise toCodeError(node, message, annotation, linerange,
+                    instantiationInfo().toLineInfo())
+
+
 
 template getCEx*(t: untyped): untyped =
   cast[t](getCurrentException())
@@ -91,9 +115,9 @@ proc getFileName*(f: string): string =
   let (_, name, ext) = f.splitFile()
   return name & ext
 
-template pprintErr*(body: untyped): untyped =
+template pprintErr*(): untyped =
   mixin toGreen, toDefault, toYellow, getFileName, splitFile
-  template pprintStackTrace(): untyped =
+  block:
     let e = getCurrentException()
     let choosenim = getHomeDir() & ".choosenim"
 
@@ -127,11 +151,6 @@ template pprintErr*(body: untyped): untyped =
     echo(
       (idx > 0).tern(e.msg[0 ..< idx].getFileName() & " ", "") &
       e.msg[(if idx > 0: idx else: 0)..^1])
-
-  try:
-    body
-  except:
-    pprintStackTrace()
 
 
 # DOC use formatting only on literal nodes, pas non-literal as-is
