@@ -388,7 +388,8 @@ proc testEq*[A, B](lhs: A, rhs: B) =
 
     else:
       if (lhsStr.len > 50 or rhsStr.len > 50):
-        let start = diffPos - 20
+        let start = max(diffPos - 20, 0)
+        let diffPos = max(diffPos, 1)
         echo "LHS: ...\e[32m", lhsStr[start ..< diffPos], "\e[39m",
           "\e[31m", lhsStr[diffPos ..< min(diffPos + 40, lhsStr.len)],
           "\e[39m..."

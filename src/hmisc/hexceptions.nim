@@ -26,7 +26,7 @@ proc lineRange(file: string, linerange: (int, int)): seq[string] =
 proc toColorString*(err: CodeError): string =
   block:
     let (dir, name, ext) = err.raisepos.filename.splitFile()
-    result &= &"{toRed(name & ext)}:{toRed($err.raisepos.line)}:\n"
+    result &= &"\n{toRed(name & ext)}:{toRed($err.raisepos.line)}:\n"
 
   result &= "\n" & err.msg & "\n\n"
   for err in err.annots:

@@ -27,10 +27,18 @@ proc getBranches(node: NimNode): seq[FieldBranch[NimNode]] =
 
 
 proc getFieldDescription(node: NimNode): tuple[name, fldType: string] =
+  # echo node.treeRepr()
   case node.kind:
     of nnkIdentDefs:
+      let name: string =
+        case node[0].kind:
+          of nnkPostfix:
+            $node[0][1]
+          else:
+            $node[0]
+
       return (
-        name: $node[0],
+        name: name,
         fldType: $(node[1].toStrLit)
       )
     of nnkRecCase:
@@ -59,7 +67,13 @@ proc getFields*(node: NimNode): seq[Field[NimNode]] =
         else:
           raiseAssert("Unknown parameter kind: " & $kind)
     of nnkObjectTy:
+      # echo "\e[41m*==========\e[49m  nnkObjectTy  \e[41m===========*\e[49m"
+      # echo node[2].treeRepr()
       return node[2].getFields()
+    of nnkRefTy:
+      # echo "\e[41m*============\e[49m  nnkRefTy  \e[41m============*\e[49m"
+      # echo node.treeRepr()
+      return node.getTypeImpl()[0].getImpl()[2][0].getFields()
     of nnkRecList:
       for elem in node:
         let descr = getFieldDescription(elem)
@@ -103,8 +117,7 @@ proc getFields*(node: NimNode): seq[Field[NimNode]] =
     #   )
     else:
       raiseAssert(
-        &"Unexpected node kind in `getFields` {node.kind}. Code: `{$node.toStrLit()}`, object repr: " &
-        $node.getTypeImpl().toStrLit()
+        &"Unexpected node kind in `getFields`: {node.kind}."
       )
 
 proc getKindFields*[Node](flds: seq[Field[Node]]): seq[Field[Node]] =

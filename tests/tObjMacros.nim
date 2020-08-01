@@ -83,6 +83,12 @@ suite "Case object field iteration":
     )]
 
     if lhs != rhs:
+      # echo lhs
+      # echo rhs
+      # "/tmp/generated.nim".writeFile(pstring lhs)
+      # "/tmp/expected.nim".writeFile(pstring rhs)
+      # shell:
+      #   cwdiff /tmp/expected.nim /tmp/generated.nim
       raiseAssert "Fail"
 
   test "{makeFieldsLiteral} Multiple case fields :macro:":
@@ -356,7 +362,7 @@ suite "Parallel field pairs":
       if name == "f3":
         assert fldIdx == 3
         assert valIdx == 2
-    echo 1
+    # echo 1
 
   test "{parallelFieldPairs} generic ref object":
     type

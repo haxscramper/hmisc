@@ -204,12 +204,16 @@ proc normalizeSetImpl(node: NimNode): seq[NimNode] =
       raiseAssert("Cannot normalize set: " & $node.lispRepr())
 
 
-proc normalizeSet*(node: NimNode): NimNode =
+proc normalizeSet*(node: NimNode, forcebrace: bool = false): NimNode =
   ## Convert any possible set representation (e.g. `{1}`, `{1, 2}`,
   ## `{2 .. 6}` as well as `2, 3` (in case branches). Return
   ## `nnkCurly` node with all values listed one-by-one (if identifiers
   ## were used) or in ranges (if original node contained `..`)
-  return nnkCurly.newTree(normalizeSetImpl(node))
+  let vals = normalizeSetImpl(node)
+  if vals.len == 1 and not forcebrace:
+    return vals[0]
+  else:
+    return nnkCurly.newTree(vals)
 
 proc parseEnumSet*[Enum](
   node: NimNode,
