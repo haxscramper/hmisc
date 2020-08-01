@@ -1,6 +1,6 @@
 ## Statically typed nim ast representation
 
-import ../helpers
+import hmisc/helpers
 import sequtils, colors, macros, tables, strutils
 
 type

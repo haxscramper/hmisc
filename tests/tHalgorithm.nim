@@ -2,7 +2,7 @@ import unittest, strutils
 import sugar, json, sequtils, tables, strformat, options
 
 import hmisc/types/hvariant
-import hmisc/[helpers, hpprint]
+import hmisc/[helpers]
 import hmisc/algo/[halgorithm, htree_mapping, hseqdistance]
 
 type
