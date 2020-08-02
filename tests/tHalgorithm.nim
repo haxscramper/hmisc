@@ -581,3 +581,11 @@ suite "Misc algorithms":
       initColoredString("-"),
       initColoredString("000", fg = fgBlue, style = {styleBright})
     ]
+
+
+    assertEq "###---\e[31m\e[44m\e[4m\e[3m###\e[23m\e[24m\e[49m\e[39m".splitSGR(), @[
+      initColoredString("###---"),
+      initColoredString(
+        "###", fg = fgRed, bg = bgBlue, style = {
+          styleItalic, styleUnderscore})
+    ]

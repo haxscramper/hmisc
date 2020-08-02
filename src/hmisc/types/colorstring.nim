@@ -17,18 +17,19 @@ func style*(cs: ColoredString): set[Style] = cs.styling.style
 
 func `$`*(colored: ColoredString): string =
   result = colored.str
+  func wrapcode(str: string, start, finish: int): string =
+    fmt("\e[{start}m{str}\e[{finish}m")
 
   if colored.fg.int != 0 and colored.fg != fgDefault:
-    result = ansiForegroundColorCode(
-      fg = colored.fg,
-      bright = styleBright in colored.style) &
-        result &
-      ansiStyleCode(39)
+    result = result.wrapcode(int(colored.fg) +
+      (if styleBright in colored.style: 60 else: 0), 39)
 
   if colored.bg.int != 0 and colored.bg != bgDefault:
-    result = ansiStyleCode(
-      int(colored.bg) + (if styleBright in colored.style: 60 else: 0)
-    ) & result & ansiStyleCode(39)
+    result = result.wrapcode(int(colored.bg) +
+      (if styleBright in colored.style: 60 else: 0), 49)
+
+  if styleUnderscore in colored.style: result = result.wrapcode(4, 24)
+  if styleItalic in colored.style: result = result.wrapcode(3, 23)
 
 func lispRepr*(colstr: ColoredString): string =
   fmt("(\"{colstr.str}\" :bg {colstr.bg} :fg {colstr.fg} :style {colstr.style})")
@@ -136,26 +137,26 @@ func changeStyle(ps: var PrintStyling, code: int): void =
       discard
     of 23:
       # Not italic, not Fraktur
-      discard
+      ps.style.excl styleItalic
     of 24:
       # Underline off Not singly or doubly underlined
-      discard
+      ps.style.excl styleUnderscore
     of 25:
       # Blink off
-      discard
+      ps.style.excl styleBlink
     of 26:
       # Proportional spacing ITU T.61 and T.416, not known to be used
       # on terminals
       discard
     of 27:
       # Reverse/invert off
-      discard
+      ps.style.excl styleReverse
     of 28:
       # Reveal conceal off
-      discard
+      ps.style.excl styleHidden
     of 29:
       # Not crossed out
-      discard
+      ps.style.excl styleStrikethrough
     of 30 .. 37:
       # Set foreground color See color table below
       ps.fg = ForegroundColor(code)
