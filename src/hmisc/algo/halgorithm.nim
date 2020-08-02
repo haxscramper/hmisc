@@ -370,8 +370,17 @@ proc testEq*[A, B](lhs: A, rhs: B) =
 
   mixin fmt
   if lhs != rhs:
+    # mixin lispRepr
+    # when compiles(lispRepr(lhs)):
+    #   let lhsStr = lhs.lispRepr()
+    # else:
     let lhsStr = $lhs
+
+    # when compiles(lispRepr(rhs)):
+    #   let rhsStr = lispRepr(rhs)
+    # else:
     let rhsStr = $rhs
+
 
     testEnded(
       ConsoleOutputFormatter(colorOutput: true, isInSuite: true),
@@ -412,15 +421,15 @@ proc testEq*[A, B](lhs: A, rhs: B) =
 
         echo " ".repeat(28), "^".repeat(10)
       else:
-        if lhsStr.termLen != lhsStr.len:
+        if (lhsStr.termLen != lhsStr.len) or (rhsStr.termLen != rhsStr.len):
           echo "Different ANSI codes"
-          let lhs = lhsStr.replace("\e", "\\e")
-          echo fmt("LHS: {lhs}")
+          echo "LHS: ", lhsStr.replace("\e", "\\e")
+          echo "RHS: ", rhsStr.replace("\e", "\\e")
         else:
           echo fmt("LHS: {lhsStr}")
+          echo fmt("RHS: {rhsStr}")
 
-        echo "RHS: ", rhsStr
-        echo "    ", " ".repeat(diffPos),
+        echo "    ", " ".repeat(diffPos + 1),
                  "^".repeat(rhsStr.len() - diffPos + 1)
 
     echo ""

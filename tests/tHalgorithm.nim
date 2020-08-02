@@ -1,5 +1,5 @@
 import unittest, strutils
-import sugar, json, sequtils, tables, strformat, options
+import sugar, json, sequtils, tables, strformat, options, terminal
 
 import hmisc/types/[hvariant, colorstring]
 import hmisc/[helpers]
@@ -565,3 +565,19 @@ suite "Misc algorithms":
     assertEq termLen("\e[41mhhh\e[49m"), 3
     assertEq termLen("ᛀᛀᛀᛀ"), 4
     assertEq termLen("\e[42mᛀᛀ\e[49m\e[44mᛀᛀ\e[49m"), 4
+
+  test "{splitSGR}":
+    func lispRepr(strs: seq[ColoredString]): string =
+      strs.mapIt(it.lispRepr()).join(" ").wrap("()")
+
+    # TEST TODO test multiple consecutive control codes
+    assertEq "hello \e[31mworld\e[39m".splitSGR(), @[
+      "hello ".initColoredString(),
+      "world".initColoredString(fg = fgRed)
+    ]
+
+    assertEq "\e[92m000\e[39m-\e[94m000\e[39m".splitSGR(), @[
+      initColoredString("000", fg = fgGreen, style = {styleBright}),
+      initColoredString("-"),
+      initColoredString("000", fg = fgBlue, style = {styleBright})
+    ]
