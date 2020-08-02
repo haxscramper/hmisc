@@ -1,6 +1,6 @@
 import math, strutils, sequtils, random, macros, options, strformat
 import std/wordwrap
-import ../types/hprimitives
+import ../types/[hprimitives, colorstring]
 import hmath
 export hmath
 
@@ -100,7 +100,7 @@ func endsWith*(str: string, chars: set[char]): bool =
 func startsWith*(str: string, chars: set[char]): bool =
   str[0] in chars
 
-func msgjoin*(args: varargs[string, `$`]): string =
+func msgjoinImpl*(args: seq[string]): string =
   for idx in 0 ..< args.len:
     if idx == args.len - 1:
       result &= args[idx]
@@ -112,6 +112,12 @@ func msgjoin*(args: varargs[string, `$`]): string =
         result &= args[idx]
       else:
         result &= args[idx] & " "
+
+func msgjoin*(args: varargs[string, `$`]): string =
+  msgjoinImpl(toSeq(args))
+
+template raisejoin*(text: seq[string]): untyped =
+  raiseAssert(msgjoinImpl(text))
 
 template last*[T](stack: var seq[T]): var T = stack[^1]
 template last*[T](stack: seq[T]): T = stack[^1]
@@ -380,7 +386,13 @@ proc testEq*[A, B](lhs: A, rhs: B) =
 
       for idx, line in zip(linesA, linesB):
         if line[0] != line[1]:
-          echo fmt("LHS #{idx}: '{line[0]}'")
+          if line[0].termLen != line[0].len:
+            echo "Different ANSI codes"
+            let lhs = line[0].replace("\e", "\\e")
+            echo fmt("LHS #{idx}: '{lhs}'")
+          else:
+            echo fmt("LHS #{idx}: '{line[0]}'")
+
           echo fmt("RHS #{idx}: '{line[1]}'")
           break
         # else:
@@ -400,9 +412,16 @@ proc testEq*[A, B](lhs: A, rhs: B) =
 
         echo " ".repeat(28), "^".repeat(10)
       else:
-        echo "LHS: ", lhsStr
+        if lhsStr.termLen != lhsStr.len:
+          echo "Different ANSI codes"
+          let lhs = lhsStr.replace("\e", "\\e")
+          echo fmt("LHS: {lhs}")
+        else:
+          echo fmt("LHS: {lhsStr}")
+
         echo "RHS: ", rhsStr
-        echo "    ", " ".repeat(diffPos), "^".repeat(rhsStr.len() - diffPos + 1)
+        echo "    ", " ".repeat(diffPos),
+                 "^".repeat(rhsStr.len() - diffPos + 1)
 
     echo ""
 

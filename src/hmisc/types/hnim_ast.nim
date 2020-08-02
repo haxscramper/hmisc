@@ -1,7 +1,8 @@
 ## Statically typed nim ast representation
 
 import hmisc/helpers
-import sequtils, colors, macros, tables, strutils
+import sequtils, colors, macros, tables, strutils, terminal
+import hmisc/types/colorstring
 
 type
   FieldBranch*[Node] = object
@@ -52,6 +53,20 @@ type
     orkReference
     orkPointer
 
+  PrintStyling* = object
+    fg*: ForegroundColor
+    bg*: BackgroundColor
+    style*: set[Style]
+
+  ObjAccs = object
+    case isIdx*: bool
+      of true:
+        idx*: int
+      of false:
+        name*: string
+
+  ObjPath = seq[ObjAccs]
+
   ObjTree*[Node] = object
     ##[
 
@@ -72,6 +87,8 @@ type
     path*: seq[int] ## Path of object in original tree
     objId*: int
     isPrimitive*: bool ## Whether or not value can be considered primitive
+    annotation*: string
+    styling*: PrintStyling
     case kind*: ObjKind
       of okConstant:
         constType*: string ## Type of the value
@@ -185,6 +202,80 @@ func `==`*[Node](lhs, rhs: Field[Node]): bool =
     )
 
 #*************************************************************************#
+#***********************  Annotation and styling  ************************#
+#*************************************************************************#
+
+func annotate*(tree: var ValObjTree, annotation: string): void =
+  tree.annotation = annotation
+
+func stylize*(tree: var ValObjTree, conf: PrintStyling): void =
+  tree.styling = conf
+
+func styleTerm*(str: string, conf: PrintStyling): string =
+  # debugecho conf
+  $ColoredString(
+    style: conf.style,
+    bg: conf.bg,
+    fg: conf.fg,
+    str: str)
+
+#*************************************************************************#
+#*****************************  Path access  *****************************#
+#*************************************************************************#
+
+func objAccs*(idx: int): ObjAccs = ObjAccs(isIdx: true, idx: idx)
+func objAccs*(name: string): ObjAccs = ObjAccs(isIdx: false, name: name)
+func objPath*(path: varargs[ObjAccs, `objAccs`]): ObjPath = toSeq(path)
+# func `@/`*(idx: int, name: string): ObjPath = @[objAccs(idx), objAccs(name)]
+# func `@/`*(name: string, idx: int): ObjPath = @[objAccs(name), objAccs(idx)]
+# func `@/`*(path: ObjPath, idx: int): ObjPath = path & @[objAccs(idx)]
+# func `@/`*(path: ObjPath, name: string): ObjPath = path & @[objAccs(name)]
+
+func getAtPath*(obj: var ValObjTree, path: ObjPath): var ValObjTree =
+  # debugecho path
+  case obj.kind:
+    of okComposed:
+      if path.len < 1:
+        return obj
+      else:
+        if path[0].isIdx:
+          return obj.fldPairs[path[0].idx].value.getAtPath(path[1..^1])
+        else:
+          if obj.namedFields:
+            for fld in mitems(obj.fldPairs):
+              if fld.name == path[0].name:
+                 return fld.value.getAtPath(path[1..^1])
+
+            raisejoin(@["Cannot get field name '", path[0].name,
+              "' from object - no such field found"])
+          else:
+            raisejoin(@["Cannot get field name '", path[0].name,
+              "' from object with unnamed fields"])
+    of okConstant:
+      if path.len > 1:
+        raiseAssert(msgjoin(
+          "Attempt to access subelements of constant value at path ",
+          path))
+      else:
+        return obj
+    of okSequence:
+      if path.len == 0:
+        return obj
+
+      if not path[0].isIdx:
+        raiseAssert(msgjoin(
+          "Cannot access sequence elements by name, path", path,
+          "starts with non-index"))
+      elif path.len == 1:
+        return obj.valItems[path[0].idx]
+      else:
+        return obj.valItems[path[0].idx].getAtPath(path[1..^1])
+
+    else:
+      raiseAssert("#[ IMPLEMENT ]#")
+
+
+#*************************************************************************#
 #****************************  Ast reparsing  ****************************#
 #*************************************************************************#
 
@@ -217,7 +308,8 @@ proc normalizeSet*(node: NimNode, forcebrace: bool = false): NimNode =
 
 proc parseEnumSet*[Enum](
   node: NimNode,
-  namedSets: Table[string, set[Enum]] = initTable[string, set[Enum]]()): set[Enum] =
+  namedSets: Table[string, set[Enum]] =
+      initTable[string, set[Enum]]()): set[Enum] =
   case node.kind:
     of nnkIdent:
       try:
@@ -228,7 +320,8 @@ proc parseEnumSet*[Enum](
         else:
           raise newException(
             ValueError,
-            "Invalid enum value '" & $node & "' for expression " & posString(node) &
+            "Invalid enum value '" & $node & "' for expression " &
+              posString(node) &
               " and no such named set exists (available ones: " &
               namedSets.mapPairs(lhs).joinq() & ")"
           )

@@ -8,28 +8,6 @@ type
     style*: set[Style]
 
 
-func toRed*(str: string, style: set[Style] = {}): ColoredString =
-  ColoredString(str: str, style: style, fg: fgRed)
-
-func toGreen*(str: string, style: set[Style] = {}): ColoredString =
-  ColoredString(str: str, style: style, fg: fgGreen)
-
-func toYellow*(str: string, style: set[Style] = {}): ColoredString =
-  ColoredString(str: str, style: style, fg: fgYellow)
-
-func toWhite*(str: string, style: set[Style] = {}): ColoredString =
-  ColoredString(str: str, style: style, fg: fgWhite)
-
-func toCyan*(str: string, style: set[Style] = {}): ColoredString =
-  ColoredString(str: str, style: style, fg: fgCyan)
-
-func toMagenta*(str: string, style: set[Style] = {}): ColoredString =
-  ColoredString(str: str, style: style, fg: fgMagenta)
-
-func toDefault*(str: string, style: set[Style] = {}): ColoredString =
-  ColoredString(str: str, style: style, fg: fgDefault)
-
-# func toStyle*(str: string)
 
 proc debug*(str: ColoredString) =
   echo "str: ", str.str, " fg: ",
@@ -38,25 +16,48 @@ proc debug*(str: ColoredString) =
      str.style
 
 func `$`*(colored: ColoredString): string =
-  let fgCode = if colored.fg.int != 0:
-      ansiForegroundColorCode(
-        fg = colored.fg,
-        bright = styleBright in colored.style)
-    else:
-      ""
+  result = colored.str
 
-  let bgCode = if colored.bg.int != 0:
-      ansiStyleCode(
-        colored.bg.int +
-        (if styleBright in colored.style: 60 else: 0))
-      else:
-        ""
+  if colored.fg.int != 0:
+    result = ansiForegroundColorCode(
+      fg = colored.fg,
+      bright = styleBright in colored.style) &
+        result &
+      ansiStyleCode(39)
 
-  toSeq(colored.style).mapIt(ansiStyleCode(it)).join &
-    fgCode &
-    bgCode &
-    colored.str &
-    ansiStyleCode(0)
+  if colored.bg.int != 0:
+    result = ansiStyleCode(
+      int(colored.bg) + (if styleBright in colored.style: 30 else: 0)
+    ) & result & ansiStyleCode(39)
+
+  # for style in cor
+  # toSeq(colored.style).mapIt(ansiStyleCode(it)).join &
+  #   fgCode &
+  #   bgCode &
+  #   colored.str &
+  #   ansiStyleCode(0)
+
+func toRed*(str: string, style: set[Style] = {}): string =
+  $ColoredString(str: str, style: style, fg: fgRed)
+
+func toGreen*(str: string, style: set[Style] = {}): string =
+  $ColoredString(str: str, style: style, fg: fgGreen)
+
+func toYellow*(str: string, style: set[Style] = {}): string =
+  $ColoredString(str: str, style: style, fg: fgYellow)
+
+func toWhite*(str: string, style: set[Style] = {}): string =
+  $ColoredString(str: str, style: style, fg: fgWhite)
+
+func toCyan*(str: string, style: set[Style] = {}): string =
+  $ColoredString(str: str, style: style, fg: fgCyan)
+
+func toMagenta*(str: string, style: set[Style] = {}): string =
+  $ColoredString(str: str, style: style, fg: fgMagenta)
+
+func toDefault*(str: string, style: set[Style] = {}): string =
+  $ColoredString(str: str, style: style, fg: fgDefault)
+
 
 
 func len*(str: ColoredString): int = str.str.len
