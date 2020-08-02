@@ -53,11 +53,6 @@ type
     orkReference
     orkPointer
 
-  PrintStyling* = object
-    fg*: ForegroundColor
-    bg*: BackgroundColor
-    style*: set[Style]
-
   ObjAccs = object
     case isIdx*: bool
       of true:

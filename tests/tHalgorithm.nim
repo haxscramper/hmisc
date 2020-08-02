@@ -556,6 +556,10 @@ suite "Misc algorithms":
     test("123", "010233", m.sum() * 7, @[1, 3, 5])
     test("123", "01122330", 1, @[1, 3, 5])
 
+  test "Colored string wrapping":
+    assertEq "999".toRed(), "\e[31m999\e[39m"
+    assertEq "999".toDefault(), "999"
+
   test "{termLen}":
     assertEq termLen("hhh"), 3
     assertEq termLen("\e[41mhhh\e[49m"), 3

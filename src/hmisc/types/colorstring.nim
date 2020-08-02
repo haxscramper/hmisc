@@ -1,62 +1,63 @@
 import terminal, sequtils, strformat, strutils, unicode, strscans
 
 type
-  ColoredString* = object
-    str*: string
+  PrintStyling* = object
     fg*: ForegroundColor
     bg*: BackgroundColor
     style*: set[Style]
 
+  ColoredString* = object
+    str*: string
+    styling*: PrintStyling
 
 
-proc debug*(str: ColoredString) =
-  echo "str: ", str.str, " fg: ",
-     str.fg, " bg: ",
-     str.bg, " style:",
-     str.style
+func fg*(cs: ColoredString): ForegroundColor = cs.styling.fg
+func bg*(cs: ColoredString): BackgroundColor = cs.styling.bg
+func style*(cs: ColoredString): set[Style] = cs.styling.style
 
 func `$`*(colored: ColoredString): string =
   result = colored.str
 
-  if colored.fg.int != 0:
+  if colored.fg.int != 0 and colored.fg != fgDefault:
     result = ansiForegroundColorCode(
       fg = colored.fg,
       bright = styleBright in colored.style) &
         result &
       ansiStyleCode(39)
 
-  if colored.bg.int != 0:
+  if colored.bg.int != 0 and colored.bg != bgDefault:
     result = ansiStyleCode(
       int(colored.bg) + (if styleBright in colored.style: 30 else: 0)
     ) & result & ansiStyleCode(39)
 
-  # for style in cor
-  # toSeq(colored.style).mapIt(ansiStyleCode(it)).join &
-  #   fgCode &
-  #   bgCode &
-  #   colored.str &
-  #   ansiStyleCode(0)
+func initColoredString*(str: string,
+                        bg: BackgroundColor = bgDefault,
+                        fg: ForegroundColor = fgDefault,
+                        style: set[Style] = {}): ColoredString =
+  ColoredString(str: str, styling: PrintStyling(
+    fg: fg, bg: bg, style: style))
+
 
 func toRed*(str: string, style: set[Style] = {}): string =
-  $ColoredString(str: str, style: style, fg: fgRed)
+  $initColoredString(str, style = style, fg = fgRed)
 
 func toGreen*(str: string, style: set[Style] = {}): string =
-  $ColoredString(str: str, style: style, fg: fgGreen)
+  $initColoredString(str, style = style, fg = fgGreen)
 
 func toYellow*(str: string, style: set[Style] = {}): string =
-  $ColoredString(str: str, style: style, fg: fgYellow)
+  $initColoredString(str, style = style, fg = fgYellow)
 
 func toWhite*(str: string, style: set[Style] = {}): string =
-  $ColoredString(str: str, style: style, fg: fgWhite)
+  $initColoredString(str, style = style, fg = fgWhite)
 
 func toCyan*(str: string, style: set[Style] = {}): string =
-  $ColoredString(str: str, style: style, fg: fgCyan)
+  $initColoredString(str, style = style, fg = fgCyan)
 
 func toMagenta*(str: string, style: set[Style] = {}): string =
-  $ColoredString(str: str, style: style, fg: fgMagenta)
+  $initColoredString(str, style = style, fg = fgMagenta)
 
 func toDefault*(str: string, style: set[Style] = {}): string =
-  $ColoredString(str: str, style: style, fg: fgDefault)
+  $initColoredString(str, style = style, fg = fgDefault)
 
 
 
@@ -75,3 +76,5 @@ func termLen*(str: string): int =
 
 
   return runeLen - termsyms
+
+# func splitSGR
