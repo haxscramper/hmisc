@@ -150,8 +150,8 @@ macro mapPairs*(
       var `idxId` {.inject.}: int = 0
       type TRes = type((
         block:
-          var `lhsId` {.inject.}: TLhs
-          var `rhsId` {.inject.}: TRhs
+          var lhsRef: ref TLhs; var `lhsId` {.inject.} = lhsRef[]
+          var rhsRef: ref TRhs; var `rhsId` {.inject.} = rhsRef[]
           `op`))
 
       var res: seq[TRes]

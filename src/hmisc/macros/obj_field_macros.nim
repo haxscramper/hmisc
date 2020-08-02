@@ -43,7 +43,6 @@ proc getFieldDescription(node: NimNode): tuple[name, fldType: string] =
       )
     of nnkRecCase:
       return getFieldDescription(node[0])
-
     else:
       raiseAssert(
         &"Cannot get field description from node of kind {node.kind}")
@@ -75,24 +74,28 @@ proc getFields*(node: NimNode): seq[Field[NimNode]] =
       # echo node.treeRepr()
       return node.getTypeImpl()[0].getImpl()[2][0].getFields()
     of nnkRecList:
+      # echo "\e[41m*==========\e[49m  ee  \e[41m==========*\e[49m"
+      # echo node.treeRepr()
+      # echo node.kind
       for elem in node:
-        let descr = getFieldDescription(elem)
-        case elem.kind:
-          of nnkRecCase: # Case field
-            result.add Field[NimNode](
-              value: initObjTree[NimNode](),
-              isTuple: false,
-              isKind: true,
-              branches: getBranches(elem),
-              name: descr.name,
-              fldType: descr.fldType,
-            )
+        if elem.kind != nnkRecList:
+          let descr = getFieldDescription(elem)
+          case elem.kind:
+            of nnkRecCase: # Case field
+              result.add Field[NimNode](
+                value: initObjTree[NimNode](),
+                isTuple: false,
+                isKind: true,
+                branches: getBranches(elem),
+                name: descr.name,
+                fldType: descr.fldType,
+              )
 
-          of nnkIdentDefs: # Regular field definition
-            result.add getFields(elem)[0]
+            of nnkIdentDefs: # Regular field definition
+              result.add getFields(elem)[0]
 
-          else:
-            discard
+            else:
+              discard
 
     of nnkTupleTy:
       for fld in node:
