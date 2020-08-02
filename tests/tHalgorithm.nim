@@ -1,7 +1,7 @@
 import unittest, strutils
 import sugar, json, sequtils, tables, strformat, options
 
-import hmisc/types/hvariant
+import hmisc/types/[hvariant, colorstring]
 import hmisc/[helpers]
 import hmisc/algo/[halgorithm, htree_mapping, hseqdistance]
 
@@ -555,3 +555,9 @@ suite "Misc algorithms":
 
     test("123", "010233", m.sum() * 7, @[1, 3, 5])
     test("123", "01122330", 1, @[1, 3, 5])
+
+  test "{termLen}":
+    assertEq termLen("hhh"), 3
+    assertEq termLen("\e[41mhhh\e[49m"), 3
+    assertEq termLen("ᛀᛀᛀᛀ"), 4
+    assertEq termLen("\e[42mᛀᛀ\e[49m\e[44mᛀᛀ\e[49m"), 4

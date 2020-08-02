@@ -1,4 +1,4 @@
-import terminal, sequtils, strformat, strutils
+import terminal, sequtils, strformat, strutils, unicode, strscans
 
 type
   ColoredString* = object
@@ -60,3 +60,17 @@ func `$`*(colored: ColoredString): string =
 
 
 func len*(str: ColoredString): int = str.str.len
+
+func termLen*(str: string): int =
+  ## Get length of the string as visible if printed in terminal
+  let runelen = str.runeLen()
+  var termsyms: int = 0
+
+  block:
+    var pos: int = 0
+    while scanp(
+      str, pos, (*(~ '\e'), ("\e[", +{'1' .. '9'}, 'm') -> inc(termsyms))):
+      inc termsyms
+
+
+  return runeLen - termsyms
