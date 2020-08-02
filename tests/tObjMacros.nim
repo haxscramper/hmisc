@@ -1,6 +1,6 @@
 import sugar, strutils, sequtils, strformat
 import ../src/hmisc/macros/[obj_field_macros]
-import ../src/hmisc/types/hnim_ast
+import ../src/hmisc/types/[hnim_ast, colorstring]
 
 #===========================  implementation  ============================#
 
@@ -18,7 +18,10 @@ suite "Case object field iteration":
 
     let generated = U.makeFieldsLiteral()
     let expected = @[
-      ValField(name: "f1", fldType: "int", isKind: false, isTuple: false)
+      ValField(
+        name: "f1", fldType: "int", isKind: false,
+        isTuple: false, value: initObjTree[void]()
+      )
     ]
 
     # echo $(ValField())
@@ -38,10 +41,14 @@ suite "Case object field iteration":
 
     let generated = U.makeFieldsLiteral()
     let expected = @[
-      ValField(name: "f1", fldType: "int", isKind: false, isTuple: false),
-      ValField(name: "f2", fldType: "float", isKind: false, isTuple: false),
-      ValField(name: "f3", fldType: "char", isKind: false, isTuple: false),
-      ValField(name: "f4", fldType: "string", isKind: false, isTuple: false)
+      ValField(name: "f1", fldType: "int", isKind: false,
+               isTuple: false, value: initObjTree[void]()),
+      ValField(name: "f2", fldType: "float", isKind: false,
+               isTuple: false, value: initObjTree[void]()),
+      ValField(name: "f3", fldType: "char", isKind: false,
+               isTuple: false, value: initObjTree[void]()),
+      ValField(name: "f4", fldType: "string", isKind: false,
+               isTuple: false, value: initObjTree[void]())
     ]
 
     if generated != expected:
@@ -64,19 +71,33 @@ suite "Case object field iteration":
     let lhs = U.makeFieldsLiteral()
     let rhs = @[
       ValField(fldType: "bool", name: "kind", isKind: true,
-               isTuple: false, branches: @[
+               isTuple: false,
+               value: initObjTree[void](),
+               branches: @[
         ValFieldBranch(
           value: ValObjTree(
-            kind: okConstant, constType: "bool", strLit: "true"),
+            kind: okConstant, constType: "bool", strLit: "true",
+            styling: initPrintStyling()
+          ),
           flds: @[ ValField(fldType: "int", isKind: false,
-                            name: "f1", isTuple: false) ],
+                            name: "f1", isTuple: false,
+                            value: initObjTree[void]()) ],
           isElse: false
         ),
         ValFieldBranch(
           value: ValObjTree(
-            kind: okConstant, constType: "bool", strLit: "false"),
+            kind: okConstant,
+            constType: "bool",
+            strLit: "false",
+            styling: initPrintStyling()
+          ),
           flds: @[ ValField(
-            fldType: "float", isKind: false, name: "f2", isTuple: false) ],
+            fldType: "float",
+            isKind: false,
+            name: "f2",
+            isTuple: false,
+            value: initObjTree[void]()
+          ) ],
           isElse: false
         ),
       ]
@@ -107,34 +128,47 @@ suite "Case object field iteration":
     let generated = U.makeFieldsLiteral()
     let expected  = @[
       ValField(fldType: "bool", name: "kind1", isKind: true,
-               isTuple: false, branches: @[
+               isTuple: false,
+               value: initObjTree[void](),
+               branches: @[
         ValFieldBranch(
           value: ValObjTree(
-            kind: okConstant, constType: "bool", strLit: "true"),
+            kind: okConstant,
+            constType: "bool",
+            strLit: "true",
+            styling: initPrintStyling()
+          ),
           flds: @[ ValField(
-            fldType: "int", isKind: false, name: "f11", isTuple: false) ],
+            fldType: "int",
+            isKind: false,
+            name: "f11",
+            isTuple: false,
+            value: initObjTree[void]()
+          ) ],
           isElse: false
          ),
         ValFieldBranch(
           value: ValObjTree(
-            kind: okConstant, constType: "bool", strLit: "false"),
+            kind: okConstant, constType: "bool",
+            strLit: "false", styling: initPrintStyling()),
           flds: @[ ValField(
-            fldType: "float", isKind: false, name: "f21", isTuple: false) ],
+            fldType: "float", isKind: false, name: "f21",
+            isTuple: false, value: initObjTree[void]()) ],
           isElse: false
          ),
       ]),
-      ValField(fldType: "char", name: "kind2", isKind: true,
+      ValField(value: initObjTree[void](), fldType: "char", name: "kind2", isKind: true,
                isTuple: false, branches: @[
         ValFieldBranch(
-          value: ValObjTree(
+          value: ValObjTree(styling: initPrintStyling(),
             kind: okConstant, constType: "char", strLit: "'a'"),
-          flds: @[ ValField(fldType: "int", isKind: false,
+          flds: @[ ValField(value: initObjTree[void](), fldType: "int", isKind: false,
                             name: "f12", isTuple: false) ],
           isElse: false
         ),
         ValFieldBranch(
-          value: ValObjTree(),
-          flds: @[ ValField(fldType: "float", isKind: false,
+          value: ValObjTree(styling: initPrintStyling(),),
+          flds: @[ ValField(value: initObjTree[void](), fldType: "float", isKind: false,
                             name: "f22", isTuple: false) ],
           isElse: true
         ),
@@ -164,33 +198,33 @@ suite "Case object field iteration":
 
     let generated = U.makeFieldsLiteral()
     let expected = @[
-      ValField(fldType: "bool", name: "kind1", isKind: true,
+      ValField(value: initObjTree[void](), fldType: "bool", name: "kind1", isKind: true,
                isTuple: false, branches: @[
         ValFieldBranch(
-          value: ValObjTree(
+          value: ValObjTree(styling: initPrintStyling(),
             kind: okConstant, constType: "bool", strLit: "true"),
-          flds: @[ ValField(fldType: "int", isKind: false,
+          flds: @[ ValField(value: initObjTree[void](), fldType: "int", isKind: false,
                             name: "f11", isTuple: false) ],
           isElse: false
          ),
         ValFieldBranch(
-          value: ValObjTree(
+          value: ValObjTree(styling: initPrintStyling(),
             kind: okConstant, constType: "bool", strLit: "false"),
           flds: @[
-            ValField(
+            ValField(value: initObjTree[void](),
               fldType: "char", name: "kind2", isKind: true,
               isTuple: false, branches: @[
               ValFieldBranch(
-                value: ValObjTree(
+                value: ValObjTree(styling: initPrintStyling(),
                   kind: okConstant, constType: "char", strLit: "'a'"),
-                flds: @[ ValField(
+                flds: @[ ValField(value: initObjTree[void](),
                   fldType: "int", isKind: false, name: "f12",
                   isTuple: false) ],
                 isElse: false
               ),
               ValFieldBranch(
-                value: ValObjTree(),
-                flds: @[ ValField(
+                value: ValObjTree(styling: initPrintStyling(),),
+                flds: @[ ValField(value: initObjTree[void](),
                   fldType: "float", isKind: false,
                   name: "f22", isTuple: false) ],
                 isElse: true
@@ -209,9 +243,9 @@ suite "Case object field iteration":
     proc generic[T](a: T): void =
       let generated = T.makeFieldsLiteral()
       let expected = @[
-        ValField(name: "f1", fldType: "int",
+        ValField(value: initObjTree[void](), name: "f1", fldType: "int",
                  isKind: false, isTuple: false),
-        ValField(name: "f2", fldType: "char",
+        ValField(value: initObjTree[void](), name: "f2", fldType: "char",
                  isKind: false, isTuple: false)
       ]
 
@@ -250,20 +284,20 @@ suite "Case object field iteration":
 
     let generated = makeFieldsLiteral(U).getKindFields()
     let expected = @[
-      ValField(
+      ValField(value: initObjTree[void](),
         name: "kind1", fldType: "bool", isKind: true,
         isTuple: false, branches: @[
           ValFieldBranch(
-            value: ValObjTree(
+            value: ValObjTree(styling: initPrintStyling(),
               kind: okConstant, constType: "bool", strLit: "false"),
             flds: @[
-              ValField(name: "kind2", fldType: "char",
+              ValField(value: initObjTree[void](), name: "kind2", fldType: "char",
                        isKind: true, isTuple: false)
             ]
           )
         ]
       ),
-      ValField(name: "kind3", fldType: "bool", isKind: true, isTuple: false)
+      ValField(value: initObjTree[void](), name: "kind3", fldType: "bool", isKind: true, isTuple: false)
     ]
 
     if generated != expected:

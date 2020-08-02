@@ -3,7 +3,7 @@ import strutils, strformat, macros, sequtils
 
 import ../algo/halgorithm
 import ../helpers
-import ../types/hnim_ast
+import ../types/[hnim_ast, colorstring]
 
 proc getFields*(node: NimNode): seq[Field[NimNode]]
 
@@ -80,11 +80,12 @@ proc getFields*(node: NimNode): seq[Field[NimNode]] =
         case elem.kind:
           of nnkRecCase: # Case field
             result.add Field[NimNode](
+              value: initObjTree[NimNode](),
               isTuple: false,
               isKind: true,
               branches: getBranches(elem),
               name: descr.name,
-              fldType: descr.fldType
+              fldType: descr.fldType,
             )
 
           of nnkIdentDefs: # Regular field definition
@@ -98,11 +99,13 @@ proc getFields*(node: NimNode): seq[Field[NimNode]] =
         result.add fld.getFields()
     of nnkTupleConstr:
       for idx, sym in node:
-        result.add Field[NimNode](isTuple: true, tupleIdx: idx)
+        result.add Field[NimNode](
+          isTuple: true, tupleIdx: idx, value: initObjTree[NimNode]())
 
     of nnkIdentDefs:
       let descr = getFieldDescription(node)
       result.add Field[NimNode](
+        value: initObjTree[NimNode](),
         isTuple: false,
         isKind: false,
         name: descr.name,
@@ -143,6 +146,7 @@ proc discardNimNode(input: seq[Field[NimNode]]): seq[ValField] =
     case fld.isKind:
       of true:
         result.add ValField(
+          value: initObjTree[void](),
           isTuple: false,
           isKind: true,
           name: fld.name,
@@ -151,6 +155,7 @@ proc discardNimNode(input: seq[Field[NimNode]]): seq[ValField] =
           branches: fld.branches.mapIt(
             ValFieldBranch(
               value: ValObjTree(
+                styling: initPrintStyling(),
                 kind: okConstant,
                 constType: (it.isElse).tern("", fld.fldType),
                 strLit: (it.isElse).tern("", $it.ofValue.toStrLit())
@@ -163,6 +168,7 @@ proc discardNimNode(input: seq[Field[NimNode]]): seq[ValField] =
 
       of false:
         result.add ValField(
+          value: initObjTree[void](),
           isTuple: false,
           isKind: false,
           name: fld.name,

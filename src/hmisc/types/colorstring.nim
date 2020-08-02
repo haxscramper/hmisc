@@ -11,6 +11,9 @@ type
     styling*: PrintStyling
 
 
+func initPrintStyling*(): PrintStyling =
+  PrintStyling(fg: fgDefault, bg: bgDefault)
+
 func fg*(cs: ColoredString): ForegroundColor = cs.styling.fg
 func bg*(cs: ColoredString): BackgroundColor = cs.styling.bg
 func style*(cs: ColoredString): set[Style] = cs.styling.style

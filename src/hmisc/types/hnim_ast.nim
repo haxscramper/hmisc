@@ -83,7 +83,7 @@ type
     objId*: int
     isPrimitive*: bool ## Whether or not value can be considered primitive
     annotation*: string
-    styling*: PrintStyling
+    styling* {.requiresinit.}: PrintStyling
     case kind*: ObjKind
       of okConstant:
         constType*: string ## Type of the value
@@ -145,6 +145,8 @@ type
 func makeObjElem*[Conf](text: string, conf: Conf): ObjElem[Conf] =
   ObjElem[Conf](isValue: true, text: text, config: conf)
 
+func initObjTree*[Node](): ObjTree[Node] =
+  ObjTree[Node](styling: initPrintStyling())
 
 #==============================  operators  ==============================#
 
@@ -207,12 +209,7 @@ func stylize*(tree: var ValObjTree, conf: PrintStyling): void =
   tree.styling = conf
 
 func styleTerm*(str: string, conf: PrintStyling): string =
-  # debugecho conf
-  $ColoredString(
-    style: conf.style,
-    bg: conf.bg,
-    fg: conf.fg,
-    str: str)
+  $ColoredString(str: str, styling: conf)
 
 #*************************************************************************#
 #*****************************  Path access  *****************************#
