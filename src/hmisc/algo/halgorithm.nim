@@ -61,6 +61,22 @@ template allOfIt*(s: untyped, op: untyped): bool =
   mixin anyOfIt
   not s.anyOfIt(not op)
 
+template getIterOpType*(s, op: untyped): untyped =
+  typeof((
+    block:
+      # var itRef
+      var it {.inject.}: typeof(items(s), typeOfIter);
+      op), typeOfProc)
+
+template maxIt*(s: untyped, op: untyped): untyped =
+  ## Maximize value for all elements in sequence
+  type OutType = getIterOpType(s, op)
+  var res: OutType
+  for it {.inject.} in s:
+    let val = op
+    if val > res:
+      res = val
+  res
 
 template noneOfIt*(s: untyped, op: untyped): bool =
   ## True if for all items in `s` predicate `op` returns true.

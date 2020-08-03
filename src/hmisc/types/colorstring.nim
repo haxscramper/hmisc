@@ -63,9 +63,16 @@ func toCyan*(str: string, style: set[Style] = {}): string =
 func toMagenta*(str: string, style: set[Style] = {}): string =
   $initColoredString(str, style = style, fg = fgMagenta)
 
+
+
 func toDefault*(str: string, style: set[Style] = {}): string =
   $initColoredString(str, style = style, fg = fgDefault)
 
+func toItalic*(str: string): string = str.toDefault({styleItalic})
+func toUndescore*(str: string): string = str.toDefault({styleUnderscore})
+# func to*(str: string): string = str.toDefault(styleBright)
+# func toItalic*(str: string): string = str.toDefault(styleItalic)
+# func toItalic*(str: string): string = str.toDefault(styleItalic)
 
 
 func len*(str: ColoredString): int = str.str.len
@@ -265,3 +272,22 @@ func splitSGR*(str: string): seq[ColoredString] =
     changeStyle(style, parseInt(sgrbuf))
 
     sgrbuf = ""
+
+func split*(str: ColoredString, sep: string): seq[ColoredString] =
+  for chunk in str.str.split(sep):
+    result.add ColoredString(str: chunk, styling: str.styling)
+
+func splitColor*(str: string, sep: string): seq[string] =
+  ## Split string on `sep` but retain correct escape wrappers for each
+  ## split part.
+  result.add ""
+  var prev: seq[ColoredString]
+  for str in str.splitSGR():
+    let chunks = str.split(sep)
+    # if result.len == 0:
+    #   result.add $chunks[0]
+    # else:
+    result[^1] &= $chunks[0]
+
+    for chunk in chunks[1..^1]:
+      result.add $chunk

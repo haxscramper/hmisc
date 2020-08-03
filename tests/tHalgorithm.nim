@@ -326,6 +326,11 @@ suite "Tree mapping":
 import strutils
 
 suite "Simple sequence templates":
+  test "{maxIt}":
+    assert @[1,2,3,4].maxIt(it) == 4
+    var empty: seq[int]
+    assert empty.maxIt(it) == 0
+
   test "{allOfIt} empty sequence :template:":
     var empty: seq[int]
     assert empty.allOfIt(false)
@@ -582,10 +587,25 @@ suite "Misc algorithms":
       initColoredString("000", fg = fgBlue, style = {styleBright})
     ]
 
+    assertEq "###---\e[31m\e[44m\e[4m\e[3m###\e[23m\e[24m\e[49m\e[39m".
+      splitSGR(), @[
+        initColoredString("###---"),
+        initColoredString(
+          "###", fg = fgRed, bg = bgBlue, style = {
+            styleItalic, styleUnderscore})
+      ]
 
-    assertEq "###---\e[31m\e[44m\e[4m\e[3m###\e[23m\e[24m\e[49m\e[39m".splitSGR(), @[
-      initColoredString("###---"),
-      initColoredString(
-        "###", fg = fgRed, bg = bgBlue, style = {
-          styleItalic, styleUnderscore})
+  test "{split} ColorString":
+    assertEq "Hello-World".toRed().splitSGR()[0].split("-"), @[
+      initColoredString("Hello", fg = fgRed),
+      initColoredString("World", fg = fgRed)
     ]
+
+  test "{splitColor}":
+    assertEq "\e[31mHello\nworld\e[39m".splitColor("\n"), @[
+      "Hello".toRed(),
+      "world".toRed()
+    ]
+
+    assertEq "".split("\n")[0], ""
+    assertEq "".splitColor("\n")[0], ""
