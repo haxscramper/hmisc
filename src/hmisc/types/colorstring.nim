@@ -408,3 +408,12 @@ func splitSGR_sep*(str: string, sep: string = "\n"): seq[seq[ColoredString]] =
         result.add @[chunk]
     else:
       result.addToLast splitl[0]
+
+func toRuneGrid*(sseq: seq[seq[ColoredString]]): seq[seq[ColoredRune]] =
+  for idx, row in sseq:
+    for chunk in row:
+      for rune in chunk.str.toRunes():
+        result.addToLast initColoredRune(rune, chunk.styling)
+
+    if idx != sseq.len - 1:
+      result.add @[]

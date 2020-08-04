@@ -629,7 +629,7 @@ suite "Misc algorithms":
       initColoredRune(uc"¤", initPrintStyling(bg = bgGreen, fg = fgRed)),
     ].toString(), "\e[31m¤\e[42m¤\e[39m\e[49m"
 
-  test "{splitNL_SGR}":
+  test "{splitSGR_sep}":
     # echo "==".splitSGR_sep("=")
     # echo "==".splitSGR().mapIt(it.split("="))
     assertEq "*=*=*".splitSGR_sep("=").mapIt(it[0]),
@@ -670,4 +670,13 @@ suite "Misc algorithms":
     assertEq "-\e[31m--\e[39m\n\e[31m--\e[39m-".splitSGR_sep(), @[
       @[ initColoredString("-"), initColoredString("--", fg = fgRed) ],
       @[ initColoredString("--", fg = fgRed), initColoredString("-") ]
+    ]
+
+
+  test "{splitSGR_sep} to runes":
+    assertEq "-\e[31m$\n$\e[39m-".splitSGR_sep().toRuneGrid(), @[
+      @[ initColoredRune(Rune('-')),
+         initColoredRune(Rune('$'), initPrintStyling(fg = fgRed))],
+      @[ initColoredRune(Rune('$'), initPrintStyling(fg = fgRed)),
+         initColoredRune(Rune('-'))]
     ]
