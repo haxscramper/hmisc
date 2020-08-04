@@ -10,18 +10,70 @@ type
     str*: string
     styling*: PrintStyling
 
+  ColoredRune* = object
+    styling* {.requiresinit.}: PrintStyling
+    rune*: Rune
 
-func initPrintStyling*(): PrintStyling =
-  PrintStyling(fg: fgDefault, bg: bgDefault)
+func initPrintStyling*(fg: ForegroundColor = fgDefault,
+                       bg: BackgroundColor = bgDefault): PrintStyling =
+  PrintStyling(fg: fg, bg: bg)
+
+func initColoredRune*(rune: Rune,
+                      styling: PrintStyling = initPrintStyling()
+                     ): ColoredRune =
+  ColoredRune(rune: rune, styling: styling)
+
+func initColoredString*(str: string,
+                        bg: BackgroundColor = bgDefault,
+                        fg: ForegroundColor = fgDefault,
+                        style: set[Style] = {}): ColoredString =
+  ColoredString(str: str, styling: PrintStyling(
+    fg: fg, bg: bg, style: style))
+
+func initColoredString*(str: string, styling: PrintStyling): ColoredString =
+  ColoredString(str: str, styling: styling)
+
+# func initColoredString*(str: str)
 
 func fg*(cs: ColoredString): ForegroundColor = cs.styling.fg
 func bg*(cs: ColoredString): BackgroundColor = cs.styling.bg
 func style*(cs: ColoredString): set[Style] = cs.styling.style
 
+func wrapcode*(str: string, start, finish: int): string =
+  fmt("\e[{start}m{str}\e[{finish}m")
+
+func ansiEsc*(code: int): string = fmt("\e[{code}m")
+func reEsc*(str: string): string = str.replace("\e", "\\e")
+
+func ansiDiff*(s1, s2: PrintStyling): string =
+  if s2.fg != s1.fg:
+    result &= ansiEsc(s2.fg.int)
+
+  if s2.bg != s1.bg:
+    result &= ansiEsc(s2.bg.int)
+
+func toString*(runes: seq[ColoredRune]): string =
+  var prev = initPrintStyling()
+  for rune in runes:
+    result &= ansiDiff(prev, rune.styling)
+    result &= $rune.rune
+    prev = rune.styling
+
+  result &= ansiDiff(prev, initPrintStyling())
+
+func toString*(strs: seq[ColoredString]): string =
+  var prev = initPrintStyling()
+  for str in strs:
+    result &= ansiDiff(prev, str.styling)
+    result &= str.str
+    prev = str.styling
+
+  result &= ansiDiff(prev, initPrintStyling())
+
+func uc*(s: static[string]): Rune = runeAt(s, 0)
+
 func `$`*(colored: ColoredString): string =
   result = colored.str
-  func wrapcode(str: string, start, finish: int): string =
-    fmt("\e[{start}m{str}\e[{finish}m")
 
   if colored.fg.int != 0 and colored.fg != fgDefault:
     result = result.wrapcode(int(colored.fg) +
@@ -36,13 +88,6 @@ func `$`*(colored: ColoredString): string =
 
 func lispRepr*(colstr: ColoredString): string =
   fmt("(\"{colstr.str}\" :bg {colstr.bg} :fg {colstr.fg} :style {colstr.style})")
-
-func initColoredString*(str: string,
-                        bg: BackgroundColor = bgDefault,
-                        fg: ForegroundColor = fgDefault,
-                        style: set[Style] = {}): ColoredString =
-  ColoredString(str: str, styling: PrintStyling(
-    fg: fg, bg: bg, style: style))
 
 
 func toRed*(str: string, style: set[Style] = {}): string =
@@ -63,17 +108,37 @@ func toCyan*(str: string, style: set[Style] = {}): string =
 func toMagenta*(str: string, style: set[Style] = {}): string =
   $initColoredString(str, style = style, fg = fgMagenta)
 
-
-
 func toDefault*(str: string, style: set[Style] = {}): string =
   $initColoredString(str, style = style, fg = fgDefault)
 
+
+func toRed*(str: string, color: bool): string =
+  $initColoredString(str, fg = (if color: fgRed else: fgDefault))
+
+func toGreen*(str: string, color: bool): string =
+  $initColoredString(str, fg = (if color: fgGreen else: fgDefault))
+
+func toYellow*(str: string, color: bool): string =
+  $initColoredString(str, fg = (if color: fgYellow else: fgDefault))
+
+func toWhite*(str: string, color: bool): string =
+  $initColoredString(str, fg = (if color: fgWhite else: fgDefault))
+
+func toCyan*(str: string, color: bool): string =
+  $initColoredString(str, fg = (if color: fgCyan else: fgDefault))
+
+func toMagenta*(str: string, color: bool): string =
+  $initColoredString(str, fg = (if color: fgMagenta else: fgDefault))
+
+
+func toItalic*(str: string, color: bool): string =
+  if color: str.toDefault({styleItalic}) else: str
+
+func toUndescore*(str: string, color: bool): string =
+  if color: str.toDefault({styleUnderscore}) else: str
+
 func toItalic*(str: string): string = str.toDefault({styleItalic})
 func toUndescore*(str: string): string = str.toDefault({styleUnderscore})
-# func to*(str: string): string = str.toDefault(styleBright)
-# func toItalic*(str: string): string = str.toDefault(styleItalic)
-# func toItalic*(str: string): string = str.toDefault(styleItalic)
-
 
 func len*(str: ColoredString): int = str.str.len
 

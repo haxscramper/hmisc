@@ -1,4 +1,4 @@
-import unittest, strutils
+import unittest, strutils, unicode
 import sugar, json, sequtils, tables, strformat, options, terminal
 
 import hmisc/types/[hvariant, colorstring]
@@ -609,3 +609,9 @@ suite "Misc algorithms":
 
     assertEq "".split("\n")[0], ""
     assertEq "".splitColor("\n")[0], ""
+
+  test "{toString} colored runes":
+    echo @[
+      initColoredRune(uc"¤", initPrintStyling(fg = fgRed)),
+      initColoredRune(uc"¤", initPrintStyling(bg = bgGreen, fg = fgRed)),
+    ].toString()

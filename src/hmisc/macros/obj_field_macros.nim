@@ -312,6 +312,7 @@ fields **as defined** in object while second one shows order of fields
           # at the same time.
 
   ]##
+  # TODO optionally ignore private fields
 
   let genParams = (
     lhsObj: "lhsObj",
