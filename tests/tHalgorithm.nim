@@ -581,6 +581,13 @@ suite "Misc algorithms":
       "world".initColoredString(fg = fgRed)
     ]
 
+    assertEq "--\e[31mAA\e[39m--".splitSGR(), @[
+      "--".initColoredString(),
+      "AA".initColoredString(fg = fgRed),
+      "--".initColoredString()
+    ]
+
+
     assertEq "\e[92m000\e[39m-\e[94m000\e[39m".splitSGR(), @[
       initColoredString("000", fg = fgGreen, style = {styleBright}),
       initColoredString("-"),
@@ -601,6 +608,12 @@ suite "Misc algorithms":
       initColoredString("World", fg = fgRed)
     ]
 
+    assertEq initColoredString("--").split("-").mapIt(it.str),
+         "--".split("-")
+
+
+    # echo initColoredString("\n\n\n").split("\n")
+
   test "{splitColor}":
     assertEq "\e[31mHello\nworld\e[39m".splitColor("\n"), @[
       "Hello".toRed(),
@@ -611,7 +624,39 @@ suite "Misc algorithms":
     assertEq "".splitColor("\n")[0], ""
 
   test "{toString} colored runes":
-    echo @[
+    assertEq @[
       initColoredRune(uc"¤", initPrintStyling(fg = fgRed)),
       initColoredRune(uc"¤", initPrintStyling(bg = bgGreen, fg = fgRed)),
-    ].toString()
+    ].toString(), "\e[31m¤\e[42m¤\e[39m\e[49m"
+
+  test "{splitNL_SGR}":
+    # echo "==".splitSGR_sep("=")
+    # echo "==".splitSGR().mapIt(it.split("="))
+    assertEq "*=*=*".splitSGR_sep("=").mapIt(it[0]),
+      initColoredString("*=*=*").split("=")
+
+    assertEq "\e[43mhello\e[49m\n\n\e[41mworld\e[49m".splitSGR_sep(), @[
+      @[ initColoredString("hello", bg = bgYellow) ],
+      @[ initColoredString("") ],
+      @[ initColoredString("world", bg = bgRed) ]
+    ]
+
+    assertEq "\n\nee\n".splitSGR_sep(), @[
+      @[ initColoredString("") ],
+      @[ initColoredString("") ],
+      @[ initColoredString("ee") ],
+      @[ initColoredString("") ]
+    ]
+    # echo "\e[41m*=========\e[49m  eee  \e[41m==========*\e[49m"
+    let spl = "-\e[31m--\n--\e[39m-".splitSGR_sep()
+    for line in spl:
+      echo "nl: ", line.len
+      for chunk in line:
+        echo chunk.lispRepr()
+
+    assertEq "-\e[31m--\n--\e[39m-".splitSGR_sep(), @[
+      @[ initColoredString("-"), initColoredString("--", fg = fgRed) ],
+      @[ initColoredString("--", fg = fgRed), initColoredString("-") ]
+    ]
+
+        # test "{split}":

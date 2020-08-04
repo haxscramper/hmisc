@@ -1,4 +1,5 @@
 import terminal, sequtils, strformat, strutils, unicode, strscans, re
+import hmisc/algo/halgorithm
 
 type
   PrintStyling* = object
@@ -18,10 +19,20 @@ func initPrintStyling*(fg: ForegroundColor = fgDefault,
                        bg: BackgroundColor = bgDefault): PrintStyling =
   PrintStyling(fg: fg, bg: bg)
 
+
+func uc*(s: static[string]): Rune = runeAt(s, 0)
+const coloredWhitespaceRune*: ColoredRune = ColoredRune(
+  rune: Rune(' '), styling: initPrintStyling())
+
+
 func initColoredRune*(rune: Rune,
                       styling: PrintStyling = initPrintStyling()
                      ): ColoredRune =
   ColoredRune(rune: rune, styling: styling)
+
+func toColored*(rune: Rune): ColoredRune = ColoredRune(
+  rune: rune, styling: initPrintStyling()
+)
 
 func initColoredString*(str: string,
                         bg: BackgroundColor = bgDefault,
@@ -69,8 +80,6 @@ func toString*(strs: seq[ColoredString]): string =
     prev = str.styling
 
   result &= ansiDiff(prev, initPrintStyling())
-
-func uc*(s: static[string]): Rune = runeAt(s, 0)
 
 func `$`*(colored: ColoredString): string =
   result = colored.str
@@ -338,6 +347,13 @@ func splitSGR*(str: string): seq[ColoredString] =
 
     sgrbuf = ""
 
+  # if result.len == 0:
+  #   result.add initColoredString(str)
+
+  # debugecho pos, " ", prev, " ", str.len
+  if prev < pos:
+    result.add initColoredString(str[prev ..< pos])
+
 func split*(str: ColoredString, sep: string): seq[ColoredString] =
   for chunk in str.str.split(sep):
     result.add ColoredString(str: chunk, styling: str.styling)
@@ -356,3 +372,40 @@ func splitColor*(str: string, sep: string): seq[string] =
 
     for chunk in chunks[1..^1]:
       result.add $chunk
+
+func splitSGR_sep*(str: string, sep: string = "\n"): seq[seq[ColoredString]] =
+  let splitted = splitSGR(str)
+  for idx, cstr in splitted:
+    let
+      splitl = cstr.split(sep)
+      loffset =
+        if cstr.str.startsWith(sep) and (idx != 0): 1 else: 0
+      roffset =
+        if cstr.str.endsWith(sep) and (idx != splitted.len - 1): 1 else: 0
+
+    # for line in splitl:
+    #   debugecho line.lispRepr()
+
+    if (result.len == 0) or (result[^1].len == 1 and splitl.len > 1 and loffset == 0):
+      if result.len == 0:
+        result.add @[splitl[loffset]]
+      else:
+        result[^1].add splitl[loffset]
+
+      for line in splitl[loffset + 1 ..< ^roffset]:
+        result.add @[line]
+    else:
+      for line in splitl[loffset ..< ^roffset]:
+        result.add @[line]
+    # if splitl.len == 1:
+    #   if idx != 0 and (splitted[idx - 1].str[^1] == '\n'):
+    #     result.add @[ splitl[0] ]
+    #   else:
+    #     result[^1].add splitl[0]
+    # else:
+    #   if idx != 0 and cstr.str.allOfIt(it == '\n'):
+    #     for _ in 0 .. (cstr.len - 2):
+    #       result.add @[ initColoredString("") ]
+    #   else:
+    #     for idx, line in splitl:
+    #       result.add @[line]
