@@ -1,5 +1,6 @@
 import terminal, sequtils, strformat, strutils, unicode, strscans, re
 import hmisc/algo/halgorithm
+import hmisc/helpers
 
 type
   PrintStyling* = object
@@ -373,39 +374,37 @@ func splitColor*(str: string, sep: string): seq[string] =
     for chunk in chunks[1..^1]:
       result.add $chunk
 
+func addToLast*[T](sseq: var seq[seq[T]], val: T): void =
+  if sseq.len == 0:
+    sseq.add @[val]
+  else:
+    sseq[^1].add val
+
 func splitSGR_sep*(str: string, sep: string = "\n"): seq[seq[ColoredString]] =
+  # NOTE There are unit tests for this thing but I actually have very
+  # little understanding of /why/ it actually works. I just added
+  # conditsion until it passed all tests.
   let splitted = splitSGR(str)
   for idx, cstr in splitted:
-    let
-      splitl = cstr.split(sep)
-      loffset =
-        if cstr.str.startsWith(sep) and (idx != 0): 1 else: 0
-      roffset =
-        if cstr.str.endsWith(sep) and (idx != splitted.len - 1): 1 else: 0
-
-    # for line in splitl:
-    #   debugecho line.lispRepr()
-
-    if (result.len == 0) or (result[^1].len == 1 and splitl.len > 1 and loffset == 0):
-      if result.len == 0:
-        result.add @[splitl[loffset]]
+    let splitl = cstr.split(sep)
+    if splitl[0].len == 0 and splitl[^1].len == 0:
+      if idx == 0 and splitted.len == 1:
+        for line in splitl:
+          result.add @[line]
       else:
-        result[^1].add splitl[loffset]
-
-      for line in splitl[loffset + 1 ..< ^roffset]:
-        result.add @[line]
+        result.add splitl[1..^2]
+        if (splitted[idx + 1].styling != splitted[idx - 1].styling) and
+           (splitl.len > 2):
+          if (idx != splitted.len - 1):
+            result.add @[]
+    elif cstr.str.startsWith(sep):
+      if idx == 0:
+        result.add splitl[0..^1]
+      else:
+        result.add splitl[1..^1]
+    elif splitl.len > 0:
+      result.addToLast splitl[0]
+      for chunk in splitl[1 .. ^1]:
+        result.add @[chunk]
     else:
-      for line in splitl[loffset ..< ^roffset]:
-        result.add @[line]
-    # if splitl.len == 1:
-    #   if idx != 0 and (splitted[idx - 1].str[^1] == '\n'):
-    #     result.add @[ splitl[0] ]
-    #   else:
-    #     result[^1].add splitl[0]
-    # else:
-    #   if idx != 0 and cstr.str.allOfIt(it == '\n'):
-    #     for _ in 0 .. (cstr.len - 2):
-    #       result.add @[ initColoredString("") ]
-    #   else:
-    #     for idx, line in splitl:
-    #       result.add @[line]
+      result.addToLast splitl[0]

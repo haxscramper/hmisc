@@ -37,6 +37,14 @@ proc echoi*(message: varargs[string, `$`]): void =
   ## Echo with message joined by spaces
   echo message.join(" ")
 
+template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
+  when variable is string:
+    debugecho astToStr(variable), ": \"", variable, "\" ", other.join(" ")
+  else:
+    debugecho astToStr(variable), ": ", variable, " ", other.join(" ")
+
+
+
 template plog*(body: untyped): untyped =
   # Really? what the fuck is this shit
   when defined(prettyPrintLogging):

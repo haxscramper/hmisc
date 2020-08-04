@@ -635,9 +635,9 @@ suite "Misc algorithms":
     assertEq "*=*=*".splitSGR_sep("=").mapIt(it[0]),
       initColoredString("*=*=*").split("=")
 
-    assertEq "\e[43mhello\e[49m\n\n\e[41mworld\e[49m".splitSGR_sep(), @[
+    assertEq "\e[43mhello\e[49m\n-\n\e[41mworld\e[49m".splitSGR_sep(), @[
       @[ initColoredString("hello", bg = bgYellow) ],
-      @[ initColoredString("") ],
+      @[ initColoredString("-") ],
       @[ initColoredString("world", bg = bgRed) ]
     ]
 
@@ -648,15 +648,26 @@ suite "Misc algorithms":
       @[ initColoredString("") ]
     ]
     # echo "\e[41m*=========\e[49m  eee  \e[41m==========*\e[49m"
-    let spl = "-\e[31m--\n--\e[39m-".splitSGR_sep()
-    for line in spl:
-      echo "nl: ", line.len
-      for chunk in line:
-        echo chunk.lispRepr()
+    assertEq "-\e[31m--\n--\e[39m-".splitSGR(), @[
+      initColoredString("-"),
+      initColoredString("--\n--", fg = fgRed),
+      initColoredString("-")
+    ]
+
+    assertEq "-\e[31m--\e[39m\n\e[31m--\e[39m-".splitSGR(), @[
+      initColoredString("-"),
+      initColoredString("--", fg = fgRed),
+      initColoredString("\n"),
+      initColoredString("--", fg = fgRed),
+      initColoredString("-")
+    ]
 
     assertEq "-\e[31m--\n--\e[39m-".splitSGR_sep(), @[
       @[ initColoredString("-"), initColoredString("--", fg = fgRed) ],
       @[ initColoredString("--", fg = fgRed), initColoredString("-") ]
     ]
 
-        # test "{split}":
+    assertEq "-\e[31m--\e[39m\n\e[31m--\e[39m-".splitSGR_sep(), @[
+      @[ initColoredString("-"), initColoredString("--", fg = fgRed) ],
+      @[ initColoredString("--", fg = fgRed), initColoredString("-") ]
+    ]
