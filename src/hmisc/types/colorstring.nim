@@ -1,6 +1,6 @@
 import terminal, sequtils, strformat, strutils, unicode, strscans, re
 import hmisc/algo/halgorithm
-import hmisc/helpers
+# import hmisc/helpers
 
 type
   PrintStyling* = object
@@ -417,3 +417,6 @@ func toRuneGrid*(sseq: seq[seq[ColoredString]]): seq[seq[ColoredRune]] =
 
     if idx != sseq.len - 1:
       result.add @[]
+
+func toColoredRuneGrid*(str: string): seq[seq[ColoredRune]] =
+  str.splitSGR_sep().toRuneGrid()

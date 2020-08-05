@@ -11,8 +11,8 @@ type
 
   CodeError* = ref object of CatchableError
     raisepos*: LineInfo
-    errpos: LineInfo ## Position of original error
-    annots: seq[ErrorAnnotation] ## Additional error annotations
+    errpos*: LineInfo ## Position of original error
+    annots*: seq[ErrorAnnotation] ## Additional error annotations
 
 
 proc nthLine(file: string, line: int): string =
