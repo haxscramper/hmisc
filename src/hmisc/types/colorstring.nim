@@ -453,32 +453,43 @@ func splitSGR_sep*(str: string, sep: string = "\n"): seq[seq[ColoredString]] =
   for idx, cstr in splitted:
     let splitl = cstr.split(sep)
 
-    traceIf:
-      if splitl[0].len == 0 and splitl[^1].len == 0:
-        if idx == 0 and splitted.len == 1:
-          for line in splitl:
-            result.add @[line]
-        else:
-          if splitted.len > idx + 1:
-            result.add splitl[1..^2]
-            if (splitted[idx + 1].styling != splitted[idx - 1].styling) and
-               (splitl.len > 2):
-              if (idx != splitted.len - 1):
-                result.add @[]
-          else:
-            for ch in splitl:
-              result.add @[ch]
-      elif cstr.str.startsWith(sep):
-        if idx == 0:
-          result.add splitl[0..^1]
-        else:
-          result.add splitl[1..^1]
-      elif splitl.len > 0:
-        result.addToLast splitl[0]
-        for chunk in splitl[1 .. ^1]:
-          result.add @[chunk]
+    # traceIf:
+    if splitl[0].len == 0 and splitl[^1].len == 0:
+      if idx == 0 and splitted.len == 1:
+        for line in splitl:
+          result.add @[line]
       else:
-        result.addToLast splitl[0]
+        if splitted.len > idx + 1:
+          result.add splitl[1..^2]
+          if (splitted[idx + 1].styling != splitted[idx - 1].styling) and
+             (splitl.len > 2):
+            if (idx != splitted.len - 1):
+              result.add @[]
+        else:
+          for ch in splitl:
+            result.add @[ch]
+    elif cstr.str.startsWith(sep):
+      if idx == 0:
+        result.add splitl[0..^1]
+      else:
+        result.add splitl[1..^1]
+    elif splitl.len > 0:
+      # echov cstr
+      result.addToLast splitl[0]
+      if cstr.str.endsWith(sep):
+        result.add @[]
+
+      if splitl.len > 1:
+        if splitl[1].str.len > 0:
+          result.add @[splitl[1]]
+
+        for chunk in splitl[min(2, splitl.len) .. ^1]:
+          result.add @[chunk]
+    else:
+      result.addToLast splitl[0]
+
+    # echov result
+
 
 func toRuneGrid*(sseq: seq[seq[ColoredString]]): seq[seq[ColoredRune]] =
   for idx, row in sseq:
