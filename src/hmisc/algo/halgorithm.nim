@@ -1,6 +1,6 @@
 import math, strutils, sequtils, random, macros, options, strformat
 import std/wordwrap
-import ../types/[hprimitives, colorstring]
+import ../types/[hprimitives]
 import hmath
 export hmath
 

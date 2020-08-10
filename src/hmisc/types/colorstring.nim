@@ -1,5 +1,7 @@
-import terminal, sequtils, strformat, strutils, unicode, strscans, re
+import terminal, sequtils, strformat, strutils, unicode, strscans, re,
+       macros
 import hmisc/algo/halgorithm
+import hmisc/hdebug_misc
 # import hmisc/helpers
 
 type
@@ -15,6 +17,9 @@ type
   ColoredRune* = object
     styling* {.requiresinit.}: PrintStyling
     rune*: Rune
+
+func contains*(ps: PrintStyling, s: Style): bool =
+  ps.style.contains(s)
 
 func initPrintStyling*(fg: ForegroundColor = fgDefault,
                        bg: BackgroundColor = bgDefault): PrintStyling =
@@ -165,6 +170,13 @@ func termLen*(str: string): int =
 
 
   return runeLen - termsyms
+
+func termAlignLeft*(str: string, length: int, padding: char = ' '): string =
+  let lendiff = length - str.termLen
+  if lendiff > 0:
+    str & padding.repeat(lendiff)
+  else:
+    str
 
 func changeStyle(ps: var PrintStyling, code: int): void =
   # NOTE copy-pasted table from https://en.wikipedia.org/wiki/ANSI_escape_code
@@ -380,6 +392,59 @@ func addToLast*[T](sseq: var seq[seq[T]], val: T): void =
   else:
     sseq[^1].add val
 
+func traceIfImpl*(body: NimNode): NimNode =
+  case body.kind:
+    of nnkIfExpr, nnkIfStmt:
+      result = nnkIfExpr.newTree()
+      # debugecho "found if"
+      for subn in body:
+        # debugecho subn.toStrLit().strVal()
+        # debugecho subn.kind
+        case subn.kind:
+          of nnkElifBranch:
+            let
+              cond = subn[0]
+              expr = subn[1].traceIfImpl()
+              condpos = cond.lineInfoObj().line
+              condstr = (&"\e[33m{condpos}\e[39m {cond.toStrLit().strVal()}").newLit
+
+            result.add nnkElifExpr.newTree(
+              cond,
+              quote do:
+                debugecho `condstr`
+                `expr`
+            )
+
+          of nnkElse:
+            let
+              expr = subn[0].traceIfImpl()
+              condpos = expr.lineInfoObj().line
+              condstr = (&"\e[33m{condpos}\e[39m else").newLit
+
+            result.add nnkElseExpr.newTree(
+              quote do:
+                debugecho `condstr`
+                `expr`
+            )
+
+          else:
+            discard
+
+      # debugecho result.toStrLit().strVal()
+    of nnkStmtList:
+      # debugecho body.toStrLit().strVal()
+      result = newTree(body.kind)
+      for subn in body:
+        result.add subn.traceIfImpl()
+
+      # debugecho result.toStrLit().strVal()
+    else:
+      return body
+
+macro traceIf*(body: untyped): untyped =
+  result = traceIfImpl(body)
+  # quit 0
+
 func splitSGR_sep*(str: string, sep: string = "\n"): seq[seq[ColoredString]] =
   # NOTE There are unit tests for this thing but I actually have very
   # little understanding of /why/ it actually works. I just added
@@ -387,27 +452,33 @@ func splitSGR_sep*(str: string, sep: string = "\n"): seq[seq[ColoredString]] =
   let splitted = splitSGR(str)
   for idx, cstr in splitted:
     let splitl = cstr.split(sep)
-    if splitl[0].len == 0 and splitl[^1].len == 0:
-      if idx == 0 and splitted.len == 1:
-        for line in splitl:
-          result.add @[line]
+
+    traceIf:
+      if splitl[0].len == 0 and splitl[^1].len == 0:
+        if idx == 0 and splitted.len == 1:
+          for line in splitl:
+            result.add @[line]
+        else:
+          if splitted.len > idx + 1:
+            result.add splitl[1..^2]
+            if (splitted[idx + 1].styling != splitted[idx - 1].styling) and
+               (splitl.len > 2):
+              if (idx != splitted.len - 1):
+                result.add @[]
+          else:
+            for ch in splitl:
+              result.add @[ch]
+      elif cstr.str.startsWith(sep):
+        if idx == 0:
+          result.add splitl[0..^1]
+        else:
+          result.add splitl[1..^1]
+      elif splitl.len > 0:
+        result.addToLast splitl[0]
+        for chunk in splitl[1 .. ^1]:
+          result.add @[chunk]
       else:
-        result.add splitl[1..^2]
-        if (splitted[idx + 1].styling != splitted[idx - 1].styling) and
-           (splitl.len > 2):
-          if (idx != splitted.len - 1):
-            result.add @[]
-    elif cstr.str.startsWith(sep):
-      if idx == 0:
-        result.add splitl[0..^1]
-      else:
-        result.add splitl[1..^1]
-    elif splitl.len > 0:
-      result.addToLast splitl[0]
-      for chunk in splitl[1 .. ^1]:
-        result.add @[chunk]
-    else:
-      result.addToLast splitl[0]
+        result.addToLast splitl[0]
 
 func toRuneGrid*(sseq: seq[seq[ColoredString]]): seq[seq[ColoredRune]] =
   for idx, row in sseq:

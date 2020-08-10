@@ -19,37 +19,6 @@ proc colorPrint*(
   if doPrint:
     echo staticExec("pygmentize -f terminal " & tmpfile)
 
-template expectType*(op, t: untyped): untyped =
-  static: assert op is t
-
-proc echoi*(indent: int, message: varargs[string, `$`]): void =
-  ## Echo with indentation. `message` is joined using spaces
-  echo "  ".repeat(indent), message.join(" ")
-
-proc debugechoi*(indent: int, message: string): void =
-  for line in message.split("\n"):
-    debugecho "  ".repeat(indent), line
-
-template dechofmt*(arg: string): untyped =
-  debugecho fmt(arg)
-
-proc echoi*(message: varargs[string, `$`]): void =
-  ## Echo with message joined by spaces
-  echo message.join(" ")
-
-template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
-  when variable is string:
-    debugecho astToStr(variable), ": \"", variable, "\" ", other.join(" ")
-  else:
-    debugecho astToStr(variable), ": ", variable, " ", other.join(" ")
-
-
-
-template plog*(body: untyped): untyped =
-  # Really? what the fuck is this shit
-  when defined(prettyPrintLogging):
-    {.noSideEffect.}:
-      body
 
 
 

@@ -635,6 +635,12 @@ suite "Misc algorithms":
     assertEq "*=*=*".splitSGR_sep("=").mapIt(it[0]),
       initColoredString("*=*=*").split("=")
 
+    assertEq "hello\n\e[31msfadf\e[39m\nsf".splitSGR_sep("\n"), @[
+      @[ initColoredString("hello") ],
+      @[ initColoredString("sfadf", fg = fgRed) ],
+      @[ initColoredString(" sf") ],
+    ]
+
     assertEq "\e[43mhello\e[49m\n-\n\e[41mworld\e[49m".splitSGR_sep(), @[
       @[ initColoredString("hello", bg = bgYellow) ],
       @[ initColoredString("-") ],
