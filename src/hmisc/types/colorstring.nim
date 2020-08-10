@@ -392,7 +392,7 @@ func addToLast*[T](sseq: var seq[seq[T]], val: T): void =
   else:
     sseq[^1].add val
 
-func traceIfImpl*(body: NimNode): NimNode =
+func traceIfImpl*(head, body: NimNode): NimNode =
   case body.kind:
     of nnkIfExpr, nnkIfStmt:
       result = nnkIfExpr.newTree()
@@ -404,26 +404,28 @@ func traceIfImpl*(body: NimNode): NimNode =
           of nnkElifBranch:
             let
               cond = subn[0]
-              expr = subn[1].traceIfImpl()
+              expr = traceIfImpl(head, subn[1])
               condpos = cond.lineInfoObj().line
               condstr = (&"\e[33m{condpos}\e[39m {cond.toStrLit().strVal()}").newLit
 
             result.add nnkElifExpr.newTree(
               cond,
               quote do:
-                debugecho `condstr`
+                if `head`:
+                  debugecho `condstr`
                 `expr`
             )
 
           of nnkElse:
             let
-              expr = subn[0].traceIfImpl()
+              expr = traceIfImpl(head, subn[0])
               condpos = expr.lineInfoObj().line
               condstr = (&"\e[33m{condpos}\e[39m else").newLit
 
             result.add nnkElseExpr.newTree(
               quote do:
-                debugecho `condstr`
+                if `head`:
+                  debugecho `condstr`
                 `expr`
             )
 
@@ -435,14 +437,14 @@ func traceIfImpl*(body: NimNode): NimNode =
       # debugecho body.toStrLit().strVal()
       result = newTree(body.kind)
       for subn in body:
-        result.add subn.traceIfImpl()
+        result.add traceIfImpl(head, subn)
 
       # debugecho result.toStrLit().strVal()
     else:
       return body
 
-macro traceIf*(body: untyped): untyped =
-  result = traceIfImpl(body)
+macro traceIf*(head, body: untyped): untyped =
+  result = traceIfImpl(head, body)
   # quit 0
 
 func splitSGR_sep*(str: string, sep: string = "\n"): seq[seq[ColoredString]] =
@@ -453,40 +455,42 @@ func splitSGR_sep*(str: string, sep: string = "\n"): seq[seq[ColoredString]] =
   for idx, cstr in splitted:
     let splitl = cstr.split(sep)
 
-    # traceIf:
-    if splitl[0].len == 0 and splitl[^1].len == 0:
-      if idx == 0 and splitted.len == 1:
-        for line in splitl:
-          result.add @[line]
-      else:
-        if splitted.len > idx + 1:
-          result.add splitl[1..^2]
-          if (splitted[idx + 1].styling != splitted[idx - 1].styling) and
-             (splitl.len > 2):
-            if (idx != splitted.len - 1):
-              result.add @[]
+    traceIf false:
+      if splitl[0].len == 0 and splitl[^1].len == 0:
+        if idx == 0 and splitted.len == 1:
+          for line in splitl:
+            result.add @[line]
         else:
-          for ch in splitl:
-            result.add @[ch]
-    elif cstr.str.startsWith(sep):
-      if idx == 0:
-        result.add splitl[0..^1]
+          if splitted.len > idx + 1:
+            result.add splitl[1..^2]
+            if (splitted[idx + 1].styling != splitted[idx - 1].styling) and
+               (splitl.len > 2):
+              if (idx != splitted.len - 1):
+                result.add @[]
+          else:
+            for ch in splitl:
+              result.add @[ch]
+      elif cstr.str.startsWith(sep):
+        if idx == 0:
+          result.add splitl[0..^1]
+        else:
+          result.add splitl[1..^1]
+      elif splitl.len > 0:
+        # echov cstr
+        # echov splitl
+        # echov splitted
+        result.addToLast splitl[0]
+        if cstr.str.endsWith(sep) and (idx != splitted.len - 1):
+          result.add @[]
+
+        if splitl.len > 1:
+          if splitl[1].str.len > 0:
+            result.add @[splitl[1]]
+
+          for chunk in splitl[min(2, splitl.len) .. ^1]:
+            result.add @[chunk]
       else:
-        result.add splitl[1..^1]
-    elif splitl.len > 0:
-      # echov cstr
-      result.addToLast splitl[0]
-      if cstr.str.endsWith(sep):
-        result.add @[]
-
-      if splitl.len > 1:
-        if splitl[1].str.len > 0:
-          result.add @[splitl[1]]
-
-        for chunk in splitl[min(2, splitl.len) .. ^1]:
-          result.add @[chunk]
-    else:
-      result.addToLast splitl[0]
+        result.addToLast splitl[0]
 
     # echov result
 
