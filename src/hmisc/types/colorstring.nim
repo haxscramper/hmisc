@@ -37,8 +37,12 @@ func initColoredRune*(rune: Rune,
   ColoredRune(rune: rune, styling: styling)
 
 func toColored*(rune: Rune): ColoredRune = ColoredRune(
-  rune: rune, styling: initPrintStyling()
-)
+  rune: rune, styling: initPrintStyling())
+
+func toColored*(
+  ch: char,
+  styling: PrintStyling = initPrintStyling()): ColoredRune =
+  ColoredRune(rune: Rune(ch), styling: styling)
 
 func initColoredString*(str: string,
                         bg: BackgroundColor = bgDefault,
@@ -86,6 +90,8 @@ func toString*(strs: seq[ColoredString]): string =
     prev = str.styling
 
   result &= ansiDiff(prev, initPrintStyling())
+
+func `$`*(colr: seq[ColoredRune]): string = colr.toString()
 
 func `$`*(colored: ColoredString): string =
   result = colored.str

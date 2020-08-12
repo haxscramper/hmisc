@@ -1,6 +1,6 @@
 import strformat, strutils, algorithm, sequtils, macros, os, re, terminal
 import types/colorstring
-import algo/hseq_mapping
+import algo/[hseq_mapping, hmath]
 
 type
   ErrorAnnotation = object
@@ -20,9 +20,19 @@ proc nthLine(file: string, line: int): string =
   readLines(file, line)[line - 1]
 
 proc lineRange(file: string, linerange: (int, int)): seq[string] =
+  # echo file, linerange
   readLines(file, max(linerange[0], linerange[1]))[
     (linerange[0] - 1) .. (linerange[1] - 1)
   ]
+
+func `[]=`(buf: var seq[seq[ColoredRune]],
+           row: int, col: int,
+           ch: ColoredRune): void =
+  for _ in buf.len .. row:
+    buf.add @[coloredWhitespaceRune]
+
+  buf[row] &= coloredWhitespaceRune.repeat(max(col - buf[row].len + 1, 0))
+  buf[row][col] = ch
 
 proc toColorString*(err: CodeError): string =
   block:
@@ -30,41 +40,54 @@ proc toColorString*(err: CodeError): string =
     result &= &"\n{toRed(name & ext)}:{toRed($err.raisepos.line)}:\n"
 
   result &= "\n" & err.msg & "\n\n"
-  for err in err.annots:
-    let (dir, name, ext) = err.errpos.filename.splitFile()
-
-    let position = &"{name}{ext} {err.errpos.line}:{err.errpos.column} "
-    let padding = " ".repeat(position.len + err.errpos.column)
-
-    if err.linerange <= 0:
-      let filelines = err.errpos.filename.lineRange((
-        err.errpos.line + err.linerange, err.errpos.line
-      ))
-
-      for line in filelines[0..^2]:
-        result &= " ".repeat(position.len) & line & "\n"
-
-      result &= position & filelines[^1] & "\n"
-      result &= padding & $("^".repeat(err.expr.len()).toRed()) & "\n"
-
-      for line in err.annotation.split("\n"):
-        result &= padding & err.annotation & "\n"
-    else:
-      let filelines = err.errpos.filename.lineRange((
-        err.errpos.line, err.errpos.line + err.linerange
-      ))
-
-      for line in err.annotation.split("\n"):
-        result &= padding & err.annotation & "\n"
-      result &= padding & $("v".repeat(err.expr.len()).toRed()) & "\n"
-
-      result &= position & filelines[0] & "\n"
-      for line in filelines[1..^1]:
-        result &= " ".repeat(position.len) & line & "\n"
 
 
-    result &= "\n" & $err.errpos.filename.toDefault({styleUnderscore})
-    result &= "\n\n"
+  let (dir, name, ext) = err.errpos.filename.splitFile()
+
+  block:
+    let annSorted = err.annots.twoPassSortByIt(
+      it.errpos.line, -it.errpos.column)
+
+    for lineAnnots in annSorted:
+      let
+        firstErr = lineAnnots[0]
+        position = &"{name}{ext} {firstErr.errpos.line}:{firstErr.errpos.column} "
+        filelines = firstErr.errpos.filename.lineRange((
+          firstErr.errpos.line + firstErr.linerange, firstErr.errpos.line
+        ))
+
+      block:
+        for line in filelines[0..^2]:
+          result &= " ".repeat(position.len) & line & "\n"
+
+        result &= position & filelines[^1] & "\n"
+      block:
+        var spacing = 0
+        var buf: seq[seq[ColoredRune]]
+        for annot in lineannots:
+          let start = (position.len + annot.errpos.column)
+          for line in 1 ..+ (spacing + 1):
+            buf[line, start] = toColored('|', initPrintStyling(
+              fg = fgRed
+            ))
+
+          for col in start ..+ annot.expr.len():
+            buf[0, col] = toColored('^', initPrintStyling(
+              fg = fgRed
+            ))
+
+          inc spacing
+          for line in annot.annotation.split("\n"):
+            for idx, ch in line:
+              buf[spacing, start + idx] = toColored(ch)
+
+            inc spacing
+
+        for line in buf:
+          result &= $line & "\n"
+
+      result &= "\n" & $firstErr.errpos.filename.toDefault({styleUnderscore})
+      result &= "\n\n"
 
 func toCodeError*(node: NimNode, message: string,
                   annotation: string = "",
@@ -106,10 +129,12 @@ when isMainModule:
   macro test(a: untyped): untyped =
     raise toCodeError({
       a[3] : "Third element in array",
-      a[0] : "Array starts here"
+      a[0] : "Array starts here\nMultiline annotations",
+      a[5] : "On different line"
     }, "Annotation for array error")
 
-  test([1,2,3,4,5,6])
+  test([1,2,3,4,
+        5,6])
 
 template assertNodeIt*(
   node: NimNode, cond: untyped, msg: string): untyped =

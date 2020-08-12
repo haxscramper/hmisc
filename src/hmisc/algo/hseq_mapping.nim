@@ -88,11 +88,13 @@ template deduplicateIt*[T](
   res
 
 template twoPassSortByIt*(
-  sequence, operation1, operation2: untyped
-         ): untyped =
+  sequence, operation1, operation2: untyped): untyped =
   ## Sort input sequence using firt `operation1`, then group into
   ## 2d-sequence based on result of `operation1` and sort each
   ## subsequence using `operation2`
+  # TODO support ascending and descending order. Possible
+  # implementation - depending on type of the expression. If it is a
+  # tuple `(_, SortOrder)` use it for comparison.
   runnableExamples:
     # Sort by first field and then by second
     assert @[(1,2), (1,9), (4,32), (1,3)].twoPassSortByIt(it[0], it[1]) ==
