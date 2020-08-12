@@ -14,15 +14,18 @@ macro ifLet*(head: untyped, bodies: varargs[untyped]): untyped =
   var condBranch = newIfStmt(
     ((quote do: optValue.isSome()),
      quote do:
-       let `varSymbol` = optValue.get()
+       when declared(`varSymbol`): # Prevent shadowing of variables
+         # TODO check if `varSymbol` is mutable or not
+         `varSymbol` = optValue.get()
+       else:
+         let `varSymbol` = optValue.get()
        `ifBody`))
 
   for body in bodies[1..^1]:
     condBranch.add body
 
   result = quote do:
-    block:
-      let optValue {.inject.} = `varValue`
-      `condBranch`
+    let optValue {.inject.} = `varValue`
+    `condBranch`
 
   result = newStmtList(result)

@@ -34,9 +34,11 @@ template templAssert*(
 template expectType*(op, t: untyped): untyped =
   static: assert op is t
 
-proc echoi*(indent: int, message: varargs[string, `$`]): void =
+template echoi*(indent: int, message: varargs[string, `$`]): void =
   ## Echo with indentation. `message` is joined using spaces
-  echo "  ".repeat(indent), message.join(" ")
+  block:
+    let iinfo {.inject.} = instantiationInfo()
+    echo &"{iinfo.line:>4} |", "  ".repeat(indent), message.join(" ")
 
 proc debugechoi*(indent: int, message: string): void =
   for line in message.split("\n"):
@@ -50,15 +52,16 @@ proc echoi*(message: varargs[string, `$`]): void =
   echo message.join(" ")
 
 template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
-  when variable is string:
-    debugecho astToStr(variable), ": \"", variable, "\" ", other.join(" ")
-  else:
-    debugecho astToStr(variable), ": ", variable, " ", other.join(" ")
+  {.noSideEffect.}:
+    when variable is string:
+      debugecho astToStr(variable), ": \"", variable, "\" ", other.join(" ")
+    else:
+      debugecho astToStr(variable), ": ", variable, " ", other.join(" ")
 
 
 
 template plog*(body: untyped): untyped =
   # Really? what the fuck is this shit
-  when defined(prettyPrintLogging):
+  when defined(haxPrintLogging):
     {.noSideEffect.}:
       body

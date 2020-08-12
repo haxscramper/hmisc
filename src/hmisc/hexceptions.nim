@@ -1,5 +1,6 @@
 import strformat, strutils, algorithm, sequtils, macros, os, re, terminal
 import types/colorstring
+import algo/hseq_mapping
 
 type
   ErrorAnnotation = object
@@ -63,6 +64,7 @@ proc toColorString*(err: CodeError): string =
 
 
     result &= "\n" & $err.errpos.filename.toDefault({styleUnderscore})
+    result &= "\n\n"
 
 func toCodeError*(node: NimNode, message: string,
                   annotation: string = "",
@@ -82,6 +84,39 @@ func toCodeError*(node: NimNode, message: string,
         )
       ]
     ))
+
+func toCodeError*(nodes: openarray[tuple[node: NimNode, annot: string]],
+                  message: string,
+                  iinfo: LineInfo = LineInfo()): CodeError =
+  new(result)
+  {.noSideEffect.}:
+    result.msg = toColorString(CodeError(
+      msg: message,
+      raisepos: iinfo,
+      annots: (
+        block:
+          nodes.mapIt:
+            ErrorAnnotation(
+              linerange: 0,
+              errpos: it.node.lineInfoObj(),
+              expr: $it.node.toStrLit,
+              annotation: it.annot))))
+
+when isMainModule:
+  macro test(a: untyped): untyped =
+    raise toCodeError({
+      a[3] : "Third element in array",
+      a[0] : "Array starts here"
+    }, "Annotation for array error")
+
+  test([1,2,3,4,5,6])
+
+template assertNodeIt*(
+  node: NimNode, cond: untyped, msg: string): untyped =
+  block:
+    let it {.inject.} = node
+    if not cond:
+      raise toCodeError(it, msg)
 
 func toLineInfo*(arg: tuple[
   filename: string, line: int, column: int]): LineInfo =

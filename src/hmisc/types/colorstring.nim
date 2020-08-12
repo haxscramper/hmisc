@@ -393,6 +393,9 @@ func addToLast*[T](sseq: var seq[seq[T]], val: T): void =
     sseq[^1].add val
 
 func traceIfImpl*(head, body: NimNode): NimNode =
+  # TODO also trigger `case`
+  # TODO use `when` for `head`
+  # TODO add indentation for echo output
   case body.kind:
     of nnkIfExpr, nnkIfStmt:
       result = nnkIfExpr.newTree()
