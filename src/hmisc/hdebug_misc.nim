@@ -1,5 +1,21 @@
-import strutils
+import strutils, macros
 import times
+
+proc colorPrint*(
+  node: NimNode,
+  tmpfile: string = "/tmp/nimast_tmp.nim",
+  doPrint: bool = true): void =
+  # TODO convert nim ast into adequately readable form without using
+  # `pygmentize`. Maybe even color macros/templates/procs differently.
+  tmpfile.writeFile($node.toStrLit())
+  discard staticExec("sed -Ei 's/`gensym[0-9]+//g' " & tmpfile)
+  discard staticExec("nimpretty --maxLineLen:75 " & tmpfile)
+  if doPrint:
+    echo staticExec("pygmentize -f terminal " & tmpfile)
+
+
+
+
 
 func d*(text: varargs[string, `$`]): void =
   debugecho text.join(" ")

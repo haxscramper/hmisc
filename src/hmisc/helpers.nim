@@ -4,22 +4,9 @@ import algo/[halgorithm, hseq_mapping]
 export halgorithm
 export hseq_mapping
 import sequtils
-include hdebug_misc
+import hdebug_misc
+export hdebug_misc
 import strformat
-
-proc colorPrint*(
-  node: NimNode,
-  tmpfile: string = "/tmp/nimast_tmp.nim",
-  doPrint: bool = true): void =
-  # TODO convert nim ast into adequately readable form without using
-  # `pygmentize`. Maybe even color macros/templates/procs differently.
-  tmpfile.writeFile($node.toStrLit())
-  discard staticExec("sed -Ei 's/`gensym[0-9]+//g' " & tmpfile)
-  discard staticExec("nimpretty --maxLineLen:75 " & tmpfile)
-  if doPrint:
-    echo staticExec("pygmentize -f terminal " & tmpfile)
-
-
 
 
 template subnodesEq*(lhs, rhs, field: untyped): untyped =

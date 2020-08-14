@@ -4,6 +4,7 @@ import strutils, strformat, macros, sequtils
 import ../algo/halgorithm
 import ../helpers
 import ../types/[hnim_ast, colorstring]
+import ../hdebug_misc
 
 proc getFields*(node: NimNode): seq[Field[NimNode]]
 
@@ -221,7 +222,7 @@ proc unrollFieldLoop(
           # echo fldType.lispRepr()
           let tmp = superquote do:
             const `ident(genParam.fldName)`: string = `fldName`
-            let `lhsId` = block:
+            let `lhsId`: `fldType` = block:
               var tmp: `fldType`
               for name, val in fieldPairs(`ident(genParam.lhsObj)`):
                 when val is `fldType`:
@@ -231,7 +232,7 @@ proc unrollFieldLoop(
 
               tmp
 
-            let `rhsId` = block:
+            let `rhsId`: `fldType` = block:
               var tmp: `fldType`
               for name, val in fieldPairs(`ident(genParam.rhsObj)`):
                 when val is `fldType`:
@@ -260,20 +261,39 @@ proc unrollFieldLoop(
     if fld.isKind:
       # TODO check if two field kinds are identical
       var caseBlock = nnkCaseStmt.newTree(
-        newDotExpr(ident genParam.lhsObj, ident fld.name)
+        ident(genParam.lhsName)
+        # newDotExpr(ident genParam.lhsObj, ident fld.name)
       )
+
 
       for branch in fld.branches:
         let (branchBody, lastIdx) =
           branch.flds.unrollFieldLoop(body, fldIdx, genParam)
 
         fldIdx = lastIdx
-        caseBlock.add nnkOfBranch.newTree(
-          branch.ofValue,
-          newStmtList(
-            branchBody
+        if branch.isElse:
+          caseBlock.add nnkElse.newTree(
+            newStmtList(
+              newCommentStmtNode(
+                "Fallback for value `" & $branch.ofValue.toStrLit() &
+                  "` of field " & fld.name),
+              branchBody
+            )
           )
-        )
+        else:
+          caseBlock.add nnkOfBranch.newTree(
+            branch.ofValue,
+            newStmtList(
+              newCommentStmtNode(
+                "Branch for value `" & $branch.ofValue.toStrLit() &
+                  "` of field " & fld.name),
+              branchBody
+            )
+          )
+
+      caseBlock = newStmtList(
+        newCommentStmtNode("Selector "),
+        caseBlock)
 
       tmpRes.add do:
         if fld.isTuple:
@@ -284,8 +304,11 @@ proc unrollFieldLoop(
         else:
           let fldId = ident(fld.name)
           superquote do:
-            if `ident(genParam.lhsObj)`.`fldId` == `ident(genParam.rhsObj)`.`fldId`:
+            ## Case field comparison
+            if `lhsId` == `rhsId`:
               `caseBlock`
+            # if `ident(genParam.lhsObj)`.`fldId` == `ident(genParam.rhsObj)`.`fldId`:
+            #   `caseBlock`
 
     let comment =
       if fld.isTuple:
@@ -395,13 +418,14 @@ macro hackPrivateParallelFieldPairs*(lhsObj, rhsObj: typed, body: untyped): unty
   )
 
   let (unrolled, _) = getFields(lhsObj).unrollFieldLoop(body, 0, genParams)
+  let section = newCommentStmtNode(
+    "Type: " & $lhsObj.getTypeInst().toStrLit())
   result = superquote do:
     block: ## Toplevel
+      `section`
       var `ident(genParams.valIdxName)`: int = 0
       let `ident(genParams.lhsObj)` = `lhsObj`
       let `ident(genParams.rhsObj)` = `rhsObj`
       `unrolled`
 
-  # echo "\e[41m==============\e[49m"
-  # echo result.toStrLit()
-  # echo "\e[41m==============\e[49m"
+  result.colorPrint()
