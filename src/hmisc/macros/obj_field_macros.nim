@@ -328,6 +328,17 @@ for each field.
 
 ## Notes
 
+### Limitations
+
+- Private fields cannot be accessed directly - compilation will fail.
+  Can be fixed by defining getter with the same name as a field (e.g
+  for field `kind` define `func kind(t: T): KindType`). Dirty workaround
+  is to use `hackPrivateParallelFieldPairs` - it can access private
+  fields (but does not work if your private private field has a
+  non-exported type)
+
+### `fldIdx` and `valIdx`
+
 Difference between `fldIdx` and `valIdx`. First one describes order of
 fields **as defined** in object while second one shows order of fields
 **as accessed** in object. For example, in object like this:
@@ -369,7 +380,8 @@ fields **as defined** in object while second one shows order of fields
 
 
 macro hackPrivateParallelFieldPairs*(lhsObj, rhsObj: typed, body: untyped): untyped =
-  ## Same as `parallelFieldPairs` but uses HACK to access private fields
+  ## Same API as `parallelFieldPairs` but uses HACK to access private
+  ## fields. NOT: due to HACK being used compilation is even slower.
   let genParams = GenParams(
     lhsObj: "lhsObj",
     rhsObj: "rhsObj",
