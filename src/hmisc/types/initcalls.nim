@@ -1,7 +1,7 @@
-import macros, tables, sets, typetraits, sequtils
+import macros, tables, sets, typetraits, sequtils, strformat, strutils
 
 type
-  NType = object
+  NType* = object
     head*: string
     genParams*: seq[NType]
 
@@ -16,12 +16,18 @@ type
     vtype: NType
 
 
-func mkNType*(name: string, gparams: seq[string]): NType =
+func `$`*(nt: NType): string =
+  if nt.genParams.len > 0:
+    nt.head & "[" & nt.genParams.mapIt($it).join(", ") & "]"
+  else:
+    nt.head
+
+
+func mkNType*(name: string, gparams: seq[string] = @[]): NType =
   NType(head: name, genParams: gparams.mapIt(mkNType(it, @[])))
 
 func mkNType*(name: string, gparams: openarray[NType]): NType =
   NType(head: name, genParams: toSeq(gparams))
-
 
 func toNimNode*(ntype: NType): NimNode =
   if ntype.genParams.len == 0:
@@ -59,6 +65,27 @@ func mkNTypeNode*(name: string, gparams: seq[string]): NimNode =
 func mkNTypeNode*(name: string, gparams: varargs[NType]): NimNode =
   mkNType(name, gparams).toNimNode()
 
+func mkCallNode*(
+  name: string,
+  args: seq[NimNode],
+  genParams: seq[NType] = @[]): NimNode =
+  if genParams.len > 0:
+    result = nnkCall.newTree()
+    result.add nnkBracketExpr.newTree(
+      @[ newIdentNode(name) ] & genParams.mapIt(it.toNimNode()))
+
+  else:
+    result = nnkCall.newTree(ident name)
+
+  for node in args:
+    result.add node
+
+func mkCallNode*(name: string,
+                 gentypes: openarray[NType],
+                 args: varargs[NimNode]): NimNode =
+  mkCallNode(name, toSeq(args), toSeq(genTypes))
+
+
 func toNTypeAst*[T](): NType =
   let str = $typeof(T)
   let expr = parseExpr(str)
@@ -68,6 +95,12 @@ func makeInitCalls*[T](val: T): NimNode =
     ident($val)
   else:
     newLit(val)
+
+func makeInitAllFields*[T](val: T): NimNode =
+  result = newCall("init" & $typeof(T))
+  for name, val in fieldPairs(val):
+    result.add nnkExprEqExpr.newTree(
+      ident(name), makeInitCalls(val))
 
 func makeInitCalls*[A, B](table: Table[A, B]): NimNode =
   mixin makeInitCalls

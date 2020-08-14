@@ -181,13 +181,16 @@ proc discardNimNode(input: seq[Field[NimNode]]): seq[ValField] =
 macro makeFieldsLiteral*(node: typed): seq[ValField] =
   result = newLit(node.getFields().discardNimNode)
 
+type
+  GenParams = object
+    lhsObj, rhsObj, lhsName, rhsName, idxName, valIdxName, isKindName, fldName: string
+    hackFields: bool
+
 proc unrollFieldLoop(
   flds: seq[Field[NimNode]],
   body: NimNode,
   fldIdx: int,
-  genParam: tuple[
-    lhsObj, rhsObj, lhsName, rhsName, idxName, valIdxName, isKindName, fldName: string]
-     ): tuple[node: NimNode, fldIdx: int] =
+  genParam: GenParams): tuple[node: NimNode, fldIdx: int] =
 
   result.node = newStmtList()
 
@@ -209,11 +212,41 @@ proc unrollFieldLoop(
           let `rhsId` = `ident(genParam.rhsObj)`[`tupleIdx`]
           const `ident(genParam.fldName)`: string = `fldName`
       else:
-        let fldId = ident(fld.name)
-        superquote do:
-          let `lhsId` = `ident(genParam.lhsObj)`.`fldId`
-          let `rhsId` = `ident(genParam.rhsObj)`.`fldId`
-          const `ident(genParam.fldName)`: string = `newLit(fld.name)`
+        let
+          fldId = ident(fld.name)
+          fldName = newLit(fld.name)
+
+        if genParam.hackFields:
+          let fldType = parseExpr(fld.fldType)
+          # echo fldType.lispRepr()
+          let tmp = superquote do:
+            const `ident(genParam.fldName)`: string = `fldName`
+            let `lhsId` = block:
+              var tmp: `fldType`
+              for name, val in fieldPairs(`ident(genParam.lhsObj)`):
+                when val is `fldType`:
+                  if name == `fldName`:
+                    tmp = val
+                    break
+
+              tmp
+
+            let `rhsId` = block:
+              var tmp: `fldType`
+              for name, val in fieldPairs(`ident(genParam.rhsObj)`):
+                when val is `fldType`:
+                  if name == `fldName`:
+                    tmp = val
+                    break
+
+              tmp
+          # echo tmp.toStrLit()
+          tmp
+        else:
+          superquote do:
+            let `lhsId` = `ident(genParam.lhsObj)`.`fldId`
+            let `rhsId` = `ident(genParam.rhsObj)`.`fldId`
+            const `ident(genParam.fldName)`: string = `newLit(fld.name)`
 
     tmpRes.add superquote do:
       const `ident(genParam.isKindName)`: bool = `newLit(fld.isKind)`
@@ -314,7 +347,7 @@ fields **as defined** in object while second one shows order of fields
   ]##
   # TODO optionally ignore private fields
 
-  let genParams = (
+  let genParams = GenParams(
     lhsObj: "lhsObj",
     rhsObj: "rhsObj",
     lhsName: "lhs",
@@ -328,6 +361,29 @@ fields **as defined** in object while second one shows order of fields
   let (unrolled, _) = getFields(lhsObj).unrollFieldLoop(body, 0, genParams)
   result = superquote do:
 
+    block: ## Toplevel
+      var `ident(genParams.valIdxName)`: int = 0
+      let `ident(genParams.lhsObj)` = `lhsObj`
+      let `ident(genParams.rhsObj)` = `rhsObj`
+      `unrolled`
+
+
+macro hackPrivateParallelFieldPairs*(lhsObj, rhsObj: typed, body: untyped): untyped =
+  ## Same as `parallelFieldPairs` but uses HACK to access private fields
+  let genParams = GenParams(
+    lhsObj: "lhsObj",
+    rhsObj: "rhsObj",
+    lhsName: "lhs",
+    rhsName: "rhs",
+    idxName: "fldIdx",
+    valIdxName: "valIdx",
+    isKindName: "isKind",
+    fldName: "name",
+    hackFields: true
+  )
+
+  let (unrolled, _) = getFields(lhsObj).unrollFieldLoop(body, 0, genParams)
+  result = superquote do:
     block: ## Toplevel
       var `ident(genParams.valIdxName)`: int = 0
       let `ident(genParams.lhsObj)` = `lhsObj`

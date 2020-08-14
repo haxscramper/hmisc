@@ -378,6 +378,8 @@ suite "Case object field iteration":
         assert lhsObj is UTop
         checkDeclaredFields()
 
+import private
+
 suite "Parallel field pairs":
   test "{parallelFieldPairs} field indexing :macro:":
     type
@@ -438,3 +440,19 @@ suite "Parallel field pairs":
     parallelFieldPairs(t, y):
       if name == "finish":
         assert not isKind
+
+  test "{hackParallelFieldPairs} access private fields":
+
+    block:
+      let a = Private(kind: true)
+      let b = Private(kind: false)
+
+      hackPrivateParallelFieldPairs(a, b):
+        discard
+
+    block:
+      let a = Private()
+      let b = Private()
+
+      hackPrivateParallelFieldPairs(a, b):
+        discard

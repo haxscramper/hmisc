@@ -138,10 +138,18 @@ when isMainModule:
 
 template assertNodeIt*(
   node: NimNode, cond: untyped, msg: string): untyped =
+  # IDEA generate assertions for expected node kinds (for untyped
+  # macros) and types (for `typed` arguments) using `NType` from
+  # initcalls.
+
+  # NOTE this could be used as a basis for type mismatch error
+  # improvements implementation. Could be paired with `objdiff`
+  # algorithm (tree diffing for `NType`)
   block:
     let it {.inject.} = node
     if not cond:
       raise toCodeError(it, msg)
+
 
 func toLineInfo*(arg: tuple[
   filename: string, line: int, column: int]): LineInfo =

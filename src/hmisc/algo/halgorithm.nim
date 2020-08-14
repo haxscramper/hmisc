@@ -81,7 +81,7 @@ template maxIt*(s: untyped, op: untyped): untyped =
 template noneOfIt*(s: untyped, op: untyped): bool =
   ## True if for all items in `s` predicate `op` returns true.
   mixin anyOfIt
-  s.anyOfIt(not op)
+  not s.anyOfIt(op)
 
 macro disjointIterImpl(x: typed): untyped =
   var values: seq[NimNode]
