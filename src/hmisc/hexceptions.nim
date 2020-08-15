@@ -16,6 +16,14 @@ type
     annots*: seq[ErrorAnnotation] ## Additional error annotations
 
 
+func startpos*(node: NimNode): LineInfo =
+  case node.kind:
+    of nnkBracketExpr:
+      node[0].lineInfoObj()
+    else:
+      node.lineInfoObj()
+
+
 proc nthLine(file: string, line: int): string =
   readLines(file, line)[line - 1]
 
@@ -57,8 +65,10 @@ proc toColorString*(err: CodeError): string =
         ))
 
       block:
-        for line in filelines[0..^2]:
-          result &= " ".repeat(position.len) & line & "\n"
+        for idx, line in filelines[0..^2]:
+          let lineidx = $(-(filelines.len - firstErr.errpos.line - idx + 1))
+          result &= " " & lineidx & " ".repeat(
+            position.len - lineidx.len - 1) & line & "\n"
 
         result &= position & filelines[^1] & "\n"
       block:
@@ -101,12 +111,13 @@ func toCodeError*(node: NimNode, message: string,
       annots: @[
         ErrorAnnotation(
           linerange: linerange,
-          errpos: node.lineInfoObj(),
+          errpos: node.startpos(),
           expr: $node.toStrLit,
           annotation: annotation
         )
       ]
     ))
+
 
 func toCodeError*(nodes: openarray[tuple[node: NimNode, annot: string]],
                   message: string,
@@ -121,7 +132,7 @@ func toCodeError*(nodes: openarray[tuple[node: NimNode, annot: string]],
           nodes.mapIt:
             ErrorAnnotation(
               linerange: 0,
-              errpos: it.node.lineInfoObj(),
+              errpos: it.node.startpos(),
               expr: $it.node.toStrLit,
               annotation: it.annot))))
 
