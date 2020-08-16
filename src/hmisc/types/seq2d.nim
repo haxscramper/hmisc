@@ -17,6 +17,7 @@ IDEA support appending two grinds to each other. Interface is similar
 
 #===========================  Implementation  ============================#
 
+
 type
   Seq2d*[T] = object
     colWidth: int

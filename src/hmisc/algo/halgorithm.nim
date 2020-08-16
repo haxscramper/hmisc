@@ -121,10 +121,10 @@ func msgjoinImpl*(args: seq[string]): string =
     if idx == args.len - 1:
       result &= args[idx]
     else:
-      const wraps: set[char] = {'_', '`', '\'', '\"'}
+      const wraps: set[char] = {'_', '`', '\'', '\"', ' '}
       if args[idx].endsWith({'[', '(', '\'', '#', '@'} + wraps):
         result &= args[idx]
-      elif args[idx + 1].startsWith({',', ' '} + wraps):
+      elif args[idx + 1].startsWith({',', ' ', '.'} + wraps):
         result &= args[idx]
       else:
         result &= args[idx] & " "

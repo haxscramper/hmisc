@@ -1,4 +1,11 @@
-import macros, tables, sets, typetraits, sequtils, strformat, strutils
+import macros, tables, sets, typetraits, sequtils, strformat, strutils,
+       options
+
+func toBracket*(elems: seq[NimNode]): NimNode =
+  nnkBracket.newTree(elems)
+
+func toBracketSeq*(elems: seq[NimNode]): NimNode =
+  nnkPrefix.newTree(ident "@", nnkBracket.newTree(elems))
 
 type
   NType* = object

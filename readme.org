@@ -1,0 +1,17 @@
+#+title: readme
+
+Collection of miscellaneous helper algorithms and types.
+
+* Macros
+
+* Algorithms
+
+** Sequence algorithms
+
+** Tree algorithms
+
+* Types
+
+** Seq2D
+
+** ColoredString

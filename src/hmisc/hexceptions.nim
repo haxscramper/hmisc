@@ -14,11 +14,12 @@ type
     raisepos*: LineInfo
     errpos*: LineInfo ## Position of original error
     annots*: seq[ErrorAnnotation] ## Additional error annotations
+    postannot*: string
 
 
 func startpos*(node: NimNode): LineInfo =
   case node.kind:
-    of nnkBracketExpr:
+    of nnkBracketExpr, nnkDotExpr, nnkAsgn:
       node[0].lineInfoObj()
     else:
       node.lineInfoObj()
@@ -43,11 +44,8 @@ func `[]=`(buf: var seq[seq[ColoredRune]],
   buf[row][col] = ch
 
 proc toColorString*(err: CodeError): string =
-  block:
-    let (dir, name, ext) = err.raisepos.filename.splitFile()
-    result &= &"\n{toRed(name & ext)}:{toRed($err.raisepos.line)}:\n"
 
-  result &= "\n" & err.msg & "\n\n"
+  result &= "\n\n" & err.msg & "\n\n"
 
 
   let (dir, name, ext) = err.errpos.filename.splitFile()
@@ -96,8 +94,15 @@ proc toColorString*(err: CodeError): string =
         for line in buf:
           result &= $line & "\n"
 
-      result &= "\n" & $firstErr.errpos.filename.toDefault({styleUnderscore})
-      result &= "\n\n"
+      result &= "\n" & $firstErr.errpos.filename.toDefault(
+        {styleUnderscore}) & "\n"
+
+      block:
+        let (dir, name, ext) = err.raisepos.filename.splitFile()
+        result &= &"\nRaised in {toRed(name & ext)}:{toRed($err.raisepos.line)}\n"
+        result &= err.postannot & "\n\n"
+
+
 
 func toCodeError*(node: NimNode, message: string,
                   annotation: string = "",
@@ -148,7 +153,8 @@ when isMainModule:
         5,6])
 
 template assertNodeIt*(
-  node: NimNode, cond: untyped, msg: string): untyped =
+  node: NimNode, cond: untyped, msg: string,
+  annot: string = ""): untyped =
   # IDEA generate assertions for expected node kinds (for untyped
   # macros) and types (for `typed` arguments) using `NType` from
   # initcalls.
@@ -159,7 +165,7 @@ template assertNodeIt*(
   block:
     let it {.inject.} = node
     if not cond:
-      raise toCodeError(it, msg)
+      raise toCodeError(it, msg, annot)
 
 
 func toLineInfo*(arg: tuple[

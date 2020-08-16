@@ -428,4 +428,4 @@ macro hackPrivateParallelFieldPairs*(lhsObj, rhsObj: typed, body: untyped): unty
       let `ident(genParams.rhsObj)` = `rhsObj`
       `unrolled`
 
-  result.colorPrint()
+  # result.colorPrint()
