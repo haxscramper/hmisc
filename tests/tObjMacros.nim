@@ -74,7 +74,7 @@ suite "Case object field iteration":
                isTuple: false,
                branches: @[
         ValFieldBranch(
-          value: ValObjTree(
+          ofValue: ObjTree(
             kind: okConstant, constType: "bool", strLit: "true",
             styling: initPrintStyling()
           ),
@@ -84,7 +84,7 @@ suite "Case object field iteration":
           isElse: false
         ),
         ValFieldBranch(
-          value: ValObjTree(
+          ofValue: ObjTree(
             kind: okConstant,
             constType: "bool",
             strLit: "false",
@@ -130,7 +130,7 @@ suite "Case object field iteration":
                isTuple: false,
                branches: @[
         ValFieldBranch(
-          value: ValObjTree(
+          ofValue: ObjTree(
             kind: okConstant,
             constType: "bool",
             strLit: "true",
@@ -146,7 +146,7 @@ suite "Case object field iteration":
           isElse: false
          ),
         ValFieldBranch(
-          value: ValObjTree(
+          ofValue: ObjTree(
             kind: okConstant, constType: "bool",
             strLit: "false", styling: initPrintStyling()),
           flds: @[ ValField(
@@ -158,14 +158,14 @@ suite "Case object field iteration":
       ValField(fldType: "char", name: "kind2", isKind: true,
                isTuple: false, branches: @[
         ValFieldBranch(
-          value: ValObjTree(styling: initPrintStyling(),
+          ofValue: ObjTree(styling: initPrintStyling(),
             kind: okConstant, constType: "char", strLit: "'a'"),
           flds: @[ ValField(fldType: "int", isKind: false,
                             name: "f12", isTuple: false) ],
           isElse: false
         ),
         ValFieldBranch(
-          value: ValObjTree(styling: initPrintStyling(),),
+          ofValue: ObjTree(styling: initPrintStyling(),),
           flds: @[ ValField(fldType: "float", isKind: false,
                             name: "f22", isTuple: false) ],
           isElse: true
@@ -199,21 +199,21 @@ suite "Case object field iteration":
       ValField(fldType: "bool", name: "kind1", isKind: true,
                isTuple: false, branches: @[
         ValFieldBranch(
-          value: ValObjTree(styling: initPrintStyling(),
+          ofValue: ObjTree(styling: initPrintStyling(),
             kind: okConstant, constType: "bool", strLit: "true"),
           flds: @[ ValField(fldType: "int", isKind: false,
                             name: "f11", isTuple: false) ],
           isElse: false
          ),
         ValFieldBranch(
-          value: ValObjTree(styling: initPrintStyling(),
+          ofValue: ObjTree(styling: initPrintStyling(),
             kind: okConstant, constType: "bool", strLit: "false"),
           flds: @[
             ValField(
               fldType: "char", name: "kind2", isKind: true,
               isTuple: false, branches: @[
               ValFieldBranch(
-                value: ValObjTree(styling: initPrintStyling(),
+                ofValue: ObjTree(styling: initPrintStyling(),
                   kind: okConstant, constType: "char", strLit: "'a'"),
                 flds: @[ ValField(
                   fldType: "int", isKind: false, name: "f12",
@@ -221,7 +221,7 @@ suite "Case object field iteration":
                 isElse: false
               ),
               ValFieldBranch(
-                value: ValObjTree(styling: initPrintStyling(),),
+                ofValue: ObjTree(styling: initPrintStyling(),),
                 flds: @[ ValField(
                   fldType: "float", isKind: false,
                   name: "f22", isTuple: false) ],
@@ -286,7 +286,7 @@ suite "Case object field iteration":
         name: "kind1", fldType: "bool", isKind: true,
         isTuple: false, branches: @[
           ValFieldBranch(
-            value: ValObjTree(styling: initPrintStyling(),
+            ofValue: ObjTree(styling: initPrintStyling(),
               kind: okConstant, constType: "bool", strLit: "false"),
             flds: @[
               ValField( name: "kind2", fldType: "char",

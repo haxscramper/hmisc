@@ -1,4 +1,4 @@
-import macroutils
+import macroutils, sugar
 import strutils, strformat, macros, sequtils
 
 import ../algo/halgorithm
@@ -128,6 +128,8 @@ proc getFields*(node: NimNode): seq[Field[NimNode]] =
         &"Unexpected node kind in `getFields`: {node.kind}."
       )
 
+template filterIt2(op, body: untyped): untyped = filterIt(body, op)
+
 proc getKindFields*[Node](flds: seq[Field[Node]]): seq[Field[Node]] =
   for fld in flds:
     if fld.isKind:
@@ -137,13 +139,17 @@ proc getKindFields*[Node](flds: seq[Field[Node]]): seq[Field[Node]] =
         name: fld.name,
         # value: fld.value,
         fldType: fld.fldType,
-        branches: fld.branches.mapIt(
-          FieldBranch[Node](
-            value: it.value,
-            isElse: it.isElse,
-            flds: it.flds.getKindFields()
-          )
-        ).filterIt(it.flds.len > 0)
+        branches:
+          block:
+            filterIt2(it.flds.len > 0):
+              collect(newSeq):
+                for it in fld.branches:
+                # fld.branches.mapIt(
+                  FieldBranch[Node](
+                    ofValue: it.ofValue,
+                    isElse: it.isElse,
+                    flds: it.flds.getKindFields())
+                  # )
       )
 
 proc discardNimNode(input: seq[Field[NimNode]]): seq[ValField] =

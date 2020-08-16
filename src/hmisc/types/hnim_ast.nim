@@ -136,8 +136,7 @@ type
 
 type
   ValField* = Field[ObjTree]
-  ValFieldBranch* = Field[ObjTree]
-
+  ValFieldBranch* = FieldBranch[ObjTree]
 
 
 func makeObjElem*[Conf](text: string, conf: Conf): ObjElem[Conf] =
