@@ -8,10 +8,10 @@ type
   FieldBranch*[Node] = object
     # IDEA three possible parameters: `NimNode` (for compile-time
     # operations), `PNode` (for analysing code at runtime) and.
-    when Node is NimNode:
-      ofValue*: Node ## Exact AST used in field branch
-    else:
-      value*: ObjTree[Node] ## Match value for case branch
+    # when Node is NimNode:
+    # ofValue*: Node ## Exact AST used in field branch
+    # else:
+    ofValue*: Node ## Match value for case branch
 
     flds*: seq[Field[Node]] ## Fields in the case branch
     isElse*: bool
@@ -44,6 +44,10 @@ type
     name*: string ## Name for an object
     flds*: seq[Field[Node]]
 
+
+
+
+type
   ObjKind* = enum
     okConstant ## Literal value
     okSequence ## Sequence of items
@@ -70,7 +74,7 @@ type
 
   ObjPath = seq[ObjAccs]
 
-  ObjTree*[Node] = object
+  ObjTree* = object
     ##[
 
 ## Fields
@@ -98,11 +102,11 @@ type
         strlit*: string ## Value representation in string form
       of okSequence:
         itemType*: string ## Type of the sequence item
-        valItems*: seq[ObjTree[Node]] ## List of values
+        valItems*: seq[ObjTree] ## List of values
       of okTable:
         keyType*: string ## Type of table key
         valType*: string ## TYpe of value key
-        valPairs*: seq[tuple[key: string, val: ObjTree[Node]]] ## List of
+        valPairs*: seq[tuple[key: string, val: ObjTree]] ## List of
         ## key-value pairs for table
         # XXXX TODO TEST used `ObjTree` for key too. Non-trivial types
         # can be used. Write unit tests for this functionality.
@@ -114,23 +118,9 @@ type
         namedFields*: bool ## Fields have dedicated names? (anonymous
         ## tuple does not have a name for fields)
         name*: string ## Name for an object
-        case sectioned*: bool
-          of false:
-            # Simpler representation for object tree without
-            # sectioning on different blocks depending on `kind`
-            # fields: everything is put into single key-value
-            # sequence.
-
-            # XXX TODO Add field type
-            fldPairs*: seq[tuple[name: string, value: ObjTree[Node]]] ## Sequence
-            ## of field-value pairs for object representation
-          of true:
-            # Most of the case objects have one `kind` field named
-            # 'kind' but this should account for cases with multiple
-            # case fields as well as nested ones
-            kindBlocks*: seq[Field[Node]] ## Object field tree. TODO -
-            ## currently not implemented
-
+        # XXX TODO Add field type
+        fldPairs*: seq[tuple[name: string, value: ObjTree]] ## Sequence
+        ## of field-value pairs for object representation
 
 
 
@@ -144,23 +134,23 @@ type
         targetId*: int
 
 
+type
+  ValField* = Field[ObjTree]
+  ValFieldBranch* = Field[ObjTree]
 
 
-  ValObjTree* = ObjTree[void] ## Object tree used at runtime.
-  ValField* = Field[void] ## Field used at runtime
-  ValFieldBranch* = FieldBranch[void] ## Field branch used at runtime
 
 func makeObjElem*[Conf](text: string, conf: Conf): ObjElem[Conf] =
   ObjElem[Conf](isValue: true, text: text, config: conf)
 
-func initObjTree*[Node](): ObjTree[Node] =
-  ObjTree[Node](styling: initPrintStyling())
+func initObjTree*(): ObjTree =
+  ObjTree(styling: initPrintStyling())
 
 #==============================  operators  ==============================#
 
 func `==`*[Node](lhs, rhs: Field[Node]): bool
 
-func `==`*[Node](lhs, rhs: ObjTree[Node]): bool =
+func `==`*(lhs, rhs: ObjTree): bool =
   lhs.kind == rhs.kind and
     (
       case lhs.kind:
@@ -180,17 +170,17 @@ func `==`*[Node](lhs, rhs: ObjTree[Node]): bool =
           lhs.namedObject == rhs.namedObject and
           lhs.namedFields == rhs.namedFields and
           lhs.name == rhs.name and
-          lhs.sectioned == rhs.sectioned and
-          (
-            case lhs.sectioned:
-              of true:
-                subnodesEq(lhs, rhs, kindBlocks)
-              of false:
-                zip(lhs.fldPairs, rhs.fldPairs).mapPairs(
-                  (lhs.name == rhs.name) and (lhs.value == rhs.value)
-                ).foldl(a and b)
-          )
-
+          # lhs.sectioned == rhs.sectioned and
+          subnodesEq(lhs, rhs, fldPairs)
+          # (
+          #   case lhs.sectioned:
+          #     of true:
+          #       subnodesEq(lhs, rhs, kindBlocks)
+          #     of false:
+          #       zip(lhs.fldPairs, rhs.fldPairs).mapPairs(
+          #         (lhs.name == rhs.name) and (lhs.value == rhs.value)
+          #       ).foldl(a and b)
+          # )
     )
 
 func `==`*[Node](lhs, rhs: Field[Node]): bool =
@@ -210,10 +200,10 @@ func `==`*[Node](lhs, rhs: Field[Node]): bool =
 #***********************  Annotation and styling  ************************#
 #*************************************************************************#
 
-func annotate*(tree: var ValObjTree, annotation: string): void =
+func annotate*(tree: var ObjTree, annotation: string): void =
   tree.annotation = annotation
 
-func stylize*(tree: var ValObjTree, conf: PrintStyling): void =
+func stylize*(tree: var ObjTree, conf: PrintStyling): void =
   tree.styling = conf
 
 func styleTerm*(str: string, conf: PrintStyling): string =
@@ -231,7 +221,7 @@ func objPath*(path: varargs[ObjAccs, `objAccs`]): ObjPath = toSeq(path)
 # func `@/`*(path: ObjPath, idx: int): ObjPath = path & @[objAccs(idx)]
 # func `@/`*(path: ObjPath, name: string): ObjPath = path & @[objAccs(name)]
 
-func getAtPath*(obj: var ValObjTree, path: ObjPath): var ValObjTree =
+func getAtPath*(obj: var ObjTree, path: ObjPath): var ObjTree =
   # debugecho path
   case obj.kind:
     of okComposed:

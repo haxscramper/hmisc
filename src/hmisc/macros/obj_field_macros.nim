@@ -159,7 +159,7 @@ proc discardNimNode(input: seq[Field[NimNode]]): seq[ValField] =
           selected: fld.selected,
           branches: fld.branches.mapIt(
             ValFieldBranch(
-              value: ValObjTree(
+              ofValue: ObjTree(
                 styling: initPrintStyling(),
                 kind: okConstant,
                 constType: (it.isElse).tern("", fld.fldType),
