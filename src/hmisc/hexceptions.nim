@@ -3,7 +3,7 @@ import types/colorstring
 import algo/[hseq_mapping, hmath]
 
 type
-  ErrorAnnotation = object
+  ErrorAnnotation* = object
     errpos*: LineInfo
     expr*: string
     annotation*: string
@@ -16,6 +16,8 @@ type
     annots*: seq[ErrorAnnotation] ## Additional error annotations
     postannot*: string
 
+# template currLineInfo*(): untyped =
+#   let iinfo =
 
 func startpos*(node: NimNode): LineInfo =
   case node.kind:
@@ -44,8 +46,9 @@ func `[]=`(buf: var seq[seq[ColoredRune]],
   buf[row][col] = ch
 
 proc toColorString*(err: CodeError): string =
+  let docolor = not defined(plainStdout)
 
-  result &= "\n\n" & err.msg & "\n\n"
+  result &= "\n\n" & (if docolor: err.msg else: err.msg.stripSGR()) & "\n\n"
 
 
   let (dir, name, ext) = err.errpos.filename.splitFile()
@@ -70,22 +73,23 @@ proc toColorString*(err: CodeError): string =
 
         result &= position & filelines[^1] & "\n"
       block:
-        var spacing = 0
+        var spacing = 1
         var buf: seq[seq[ColoredRune]]
         for annot in lineannots:
           let start = (position.len + annot.errpos.column)
           for line in 1 ..+ (spacing + 1):
             buf[line, start] = toColored('|', initPrintStyling(
               fg = fgRed
-            ))
+            ), colorize = docolor)
 
           for col in start ..+ annot.expr.len():
             buf[0, col] = toColored('^', initPrintStyling(
               fg = fgRed
-            ))
+            ), colorize = docolor)
 
           inc spacing
           for line in annot.annotation.split("\n"):
+            let line = if docolor: line else: line.stripSGR()
             for idx, ch in line:
               buf[spacing, start + idx] = toColored(ch)
 
@@ -95,11 +99,11 @@ proc toColorString*(err: CodeError): string =
           result &= $line & "\n"
 
       result &= "\n" & $firstErr.errpos.filename.toDefault(
-        {styleUnderscore}) & "\n"
+        {styleUnderscore}, colorize = docolor) & "\n"
 
       block:
         let (dir, name, ext) = err.raisepos.filename.splitFile()
-        result &= &"\nRaised in {toRed(name & ext)}:{toRed($err.raisepos.line)}\n"
+        result &= &"\nRaised in {toRed(name & ext)}:{toRed($err.raisepos.line, docolor)}\n"
         result &= err.postannot & "\n\n"
 
 

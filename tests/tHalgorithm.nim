@@ -1,8 +1,10 @@
-import unittest, strutils, unicode
+# {.define(plainStdout).}
+
+import unittest, strutils, unicode, macros
 import sugar, json, sequtils, tables, strformat, options, terminal
 
 import hmisc/types/[hvariant, colorstring]
-import hmisc/[helpers]
+import hmisc/[helpers, hexceptions]
 import hmisc/algo/[halgorithm, htree_mapping, hseqdistance]
 
 type
@@ -686,3 +688,22 @@ suite "Misc algorithms":
       @[ initColoredRune(Rune('$'), initPrintStyling(fg = fgRed)),
          initColoredRune(Rune('-'))]
     ]
+
+  test "{exception printout}":
+    let iinfo = instantiationInfo()
+    let err = CodeError(
+      msg: "Toplevel \e[31mannotation\e[39m ",
+      annots: @[
+      ErrorAnnotation(
+        errpos: LineInfo(
+          line: iinfo.line,
+          column: iinfo.column,
+          filename: currentSourcePath()
+        ),
+        annotation: "Hell \e[32masdfas\e[39md o",
+        linerange: -2,
+        expr: "errpos: currLineInf()"
+      )
+    ])
+
+    echo err.toColorString()

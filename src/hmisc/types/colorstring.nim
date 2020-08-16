@@ -41,8 +41,11 @@ func toColored*(rune: Rune): ColoredRune = ColoredRune(
 
 func toColored*(
   ch: char,
-  styling: PrintStyling = initPrintStyling()): ColoredRune =
-  ColoredRune(rune: Rune(ch), styling: styling)
+  styling: PrintStyling = initPrintStyling(),
+  colorize: bool = true): ColoredRune =
+  ColoredRune(
+    rune: Rune(ch),
+    styling: (if not colorize: initPrintStyling() else: styling))
 
 func initColoredString*(str: string,
                         bg: BackgroundColor = bgDefault,
@@ -129,8 +132,10 @@ func toCyan*(str: string, style: set[Style] = {}): string =
 func toMagenta*(str: string, style: set[Style] = {}): string =
   $initColoredString(str, style = style, fg = fgMagenta)
 
-func toDefault*(str: string, style: set[Style] = {}): string =
-  $initColoredString(str, style = style, fg = fgDefault)
+func toDefault*(
+  str: string, style: set[Style] = {}, colorize: bool = true): string =
+  $initColoredString(
+    str, style = if colorize: style else: {}, fg = fgDefault)
 
 
 func toRed*(str: string, color: bool): string =
@@ -343,6 +348,26 @@ func changeStyle(ps: var PrintStyling, code: int): void =
       ps.style.incl styleBright
     else:
       discard
+
+func stripSGR*(str: string): string =
+  var
+    style: PrintStyling = PrintStyling(bg: bgDefault, fg: fgDefault)
+    prev: int = 0
+    pos: int = 0
+    sgrbuf: string
+
+  while scanp(str, pos, (
+    *(~ '\e'), ("\e[", ({'0' .. '9'}){1,3} -> sgrbuf.add($_), 'm'))
+  ):
+    let termsym = sgrbuf.len + 2
+    let substr = str[prev ..< (pos - termsym - 1)]
+    result &= substr
+    prev = pos
+    sgrbuf = ""
+
+  if prev < pos:
+    result &= str[prev ..< pos]
+
 
 func splitSGR*(str: string): seq[ColoredString] =
   var
