@@ -84,7 +84,7 @@ proc getFields*(node: NimNode): seq[Field[NimNode]] =
           case elem.kind:
             of nnkRecCase: # Case field
               result.add Field[NimNode](
-                value: initObjTree[NimNode](),
+                # value: initObjTree[NimNode](),
                 isTuple: false,
                 isKind: true,
                 branches: getBranches(elem),
@@ -104,12 +104,13 @@ proc getFields*(node: NimNode): seq[Field[NimNode]] =
     of nnkTupleConstr:
       for idx, sym in node:
         result.add Field[NimNode](
-          isTuple: true, tupleIdx: idx, value: initObjTree[NimNode]())
+          isTuple: true, tupleIdx: idx# , value: initObjTree[NimNode]()
+        )
 
     of nnkIdentDefs:
       let descr = getFieldDescription(node)
       result.add Field[NimNode](
-        value: initObjTree[NimNode](),
+        # value: initObjTree[NimNode](),
         isTuple: false,
         isKind: false,
         name: descr.name,
@@ -134,7 +135,7 @@ proc getKindFields*[Node](flds: seq[Field[Node]]): seq[Field[Node]] =
         isTuple: false,
         isKind: true,
         name: fld.name,
-        value: fld.value,
+        # value: fld.value,
         fldType: fld.fldType,
         branches: fld.branches.mapIt(
           FieldBranch[Node](
@@ -150,7 +151,7 @@ proc discardNimNode(input: seq[Field[NimNode]]): seq[ValField] =
     case fld.isKind:
       of true:
         result.add ValField(
-          value: initObjTree[void](),
+          # value: initObjTree[void](),
           isTuple: false,
           isKind: true,
           name: fld.name,
@@ -172,7 +173,7 @@ proc discardNimNode(input: seq[Field[NimNode]]): seq[ValField] =
 
       of false:
         result.add ValField(
-          value: initObjTree[void](),
+          # value: initObjTree[void](),
           isTuple: false,
           isKind: false,
           name: fld.name,

@@ -27,7 +27,7 @@ type
         name*: string
 
     fldType*: string ## Type of field value
-    value*: ObjTree[Node]
+    # value*: ObjTree[Node]
     case isKind*: bool
       of true:
         selected*: int ## Index of selected branch
@@ -35,6 +35,14 @@ type
                                     ## `value-branch` pairs.
       of false:
         discard
+
+  NObject*[Node] = object
+    namedObject*: bool ## This object's type has a name? (tuples
+    ## does not have name for a tyep)
+    namedFields*: bool ## Fields have dedicated names? (anonymous
+    ## tuple does not have a name for fields)
+    name*: string ## Name for an object
+    flds*: seq[Field[Node]]
 
   ObjKind* = enum
     okConstant ## Literal value
@@ -192,7 +200,7 @@ func `==`*[Node](lhs, rhs: Field[Node]): bool =
         of true:
           lhs.name == rhs.name and
           lhs.fldType == rhs.fldType and
-          lhs.value == rhs.value and
+          # lhs.value == rhs.value and
           subnodesEq(lhs, rhs, branches)
         of false:
           true
