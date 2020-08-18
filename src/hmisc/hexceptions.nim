@@ -23,6 +23,8 @@ func startpos*(node: NimNode): LineInfo =
   case node.kind:
     of nnkBracketExpr, nnkDotExpr, nnkAsgn, nnkCall:
       node[0].lineInfoObj()
+    of nnkInfix:
+      node[1].lineInfoObj()
     else:
       node.lineInfoObj()
 
@@ -145,21 +147,96 @@ func toCodeError*(nodes: openarray[tuple[node: NimNode, annot: string]],
         block:
           nodes.mapIt:
             ErrorAnnotation(
-              linerange: 0,
+              linerange: -1,
               errpos: it.node.startpos(),
               expr: $it.node.toStrLit,
               annotation: it.annot))))
 
-when isMainModule:
-  macro test(a: untyped): untyped =
-    raise toCodeError({
-      a[2] : "Third element in array",
-      a[0] : "Array starts here\nMultiline annotations",
-      a[5] : "Annotation for part on the different line"
-    }, "Annotation for array error")
+func toStaticMessage*(
+  errpos: LineInfo,
+  expr: string,
+  message: string,
+  annot: string, iinfo: LineInfo = LineInfo()): string =
+  {.noSideEffect.}:
+    toColorString(CodeError(
+        msg: message,
+        raisepos: iinfo,
+        annots: @[
+            ErrorAnnotation(
+              linerange: -1,
+              errpos: errpos,
+              expr: expr,
+              annotation: annot)]))
 
-  test([1,2,3,4,
-        5,6])
+
+func toStaticMessage*(
+  node: NimNode, message: string,
+  annot: string, iinfo: LineInfo = LineInfo()): string =
+  toStaticMessage(node.startpos(), node.toStrLit().strval(),
+                  message, annot, iinfo)
+
+
+
+func toCompilesAssert*(
+  errpos: LineInfo,
+  expr: string,
+  compileBody: NimNode,
+  annotation: string): NimNode =
+  let str = toStaticMessage(
+    errpos, expr, "Failed to compile",
+    annotation).newLit()
+
+  quote do:
+    when not compiles(compileBody):
+      static:
+        raiseAssert(`str`)
+
+func toCompilesAssert*(
+  node, compileBody: NimNode, annotation: string): NimNode =
+  toCompilesAssert(
+    node.startpos(),
+    node.toStrLit().strval(),
+    compileBody,
+    annotation)
+
+
+when isMainModule:
+  block:
+    macro randomDSL(body: untyped): untyped =
+      let
+        start = body.startpos()
+        expr = body.toStrLit().strval()
+
+      result = quote do:
+        generatedFunction(`body`)
+
+      let staticAss #[ert]# = toCompilesAssert(
+        start, expr, result,
+        &"Called {result.toStrLit().strVal().toYellow()}")
+
+      result = quote do:
+        `staticAss`
+        `result`
+
+    randomDSL(90)
+
+  block:
+    macro expectCompiles(body: untyped): untyped =
+      result = toCompilesAssert(body, body, "Expression is ")
+
+    expectCompiles(1 + "12")
+
+
+  block:
+    macro test(a: untyped): untyped =
+      raise toCodeError({
+        a[2] : "Third element in array",
+        a[0] : "Array starts here\nMultiline annotations",
+        a[5] : "Annotation for part on the different line"
+      }, "Annotation for array error")
+
+    test([1,2,3,4,
+          5,6])
 
 template assertNodeIt*(
   node: NimNode, cond: untyped,
