@@ -144,6 +144,7 @@ proc matchWith*[K, V](
   ## Search `seq[seq[Key], Val]` for entry that has matching `Key` and
   ## return corresponding `Val`. If nothing found return `none(V)`
   runnableExamples:
+    import options
     let lookup = @[
       (@["one", "two", "three"], "number"),
       (@["cat", "dog", "mole"], "animal")
