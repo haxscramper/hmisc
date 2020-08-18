@@ -143,8 +143,16 @@ macro mapPairs*(
           type TRhs = type((`inseq`[0]))
       else:
         when compiles(for k, v in pairs(`inseq`): discard):
-          type TLhs = type((pairs(`inseq`).nthType1))
-          type TRhs = type((pairs(`inseq`).nthType2))
+          type TLhs = typeof((
+            block:
+              var tmp: typeof pairs(`inseq`)
+              tmp[0]
+          ))
+          type TRhs = typeof((
+            block:
+              var tmp: typeof pairs(`inseq`)
+              tmp[1]
+          ))
         else:
           type TLhs = int
           type TRhs = type((items(`inseq`)))

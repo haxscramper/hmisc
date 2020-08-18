@@ -21,7 +21,7 @@ type
 
 func startpos*(node: NimNode): LineInfo =
   case node.kind:
-    of nnkBracketExpr, nnkDotExpr, nnkAsgn:
+    of nnkBracketExpr, nnkDotExpr, nnkAsgn, nnkCall:
       node[0].lineInfoObj()
     else:
       node.lineInfoObj()
@@ -98,13 +98,18 @@ proc toColorString*(err: CodeError): string =
         for line in buf:
           result &= $line & "\n"
 
-      result &= "\n" & $firstErr.errpos.filename.toDefault(
+        result &= "\n"
+
+
+    block:
+      let firstErr = annSorted[0][0]
+      let (dir, name, ext) = err.raisepos.filename.splitFile()
+      result &= $firstErr.errpos.filename.toDefault(
         {styleUnderscore}, colorize = docolor) & "\n"
 
-      block:
-        let (dir, name, ext) = err.raisepos.filename.splitFile()
-        result &= &"\nRaised in {toRed(name & ext)}:{toRed($err.raisepos.line, docolor)}\n"
-        result &= err.postannot & "\n\n"
+
+      result &= &"\nRaised in {toRed(name & ext, docolor)}:{toRed($err.raisepos.line, docolor)}\n"
+      result &= err.postannot & "\n\n"
 
 
 
@@ -148,17 +153,17 @@ func toCodeError*(nodes: openarray[tuple[node: NimNode, annot: string]],
 when isMainModule:
   macro test(a: untyped): untyped =
     raise toCodeError({
-      a[3] : "Third element in array",
+      a[2] : "Third element in array",
       a[0] : "Array starts here\nMultiline annotations",
-      a[5] : "On different line"
+      a[5] : "Annotation for part on the different line"
     }, "Annotation for array error")
 
   test([1,2,3,4,
         5,6])
 
 template assertNodeIt*(
-  node: NimNode, cond: untyped, msg: string,
-  annot: string = ""): untyped =
+  node: NimNode, cond: untyped,
+  msg: untyped, annot: string = ""): untyped =
   # IDEA generate assertions for expected node kinds (for untyped
   # macros) and types (for `typed` arguments) using `NType` from
   # initcalls.

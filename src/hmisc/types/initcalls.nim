@@ -1,5 +1,8 @@
 import macros, tables, sets, typetraits, sequtils, strformat, strutils,
-       options
+       options, parseutils
+
+import ../algo/halgorithm
+import ../types/colorstring
 
 func toBracket*(elems: seq[NimNode]): NimNode =
   nnkBracket.newTree(elems)
@@ -21,6 +24,14 @@ type
     varname: string
     kind: NVarDeclKind
     vtype: NType
+
+func isEnum*(en: NimNode): bool = en.getTypeImpl().kind == nnkEnumTy
+
+func getEnumPref*(en: NimNode): string =
+  let
+    impl = en.getTypeImpl()
+    name = impl[1].strVal()
+    pref = name.parseUntil(result, {'A' .. 'Z', '0' .. '9'})
 
 
 func `$`*(nt: NType): string =
@@ -131,3 +142,26 @@ func makeInitCalls*[A](hset: HashSet[A]): NimNode =
     result.add val.makeInitCalls()
 
   result = newCall("toHashSet", result)
+
+proc pprintCalls*(node: NimNode, level: int): void =
+  let pref = "  ".repeat(level)
+  let pprintKinds = {nnkCall, nnkPrefix, nnkBracket}
+  case node.kind:
+    of nnkCall:
+      echo pref, $node[0].toStrLit()
+      if node[1..^1].noneOfIt(it.kind in pprintKinds):
+        echo pref, "  ",
+          node[1..^1].mapIt($it.toStrLit()).join(", ").toYellow()
+      else:
+        for arg in node[1..^1]:
+          pprintCalls(arg, level + 1)
+    of nnkPrefix:
+      echo pref, node[0]
+      pprintCalls(node[1], level)
+    of nnkBracket:
+      for subn in node:
+        pprintCalls(subn, level + 1)
+    of nnkIdent:
+      echo pref, ($node).toGreen()
+    else:
+      echo ($node.toStrLit()).indent(level * 2)
