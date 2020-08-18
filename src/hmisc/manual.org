@@ -1,0 +1,78 @@
+* ~hexception~
+
+**  multiple multiline annotations.
+
+#+begin_src nim
+  {.define(plainStdout).} # Output is colored by default, disable for readme example
+  import hmisc/hexceptions
+
+  macro test(a: untyped): untyped =
+    raise toCodeError({
+      a[2] : "Third element in array",
+      a[0] : "Array starts here\nMultiline annotations",
+      a[5] : "Annotation for part on the different line"
+    }, "Annotation for array error")
+
+  test([1,2,3,4,
+        5,6])
+
+#+end_src
+
+#+RESULTS:
+#+begin_example
+  Annotation for array error
+
+   11
+   14:10 test([1,2,3,4,
+               ^   ^
+               |   |
+               |   Third element in array
+               |
+               Array starts here
+               Multiline annotations
+
+   12   test([1,2,3,4,
+   15:8       5,6])
+                ^
+                |
+                Annotation for part on the different line
+
+
+
+  Raised in :0
+
+
+   [CodeError:ObjectType]
+#+end_example
+
+** Expect compiles
+
+#+begin_src nim
+  {.define(plainStdout).}
+  import hmisc/hexceptions
+
+  macro expectCompiles(body: untyped): untyped =
+    result = toCompilesAssert(body, body, "Expression is ", addBody = false)
+
+  expectCompiles(1 + "12")
+#+end_src
+
+#+RESULTS:
+#+begin_example
+
+
+Failed to compile
+
+ 7
+ 10:15 expectCompiles(1 + "12")
+                      ^^^^^^^^
+                      |
+                      Expression is
+
+/tmp/babel-0WtR3d/nim_src_Yf058l.nim
+
+Raised in :0
+
+
+
+#+end_example

@@ -47,6 +47,15 @@ func toColored*(
     rune: Rune(ch),
     styling: (if not colorize: initPrintStyling() else: styling))
 
+
+func toColored*(
+  ch: Rune,
+  styling: PrintStyling = initPrintStyling(),
+  colorize: bool = true): ColoredRune =
+  ColoredRune(
+    rune: ch,
+    styling: (if not colorize: initPrintStyling() else: styling))
+
 func initColoredString*(str: string,
                         bg: BackgroundColor = bgDefault,
                         fg: ForegroundColor = fgDefault,
@@ -484,3 +493,13 @@ func toRuneGrid*(sseq: seq[seq[ColoredString]]): seq[seq[ColoredRune]] =
 
 func toColoredRuneGrid*(str: string): seq[seq[ColoredRune]] =
   str.splitSGR_sep().toRuneGrid()
+
+func `[]=`*(
+  buf: var seq[seq[ColoredRune]],
+  row: int, col: int,
+  ch: ColoredRune): void =
+  for _ in buf.len .. row:
+    buf.add @[coloredWhitespaceRune]
+
+  buf[row] &= coloredWhitespaceRune.repeat(max(col - buf[row].len + 1, 0))
+  buf[row][col] = ch

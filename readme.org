@@ -6,12 +6,94 @@ Collection of miscellaneous helper algorithms and types.
 
 * Algorithms
 
-** Sequence algorithms
+** ~hmisc/algo/hseq_mapping~
 
-** Tree algorithms
+- ~deduplicateIt~
+- ~mapPairs~ :: ~mapIt~ for types that implement ~pairs~ iterator, or
+  ~items~ that return tuple, or sequence of tuples. Inject index of
+  the item, ~lhs~ (first element) and ~rhs~ (second element). Should
+  correctly handle ~{.requiresinit.}~ fields.
+
+** ~hmisc/algo/htree_mapping~
+
+- ~mapItBFStoSeq~ :: iterate over tree in BFS order, store mapping
+  result in sequence.
+- ~iterateItBFS~ :: iterate over tree in BFS order
+- ~iterateItDFS~ :: iterate over tree in DFS order. Uses iterative DFS
+  instead of recursive call.
+- ~mapItDFS~ :: ~mapIt~ for converting trees in DFS order
 
 * Types
 
-** Seq2D
+** ~hmisc/types/hprimitives~
 
-** ColoredString
+- ~StrBlock~ :: ~seq[string]~ + getting height/width
+- ~ArrSize~ :: Size of 2d array as distinct type
+- ~ArrRange~ :: range of elements in 1d array + lots of helper functions
+  - move left/right edge with correctness checks (assertions)
+  - check if position is in range
+  - count number of 'middles' in sequence
+  - check if range is a single point
+  - find overlaps between two ranges
+  - iterate over indices in carthesian produc of two ranges - for
+    example all cells in particular ~[row-range] X [col-range]~.
+
+** ~hmisc/types/seq2d~
+
+*** ~Seq2D~
+
+Always-rectangular 2d sequence of items. Public API prevents
+modification that will make it non-rectangular.
+
+Helper functions are provided for
+
+- iterating elements
+  - columns :: ~itercols~
+  - rows :: ~iterrows~, ~items~ for row without index, ~pairs~ for
+    rows with index.
+  - itercells :: each element + global position ~(row, col)~
+  - iterSomeCells :: each cell that is not ~none(T)~ + position ~(row,
+    col)~
+- mapping elements
+  - map 2d sequence :: ~mapIt2d~ - each element is injected as ~it~
+  - maximize value over rowmns :: ~maximizeRowIt~ get value for each
+    element in row, return max one. Repeat for each row
+  - maximize value over columns :: ~maximizeColIt~ get value for each
+    element in column, return max one. Repeat for each column.
+- modification
+  - single elements :: All sorts of overload for ~[]~ and ~[]=~ operators
+  - rows :: ~appendRow~, ~insertRow~, ~addHeader~
+  - columns :: ~insertCol~
+  - whole grid :: ~fillToSize~
+
+Helper functions for getting row/col count, iterating over
+rows/columns
+
+*** ~MulticellGrid~
+
+Same as ~Seq2D~ (always rectangular with API preventing unwanted
+modifications). Supports 'mutlicell' elements.
+
+** ~hmisc/types/htrie~
+
+Implementation of =trie= data structure. Not sure about performance,
+mostly made for the sake of abstraction and API (storing list of paths
+in tree).
+
+** ~hmisc/types/hvariant~
+
+Sum type as generic in nim. Similar to ~std::variant< ... >~. Not
+really useful actually - after I wrote it there has never been a
+situation where I case objects were just 'too much'.
+
+** ~hmisc/types/colorstring~
+
+Easier manipulation of colored strings in terminal. Support splitting
+regular strin in same-color chunks, finding 'visible' length of the
+string (as printed in terminal). Helper functions like ~toYellow()~ or
+~toRed()~ to make creation of the colored strings simpler. All
+attributes from ~terminal~ module are supported (fg/bg colors and
+modifiers).
+
+Provides two types for colored text - ~ColoredString~ (string +
+styling) and ~ColoredRune~ (unicode rune + styling).
