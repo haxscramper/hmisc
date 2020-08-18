@@ -14,6 +14,9 @@ nimcache/
 **/*.html
 **/*.css
 
+**/*tmp-*
+.nojekyll
+nimdoc.cfg
 /scripts/.circuit
 /scripts/.latex
 callgrind.out.*
