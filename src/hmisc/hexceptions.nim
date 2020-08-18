@@ -187,9 +187,10 @@ func toCompilesAssert*(
     annotation).newLit()
 
   quote do:
-    when not compiles(compileBody):
+    when not compiles(`compileBody`):
       static:
-        raiseAssert(`str`)
+        echo `str`
+      `compileBody`
 
 func toCompilesAssert*(
   node, compileBody: NimNode, annotation: string): NimNode =
