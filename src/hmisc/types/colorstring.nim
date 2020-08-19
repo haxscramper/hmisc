@@ -85,23 +85,32 @@ func ansiDiff*(s1, s2: PrintStyling): string =
   if s2.bg != s1.bg:
     result &= ansiEsc(s2.bg.int)
 
-func toString*(runes: seq[ColoredRune]): string =
-  var prev = initPrintStyling()
-  for rune in runes:
-    result &= ansiDiff(prev, rune.styling)
-    result &= $rune.rune
-    prev = rune.styling
+func toString*(runes: seq[ColoredRune], color: bool = true): string =
+  if color:
+    var prev = initPrintStyling()
+    for rune in runes:
+      result &= ansiDiff(prev, rune.styling)
+      result &= $rune.rune
+      prev = rune.styling
 
-  result &= ansiDiff(prev, initPrintStyling())
+    result &= ansiDiff(prev, initPrintStyling())
+  else:
+    for rune in runes:
+      result &= $rune.rune
 
-func toString*(strs: seq[ColoredString]): string =
-  var prev = initPrintStyling()
-  for str in strs:
-    result &= ansiDiff(prev, str.styling)
-    result &= str.str
-    prev = str.styling
 
-  result &= ansiDiff(prev, initPrintStyling())
+func toString*(strs: seq[ColoredString], color: bool = true): string =
+  if color:
+    var prev = initPrintStyling()
+    for str in strs:
+      result &= ansiDiff(prev, str.styling)
+      result &= str.str
+      prev = str.styling
+
+    result &= ansiDiff(prev, initPrintStyling())
+  else:
+    for str in strs:
+      result &= str.str
 
 func `$`*(colr: seq[ColoredRune]): string = colr.toString()
 

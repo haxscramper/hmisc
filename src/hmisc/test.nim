@@ -48,31 +48,31 @@ when compiles(matcher(0, toPStr)):
 
 let foo = f
 
-import gara
+# import gara
 
-type
-  ETest = enum
-    enFirst
-    enSecond
+# type
+#   ETest = enum
+#     enFirst
+#     enSecond
 
 
-match((enFirst, enSecond)):
-  (enFirst, enSecond):
-    echo "Dddd"
+# match((enFirst, enSecond)):
+#   (enFirst, enSecond):
+#     echo "Dddd"
 
-match((1, 2)):
-  (1, 2):
-    echo "Hello"
+# match((1, 2)):
+#   (1, 2):
+#     echo "Hello"
 
-proc t(args: varargs[string, `$`]) = discard
-# proc t(arg: [string, `$`]) = discard
+# proc t(args: varargs[string, `$`]) = discard
+# # proc t(arg: [string, `$`]) = discard
 
-proc t1(arg: string, offset: int = arg.len()): void =
-  echo arg
-  echo offset
+# proc t1(arg: string, offset: int = arg.len()): void =
+#   echo arg
+#   echo offset
 
-t1("sdf")
-t1("sdfsdf", 22)
+# t1("sdf")
+# t1("sdfsdf", 22)
 
 
 #==================  macro with undefined identitifer  ===================#

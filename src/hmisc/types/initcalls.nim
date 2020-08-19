@@ -47,6 +47,15 @@ func mkNType*(name: string, gparams: seq[string] = @[]): NType =
 func mkNType*(name: string, gparams: openarray[NType]): NType =
   NType(head: name, genParams: toSeq(gparams))
 
+func mkNType*(impl: NimNode): NType =
+  case impl.kind:
+    of nnkBracketExpr:
+      mkNType(impl[0].strVal(), impl[1..^1].mapIt(it.mkNType()))
+    of nnkIdent, nnkSym:
+      mkNType(impl.strVal)
+    else:
+      raiseAssert("#[ IMPLEMENT ]#")
+
 func toNimNode*(ntype: NType): NimNode =
   if ntype.genParams.len == 0:
     return ident(ntype.head)
@@ -84,6 +93,26 @@ func mkNTypeNode*(name: string, gparams: varargs[NType]): NimNode =
   mkNType(name, gparams).toNimNode()
 
 func mkCallNode*(
+  dotHead: NimNode, name: string,
+  args: seq[NimNode], genParams: seq[NType] = @[]): NimNode =
+
+  let dotexpr = nnkDotExpr.newTree(dotHead, ident(name))
+  if genParams.len > 0:
+    result = nnkCall.newTree()
+    result.add nnkBracketExpr.newTree(
+      @[ dotexpr ] & genParams.mapIt(it.toNimNode))
+  else:
+    result = nnkCall.newTree(dotexpr)
+
+  for arg in args:
+    result.add arg
+
+  # debugecho "\e[31m32333\e[39m"
+  # debugecho result.toStrLit().strVal()
+  # debugecho result.treeRepr()
+  # debugecho "\e[31m32333\e[39m"
+
+func mkCallNode*(
   name: string,
   args: seq[NimNode],
   genParams: seq[NType] = @[]): NimNode =
@@ -98,10 +127,22 @@ func mkCallNode*(
   for node in args:
     result.add node
 
+
 func mkCallNode*(name: string,
                  gentypes: openarray[NType],
                  args: varargs[NimNode]): NimNode =
   mkCallNode(name, toSeq(args), toSeq(genTypes))
+
+func mkCallNode*(
+  arg: NimNode, name: string,
+  gentypes: openarray[NType] = @[]): NimNode =
+  mkCallNode(name, @[arg], toSeq(genTypes))
+
+func mkCallNode*(
+  dotHead: NimNode, name: string,
+  gentypes: openarray[NType],
+  args: seq[NimNode]): NimNode =
+  mkCallNode(dotHead, name, toSeq(args), toSeq(genTypes))
 
 
 func toNTypeAst*[T](): NType =
@@ -148,7 +189,11 @@ proc pprintCalls*(node: NimNode, level: int): void =
   let pprintKinds = {nnkCall, nnkPrefix, nnkBracket}
   case node.kind:
     of nnkCall:
-      echo pref, $node[0].toStrLit()
+      if ($node[0].toStrLit()).startsWith("make"):
+        echo pref, "make", (($node[0].toStrLit())[4..^1]).toGreen()
+      else:
+        echo pref, $node[0].toStrLit()
+
       if node[1..^1].noneOfIt(it.kind in pprintKinds):
         echo pref, "  ",
           node[1..^1].mapIt($it.toStrLit()).join(", ").toYellow()
