@@ -197,11 +197,17 @@ proc joinl*(inseq: openarray[string]): string =
     assert @["as", "bn"].joinl == "as\nbn"
   inseq.join("\n")
 
-proc joinw*(inseq: openarray[string]): string =
+
+func joinkv*[K, V](t: openarray[(K, V)], eqTok: string = "="): seq[string] =
+  ## Join table values as key-value pairs
+  for k, v in t:
+    result.add &"{k} {eqTok} {v}"
+
+proc joinw*(inseq: openarray[string], sep = " "): string =
   ## Join items using spaces
   runnableExamples:
     assert @["as", ";;"].joinw == "as ;;"
-  inseq.join(" ")
+  inseq.join(sep)
 
 proc joinq*(inseq: openarray[string], sep: string = " ", wrap: string = "\""): string =
   ## Join items using spaces and quote each item

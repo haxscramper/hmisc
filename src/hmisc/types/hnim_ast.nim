@@ -6,20 +6,22 @@ import hmisc/types/colorstring
 
 type
   FieldBranch*[Node] = object
+    ## Single branch of case object
     # IDEA three possible parameters: `NimNode` (for compile-time
     # operations), `PNode` (for analysing code at runtime) and.
     # when Node is NimNode:
     # ofValue*: Node ## Exact AST used in field branch
     # else:
+    # TODO move `ofValue` under `isElse` case
     ofValue*: Node ## Match value for case branch
 
     flds*: seq[Field[Node]] ## Fields in the case branch
-    isElse*: bool
+    isElse*: bool ## Whether this branch is placed under `else` in
+                  ## case object.
 
   Field*[Node] = object
     ## More complex representation of object's field - supports
-    ## recursive fields with case objects. IMPLEMENT - not currently
-    ## supported.
+    ## recursive fields with case objects.
     case isTuple*: bool
       of true:
         tupleIdx*: int
@@ -57,9 +59,6 @@ type
     ## different types for fields (and values). List name is optional
     ## (unnamed object), field name is optional (unnamed fields)
 
-
-
-
   ObjRelationKind = enum
     orkComposition
     orkReference
@@ -92,10 +91,11 @@ type
 
     ]##
     path*: seq[int] ## Path of object in original tree
-    objId*: int
+    objId*: int ## Unique object id
     isPrimitive*: bool ## Whether or not value can be considered primitive
-    annotation*: string
-    styling* {.requiresinit.}: PrintStyling
+    annotation*: string ## String annotation for object
+    styling* {.requiresinit.}: PrintStyling ## Print styling for object
+    # NOTE styling is currently unused
     case kind*: ObjKind
       of okConstant:
         constType*: string ## Type of the value
@@ -118,7 +118,7 @@ type
         namedFields*: bool ## Fields have dedicated names? (anonymous
         ## tuple does not have a name for fields)
         name*: string ## Name for an object
-        # XXX TODO Add field type
+        # TODO Add field type
         fldPairs*: seq[tuple[name: string, value: ObjTree]] ## Sequence
         ## of field-value pairs for object representation
 
@@ -299,6 +299,9 @@ proc parseEnumSet*[Enum](
   node: NimNode,
   namedSets: Table[string, set[Enum]] =
       initTable[string, set[Enum]]()): set[Enum] =
+  ## Parse `NimNode` into set of `Enum` values. `namedSets` is an
+  ## ident-set mapping for additional identifiers that might be used
+  ## as set values.
   case node.kind:
     of nnkIdent:
       try:
