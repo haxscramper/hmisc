@@ -4,7 +4,7 @@ Collection of miscellaneous helper algorithms and types.
 
 * Toplevel
 
-** ~hmisc/hexceptions~
+** ~hmisc/hexceptions~ [[https://haxscramper.github.io/hmisc-doc/src/hmisc/hexceptions.html][documentation]]
 
 One of *THE* features of this library - effortlessly generate
 annotations for source code. Show exact line in the source code and
