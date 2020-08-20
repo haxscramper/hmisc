@@ -64,7 +64,7 @@ Raised in :0
 
 ** ~hmisc/macros/iflet~
 
-Rust-like iflet. get value from ~Option[T]~ only if it contains
+Rust-like iflet. Get value from ~Option[T]~ only if it contains
 something, otherwise execute ~else~.
 
 #+begin_src nim :exports both
@@ -177,7 +177,7 @@ block:
   - count number of 'middles' in sequence
   - check if range is a single point
   - find overlaps between two ranges
-  - iterate over indices in carthesian produc of two ranges - for
+  - iterate over indices in cartesian product of two ranges - for
     example all cells in particular ~[row-range] X [col-range]~.
 
 ** ~hmisc/types/seq2d~
@@ -248,5 +248,5 @@ Most of the features in this library were implemented on
 extensively (sequence and tree mappings, colored strings), but more
 unit test are always welcome. If you consider contributing and have
 any questions about implementation or just want to clarify some things
-(documentation is not really good right now) feel free to join my
-[[https://discord.gg/ZnBB4E][discord server]] and ask questions there.
+(documentation might need more attention) feel free to join my [[https://discord.gg/ZnBB4E][discord
+server]] and ask questions there.
