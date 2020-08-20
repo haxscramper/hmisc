@@ -17,6 +17,8 @@ suite "Case object field iteration":
         f1: int
 
     let generated = U.makeFieldsLiteral()
+    # static: echo typeof(generated)
+
     let expected = @[
       ValField(
         name: "f1", fldType: "int", isKind: false,
@@ -24,10 +26,9 @@ suite "Case object field iteration":
       )
     ]
 
+    # static: echo typeof(expected)
+
     # echo $(ValField())
-    # static:
-    #   echo typeof(generated)
-    #   echo typeof(expected)
 
     assert generated == expected
 

@@ -1,4 +1,4 @@
-import macroutils, sugar
+import macroutils, sugar, options
 import strutils, strformat, macros, sequtils
 
 import ../algo/halgorithm
@@ -6,22 +6,45 @@ import ../helpers
 import ../types/[hnim_ast, colorstring]
 import ../hdebug_misc
 
-proc getFields*(node: NimNode): seq[Field[NimNode]]
+proc idxTreeRepr*(inputNode: NimNode): string =
+  ## `treeRepr` with indices for subnodes
+  ## .. code-block::
+  ##                 TypeDef
+  ##     [0]            PragmaExpr
+  ##     [0][0]            Postfix
+  ##     [0][0][0]            Ident *
+  ##     [0][0][1]            Ident Hello
+  ##     [0][1]            Pragma
 
-proc getBranches(node: NimNode): seq[FieldBranch[NimNode]] =
+  proc aux(node: NimNode, parent: seq[int]): seq[string] =
+    result.add parent.mapIt(&"[{it}]").join("") &
+      "  ".repeat(6) &
+      ($node.kind)[3..^1] &
+      (node.len == 0).tern(" " & $node.toStrLit(), "")
+
+    for idx, subn in node:
+      result &= aux(subn, parent & @[idx])
+
+  return aux(inputNode, @[]).join("\n")
+
+proc getFields*[A](
+  node: NimNode, cb: ParseCb[A]): seq[ObjectField[NimNode, A]]
+
+proc getBranches*[A](
+  node: NimNode, cb: ParseCb[A]): seq[ObjectBranch[NimNode, A]] =
   assert node.kind == nnkRecCase, &"Cannot get branches from node kind {node.kind}"
   let caseType = $node[0][1]
   for branch in node[1..^1]:
     case branch.kind:
       of nnkOfBranch:
-        result.add FieldBranch[NimNode](
+        result.add ObjectBranch[NimNode, A](
           ofValue: (newTree(nnkCurly, branch[0..^2])).normalizeSet(),
-          flds: branch[^1].getFields(),
+          flds: branch[^1].getFields(cb),
           isElse: false
         )
       of nnkElse:
-        result.add FieldBranch[NimNode](
-          flds: branch[0].getFields(), isElse: true
+        result.add ObjectBranch[NimNode, A](
+          flds: branch[0].getFields(cb), isElse: true
         )
       else:
         raiseAssert(&"Unexpected branch kind {branch.kind}")
@@ -48,12 +71,13 @@ proc getFieldDescription(node: NimNode): tuple[name, fldType: string] =
       raiseAssert(
         &"Cannot get field description from node of kind {node.kind}")
 
-proc getFields*(node: NimNode): seq[Field[NimNode]] =
+proc getFields*[A](
+  node: NimNode, cb: ParseCb[A]): seq[ObjectField[NimNode, A]] =
   # TODO ignore `void` fields
   case node.kind:
     of nnkObjConstr:
       # echo node.treeRepr()
-      return getFields(node[0])
+      return getFields(node[0], cb)
     of nnkSym, nnkCall, nnkDotExpr:
       let kind = node.getTypeImpl().kind
       case kind:
@@ -61,19 +85,19 @@ proc getFields*(node: NimNode): seq[Field[NimNode]] =
           let typeSym = node.getTypeImpl()[1]
           # echo "Type symbol: ", typeSym.treeRepr()
           # echo "Impl: ", typeSym.getTypeImpl().treeRepr()
-          result = getFields(typeSym.getTypeImpl())
+          result = getFields(typeSym.getTypeImpl(), cb)
         of nnkObjectTy, nnkRefTy, nnkTupleTy, nnkTupleConstr:
-          result = getFields(node.getTypeImpl())
+          result = getFields(node.getTypeImpl(), cb)
         else:
           raiseAssert("Unknown parameter kind: " & $kind)
     of nnkObjectTy:
       # echo "\e[41m*==========\e[49m  nnkObjectTy  \e[41m===========*\e[49m"
       # echo node[2].treeRepr()
-      return node[2].getFields()
+      return node[2].getFields(cb)
     of nnkRefTy:
       # echo "\e[41m*============\e[49m  nnkRefTy  \e[41m============*\e[49m"
       # echo node.treeRepr()
-      return node.getTypeImpl()[0].getImpl()[2][0].getFields()
+      return node.getTypeImpl()[0].getImpl()[2][0].getFields(cb)
     of nnkRecList:
       # echo "\e[41m*==========\e[49m  ee  \e[41m==========*\e[49m"
       # echo node.treeRepr()
@@ -83,38 +107,41 @@ proc getFields*(node: NimNode): seq[Field[NimNode]] =
           let descr = getFieldDescription(elem)
           case elem.kind:
             of nnkRecCase: # Case field
-              result.add Field[NimNode](
+              result.add ObjectField[NimNode, A](
                 # value: initObjTree[NimNode](),
                 isTuple: false,
                 isKind: true,
-                branches: getBranches(elem),
+                branches: getBranches(elem, cb),
                 name: descr.name,
                 fldType: descr.fldType,
               )
 
             of nnkIdentDefs: # Regular field definition
-              result.add getFields(elem)[0]
+              result.add getFields(elem, cb)[0]
 
             else:
               discard
 
     of nnkTupleTy:
       for fld in node:
-        result.add fld.getFields()
+        result.add fld.getFields(cb)
     of nnkTupleConstr:
       for idx, sym in node:
-        result.add Field[NimNode](
+        result.add ObjectField[NimNode, A](
           isTuple: true, tupleIdx: idx# , value: initObjTree[NimNode]()
         )
 
     of nnkIdentDefs:
+      # debugecho node.idxTreeRepr()
       let descr = getFieldDescription(node)
-      result.add Field[NimNode](
+      result.add ObjectField[NimNode, A](
         # value: initObjTree[NimNode](),
         isTuple: false,
         isKind: false,
         name: descr.name,
-        fldType: descr.fldType
+        fldType: descr.fldType,
+        value: (node[2].kind != nnkEmpty).tern(
+          some(node[2]), none(NimNode))
       )
     # of nnkIntLit:
     #   let descr = getFieldDescription(node)
@@ -186,8 +213,22 @@ proc discardNimNode(input: seq[Field[NimNode]]): seq[ValField] =
           fldType: fld.fldType
         )
 
-macro makeFieldsLiteral*(node: typed): seq[ValField] =
-  result = newLit(node.getFields().discardNimNode)
+proc parseObject*[A](node: NimNode, cb: ParseCb[A]): Object[NimNode, A] =
+  result = Object[NimNode, A](
+    flds: node[2].getFields(cb)
+  )
+
+  # echo node.idxTreeRepr()
+  if node[0].kind == nnkPragmaExpr and cb != nil:
+    result.annotation = cb(node[0][1], oakObjectToplevel)
+
+
+macro makeFieldsLiteral*(node: typed): NimNode =
+  echo node
+  let res: seq[ValField] = node.getFields(noParseCb).discardNimNode
+  result = makeConstructAllFields(res)
+  # result = newLit(node.getFields(noParseCb).discardNimNode)
+  echo result.toStrLit()
 
 type
   GenParams = object
@@ -399,7 +440,8 @@ fields **as defined** in object while second one shows order of fields
     fldName: "name"
   )
 
-  let (unrolled, _) = getFields(lhsObj).unrollFieldLoop(body, 0, genParams)
+  let (unrolled, _) = getFields(
+    lhsObj, noParseCb).unrollFieldLoop(body, 0, genParams)
   result = superquote do:
 
     block: ## Toplevel
@@ -424,7 +466,8 @@ macro hackPrivateParallelFieldPairs*(lhsObj, rhsObj: typed, body: untyped): unty
     hackFields: true
   )
 
-  let (unrolled, _) = getFields(lhsObj).unrollFieldLoop(body, 0, genParams)
+  let (unrolled, _) = getFields(
+    lhsObj, noParseCb).unrollFieldLoop(body, 0, genParams)
   let section = newCommentStmtNode(
     "Type: " & $lhsObj.getTypeInst().toStrLit())
   result = superquote do:

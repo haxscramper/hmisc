@@ -1,11 +1,36 @@
 ## Statically typed nim ast representation
 
 import hmisc/helpers
-import sequtils, colors, macros, tables, strutils, terminal
 import hmisc/types/colorstring
+import sequtils, colors, macros, tables, strutils,
+       terminal, options, parseutils, sets
 
 type
-  FieldBranch*[Node] = object
+  NType* = object
+    head*: string
+    genParams*: seq[NType]
+
+  NVarDeclKind* = enum
+    nvdVar
+    nvdConst
+    nvdLet
+
+  NIdentDefs* = object
+    varname: string
+    kind: NVarDeclKind
+    vtype: NType
+
+
+type
+  ObjectAnnotKind* = enum
+    oakCaseOfBranch
+    oakObjectToplevel
+    oakFieldValue
+
+  ParseCb*[Annot] = proc(pragma: NimNode, kind: ObjectAnnotKind): Annot
+
+  ObjectBranch*[Node, Annot] = object
+    annot*: Annot
     ## Single branch of case object
     # IDEA three possible parameters: `NimNode` (for compile-time
     # operations), `PNode` (for analysing code at runtime) and.
@@ -15,13 +40,15 @@ type
     # TODO move `ofValue` under `isElse` case
     ofValue*: Node ## Match value for case branch
 
-    flds*: seq[Field[Node]] ## Fields in the case branch
+    flds*: seq[ObjectField[Node, Annot]] ## Fields in the case branch
     isElse*: bool ## Whether this branch is placed under `else` in
                   ## case object.
 
-  Field*[Node] = object
+  ObjectField*[Node, Annot] = object
     ## More complex representation of object's field - supports
     ## recursive fields with case objects.
+    annotation*: Annot
+    value*: Option[Node]
     case isTuple*: bool
       of true:
         tupleIdx*: int
@@ -29,25 +56,32 @@ type
         name*: string
 
     fldType*: string ## Type of field value
-    # value*: ObjTree[Node]
+    # TODO use `NType` instead
     case isKind*: bool
       of true:
         selected*: int ## Index of selected branch
-        branches*: seq[FieldBranch[Node]] ## List of all branches as
-                                    ## `value-branch` pairs.
+        branches*: seq[ObjectBranch[Node, Annot]] ## List of all
+        ## branches as `value-branch` pairs.
       of false:
         discard
 
-  NObject*[Node] = object
+  Object*[Node, Annot] = object
+    annotation*: Annot
     namedObject*: bool ## This object's type has a name? (tuples
     ## does not have name for a tyep)
     namedFields*: bool ## Fields have dedicated names? (anonymous
     ## tuple does not have a name for fields)
-    name*: string ## Name for an object
-    flds*: seq[Field[Node]]
+    name*: NType ## Name for an object
+    flds*: seq[ObjectField[Node, Annot]]
 
 
+  FieldBranch*[Node] = ObjectBranch[Node, void]
+  Field*[Node] = ObjectField[Node, void]
+  NObject*[Node] = Object[Node, void]
 
+const noParseCb*: ParseCb[void] = nil
+
+# proc runAnnot*(pragma: NimNode, kind: ObjectAnnotKind, cb)
 
 type
   ObjKind* = enum
@@ -329,3 +363,244 @@ proc parseEnumSet*[Enum](
       # QUESTION there was something useful or what? Do I need it
       # here?
       discard
+
+#==================  Helper procs for ast construction  ==================#
+
+func toBracket*(elems: seq[NimNode]): NimNode =
+  ## Create `nnkBracket` with elements
+  nnkBracket.newTree(elems)
+
+func toBracketSeq*(elems: seq[NimNode]): NimNode =
+  ## Create `nnkBracket` with `@` prefix - sequence literat
+  ## l
+  nnkPrefix.newTree(ident "@", nnkBracket.newTree(elems))
+
+func isEnum*(en: NimNode): bool =
+  ## Check if `typeImpl` for `en` is `enum`
+  en.getTypeImpl().kind == nnkEnumTy
+
+func getEnumPref*(en: NimNode): string =
+  ## Get enum prefix. As per `Nep style guide<https://nim-lang.org/docs/nep1.html#introduction-naming-conventions>`_
+  ## it is recommended for members of enums should have an identifying
+  ## prefix, such as an abbreviation of the enum's name. This functions
+  ## returns this prefix.
+  let
+    impl = en.getTypeImpl()
+    name = impl[1].strVal()
+    pref = name.parseUntil(result, {'A' .. 'Z', '0' .. '9'})
+
+
+func `$`*(nt: NType): string =
+  ## Convert `NType` to textul representation
+  if nt.genParams.len > 0:
+    nt.head & "[" & nt.genParams.mapIt($it).join(", ") & "]"
+  else:
+    nt.head
+
+
+func mkNType*(name: string, gparams: seq[string] = @[]): NType =
+  ## Make `NType`
+  NType(head: name, genParams: gparams.mapIt(mkNType(it, @[])))
+
+func mkNType*(name: string, gparams: openarray[NType]): NType =
+  ## Make `NType`
+  NType(head: name, genParams: toSeq(gparams))
+
+func mkNType*(impl: NimNode): NType =
+  ## Convert type described in `NimNode` into `NType`
+  case impl.kind:
+    of nnkBracketExpr:
+      mkNType(impl[0].strVal(), impl[1..^1].mapIt(it.mkNType()))
+    of nnkIdent, nnkSym:
+      mkNType(impl.strVal)
+    else:
+      raiseAssert("#[ IMPLEMENT ]#")
+
+func toNimNode*(ntype: NType): NimNode =
+  ## Convert `NType` to nim node
+  if ntype.genParams.len == 0:
+    return ident(ntype.head)
+  else:
+    result = nnkBracketExpr.newTree(newIdentNode(ntype.head))
+    for param in ntype.genParams:
+      result.add param.toNimNode()
+
+func mkVarDecl*(name: string, vtype: NType,
+                kind: NVarDeclKind = nvdLet): NIdentDefs =
+  ## Declare varaible `name` of type `vtype`
+  # TODO initalization value, pragma annotations and `isGensym`
+  # parameter
+  NIdentDefs(varname: name, kind: kind, vtype: vtype)
+
+func toFormalParam*(nident: NIdentDefs): NimNode =
+  # TODO:DOC
+  let typespec =
+    case nident.kind:
+      of nvdVar: newTree(nnkVarTy, nident.vtype.toNimNode())
+      of nvdLet: nident.vtype.toNimNode()
+      of nvdConst: newTree(nnkConstTy, nident.vtype.toNimNode())
+
+  nnkIdentDefs.newTree(
+    newIdentNode(nident.varname),
+    typespec,
+    newEmptyNode()
+  )
+
+func mkVarDeclNode*(name: string, vtype: NType,
+                    kind: NVarDeclKind = nvdLet): NimNode =
+  # TODO:DOC
+  mkVarDecl(name, vtype, kind).toFormalParam()
+
+
+func mkNTypeNode*(name: string, gparams: seq[string]): NimNode =
+  ## Create `NimNode` for type `name[@gparams]`
+  mkNType(name, gparams).toNimNode()
+
+func mkNTypeNode*(name: string, gparams: varargs[NType]): NimNode =
+  ## Create `NimNode` for type `name[@gparams]`
+  mkNType(name, gparams).toNimNode()
+
+func mkCallNode*(
+  dotHead: NimNode, name: string,
+  args: seq[NimNode], genParams: seq[NType] = @[]): NimNode =
+  ## Create node `dotHead.name[@genParams](genParams)`
+  let dotexpr = nnkDotExpr.newTree(dotHead, ident(name))
+  if genParams.len > 0:
+    result = nnkCall.newTree()
+    result.add nnkBracketExpr.newTree(
+      @[ dotexpr ] & genParams.mapIt(it.toNimNode))
+  else:
+    result = nnkCall.newTree(dotexpr)
+
+  for arg in args:
+    result.add arg
+
+  # debugecho "\e[31m32333\e[39m"
+  # debugecho result.toStrLit().strVal()
+  # debugecho result.treeRepr()
+  # debugecho "\e[31m32333\e[39m"
+
+func mkCallNode*(
+  name: string,
+  args: seq[NimNode],
+  genParams: seq[NType] = @[]): NimNode =
+  ## Create node `name[@genParams](@args)`
+  if genParams.len > 0:
+    result = nnkCall.newTree()
+    result.add nnkBracketExpr.newTree(
+      @[ newIdentNode(name) ] & genParams.mapIt(it.toNimNode()))
+
+  else:
+    result = nnkCall.newTree(ident name)
+
+  for node in args:
+    result.add node
+
+
+func mkCallNode*(name: string,
+                 gentypes: openarray[NType],
+                 args: varargs[NimNode]): NimNode =
+  ## Create node `name[@gentypes](@args)`. Overload with more
+  ## convinient syntax if you have predefined number of genric
+  ## parameters - `mkCallNode("name", [<param>](arg1, arg2))` looks
+  ## almost like regular `quote do` interpolation.
+  mkCallNode(name, toSeq(args), toSeq(genTypes))
+
+func mkCallNode*(
+  arg: NimNode, name: string,
+  gentypes: openarray[NType] = @[]): NimNode =
+  mkCallNode(name, @[arg], toSeq(genTypes))
+
+func mkCallNode*(
+  dotHead: NimNode, name: string,
+  gentypes: openarray[NType],
+  args: seq[NimNode]): NimNode =
+  mkCallNode(dotHead, name, toSeq(args), toSeq(genTypes))
+
+
+func toNTypeAst*[T](): NType =
+  let str = $typeof(T)
+  let expr = parseExpr(str)
+
+func makeInitCalls*[T](val: T): NimNode =
+  when T is enum:
+    ident($val)
+  else:
+    newLit(val)
+
+func makeInitAllFields*[T](val: T): NimNode =
+  result = newCall("init" & $typeof(T))
+  for name, val in fieldPairs(val):
+    result.add nnkExprEqExpr.newTree(
+      ident(name), makeInitCalls(val))
+
+func makeConstructAllFields*[T](val: T): NimNode =
+  when val is seq:
+    result = val.mapPairs(
+      rhs.makeConstructAllFields()).toBracketSeq()
+  elif val is int | float | string | bool | enum | set:
+    result = newLit(val)
+  else:
+    result = nnkObjConstr.newTree(ident $typeof(T))
+    for name, val in fieldPairs(val):
+      # debugecho name
+      when val is Option:
+        if val.isSome():
+          result.add nnkExprColonExpr.newTree(
+            ident(name),
+            newCall("some", makeConstructAllFields(val.get())))
+      else:
+        result.add nnkExprColonExpr.newTree(
+          ident(name), makeConstructAllFields(val))
+
+  # debugecho result.toStrLit().strVal()
+
+func makeInitCalls*[A, B](table: Table[A, B]): NimNode =
+  mixin makeInitCalls
+  result = nnkTableConstr.newTree()
+  for key, val in table:
+    result.add newColonExpr(key.makeInitCalls, val.makeInitCalls)
+
+  result = newCall(
+    nnkBracketExpr.newTree(
+      ident("toTable"),
+      parseExpr($typeof(A)),
+      parseExpr($typeof(B))
+    ),
+    result
+  )
+
+func makeInitCalls*[A](hset: HashSet[A]): NimNode =
+  mixin makeInitCalls
+  result = nnkBracket.newTree()
+  for val in hset:
+    result.add val.makeInitCalls()
+
+  result = newCall("toHashSet", result)
+
+proc pprintCalls*(node: NimNode, level: int): void =
+  let pref = "  ".repeat(level)
+  let pprintKinds = {nnkCall, nnkPrefix, nnkBracket}
+  case node.kind:
+    of nnkCall:
+      if ($node[0].toStrLit()).startsWith("make"):
+        echo pref, "make", (($node[0].toStrLit())[4..^1]).toGreen()
+      else:
+        echo pref, $node[0].toStrLit()
+
+      if node[1..^1].noneOfIt(it.kind in pprintKinds):
+        echo pref, "  ",
+          node[1..^1].mapIt($it.toStrLit()).join(", ").toYellow()
+      else:
+        for arg in node[1..^1]:
+          pprintCalls(arg, level + 1)
+    of nnkPrefix:
+      echo pref, node[0]
+      pprintCalls(node[1], level)
+    of nnkBracket:
+      for subn in node:
+        pprintCalls(subn, level + 1)
+    of nnkIdent:
+      echo pref, ($node).toGreen()
+    else:
+      echo ($node.toStrLit()).indent(level * 2)
