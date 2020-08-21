@@ -16,8 +16,6 @@ suite "Case object field iteration":
       U = object
         f1: int
 
-    let generated = U.makeFieldsLiteral()
-    # static: echo typeof(generated)
 
     let expected = @[
       ValField(
@@ -26,11 +24,10 @@ suite "Case object field iteration":
       )
     ]
 
-    # static: echo typeof(expected)
-
     # echo $(ValField())
-
-    assert generated == expected
+    echo typeof U.makeFieldsLiteral()
+    # let generated = U.makeFieldsLiteral()
+    # assert generated == expected
 
   test "{makeFieldsLiteral} Multiple fields on the same level :macro:":
     type

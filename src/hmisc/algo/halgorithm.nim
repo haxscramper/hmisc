@@ -1,5 +1,8 @@
-import math, strutils, sequtils, random, macros, options, strformat
+import math, strutils, sequtils, random, macros, options, strformat,
+       parseutils
 import std/wordwrap
+
+import hseqdistance
 import ../types/[hprimitives]
 import hmath
 export hmath
@@ -165,11 +168,32 @@ proc matchWith*[K, V](
 
 #=========================  string operations  ===========================#
 
+func splitCamel*(str: string): seq[string] =
+  ## Split abbreviation as **camelCase** identifier
+  var pos = 0
+  while pos < str.len:
+    let start = pos
+    let next = start + str.skipUntil({'A'..'Z'}, start + 1)
+    result.add str[start..next]
+    pos = next + 1
+
+func abbrevCamel*(abbrev: string, words: seq[string]): seq[string] =
+  ## Split abbreviation and all worlds as **camelCase** identifiers.
+  ## Find all worlds that contains `abbrev` as subsequence.
+  let
+    split: seq[seq[string]] = words.mapIt(it.splitCamel())
+    abbrSplit: seq[string] = abbrev.splitCamel()
+
+  for word in split:
+    let lcs = longestCommonSubsequence(word, abbrSplit)
+    if lcs.len == abbrSplit.len:
+      result.add word.join("")
+
 func posString*(node: NimNode): string =
   let info = node.lineInfoObj()
   return "on line " & $info.line
 
-proc mismatchStart*(str1, str2: string): int =
+func mismatchStart*(str1, str2: string): int =
   ## Find position where two strings mismatch first
   # TODO implement mismatch with support for multiple
   # matching/mismatching sections - use larges common subsequence to
@@ -191,7 +215,7 @@ proc mismatchStart*(str1, str2: string): int =
     # No mismatch found
     return -1
 
-proc joinl*(inseq: openarray[string]): string =
+func joinl*(inseq: openarray[string]): string =
   ## Join items using newlines
   runnableExamples:
     assert @["as", "bn"].joinl == "as\nbn"
@@ -209,14 +233,14 @@ proc joinw*(inseq: openarray[string], sep = " "): string =
     assert @["as", ";;"].joinw == "as ;;"
   inseq.join(sep)
 
-proc joinq*(inseq: openarray[string], sep: string = " ", wrap: string = "\""): string =
+func joinq*(inseq: openarray[string], sep: string = " ", wrap: string = "\""): string =
   ## Join items using spaces and quote each item
   runnableExamples:
     assert @["as", "qq"].joinq == "\"as\" \"qq\""
 
   inseq.mapIt(wrap & it & wrap).join(sep)
 
-proc replaceN*(str: string, n: int, subst: char = ' '): string =
+func replaceN*(str: string, n: int, subst: char = ' '): string =
   ## Replace first `n` characters in string with `subst`
   runnableExamples:
     assert "123".replaceN(1) == " 23"
@@ -226,7 +250,7 @@ proc replaceN*(str: string, n: int, subst: char = ' '): string =
   for i in 0..<min(str.len, n):
     result[i] = subst
 
-proc wrapTwoColumns*(
+func wrapTwoColumns*(
   text: seq[(string, string)],
   padding: (int, int) = (0,0),
   widthColLimits: (int, int) = (30, -1),
@@ -305,7 +329,7 @@ proc printTwoColumns*(
   for (lhs, rhs) in wrapTwoColumns(text, padding, widthColLimits, maxWidthTotal):
     echo " $# $#" % [lhs, rhs]
 
-proc join*(text: openarray[(string, string)], sep: string = " "): string =
+func join*(text: openarray[(string, string)], sep: string = " "): string =
   text.mapIt(it[0] & it[1]).join(sep)
 
 func join*(text: openarray[string], sep: char = ' '): string =

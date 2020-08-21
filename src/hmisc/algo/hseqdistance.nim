@@ -1,9 +1,14 @@
-import sequtils
+import sequtils, tables
 
 ## Sequence distance metrics
 
+# TODO performance benchmars for fuzzy string matching - no copying
+#      should occur
+
+# TODO add custom `cmp` proc for fuzzy matching instead of using `==`
+
 proc longestCommonSubsequence*[T](x, y: seq[T]): seq[T] =
-  # TODO Multiple subsequences
+  # TODO retrieve multiple subsequences
   # TODO Weighted subsequences
   var mem: CountTable[(int, int)]
   proc lcs(i, j: int): int =
@@ -42,6 +47,8 @@ proc longestCommonSubsequence*[T](x, y: seq[T]): seq[T] =
 
 proc longestCommonSubsequence*[T](x, y: openarray[T]): seq[T] =
   longestCommonSubsequence(toSeq(x), toSeq(y))
+
+
 
 
 proc fuzzyMatchRecursive[Seq, Item](
@@ -167,4 +174,5 @@ proc fuzzyMatch*(
   patt, other: string,
   matchScore: proc(patt, other: string, matches: seq[int]): int
                  ): tuple[ok: bool, score: int, matches: seq[int]] =
+  ## Fuzzy match overload for strings
   fuzzyMatchImpl[string, char](patt, other, matchScore)

@@ -707,3 +707,18 @@ suite "Misc algorithms":
     ])
 
     echo err.toColorString()
+
+  test "{splitCamel}":
+    assertEq "HelloWorld".splitCamel, @["Hello", "World"]
+    assertEq "HHeelloWWorld".splitCamel, @["H", "Heello", "W", "World"]
+    assertEq "helloWorld".splitCamel, @["hello", "World"]
+    assertEq "H".splitCamel, @["H"]
+    assertEq "".splitCamel, `@`[string]([])
+
+  test "{abbrevCamel}":
+    assertEq abbrevCamel(
+      "IfList", @["IfStmtList", "IfBlockList", "IfHello"]), @[
+        "IfStmtList", "IfBlockList"
+    ]
+
+    assertEq abbrevCamel("AA", @["ABA", "AZZ", "A)"]), @["ABA"]

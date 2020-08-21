@@ -223,12 +223,17 @@ proc parseObject*[A](node: NimNode, cb: ParseCb[A]): Object[NimNode, A] =
     result.annotation = cb(node[0][1], oakObjectToplevel)
 
 
-macro makeFieldsLiteral*(node: typed): NimNode =
+macro makeFieldsLiteral*(node: typed): untyped =
   echo node
   let res: seq[ValField] = node.getFields(noParseCb).discardNimNode
-  result = makeConstructAllFields(res)
+  # echo res
+  # echo makeConstructAllFields(res).toStrLit()
+  let nnn: NimNode = makeConstructAllFields(res)
+  return nnn
+  # return quote do: @[]
+  # result = makeConstructAllFields(res)
   # result = newLit(node.getFields(noParseCb).discardNimNode)
-  echo result.toStrLit()
+  # echo result.toStrLit()
 
 type
   GenParams = object

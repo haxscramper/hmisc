@@ -100,6 +100,11 @@ else:
   - ~maxIt~
   - ~disjointIter~
   - ~last~
+  - ~longestCommonSubsequence~ - generic implementation of LCS algorithm for ~seq[T]~
+  - ~fuzzyMatch~ - weighted sequence fuzzy match. Compare each element
+    in the sequence to pattern and assign similarity score. Should
+    behave similarly to ~fzf~ or sublime text. Reimplementation of
+    [[https://www.forrestthewoods.com/blog/reverse_engineering_sublime_texts_fuzzy_match/]['Reverse engineering subtime text's fuzzy match']]
 - working with strings
   - ~joinw~, ~joinq~, ~joinl~, ~joinkv~ - join on whitespaces,
     whitespace + quote each string, newlines or key-value pairs.
@@ -109,6 +114,8 @@ else:
   - Multiple overloads for ~join~ and ~startsWith~
   - ~enclosedIn~ - check if string is wrapped in delimiters
   - ~dedent~ - derease indentation for multiline string
+  - ~camelSplit~ - split string as camel case identifier
+  - ~abbrevCamel~ - /camelCase/ abbreviation search.
 - other
   - ~ifSomeIt~ - same as ~opt.isSome() and (let it = opt.get();
     predicate)~
@@ -136,6 +143,10 @@ block:
 block:
   echo "-- join* --"
   echo {1 : "22", 3: "333"}.joinkv().join()
+
+block:
+  echo "-- abbrevCamel --"
+  echo abbrevCamel("AA", @["ABA", "AZZ", "A)"])
 #+end_src
 
 #+RESULTS:
@@ -145,6 +156,7 @@ block:
 : 1011eee
 : -- join* --
 : 0 = (1, "22") 1 = (3, "333")
+: @["ABA"]
 
 
 
