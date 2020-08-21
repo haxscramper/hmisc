@@ -722,3 +722,5 @@ suite "Misc algorithms":
     ]
 
     assertEq abbrevCamel("AA", @["ABA", "AZZ", "A)"]), @["ABA"]
+
+  # test "{}"

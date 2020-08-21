@@ -3,7 +3,7 @@
 import hmisc/helpers
 import hmisc/types/colorstring
 import sequtils, colors, macros, tables, strutils,
-       terminal, options, parseutils, sets
+       terminal, options, parseutils, sets, strformat
 
 type
   NType* = object
@@ -74,6 +74,12 @@ type
     name*: NType ## Name for an object
     flds*: seq[ObjectField[Node, Annot]]
 
+  Enum = object
+    name*: string
+    values*: seq[tuple[
+      name: string,
+      value: Option[NimNode]
+    ]]
 
   FieldBranch*[Node] = ObjectBranch[Node, void]
   Field*[Node] = ObjectField[Node, void]
@@ -379,16 +385,55 @@ func isEnum*(en: NimNode): bool =
   ## Check if `typeImpl` for `en` is `enum`
   en.getTypeImpl().kind == nnkEnumTy
 
+func `$!`(n: NimNode): string = n.toStrLit().strVal()
+
+func parseEnumImpl*(en: NimNode): Enum =
+  # echov en.kind
+  # debugecho en.treeRepr()
+  case en.kind:
+    of nnkSym:
+      let impl = en.getTypeImpl()
+      # echov impl.kind
+      case impl.kind:
+        of nnkBracketExpr:
+          # let impl = impl.getTypeInst()[1].getImpl()
+          return parseEnumImpl(impl.getTypeInst()[1].getImpl())
+        of nnkEnumTy:
+          result = parseEnumImpl(impl)
+        else:
+          raiseAssert("#[ IMPLEMENT ]#")
+    of nnkTypeDef:
+      # result = Enum(name: )
+      result = parseEnumImpl(en[2])
+      result.name = en[0].strVal()
+    of nnkEnumTy:
+      for fld in en[1..^1]:
+        case fld.kind:
+          of nnkEnumFieldDef:
+            result.values.add (name: fld[0].strVal(), value: some(fld[1]))
+          of nnkSym:
+            result.values.add (name: fld.strVal(), value: none(NimNode))
+          else:
+            raiseAssert(&"#[ IMPLEMENT {fld.kind} ]#")
+    else:
+      raiseAssert(&"#[ IMPLEMENT {en.kind} ]#")
+
 func getEnumPref*(en: NimNode): string =
   ## Get enum prefix. As per `Nep style guide<https://nim-lang.org/docs/nep1.html#introduction-naming-conventions>`_
   ## it is recommended for members of enums should have an identifying
   ## prefix, such as an abbreviation of the enum's name. This functions
   ## returns this prefix.
+  let impl = en.parseEnumImpl()
+  # echov impl
   let
-    impl = en.getTypeImpl()
-    name = impl[1].strVal()
+    name = impl.values[0].name
     pref = name.parseUntil(result, {'A' .. 'Z', '0' .. '9'})
 
+macro enumPref*(a: typed): string = newLit(getEnumPref(a))
+
+macro enumNames*(en: typed): seq[string] =
+  newLit en.parseEnumImpl().values.mapIt(it.name)
+  # newLit en.getEnumFields().mapIt(it.name)
 
 func `$`*(nt: NType): string =
   ## Convert `NType` to textul representation
