@@ -523,14 +523,18 @@ suite "Misc algorithms":
     template tmp(s1, s2, s3: untyped): untyped =
       assertEq longestCommonSubsequence(s1, s2), s3
 
+    tmp("GAC", "AGCAT", "GA")
+    tmp(@["Cond"], @["Int", "Lit"], `@`[string]([]))
+    tmp(@[1], @[2], `@`[int]([]))
     tmp(@[1, 2], @[1, 2], @[1, 2])
     tmp(@[1, 2, 3], @[1, 2], @[1, 2])
-    tmp("GAC", "AGCAT", "GA")
     tmp("XMJYAUZ", "MZJAWXU", "MJAU")
     tmp("AABC", "BC", "BC")
     tmp("AC", "ABC", "AC")
     tmp("AB", "A", "A")
 
+
+  if true: quit 0
   test "{fuzzyMatch} fuzzy string matching":
     template test(
       patt, input: string, expr: untyped, expected: seq[int]): untyped =
@@ -720,6 +724,24 @@ suite "Misc algorithms":
       "IfList", @["IfStmtList", "IfBlockList", "IfHello"]), @[
         "IfStmtList", "IfBlockList"
     ]
+
+    assertEq do:
+      abbrevCamel(
+        "Cond", @["ConditionExpr", "ConditionStmt", "Block"])
+    do:
+      @["ConditionExpr", "ConditionStmt"]
+
+    assertEq do:
+      abbrevCamel(@["Cond"],
+        @[
+          @["Str", "Lit"],
+          @["Int", "Lit"],
+          @["Ident"],
+          @["Call"],
+          @["Condition"]
+        ])
+    do:
+      @[ "Condition" ]
 
     assertEq abbrevCamel("AA", @["ABA", "AZZ", "A)"]), @["ABA"]
 

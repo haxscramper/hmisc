@@ -183,17 +183,28 @@ func splitCamel*(str: string): seq[string] =
     result.add str[start..next]
     pos = next + 1
 
+
+func abbrevCamel*(
+  abbrSplit: seq[string], splitWords: seq[seq[string]]): seq[string] =
+  ## Split abbreviation and all worlds as **camelCase** identifiers.
+  ## Find all worlds that contains `abbrev` as subsequence.
+  for word in splitWords:
+    let lcs = longestCommonSubsequence(
+      abbrSplit, word,
+      itemCmp = proc(lhs, rhs: string): bool =
+                    # debugecho lhs, rhs
+                    # lhs == rhs
+                    rhs.startsWith(lhs)
+    )
+
+    if lcs.len == abbrSplit.len:
+      debugecho lcs, word
+      result.add word.join("")
+
 func abbrevCamel*(abbrev: string, words: seq[string]): seq[string] =
   ## Split abbreviation and all worlds as **camelCase** identifiers.
   ## Find all worlds that contains `abbrev` as subsequence.
-  let
-    split: seq[seq[string]] = words.mapIt(it.splitCamel())
-    abbrSplit: seq[string] = abbrev.splitCamel()
-
-  for word in split:
-    let lcs = longestCommonSubsequence(word, abbrSplit)
-    if lcs.len == abbrSplit.len:
-      result.add word.join("")
+  abbrevCamel(abbrev.splitCamel(), words.mapIt(it.splitCamel()))
 
 func posString*(node: NimNode): string =
   let info = node.lineInfoObj()

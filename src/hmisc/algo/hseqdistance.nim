@@ -7,16 +7,21 @@ import sequtils, tables
 
 # TODO add custom `cmp` proc for fuzzy matching instead of using `==`
 
-proc longestCommonSubsequence*[T](x, y: seq[T]): seq[T] =
+type EqCmpProc[T] = proc(x, y: T): bool {.noSideEffect.}
+
+proc longestCommonSubsequence*[T](
+  x, y: seq[T],
+  itemCmp: EqCmpProc[T] = (proc(x, y: T): bool = x == y)): seq[T] =
   # TODO retrieve multiple subsequences
   # TODO Weighted subsequences
+  # TODO return indices of matched elements
   var mem: CountTable[(int, int)]
   proc lcs(i, j: int): int =
     if (i, j) notin mem:
       mem[(i, j)] =
         if i == -1 or j == -1:
           0
-        elif x[i] == y[j]:
+        elif itemCmp(x[i], y[j]):
           lcs(i - 1, j - 1) + 1
         else:
           max(
@@ -31,22 +36,34 @@ proc longestCommonSubsequence*[T](x, y: seq[T]): seq[T] =
     n = y.len - 1
 
   proc backtrack(i, j: int): seq[T] =
-    if i == 0:
-      @[x[i]]
-    elif j == 0:
-      @[y[j]]
-    elif x[i] == y[j]:
-      backtrack(i - 1, j - 1) & @[x[i]]
-    elif lcs(i, j - 1) > lcs(i - 1, j):
-      backtrack(i, j - 1)
-    else:
-      backtrack(i - 1, j)
+    debugecho i, " ", j
+    result =
+      if i == 0 and j == 0 and not itemCmp(x[i], y[j]):
+        @[]
+      elif i == 0:
+        @[x[i]]
+      elif j == 0:
+        @[y[j]]
+      elif itemCmp(x[i], y[j]):
+        backtrack(i - 1, j - 1) & @[x[i]]
+      elif lcs(i, j - 1) > lcs(i - 1, j):
+        backtrack(i, j - 1)
+      elif lcs(i, j - 1) < lcs(i - 1, j):
+        backtrack(i - 1, j)
+      else:
+        debugecho "alt"
+        backtrack(i - 1, j) # both paths has valid subsequences. Can
+                            # return all of them
+
+    debugecho result
 
   result = backtrack(m, n)
 
 
-proc longestCommonSubsequence*[T](x, y: openarray[T]): seq[T] =
-  longestCommonSubsequence(toSeq(x), toSeq(y))
+proc longestCommonSubsequence*[T](
+  x, y: openarray[T],
+  itemCmp: EqCmpProc[T] = (proc(x, y: T): bool = x == y)): seq[T] =
+  longestCommonSubsequence(toSeq(x), toSeq(y), itemCmp)
 
 
 

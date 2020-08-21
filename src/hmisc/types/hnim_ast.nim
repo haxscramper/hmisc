@@ -401,7 +401,7 @@ func parseEnumImpl*(en: NimNode): Enum =
         of nnkEnumTy:
           result = parseEnumImpl(impl)
         else:
-          raiseAssert("#[ IMPLEMENT ]#")
+          raiseAssert(&"#[ IMPLEMENT {impl.kind} ]#")
     of nnkTypeDef:
       # result = Enum(name: )
       result = parseEnumImpl(en[2])
@@ -431,9 +431,10 @@ func getEnumPref*(en: NimNode): string =
 
 macro enumPref*(a: typed): string = newLit(getEnumPref(a))
 
-macro enumNames*(en: typed): seq[string] =
-  newLit en.parseEnumImpl().values.mapIt(it.name)
-  # newLit en.getEnumFields().mapIt(it.name)
+func getEnumNames*(en: NimNode): seq[string] =
+  en.parseEnumImpl().values.mapIt(it.name)
+
+macro enumNames*(en: typed): seq[string] = newLit en.getEnumNames()
 
 func `$`*(nt: NType): string =
   ## Convert `NType` to textul representation
