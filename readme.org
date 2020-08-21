@@ -6,9 +6,9 @@ Collection of miscellaneous helper algorithms and types.
 
 ** ~hmisc/hexceptions~ [[https://haxscramper.github.io/hmisc-doc/src/hmisc/hexceptions.html][documentation]]
 
-One of *THE* features of this library - effortlessly generate
-annotations for source code. Show exact line in the source code and
-provide custom annotations.
+One of features of this library - easily generate annotations for
+source code. Show exact line in the source code and provide custom
+annotations.
 
 #+begin_src nim :exports both
   {.define(plainStdout).} # Output is colored by default, disable for

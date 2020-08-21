@@ -1,6 +1,7 @@
-import sugar, strutils, sequtils, strformat
+import sugar, strutils, sequtils, strformat, macros
 import ../src/hmisc/types/hnim_ast
 import ../src/hmisc/helpers
+import ../src/hmisc/macros/obj_field_macros
 
 #===========================  implementation  ============================#
 
@@ -38,3 +39,16 @@ suite "HNimAst":
     assertEq enumNames(en1), @["en1", "en2"]
     let val = en1
     assertEq enumNames(val), @["en1", "en2"]
+
+  test "{parseObject} parse nim pragma":
+    macro parse(body: untyped): untyped =
+      for stmt in body:
+        for obj in stmt:
+          if obj.kind == nnkTypeDef:
+            let obj = obj.parseObject(parseNimPragma)
+            echo obj.name
+
+    parse:
+      type
+        Type {.zzz(Check).} = object
+          f1 {.check(it < 10).}: float = 12.0

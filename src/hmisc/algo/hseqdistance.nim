@@ -12,7 +12,6 @@ type EqCmpProc[T] = proc(x, y: T): bool {.noSideEffect.}
 func longestCommonSubsequence*[T](
   x, y: seq[T],
   itemCmp: EqCmpProc[T] = (proc(x, y: T): bool = x == y)): seq[seq[T]] =
-  # TODO retrieve multiple subsequences
   # TODO Weighted subsequences
   # TODO return indices of matched elements
   var mem: CountTable[(int, int)]

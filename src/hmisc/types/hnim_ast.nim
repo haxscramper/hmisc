@@ -25,12 +25,12 @@ type
   ObjectAnnotKind* = enum
     oakCaseOfBranch
     oakObjectToplevel
-    oakFieldValue
+    oakObjectField
 
   ParseCb*[Annot] = proc(pragma: NimNode, kind: ObjectAnnotKind): Annot
 
   ObjectBranch*[Node, Annot] = object
-    annot*: Annot
+    annotation*: Annot
     ## Single branch of case object
     # IDEA three possible parameters: `NimNode` (for compile-time
     # operations), `PNode` (for analysing code at runtime) and.
@@ -66,6 +66,8 @@ type
         discard
 
   Object*[Node, Annot] = object
+    # TODO `flatFields` iterator to get all values with corresponding
+    # parent `ofValue` branches. `for fld, ofValues in obj.flatFields()`
     annotation*: Annot
     namedObject*: bool ## This object's type has a name? (tuples
     ## does not have name for a tyep)
@@ -81,13 +83,16 @@ type
       value: Option[NimNode]
     ]]
 
+  Pragma*[Node] = object
+    kind*: ObjectAnnotKind
+    body*: Node
+
   FieldBranch*[Node] = ObjectBranch[Node, void]
   Field*[Node] = ObjectField[Node, void]
+  NPragma* = Pragma[NimNode]
   NObject*[Node] = Object[Node, void]
 
 const noParseCb*: ParseCb[void] = nil
-
-# proc runAnnot*(pragma: NimNode, kind: ObjectAnnotKind, cb)
 
 type
   ObjKind* = enum

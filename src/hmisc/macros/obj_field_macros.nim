@@ -6,7 +6,7 @@ import ../helpers
 import ../types/[hnim_ast, colorstring]
 import ../hdebug_misc
 
-proc idxTreeRepr*(inputNode: NimNode): string =
+func idxTreeRepr*(inputNode: NimNode): string =
   ## `treeRepr` with indices for subnodes
   ## .. code-block::
   ##                 TypeDef
@@ -16,11 +16,11 @@ proc idxTreeRepr*(inputNode: NimNode): string =
   ##     [0][0][1]            Ident Hello
   ##     [0][1]            Pragma
 
-  proc aux(node: NimNode, parent: seq[int]): seq[string] =
+  func aux(node: NimNode, parent: seq[int]): seq[string] =
     result.add parent.mapIt(&"[{it}]").join("") &
       "  ".repeat(6) &
       ($node.kind)[3..^1] &
-      (node.len == 0).tern(" " & $node.toStrLit(), "")
+      (node.len == 0).tern(" " & node.toStrLit().strVal(), "")
 
     for idx, subn in node:
       result &= aux(subn, parent & @[idx])
@@ -51,7 +51,6 @@ proc getBranches*[A](
 
 
 proc getFieldDescription(node: NimNode): tuple[name, fldType: string] =
-  # echo node.treeRepr()
   case node.kind:
     of nnkIdentDefs:
       let name: string =
@@ -83,32 +82,23 @@ proc getFields*[A](
       case kind:
         of nnkBracketExpr:
           let typeSym = node.getTypeImpl()[1]
-          # echo "Type symbol: ", typeSym.treeRepr()
-          # echo "Impl: ", typeSym.getTypeImpl().treeRepr()
           result = getFields(typeSym.getTypeImpl(), cb)
         of nnkObjectTy, nnkRefTy, nnkTupleTy, nnkTupleConstr:
           result = getFields(node.getTypeImpl(), cb)
         else:
           raiseAssert("Unknown parameter kind: " & $kind)
     of nnkObjectTy:
-      # echo "\e[41m*==========\e[49m  nnkObjectTy  \e[41m===========*\e[49m"
-      # echo node[2].treeRepr()
       return node[2].getFields(cb)
     of nnkRefTy:
-      # echo "\e[41m*============\e[49m  nnkRefTy  \e[41m============*\e[49m"
-      # echo node.treeRepr()
       return node.getTypeImpl()[0].getImpl()[2][0].getFields(cb)
     of nnkRecList:
-      # echo "\e[41m*==========\e[49m  ee  \e[41m==========*\e[49m"
-      # echo node.treeRepr()
-      # echo node.kind
       for elem in node:
         if elem.kind != nnkRecList:
           let descr = getFieldDescription(elem)
           case elem.kind:
             of nnkRecCase: # Case field
+              # NOTE possible place for `cb` callbac
               result.add ObjectField[NimNode, A](
-                # value: initObjTree[NimNode](),
                 isTuple: false,
                 isKind: true,
                 branches: getBranches(elem, cb),
@@ -132,10 +122,8 @@ proc getFields*[A](
         )
 
     of nnkIdentDefs:
-      # debugecho node.idxTreeRepr()
       let descr = getFieldDescription(node)
       result.add ObjectField[NimNode, A](
-        # value: initObjTree[NimNode](),
         isTuple: false,
         isKind: false,
         name: descr.name,
@@ -143,13 +131,11 @@ proc getFields*[A](
         value: (node[2].kind != nnkEmpty).tern(
           some(node[2]), none(NimNode))
       )
-    # of nnkIntLit:
-    #   let descr = getFieldDescription(node)
-    #   result.add Field[NimNode](
-    #     isKind: false,
-    #     name: descr.name,
-    #     fldType: descr.fldType
-    #   )
+
+      when not (A is void):
+        if node[0].kind == nnkPragmaExpr and cb != nil:
+          result[^1].annotation = cb(node, oakObjectField)
+
     else:
       raiseAssert(
         &"Unexpected node kind in `getFields`: {node.kind}."
@@ -164,20 +150,16 @@ proc getKindFields*[Node](flds: seq[Field[Node]]): seq[Field[Node]] =
         isTuple: false,
         isKind: true,
         name: fld.name,
-        # value: fld.value,
         fldType: fld.fldType,
         branches:
           block:
             filterIt2(it.flds.len > 0):
               collect(newSeq):
                 for it in fld.branches:
-                # fld.branches.mapIt(
                   FieldBranch[Node](
                     ofValue: it.ofValue,
                     isElse: it.isElse,
-                    flds: it.flds.getKindFields())
-                  # )
-      )
+                    flds: it.flds.getKindFields()))
 
 proc discardNimNode(input: seq[Field[NimNode]]): seq[ValField] =
   for fld in input:
@@ -199,10 +181,7 @@ proc discardNimNode(input: seq[Field[NimNode]]): seq[ValField] =
                 strLit: (it.isElse).tern("", $it.ofValue.toStrLit())
               ),
               isElse: it.isElse,
-              flds: it.flds.discardNimNode()
-            )
-          )
-        )
+              flds: it.flds.discardNimNode())))
 
       of false:
         result.add ValField(
@@ -213,12 +192,31 @@ proc discardNimNode(input: seq[Field[NimNode]]): seq[ValField] =
           fldType: fld.fldType
         )
 
+func parseNimPragma*(node: NimNode, position: ObjectAnnotKind): NPragma =
+  result.kind = position
+  case position:
+    of oakObjectField:
+      # debugecho node.idxTreeRepr
+      node.expectKind nnkIdentDefs
+      result.body = node[0][1]
+    else:
+      node.expectKind nnkPragma
+      result.body = node
+
+  result.body.expectKind nnkPragma
+
 proc parseObject*[A](node: NimNode, cb: ParseCb[A]): Object[NimNode, A] =
+  node.expectKind nnkTypeDef
   result = Object[NimNode, A](
     flds: node[2].getFields(cb)
   )
 
-  # echo node.idxTreeRepr()
+  case node[0].kind:
+    of nnkPragmaExpr:
+      result.name = mkNType(node[0][0].strVal())
+    else:
+      result.name = mkNType(node[0].strVal())
+
   if node[0].kind == nnkPragmaExpr and cb != nil:
     result.annotation = cb(node[0][1], oakObjectToplevel)
 
