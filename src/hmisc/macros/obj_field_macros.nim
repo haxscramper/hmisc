@@ -145,10 +145,11 @@ proc getFields*[A](
 
 template filterIt2(op, body: untyped): untyped = filterIt(body, op)
 
-proc getKindFields*[Node](flds: seq[Field[Node]]): seq[Field[Node]] =
+proc getKindFields*[Node, A](
+  flds: seq[ObjectField[Node, A]]): seq[ObjectField[Node, A]] =
   for fld in flds:
     if fld.isKind:
-      result.add Field[Node](
+      result.add ObjectField[Node, A](
         isTuple: false,
         isKind: true,
         name: fld.name,
@@ -158,12 +159,13 @@ proc getKindFields*[Node](flds: seq[Field[Node]]): seq[Field[Node]] =
             filterIt2(it.flds.len > 0):
               collect(newSeq):
                 for it in fld.branches:
-                  FieldBranch[Node](
+                  ObjectBranch[Node, A](
                     ofValue: it.ofValue,
                     isElse: it.isElse,
                     flds: it.flds.getKindFields()))
 
-proc discardNimNode(input: seq[Field[NimNode]]): seq[ValField] =
+proc discardNimNode(
+  input: seq[ObjectField[NimNode, void]]): seq[ValField] =
   for fld in input:
     case fld.isKind:
       of true:
@@ -206,29 +208,6 @@ func parseNimPragma*(node: NimNode, position: ObjectAnnotKind): NPragma =
       result.elements = toSeq(node.children)
 
 
-func eachField*[Node, A](
-  obj: var Object[Node, A],
-  cb: proc(fld: var ObjectField[Node, A]) {.noSideEffect.}): void
-
-func eachField*[Node, A](
-  branch: var ObjectBranch[Node, A],
-  cb: proc(fld: var ObjectField[Node, A])): void =
-  for fld in mitems(branch.flds):
-    cb(fld)
-    if fld.isKind:
-      for branch in mitems(fld.branches):
-        eachField(branch, cb)
-
-
-func eachField*[Node, A](
-  obj: var Object[Node, A],
-  cb: proc(fld: var ObjectField[Node, A]) {.noSideEffect.}): void =
-
-  for fld in mitems(obj.flds):
-    cb(fld)
-    if fld.isKind:
-      for branch in mitems(fld.branches):
-        eachField(branch, cb)
 
 proc parseObject*[A](node: NimNode, cb: ParseCb[A]): Object[NimNode, A] =
   node.expectKind nnkTypeDef
@@ -263,8 +242,8 @@ type
     lhsObj, rhsObj, lhsName, rhsName, idxName, valIdxName, isKindName, fldName: string
     hackFields: bool
 
-proc unrollFieldLoop(
-  flds: seq[Field[NimNode]],
+proc unrollFieldLoop[A](
+  flds: seq[ObjectField[NimNode, A]],
   body: NimNode,
   fldIdx: int,
   genParam: GenParams): tuple[node: NimNode, fldIdx: int] =

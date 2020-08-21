@@ -269,15 +269,17 @@ type
 
   NPragma* = Pragma[NimNode]
 
-#=============================  Predicates  ==============================#
-
-#===============================  Getters  ===============================#
-
-#===============================  Setters  ===============================#
-
-#============================  Constructors  =============================#
+#============================  constructors  =============================#
+func mkNPragma*(names: varargs[string]): NPragma =
+  NPragma(elements: names.mapIt(ident it))
 
 #========================  Other implementation  =========================#
+
+func toNimNode*(pragma: NPragma): NimNode =
+  if pragma.elements.len == 0:
+    nnkEmpty.newTree()
+  else:
+    nnkPragma.newTree(pragma.elements)
 
 func createProcType*(p, b: NimNode, annots: NPragma): NimNode =
   ## Copy-past of `sugar.createProcType` with support for annotations
@@ -310,9 +312,10 @@ func createProcType*(p, b: NimNode, annots: NPragma): NimNode =
   result.add formalParams
   result.add annots.toNimNode()
 
-macro `~>`*(a, b: NimNode): untyped =
+macro `~>`*(a, b: untyped): untyped =
   ## Construct proc type with `noSideEffect` annotation.
-  createProcType(a, b, mkNPragma("noSideEffect"))
+  result = createProcType(a, b, mkNPragma("noSideEffect"))
+  # echo $!result
 
 
 
@@ -374,9 +377,12 @@ type
     name*: NType ## Name for an object
     flds*: seq[ObjectField[Node, Annot]]
 
-  FieldBranch*[Node] = ObjectBranch[Node, void]
-  Field*[Node] = ObjectField[Node, void]
-  NObject*[Node] = Object[Node, void]
+  # FieldBranch*[Node] = ObjectBranch[Node, void]
+  # Field*[Node] = ObjectField[Node, void]
+
+  NBranch*[A] = ObjectBranch[NimNode, A]
+  NField*[A] = ObjectField[NimNode, A]
+  NObject*[A] = Object[NimNode, A]
 
   # PragmaField*[Node] = ObjectField[Node, Pragma[Node]]
   # NPragmaField* = PragmaField[NimNode]
@@ -388,12 +394,90 @@ const noParseCb*: ParseCb[void] = nil
 #=============================  Predicates  ==============================#
 
 #===============================  Getters  ===============================#
+func eachField*[Node, A](
+  obj: var Object[Node, A],
+  cb: (var ObjectField[Node, A] ~> void)): void
+
+func eachField*[Node, A](
+  branch: var ObjectBranch[Node, A],
+  cb: (var ObjectField[Node, A] ~> void)): void =
+  for fld in mitems(branch.flds):
+    cb(fld)
+    if fld.isKind:
+      for branch in mitems(fld.branches):
+        eachField(branch, cb)
+
+
+func eachField*[Node, A](
+  obj: var Object[Node, A],
+  cb: (var ObjectField[Node, A] ~> void)): void =
+
+  for fld in mitems(obj.flds):
+    cb(fld)
+    if fld.isKind:
+      for branch in mitems(fld.branches):
+        eachField(branch, cb)
+
+
 
 #===============================  Setters  ===============================#
 
 #============================  Constructors  =============================#
 
 #========================  Other implementation  =========================#
+func toNimNode*[A](fld: NField[A], annotConv: A ~> NimNode): NimNode
+func toNimNode*[A](branch: NBranch[A], annotConv: A ~> NimNode): NimNode =
+  nnkOfBranch.newTree(
+    branch.ofValue,
+    nnkRecList.newTree(branch.flds.mapIt(it.toNimNode(annotConv))))
+
+func toNimNode*[A](fld: NField[A], annotConv: A ~> NimNode): NimNode =
+  let selector = nnkIdentDefs.newTree(
+    ident fld.name,
+    ident fld.fldType, # XXXX replace with
+    fld.annotation.isSome().tern(
+      annotConv(fld.annotation.get()), newEmptyNode()))
+
+  if fld.isKind:
+    return nnkRecCase.newTree(
+      @[selector] & fld.branches.mapIt(it.toNimNode(annotConv)))
+  else:
+    return selector
+
+func toNimNode*[A](obj: NObject[A], annotConv: A ~> NimNode): NimNode =
+  let header =
+    if obj.annotation.isSome():
+      let node = annotConv obj.annotation.get()
+      if node.kind != nnkEmpty:
+        nnkPragmaExpr.newTree(ident obj.name.head, node)
+      else:
+        ident(obj.name.head)
+    else:
+      ident(obj.name.head)
+
+  let genparams: NimNode =
+    block:
+      let maps = obj.name.genParams.mapIt(it.toNimNode())
+      if maps.len == 0:
+        newEmptyNode()
+      else:
+        nnkGenericParams.newTree(maps)
+
+  result = nnkTypeDef.newTree(
+    header,
+    genparams,
+    nnkObjectTy.newTree(
+      newEmptyNode(),
+      newEmptyNode(),
+      nnkRecList.newTree(
+        obj.flds.mapIt(it.toNimNode(annotConv))))) # loud LISP sounds
+
+  # echov result.treeRepr()
+
+
+func toNimNode*(obj: NObject[NPragma]): NimNode =
+  obj.toNimNode do(pr: NPragma) -> NimNode:
+    pr.toNimNode()
 
 #===========================  Pretty-printing  ===========================#
 
@@ -497,13 +581,13 @@ type
 
 
 type
-  ValField* = Field[ObjTree]
-  ValFieldBranch* = FieldBranch[ObjTree]
+  ValField* = ObjectField[ObjTree, void]
+  ValFieldBranch* = ObjectBranch[ObjTree, void]
 
 
 
 #=============================  Predicates  ==============================#
-func `==`*[Node](lhs, rhs: Field[Node]): bool
+func `==`*[Node, A](lhs, rhs: ObjectField[Node, A]): bool
 
 func `==`*(lhs, rhs: ObjTree): bool =
   lhs.kind == rhs.kind and
@@ -525,27 +609,16 @@ func `==`*(lhs, rhs: ObjTree): bool =
           lhs.namedObject == rhs.namedObject and
           lhs.namedFields == rhs.namedFields and
           lhs.name == rhs.name and
-          # lhs.sectioned == rhs.sectioned and
           subnodesEq(lhs, rhs, fldPairs)
-          # (
-          #   case lhs.sectioned:
-          #     of true:
-          #       subnodesEq(lhs, rhs, kindBlocks)
-          #     of false:
-          #       zip(lhs.fldPairs, rhs.fldPairs).mapPairs(
-          #         (lhs.name == rhs.name) and (lhs.value == rhs.value)
-          #       ).foldl(a and b)
-          # )
     )
 
-func `==`*[Node](lhs, rhs: Field[Node]): bool =
+func `==`*[Node, A](lhs, rhs: ObjectField[Node, A]): bool =
   lhs.isKind == rhs.isKind and
     (
       case lhs.isKind:
         of true:
           lhs.name == rhs.name and
           lhs.fldType == rhs.fldType and
-          # lhs.value == rhs.value and
           subnodesEq(lhs, rhs, branches)
         of false:
           true

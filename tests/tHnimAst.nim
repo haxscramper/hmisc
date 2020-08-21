@@ -70,7 +70,7 @@ suite "HNimAst":
       obj.eachField do(fld: var ObjectField[NimNode, NPragma]):
         fld.annotation = none(NPragma)
 
-      result = obj.toNimNode()
+      result = nnkTypeSection.newTree obj.toNimNode()
 
     parse:
       type
