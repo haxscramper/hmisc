@@ -7,6 +7,7 @@ import options, macros, deques
 #      (similar to index?) + nodes in tree
 # IDEA it is possible to support DAG by computing hash of each node
 # TODO Use `iterateItBFS` for `mapItBFStoSeq` implementation
+# TODO iterate over *mutable* tree nodes in BFS/DFS order
 
 template mapItBFStoSeq*(
   topNode: typed,

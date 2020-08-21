@@ -44,25 +44,27 @@ proc getBranches*[A](
         )
       of nnkElse:
         result.add ObjectBranch[NimNode, A](
-          flds: branch[0].getFields(cb), isElse: true
-        )
+          flds: branch[0].getFields(cb), isElse: true)
       else:
         raiseAssert(&"Unexpected branch kind {branch.kind}")
 
 
 proc getFieldDescription(node: NimNode): tuple[name, fldType: string] =
+  # echo node.idxTreeRepr
   case node.kind:
     of nnkIdentDefs:
       let name: string =
         case node[0].kind:
           of nnkPostfix:
             $node[0][1]
+          of nnkPragmaExpr:
+            $node[0][0]
           else:
             $node[0]
 
       return (
         name: name,
-        fldType: $(node[1].toStrLit)
+        fldType: $(node[1].toStrLit) # REFACTOR use `NType`
       )
     of nnkRecCase:
       return getFieldDescription(node[0])
@@ -134,7 +136,7 @@ proc getFields*[A](
 
       when not (A is void):
         if node[0].kind == nnkPragmaExpr and cb != nil:
-          result[^1].annotation = cb(node, oakObjectField)
+          result[^1].annotation = some cb(node, oakObjectField)
 
     else:
       raiseAssert(
@@ -198,12 +200,35 @@ func parseNimPragma*(node: NimNode, position: ObjectAnnotKind): NPragma =
     of oakObjectField:
       # debugecho node.idxTreeRepr
       node.expectKind nnkIdentDefs
-      result.body = node[0][1]
+      result.elements = toSeq(node[0][1].children)
     else:
       node.expectKind nnkPragma
-      result.body = node
+      result.elements = toSeq(node.children)
 
-  result.body.expectKind nnkPragma
+
+func eachField*[Node, A](
+  obj: var Object[Node, A],
+  cb: proc(fld: var ObjectField[Node, A]) {.noSideEffect.}): void
+
+func eachField*[Node, A](
+  branch: var ObjectBranch[Node, A],
+  cb: proc(fld: var ObjectField[Node, A])): void =
+  for fld in mitems(branch.flds):
+    cb(fld)
+    if fld.isKind:
+      for branch in mitems(fld.branches):
+        eachField(branch, cb)
+
+
+func eachField*[Node, A](
+  obj: var Object[Node, A],
+  cb: proc(fld: var ObjectField[Node, A]) {.noSideEffect.}): void =
+
+  for fld in mitems(obj.flds):
+    cb(fld)
+    if fld.isKind:
+      for branch in mitems(fld.branches):
+        eachField(branch, cb)
 
 proc parseObject*[A](node: NimNode, cb: ParseCb[A]): Object[NimNode, A] =
   node.expectKind nnkTypeDef
@@ -218,7 +243,7 @@ proc parseObject*[A](node: NimNode, cb: ParseCb[A]): Object[NimNode, A] =
       result.name = mkNType(node[0].strVal())
 
   if node[0].kind == nnkPragmaExpr and cb != nil:
-    result.annotation = cb(node[0][1], oakObjectToplevel)
+    result.annotation = some cb(node[0][1], oakObjectToplevel)
 
 
 macro makeFieldsLiteral*(node: typed): untyped =

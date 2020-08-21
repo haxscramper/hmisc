@@ -1,4 +1,4 @@
-import sugar, strutils, sequtils, strformat, macros
+import sugar, strutils, sequtils, strformat, macros, options
 import ../src/hmisc/types/hnim_ast
 import ../src/hmisc/helpers
 import ../src/hmisc/macros/obj_field_macros
@@ -46,9 +46,33 @@ suite "HNimAst":
         for obj in stmt:
           if obj.kind == nnkTypeDef:
             let obj = obj.parseObject(parseNimPragma)
-            echo obj.name
+            for call in obj.annotation.get().elements:
+              echo call.toStrLit()
+
+            for field in obj.flds:
+              for call in field.annotation.get().elements:
+                echo call.toStrLit()
 
     parse:
       type
         Type {.zzz(Check).} = object
           f1 {.check(it < 10).}: float = 12.0
+
+  test "{parseObject} filter pragma annotations":
+    macro parse(body: untyped): untyped =
+      echo "filter pragma annotations"
+      var obj = body[0][0].parseObject(parseNimPragma)
+      for call in obj.annotation.get().elements:
+        echo call.toStrLit()
+
+      obj.annotation = none(NPragma)
+
+      obj.eachField do(fld: var ObjectField[NimNode, NPragma]):
+        fld.annotation = none(NPragma)
+
+      result = obj.toNimNode()
+
+    parse:
+      type
+        Type {.zz(C), ee: "333", ee.} = object
+          f1 {.check(it < 2).}: float = 32.0

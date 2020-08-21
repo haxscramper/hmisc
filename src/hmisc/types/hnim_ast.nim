@@ -5,6 +5,23 @@ import hmisc/types/colorstring
 import sequtils, colors, macros, tables, strutils,
        terminal, options, parseutils, sets, strformat
 
+func `$!`*(n: NimNode): string =
+  ## NimNode stringification that does not blow up in your face on
+  ## 'invalid node kind'
+  n.toStrLit().strVal()
+
+type
+  ObjectAnnotKind* = enum
+    oakCaseOfBranch
+    oakObjectToplevel
+    oakObjectField
+
+
+
+#*************************************************************************#
+#**********************  NType - nim type wrapper  ***********************#
+#*************************************************************************#
+#===========================  Type definition  ===========================#
 type
   NType* = object
     head*: string
@@ -20,18 +37,297 @@ type
     kind: NVarDeclKind
     vtype: NType
 
+#=============================  Predicates  ==============================#
 
+#============================  Constructors  =============================#
+func toNimNode*(ntype: NType): NimNode =
+  ## Convert `NType` to nim node
+  if ntype.genParams.len == 0:
+    return ident(ntype.head)
+  else:
+    result = nnkBracketExpr.newTree(newIdentNode(ntype.head))
+    for param in ntype.genParams:
+      result.add param.toNimNode()
+
+func toFormalParam*(nident: NIdentDefs): NimNode =
+  # TODO:DOC
+  let typespec =
+    case nident.kind:
+      of nvdVar: newTree(nnkVarTy, nident.vtype.toNimNode())
+      of nvdLet: nident.vtype.toNimNode()
+      of nvdConst: newTree(nnkConstTy, nident.vtype.toNimNode())
+
+  nnkIdentDefs.newTree(
+    newIdentNode(nident.varname),
+    typespec,
+    newEmptyNode()
+  )
+
+
+func mkNType*(name: string, gparams: seq[string] = @[]): NType =
+  ## Make `NType`
+  NType(head: name, genParams: gparams.mapIt(mkNType(it, @[])))
+
+func mkNType*(name: string, gparams: openarray[NType]): NType =
+  ## Make `NType`
+  NType(head: name, genParams: toSeq(gparams))
+
+func mkNType*(impl: NimNode): NType =
+  ## Convert type described in `NimNode` into `NType`
+  case impl.kind:
+    of nnkBracketExpr:
+      mkNType(impl[0].strVal(), impl[1..^1].mapIt(it.mkNType()))
+    of nnkIdent, nnkSym:
+      mkNType(impl.strVal)
+    else:
+      raiseAssert("#[ IMPLEMENT ]#")
+
+func mkVarDecl*(name: string, vtype: NType,
+                kind: NVarDeclKind = nvdLet): NIdentDefs =
+  ## Declare varaible `name` of type `vtype`
+  # TODO initalization value, pragma annotations and `isGensym`
+  # parameter
+  NIdentDefs(varname: name, kind: kind, vtype: vtype)
+
+
+func mkVarDeclNode*(name: string, vtype: NType,
+                    kind: NVarDeclKind = nvdLet): NimNode =
+  # TODO:DOC
+  mkVarDecl(name, vtype, kind).toFormalParam()
+
+
+func mkNTypeNode*(name: string, gparams: seq[string]): NimNode =
+  ## Create `NimNode` for type `name[@gparams]`
+  mkNType(name, gparams).toNimNode()
+
+func mkNTypeNode*(name: string, gparams: varargs[NType]): NimNode =
+  ## Create `NimNode` for type `name[@gparams]`
+  mkNType(name, gparams).toNimNode()
+
+func mkCallNode*(
+  dotHead: NimNode, name: string,
+  args: seq[NimNode], genParams: seq[NType] = @[]): NimNode =
+  ## Create node `dotHead.name[@genParams](genParams)`
+  let dotexpr = nnkDotExpr.newTree(dotHead, ident(name))
+  if genParams.len > 0:
+    result = nnkCall.newTree()
+    result.add nnkBracketExpr.newTree(
+      @[ dotexpr ] & genParams.mapIt(it.toNimNode))
+  else:
+    result = nnkCall.newTree(dotexpr)
+
+  for arg in args:
+    result.add arg
+
+  # debugecho "\e[31m32333\e[39m"
+  # debugecho result.toStrLit().strVal()
+  # debugecho result.treeRepr()
+  # debugecho "\e[31m32333\e[39m"
+
+func mkCallNode*(
+  name: string,
+  args: seq[NimNode],
+  genParams: seq[NType] = @[]): NimNode =
+  ## Create node `name[@genParams](@args)`
+  if genParams.len > 0:
+    result = nnkCall.newTree()
+    result.add nnkBracketExpr.newTree(
+      @[ newIdentNode(name) ] & genParams.mapIt(it.toNimNode()))
+
+  else:
+    result = nnkCall.newTree(ident name)
+
+  for node in args:
+    result.add node
+
+
+func mkCallNode*(name: string,
+                 gentypes: openarray[NType],
+                 args: varargs[NimNode]): NimNode =
+  ## Create node `name[@gentypes](@args)`. Overload with more
+  ## convinient syntax if you have predefined number of genric
+  ## parameters - `mkCallNode("name", [<param>](arg1, arg2))` looks
+  ## almost like regular `quote do` interpolation.
+  mkCallNode(name, toSeq(args), toSeq(genTypes))
+
+func mkCallNode*(
+  arg: NimNode, name: string,
+  gentypes: openarray[NType] = @[]): NimNode =
+  mkCallNode(name, @[arg], toSeq(genTypes))
+
+func mkCallNode*(
+  dotHead: NimNode, name: string,
+  gentypes: openarray[NType],
+  args: seq[NimNode]): NimNode =
+  mkCallNode(dotHead, name, toSeq(args), toSeq(genTypes))
+
+
+
+#========================  Other implementation  =========================#
+
+
+
+func toNTypeAst*[T](): NType =
+  let str = $typeof(T)
+  let expr = parseExpr(str)
+
+#===========================  Pretty-printing  ===========================#
+func `$`*(nt: NType): string =
+  ## Convert `NType` to textul representation
+  if nt.genParams.len > 0:
+    nt.head & "[" & nt.genParams.mapIt($it).join(", ") & "]"
+  else:
+    nt.head
+
+
+#*************************************************************************#
+#*******************  Enum - enum declaration wrapper  *******************#
+#*************************************************************************#
+#===========================  Type definition  ===========================#
 type
-  ObjectAnnotKind* = enum
-    oakCaseOfBranch
-    oakObjectToplevel
-    oakObjectField
+  Enum*[Node] = object
+    ## Enum declaration wrapper
+    name*: string
+    values*: seq[tuple[name: string, value: Option[Node]]]
 
+  NEnum* = Enum[NimNode]
+
+#=============================  Predicates  ==============================#
+func isEnum*(en: NimNode): bool =
+  ## Check if `typeImpl` for `en` is `enum`
+  en.getTypeImpl().kind == nnkEnumTy
+
+#============================  Constructors  =============================#
+func parseEnumImpl*(en: NimNode): NEnum =
+  # echov en.kind
+  # debugecho en.treeRepr()
+  case en.kind:
+    of nnkSym:
+      let impl = en.getTypeImpl()
+      # echov impl.kind
+      case impl.kind:
+        of nnkBracketExpr:
+          # let impl = impl.getTypeInst()[1].getImpl()
+          return parseEnumImpl(impl.getTypeInst()[1].getImpl())
+        of nnkEnumTy:
+          result = parseEnumImpl(impl)
+        else:
+          raiseAssert(&"#[ IMPLEMENT {impl.kind} ]#")
+    of nnkTypeDef:
+      # result = Enum(name: )
+      result = parseEnumImpl(en[2])
+      result.name = en[0].strVal()
+    of nnkEnumTy:
+      for fld in en[1..^1]:
+        case fld.kind:
+          of nnkEnumFieldDef:
+            result.values.add (name: fld[0].strVal(), value: some(fld[1]))
+          of nnkSym:
+            result.values.add (name: fld.strVal(), value: none(NimNode))
+          else:
+            raiseAssert(&"#[ IMPLEMENT {fld.kind} ]#")
+    else:
+      raiseAssert(&"#[ IMPLEMENT {en.kind} ]#")
+
+
+#========================  Other implementation  =========================#
+func getEnumPref*(en: NimNode): string =
+  ## Get enum prefix. As per `Nep style guide<https://nim-lang.org/docs/nep1.html#introduction-naming-conventions>`_
+  ## it is recommended for members of enums should have an identifying
+  ## prefix, such as an abbreviation of the enum's name. This functions
+  ## returns this prefix.
+  let impl = en.parseEnumImpl()
+  # echov impl
+  let
+    name = impl.values[0].name
+    pref = name.parseUntil(result, {'A' .. 'Z', '0' .. '9'})
+
+macro enumPref*(a: typed): string = newLit(getEnumPref(a))
+
+func getEnumNames*(en: NimNode): seq[string] =
+  en.parseEnumImpl().values.mapIt(it.name)
+
+macro enumNames*(en: typed): seq[string] = newLit en.getEnumNames()
+
+
+
+#===========================  Pretty-printing  ===========================#
+
+
+
+
+
+
+#*************************************************************************#
+#*****************  Pragma - pragma annotation wrapper  ******************#
+#*************************************************************************#
+#===========================  Type definition  ===========================#
+type
+  Pragma*[Node] = object
+    kind*: ObjectAnnotKind
+    elements*: seq[Node]
+
+  NPragma* = Pragma[NimNode]
+
+#=============================  Predicates  ==============================#
+
+#===============================  Getters  ===============================#
+
+#===============================  Setters  ===============================#
+
+#============================  Constructors  =============================#
+
+#========================  Other implementation  =========================#
+
+func createProcType*(p, b: NimNode, annots: NPragma): NimNode =
+  ## Copy-past of `sugar.createProcType` with support for annotations
+  result = newNimNode(nnkProcTy)
+  var formalParams = newNimNode(nnkFormalParams)
+
+  formalParams.add b
+
+  case p.kind
+  of nnkPar, nnkTupleConstr:
+    for i in 0 ..< p.len:
+      let ident = p[i]
+      var identDefs = newNimNode(nnkIdentDefs)
+      case ident.kind
+      of nnkExprColonExpr:
+        identDefs.add ident[0]
+        identDefs.add ident[1]
+      else:
+        identDefs.add newIdentNode("i" & $i)
+        identDefs.add(ident)
+      identDefs.add newEmptyNode()
+      formalParams.add identDefs
+  else:
+    var identDefs = newNimNode(nnkIdentDefs)
+    identDefs.add newIdentNode("i0")
+    identDefs.add(p)
+    identDefs.add newEmptyNode()
+    formalParams.add identDefs
+
+  result.add formalParams
+  result.add annots.toNimNode()
+
+macro `~>`*(a, b: NimNode): untyped =
+  ## Construct proc type with `noSideEffect` annotation.
+  createProcType(a, b, mkNPragma("noSideEffect"))
+
+
+
+#===========================  Pretty-printing  ===========================#
+
+#*************************************************************************#
+#*****************  Object - object declaration wrapper  *****************#
+#*************************************************************************#
+#===========================  Type definition  ===========================#
+type
   ParseCb*[Annot] = proc(pragma: NimNode, kind: ObjectAnnotKind): Annot
 
   ObjectBranch*[Node, Annot] = object
-    annotation*: Annot
     ## Single branch of case object
+    annotation*: Option[Annot]
     # IDEA three possible parameters: `NimNode` (for compile-time
     # operations), `PNode` (for analysing code at runtime) and.
     # when Node is NimNode:
@@ -45,9 +341,10 @@ type
                   ## case object.
 
   ObjectField*[Node, Annot] = object
+    # TODO:DOC
     ## More complex representation of object's field - supports
     ## recursive fields with case objects.
-    annotation*: Annot
+    annotation*: Option[Annot]
     value*: Option[Node]
     case isTuple*: bool
       of true:
@@ -66,9 +363,10 @@ type
         discard
 
   Object*[Node, Annot] = object
+    # TODO:DOC
     # TODO `flatFields` iterator to get all values with corresponding
     # parent `ofValue` branches. `for fld, ofValues in obj.flatFields()`
-    annotation*: Annot
+    annotation*: Option[Annot]
     namedObject*: bool ## This object's type has a name? (tuples
     ## does not have name for a tyep)
     namedFields*: bool ## Fields have dedicated names? (anonymous
@@ -76,26 +374,42 @@ type
     name*: NType ## Name for an object
     flds*: seq[ObjectField[Node, Annot]]
 
-  Enum = object
-    name*: string
-    values*: seq[tuple[
-      name: string,
-      value: Option[NimNode]
-    ]]
-
-  Pragma*[Node] = object
-    kind*: ObjectAnnotKind
-    body*: Node
-
   FieldBranch*[Node] = ObjectBranch[Node, void]
   Field*[Node] = ObjectField[Node, void]
-  NPragma* = Pragma[NimNode]
   NObject*[Node] = Object[Node, void]
+
+  # PragmaField*[Node] = ObjectField[Node, Pragma[Node]]
+  # NPragmaField* = PragmaField[NimNode]
 
 const noParseCb*: ParseCb[void] = nil
 
+
+
+#=============================  Predicates  ==============================#
+
+#===============================  Getters  ===============================#
+
+#===============================  Setters  ===============================#
+
+#============================  Constructors  =============================#
+
+#========================  Other implementation  =========================#
+
+#===========================  Pretty-printing  ===========================#
+
+
+
+
+
+
+
+#*************************************************************************#
+#*******  ObjTree - 'stringly typed' object value representation  ********#
+#*************************************************************************#
+#===========================  Type definition  ===========================#
 type
   ObjKind* = enum
+    # TODO:DOC
     okConstant ## Literal value
     okSequence ## Sequence of items
     okTable ## List of key-value pairs with single types for keys and
@@ -105,11 +419,13 @@ type
     ## (unnamed object), field name is optional (unnamed fields)
 
   ObjRelationKind = enum
+    # TODO:DOC
     orkComposition
     orkReference
     orkPointer
 
   ObjAccs = object
+    # TODO:DOC
     case isIdx*: bool
       of true:
         idx*: int
@@ -170,6 +486,7 @@ type
 
 
   ObjElem*[Conf] = object
+    # TODO:DOC
     case isValue: bool
       of true:
         text*: string
@@ -184,14 +501,8 @@ type
   ValFieldBranch* = FieldBranch[ObjTree]
 
 
-func makeObjElem*[Conf](text: string, conf: Conf): ObjElem[Conf] =
-  ObjElem[Conf](isValue: true, text: text, config: conf)
 
-func initObjTree*(): ObjTree =
-  ObjTree(styling: initPrintStyling())
-
-#==============================  operators  ==============================#
-
+#=============================  Predicates  ==============================#
 func `==`*[Node](lhs, rhs: Field[Node]): bool
 
 func `==`*(lhs, rhs: ObjTree): bool =
@@ -240,33 +551,63 @@ func `==`*[Node](lhs, rhs: Field[Node]): bool =
           true
     )
 
+#===============================  Getters  ===============================#
+
+#===============================  Setters  ===============================#
+
+#============================  Constructors  =============================#
+func makeObjElem*[Conf](text: string, conf: Conf): ObjElem[Conf] =
+  # TODO:DOC
+  ObjElem[Conf](isValue: true, text: text, config: conf)
+
+func initObjTree*(): ObjTree =
+  # TODO:DOC
+  ObjTree(styling: initPrintStyling())
+
+#========================  Other implementation  =========================#
+
+#===========================  Pretty-printing  ===========================#
+
+
+
+
+
+#==============================  operators  ==============================#
+
+
 #*************************************************************************#
 #***********************  Annotation and styling  ************************#
 #*************************************************************************#
 
 func annotate*(tree: var ObjTree, annotation: string): void =
+  # TODO:DOC
   tree.annotation = annotation
 
 func stylize*(tree: var ObjTree, conf: PrintStyling): void =
+  # TODO:DOC
   tree.styling = conf
 
 func styleTerm*(str: string, conf: PrintStyling): string =
+  # TODO:DOC
   $ColoredString(str: str, styling: conf)
 
 #*************************************************************************#
 #*****************************  Path access  *****************************#
 #*************************************************************************#
 
-func objAccs*(idx: int): ObjAccs = ObjAccs(isIdx: true, idx: idx)
-func objAccs*(name: string): ObjAccs = ObjAccs(isIdx: false, name: name)
-func objPath*(path: varargs[ObjAccs, `objAccs`]): ObjPath = toSeq(path)
-# func `@/`*(idx: int, name: string): ObjPath = @[objAccs(idx), objAccs(name)]
-# func `@/`*(name: string, idx: int): ObjPath = @[objAccs(name), objAccs(idx)]
-# func `@/`*(path: ObjPath, idx: int): ObjPath = path & @[objAccs(idx)]
-# func `@/`*(path: ObjPath, name: string): ObjPath = path & @[objAccs(name)]
+func objAccs*(idx: int): ObjAccs =
+  # TODO:DOC
+  ObjAccs(isIdx: true, idx: idx)
+func objAccs*(name: string): ObjAccs =
+  # TODO:DOC
+  ObjAccs(isIdx: false, name: name)
+
+func objPath*(path: varargs[ObjAccs, `objAccs`]): ObjPath =
+  # TODO:DOC
+  toSeq(path)
 
 func getAtPath*(obj: var ObjTree, path: ObjPath): var ObjTree =
-  # debugecho path
+  # TODO:DOC
   case obj.kind:
     of okComposed:
       if path.len < 1:
@@ -382,210 +723,30 @@ func toBracket*(elems: seq[NimNode]): NimNode =
   nnkBracket.newTree(elems)
 
 func toBracketSeq*(elems: seq[NimNode]): NimNode =
-  ## Create `nnkBracket` with `@` prefix - sequence literat
-  ## l
+  ## Create `nnkBracket` with `@` prefix - sequence literal
   nnkPrefix.newTree(ident "@", nnkBracket.newTree(elems))
 
-func isEnum*(en: NimNode): bool =
-  ## Check if `typeImpl` for `en` is `enum`
-  en.getTypeImpl().kind == nnkEnumTy
-
-func `$!`(n: NimNode): string = n.toStrLit().strVal()
-
-func parseEnumImpl*(en: NimNode): Enum =
-  # echov en.kind
-  # debugecho en.treeRepr()
-  case en.kind:
-    of nnkSym:
-      let impl = en.getTypeImpl()
-      # echov impl.kind
-      case impl.kind:
-        of nnkBracketExpr:
-          # let impl = impl.getTypeInst()[1].getImpl()
-          return parseEnumImpl(impl.getTypeInst()[1].getImpl())
-        of nnkEnumTy:
-          result = parseEnumImpl(impl)
-        else:
-          raiseAssert(&"#[ IMPLEMENT {impl.kind} ]#")
-    of nnkTypeDef:
-      # result = Enum(name: )
-      result = parseEnumImpl(en[2])
-      result.name = en[0].strVal()
-    of nnkEnumTy:
-      for fld in en[1..^1]:
-        case fld.kind:
-          of nnkEnumFieldDef:
-            result.values.add (name: fld[0].strVal(), value: some(fld[1]))
-          of nnkSym:
-            result.values.add (name: fld.strVal(), value: none(NimNode))
-          else:
-            raiseAssert(&"#[ IMPLEMENT {fld.kind} ]#")
-    else:
-      raiseAssert(&"#[ IMPLEMENT {en.kind} ]#")
-
-func getEnumPref*(en: NimNode): string =
-  ## Get enum prefix. As per `Nep style guide<https://nim-lang.org/docs/nep1.html#introduction-naming-conventions>`_
-  ## it is recommended for members of enums should have an identifying
-  ## prefix, such as an abbreviation of the enum's name. This functions
-  ## returns this prefix.
-  let impl = en.parseEnumImpl()
-  # echov impl
-  let
-    name = impl.values[0].name
-    pref = name.parseUntil(result, {'A' .. 'Z', '0' .. '9'})
-
-macro enumPref*(a: typed): string = newLit(getEnumPref(a))
-
-func getEnumNames*(en: NimNode): seq[string] =
-  en.parseEnumImpl().values.mapIt(it.name)
-
-macro enumNames*(en: typed): seq[string] = newLit en.getEnumNames()
-
-func `$`*(nt: NType): string =
-  ## Convert `NType` to textul representation
-  if nt.genParams.len > 0:
-    nt.head & "[" & nt.genParams.mapIt($it).join(", ") & "]"
-  else:
-    nt.head
 
 
-func mkNType*(name: string, gparams: seq[string] = @[]): NType =
-  ## Make `NType`
-  NType(head: name, genParams: gparams.mapIt(mkNType(it, @[])))
-
-func mkNType*(name: string, gparams: openarray[NType]): NType =
-  ## Make `NType`
-  NType(head: name, genParams: toSeq(gparams))
-
-func mkNType*(impl: NimNode): NType =
-  ## Convert type described in `NimNode` into `NType`
-  case impl.kind:
-    of nnkBracketExpr:
-      mkNType(impl[0].strVal(), impl[1..^1].mapIt(it.mkNType()))
-    of nnkIdent, nnkSym:
-      mkNType(impl.strVal)
-    else:
-      raiseAssert("#[ IMPLEMENT ]#")
-
-func toNimNode*(ntype: NType): NimNode =
-  ## Convert `NType` to nim node
-  if ntype.genParams.len == 0:
-    return ident(ntype.head)
-  else:
-    result = nnkBracketExpr.newTree(newIdentNode(ntype.head))
-    for param in ntype.genParams:
-      result.add param.toNimNode()
-
-func mkVarDecl*(name: string, vtype: NType,
-                kind: NVarDeclKind = nvdLet): NIdentDefs =
-  ## Declare varaible `name` of type `vtype`
-  # TODO initalization value, pragma annotations and `isGensym`
-  # parameter
-  NIdentDefs(varname: name, kind: kind, vtype: vtype)
-
-func toFormalParam*(nident: NIdentDefs): NimNode =
-  # TODO:DOC
-  let typespec =
-    case nident.kind:
-      of nvdVar: newTree(nnkVarTy, nident.vtype.toNimNode())
-      of nvdLet: nident.vtype.toNimNode()
-      of nvdConst: newTree(nnkConstTy, nident.vtype.toNimNode())
-
-  nnkIdentDefs.newTree(
-    newIdentNode(nident.varname),
-    typespec,
-    newEmptyNode()
-  )
-
-func mkVarDeclNode*(name: string, vtype: NType,
-                    kind: NVarDeclKind = nvdLet): NimNode =
-  # TODO:DOC
-  mkVarDecl(name, vtype, kind).toFormalParam()
-
-
-func mkNTypeNode*(name: string, gparams: seq[string]): NimNode =
-  ## Create `NimNode` for type `name[@gparams]`
-  mkNType(name, gparams).toNimNode()
-
-func mkNTypeNode*(name: string, gparams: varargs[NType]): NimNode =
-  ## Create `NimNode` for type `name[@gparams]`
-  mkNType(name, gparams).toNimNode()
-
-func mkCallNode*(
-  dotHead: NimNode, name: string,
-  args: seq[NimNode], genParams: seq[NType] = @[]): NimNode =
-  ## Create node `dotHead.name[@genParams](genParams)`
-  let dotexpr = nnkDotExpr.newTree(dotHead, ident(name))
-  if genParams.len > 0:
-    result = nnkCall.newTree()
-    result.add nnkBracketExpr.newTree(
-      @[ dotexpr ] & genParams.mapIt(it.toNimNode))
-  else:
-    result = nnkCall.newTree(dotexpr)
-
-  for arg in args:
-    result.add arg
-
-  # debugecho "\e[31m32333\e[39m"
-  # debugecho result.toStrLit().strVal()
-  # debugecho result.treeRepr()
-  # debugecho "\e[31m32333\e[39m"
-
-func mkCallNode*(
-  name: string,
-  args: seq[NimNode],
-  genParams: seq[NType] = @[]): NimNode =
-  ## Create node `name[@genParams](@args)`
-  if genParams.len > 0:
-    result = nnkCall.newTree()
-    result.add nnkBracketExpr.newTree(
-      @[ newIdentNode(name) ] & genParams.mapIt(it.toNimNode()))
-
-  else:
-    result = nnkCall.newTree(ident name)
-
-  for node in args:
-    result.add node
-
-
-func mkCallNode*(name: string,
-                 gentypes: openarray[NType],
-                 args: varargs[NimNode]): NimNode =
-  ## Create node `name[@gentypes](@args)`. Overload with more
-  ## convinient syntax if you have predefined number of genric
-  ## parameters - `mkCallNode("name", [<param>](arg1, arg2))` looks
-  ## almost like regular `quote do` interpolation.
-  mkCallNode(name, toSeq(args), toSeq(genTypes))
-
-func mkCallNode*(
-  arg: NimNode, name: string,
-  gentypes: openarray[NType] = @[]): NimNode =
-  mkCallNode(name, @[arg], toSeq(genTypes))
-
-func mkCallNode*(
-  dotHead: NimNode, name: string,
-  gentypes: openarray[NType],
-  args: seq[NimNode]): NimNode =
-  mkCallNode(dotHead, name, toSeq(args), toSeq(genTypes))
-
-
-func toNTypeAst*[T](): NType =
-  let str = $typeof(T)
-  let expr = parseExpr(str)
-
+#*************************************************************************#
+#***********************  Init call construction  ************************#
+#*************************************************************************#
 func makeInitCalls*[T](val: T): NimNode =
+  # TODO:DOC
   when T is enum:
     ident($val)
   else:
     newLit(val)
 
 func makeInitAllFields*[T](val: T): NimNode =
+  # TODO:DOC
   result = newCall("init" & $typeof(T))
   for name, val in fieldPairs(val):
     result.add nnkExprEqExpr.newTree(
       ident(name), makeInitCalls(val))
 
 func makeConstructAllFields*[T](val: T): NimNode =
+  # TODO:DOC
   when val is seq:
     result = val.mapPairs(
       rhs.makeConstructAllFields()).toBracketSeq()
@@ -594,8 +755,8 @@ func makeConstructAllFields*[T](val: T): NimNode =
   else:
     result = nnkObjConstr.newTree(ident $typeof(T))
     for name, val in fieldPairs(val):
-      # debugecho name
-      when val is Option:
+      # static: echo typeof val
+      when (val is Option) and not (val is Option[void]):
         if val.isSome():
           result.add nnkExprColonExpr.newTree(
             ident(name),
@@ -604,9 +765,8 @@ func makeConstructAllFields*[T](val: T): NimNode =
         result.add nnkExprColonExpr.newTree(
           ident(name), makeConstructAllFields(val))
 
-  # debugecho result.toStrLit().strVal()
-
 func makeInitCalls*[A, B](table: Table[A, B]): NimNode =
+  # TODO:DOC
   mixin makeInitCalls
   result = nnkTableConstr.newTree()
   for key, val in table:
@@ -622,6 +782,7 @@ func makeInitCalls*[A, B](table: Table[A, B]): NimNode =
   )
 
 func makeInitCalls*[A](hset: HashSet[A]): NimNode =
+  # TODO:DOC
   mixin makeInitCalls
   result = nnkBracket.newTree()
   for val in hset:
@@ -630,6 +791,7 @@ func makeInitCalls*[A](hset: HashSet[A]): NimNode =
   result = newCall("toHashSet", result)
 
 proc pprintCalls*(node: NimNode, level: int): void =
+  # TODO:DOC
   let pref = "  ".repeat(level)
   let pprintKinds = {nnkCall, nnkPrefix, nnkBracket}
   case node.kind:
@@ -655,3 +817,10 @@ proc pprintCalls*(node: NimNode, level: int): void =
       echo pref, ($node).toGreen()
     else:
       echo ($node.toStrLit()).indent(level * 2)
+
+# func toNimType*[Node, A](obj: )
+
+
+#*************************************************************************#
+#***********************  Helper proc procedures  ************************#
+#*************************************************************************#
