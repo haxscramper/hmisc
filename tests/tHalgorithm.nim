@@ -521,11 +521,12 @@ import math
 suite "Misc algorithms":
   test "{longestCommonSubsequence} :generic:value:":
     template tmp(s1, s2, s3: untyped): untyped =
-      assertEq longestCommonSubsequence(s1, s2), s3
+      assertEq longestCommonSubsequence(s1, s2)[0], s3
 
+    assert longestCommonSubsequence(@[1], @[2, 3]).len == 0
+    assert longestCommonSubsequence(@["Cond"], @["Int", "Lit"]).len == 0
+    assert longestCommonSubsequence(@[1], @[2]).len == 0
     tmp("GAC", "AGCAT", "GA")
-    tmp(@["Cond"], @["Int", "Lit"], `@`[string]([]))
-    tmp(@[1], @[2], `@`[int]([]))
     tmp(@[1, 2], @[1, 2], @[1, 2])
     tmp(@[1, 2, 3], @[1, 2], @[1, 2])
     tmp("XMJYAUZ", "MZJAWXU", "MJAU")
@@ -534,7 +535,7 @@ suite "Misc algorithms":
     tmp("AB", "A", "A")
 
 
-  if true: quit 0
+  # if true: quit 0
   test "{fuzzyMatch} fuzzy string matching":
     template test(
       patt, input: string, expr: untyped, expected: seq[int]): untyped =

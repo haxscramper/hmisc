@@ -188,6 +188,7 @@ func abbrevCamel*(
   abbrSplit: seq[string], splitWords: seq[seq[string]]): seq[string] =
   ## Split abbreviation and all worlds as **camelCase** identifiers.
   ## Find all worlds that contains `abbrev` as subsequence.
+  # debugecho "split: ", splitWords
   for word in splitWords:
     let lcs = longestCommonSubsequence(
       abbrSplit, word,
@@ -197,9 +198,13 @@ func abbrevCamel*(
                     rhs.startsWith(lhs)
     )
 
-    if lcs.len == abbrSplit.len:
-      debugecho lcs, word
-      result.add word.join("")
+    # debugecho "word: ", word
+    # debugecho "lcs: ", lcs, " abbr: ", abbrSplit
+    # debugecho lcs.len, " ", abbrSplit.len
+    if lcs.len > 0:
+      if lcs[0].len == abbrSplit.len:
+        # debugecho lcs, word
+        result.add word.join("")
 
 func abbrevCamel*(abbrev: string, words: seq[string]): seq[string] =
   ## Split abbreviation and all worlds as **camelCase** identifiers.

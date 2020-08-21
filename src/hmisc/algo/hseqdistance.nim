@@ -1,4 +1,4 @@
-import sequtils, tables
+import sequtils, tables, strformat
 
 ## Sequence distance metrics
 
@@ -9,9 +9,9 @@ import sequtils, tables
 
 type EqCmpProc[T] = proc(x, y: T): bool {.noSideEffect.}
 
-proc longestCommonSubsequence*[T](
+func longestCommonSubsequence*[T](
   x, y: seq[T],
-  itemCmp: EqCmpProc[T] = (proc(x, y: T): bool = x == y)): seq[T] =
+  itemCmp: EqCmpProc[T] = (proc(x, y: T): bool = x == y)): seq[seq[T]] =
   # TODO retrieve multiple subsequences
   # TODO Weighted subsequences
   # TODO return indices of matched elements
@@ -35,35 +35,33 @@ proc longestCommonSubsequence*[T](
     m = x.len - 1
     n = y.len - 1
 
-  proc backtrack(i, j: int): seq[T] =
-    debugecho i, " ", j
+  proc backtrack(i, j: int): seq[seq[T]] =
     result =
-      if i == 0 and j == 0 and not itemCmp(x[i], y[j]):
+      if lcs(i, j) == 0:
         @[]
       elif i == 0:
-        @[x[i]]
+        @[ @[x[i]] ]
       elif j == 0:
-        @[y[j]]
+        @[ @[y[j]] ]
       elif itemCmp(x[i], y[j]):
-        backtrack(i - 1, j - 1) & @[x[i]]
+        backtrack(i - 1, j - 1).mapIt(it & @[x[i]])
       elif lcs(i, j - 1) > lcs(i - 1, j):
         backtrack(i, j - 1)
       elif lcs(i, j - 1) < lcs(i - 1, j):
         backtrack(i - 1, j)
-      else:
-        debugecho "alt"
-        backtrack(i - 1, j) # both paths has valid subsequences. Can
-                            # return all of them
+      else: # both paths has valid subsequences. Can return all of them
+        backtrack(i - 1, j) & backtrack(i - 1, j)
 
-    debugecho result
 
-  result = backtrack(m, n)
+  let tmp = backtrack(m, n)
+  result = tmp
 
 
 proc longestCommonSubsequence*[T](
   x, y: openarray[T],
-  itemCmp: EqCmpProc[T] = (proc(x, y: T): bool = x == y)): seq[T] =
+  itemCmp: EqCmpProc[T] = (proc(x, y: T): bool = x == y)): seq[seq[T]] =
   longestCommonSubsequence(toSeq(x), toSeq(y), itemCmp)
+
 
 
 
