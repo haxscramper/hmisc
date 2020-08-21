@@ -168,6 +168,12 @@ proc matchWith*[K, V](
 
 #=========================  string operations  ===========================#
 
+func dropPrefix*(str, pref: string): string =
+  if str.startsWith(pref):
+    str[min(pref.len, str.len)..^1]
+  else:
+    str
+
 func splitCamel*(str: string): seq[string] =
   ## Split abbreviation as **camelCase** identifier
   var pos = 0

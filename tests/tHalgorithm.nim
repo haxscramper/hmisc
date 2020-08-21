@@ -723,4 +723,7 @@ suite "Misc algorithms":
 
     assertEq abbrevCamel("AA", @["ABA", "AZZ", "A)"]), @["ABA"]
 
-  # test "{}"
+  test "{dropPrefix}":
+    assertEq "???##".dropPrefix("???"), "##"
+    assertEq "".dropPrefix("888"), ""
+    assertEq "--".dropPrefix("-"), "-"
