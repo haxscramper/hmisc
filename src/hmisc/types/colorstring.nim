@@ -1,8 +1,49 @@
-import terminal, sequtils, strformat, strutils, unicode, strscans, re,
-       macros
-import hmisc/algo/halgorithm
-import hmisc/hdebug_misc
+import sequtils, strformat, strutils, unicode, macros, strscans
 import ../macros/traceif
+
+
+when defined(nimscript):
+  type
+    Style* = enum        ## different styles for text output
+      styleBright = 1,   ## bright text
+      styleDim,          ## dim text
+      styleItalic,       ## italic (or reverse on terminals not supporting)
+      styleUnderscore,   ## underscored text
+      styleBlink,        ## blinking/bold text
+      styleBlinkRapid,   ## rapid blinking/bold text (not widely supported)
+      styleReverse,      ## reverse
+      styleHidden,       ## hidden text
+      styleStrikethrough ## strikethrough
+
+    ForegroundColor* = enum ## terminal's foreground colors
+      fgBlack = 30,         ## black
+      fgRed,                ## red
+      fgGreen,              ## green
+      fgYellow,             ## yellow
+      fgBlue,               ## blue
+      fgMagenta,            ## magenta
+      fgCyan,               ## cyan
+      fgWhite,              ## white
+      fg8Bit,               ## 256-color (not supported, see ``enableTrueColors`` instead.)
+      fgDefault             ## default terminal foreground color
+
+    BackgroundColor* = enum ## terminal's background colors
+      bgBlack = 40,         ## black
+      bgRed,                ## red
+      bgGreen,              ## green
+      bgYellow,             ## yellow
+      bgBlue,               ## blue
+      bgMagenta,            ## magenta
+      bgCyan,               ## cyan
+      bgWhite,              ## white
+      bg8Bit,               ## 256-color (not supported, see ``enableTrueColors`` instead.)
+      bgDefault             ## default terminal background color
+
+else:
+  import hmisc/algo/halgorithm
+  import hmisc/hdebug_misc
+  import terminal
+
 
 type
   PrintStyling* = object
