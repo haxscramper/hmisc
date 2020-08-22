@@ -297,6 +297,10 @@ func getElem*(pragma: NPragma, name: string): Option[NimNode] =
       else:
         raiseAssert("#[ IMPLEMENT ]#")
 
+func getElem*(optPragma: Option[NPragma], name: string): Option[NimNode] =
+  if optPragma.isSome():
+    return optPragma.get().getElem(name)
+
 #============================  constructors  =============================#
 func mkNPragma*(names: varargs[string]): NPragma =
   NPragma(elements: names.mapIt(ident it))
@@ -389,11 +393,18 @@ func mkProcDeclNode*(
   pragma: NPragma = NPragma()): NimNode=
   mkProcDeclNode(
     nnkAccQuoted.newTree(accq),
-    some(rtype),
-    args.toNIdentDefs(),
-    impl,
-    pragma
-  )
+    some(rtype), args.toNIdentDefs(), impl, pragma)
+
+
+func mkProcDeclNode*(
+  accq: openarray[NimNode],
+  args: openarray[tuple[name: string, atype: NType]],
+  impl: NimNode,
+  pragma: NPragma = NPragma()): NimNode=
+  mkProcDeclNode(
+    nnkAccQuoted.newTree(accq),
+    none(NType), args.toNIdentDefs(), impl, pragma)
+
 
 func mkProcDeclNode*(
   head: NimNode,
@@ -414,6 +425,12 @@ func mkProcDeclNode*(
   pragma: NPragma = NPragma()): NimNode =
   mkProcDeclNode(head, none(NType), args.toNIdentDefs(), impl, pragma)
 
+
+func newAccQuoted*(args: varargs[NimNode]): NimNode =
+  nnkAccQuoted.newTree(args)
+
+func newAccQuoted*(args: varargs[string]): NimNode =
+  nnkAccQuoted.newTree(args.mapIt(ident it))
 
 
 #===========================  Pretty-printing  ===========================#
@@ -577,8 +594,7 @@ func eachField*[Node, A](
 #      - path - sequence of branch `ofValue` nodes
 
 func eachCase*[A](
-  fld: NField[A], objId: NimNode,
-  cb: ((NimNode, NField[A]) ~> NimNode)): NimNode =
+  fld: NField[A], objId: NimNode, cb: (NField[A] ~> NimNode)): NimNode =
   # assert fld.isKind
 
   if fld.isKind:
@@ -595,26 +611,22 @@ func eachCase*[A](
             it.eachCase(objId, cb)).newStmtList()
         )
 
-    result = newStmtList(cb(objid, fld), result)
+    result = newStmtList(cb(fld), result)
   else:
-    result = newStmtList(cb(objid, fld))
+    result = newStmtList(cb(fld))
 
 func eachCase*[A](
-  objId: NimNode, obj: NObject[A],
-  cb: ((NimNode, NField[A]) ~> NimNode)): NimNode =
+  objId: NimNode, obj: NObject[A], cb: (NField[A] ~> NimNode)): NimNode =
   result = newStmtList()
   for fld in obj.flds:
     result.add fld.eachCase(objid, cb)
 
-type LhsRhsNode* = tuple[lhs, rhs: NimNode]
-
-
 func eachParallelCase*[A](
-  fld: NField[A], objId: LhsRhsNode,
-  cb: ((LhsRhsNode, NField[A]) ~> NimNode)): NimNode =
+  fld: NField[A], objId: (NimNode, NimNode),
+  cb: (NField[A] ~> NimNode)): NimNode =
 
   if fld.isKind:
-    result = nnkCaseStmt.newTree(newDotExpr(objId.lhs, ident fld.name))
+    result = nnkCaseStmt.newTree(newDotExpr(objId[0], ident fld.name))
     for branch in fld.branches:
       if branch.isElse:
         result.add nnkElse.newTree(
@@ -629,21 +641,20 @@ func eachParallelCase*[A](
 
     let
       fldId = ident fld.name
-      lhsId = objId.lhs
-      rhsId = objId.rhs
+      lhsId = objId[0]
+      rhsId = objId[1]
 
-    result = newStmtList(cb(objid, fld), result)
+    let cbRes = cb(fld)
     result = quote do:
+      `cbRes`
       if `lhsId`.`fldId` == `rhsId`.`fldId`:
         `result`
 
   else:
-    result = newStmtList(cb(objid, fld))
+    result = newStmtList(cb(fld))
 
 func eachParallelCase*[A](
-  objid: LhsRhsNode,
-  obj: NObject[A],
-  cb: ((LhsRhsNode, NField[A]) ~> NimNode)): NimNode =
+  objid: (NimNode, NimNode), obj: NObject[A], cb: (NField[A] ~> NimNode)): NimNode =
   result = newStmtList()
   for fld in obj.flds:
     result.add fld.eachParallelCase(objid, cb)

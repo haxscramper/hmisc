@@ -100,11 +100,6 @@ else:
   - ~maxIt~
   - ~disjointIter~
   - ~last~
-  - ~longestCommonSubsequence~ - generic implementation of LCS algorithm for ~seq[T]~
-  - ~fuzzyMatch~ - weighted sequence fuzzy match. Compare each element
-    in the sequence to pattern and assign similarity score. Should
-    behave similarly to ~fzf~ or sublime text. Reimplementation of
-    [[https://www.forrestthewoods.com/blog/reverse_engineering_sublime_texts_fuzzy_match/]['Reverse engineering subtime text's fuzzy match']]
 - working with strings
   - ~joinw~, ~joinq~, ~joinl~, ~joinkv~ - join on whitespaces,
     whitespace + quote each string, newlines or key-value pairs.
@@ -160,6 +155,25 @@ block:
 : @["ABA"]
 
 
+** ~hmisc/algo/hseqdistance~
+
+Fuzzy string matching and generic longest common subsequece
+implementation
+
+- ~longestCommonSubsequence~ - generic implementation of LCS algorithm
+  for ~seq[T]~
+- ~fuzzyMatch~ - weighted sequence fuzzy match. Compare each element
+  in the sequence to pattern and assign similarity score. Should
+  behave similarly to ~fzf~ or sublime text. Reimplementation of
+  [[https://www.forrestthewoods.com/blog/reverse_engineering_sublime_texts_fuzzy_match/]['Reverse engineering subtime text's fuzzy match']]
+
+todo:
+
+- [ ] levenstein distance
+- [ ] Damerau–Levenshtein distance
+- [ ] generate diffs for two sequences
+
+
 
 ** ~hmisc/algo/hseq_mapping~
 
@@ -201,7 +215,8 @@ implementation, generation and analysis.
     possible cases.
   - ~eachField~ - visit each field in object
   - ~eachField~ - recursively generate ~case~ expression for each
-    possible and use insert result of callback for each field.
+    possible and use insert result of callback for each field. For use
+    case example see [[file:tests/tHnimAst.nim]]
   - can be conveted to and from ~NimNode~
 - working with object values
   - ~ObjTree~ - 'stringly typed' representation of object value.

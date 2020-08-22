@@ -111,8 +111,8 @@ suite "HNimAst":
   test "{eachCase}":
     macro mcr(body: untyped): untyped =
       let obj = body[0][0].parseObject(parseNimPragma)
-      let impl = (ident "hjhh").eachCase(obj) do(
-        objid: NimNode, fld: NField[NPragma]) -> NimNode:
+      let objid = ident "hjhh"
+      let impl = objid.eachCase(obj) do(fld: NField[NPragma]) -> NimNode:
         let fld = ident fld.name
         quote do:
           echo `objid`.`fld`
@@ -145,14 +145,14 @@ suite "HNimAst":
   test "{eachParallelCase}":
     ## Automatically generate comparison proc for case objects.
     macro mcr(body: untyped): untyped =
-      let obj = body[0][0].parseObject(parseNimPragma)
-      let impl = (ident "lhs", ident "rhs").eachParallelCase(obj) do(
-        objid: LhsRhsNode, fld: NField[NPragma]) -> NimNode:
-        let
-          fld = ident fld.name
-          lhs = objid.lhs
-          rhs = objid.rhs
+      let
+        obj = body[0][0].parseObject(parseNimPragma)
+        lhs = ident "lhs"
+        rhs = ident "rhs"
 
+      let impl = (lhs, rhs).eachParallelCase(obj) do(
+        fld: NField[NPragma]) -> NimNode:
+        let fld = ident fld.name
         quote do:
           if `lhs`.`fld` != `rhs`.`fld`:
             return false
