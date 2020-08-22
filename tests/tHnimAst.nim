@@ -84,7 +84,7 @@ suite "HNimAst":
 
       obj.annotation = none(NPragma)
 
-      obj.eachField do(fld: var ObjectField[NimNode, NPragma]):
+      obj.eachFieldMut do(fld: var ObjectField[NimNode, NPragma]):
         fld.annotation = none(NPragma)
 
       result = nnkTypeSection.newTree obj.toNimNode()
@@ -93,3 +93,91 @@ suite "HNimAst":
       type
         Type {.zz(C), ee: "333", ee.} = object
           f1 {.check(it < 2).}: float = 32.0
+
+  test "{mkProcDeclNode}":
+    macro mcr(): untyped =
+      result = newStmtList()
+      result.add mkProcDeclNode(
+        ident "hello",
+        { "world" : mkNType("int") },
+        quote do:
+          echo "value is: ", world
+      )
+
+    mcr()
+
+    hello(12)
+
+  test "{eachCase}":
+    macro mcr(body: untyped): untyped =
+      let obj = body[0][0].parseObject(parseNimPragma)
+      let impl = (ident "hjhh").eachCase(obj) do(
+        objid: NimNode, fld: NField[NPragma]) -> NimNode:
+        let fld = ident fld.name
+        quote do:
+          echo `objid`.`fld`
+
+      result = newStmtList(body)
+
+      result.add quote do:
+        let hjhh {.inject.} = Hello()
+
+      result.add impl
+
+    mcr:
+      type
+        Hello = object
+          ewre: char
+          case a: range[0..4]:
+            of 0:
+              zee: float
+            of 2:
+              eee: string
+            of 4:
+              eee3: int
+            else:
+              eee23: string
+
+
+  test "{eachParallelCase}":
+    macro mcr(body: untyped): untyped =
+      let obj = body[0][0].parseObject(parseNimPragma)
+      let impl = (ident "lhs", ident "rhs").eachParallelCase(obj) do(
+        objid: LhsRhsNode, fld: NField[NPragma]) -> NimNode:
+        let
+          fld = ident fld.name
+          lhs = objid.lhs
+          rhs = objid.rhs
+
+        quote do:
+          if `lhs`.`fld` != `rhs`.`fld`:
+            return false
+
+
+      let eqcmp = mkProcDeclNode(
+        nnkAccQuoted.newTree(ident "=="),
+        mkNType("bool"),
+        {
+          "lhs" : obj.name,
+          "rhs" : obj.name
+        },
+        quote do:
+          `impl`
+          return true
+      )
+
+      result = nnkStmtList.newTree(body, eqcmp)
+      echo $!result
+
+    mcr:
+      type
+        A = object
+          fdl: seq[float]
+          case b: char
+            of '0':
+              qw: char
+            of '-':
+              ee: float
+            else:
+              eeerw: char
+              # nil # TODO

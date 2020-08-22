@@ -28,18 +28,33 @@ type
     genParams*: seq[NType]
 
   NVarDeclKind* = enum
+    nvdLet
     nvdVar
     nvdConst
-    nvdLet
 
   NIdentDefs* = object
     varname: string
     kind: NVarDeclKind
     vtype: NType
+    value: Option[NimNode]
 
 #=============================  Predicates  ==============================#
 
 #============================  Constructors  =============================#
+func toNIdentDefs*(
+  args: openarray[tuple[name: string, atype: NType]]): seq[NIdentDefs] =
+  for (name, atype) in args:
+    result.add NIdentDefs(varname: name, vtype: atype)
+
+func toNIdentDefs*(
+  args: openarray[tuple[
+    name: string,
+    atype: NType,
+    nvd: NVarDeclKind
+     ]]): seq[NIdentDefs] =
+  for (name, atype, nvd) in args:
+    result.add NIdentDefs(varname: name, vtype: atype, kind: nvd)
+
 func toNimNode*(ntype: NType): NimNode =
   ## Convert `NType` to nim node
   if ntype.genParams.len == 0:
@@ -104,6 +119,7 @@ func mkNTypeNode*(name: string, gparams: varargs[NType]): NimNode =
   ## Create `NimNode` for type `name[@gparams]`
   mkNType(name, gparams).toNimNode()
 
+
 func mkCallNode*(
   dotHead: NimNode, name: string,
   args: seq[NimNode], genParams: seq[NType] = @[]): NimNode =
@@ -118,11 +134,6 @@ func mkCallNode*(
 
   for arg in args:
     result.add arg
-
-  # debugecho "\e[31m32333\e[39m"
-  # debugecho result.toStrLit().strVal()
-  # debugecho result.treeRepr()
-  # debugecho "\e[31m32333\e[39m"
 
 func mkCallNode*(
   name: string,
@@ -160,7 +171,6 @@ func mkCallNode*(
   gentypes: openarray[NType],
   args: seq[NimNode]): NimNode =
   mkCallNode(dotHead, name, toSeq(args), toSeq(genTypes))
-
 
 
 #========================  Other implementation  =========================#
@@ -269,6 +279,19 @@ type
 
   NPragma* = Pragma[NimNode]
 
+#===============================  Getters  ===============================#
+func getElem*(pragma: NPragma, name: string): Option[NimNode] =
+  for elem in pragma.elements:
+    case elem.kind:
+      of nnkIdent:
+        if elem.eqIdent(name):
+          return some(elem)
+      of nnkCall:
+        if elem[0].eqIdent(name):
+          return some(elem)
+      else:
+        raiseAssert("#[ IMPLEMENT ]#")
+
 #============================  constructors  =============================#
 func mkNPragma*(names: varargs[string]): NPragma =
   NPragma(elements: names.mapIt(ident it))
@@ -277,9 +300,11 @@ func mkNPragma*(names: varargs[string]): NPragma =
 
 func toNimNode*(pragma: NPragma): NimNode =
   if pragma.elements.len == 0:
-    nnkEmpty.newTree()
+    newEmptyNode()
   else:
     nnkPragma.newTree(pragma.elements)
+
+# ~~~~ proc declaration ~~~~ #
 
 func createProcType*(p, b: NimNode, annots: NPragma): NimNode =
   ## Copy-past of `sugar.createProcType` with support for annotations
@@ -318,6 +343,55 @@ macro `~>`*(a, b: untyped): untyped =
   # echo $!result
 
 
+func mkProcDeclNode*(
+  procHead: NimNode,
+  rtype: Option[NType],
+  args: seq[NIdentDefs],
+  impl: NimNode,
+  pragma: NPragma = NPragma()): NimNode =
+
+  nnkProcDef.newTree(
+    procHead,
+    newEmptyNode(),
+    newEmptyNode(),  # XXXX generic type parameters,
+    nnkFormalParams.newTree( # arguments
+      @[
+        rtype.isSome().tern(
+          rtype.get().toNimNode(),
+          newEmptyNode()
+        )
+      ] &
+      args.mapIt(it.toFormalParam())
+    ),
+    pragma.toNimNode(),
+    newEmptyNode(), # XXXX reserved slot,
+    impl
+  )
+
+func mkProcDeclNode*(
+  head: NimNode,
+  args: openarray[tuple[name: string, atype: NType]],
+  impl: NimNode): NimNode=
+  mkProcDeclNode(head, none(NType), args.toNIdentDefs(), impl)
+
+func mkProcDeclNode*(
+  head: NimNode,
+  rtype: NType,
+  args: openarray[tuple[name: string, atype: NType]],
+  impl: NimNode): NimNode =
+  mkProcDeclNode(head, some(rtype), args.toNIdentDefs(), impl)
+
+func mkProcDeclNode*(
+  head: NimNode,
+  args: openarray[tuple[
+    name: string,
+    atype: NType,
+    nvd: NVarDeclKind]
+  ],
+  impl: NimNode): NimNode =
+  mkProcDeclNode(head, none(NType), args.toNIdentDefs(), impl)
+
+
 
 #===========================  Pretty-printing  ===========================#
 
@@ -349,7 +423,9 @@ type
     ## recursive fields with case objects.
     annotation*: Option[Annot]
     value*: Option[Node]
-    case isTuple*: bool
+    case isTuple*: bool # REVIEW REFACTOR move tuples into separate
+                        # object instead of mixing them into `object`
+                        # wrapper.
       of true:
         tupleIdx*: int
       of false:
@@ -371,11 +447,12 @@ type
     # parent `ofValue` branches. `for fld, ofValues in obj.flatFields()`
     exported*: bool
     annotation*: Option[Annot]
-    namedObject*: bool ## This object's type has a name? (tuples
-    ## does not have name for a tyep)
-    namedFields*: bool ## Fields have dedicated names? (anonymous
-    ## tuple does not have a name for fields)
+    # namedObject*: bool ## This object's type has a name? (tuples
+    # ## does not have name for a tyep)
+    # namedFields*: bool ## Fields have dedicated names? (anonymous
+    # ## tuple does not have a name for fields)
     name*: NType ## Name for an object
+    # TODO rename to objType
     flds*: seq[ObjectField[Node, Annot]]
 
   # FieldBranch*[Node] = ObjectBranch[Node, void]
@@ -395,21 +472,24 @@ const noParseCb*: ParseCb[void] = nil
 #=============================  Predicates  ==============================#
 
 #===============================  Getters  ===============================#
-func eachField*[Node, A](
+
+# ~~~~ each field mutable ~~~~ #
+
+func eachFieldMut*[Node, A](
   obj: var Object[Node, A],
   cb: (var ObjectField[Node, A] ~> void)): void
 
-func eachField*[Node, A](
+func eachFieldMut*[Node, A](
   branch: var ObjectBranch[Node, A],
   cb: (var ObjectField[Node, A] ~> void)): void =
   for fld in mitems(branch.flds):
     cb(fld)
     if fld.isKind:
       for branch in mitems(fld.branches):
-        eachField(branch, cb)
+        eachFieldMut(branch, cb)
 
 
-func eachField*[Node, A](
+func eachFieldMut*[Node, A](
   obj: var Object[Node, A],
   cb: (var ObjectField[Node, A] ~> void)): void =
 
@@ -417,8 +497,154 @@ func eachField*[Node, A](
     cb(fld)
     if fld.isKind:
       for branch in mitems(fld.branches):
+        eachFieldMut(branch, cb)
+
+# ~~~~ each annotation mutable ~~~~ #
+
+func eachAnnotMut*[Node, A](
+  branch: var ObjectBranch[Node, A], cb: (var Option[A] ~> void)): void =
+  for fld in mitems(branch.flds):
+    cb(fld.annotation)
+    if fld.isKind:
+      for branch in mitems(fld.branches):
+        eachAnnotMut(branch, cb)
+
+func eachAnnotMut*[Node, A](
+  obj: var Object[Node, A], cb: (var Option[A] ~> void)): void =
+
+  cb(obj.annotation)
+
+  for fld in mitems(obj.flds):
+    cb(fld.annotation)
+    if fld.isKind:
+      for branch in mitems(fld.branches):
+        branch.eachAnnotMut(cb)
+
+
+# ~~~~ each field immutable ~~~~ #
+
+func eachField*[Node, A](
+  obj: Object[Node, A],
+  cb: (ObjectField[Node, A] ~> void)): void
+
+func eachField*[Node, A](
+  branch: ObjectBranch[Node, A],
+  cb: (ObjectField[Node, A] ~> void)): void =
+  for fld in items(branch.flds):
+    cb(fld)
+    if fld.isKind:
+      for branch in items(fld.branches):
         eachField(branch, cb)
 
+
+func eachField*[Node, A](
+  obj: Object[Node, A],
+  cb: (ObjectField[Node, A] ~> void)): void =
+
+  for fld in items(obj.flds):
+    cb(fld)
+    if fld.isKind:
+      for branch in items(fld.branches):
+        eachField(branch, cb)
+
+# ~~~~ each alternative in case object ~~~~ #
+# TODO generate `eachPath` - one huge if statment with all possible
+#      combinations of case objects matched. In this case callback
+#      should accept
+#      - path - sequence of branch `ofValue` nodes
+
+func eachCase*[A](
+  fld: NField[A], objId: NimNode,
+  cb: ((NimNode, NField[A]) ~> NimNode)): NimNode =
+  # assert fld.isKind
+
+  if fld.isKind:
+    result = nnkCaseStmt.newTree(newDotExpr(objId, ident fld.name))
+    for branch in fld.branches:
+      if branch.isElse:
+        result.add nnkElse.newTree(
+          branch.flds.mapIt(it.eachCase(objId, cb))
+        )
+      else:
+        result.add nnkOfBranch.newTree(
+          @[ branch.ofValue ] &
+          branch.flds.mapIt(it.eachCase(objId, cb))
+        )
+
+    result = newStmtList(cb(objid, fld), result)
+  else:
+    result = newStmtList(cb(objid, fld))
+
+func eachCase*[A](
+  objId: NimNode, obj: NObject[A],
+  cb: ((NimNode, NField[A]) ~> NimNode)): NimNode =
+  result = newStmtList()
+  for fld in obj.flds:
+    result.add fld.eachCase(objid, cb)
+
+type LhsRhsNode* = tuple[lhs, rhs: NimNode]
+
+
+func eachParallelCase*[A](
+  fld: NField[A], objId: LhsRhsNode,
+  cb: ((LhsRhsNode, NField[A]) ~> NimNode)): NimNode =
+
+  if fld.isKind:
+    result = nnkCaseStmt.newTree(newDotExpr(objId.lhs, ident fld.name))
+    for branch in fld.branches:
+      if branch.isElse:
+        result.add nnkElse.newTree(
+          branch.flds.mapIt(it.eachParallelCase(objId, cb))
+        )
+      else:
+        result.add nnkOfBranch.newTree(
+          @[ branch.ofValue ] &
+          branch.flds.mapIt(it.eachParallelCase(objId, cb))
+        )
+
+    let
+      fldId = ident fld.name
+      lhsId = objId.lhs
+      rhsId = objId.rhs
+
+    result = newStmtList(cb(objid, fld), result)
+    result = quote do:
+      if `lhsId`.`fldId` == `rhsId`.`fldId`:
+        `result`
+
+  else:
+    result = newStmtList(cb(objid, fld))
+
+func eachParallelCase*[A](
+  objid: LhsRhsNode,
+  obj: NObject[A],
+  cb: ((LhsRhsNode, NField[A]) ~> NimNode)): NimNode =
+  result = newStmtList()
+  for fld in obj.flds:
+    result.add fld.eachParallelCase(objid, cb)
+
+
+
+# ~~~~ each annotation immutable ~~~~ #
+
+func eachAnnot*[Node, A](
+  branch: ObjectBranch[Node, A], cb: (Option[A] ~> void)): void =
+  for fld in items(branch.flds):
+    cb(fld.annotation)
+    if fld.isKind:
+      for branch in items(fld.branches):
+        eachAnnot(branch, cb)
+
+func eachAnnot*[Node, A](
+  obj: Object[Node, A], cb: (Option[A] ~> void)): void =
+
+  cb(obj.annotation)
+
+  for fld in items(obj.flds):
+    cb(fld.annotation.get())
+    if fld.isKind:
+      for branch in items(fld.branches):
+        branch.eachAnnot(cb)
 
 
 #===============================  Setters  ===============================#
