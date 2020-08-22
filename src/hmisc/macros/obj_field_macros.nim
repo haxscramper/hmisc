@@ -217,7 +217,12 @@ proc parseObject*[A](node: NimNode, cb: ParseCb[A]): Object[NimNode, A] =
 
   case node[0].kind:
     of nnkPragmaExpr:
-      result.name = mkNType(node[0][0].strVal())
+      case node[0][0].kind:
+        of nnkPostfix:
+          result.name = mkNType(node[0][0][1].strVal())
+          result.exported = true
+        else:
+          result.name = mkNType(node[0][0].strVal())
     else:
       result.name = mkNType(node[0].strVal())
 
@@ -226,16 +231,7 @@ proc parseObject*[A](node: NimNode, cb: ParseCb[A]): Object[NimNode, A] =
 
 
 macro makeFieldsLiteral*(node: typed): untyped =
-  echo node
-  let res: seq[ValField] = node.getFields(noParseCb).discardNimNode
-  # echo res
-  # echo makeConstructAllFields(res).toStrLit()
-  let nnn: NimNode = makeConstructAllFields(res)
-  return nnn
-  # return quote do: @[]
-  # result = makeConstructAllFields(res)
-  # result = newLit(node.getFields(noParseCb).discardNimNode)
-  # echo result.toStrLit()
+  return node.getFields(noParseCb).discardNimNode.makeConstructAllFields()
 
 type
   GenParams = object

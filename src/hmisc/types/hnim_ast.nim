@@ -369,6 +369,7 @@ type
     # TODO:DOC
     # TODO `flatFields` iterator to get all values with corresponding
     # parent `ofValue` branches. `for fld, ofValues in obj.flatFields()`
+    exported*: bool
     annotation*: Option[Annot]
     namedObject*: bool ## This object's type has a name? (tuples
     ## does not have name for a tyep)

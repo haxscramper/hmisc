@@ -47,23 +47,40 @@ suite "HNimAst":
           if obj.kind == nnkTypeDef:
             let obj = obj.parseObject(parseNimPragma)
             for call in obj.annotation.get().elements:
-              echo call.toStrLit()
+              discard
 
             for field in obj.flds:
-              for call in field.annotation.get().elements:
-                echo call.toStrLit()
+              if field.annotation.isSome():
+                for call in field.annotation.get().elements:
+                  discard
 
     parse:
       type
         Type {.zzz(Check).} = object
           f1 {.check(it < 10).}: float = 12.0
 
+        Type*[A] {.ss.} = object
+          f1: int
+
+        Type* {.ss.} = object
+          f23: int
+
+        Type[A] {.ss.} = object
+          f33: int
+
+        Type[B] {.ss.} = object
+          case a: bool
+            of true:
+              b: int
+            of false:
+              c: float
+
+
   test "{parseObject} filter pragma annotations":
     macro parse(body: untyped): untyped =
-      echo "filter pragma annotations"
       var obj = body[0][0].parseObject(parseNimPragma)
       for call in obj.annotation.get().elements:
-        echo call.toStrLit()
+        discard
 
       obj.annotation = none(NPragma)
 
