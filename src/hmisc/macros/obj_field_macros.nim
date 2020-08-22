@@ -228,7 +228,9 @@ proc parseObject*[A](node: NimNode, cb: ParseCb[A]): Object[NimNode, A] =
 
 
 macro makeFieldsLiteral*(node: typed): untyped =
-  return node.getFields(noParseCb).discardNimNode.makeConstructAllFields()
+  result = node.getFields(
+    noParseCb).discardNimNode.makeConstructAllFields()
+  # echo result.toStrLit()
 
 type
   GenParams = object

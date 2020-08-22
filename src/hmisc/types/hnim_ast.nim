@@ -885,7 +885,7 @@ func `==`*[Node, A](lhs, rhs: ObjectField[Node, A]): bool =
         of true:
           lhs.name == rhs.name and
           lhs.fldType == rhs.fldType and
-          subnodesEq(lhs, rhs, branches)
+          (when A is void: true else: subnodesEq(lhs, rhs, branches))
         of false:
           true
     )
@@ -1092,17 +1092,26 @@ func makeConstructAllFields*[T](val: T): NimNode =
   elif val is int | float | string | bool | enum | set:
     result = newLit(val)
   else:
-    result = nnkObjConstr.newTree(ident $typeof(T))
-    for name, val in fieldPairs(val):
-      # static: echo typeof val
-      when (val is Option) and not (val is Option[void]):
-        if val.isSome():
-          result.add nnkExprColonExpr.newTree(
-            ident(name),
-            newCall("some", makeConstructAllFields(val.get())))
+    when val is Option:
+      when val is Option[void]:
+        result = newCall(ident "none", ident "void")
       else:
-        result.add nnkExprColonExpr.newTree(
-          ident(name), makeConstructAllFields(val))
+        if val.isSome():
+          result = newCall(ident "none", parseExpr $typeof(T))
+        else:
+          result = newCall(ident "some", makeConstructAllFields(val.get()))
+    else:
+      result = nnkObjConstr.newTree(parseExpr $typeof(T))
+      for name, fld in fieldPairs(val):
+        when (fld is Option) and not (fld is Option[void]):
+          # debugecho name, " ", typeof(fld)
+          if fld.isSome():
+            result.add nnkExprColonExpr.newTree(
+              ident(name),
+              newCall("some", makeConstructAllFields(fld.get())))
+        else:
+          result.add nnkExprColonExpr.newTree(
+            ident(name), makeConstructAllFields(fld))
 
 func makeInitCalls*[A, B](table: Table[A, B]): NimNode =
   # TODO:DOC

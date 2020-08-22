@@ -185,10 +185,12 @@ func splitCamel*(str: string): seq[string] =
 
 
 func abbrevCamel*(
-  abbrSplit: seq[string], splitWords: seq[seq[string]]): seq[string] =
+  abbrSplit: seq[string],
+  splitWords: seq[seq[string]],
+  getExact: bool = false): seq[string] =
   ## Split abbreviation and all worlds as **camelCase** identifiers.
   ## Find all worlds that contains `abbrev` as subsequence.
-  # debugecho "split: ", splitWords
+  let abbr = abbrSplit.join("")
   for word in splitWords:
     let lcs = longestCommonSubsequence(
       abbrSplit, word,
@@ -198,17 +200,25 @@ func abbrevCamel*(
                     rhs.startsWith(lhs)
     )
 
-    # debugecho "word: ", word
-    # debugecho "lcs: ", lcs, " abbr: ", abbrSplit
-    # debugecho lcs.len, " ", abbrSplit.len
     if lcs.len > 0:
       if lcs[0].len == abbrSplit.len:
-        # debugecho lcs, word
-        result.add word.join("")
+        let word = word.join("")
+        if getExact and word == abbr:
+          return @[word]
+        else:
+          result.add word
 
-func abbrevCamel*(abbrev: string, words: seq[string]): seq[string] =
+func abbrevCamel*(
+  abbrev: string,
+  words: seq[string],
+  getExact: bool = false): seq[string] =
   ## Split abbreviation and all worlds as **camelCase** identifiers.
-  ## Find all worlds that contains `abbrev` as subsequence.
+  ## Find all worlds that contains `abbrev` as subsequence. `getExact`
+  ## - if any of the alternatives fully matches input word return it
+  ## as only result
+  ##
+  ## To avoid ambiguous returns on tests like `"Else", @["Else",
+  ## "ElseBlock"]`)
   abbrevCamel(abbrev.splitCamel(), words.mapIt(it.splitCamel()))
 
 func posString*(node: NimNode): string =
