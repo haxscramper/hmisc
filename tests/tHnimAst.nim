@@ -161,13 +161,16 @@ suite "HNimAst":
       let eqcmp = [ident "=="].mkProcDeclNode(
         mkNType("bool"),
         { "lhs" : obj.name, "rhs" : obj.name },
-        quote do:
-          `impl`
-          return true
+        pragma = mkNPragma("noSideEffect"),
+        impl = (
+          quote do:
+            `impl`
+            return true
+        )
       )
 
       result = nnkStmtList.newTree(body, eqcmp)
-      # echo $!result
+      echo $!result
 
     mcr:
       type

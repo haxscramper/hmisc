@@ -370,34 +370,38 @@ func mkProcDeclNode*(
     ),
     pragma.toNimNode(),
     newEmptyNode(), # XXXX reserved slot,
-    impl
+    impl,
   )
 
 func mkProcDeclNode*(
   head: NimNode,
   args: openarray[tuple[name: string, atype: NType]],
-  impl: NimNode): NimNode=
-  mkProcDeclNode(head, none(NType), args.toNIdentDefs(), impl)
+  impl: NimNode,
+  pragma: NPragma = NPragma()): NimNode=
+  mkProcDeclNode(head, none(NType), args.toNIdentDefs(), impl, pragma)
 
 
 func mkProcDeclNode*(
   accq: openarray[NimNode],
   rtype: NType,
   args: openarray[tuple[name: string, atype: NType]],
-  impl: NimNode): NimNode=
+  impl: NimNode,
+  pragma: NPragma = NPragma()): NimNode=
   mkProcDeclNode(
     nnkAccQuoted.newTree(accq),
     some(rtype),
     args.toNIdentDefs(),
-    impl
+    impl,
+    pragma
   )
 
 func mkProcDeclNode*(
   head: NimNode,
   rtype: NType,
   args: openarray[tuple[name: string, atype: NType]],
-  impl: NimNode): NimNode =
-  mkProcDeclNode(head, some(rtype), args.toNIdentDefs(), impl)
+  impl: NimNode,
+  pragma: NPragma = NPragma()): NimNode =
+  mkProcDeclNode(head, some(rtype), args.toNIdentDefs(), impl, pragma)
 
 func mkProcDeclNode*(
   head: NimNode,
@@ -406,8 +410,9 @@ func mkProcDeclNode*(
     atype: NType,
     nvd: NVarDeclKind]
   ],
-  impl: NimNode): NimNode =
-  mkProcDeclNode(head, none(NType), args.toNIdentDefs(), impl)
+  impl: NimNode,
+  pragma: NPragma = NPragma()): NimNode =
+  mkProcDeclNode(head, none(NType), args.toNIdentDefs(), impl, pragma)
 
 
 
