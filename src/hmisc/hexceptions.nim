@@ -275,6 +275,8 @@ template assertNodeIt*(
 
 template assertNodeKind*(
   node: NimNode, kindSet: set[NimNodeKind]): untyped =
+  ## assert node kind is in the set. Provide higlighted error with
+  ## list of expected types and kind of given node
   node.assertNodeIt(
     node.kind in kindSet,
     (&"Unexpected node kind. Expected one of " &

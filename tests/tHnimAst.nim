@@ -135,11 +135,15 @@ suite "HNimAst":
               eee: string
             of 4:
               eee3: int
+              eee24: int
+              eee2343: int
+              eee321344: int
             else:
               eee23: string
 
 
   test "{eachParallelCase}":
+    ## Automatically generate comparison proc for case objects.
     macro mcr(body: untyped): untyped =
       let obj = body[0][0].parseObject(parseNimPragma)
       let impl = (ident "lhs", ident "rhs").eachParallelCase(obj) do(
@@ -154,20 +158,16 @@ suite "HNimAst":
             return false
 
 
-      let eqcmp = mkProcDeclNode(
-        nnkAccQuoted.newTree(ident "=="),
+      let eqcmp = [ident "=="].mkProcDeclNode(
         mkNType("bool"),
-        {
-          "lhs" : obj.name,
-          "rhs" : obj.name
-        },
+        { "lhs" : obj.name, "rhs" : obj.name },
         quote do:
           `impl`
           return true
       )
 
       result = nnkStmtList.newTree(body, eqcmp)
-      echo $!result
+      # echo $!result
 
     mcr:
       type
@@ -176,8 +176,11 @@ suite "HNimAst":
           case b: char
             of '0':
               qw: char
+              wer: float
             of '-':
               ee: float
             else:
               eeerw: char
               # nil # TODO
+
+    echo A() == A()

@@ -200,6 +200,8 @@ implementation, generation and analysis.
     fields, annotations for objects etc. Currently does not cover all
     possible cases.
   - ~eachField~ - visit each field in object
+  - ~eachField~ - recursively generate ~case~ expression for each
+    possible and use insert result of callback for each field.
   - can be conveted to and from ~NimNode~
 - working with object values
   - ~ObjTree~ - 'stringly typed' representation of object value.

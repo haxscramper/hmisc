@@ -43,6 +43,8 @@ type
 #============================  Constructors  =============================#
 func toNIdentDefs*(
   args: openarray[tuple[name: string, atype: NType]]): seq[NIdentDefs] =
+  ## Convert array of name-type pairs into sequence of `NIdentDefs`.
+  ## Each identifier will be immutable (e.g. no `var` annotation).
   for (name, atype) in args:
     result.add NIdentDefs(varname: name, vtype: atype)
 
@@ -52,6 +54,9 @@ func toNIdentDefs*(
     atype: NType,
     nvd: NVarDeclKind
      ]]): seq[NIdentDefs] =
+  ## Convert array of name-type pairs into sequence of `NIdentDefs`.
+  ## Each identifier must supply mutability parameter (e.g `nvdLet` or
+  ## `vndVar`)
   for (name, atype, nvd) in args:
     result.add NIdentDefs(varname: name, vtype: atype, kind: nvd)
 
@@ -374,6 +379,19 @@ func mkProcDeclNode*(
   impl: NimNode): NimNode=
   mkProcDeclNode(head, none(NType), args.toNIdentDefs(), impl)
 
+
+func mkProcDeclNode*(
+  accq: openarray[NimNode],
+  rtype: NType,
+  args: openarray[tuple[name: string, atype: NType]],
+  impl: NimNode): NimNode=
+  mkProcDeclNode(
+    nnkAccQuoted.newTree(accq),
+    some(rtype),
+    args.toNIdentDefs(),
+    impl
+  )
+
 func mkProcDeclNode*(
   head: NimNode,
   rtype: NType,
@@ -567,8 +585,9 @@ func eachCase*[A](
         )
       else:
         result.add nnkOfBranch.newTree(
-          @[ branch.ofValue ] &
-          branch.flds.mapIt(it.eachCase(objId, cb))
+          branch.ofValue,
+          branch.flds.mapIt(
+            it.eachCase(objId, cb)).newStmtList()
         )
 
     result = newStmtList(cb(objid, fld), result)
@@ -598,8 +617,9 @@ func eachParallelCase*[A](
         )
       else:
         result.add nnkOfBranch.newTree(
-          @[ branch.ofValue ] &
-          branch.flds.mapIt(it.eachParallelCase(objId, cb))
+          branch.ofValue,
+          branch.flds.mapIt(
+            it.eachParallelCase(objId, cb)).newStmtList()
         )
 
     let
