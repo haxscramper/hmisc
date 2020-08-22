@@ -154,7 +154,6 @@ block:
 : -- abbrevCamel --
 : @["ABA"]
 
-
 ** ~hmisc/algo/hseqdistance~
 
 Fuzzy string matching and generic longest common subsequece
@@ -304,5 +303,12 @@ Most of the features in this library were implemented on
 extensively (sequence and tree mappings, colored strings), but more
 unit test are always welcome. If you consider contributing and have
 any questions about implementation or just want to clarify some things
-(documentation might need more attention) feel free to join my [[https://discord.gg/hjfYJCU][discord
-server]] and ask questions there.
+(documentation might need more attention) feel free to join my
+[[https://discord.gg/hjfYJCU][discord server]] and ask questions
+there.
+
+todo:
+  - [ ] generic implementation of simple graph
+  - [ ] basic graph algorithms
+    - [ ] topological sorting
+    - [ ] strongly connected components
