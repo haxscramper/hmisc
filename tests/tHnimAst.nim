@@ -128,7 +128,7 @@ suite "HNimAst":
       type
         Hello = object
           ewre: char
-          case a: range[0..4]:
+          case a: uint8:
             of 0:
               zee: float
             of 2:

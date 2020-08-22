@@ -22,6 +22,9 @@ type
 #**********************  NType - nim type wrapper  ***********************#
 #*************************************************************************#
 #===========================  Type definition  ===========================#
+
+# TODO support `range[a..b]`, generic constraints: `A: B | C` and `A:
+# B or C`
 type
   NType* = object
     head*: string
@@ -100,6 +103,7 @@ func mkNType*(impl: NimNode): NType =
     of nnkIdent, nnkSym:
       mkNType(impl.strVal)
     else:
+      debugecho impl.treeRepr
       raiseAssert("#[ IMPLEMENT ]#")
 
 func mkVarDecl*(name: string, vtype: NType,
@@ -471,8 +475,7 @@ type
       of false:
         name*: string
 
-    fldType*: string ## Type of field value
-    # TODO use `NType` instead
+    fldType*: NType ## Type of field value
     case isKind*: bool
       of true:
         selected*: int ## Index of selected branch
@@ -697,7 +700,7 @@ func toNimNode*[A](branch: NBranch[A], annotConv: A ~> NimNode): NimNode =
 func toNimNode*[A](fld: NField[A], annotConv: A ~> NimNode): NimNode =
   let selector = nnkIdentDefs.newTree(
     ident fld.name,
-    ident fld.fldType, # XXXX replace with
+    fld.fldType.toNimNode(),
     fld.annotation.isSome().tern(
       annotConv(fld.annotation.get()), newEmptyNode()))
 

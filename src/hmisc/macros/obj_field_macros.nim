@@ -49,8 +49,8 @@ proc getBranches*[A](
         raiseAssert(&"Unexpected branch kind {branch.kind}")
 
 
-proc getFieldDescription(node: NimNode): tuple[name, fldType: string] =
-  # echo node.idxTreeRepr
+proc getFieldDescription(
+  node: NimNode): tuple[name: string, fldType: NType] =
   case node.kind:
     of nnkIdentDefs:
       let name: string =
@@ -62,10 +62,7 @@ proc getFieldDescription(node: NimNode): tuple[name, fldType: string] =
           else:
             $node[0]
 
-      return (
-        name: name,
-        fldType: $(node[1].toStrLit) # REFACTOR use `NType`
-      )
+      return (name: name, fldType: node[1].mkNType())
     of nnkRecCase:
       return getFieldDescription(node[0])
     else:
@@ -181,7 +178,7 @@ proc discardNimNode(
               ofValue: ObjTree(
                 styling: initPrintStyling(),
                 kind: okConstant,
-                constType: (it.isElse).tern("", fld.fldType),
+                constType: (it.isElse).tern("", $fld.fldType),
                 strLit: (it.isElse).tern("", $it.ofValue.toStrLit())
               ),
               isElse: it.isElse,
@@ -269,8 +266,7 @@ proc unrollFieldLoop[A](
           fldName = newLit(fld.name)
 
         if genParam.hackFields:
-          let fldType = parseExpr(fld.fldType)
-          # echo fldType.lispRepr()
+          let fldType = fld.fldType.toNimNode()
           let tmp = superquote do:
             const `ident(genParam.fldName)`: string = `fldName`
             let `lhsId`: `fldType` = block:
