@@ -1,9 +1,13 @@
-## Statically typed nim ast representation
+## Statically typed nim ast representation with large number of helper
+## functions - skipping nil nodes, normalizing set literals,
+## generating and working with pragma annotations, parsing object
+## defintions etc.
 
 import hmisc/helpers
 import hmisc/types/colorstring
 import sequtils, colors, macros, tables, strutils,
        terminal, options, parseutils, sets, strformat
+
 
 func `$!`*(n: NimNode): string =
   ## NimNode stringification that does not blow up in your face on
@@ -11,16 +15,39 @@ func `$!`*(n: NimNode): string =
   n.toStrLit().strVal()
 
 func skipNil*(n: NimNode): NimNode =
+  ## If node `n` is `nil` generated new empty node, otherwise return
+  ## `n`
   if n == nil: newEmptyNode() else: n
 
 func nilToDiscard*(n: NimNode): NimNode =
+  ## If node `n` is `nil` generate new discard node, otherwise return
+  ## `n`
   if n == nil: nnkDiscardStmt.newTree(newEmptyNode()) else: n
+
+
+
+func newAccQuoted*(args: varargs[NimNode]): NimNode =
+  nnkAccQuoted.newTree(args)
+
+func newAccQuoted*(args: varargs[string]): NimNode =
+  nnkAccQuoted.newTree(args.mapIt(ident it))
+
+func newInfix*(op: string, lhs, rhs: NimNode): NimNode =
+  nnkInfix.newTree(ident op, lhs, rhs)
+
+func newPrefix*(op: string, expr: NimNode): NimNode =
+  nnkPrefix.newTree(ident op, expr)
+
+func newReturn*(expr: NimNode): NimNode =
+  nnkReturnStmt.newTree(expr)
+
 
 type
   ObjectAnnotKind* = enum
-    oakCaseOfBranch
-    oakObjectToplevel
-    oakObjectField
+    ## Position of annotation (most likely pragma) attached.
+    oakCaseOfBranch ## Annotation on case branch, not currently suppported
+    oakObjectToplevel ## Toplevel annotaion for object
+    oakObjectField ## Annotation for object field
 
 
 
@@ -56,6 +83,8 @@ proc normalizeSet*(node: NimNode, forcebrace: bool = false): NimNode =
     return nnkCurly.newTree(vals)
 
 func joinSets*(nodes: seq[NimNode]): NimNode =
+  ## Concatenate multiple sets in one element. Result will be wrapped
+  ## in `Curly` node.
   let vals = nodes.mapIt(it.normalizeSetImpl()).concat()
   result = nnkCurly.newTree(vals)
   # debugecho $!result
@@ -103,6 +132,7 @@ func toBracket*(elems: seq[NimNode]): NimNode =
 
 func toBracketSeq*(elems: seq[NimNode]): NimNode =
   ## Create `nnkBracket` with `@` prefix - sequence literal
+  ## `@[<elements>]`
   nnkPrefix.newTree(ident "@", nnkBracket.newTree(elems))
 
 
@@ -112,19 +142,24 @@ func toBracketSeq*(elems: seq[NimNode]): NimNode =
 #*************************************************************************#
 #===========================  Type definition  ===========================#
 
-# TODO support `range[a..b]`, generic constraints: `A: B | C` and `A:
-# B or C`
 type
   NType* = object
+    ## Representation of generic nim type;
+    ##
+    ## TODO support `range[a..b]`, generic constraints: `A: B | C` and
+    ## `A: B or C`
+
     head*: string
     genParams*: seq[NType]
 
   NVarDeclKind* = enum
+    ## Kind of variable declaration
     nvdLet
     nvdVar
     nvdConst
 
   NIdentDefs* = object
+    ## Identifier declaration
     varname: string
     kind: NVarDeclKind
     vtype: NType
@@ -162,7 +197,7 @@ func toNimNode*(ntype: NType): NimNode =
       result.add param.toNimNode()
 
 func toFormalParam*(nident: NIdentDefs): NimNode =
-  # TODO:DOC
+  ## Convert to `nnkIdentDefs`
   let typespec =
     case nident.kind:
       of nvdVar: newTree(nnkVarTy, nident.vtype.toNimNode())
@@ -177,7 +212,8 @@ func toFormalParam*(nident: NIdentDefs): NimNode =
 
 
 func mkNType*(name: string, gparams: seq[string] = @[]): NType =
-  ## Make `NType`
+  ## Make `NType` with `name` as string and `gparams` as generic
+  ## parameters
   NType(head: name, genParams: gparams.mapIt(mkNType(it, @[])))
 
 func mkNType*(name: string, gparams: openarray[NType]): NType =
@@ -202,10 +238,15 @@ func mkVarDecl*(name: string, vtype: NType,
   # parameter
   NIdentDefs(varname: name, kind: kind, vtype: vtype)
 
+func newVarStmt*(varname: string, vtype: NType, val: NimNode): NimNode =
+  nnkVarSection.newTree(
+    nnkIdentDefs.newTree(
+      ident varname, vtype.toNimNode(), val))
+
 
 func mkVarDeclNode*(name: string, vtype: NType,
                     kind: NVarDeclKind = nvdLet): NimNode =
-  # TODO:DOC
+  ## Create variable declaration `name` of type `vtype`
   mkVarDecl(name, vtype, kind).toFormalParam()
 
 
@@ -262,12 +303,14 @@ func mkCallNode*(name: string,
 func mkCallNode*(
   arg: NimNode, name: string,
   gentypes: openarray[NType] = @[]): NimNode =
+  ## Create call node `name[@gentypes](arg)`
   mkCallNode(name, @[arg], toSeq(genTypes))
 
 func mkCallNode*(
   dotHead: NimNode, name: string,
   gentypes: openarray[NType],
   args: seq[NimNode]): NimNode =
+  ## Create call node `dotHead.name[@gentypes](@args)`
   mkCallNode(dotHead, name, toSeq(args), toSeq(genTypes))
 
 
@@ -281,7 +324,7 @@ func toNTypeAst*[T](): NType =
 
 #===========================  Pretty-printing  ===========================#
 func `$`*(nt: NType): string =
-  ## Convert `NType` to textul representation
+  ## Convert `NType` to texual representation
   if nt.genParams.len > 0:
     nt.head & "[" & nt.genParams.mapIt($it).join(", ") & "]"
   else:
@@ -350,18 +393,17 @@ func getEnumPref*(en: NimNode): string =
     name = impl.values[0].name
     pref = name.parseUntil(result, {'A' .. 'Z', '0' .. '9'})
 
-macro enumPref*(a: typed): string = newLit(getEnumPref(a))
+macro enumPref*(a: typed): string =
+  ## Generate string literal with enum prefix
+  newLit(getEnumPref(a))
 
 func getEnumNames*(en: NimNode): seq[string] =
+  ## Get list of enum identifier names
   en.parseEnumImpl().values.mapIt(it.name)
 
-macro enumNames*(en: typed): seq[string] = newLit en.getEnumNames()
-
-
-
-#===========================  Pretty-printing  ===========================#
-
-
+macro enumNames*(en: typed): seq[string] =
+  ## Generate list of enum names
+  newLit en.getEnumNames()
 
 
 
@@ -372,13 +414,20 @@ macro enumNames*(en: typed): seq[string] = newLit en.getEnumNames()
 #===========================  Type definition  ===========================#
 type
   Pragma*[Node] = object
-    kind*: ObjectAnnotKind
-    elements*: seq[Node]
+    ## Body of pragma annotation;
+    kind*: ObjectAnnotKind ## Position in object - no used when
+                           ## generatic functions etc.
+    elements*: seq[Node] ## List of pragma elements. For annotation
+                         ## like `{.hello, world.}` this will contain
+                         ## `@[hello, world]`
 
   NPragma* = Pragma[NimNode]
 
 #===============================  Getters  ===============================#
 func getElem*(pragma: NPragma, name: string): Option[NimNode] =
+  ## Get element named `name` if it is present.
+  ## `getElem({.call.}, "call") -> call`
+  ## `getElem({.call(arg).}, "call") -> call(arg)`
   for elem in pragma.elements:
     case elem.kind:
       of nnkIdent:
@@ -391,19 +440,25 @@ func getElem*(pragma: NPragma, name: string): Option[NimNode] =
         raiseAssert("#[ IMPLEMENT ]#")
 
 func getElem*(optPragma: Option[NPragma], name: string): Option[NimNode] =
+  ## Get element from optional annotation
   if optPragma.isSome():
     return optPragma.get().getElem(name)
 
 #============================  constructors  =============================#
 func mkNPragma*(names: varargs[string]): NPragma =
+  ## Create pragma using each string as separate name.
+  ## `{.<<name1>, <name2>, ...>.}`
   NPragma(elements: names.mapIt(ident it))
 
 func mkNPragma*(names: varargs[NimNode]): NPragma =
+  ## Create pragma using each node in `name` as separate name
   NPragma(elements: names.mapIt(it))
 
 #========================  Other implementation  =========================#
 
 func toNimNode*(pragma: NPragma): NimNode =
+  ## Convert pragma to nim node. If pragma contains no elements
+  ## `EmptyNode` is generated.
   if pragma.elements.len == 0:
     newEmptyNode()
   else:
@@ -445,7 +500,6 @@ func createProcType*(p, b: NimNode, annots: NPragma): NimNode =
 macro `~>`*(a, b: untyped): untyped =
   ## Construct proc type with `noSideEffect` annotation.
   result = createProcType(a, b, mkNPragma("noSideEffect"))
-  # echo $!result
 
 
 func mkProcDeclNode*(
@@ -455,6 +509,16 @@ func mkProcDeclNode*(
   impl: NimNode,
   pragma: NPragma = NPragma(),
   exported: bool = true): NimNode =
+  ## Generate procedure declaration
+  ##
+  ## ## Parameters
+  ##
+  ## :procHead: head of the procedure
+  ## :rtype: Optional return type
+  ## :args: Proc arguments
+  ## :impl: Proc implementation body
+  ## :pragma: Pragma annotation for proc
+  ## :exported: Whether or not procedure is exported
 
   let procHead =
     if exported:
@@ -564,31 +628,6 @@ func mkProcDeclNode*(
     exported
   )
 
-
-func newAccQuoted*(args: varargs[NimNode]): NimNode =
-  nnkAccQuoted.newTree(args)
-
-func newAccQuoted*(args: varargs[string]): NimNode =
-  nnkAccQuoted.newTree(args.mapIt(ident it))
-
-func newInfix*(op: string, lhs, rhs: NimNode): NimNode =
-  nnkInfix.newTree(ident op, lhs, rhs)
-
-func newPrefix*(op: string, expr: NimNode): NimNode =
-  nnkPrefix.newTree(ident op, expr)
-
-func newReturn*(expr: NimNode): NimNode =
-  nnkReturnStmt.newTree(expr)
-
-func newVarStmt*(varname: string, vtype: NType, val: NimNode): NimNode =
-  nnkVarSection.newTree(
-    nnkIdentDefs.newTree(
-      ident varname,
-      vtype.toNimNode(),
-      val
-    )
-  )
-
 #===========================  Pretty-printing  ===========================#
 
 #*************************************************************************#
@@ -693,6 +732,8 @@ func eachFieldMut*[Node, A](
 func eachFieldMut*[Node, A](
   branch: var ObjectBranch[Node, A],
   cb: (var ObjectField[Node, A] ~> void)): void =
+  ## Execute callback on each field in mutable object branch,
+  ## recursively.
   for fld in mitems(branch.flds):
     cb(fld)
     if fld.isKind:
@@ -703,7 +744,7 @@ func eachFieldMut*[Node, A](
 func eachFieldMut*[Node, A](
   obj: var Object[Node, A],
   cb: (var ObjectField[Node, A] ~> void)): void =
-
+  ## Execute callback on each field in mutable object, recursively.
   for fld in mitems(obj.flds):
     cb(fld)
     if fld.isKind:
@@ -714,6 +755,8 @@ func eachFieldMut*[Node, A](
 
 func eachAnnotMut*[Node, A](
   branch: var ObjectBranch[Node, A], cb: (var Option[A] ~> void)): void =
+  ## Execute callback on each annotation in mutable branch,
+  ## recursively - all fields in all branches are visited.
   for fld in mitems(branch.flds):
     cb(fld.annotation)
     if fld.isKind:
@@ -722,6 +765,11 @@ func eachAnnotMut*[Node, A](
 
 func eachAnnotMut*[Node, A](
   obj: var Object[Node, A], cb: (var Option[A] ~> void)): void =
+  ## Execute callback on each annotation in mutable object,
+  ## recurisively - all fields and subfields are visited. Callback
+  ## runs on both kind and non-kind fields. Annotation is not
+  ## guaranteed to be `some`, and it might be possible for callback to
+  ## make it `none` (removing unnecessary annotations for example)
 
   cb(obj.annotation)
 
@@ -741,6 +789,7 @@ func eachField*[Node, A](
 func eachField*[Node, A](
   branch: ObjectBranch[Node, A],
   cb: (ObjectField[Node, A] ~> void)): void =
+  ## Execute callback on each field in branch, recursively
   for fld in items(branch.flds):
     cb(fld)
     if fld.isKind:
@@ -751,7 +800,7 @@ func eachField*[Node, A](
 func eachField*[Node, A](
   obj: Object[Node, A],
   cb: (ObjectField[Node, A] ~> void)): void =
-
+  ## Execute callback on each field in object, recurisively.
   for fld in items(obj.flds):
     cb(fld)
     if fld.isKind:
@@ -759,15 +808,9 @@ func eachField*[Node, A](
         eachField(branch, cb)
 
 # ~~~~ each alternative in case object ~~~~ #
-# TODO generate `eachPath` - one huge if statment with all possible
-#      combinations of case objects matched. In this case callback
-#      should accept
-#      - path - sequence of branch `ofValue` nodes
 
 func eachCase*[A](
   fld: NField[A], objId: NimNode, cb: (NField[A] ~> NimNode)): NimNode =
-  # assert fld.isKind
-
   if fld.isKind:
     result = nnkCaseStmt.newTree(newDotExpr(objId, ident fld.name))
     for branch in fld.branches:
@@ -790,6 +833,11 @@ func eachCase*[A](
 
 func eachCase*[A](
   objId: NimNode, obj: NObject[A], cb: (NField[A] ~> NimNode)): NimNode =
+  ## Recursively generate case statement for object. `objid` is and
+  ## identifier for object - case statement will use `<objid>.<fldId>`.
+  ## `obj` is a description for structure. Callback `cb` will be executed
+  ## on all fields - both `isKind` or not.
+
   result = newStmtList()
   for fld in obj.flds:
     result.add fld.eachCase(objid, cb)
@@ -797,7 +845,6 @@ func eachCase*[A](
 func eachParallelCase*[A](
   fld: NField[A], objId: (NimNode, NimNode),
   cb: (NField[A] ~> NimNode)): NimNode =
-
   if fld.isKind:
     result = nnkCaseStmt.newTree(newDotExpr(objId[0], ident fld.name))
     for branch in fld.branches:
@@ -828,6 +875,9 @@ func eachParallelCase*[A](
 
 func eachParallelCase*[A](
   objid: (NimNode, NimNode), obj: NObject[A], cb: (NField[A] ~> NimNode)): NimNode =
+  ## Generate parallel case statement for two objects in `objid`. Run
+  ## callback on each field. Generated case statement will have form
+  ## `if lhs.fld == rhs.fld: case lhs.fld`
   result = newStmtList()
   for fld in obj.flds:
     result.add fld.eachParallelCase(objid, cb)
@@ -887,7 +937,13 @@ func eachPath*[A](
 func eachPath*[A](
   self: NimNode,
   obj: NObject[A], cb: ((NPath[A], seq[NField[A]]) ~> NimNode)): NimNode =
-
+  ## Visit each group of fields in object described by `obj` and
+  ## generate case statement with all possible object paths. Arguments
+  ## for callback - `NPath[A]` is a sequence of kind field values that
+  ## *must be active in order for execution to reach this path* in
+  ## case statement. Second argument is a list of fields that can be
+  ## accessed at that path.
+  ## TODO:DOC add example
 
   result = newStmtList cb(@[], obj.flds)
   for fld in items(obj.flds):
@@ -896,6 +952,8 @@ func eachPath*[A](
 
 
 func onPath*[A](self: NimNode, path: NPath[A]): NimNode =
+  ## Generate check for object `self` to check if it is currently on
+  ## path.
   var checks: seq[NimNode]
   for elem in path:
     if elem.isElse:
