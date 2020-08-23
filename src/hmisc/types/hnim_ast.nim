@@ -25,6 +25,84 @@ type
 
 
 #*************************************************************************#
+#****************************  Ast reparsing  ****************************#
+#*************************************************************************#
+
+#=======================  Enum set normalization  ========================#
+
+proc normalizeSetImpl(node: NimNode): seq[NimNode] =
+   case node.kind:
+    of nnkIdent, nnkIntLit, nnkCharLit:
+      return @[ node ]
+    of nnkCurly:
+      for subnode in node:
+        result &= normalizeSetImpl(subnode)
+    of nnkInfix:
+      assert node[0] == ident("..")
+      result = @[ node ]
+    else:
+      raiseAssert("Cannot normalize set: " & $node.lispRepr())
+
+
+proc normalizeSet*(node: NimNode, forcebrace: bool = false): NimNode =
+  ## Convert any possible set representation (e.g. `{1}`, `{1, 2}`,
+  ## `{2 .. 6}` as well as `2, 3` (in case branches). Return
+  ## `nnkCurly` node with all values listed one-by-one (if identifiers
+  ## were used) or in ranges (if original node contained `..`)
+  let vals = normalizeSetImpl(node)
+  if vals.len == 1 and not forcebrace:
+    return vals[0]
+  else:
+    return nnkCurly.newTree(vals)
+
+proc parseEnumSet*[Enum](
+  node: NimNode,
+  namedSets: Table[string, set[Enum]] =
+      initTable[string, set[Enum]]()): set[Enum] =
+  ## Parse `NimNode` into set of `Enum` values. `namedSets` is an
+  ## ident-set mapping for additional identifiers that might be used
+  ## as set values.
+  case node.kind:
+    of nnkIdent:
+      try:
+        return {parseEnum[Enum]($node)}
+      except ValueError:
+        if $node in namedSets:
+          namedSets[$node]
+        else:
+          raise newException(
+            ValueError,
+            "Invalid enum value '" & $node & "' for expression " &
+              posString(node) &
+              " and no such named set exists (available ones: " &
+              namedSets.mapPairs(lhs).joinq() & ")"
+          )
+    of nnkInfix:
+      assert node[0] == ident("..")
+      return {parseEnum[Enum]($node[1]) ..
+              parseEnum[Enum]($node[2])}
+    of nnkCurly:
+      for subnode in node.children:
+        result.incl parseEnumSet[Enum](subnode, namedSets)
+
+    else:
+      # QUESTION there was something useful or what? Do I need it
+      # here?
+      discard
+
+#==================  Helper procs for ast construction  ==================#
+
+func toBracket*(elems: seq[NimNode]): NimNode =
+  ## Create `nnkBracket` with elements
+  nnkBracket.newTree(elems)
+
+func toBracketSeq*(elems: seq[NimNode]): NimNode =
+  ## Create `nnkBracket` with `@` prefix - sequence literal
+  nnkPrefix.newTree(ident "@", nnkBracket.newTree(elems))
+
+
+
+#*************************************************************************#
 #**********************  NType - nim type wrapper  ***********************#
 #*************************************************************************#
 #===========================  Type definition  ===========================#
@@ -811,6 +889,18 @@ func eachPath*[A](
       result.add fld.eachPath(self, @[], cb)
 
 
+func onPath*[A](self: NimNode, path: NPath[A]): NimNode =
+  var checks: seq[NimNode]
+  for elem in path:
+    checks.add newInfix(
+      "in", newDotExpr(self, ident elem.kindField.name),
+      normalizeSet(elem.ofValue, forceBrace = true))
+
+  if checks.len == 0:
+    return newLit(true)
+  else:
+    result = checks.foldl(newInfix("and", a, b))
+
 
 #===============================  Setters  ===============================#
 
@@ -1119,82 +1209,6 @@ func getAtPath*(obj: var ObjTree, path: ObjPath): var ObjTree =
     else:
       raiseAssert("#[ IMPLEMENT ]#")
 
-
-#*************************************************************************#
-#****************************  Ast reparsing  ****************************#
-#*************************************************************************#
-
-#=======================  Enum set normalization  ========================#
-
-proc normalizeSetImpl(node: NimNode): seq[NimNode] =
-   case node.kind:
-    of nnkIdent, nnkIntLit, nnkCharLit:
-      return @[ node ]
-    of nnkCurly:
-      for subnode in node:
-        result &= normalizeSetImpl(subnode)
-    of nnkInfix:
-      assert node[0] == ident("..")
-      result = @[ node ]
-    else:
-      raiseAssert("Cannot normalize set: " & $node.lispRepr())
-
-
-proc normalizeSet*(node: NimNode, forcebrace: bool = false): NimNode =
-  ## Convert any possible set representation (e.g. `{1}`, `{1, 2}`,
-  ## `{2 .. 6}` as well as `2, 3` (in case branches). Return
-  ## `nnkCurly` node with all values listed one-by-one (if identifiers
-  ## were used) or in ranges (if original node contained `..`)
-  let vals = normalizeSetImpl(node)
-  if vals.len == 1 and not forcebrace:
-    return vals[0]
-  else:
-    return nnkCurly.newTree(vals)
-
-proc parseEnumSet*[Enum](
-  node: NimNode,
-  namedSets: Table[string, set[Enum]] =
-      initTable[string, set[Enum]]()): set[Enum] =
-  ## Parse `NimNode` into set of `Enum` values. `namedSets` is an
-  ## ident-set mapping for additional identifiers that might be used
-  ## as set values.
-  case node.kind:
-    of nnkIdent:
-      try:
-        return {parseEnum[Enum]($node)}
-      except ValueError:
-        if $node in namedSets:
-          namedSets[$node]
-        else:
-          raise newException(
-            ValueError,
-            "Invalid enum value '" & $node & "' for expression " &
-              posString(node) &
-              " and no such named set exists (available ones: " &
-              namedSets.mapPairs(lhs).joinq() & ")"
-          )
-    of nnkInfix:
-      assert node[0] == ident("..")
-      return {parseEnum[Enum]($node[1]) ..
-              parseEnum[Enum]($node[2])}
-    of nnkCurly:
-      for subnode in node.children:
-        result.incl parseEnumSet[Enum](subnode, namedSets)
-
-    else:
-      # QUESTION there was something useful or what? Do I need it
-      # here?
-      discard
-
-#==================  Helper procs for ast construction  ==================#
-
-func toBracket*(elems: seq[NimNode]): NimNode =
-  ## Create `nnkBracket` with elements
-  nnkBracket.newTree(elems)
-
-func toBracketSeq*(elems: seq[NimNode]): NimNode =
-  ## Create `nnkBracket` with `@` prefix - sequence literal
-  nnkPrefix.newTree(ident "@", nnkBracket.newTree(elems))
 
 
 

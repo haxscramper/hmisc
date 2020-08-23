@@ -94,7 +94,7 @@ proc getFields*[A](
       return node.getTypeImpl()[0].getImpl()[2][0].getFields(cb)
     of nnkRecList:
       for elem in node:
-        if elem.kind != nnkRecList:
+        if elem.kind notin {nnkRecList, nnkNilLit}:
           let descr = getFieldDescription(elem)
           case elem.kind:
             of nnkRecCase: # Case field
