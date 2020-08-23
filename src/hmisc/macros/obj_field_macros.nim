@@ -34,18 +34,22 @@ proc getBranches*[A](
   node: NimNode, cb: ParseCb[A]): seq[ObjectBranch[NimNode, A]] =
   assert node.kind == nnkRecCase, &"Cannot get branches from node kind {node.kind}"
   let caseType = $node[0][1]
+  var ofValues: seq[NimNode]
   for branch in node[1..^1]:
     case branch.kind:
       of nnkOfBranch:
+        let ofSet = (newTree(nnkCurly, branch[0..^2])).normalizeSet()
+        ofValues.add ofSet
         result.add ObjectBranch[NimNode, A](
-          ofValue: (newTree(nnkCurly, branch[0..^2])).normalizeSet(),
+          ofValue: ofSet,
           flds: branch[^1].getFields(cb),
           isElse: false
         )
       of nnkElse:
         result.add ObjectBranch[NimNode, A](
           flds: branch[0].getFields(cb),
-          isElse: true
+          isElse: true,
+          notOfValue: ofValues.joinSets()
         )
       else:
         raiseAssert(&"Unexpected branch kind {branch.kind}")
@@ -158,10 +162,18 @@ proc getKindFields*[Node, A](
             filterIt2(it.flds.len > 0):
               collect(newSeq):
                 for it in fld.branches:
-                  ObjectBranch[Node, A](
-                    ofValue: it.ofValue,
-                    isElse: it.isElse,
-                    flds: it.flds.getKindFields()))
+                  if it.isElse:
+                    ObjectBranch[Node, A](
+                      notOfValue: it.notOfValue,
+                      isElse: true,
+                      flds: it.flds.getKindFields())
+                  else:
+                    ObjectBranch[Node, A](
+                      ofValue: it.ofValue,
+                      isElse: false,
+                      flds: it.flds.getKindFields())
+
+      )
 
 proc discardNimNode(
   input: seq[ObjectField[NimNode, void]]): seq[ValField] =
@@ -179,7 +191,13 @@ proc discardNimNode(
             block:
               if it.isElse:
                 ValFieldBranch(
-                  isElse: true, flds: it.flds.discardNimNode())
+                  isElse: true,
+                  flds: it.flds.discardNimNode(),
+                  notOfValue: ObjTree(
+                    styling: initPrintStyling(),
+                    # TODO save set representation
+                  )
+                )
               else:
                 ValFieldBranch(
                   ofValue: ObjTree(

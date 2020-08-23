@@ -55,6 +55,11 @@ proc normalizeSet*(node: NimNode, forcebrace: bool = false): NimNode =
   else:
     return nnkCurly.newTree(vals)
 
+func joinSets*(nodes: seq[NimNode]): NimNode =
+  let vals = nodes.mapIt(it.normalizeSetImpl()).concat()
+  result = nnkCurly.newTree(vals)
+  # debugecho $!result
+
 proc parseEnumSet*[Enum](
   node: NimNode,
   namedSets: Table[string, set[Enum]] =
@@ -605,7 +610,7 @@ type
     case isElse*: bool ## Whether this branch is placed under `else` in
                   ## case object.
       of true:
-        nil
+        notOfValue*: Node
       of false:
         ofValue*: Node ## Match value for case branch
 
@@ -655,7 +660,7 @@ type
     kindField*: ObjectField[Node, Annot]
     case isElse*: bool
       of true:
-        nil
+        notOfValue*: Node
       of false:
         ofValue*: Node
 
@@ -863,7 +868,8 @@ func eachPath*[A](
       let nobranch = (fld.withIt do: it.branches = @[])
       let thisPath =
         if branch.isElse:
-          parent & @[NPathElem[A](isElse: true, kindField: nobranch)]
+          parent & @[NPathElem[A](
+            isElse: true, kindField: nobranch, notOfValue: branch.notOfValue)]
         else:
           parent & @[NPathElem[A](
             isElse: false, kindField: nobranch, ofValue: branch.ofValue)]
@@ -892,9 +898,14 @@ func eachPath*[A](
 func onPath*[A](self: NimNode, path: NPath[A]): NimNode =
   var checks: seq[NimNode]
   for elem in path:
-    checks.add newInfix(
-      "in", newDotExpr(self, ident elem.kindField.name),
-      normalizeSet(elem.ofValue, forceBrace = true))
+    if elem.isElse:
+      checks.add newInfix(
+        "notin", newDotExpr(self, ident elem.kindField.name),
+        normalizeSet(elem.notOfValue, forceBrace = true))
+    else:
+      checks.add newInfix(
+        "in", newDotExpr(self, ident elem.kindField.name),
+        normalizeSet(elem.ofValue, forceBrace = true))
 
   if checks.len == 0:
     return newLit(true)

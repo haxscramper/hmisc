@@ -166,7 +166,7 @@ suite "Case object field iteration":
           isElse: false
         ),
         ValFieldBranch(
-          ofValue: ObjTree(styling: initPrintStyling(),),
+          notOfValue: ObjTree(styling: initPrintStyling(),),
           flds: @[ ValField(fldType: mkNType("float"), isKind: false,
                             name: "f22", isTuple: false) ],
           isElse: true
@@ -222,7 +222,7 @@ suite "Case object field iteration":
                 isElse: false
               ),
               ValFieldBranch(
-                ofValue: ObjTree(styling: initPrintStyling(),),
+                notOfValue: ObjTree(styling: initPrintStyling(),),
                 flds: @[ ValField(
                   fldType: mkNType("float"), isKind: false,
                   name: "f22", isTuple: false) ],
@@ -287,6 +287,7 @@ suite "Case object field iteration":
         name: "kind1", fldType: mkNType("bool"), isKind: true,
         isTuple: false, branches: @[
           ValFieldBranch(
+            isElse: false,
             ofValue: ObjTree(styling: initPrintStyling(),
               kind: okConstant, constType: "bool", strLit: "false"),
             flds: @[
