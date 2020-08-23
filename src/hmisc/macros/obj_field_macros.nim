@@ -44,7 +44,9 @@ proc getBranches*[A](
         )
       of nnkElse:
         result.add ObjectBranch[NimNode, A](
-          flds: branch[0].getFields(cb), isElse: true)
+          flds: branch[0].getFields(cb),
+          isElse: true
+        )
       else:
         raiseAssert(&"Unexpected branch kind {branch.kind}")
 
@@ -174,15 +176,21 @@ proc discardNimNode(
           fldType: fld.fldType,
           selected: fld.selected,
           branches: fld.branches.mapIt(
-            ValFieldBranch(
-              ofValue: ObjTree(
-                styling: initPrintStyling(),
-                kind: okConstant,
-                constType: (it.isElse).tern("", $fld.fldType),
-                strLit: (it.isElse).tern("", $it.ofValue.toStrLit())
-              ),
-              isElse: it.isElse,
-              flds: it.flds.discardNimNode())))
+            block:
+              if it.isElse:
+                ValFieldBranch(
+                  isElse: true, flds: it.flds.discardNimNode())
+              else:
+                ValFieldBranch(
+                  ofValue: ObjTree(
+                    styling: initPrintStyling(),
+                    kind: okConstant,
+                    constType: $fld.fldType,
+                    strLit: $it.ofValue.toStrLit()
+                  ),
+                  isElse: false,
+                  flds: it.flds.discardNimNode())
+            ))
 
       of false:
         result.add ValField(

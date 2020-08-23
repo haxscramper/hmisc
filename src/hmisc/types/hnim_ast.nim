@@ -10,6 +10,12 @@ func `$!`*(n: NimNode): string =
   ## 'invalid node kind'
   n.toStrLit().strVal()
 
+func skipNil*(n: NimNode): NimNode =
+  if n == nil: newEmptyNode() else: n
+
+func nilToDiscard*(n: NimNode): NimNode =
+  if n == nil: nnkDiscardStmt.newTree(newEmptyNode()) else: n
+
 type
   ObjectAnnotKind* = enum
     oakCaseOfBranch
@@ -309,6 +315,9 @@ func getElem*(optPragma: Option[NPragma], name: string): Option[NimNode] =
 func mkNPragma*(names: varargs[string]): NPragma =
   NPragma(elements: names.mapIt(ident it))
 
+func mkNPragma*(names: varargs[NimNode]): NPragma =
+  NPragma(elements: names.mapIt(it))
+
 #========================  Other implementation  =========================#
 
 func toNimNode*(pragma: NPragma): NimNode =
@@ -361,7 +370,14 @@ func mkProcDeclNode*(
   rtype: Option[NType],
   args: seq[NIdentDefs],
   impl: NimNode,
-  pragma: NPragma = NPragma()): NimNode =
+  pragma: NPragma = NPragma(),
+  exported: bool = true): NimNode =
+
+  let procHead =
+    if exported:
+      nnkPostfix.newTree(ident "*", procHead)
+    else:
+      procHead
 
   nnkProcDef.newTree(
     procHead,
@@ -385,8 +401,16 @@ func mkProcDeclNode*(
   head: NimNode,
   args: openarray[tuple[name: string, atype: NType]],
   impl: NimNode,
-  pragma: NPragma = NPragma()): NimNode=
-  mkProcDeclNode(head, none(NType), args.toNIdentDefs(), impl, pragma)
+  pragma: NPragma = NPragma(),
+  exported: bool = true): NimNode=
+  mkProcDeclNode(
+    head,
+    none(NType),
+    args.toNIdentDefs(),
+    impl,
+    pragma,
+    exported
+  )
 
 
 func mkProcDeclNode*(
@@ -394,20 +418,32 @@ func mkProcDeclNode*(
   rtype: NType,
   args: openarray[tuple[name: string, atype: NType]],
   impl: NimNode,
-  pragma: NPragma = NPragma()): NimNode=
+  pragma: NPragma = NPragma(),
+  exported: bool = true): NimNode=
   mkProcDeclNode(
     nnkAccQuoted.newTree(accq),
-    some(rtype), args.toNIdentDefs(), impl, pragma)
+    some(rtype),
+    args.toNIdentDefs(),
+    impl,
+    pragma,
+    exported
+  )
 
 
 func mkProcDeclNode*(
   accq: openarray[NimNode],
   args: openarray[tuple[name: string, atype: NType]],
   impl: NimNode,
-  pragma: NPragma = NPragma()): NimNode=
+  pragma: NPragma = NPragma(),
+  exported: bool = true): NimNode=
   mkProcDeclNode(
     nnkAccQuoted.newTree(accq),
-    none(NType), args.toNIdentDefs(), impl, pragma)
+    none(NType),
+    args.toNIdentDefs(),
+    impl,
+    pragma,
+    exported
+  )
 
 
 func mkProcDeclNode*(
@@ -415,8 +451,16 @@ func mkProcDeclNode*(
   rtype: NType,
   args: openarray[tuple[name: string, atype: NType]],
   impl: NimNode,
-  pragma: NPragma = NPragma()): NimNode =
-  mkProcDeclNode(head, some(rtype), args.toNIdentDefs(), impl, pragma)
+  pragma: NPragma = NPragma(),
+  exported: bool = true): NimNode =
+  mkProcDeclNode(
+    head,
+    some(rtype),
+    args.toNIdentDefs(),
+    impl,
+    pragma,
+    exported
+  )
 
 func mkProcDeclNode*(
   head: NimNode,
@@ -426,8 +470,16 @@ func mkProcDeclNode*(
     nvd: NVarDeclKind]
   ],
   impl: NimNode,
-  pragma: NPragma = NPragma()): NimNode =
-  mkProcDeclNode(head, none(NType), args.toNIdentDefs(), impl, pragma)
+  pragma: NPragma = NPragma(),
+  exported: bool = true): NimNode =
+  mkProcDeclNode(
+    head,
+    none(NType),
+    args.toNIdentDefs(),
+    impl,
+    pragma,
+    exported
+  )
 
 
 func newAccQuoted*(args: varargs[NimNode]): NimNode =
@@ -436,6 +488,23 @@ func newAccQuoted*(args: varargs[NimNode]): NimNode =
 func newAccQuoted*(args: varargs[string]): NimNode =
   nnkAccQuoted.newTree(args.mapIt(ident it))
 
+func newInfix*(op: string, lhs, rhs: NimNode): NimNode =
+  nnkInfix.newTree(ident op, lhs, rhs)
+
+func newPrefix*(op: string, expr: NimNode): NimNode =
+  nnkPrefix.newTree(ident op, expr)
+
+func newReturn*(expr: NimNode): NimNode =
+  nnkReturnStmt.newTree(expr)
+
+func newVarStmt*(varname: string, vtype: NType, val: NimNode): NimNode =
+  nnkVarSection.newTree(
+    nnkIdentDefs.newTree(
+      ident varname,
+      vtype.toNimNode(),
+      val
+    )
+  )
 
 #===========================  Pretty-printing  ===========================#
 
@@ -445,7 +514,6 @@ func newAccQuoted*(args: varargs[string]): NimNode =
 #===========================  Type definition  ===========================#
 type
   ParseCb*[Annot] = proc(pragma: NimNode, kind: ObjectAnnotKind): Annot
-
   ObjectBranch*[Node, Annot] = object
     ## Single branch of case object
     annotation*: Option[Annot]
@@ -455,11 +523,15 @@ type
     # ofValue*: Node ## Exact AST used in field branch
     # else:
     # TODO move `ofValue` under `isElse` case
-    ofValue*: Node ## Match value for case branch
-
     flds*: seq[ObjectField[Node, Annot]] ## Fields in the case branch
-    isElse*: bool ## Whether this branch is placed under `else` in
+    case isElse*: bool ## Whether this branch is placed under `else` in
                   ## case object.
+      of true:
+        nil
+      of false:
+        ofValue*: Node ## Match value for case branch
+
+
 
   ObjectField*[Node, Annot] = object
     # TODO:DOC
@@ -501,9 +573,20 @@ type
   # FieldBranch*[Node] = ObjectBranch[Node, void]
   # Field*[Node] = ObjectField[Node, void]
 
+  ObjectPathElem*[Node, Annot] = object
+    kindField*: ObjectField[Node, Annot]
+    case isElse*: bool
+      of true:
+        nil
+      of false:
+        ofValue*: Node
+
+
   NBranch*[A] = ObjectBranch[NimNode, A]
+  NPathElem*[A] = ObjectPathElem[NimNode, A]
   NField*[A] = ObjectField[NimNode, A]
   NObject*[A] = Object[NimNode, A]
+  NPath*[A] = seq[NPathElem[A]]
 
   # PragmaField*[Node] = ObjectField[Node, Pragma[Node]]
   # NPragmaField* = PragmaField[NimNode]
@@ -513,6 +596,8 @@ const noParseCb*: ParseCb[void] = nil
 
 
 #=============================  Predicates  ==============================#
+func markedAs*(fld: NField[NPragma], str: string): bool =
+  fld.annotation.getElem(str).isSome()
 
 #===============================  Getters  ===============================#
 
@@ -614,7 +699,9 @@ func eachCase*[A](
             it.eachCase(objId, cb)).newStmtList()
         )
 
-    result = newStmtList(cb(fld), result)
+    let cbRes = cb(fld)
+    if cbRes != nil:
+      result = newStmtList(cb(fld), result)
   else:
     result = newStmtList(cb(fld))
 
@@ -686,6 +773,45 @@ func eachAnnot*[Node, A](
         branch.eachAnnot(cb)
 
 
+# ~~~~ Each path in case object ~~~~ #
+func eachPath*[A](
+  fld: NField[A], self: NimNode, parent: NPath[A],
+  cb: ((NPath[A], seq[NField[A]]) ~> NimNode)): NimNode =
+
+  if fld.isKind:
+    result = nnkCaseStmt.newTree(newDotExpr(self, ident fld.name))
+    for branch in fld.branches:
+      var branchBody = newStmtList()
+      let nobranch = (fld.withIt do: it.branches = @[])
+      let thisPath =
+        if branch.isElse:
+          parent & @[NPathElem[A](isElse: true, kindField: nobranch)]
+        else:
+          parent & @[NPathElem[A](
+            isElse: false, kindField: nobranch, ofValue: branch.ofValue)]
+
+      let cbRes = cb(thisPath, branch.flds).nilToDiscard()
+      if branch.isElse:
+        branchBody.add nnkElse.newTree(cbRes)
+      else:
+        branchBody.add nnkOfBranch.newTree(branch.ofValue, cbRes)
+
+      for fld in branch.flds:
+        branchBody.add fld.eachPath(self, thisPath, cb)
+
+
+func eachPath*[A](
+  self: NimNode,
+  obj: NObject[A], cb: ((NPath[A], seq[NField[A]]) ~> NimNode)): NimNode =
+
+
+  result = newStmtList cb(@[], obj.flds)
+  for fld in items(obj.flds):
+    if fld.isKind:
+      result.add fld.eachPath(self, @[], cb)
+
+
+
 #===============================  Setters  ===============================#
 
 #============================  Constructors  =============================#
@@ -693,9 +819,14 @@ func eachAnnot*[Node, A](
 #========================  Other implementation  =========================#
 func toNimNode*[A](fld: NField[A], annotConv: A ~> NimNode): NimNode
 func toNimNode*[A](branch: NBranch[A], annotConv: A ~> NimNode): NimNode =
-  nnkOfBranch.newTree(
-    branch.ofValue,
-    nnkRecList.newTree(branch.flds.mapIt(it.toNimNode(annotConv))))
+  if branch.isElse:
+    nnkElse.newTree(
+      nnkRecList.newTree(branch.flds.mapIt(it.toNimNode(annotConv))))
+  else:
+    nnkOfBranch.newTree(
+      branch.ofValue,
+      nnkRecList.newTree(branch.flds.mapIt(it.toNimNode(annotConv))))
+
 
 func toNimNode*[A](fld: NField[A], annotConv: A ~> NimNode): NimNode =
   let selector = nnkIdentDefs.newTree(
@@ -1165,9 +1296,6 @@ proc pprintCalls*(node: NimNode, level: int): void =
       echo pref, ($node).toGreen()
     else:
       echo ($node.toStrLit()).indent(level * 2)
-
-# func toNimType*[Node, A](obj: )
-
 
 #*************************************************************************#
 #***********************  Helper proc procedures  ************************#

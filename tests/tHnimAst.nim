@@ -3,6 +3,8 @@ import ../src/hmisc/types/hnim_ast
 import ../src/hmisc/helpers
 import ../src/hmisc/macros/obj_field_macros
 
+import hpprint
+
 #===========================  implementation  ============================#
 
 #================================  tests  ================================#
@@ -46,8 +48,9 @@ suite "HNimAst":
         for obj in stmt:
           if obj.kind == nnkTypeDef:
             let obj = obj.parseObject(parseNimPragma)
-            for call in obj.annotation.get().elements:
-              discard
+            if obj.annotation.isSome():
+              for call in obj.annotation.get().elements:
+                discard
 
             for field in obj.flds:
               if field.annotation.isSome():
@@ -75,6 +78,15 @@ suite "HNimAst":
             of false:
               c: float
 
+        Hhhhh = object
+          f1: float
+          f3: int
+          case f5: bool
+            of false:
+              f2: char
+            else:
+              f4: float
+
 
   test "{parseObject} filter pragma annotations":
     macro parse(body: untyped): untyped =
@@ -100,8 +112,10 @@ suite "HNimAst":
       result.add mkProcDeclNode(
         ident "hello",
         { "world" : mkNType("int") },
-        quote do:
-          echo "value is: ", world
+        newCall(
+          "echo", newLit("value is: "), ident "world"
+        ),
+        exported = false
       )
 
     mcr()
@@ -166,11 +180,11 @@ suite "HNimAst":
           quote do:
             `impl`
             return true
-        )
+        ),
+        exported = false
       )
 
       result = nnkStmtList.newTree(body, eqcmp)
-      echo $!result
 
     mcr:
       type
@@ -187,3 +201,24 @@ suite "HNimAst":
               # nil # TODO
 
     echo A() == A()
+
+  test "{eachPath}":
+    macro mcr(body: untyped): untyped =
+      let obj = body[0][0].parseObject(parseNimPragma)
+      let self = ident "self"
+      let impl = self.eachPath(obj) do(
+        path: NPath[NPragma], flds: seq[NField[NPragma]]) -> NimNode:
+        discard
+
+    mcr:
+      type
+        A = object
+          c: int
+          f: int
+          case a: char
+            of 'e':
+              e: int
+            of 'q':
+              q: char
+            else:
+              hello: seq[seq[int]]

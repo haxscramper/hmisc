@@ -174,6 +174,17 @@ func dropPrefix*(str, pref: string): string =
   else:
     str
 
+func addPrefix*(str: var string, pref: string): void =
+  if not str.startsWith(pref):
+    str = pref & str
+
+func addPrefix*(str, pref: string): string =
+  if not str.startsWith(pref):
+    pref & str
+  else:
+    str
+
+
 func splitCamel*(str: string): seq[string] =
   ## Split abbreviation as **camelCase** identifier
   var pos = 0
