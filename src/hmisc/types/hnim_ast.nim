@@ -202,26 +202,26 @@ type
 #=============================  Predicates  ==============================#
 
 #============================  Constructors  =============================#
-func toNIdentDefs*(
+func toNIdentDefs*[NNode](
   args: openarray[tuple[
     name: string,
-    atype: NType]]): seq[NIdentDefs[NimNode]] =
+    atype: NType]]): seq[NIdentDefs[NNode]] =
   ## Convert array of name-type pairs into sequence of `NIdentDefs`.
   ## Each identifier will be immutable (e.g. no `var` annotation).
   for (name, atype) in args:
-    result.add NIdentDefs[NimNode](varname: name, vtype: atype)
+    result.add NIdentDefs[NNode](varname: name, vtype: atype)
 
-func toNIdentDefs*(
+func toNIdentDefs*[NNode](
   args: openarray[tuple[
     name: string,
     atype: NType,
     nvd: NVarDeclKind
-     ]]): seq[NIdentDefs[NimNode]] =
+     ]]): seq[NIdentDefs[NNode]] =
   ## Convert array of name-type pairs into sequence of `NIdentDefs`.
   ## Each identifier must supply mutability parameter (e.g `nvdLet` or
   ## `vndVar`)
   for (name, atype, nvd) in args:
-    result.add NIdentDefs[NimNode](varname: name, vtype: atype, kind: nvd)
+    result.add NIdentDefs[NNode](varname: name, vtype: atype, kind: nvd)
 
 func toNNode*[NNode](ntype: NType): NNode =
   if ntype.genParams.len == 0:
@@ -609,16 +609,16 @@ func mkProcDeclNode*(
   mkProcDeclNNode[NimNode](
     procHead, rtype, args, impl, pragma, exported)
 
-func mkProcDeclNode*(
-  head: NimNode,
+func mkProcDeclNode*[NNode](
+  head: NNode,
   args: openarray[tuple[name: string, atype: NType]],
-  impl: NimNode,
-  pragma: NPragma = NPragma(),
-  exported: bool = true): NimNode=
-  mkProcDeclNode(
+  impl: NNode,
+  pragma: Pragma[NNode] = Pragma[NNode](),
+  exported: bool = true): NNode =
+  mkProcDeclNNode(
     head,
     none(NType),
-    args.toNIdentDefs(),
+    toNIdentDefs[NNode](args),
     impl,
     pragma,
     exported
@@ -626,16 +626,16 @@ func mkProcDeclNode*(
 
 
 func mkProcDeclNode*(
-  accq: openarray[NimNode],
+  accq: openarray[NNode],
   rtype: NType,
   args: openarray[tuple[name: string, atype: NType]],
-  impl: NimNode,
-  pragma: NPragma = NPragma(),
-  exported: bool = true): NimNode=
-  mkProcDeclNode(
-    nnkAccQuoted.newTree(accq),
+  impl: NNode,
+  pragma: Pragma[NNode] = Pragma[NNode](),
+  exported: bool = true): NNode=
+  mkProcDeclNNode(
+    newNTree[NNode](nnkAccQuoted, accq),
     some(rtype),
-    args.toNIdentDefs(),
+    toNIdentDefs[NNode](args),
     impl,
     pragma,
     exported
@@ -643,51 +643,51 @@ func mkProcDeclNode*(
 
 
 func mkProcDeclNode*(
-  accq: openarray[NimNode],
+  accq: openarray[NNode],
   args: openarray[tuple[name: string, atype: NType]],
-  impl: NimNode,
-  pragma: NPragma = NPragma(),
-  exported: bool = true): NimNode=
-  mkProcDeclNode(
-    nnkAccQuoted.newTree(accq),
+  impl: NNode,
+  pragma: Pragma[NNode] = Pragma[NNode](),
+  exported: bool = true): NNode=
+  mkProcDeclNNode(
+    newNTree[NNode](nnkAccQuoted, accq),
     none(NType),
-    args.toNIdentDefs(),
+    toNIdentDefs[NNode](args),
     impl,
     pragma,
     exported
   )
 
 
-func mkProcDeclNode*(
-  head: NimNode,
+func mkProcDeclNode*[NNode](
+  head: NNode,
   rtype: NType,
   args: openarray[tuple[name: string, atype: NType]],
-  impl: NimNode,
-  pragma: NPragma = NPragma(),
-  exported: bool = true): NimNode =
-  mkProcDeclNode(
+  impl: NNode,
+  pragma: Pragma[NNode] = Pragma[NNode](),
+  exported: bool = true): NNode =
+  mkProcDeclNNode(
     head,
     some(rtype),
-    args.toNIdentDefs(),
+    toNIdentDefs[NNode](args),
     impl,
     pragma,
     exported
   )
 
-func mkProcDeclNode*(
-  head: NimNode,
+func mkProcDeclNode*[NNode](
+  head: NNode,
   args: openarray[tuple[
     name: string,
     atype: NType,
     nvd: NVarDeclKind]
   ],
-  impl: NimNode,
-  pragma: NPragma = NPragma(),
-  exported: bool = true): NimNode =
-  mkProcDeclNode(
+  impl: NNode,
+  pragma: Pragma[NNode] = Pragma[NNode](),
+  exported: bool = true): NNode =
+  mkProcDeclNNode(
     head,
     none(NType),
-    args.toNIdentDefs(),
+    toNIdentDefs[NNode](args),
     impl,
     pragma,
     exported

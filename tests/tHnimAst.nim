@@ -232,3 +232,7 @@ suite "working with PNode":
     echo newPrefix("!", newPIdent("eee"))
     echo mkProcDeclNNode(
       newPIdent("hello"), none(NType), @[], newPIdent("impl"))
+
+    echo mkProcDeclNode(newPIdent("nice"), {
+      "arg1" : mkNType("HHH")
+    }, newPIdent("implementation"))
