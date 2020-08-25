@@ -230,3 +230,5 @@ suite "working with PNode":
     echo newPIdent("hello")
     echo newReturn(newPIdent("qqqq"))
     echo newPrefix("!", newPIdent("eee"))
+    echo mkProcDeclNNode(
+      newPIdent("hello"), none(NType), @[], newPIdent("impl"))

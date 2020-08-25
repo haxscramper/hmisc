@@ -28,11 +28,11 @@ func nilToDiscard*(n: NimNode): NimNode =
   if n == nil: nnkDiscardStmt.newTree(newEmptyNode()) else: n
 
 
-func toNNK*(kind: NimNodeKind): TNodeKind =
+func toNK*(kind: NimNodeKind): TNodeKind =
   TNodeKind(kind)
 
 func newTree*(kind: NimNodeKind, subnodes: seq[PNode]): PNode =
-  kind.toNNK().newTree(subnodes)
+  kind.toNK().newTree(subnodes)
 
 func newAccQuoted*(args: varargs[NimNode]): NimNode =
   nnkAccQuoted.newTree(args)
@@ -55,6 +55,24 @@ func newPrefix*(op: string, expr: PNode): PNode =
 func newReturn*(expr: NimNode): NimNode = nnkReturnStmt.newTree(@[expr])
 func newReturn*(expr: PNode): PNode = nnkReturnStmt.newTree(@[expr])
 
+func newNIdent*[NNode](str: string): NNode =
+  when NNode is NimNode:
+    newIdentNode(str)
+  else:
+    newPIdent(str)
+
+func newNTree*[NNode](
+  kind: NimNodeKind, subnodes: varargs[NNode]): NNode =
+  when NNode is NimNode:
+    newTree(kind, subnodes)
+  else:
+    newTree(kind.toNK(), subnodes)
+
+func newEmptyNNode*[NNode](): NNode =
+  when NNode is NimNode:
+    newEmptyNode()
+  else:
+    newTree(nkEmpty)
 
 
 
@@ -205,28 +223,42 @@ func toNIdentDefs*(
   for (name, atype, nvd) in args:
     result.add NIdentDefs[NimNode](varname: name, vtype: atype, kind: nvd)
 
+func toNNode*[NNode](ntype: NType): NNode =
+  if ntype.genParams.len == 0:
+    return newNIdent[NNode](ntype.head)
+  else:
+    result = newNTree[NNode](nnkBracketExpr, newNIdent[NNode](ntype.head))
+    for param in ntype.genParams:
+      result.add toNNode[NNode](param)
+
+
 func toNimNode*(ntype: NType): NimNode =
   ## Convert `NType` to nim node
-  if ntype.genParams.len == 0:
-    return ident(ntype.head)
-  else:
-    result = nnkBracketExpr.newTree(newIdentNode(ntype.head))
-    for param in ntype.genParams:
-      result.add param.toNimNode()
+  toNNode[NimNode](ntype)
 
-func toFormalParam*(nident: NIdentDefs): NimNode =
+func toPNode*(ntype: NType): PNode =
+  ## Convert `NType` to `PNode`
+  toNNode[PNode](ntype)
+
+
+func toNFormalParam*[NNode](nident: NIdentDefs[NNode]): NNode =
   ## Convert to `nnkIdentDefs`
   let typespec =
     case nident.kind:
-      of nvdVar: newTree(nnkVarTy, nident.vtype.toNimNode())
-      of nvdLet: nident.vtype.toNimNode()
-      of nvdConst: newTree(nnkConstTy, nident.vtype.toNimNode())
+      of nvdVar: newNTree[NNode](nnkVarTy, nident.vtype.toNimNode())
+      of nvdLet: toNNode[NNode](nident.vtype)
+      of nvdConst: newNTree[NNode](nnkConstTy, nident.vtype.toNimNode())
 
-  nnkIdentDefs.newTree(
+  newNTree[NNode](
+    nnkIdentDefs,
     newIdentNode(nident.varname),
     typespec,
     newEmptyNode()
   )
+
+func toFormalParam*(nident: NIdentDefs[NimNode]): NimNode =
+  ## Convert to `nnkIdentDefs`
+  toNFormalParam[NimNode](nident)
 
 
 func mkNType*(name: string, gparams: seq[string] = @[]): NType =
@@ -474,13 +506,17 @@ func mkNPragma*(names: varargs[NimNode]): NPragma =
 
 #========================  Other implementation  =========================#
 
+func toNNode*[NNode](pragma: NPragma[NNode]): NNode =
+  if pragma.elements.len == 0:
+    newEmptyNNode[NNode]()
+  else:
+    newTree[NNode](nnkPragma, pragma.elements)
+
+
 func toNimNode*(pragma: NPragma): NimNode =
   ## Convert pragma to nim node. If pragma contains no elements
   ## `EmptyNode` is generated.
-  if pragma.elements.len == 0:
-    newEmptyNode()
-  else:
-    nnkPragma.newTree(pragma.elements)
+  toNNode[NimNode](pragma)
 
 # ~~~~ proc declaration ~~~~ #
 
@@ -520,13 +556,13 @@ macro `~>`*(a, b: untyped): untyped =
   result = createProcType(a, b, mkNPragma("noSideEffect"))
 
 
-func mkProcDeclNode*(
-  procHead: NimNode,
+func mkProcDeclNNode*[NNode](
+  procHead: NNode,
   rtype: Option[NType],
-  args: seq[NIdentDefs],
-  impl: NimNode,
+  args: seq[NIdentDefs[NNode]],
+  impl: NNode,
   pragma: NPragma = NPragma(),
-  exported: bool = true): NimNode =
+  exported: bool = true): NNode =
   ## Generate procedure declaration
   ##
   ## ## Parameters
@@ -540,27 +576,38 @@ func mkProcDeclNode*(
 
   let procHead =
     if exported:
-      nnkPostfix.newTree(ident "*", procHead)
+      newNTree[NNode](nnkPostfix, newNIdent[NNode]("*"), procHead)
     else:
       procHead
 
-  nnkProcDef.newTree(
+  newNTree[NNode](
+    nnkProcDef,
     procHead,
-    newEmptyNode(),
-    newEmptyNode(),  # XXXX generic type parameters,
-    nnkFormalParams.newTree( # arguments
+    newEmptyNNode[NNode](),
+    newEmptyNNode[NNode](),  # XXXX generic type parameters,
+    newNTree[NNode]( # arguments
+      nnkFormalParams,
       @[
         rtype.isSome().tern(
           rtype.get().toNimNode(),
-          newEmptyNode()
+          newEmptyNNode[NNode]()
         )
       ] &
-      args.mapIt(it.toFormalParam())
+      args.mapIt(toNFormalParam[NNode](it))
     ),
-    pragma.toNimNode(),
-    newEmptyNode(), # XXXX reserved slot,
+    toNNode[NNode](pragma),
+    newEmptyNNode[NNode](), # XXXX reserved slot,
     impl,
   )
+
+
+func mkProcDeclNode*(
+  procHead: NimNode, rtype: Option[NType], args: seq[NIdentDefs[NimNode]],
+  impl: NimNode, pragma: NPragma = NPragma(), exported: bool = true
+     ): NimNode =
+
+  mkProcDeclNNode[NimNode](
+    procHead, rtype, args, impl, pragma, exported)
 
 func mkProcDeclNode*(
   head: NimNode,
