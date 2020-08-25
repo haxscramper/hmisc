@@ -245,15 +245,15 @@ func toNFormalParam*[NNode](nident: NIdentDefs[NNode]): NNode =
   ## Convert to `nnkIdentDefs`
   let typespec =
     case nident.kind:
-      of nvdVar: newNTree[NNode](nnkVarTy, nident.vtype.toNimNode())
+      of nvdVar: newNTree[NNode](nnkVarTy, toNNode[NNode](nident.vtype))
       of nvdLet: toNNode[NNode](nident.vtype)
-      of nvdConst: newNTree[NNode](nnkConstTy, nident.vtype.toNimNode())
+      of nvdConst: newNTree[NNode](nnkConstTy, toNNode[NNode](nident.vtype))
 
   newNTree[NNode](
     nnkIdentDefs,
-    newIdentNode(nident.varname),
+    newNIdent[NNode](nident.varname),
     typespec,
-    newEmptyNode()
+    newEmptyNNode[NNode]()
   )
 
 func toFormalParam*(nident: NIdentDefs[NimNode]): NimNode =
@@ -463,11 +463,11 @@ macro enumNames*(en: typed): seq[string] =
 #*************************************************************************#
 #===========================  Type definition  ===========================#
 type
-  Pragma*[Node] = object
+  Pragma*[NNode] = object
     ## Body of pragma annotation;
     kind*: ObjectAnnotKind ## Position in object - no used when
                            ## generatic functions etc.
-    elements*: seq[Node] ## List of pragma elements. For annotation
+    elements*: seq[NNode] ## List of pragma elements. For annotation
                          ## like `{.hello, world.}` this will contain
                          ## `@[hello, world]`
 
@@ -506,7 +506,7 @@ func mkNPragma*(names: varargs[NimNode]): NPragma =
 
 #========================  Other implementation  =========================#
 
-func toNNode*[NNode](pragma: NPragma[NNode]): NNode =
+func toNNode*[NNode](pragma: Pragma[NNode]): NNode =
   if pragma.elements.len == 0:
     newEmptyNNode[NNode]()
   else:
@@ -561,7 +561,7 @@ func mkProcDeclNNode*[NNode](
   rtype: Option[NType],
   args: seq[NIdentDefs[NNode]],
   impl: NNode,
-  pragma: NPragma = NPragma(),
+  pragma: Pragma[NNode] = Pragma[NNode](),
   exported: bool = true): NNode =
   ## Generate procedure declaration
   ##
@@ -589,7 +589,7 @@ func mkProcDeclNNode*[NNode](
       nnkFormalParams,
       @[
         rtype.isSome().tern(
-          rtype.get().toNimNode(),
+          toNNode[NNode](rtype.get()),
           newEmptyNNode[NNode]()
         )
       ] &
