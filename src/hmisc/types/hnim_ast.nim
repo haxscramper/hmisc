@@ -8,6 +8,9 @@ import hmisc/types/colorstring
 import sequtils, colors, macros, tables, strutils,
        terminal, options, parseutils, sets, strformat
 
+import compiler/[ast, idents, lineinfos]
+
+type NNode = NimNode | PNode
 
 func `$!`*(n: NimNode): string =
   ## NimNode stringification that does not blow up in your face on
@@ -25,6 +28,11 @@ func nilToDiscard*(n: NimNode): NimNode =
   if n == nil: nnkDiscardStmt.newTree(newEmptyNode()) else: n
 
 
+func toNNK*(kind: NimNodeKind): TNodeKind =
+  TNodeKind(kind)
+
+func newTree*(kind: NimNodeKind, subnodes: seq[PNode]): PNode =
+  kind.toNNK().newTree(subnodes)
 
 func newAccQuoted*(args: varargs[NimNode]): NimNode =
   nnkAccQuoted.newTree(args)
@@ -32,14 +40,22 @@ func newAccQuoted*(args: varargs[NimNode]): NimNode =
 func newAccQuoted*(args: varargs[string]): NimNode =
   nnkAccQuoted.newTree(args.mapIt(ident it))
 
+proc newPIdent*(str: string): PNode =
+  newIdentNode(PIdent(s: str), TLineInfo())
+
 func newInfix*(op: string, lhs, rhs: NimNode): NimNode =
   nnkInfix.newTree(ident op, lhs, rhs)
 
 func newPrefix*(op: string, expr: NimNode): NimNode =
-  nnkPrefix.newTree(ident op, expr)
+  nnkPrefix.newTree(@[ident op, expr])
 
-func newReturn*(expr: NimNode): NimNode =
-  nnkReturnStmt.newTree(expr)
+func newPrefix*(op: string, expr: PNode): PNode =
+  nnkPrefix.newTree(@[newPIdent op, expr])
+
+func newReturn*(expr: NimNode): NimNode = nnkReturnStmt.newTree(@[expr])
+func newReturn*(expr: PNode): PNode = nnkReturnStmt.newTree(@[expr])
+
+
 
 
 type
@@ -158,34 +174,36 @@ type
     nvdVar
     nvdConst
 
-  NIdentDefs* = object
+  NIdentDefs*[NNode] = object
     ## Identifier declaration
     varname: string
     kind: NVarDeclKind
     vtype: NType
-    value: Option[NimNode]
+    value: Option[NNode]
 
 #=============================  Predicates  ==============================#
 
 #============================  Constructors  =============================#
 func toNIdentDefs*(
-  args: openarray[tuple[name: string, atype: NType]]): seq[NIdentDefs] =
+  args: openarray[tuple[
+    name: string,
+    atype: NType]]): seq[NIdentDefs[NimNode]] =
   ## Convert array of name-type pairs into sequence of `NIdentDefs`.
   ## Each identifier will be immutable (e.g. no `var` annotation).
   for (name, atype) in args:
-    result.add NIdentDefs(varname: name, vtype: atype)
+    result.add NIdentDefs[NimNode](varname: name, vtype: atype)
 
 func toNIdentDefs*(
   args: openarray[tuple[
     name: string,
     atype: NType,
     nvd: NVarDeclKind
-     ]]): seq[NIdentDefs] =
+     ]]): seq[NIdentDefs[NimNode]] =
   ## Convert array of name-type pairs into sequence of `NIdentDefs`.
   ## Each identifier must supply mutability parameter (e.g `nvdLet` or
   ## `vndVar`)
   for (name, atype, nvd) in args:
-    result.add NIdentDefs(varname: name, vtype: atype, kind: nvd)
+    result.add NIdentDefs[NimNode](varname: name, vtype: atype, kind: nvd)
 
 func toNimNode*(ntype: NType): NimNode =
   ## Convert `NType` to nim node
@@ -232,11 +250,11 @@ func mkNType*(impl: NimNode): NType =
       raiseAssert("#[ IMPLEMENT ]#")
 
 func mkVarDecl*(name: string, vtype: NType,
-                kind: NVarDeclKind = nvdLet): NIdentDefs =
+                kind: NVarDeclKind = nvdLet): NIdentDefs[NimNode] =
   ## Declare varaible `name` of type `vtype`
   # TODO initalization value, pragma annotations and `isGensym`
   # parameter
-  NIdentDefs(varname: name, kind: kind, vtype: vtype)
+  NIdentDefs[NimNode](varname: name, kind: kind, vtype: vtype)
 
 func newVarStmt*(varname: string, vtype: NType, val: NimNode): NimNode =
   nnkVarSection.newTree(

@@ -3,6 +3,8 @@ import ../src/hmisc/types/hnim_ast
 import ../src/hmisc/helpers
 import ../src/hmisc/macros/obj_field_macros
 
+import compiler/renderer
+
 import hpprint
 
 #===========================  implementation  ============================#
@@ -222,3 +224,9 @@ suite "HNimAst":
               q: char
             else:
               hello: seq[seq[int]]
+
+suite "working with PNode":
+  test "Core":
+    echo newPIdent("hello")
+    echo newReturn(newPIdent("qqqq"))
+    echo newPrefix("!", newPIdent("eee"))
