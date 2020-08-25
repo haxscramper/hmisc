@@ -235,4 +235,12 @@ suite "working with PNode":
 
     echo mkProcDeclNode(newPIdent("nice"), {
       "arg1" : mkNType("HHH")
-    }, newPIdent("implementation"))
+    }, newPIdent("implementation"), comment = "some documentation")
+
+    block:
+      var decl = mkProcDeclNode(newPIdent("nice"), [
+        ("arg1", mkNType("HHH"), nvdVar)
+      ], newPIdent("implementation"))
+
+      decl.comment = "hello world"
+      echo decl

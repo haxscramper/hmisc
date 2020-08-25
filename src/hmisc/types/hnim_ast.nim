@@ -68,6 +68,13 @@ func newNTree*[NNode](
   else:
     newTree(kind.toNK(), subnodes)
 
+func newCommentStmtNNode*[NNode](comment: string): NNode =
+  when NNode is NimNode:
+    return newCommentStmtNode(comment)
+  else:
+    result = newNTree[NNode](nnkCommentStmt)
+    result.comment = comment
+
 func newEmptyNNode*[NNode](): NNode =
   when NNode is NimNode:
     newEmptyNode()
@@ -562,7 +569,8 @@ func mkProcDeclNNode*[NNode](
   args: seq[NIdentDefs[NNode]],
   impl: NNode,
   pragma: Pragma[NNode] = Pragma[NNode](),
-  exported: bool = true): NNode =
+  exported: bool = true,
+  comment: string = ""): NNode =
   ## Generate procedure declaration
   ##
   ## ## Parameters
@@ -579,6 +587,18 @@ func mkProcDeclNNode*[NNode](
       newNTree[NNode](nnkPostfix, newNIdent[NNode]("*"), procHead)
     else:
       procHead
+
+  let impl =
+    if comment.len > 0:
+      newNTree[NNode](
+        nnkStmtList,
+        newCommentStmtNNode[NNode](comment),
+        impl
+      )
+    else:
+      impl
+
+
 
   newNTree[NNode](
     nnkProcDef,
@@ -603,25 +623,27 @@ func mkProcDeclNNode*[NNode](
 
 func mkProcDeclNode*(
   procHead: NimNode, rtype: Option[NType], args: seq[NIdentDefs[NimNode]],
-  impl: NimNode, pragma: NPragma = NPragma(), exported: bool = true
-     ): NimNode =
+  impl: NimNode, pragma: NPragma = NPragma(), exported: bool = true,
+  comment: string = ""): NNode =
 
   mkProcDeclNNode[NimNode](
-    procHead, rtype, args, impl, pragma, exported)
+    procHead, rtype, args, impl, pragma, exported, comment)
 
 func mkProcDeclNode*[NNode](
   head: NNode,
   args: openarray[tuple[name: string, atype: NType]],
   impl: NNode,
   pragma: Pragma[NNode] = Pragma[NNode](),
-  exported: bool = true): NNode =
+  exported: bool = true,
+  comment: string = ""): NNode =
   mkProcDeclNNode(
     head,
     none(NType),
     toNIdentDefs[NNode](args),
     impl,
     pragma,
-    exported
+    exported,
+    comment
   )
 
 
@@ -631,14 +653,16 @@ func mkProcDeclNode*(
   args: openarray[tuple[name: string, atype: NType]],
   impl: NNode,
   pragma: Pragma[NNode] = Pragma[NNode](),
-  exported: bool = true): NNode=
+  exported: bool = true,
+  comment: string = ""): NNode =
   mkProcDeclNNode(
     newNTree[NNode](nnkAccQuoted, accq),
     some(rtype),
     toNIdentDefs[NNode](args),
     impl,
     pragma,
-    exported
+    exported,
+    comment
   )
 
 
@@ -647,14 +671,16 @@ func mkProcDeclNode*(
   args: openarray[tuple[name: string, atype: NType]],
   impl: NNode,
   pragma: Pragma[NNode] = Pragma[NNode](),
-  exported: bool = true): NNode=
+  exported: bool = true,
+  comment: string = ""): NNode =
   mkProcDeclNNode(
     newNTree[NNode](nnkAccQuoted, accq),
     none(NType),
     toNIdentDefs[NNode](args),
     impl,
     pragma,
-    exported
+    exported,
+    comment
   )
 
 
@@ -664,14 +690,16 @@ func mkProcDeclNode*[NNode](
   args: openarray[tuple[name: string, atype: NType]],
   impl: NNode,
   pragma: Pragma[NNode] = Pragma[NNode](),
-  exported: bool = true): NNode =
+  exported: bool = true,
+  comment: string = ""): NNode =
   mkProcDeclNNode(
     head,
     some(rtype),
     toNIdentDefs[NNode](args),
     impl,
     pragma,
-    exported
+    exported,
+    comment
   )
 
 func mkProcDeclNode*[NNode](
@@ -683,14 +711,16 @@ func mkProcDeclNode*[NNode](
   ],
   impl: NNode,
   pragma: Pragma[NNode] = Pragma[NNode](),
-  exported: bool = true): NNode =
+  exported: bool = true,
+  comment: string = ""): NNode =
   mkProcDeclNNode(
     head,
     none(NType),
     toNIdentDefs[NNode](args),
     impl,
     pragma,
-    exported
+    exported,
+    comment
   )
 
 #===========================  Pretty-printing  ===========================#
