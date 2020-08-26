@@ -195,6 +195,24 @@ func commonPrefix*(strs: seq[string]): string =
       else:
         return
 
+func dropSubseq*[T](inseq, subseq: openarray[T]): seq[T] =
+  var i = 0
+  while i < inseq.len:
+    var matches: bool = true
+    for shift in 0 ..< subseq.len:
+      if (i + shift < inseq.len) and (inseq[i + shift] != subseq[shift]):
+        matches = false
+        break
+
+    if not matches:
+      result.add inseq[i]
+      inc i
+    else:
+      i += subseq.len
+
+func dropSubstr*(instr, substr: string): string =
+  instr.dropSubseq(substr).join("")
+
 func dropCommonPrefix*(
   strs: seq[string], dropSingle: bool = true): seq[string] =
   if not dropSingle and strs.len == 1:

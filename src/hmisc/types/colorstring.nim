@@ -63,8 +63,9 @@ func contains*(ps: PrintStyling, s: Style): bool =
   ps.style.contains(s)
 
 func initPrintStyling*(fg: ForegroundColor = fgDefault,
-                       bg: BackgroundColor = bgDefault): PrintStyling =
-  PrintStyling(fg: fg, bg: bg)
+                       bg: BackgroundColor = bgDefault,
+                       style: set[Style] = {}): PrintStyling =
+  PrintStyling(fg: fg, bg: bg, style: style)
 
 
 func uc*(s: static[string]): Rune = runeAt(s, 0)
@@ -172,6 +173,14 @@ func `$`*(colored: ColoredString): string =
 func lispRepr*(colstr: ColoredString): string =
   fmt("(\"{colstr.str}\" :bg {colstr.bg} :fg {colstr.fg} :style {colstr.style})")
 
+func toStyled*(
+  str: string,
+  style: PrintStyling,
+  colorize: bool = not defined(plainStdout)): string =
+  if colorize:
+    $ColoredString(str: str, styling: style)
+  else:
+    str
 
 func toRed*(str: string, style: set[Style] = {}): string =
   $initColoredString(str, style = style, fg = fgRed)
@@ -196,6 +205,12 @@ func toDefault*(
   $initColoredString(
     str, style = if colorize: style else: {}, fg = fgDefault)
 
+
+func toBlue*(str: string, style: set[Style] = {}): string =
+  $initColoredString(str, fg = fgBlue, style = style)
+
+func toBlue*(str: string, color: bool): string =
+  $initColoredString(str, fg = (if color: fgBlue else: fgDefault))
 
 func toRed*(str: string, color: bool): string =
   $initColoredString(str, fg = (if color: fgRed else: fgDefault))

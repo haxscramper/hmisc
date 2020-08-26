@@ -764,3 +764,11 @@ suite "Misc algorithms":
     assertEq @["--"].dropCommonPrefix(), @[""]
     assertEq @["a@", "a$"].dropCommonPrefix(), @["@", "$"]
     assertEq @["---"].dropCommonPrefix(false), @["---"]
+
+  test "{dropSubseq}":
+    assertEq @["C", "X", "X", "E"].dropSubseq(@["C", "X", "X"]), @["E"]
+    assertEq @["C", "X"].dropSubseq(@[]), @["C", "X"]
+    assertEq emptySeq[string]().dropSubseq(@["E"]), emptySeq[string]()
+    assertEq "eCXXe".splitCamel().dropSubseq(@["C", "X", "X"]), @["e", "e"]
+    assertEq "Eeeee".dropSubseq("eee"), "Ee"
+    assertEq dropSubstr("--+==", "-+="), "-="
