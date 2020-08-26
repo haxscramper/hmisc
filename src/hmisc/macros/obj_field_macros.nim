@@ -1,6 +1,7 @@
 import macroutils, sugar, options
 import strutils, strformat, macros, sequtils
 
+import compiler/[ast, renderer]
 import ../algo/halgorithm
 import ../helpers
 import ../types/[hnim_ast, colorstring]
@@ -27,26 +28,26 @@ func idxTreeRepr*(inputNode: NimNode): string =
 
   return aux(inputNode, @[]).join("\n")
 
-proc getFields*[A](
-  node: NimNode, cb: ParseCb[A]): seq[ObjectField[NimNode, A]]
+proc getFields*[NNode, A](
+  node: NNode, cb: ParseCb[NNode, A]): seq[ObjectField[NNode, A]]
 
-proc getBranches*[A](
-  node: NimNode, cb: ParseCb[A]): seq[ObjectBranch[NimNode, A]] =
-  assert node.kind == nnkRecCase, &"Cannot get branches from node kind {node.kind}"
+proc getBranches*[NNode, A](
+  node: NNode, cb: ParseCb[NNode, A]): seq[ObjectBranch[NNode, A]] =
+  assert node.kind.toNNK() == nnkRecCase, &"Cannot get branches from node kind {node.kind}"
   let caseType = $node[0][1]
-  var ofValues: seq[NimNode]
+  var ofValues: seq[NNode]
   for branch in node[1..^1]:
-    case branch.kind:
+    case branch.kind.toNNK():
       of nnkOfBranch:
         let ofSet = (newTree(nnkCurly, branch[0..^2])).normalizeSet()
         ofValues.add ofSet
-        result.add ObjectBranch[NimNode, A](
+        result.add ObjectBranch[NNode, A](
           ofValue: ofSet,
           flds: branch[^1].getFields(cb),
           isElse: false
         )
       of nnkElse:
-        result.add ObjectBranch[NimNode, A](
+        result.add ObjectBranch[NNode, A](
           flds: branch[0].getFields(cb),
           isElse: true,
           notOfValue: ofValues.joinSets()
@@ -55,12 +56,12 @@ proc getBranches*[A](
         raiseAssert(&"Unexpected branch kind {branch.kind}")
 
 
-proc getFieldDescription(
-  node: NimNode): tuple[name: string, fldType: NType] =
-  case node.kind:
+proc getFieldDescription[NNode](
+  node: NNode): tuple[name: string, fldType: NType] =
+  case node.kind.toNNK():
     of nnkIdentDefs:
       let name: string =
-        case node[0].kind:
+        case node[0].kind.toNNK():
           of nnkPostfix:
             $node[0][1]
           of nnkPragmaExpr:
@@ -75,35 +76,42 @@ proc getFieldDescription(
       raiseAssert(
         &"Cannot get field description from node of kind {node.kind}")
 
-proc getFields*[A](
-  node: NimNode, cb: ParseCb[A]): seq[ObjectField[NimNode, A]] =
+proc getFields*[NNode, A](
+  node: NNode, cb: ParseCb[NNode, A]): seq[ObjectField[NNode, A]] =
   # TODO ignore `void` fields
-  case node.kind:
+  case node.kind.toNNK():
     of nnkObjConstr:
       # echo node.treeRepr()
       return getFields(node[0], cb)
     of nnkSym, nnkCall, nnkDotExpr:
-      let kind = node.getTypeImpl().kind
-      case kind:
-        of nnkBracketExpr:
-          let typeSym = node.getTypeImpl()[1]
-          result = getFields(typeSym.getTypeImpl(), cb)
-        of nnkObjectTy, nnkRefTy, nnkTupleTy, nnkTupleConstr:
-          result = getFields(node.getTypeImpl(), cb)
-        else:
-          raiseAssert("Unknown parameter kind: " & $kind)
+      when NNode is PNode:
+        raiseAssert("Prasing Pnode from symbol is not supported")
+      else:
+        let kind = node.getTypeImpl().kind
+        case kind:
+          of nnkBracketExpr:
+            let typeSym = node.getTypeImpl()[1]
+            result = getFields(typeSym.getTypeImpl(), cb)
+          of nnkObjectTy, nnkRefTy, nnkTupleTy, nnkTupleConstr:
+            result = getFields(node.getTypeImpl(), cb)
+          else:
+            raiseAssert("Unknown parameter kind: " & $kind)
     of nnkObjectTy:
       return node[2].getFields(cb)
     of nnkRefTy:
-      return node.getTypeImpl()[0].getImpl()[2][0].getFields(cb)
+      when NNode is PNode:
+        raiseAssert("Parsing PNode from nnkRefTy is not supported")
+      else:
+        return node.getTypeImpl()[0].getImpl()[2][0].getFields(cb)
     of nnkRecList:
-      for elem in node:
-        if elem.kind notin {nnkRecList, nnkNilLit}:
+      mixin items
+      for elem in items(node):
+        if elem.kind.toNNK() notin {nnkRecList, nnkNilLit}:
           let descr = getFieldDescription(elem)
-          case elem.kind:
+          case elem.kind.toNNK():
             of nnkRecCase: # Case field
               # NOTE possible place for `cb` callbac
-              result.add ObjectField[NimNode, A](
+              result.add ObjectField[NNode, A](
                 isTuple: false,
                 isKind: true,
                 branches: getBranches(elem, cb),
@@ -118,23 +126,23 @@ proc getFields*[A](
               discard
 
     of nnkTupleTy:
-      for fld in node:
+      for fld in items(node):
         result.add fld.getFields(cb)
     of nnkTupleConstr:
-      for idx, sym in node:
-        result.add ObjectField[NimNode, A](
+      for idx, sym in pairs(node):
+        result.add ObjectField[NNode, A](
           isTuple: true, tupleIdx: idx# , value: initObjTree[NimNode]()
         )
 
     of nnkIdentDefs:
       let descr = getFieldDescription(node)
-      result.add ObjectField[NimNode, A](
+      result.add ObjectField[NNode, A](
         isTuple: false,
         isKind: false,
         name: descr.name,
         fldType: descr.fldType,
-        value: (node[2].kind != nnkEmpty).tern(
-          some(node[2]), none(NimNode))
+        value: (node[2].kind.toNNK() != nnkEmpty).tern(
+          some(node[2]), none(NNode))
       )
 
       when not (A is void):
@@ -232,25 +240,26 @@ func parseNimPragma*(node: NimNode, position: ObjectAnnotKind): NPragma =
 
 
 
-proc parseObject*[A](node: NimNode, cb: ParseCb[A]): Object[NimNode, A] =
+proc parseObject*[NNode, A](node: NNode, cb: ParseCb[NNode, A]): Object[NNode, A] =
   node.expectKind nnkTypeDef
-  result = Object[NimNode, A](
+  result = Object[NNode, A](
     flds: node[2].getFields(cb)
   )
 
-  case node[0].kind:
+  case node[0].kind.toNNK():
     of nnkPragmaExpr:
-      case node[0][0].kind:
+      case node[0][0].kind.toNNK():
         of nnkPostfix:
-          result.name = mkNType(node[0][0][1].strVal())
+          result.name = mkNType(node[0][0][1].strVal)
           result.exported = true
         else:
-          result.name = mkNType(node[0][0].strVal())
+          result.name = mkNType(node[0][0].strVal)
     else:
-      result.name = mkNType(node[0].strVal())
+      result.name = mkNType(node[0].strVal)
 
-  if node[0].kind == nnkPragmaExpr and cb != nil:
-    result.annotation = some cb(node[0][1], oakObjectToplevel)
+  when not (A is void):
+    if node[0].kind.toNNK() == nnkPragmaExpr and cb != nil:
+      result.annotation = some cb(node[0][1], oakObjectToplevel)
 
 
 macro makeFieldsLiteral*(node: typed): untyped =

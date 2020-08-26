@@ -10,6 +10,9 @@ import sequtils, colors, macros, tables, strutils,
 
 import compiler/[ast, idents, lineinfos]
 
+import pnode_parse
+export pnode_parse
+
 type NNode = NimNode | PNode
 
 func `$!`*(n: NimNode): string =
@@ -30,6 +33,10 @@ func nilToDiscard*(n: NimNode): NimNode =
 
 func toNK*(kind: NimNodeKind): TNodeKind =
   TNodeKind(kind)
+
+func toNNK*(kind: TNodeKind): NimNodeKind = NimNodeKind(kind)
+func toNNK*(kind: NimNodeKind): NimNodeKind = kind
+
 
 func newTree*(kind: NimNodeKind, subnodes: seq[PNode]): PNode =
   kind.toNK().newTree(subnodes)
@@ -54,6 +61,11 @@ func newPrefix*(op: string, expr: PNode): PNode =
 
 func newReturn*(expr: NimNode): NimNode = nnkReturnStmt.newTree(@[expr])
 func newReturn*(expr: PNode): PNode = nnkReturnStmt.newTree(@[expr])
+func expectKind*(expr: PNode, kind: NimNodeKind): void =
+  if expr.kind != kind.toNK():
+    raiseAssert(
+      &"Unexpected node kind: got {expr.kind}, but expected {kind}")
+
 
 func newNIdent*[NNode](str: string): NNode =
   when NNode is NimNode:
@@ -103,21 +115,25 @@ type
 
 #=======================  Enum set normalization  ========================#
 
-proc normalizeSetImpl(node: NimNode): seq[NimNode] =
-   case node.kind:
+proc normalizeSetImpl[NNode](node: NNode): seq[NNode] =
+   case node.kind.toNNK():
     of nnkIdent, nnkIntLit, nnkCharLit:
       return @[ node ]
     of nnkCurly:
-      for subnode in node:
+      mixin items
+      for subnode in items(node):
         result &= normalizeSetImpl(subnode)
     of nnkInfix:
-      assert node[0] == ident("..")
+      assert node[0].strVal == ".."
       result = @[ node ]
     else:
-      raiseAssert("Cannot normalize set: " & $node.lispRepr())
+      when NNode is PNode:
+        raiseAssert("Cannot normalize set: ")
+      else:
+        raiseAssert("Cannot normalize set: " & $node.lispRepr())
 
 
-proc normalizeSet*(node: NimNode, forcebrace: bool = false): NimNode =
+proc normalizeSet*[NNode](node: NNode, forcebrace: bool = false): NNode =
   ## Convert any possible set representation (e.g. `{1}`, `{1, 2}`,
   ## `{2 .. 6}` as well as `2, 3` (in case branches). Return
   ## `nnkCurly` node with all values listed one-by-one (if identifiers
@@ -126,13 +142,13 @@ proc normalizeSet*(node: NimNode, forcebrace: bool = false): NimNode =
   if vals.len == 1 and not forcebrace:
     return vals[0]
   else:
-    return nnkCurly.newTree(vals)
+    return newNTree[NNode](nnkCurly, vals)
 
-func joinSets*(nodes: seq[NimNode]): NimNode =
+func joinSets*[NNode](nodes: seq[NNode]): NNode =
   ## Concatenate multiple sets in one element. Result will be wrapped
   ## in `Curly` node.
   let vals = nodes.mapIt(it.normalizeSetImpl()).concat()
-  result = nnkCurly.newTree(vals)
+  result = newTree[NNode](nnkCurly, vals)
   # debugecho $!result
 
 proc parseEnumSet*[Enum](
@@ -284,16 +300,31 @@ func mkNType*(name: string, gparams: openarray[NType]): NType =
   ## Make `NType`
   NType(head: name, genParams: toSeq(gparams))
 
-func mkNType*(impl: NimNode): NType =
+func mkNTypeNNode*[NNode](impl: NNode): NType =
   ## Convert type described in `NimNode` into `NType`
-  case impl.kind:
+  case impl.kind.toNNK():
     of nnkBracketExpr:
-      mkNType(impl[0].strVal(), impl[1..^1].mapIt(it.mkNType()))
+      let head = impl[0].strVal
+      when NNode is PNode:
+        mkNType(head, impl.sons[1..^1].mapIt(mkNTypeNNode(it)))
+      else:
+        mkNType(head, impl[1..^1].mapIt(mkNTypeNNode(it)))
     of nnkIdent, nnkSym:
       mkNType(impl.strVal)
     else:
-      debugecho impl.treeRepr
+      # debugecho impl.treeRepr
       raiseAssert("#[ IMPLEMENT ]#")
+
+template `[]`*(node: PNode, slice: HSLice[int, BackwardsIndex]): untyped =
+  `[]`(node.sons, slice)
+
+func mkNType*(impl: NimNode): NType =
+  ## Convert type described in `NimNode` into `NType`
+  mkNTypeNNode(impl)
+
+func mkNType*(impl: PNode): NType =
+  ## Convert type described in `NimNode` into `NType`
+  mkNTypeNNode(impl)
 
 func mkVarDecl*(name: string, vtype: NType,
                 kind: NVarDeclKind = nvdLet): NIdentDefs[NimNode] =
@@ -415,13 +446,6 @@ func isEnum*(en: NimNode): bool =
   en.getTypeImpl().kind == nnkEnumTy
 
 #============================  Constructors  =============================#
-dumpAstGen:
-  type
-    En = enum
-      f = 21
-      we = 122
-      e
-
 func toNNode*[NNode](en: Enum[NNode], standalone: bool = false): NNode =
   let flds = collect(newSeq):
     for val in en.values:
@@ -784,16 +808,11 @@ func mkProcDeclNode*[NNode](
 #*************************************************************************#
 #===========================  Type definition  ===========================#
 type
-  ParseCb*[Annot] = proc(pragma: NimNode, kind: ObjectAnnotKind): Annot
+  ParseCb*[NNode, Annot] = proc(
+    pragma: NNode, kind: ObjectAnnotKind): Annot
   ObjectBranch*[Node, Annot] = object
     ## Single branch of case object
     annotation*: Option[Annot]
-    # IDEA three possible parameters: `NimNode` (for compile-time
-    # operations), `PNode` (for analysing code at runtime) and.
-    # when Node is NimNode:
-    # ofValue*: Node ## Exact AST used in field branch
-    # else:
-    # TODO move `ofValue` under `isElse` case
     flds*: seq[ObjectField[Node, Annot]] ## Fields in the case branch
     case isElse*: bool ## Whether this branch is placed under `else` in
                   ## case object.
@@ -827,7 +846,7 @@ type
       of false:
         discard
 
-  Object*[Node, Annot] = object
+  Object*[NNode, Annot] = object
     # TODO:DOC
     # TODO `flatFields` iterator to get all values with corresponding
     # parent `ofValue` branches. `for fld, ofValues in obj.flatFields()`
@@ -839,18 +858,18 @@ type
     # ## tuple does not have a name for fields)
     name*: NType ## Name for an object
     # TODO rename to objType
-    flds*: seq[ObjectField[Node, Annot]]
+    flds*: seq[ObjectField[NNode, Annot]]
 
   # FieldBranch*[Node] = ObjectBranch[Node, void]
   # Field*[Node] = ObjectField[Node, void]
 
-  ObjectPathElem*[Node, Annot] = object
-    kindField*: ObjectField[Node, Annot]
+  ObjectPathElem*[NNode, Annot] = object
+    kindField*: ObjectField[NNode, Annot]
     case isElse*: bool
       of true:
-        notOfValue*: Node
+        notOfValue*: NNode
       of false:
-        ofValue*: Node
+        ofValue*: NNode
 
 
   NBranch*[A] = ObjectBranch[NimNode, A]
@@ -862,7 +881,8 @@ type
   # PragmaField*[Node] = ObjectField[Node, Pragma[Node]]
   # NPragmaField* = PragmaField[NimNode]
 
-const noParseCb*: ParseCb[void] = nil
+const noParseCb*: ParseCb[NimNode, void] = nil
+const noParseCbPNode*: ParseCb[PNode, void] = nil
 
 
 
@@ -874,13 +894,13 @@ func markedAs*(fld: NField[NPragma], str: string): bool =
 
 # ~~~~ each field mutable ~~~~ #
 
-func eachFieldMut*[Node, A](
-  obj: var Object[Node, A],
-  cb: (var ObjectField[Node, A] ~> void)): void
+func eachFieldMut*[NNode, A](
+  obj: var Object[NNode, A],
+  cb: (var ObjectField[NNode, A] ~> void)): void
 
-func eachFieldMut*[Node, A](
-  branch: var ObjectBranch[Node, A],
-  cb: (var ObjectField[Node, A] ~> void)): void =
+func eachFieldMut*[NNode, A](
+  branch: var ObjectBranch[NNode, A],
+  cb: (var ObjectField[NNode, A] ~> void)): void =
   ## Execute callback on each field in mutable object branch,
   ## recursively.
   for fld in mitems(branch.flds):
@@ -890,9 +910,9 @@ func eachFieldMut*[Node, A](
         eachFieldMut(branch, cb)
 
 
-func eachFieldMut*[Node, A](
-  obj: var Object[Node, A],
-  cb: (var ObjectField[Node, A] ~> void)): void =
+func eachFieldMut*[NNode, A](
+  obj: var Object[NNode, A],
+  cb: (var ObjectField[NNode, A] ~> void)): void =
   ## Execute callback on each field in mutable object, recursively.
   for fld in mitems(obj.flds):
     cb(fld)
@@ -902,8 +922,8 @@ func eachFieldMut*[Node, A](
 
 # ~~~~ each annotation mutable ~~~~ #
 
-func eachAnnotMut*[Node, A](
-  branch: var ObjectBranch[Node, A], cb: (var Option[A] ~> void)): void =
+func eachAnnotMut*[NNode, A](
+  branch: var ObjectBranch[NNode, A], cb: (var Option[A] ~> void)): void =
   ## Execute callback on each annotation in mutable branch,
   ## recursively - all fields in all branches are visited.
   for fld in mitems(branch.flds):
@@ -912,8 +932,8 @@ func eachAnnotMut*[Node, A](
       for branch in mitems(fld.branches):
         eachAnnotMut(branch, cb)
 
-func eachAnnotMut*[Node, A](
-  obj: var Object[Node, A], cb: (var Option[A] ~> void)): void =
+func eachAnnotMut*[NNode, A](
+  obj: var Object[NNode, A], cb: (var Option[A] ~> void)): void =
   ## Execute callback on each annotation in mutable object,
   ## recurisively - all fields and subfields are visited. Callback
   ## runs on both kind and non-kind fields. Annotation is not
@@ -931,13 +951,13 @@ func eachAnnotMut*[Node, A](
 
 # ~~~~ each field immutable ~~~~ #
 
-func eachField*[Node, A](
-  obj: Object[Node, A],
-  cb: (ObjectField[Node, A] ~> void)): void
+func eachField*[NNode, A](
+  obj: Object[NNode, A],
+  cb: (ObjectField[NNode, A] ~> void)): void
 
-func eachField*[Node, A](
-  branch: ObjectBranch[Node, A],
-  cb: (ObjectField[Node, A] ~> void)): void =
+func eachField*[NNode, A](
+  branch: ObjectBranch[NNode, A],
+  cb: (ObjectField[NNode, A] ~> void)): void =
   ## Execute callback on each field in branch, recursively
   for fld in items(branch.flds):
     cb(fld)
@@ -946,9 +966,9 @@ func eachField*[Node, A](
         eachField(branch, cb)
 
 
-func eachField*[Node, A](
-  obj: Object[Node, A],
-  cb: (ObjectField[Node, A] ~> void)): void =
+func eachField*[NNode, A](
+  obj: Object[NNode, A],
+  cb: (ObjectField[NNode, A] ~> void)): void =
   ## Execute callback on each field in object, recurisively.
   for fld in items(obj.flds):
     cb(fld)

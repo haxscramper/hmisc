@@ -9,7 +9,15 @@ import ../src/hmisc/types/[hnim_ast, colorstring]
 import unittest
 
 suite "Case object field iteration":
-  discard
+  test "{parseObject} parse at runtime":
+    let instr = """
+type
+  U = object
+    f1: int
+"""
+
+    let obj = parseObject(parsePNodeStr(instr), noParseCbPnode)
+
 
   test "{makeFieldsLiteral} No case fields :macro:":
     type
@@ -456,3 +464,4 @@ suite "Parallel field pairs":
 
       hackPrivateParallelFieldPairs(a, b):
         discard
+
