@@ -68,6 +68,9 @@ func newNTree*[NNode](
   else:
     newTree(kind.toNK(), subnodes)
 
+func newPTree*(kind: NimNodeKind, subnodes: varargs[PNode]): PNode =
+  newTree(kind.toNK(), subnodes)
+
 func newCommentStmtNNode*[NNode](comment: string): NNode =
   when NNode is NimNode:
     return newCommentStmtNode(comment)
@@ -201,10 +204,12 @@ type
 
   NIdentDefs*[NNode] = object
     ## Identifier declaration
-    varname: string
-    kind: NVarDeclKind
-    vtype: NType
-    value: Option[NNode]
+    varname*: string
+    kind*: NVarDeclKind
+    vtype*: NType
+    value*: Option[NNode]
+
+  PIdentDefs* = NIdentDefs[PNode]
 
 #=============================  Predicates  ==============================#
 
@@ -622,12 +627,21 @@ func mkProcDeclNNode*[NNode](
 
 
 func mkProcDeclNode*(
-  procHead: NimNode, rtype: Option[NType], args: seq[NIdentDefs[NimNode]],
+  head: NimNode, rtype: Option[NType], args: seq[NIdentDefs[NimNode]],
   impl: NimNode, pragma: NPragma = NPragma(), exported: bool = true,
-  comment: string = ""): NNode =
+  comment: string = ""): NimNode =
 
   mkProcDeclNNode[NimNode](
-    procHead, rtype, args, impl, pragma, exported, comment)
+    head, rtype, args, impl, pragma, exported, comment)
+
+
+func mkProcDeclNode*(
+  head: PNode, rtype: Option[NType], args: seq[PIdentDefs],
+  impl: PNode, pragma: Pragma[PNode] = Pragma[PNode](),
+  exported: bool = true, comment: string = ""): PNode =
+
+  mkProcDeclNNode[PNode](
+    head, rtype, args, impl, pragma, exported, comment)
 
 func mkProcDeclNode*[NNode](
   head: NNode,

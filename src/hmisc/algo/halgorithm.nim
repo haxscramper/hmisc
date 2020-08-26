@@ -1,5 +1,5 @@
 import math, strutils, sequtils, random, macros, options, strformat,
-       parseutils
+       parseutils, algorithm
 import std/wordwrap
 
 import hseqdistance
@@ -184,6 +184,25 @@ func addPrefix*(str, pref: string): string =
   else:
     str
 
+func commonPrefix*(strs: seq[string]): string =
+  if strs.len == 0:
+    return ""
+  else:
+    let strs = strs.sorted()
+    for i in 0 ..< min(strs[0].len, strs[^1].len):
+      if strs[0][i] == strs[^1][i]:
+        result.add strs[0][i]
+      else:
+        return
+
+func dropCommonPrefix*(
+  strs: seq[string], dropSingle: bool = true): seq[string] =
+  if not dropSingle and strs.len == 1:
+    return strs
+
+  let pref = strs.commonPrefix()
+  for str in strs:
+    result.add str.dropPrefix(pref)
 
 func splitCamel*(str: string, dropUnderscore: bool = true): seq[string] =
   ## Split abbreviation as **camelCase** identifier
