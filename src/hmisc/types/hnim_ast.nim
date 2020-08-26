@@ -13,7 +13,7 @@ import compiler/[ast, idents, lineinfos]
 import pnode_parse
 export pnode_parse
 
-type NNode = NimNode | PNode
+# type NNode = NimNode | PNode
 
 func `$!`*(n: NimNode): string =
   ## NimNode stringification that does not blow up in your face on
@@ -283,7 +283,7 @@ type
     ntkProc
     ntkRange
 
-  NType* = object
+  NType*[NNode] = object
     ## Representation of generic nim type;
     ##
     ## TODO support `range[a..b]`, generic constraints: `A: B | C` and
@@ -292,10 +292,11 @@ type
     case kind*: NTypeKind
       of ntkIdent:
         head*: string
-        genParams*: seq[NType]
+        genParams*: seq[NType[NNode]]
       of ntkProc:
-        rType*: Option[SingleIt[NType]]
-        argtypes*: seq[NType]
+        rType*: Option[SingleIt[NType[NNode]]]
+        argtypes*: seq[NType[NNode]]
+        pragma*: Pragma[NNode]
       of ntkRange:
         discard
 
@@ -309,7 +310,7 @@ type
     ## Identifier declaration
     varname*: string
     kind*: NVarDeclKind
-    vtype*: NType
+    vtype*: NType[NNode]
     value*: Option[NNode]
 
   PIdentDefs* = NIdentDefs[PNode]
@@ -387,24 +388,32 @@ func toFormalParam*(nident: NIdentDefs[NimNode]): NimNode =
   toNFormalParam[NimNode](nident)
 
 
-func mkNType*(name: string, gparams: seq[string] = @[]): NType =
+func mkNType*(name: string, gparams: seq[string] = @[]): NType[NimNode] =
   ## Make `NType` with `name` as string and `gparams` as generic
   ## parameters
-  NType(
-    kind: ntkIdent,
-    head: name,
-    genParams: gparams.mapIt(mkNType(it, @[]))
-  )
+  NType[NimNode](
+    kind: ntkIdent, head: name, genParams: gparams.mapIt(mkNType(it, @[])))
 
-func mkNType*(name: string, gparams: openarray[NType]): NType =
+func mkPType*(name: string, gparams: seq[string] = @[]): NType[PNode] =
+  ## Make `NType` with `name` as string and `gparams` as generic
+  ## parameters
+  NType[PNode](
+    kind: ntkIdent, head: name, genParams: gparams.mapIt(mkPType(it, @[])))
+
+func mkNNType*[NNode](
+  name: string, gparams: seq[string] = @[]): NType[NNode] =
+  when NNode is NimNode:
+    mkNType(name, gparams)
+  else:
+    mkPType(name, gparams)
+
+func mkNType*[NNode](
+  name: string, gparams: openarray[NType[NNode]]): NType[NNode] =
   ## Make `NType`
-  NType(
-    kind: ntkIdent,
-    head: name,
-    genParams: toSeq(gparams)
-  )
+  NType[NNode](kind: ntkIdent, head: name, genParams: toSeq(gparams))
 
-func mkNTypeNNode*[NNode](impl: NNode): NType =
+
+func mkNTypeNNode*[NNode](impl: NNode): NType[NNode] =
   ## Convert type described in `NimNode` into `NType`
   case impl.kind.toNNK():
     of nnkBracketExpr:
@@ -414,10 +423,10 @@ func mkNTypeNNode*[NNode](impl: NNode): NType =
       else:
         mkNType(head, impl[1..^1].mapIt(mkNTypeNNode(it)))
     of nnkSym:
-      mkNType(impl.strVal)
+      mkNNType[NNode](impl.strVal)
     of nnkIdent:
       when NNode is PNode:
-        mkNType(impl.ident.s)
+        mkPType(impl.ident.s)
       else:
         mkNType(impl.strVal)
     else:
@@ -427,11 +436,11 @@ func mkNTypeNNode*[NNode](impl: NNode): NType =
 template `[]`*(node: PNode, slice: HSLice[int, BackwardsIndex]): untyped =
   `[]`(node.sons, slice)
 
-func mkNType*(impl: NimNode): NType =
+func mkNType*(impl: NimNode): NType[NimNode] =
   ## Convert type described in `NimNode` into `NType`
   mkNTypeNNode(impl)
 
-func mkNType*(impl: PNode): NType =
+func mkNType*(impl: PNode): NType[PNode] =
   ## Convert type described in `NimNode` into `NType`
   mkNTypeNNode(impl)
 
@@ -458,9 +467,10 @@ func mkNTypeNode*(name: string, gparams: seq[string]): NimNode =
   ## Create `NimNode` for type `name[@gparams]`
   mkNType(name, gparams).toNimNode()
 
-func mkNTypeNode*(name: string, gparams: varargs[NType]): NimNode =
+func mkNTypeNode*[NNode](
+  name: string, gparams: varargs[NType[NNode]]): NNode =
   ## Create `NimNode` for type `name[@gparams]`
-  mkNType(name, gparams).toNimNode()
+  mkNType(name, gparams).toNNode()
 
 
 func mkCallNode*(
@@ -776,7 +786,7 @@ func mkProcDeclNode*[NNode](
   )
 
 
-func mkProcDeclNode*(
+func mkProcDeclNode*[NNode](
   accq: openarray[NNode],
   rtype: NType,
   args: openarray[tuple[name: string, atype: NType]],
@@ -795,7 +805,7 @@ func mkProcDeclNode*(
   )
 
 
-func mkProcDeclNode*(
+func mkProcDeclNode*[NNode](
   accq: openarray[NNode],
   args: openarray[tuple[name: string, atype: NType]],
   impl: NNode,
@@ -874,12 +884,12 @@ type
 
 
 
-  ObjectField*[Node, Annot] = object
+  ObjectField*[NNode, Annot] = object
     # TODO:DOC
     ## More complex representation of object's field - supports
     ## recursive fields with case objects.
     annotation*: Option[Annot]
-    value*: Option[Node]
+    value*: Option[NNode]
     exported*: bool
     case isTuple*: bool # REVIEW REFACTOR move tuples into separate
                         # object instead of mixing them into `object`
@@ -889,11 +899,11 @@ type
       of false:
         name*: string
 
-    fldType*: NType ## Type of field value
+    fldType*: NType[NNode] ## Type of field value
     case isKind*: bool
       of true:
         selected*: int ## Index of selected branch
-        branches*: seq[ObjectBranch[Node, Annot]] ## List of all
+        branches*: seq[ObjectBranch[NNode, Annot]] ## List of all
         ## branches as `value-branch` pairs.
       of false:
         discard
@@ -908,7 +918,7 @@ type
     # ## does not have name for a tyep)
     # namedFields*: bool ## Fields have dedicated names? (anonymous
     # ## tuple does not have a name for fields)
-    name*: NType ## Name for an object
+    name*: NType[NNode] ## Name for an object
     # TODO rename to objType
     flds*: seq[ObjectField[NNode, Annot]]
 
@@ -1396,6 +1406,13 @@ type
   ValField* = ObjectField[ObjTree, void]
   ValFieldBranch* = ObjectBranch[ObjTree, void]
 
+
+func mkOType*(name: string, gparams: seq[string] = @[]): NType[ObjTree] =
+  NType[ObjTree](
+    kind: ntkIdent,
+    head: name,
+    genParams: gparams.mapIt(mkOType(it, @[]))
+  )
 
 
 #=============================  Predicates  ==============================#

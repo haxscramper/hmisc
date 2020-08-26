@@ -57,7 +57,12 @@ proc getBranches*[NNode, A](
 
 
 proc getFieldDescription[NNode](
-  node: NNode): tuple[name: string, fldType: NType, exported: bool] =
+  node: NNode): tuple[
+    name: string,
+    fldType: NType[NNode],
+    exported: bool
+  ] =
+
   var exported = false
   case node.kind.toNNK():
     of nnkIdentDefs:
@@ -71,7 +76,12 @@ proc getFieldDescription[NNode](
           else:
             $node[0]
 
-      return (name: name, fldType: node[1].mkNType(), exported: exported)
+      return (
+        name: name,
+        fldType: mkNType[NNode](node[1]),
+        exported: exported
+      )
+
     of nnkRecCase:
       return getFieldDescription(node[0])
     else:
@@ -188,6 +198,13 @@ proc getKindFields*[Node, A](
 
       )
 
+proc discardNimNode*(ntype: NType[NimNode]): NType[ObjTree] =
+  result = NType[ObjTree](
+    kind: ntkIdent,
+    head: ntype.head,
+    genParams: ntype.genparams.mapIt(it.discardNimNode())
+  )
+
 proc discardNimNode(
   input: seq[ObjectField[NimNode, void]]): seq[ValField] =
   for fld in input:
@@ -198,7 +215,7 @@ proc discardNimNode(
           isTuple: false,
           isKind: true,
           name: fld.name,
-          fldType: fld.fldType,
+          fldType: fld.fldType.discardNimNode(),
           selected: fld.selected,
           branches: fld.branches.mapIt(
             block:
@@ -229,7 +246,7 @@ proc discardNimNode(
           isTuple: false,
           isKind: false,
           name: fld.name,
-          fldType: fld.fldType
+          fldType: fld.fldType.discardNimNode()
         )
 
 func parsePragma*[NNode](node: NNode, position: ObjectAnnotKind): Pragma[NNode] =
@@ -268,12 +285,12 @@ proc parseObject*[NNode, A](node: NNode, cb: ParseCb[NNode, A]): Object[NNode, A
     of nnkPragmaExpr:
       case node[0][0].kind.toNNK():
         of nnkPostfix:
-          result.name = mkNType(node[0][0][1].strVal)
+          result.name = mkNNType[NNode](node[0][0][1].strVal)
           result.exported = true
         else:
-          result.name = mkNType(node[0][0].strVal)
+          result.name = mkNNType[NNode](node[0][0].strVal)
     else:
-      result.name = mkNType(node[0].getStrVal())
+      result.name = mkNNType[NNode](node[0].getStrVal())
 
   when not (A is void):
     if node[0].kind.toNNK() == nnkPragmaExpr and cb != nil:

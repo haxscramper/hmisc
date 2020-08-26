@@ -29,7 +29,7 @@ type
 
     let expected = @[
       ValField(
-        name: "f1", fldType: mkNType("int"), isKind: false,
+        name: "f1", fldType: mkOType("int"), isKind: false,
         isTuple: false#
       )
     ]
@@ -49,13 +49,13 @@ type
 
     let generated = U.makeFieldsLiteral()
     let expected = @[
-      ValField(name: "f1", fldType: mkNType("int"), isKind: false,
+      ValField(name: "f1", fldType: mkOType("int"), isKind: false,
                isTuple: false),
-      ValField(name: "f2", fldType: mkNType("float"), isKind: false,
+      ValField(name: "f2", fldType: mkOType("float"), isKind: false,
                isTuple: false),
-      ValField(name: "f3", fldType: mkNType("char"), isKind: false,
+      ValField(name: "f3", fldType: mkOType("char"), isKind: false,
                isTuple: false),
-      ValField(name: "f4", fldType: mkNType("string"), isKind: false,
+      ValField(name: "f4", fldType: mkOType("string"), isKind: false,
                isTuple: false)
     ]
 
@@ -78,7 +78,7 @@ type
 
     let lhs = U.makeFieldsLiteral()
     let rhs = @[
-      ValField(fldType: mkNType("bool"), name: "kind", isKind: true,
+      ValField(fldType: mkOType("bool"), name: "kind", isKind: true,
                isTuple: false,
                branches: @[
         ValFieldBranch(
@@ -87,7 +87,7 @@ type
             styling: initPrintStyling()
           ),
           flds: @[ ValField(
-            fldType: mkNType("int"),
+            fldType: mkOType("int"),
             isKind: false,
             name: "f1",
             isTuple: false
@@ -102,7 +102,7 @@ type
             styling: initPrintStyling()
           ),
           flds: @[ ValField(
-            fldType: mkNType("float"),
+            fldType: mkOType("float"),
             isKind: false,
             name: "f2",
             isTuple: false,
@@ -137,7 +137,7 @@ type
 
     let generated = U.makeFieldsLiteral()
     let expected  = @[
-      ValField(fldType: mkNType("bool"), name: "kind1", isKind: true,
+      ValField(fldType: mkOType("bool"), name: "kind1", isKind: true,
                isTuple: false,
                branches: @[
         ValFieldBranch(
@@ -148,7 +148,7 @@ type
             styling: initPrintStyling()
           ),
           flds: @[ ValField(
-            fldType: mkNType("int"),
+            fldType: mkOType("int"),
             isKind: false,
             name: "f11",
             isTuple: false,
@@ -161,23 +161,23 @@ type
             kind: okConstant, constType: "bool",
             strLit: "false", styling: initPrintStyling()),
           flds: @[ ValField(
-            fldType: mkNType("float"), isKind: false, name: "f21",
+            fldType: mkOType("float"), isKind: false, name: "f21",
             isTuple: false) ],
           isElse: false
          ),
       ]),
-      ValField(fldType: mkNType("char"), name: "kind2", isKind: true,
+      ValField(fldType: mkOType("char"), name: "kind2", isKind: true,
                isTuple: false, branches: @[
         ValFieldBranch(
           ofValue: ObjTree(styling: initPrintStyling(),
             kind: okConstant, constType: "char", strLit: "'a'"),
-          flds: @[ ValField(fldType: mkNType("int"), isKind: false,
+          flds: @[ ValField(fldType: mkOType("int"), isKind: false,
                             name: "f12", isTuple: false) ],
           isElse: false
         ),
         ValFieldBranch(
           notOfValue: ObjTree(styling: initPrintStyling(),),
-          flds: @[ ValField(fldType: mkNType("float"), isKind: false,
+          flds: @[ ValField(fldType: mkOType("float"), isKind: false,
                             name: "f22", isTuple: false) ],
           isElse: true
         ),
@@ -207,12 +207,12 @@ type
 
     let generated = U.makeFieldsLiteral()
     let expected = @[
-      ValField(fldType: mkNType("bool"), name: "kind1", isKind: true,
+      ValField(fldType: mkOType("bool"), name: "kind1", isKind: true,
                isTuple: false, branches: @[
         ValFieldBranch(
           ofValue: ObjTree(styling: initPrintStyling(),
             kind: okConstant, constType: "bool", strLit: "true"),
-          flds: @[ ValField(fldType: mkNType("int"), isKind: false,
+          flds: @[ ValField(fldType: mkOType("int"), isKind: false,
                             name: "f11", isTuple: false) ],
           isElse: false
          ),
@@ -221,20 +221,20 @@ type
             kind: okConstant, constType: "bool", strLit: "false"),
           flds: @[
             ValField(
-              fldType: mkNType("char"), name: "kind2", isKind: true,
+              fldType: mkOType("char"), name: "kind2", isKind: true,
               isTuple: false, branches: @[
               ValFieldBranch(
                 ofValue: ObjTree(styling: initPrintStyling(),
                   kind: okConstant, constType: "char", strLit: "'a'"),
                 flds: @[ ValField(
-                  fldType: mkNType("int"), isKind: false, name: "f12",
+                  fldType: mkOType("int"), isKind: false, name: "f12",
                   isTuple: false) ],
                 isElse: false
               ),
               ValFieldBranch(
                 notOfValue: ObjTree(styling: initPrintStyling(),),
                 flds: @[ ValField(
-                  fldType: mkNType("float"), isKind: false,
+                  fldType: mkOType("float"), isKind: false,
                   name: "f22", isTuple: false) ],
                 isElse: true
               ),
@@ -252,9 +252,9 @@ type
     proc generic[T](a: T): void =
       let generated = T.makeFieldsLiteral()
       let expected = @[
-        ValField(name: "f1", fldType: mkNType("int"),
+        ValField(name: "f1", fldType: mkOType("int"),
                  isKind: false, isTuple: false),
-        ValField(name: "f2", fldType: mkNType("char"),
+        ValField(name: "f2", fldType: mkOType("char"),
                  isKind: false, isTuple: false)
       ]
 
@@ -294,20 +294,20 @@ type
     let generated = makeFieldsLiteral(U).getKindFields()
     let expected = @[
       ValField(
-        name: "kind1", fldType: mkNType("bool"), isKind: true,
+        name: "kind1", fldType: mkOType("bool"), isKind: true,
         isTuple: false, branches: @[
           ValFieldBranch(
             isElse: false,
             ofValue: ObjTree(styling: initPrintStyling(),
               kind: okConstant, constType: "bool", strLit: "false"),
             flds: @[
-              ValField( name: "kind2", fldType: mkNType("char"),
+              ValField( name: "kind2", fldType: mkOType("char"),
                        isKind: true, isTuple: false)
             ]
           )
         ]
       ),
-      ValField( name: "kind3", fldType: mkNType("bool"), isKind: true, isTuple: false)
+      ValField( name: "kind3", fldType: mkOType("bool"), isKind: true, isTuple: false)
     ]
 
     if generated != expected:
