@@ -6,7 +6,7 @@
 import hmisc/helpers
 import hmisc/types/colorstring
 import sequtils, colors, macros, tables, strutils,
-       terminal, options, parseutils, sets, strformat
+       terminal, options, parseutils, sets, strformat, sugar
 
 import compiler/[ast, idents, lineinfos]
 
@@ -84,6 +84,8 @@ func newEmptyNNode*[NNode](): NNode =
   else:
     newTree(nkEmpty)
 
+func newPLit*(i: int): PNode =
+  newIntTypeNode(BiggestInt(i), PType(kind: tyInt))
 
 
 type
@@ -398,12 +400,14 @@ func `$`*(nt: NType): string =
 #*************************************************************************#
 #===========================  Type definition  ===========================#
 type
-  Enum*[Node] = object
+  Enum*[NNode] = object
     ## Enum declaration wrapper
+    comment*: string
     name*: string
-    values*: seq[tuple[name: string, value: Option[Node]]]
+    values*: seq[tuple[name: string, value: Option[NNode]]]
 
   NEnum* = Enum[NimNode]
+  PEnum* = Enum[PNode]
 
 #=============================  Predicates  ==============================#
 func isEnum*(en: NimNode): bool =
@@ -411,6 +415,42 @@ func isEnum*(en: NimNode): bool =
   en.getTypeImpl().kind == nnkEnumTy
 
 #============================  Constructors  =============================#
+dumpAstGen:
+  type
+    En = enum
+      f = 21
+      we = 122
+      e
+
+func toNNode*[NNode](en: Enum[NNode], standalone: bool = false): NNode =
+  let flds = collect(newSeq):
+    for val in en.values:
+      if val.value.isSome():
+        newNTree[NNode](
+          nnkEnumFieldDef,
+          newNIdent[NNode](val.name),
+          val.value.get()
+        )
+      else:
+        newNIdent[NNode](val.name)
+
+  result = newNTree[NNode](
+    nnkTypeDef,
+    newNIdent[NNode](en.name),
+    newEmptyNNode[NNode](),
+    newNTree[NNode](nnkEnumTy, @[ newEmptyNNode[NNode]() ] & flds))
+
+  when NNode is PNode:
+    result.comment = en.comment
+
+  if standalone:
+    result = newNTree[NNode](
+      nnkTypeSection,
+      result
+    )
+
+
+
 func parseEnumImpl*(en: NimNode): NEnum =
   # echov en.kind
   # debugecho en.treeRepr()

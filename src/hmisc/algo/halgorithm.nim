@@ -1,5 +1,5 @@
 import math, strutils, sequtils, random, macros, options, strformat,
-       parseutils, algorithm
+       parseutils, algorithm, sugar
 import std/wordwrap
 
 import hseqdistance
@@ -194,6 +194,60 @@ func commonPrefix*(strs: seq[string]): string =
         result.add strs[0][i]
       else:
         return
+
+func dropSubseq*[T](inseq, subseq: openarray[T]): seq[T] =
+  var i = 0
+  if subseq.len == 0:
+    result = toSeq(inseq)
+    return
+
+
+  var prev = -1
+  while i < inseq.len:
+    # debugecho i, " ", inseq[i..^1], " ", subseq
+    if prev == i:
+      raiseAssert("#[ IMPLEMENT ]#")
+    var matches: bool = true
+    for shift in 0 ..< subseq.len:
+      if (i + shift < inseq.len):
+        if (inseq[i + shift] != subseq[shift]):
+          matches = false
+      else:
+        matches = false
+
+
+    prev = i
+    # debugecho "@ ", inseq[i], " matches"
+    if not matches:
+      result.add inseq[i]
+      inc i
+    else:
+      i += subseq.len
+
+
+func dropLongestSubseq*[T](inseq: seq[T], subseqs: seq[seq[T]]): seq[T] =
+  let subseqs = subseqs.sortedByIt(-it.len)
+  # debugecho subseqs
+  result = inseq
+  for sub in subseqs:
+    let dropped = inseq.dropSubseq(sub)
+    # debugecho &"{inseq} dropped {sub} -> {dropped}"
+    if dropped.len != inseq.len:
+      result = dropped
+      break
+
+  # debugecho result
+
+
+func dropLongestSubseq*(inseq: string, inseqs: seq[string]): string =
+  let inseqs = collect(newSeq):
+    for str in inseqs:
+      str.mapIt(it)
+
+  dropLongestSubseq(inseq.mapIt(it), inseqs).join("")
+
+func dropSubstr*(instr, substr: string): string =
+  instr.dropSubseq(substr).join("")
 
 func dropCommonPrefix*(
   strs: seq[string], dropSingle: bool = true): seq[string] =

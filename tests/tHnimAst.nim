@@ -244,3 +244,23 @@ suite "working with PNode":
 
       decl.comment = "hello world"
       echo decl
+
+    block:
+      var en = PEnum(
+        name: "Eee",
+        values: @{
+          "hello" : some(
+            newPIdent("eee").withIt do:
+              it.comment = "documentation for field"
+          ),
+          "world" : some(newPLit(12))
+        }
+      )
+
+      en.comment = """
+Aliquam erat volutpat. Nunc eleifend leo vitae magna. In id erat non
+orci commodo lobortis. Proin neque massa, cursus ut, gravida ut,
+lobortis eget, lacus. Sed diam. Praesent fermentum tempor tellus.
+Nullam tempus. Mauris ac felis vel velit tristique imperdiet."""
+
+      echo en.toNNode()
