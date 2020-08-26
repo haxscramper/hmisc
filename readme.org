@@ -193,38 +193,6 @@ todo:
 
 * Types
 
-** ~hmisc/types/hnim_ast~
-
-Statically typed wrapper for nim ast. Another take on solving problem
-of ~node[0][0][1][0]~. Right now mostly covers types - parsing of
-implementation, generation and analysis.
-
-- working with enums
-  - ~parseEnumImpl~ - parse as enum implementation. Tested on alias,
-    symbol, value, enum-as-generic-parameter, ~typedesc[Enum]~ etc.
-  - ~getEnumPref~ - for [[https://nim-lang.org/docs/nep1.html#introduction-naming-conventions][NEP-conforming]] enums (~prefixEnumValueName~)
-    get ~prefix~
-  - ~getEnumNames~ - get list of all enum names
-  - ~enumNames~ - macro. Generate ~seq[string]~ of names for all
-    enums.
-- working with object declarations
-  - ~ObjectBranch~, ~Object~ and ~ObjectField~ types - wrappers on top
-    of nim object declarations. Supports arbitrarily named case
-    fields, annotations for objects etc. Currently does not cover all
-    possible cases.
-  - ~eachField~ - visit each field in object
-  - ~eachField~ - recursively generate ~case~ expression for each
-    possible and use insert result of callback for each field. For use
-    case example see [[file:tests/tHnimAst.nim]]
-  - can be conveted to and from ~NimNode~
-  - ~eachCase~ - generate case statement for object's kind fields
-  - ~eachParallelCase~ - generate case statement for two object's kind
-    fields.
-  - ~eachPath~
-- working with object values
-  - ~ObjTree~ - 'stringly typed' representation of object value.
-    mainly used in ~hpprint~, but due to dependency reasons type
-    definitions is still here.
 
 ** ~hmisc/types/hprimitives~
 
