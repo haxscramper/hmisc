@@ -14,7 +14,7 @@ suite "Case object field iteration":
     let instr = """
 type
   U = object
-    f1: int
+    f1*: int
 """
 
     let obj = parseObject(parsePNodeStr(instr), parsePPragma)

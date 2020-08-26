@@ -57,19 +57,21 @@ proc getBranches*[NNode, A](
 
 
 proc getFieldDescription[NNode](
-  node: NNode): tuple[name: string, fldType: NType] =
+  node: NNode): tuple[name: string, fldType: NType, exported: bool] =
+  var exported = false
   case node.kind.toNNK():
     of nnkIdentDefs:
       let name: string =
         case node[0].kind.toNNK():
           of nnkPostfix:
+            exported = true
             $node[0][1]
           of nnkPragmaExpr:
             $node[0][0]
           else:
             $node[0]
 
-      return (name: name, fldType: node[1].mkNType())
+      return (name: name, fldType: node[1].mkNType(), exported: exported)
     of nnkRecCase:
       return getFieldDescription(node[0])
     else:
@@ -111,11 +113,13 @@ proc getFields*[NNode, A](
           case elem.kind.toNNK():
             of nnkRecCase: # Case field
               # NOTE possible place for `cb` callbac
+              # echo descr.exported, " -- ", descr.name
               result.add ObjectField[NNode, A](
                 isTuple: false,
                 isKind: true,
                 branches: getBranches(elem, cb),
                 name: descr.name,
+                exported: descr.exported,
                 fldType: descr.fldType,
               )
 
@@ -139,6 +143,7 @@ proc getFields*[NNode, A](
       result.add ObjectField[NNode, A](
         isTuple: false,
         isKind: false,
+        exported: descr.exported,
         name: descr.name,
         fldType: descr.fldType,
         value: (node[2].kind.toNNK() != nnkEmpty).tern(

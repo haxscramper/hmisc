@@ -210,6 +210,66 @@ func toBracketSeq*(elems: seq[NimNode]): NimNode =
   ## `@[<elements>]`
   nnkPrefix.newTree(ident "@", nnkBracket.newTree(elems))
 
+#*************************************************************************#
+#*****************  Pragma - pragma annotation wrapper  ******************#
+#*************************************************************************#
+#===========================  Type definition  ===========================#
+type
+  Pragma*[NNode] = object
+    ## Body of pragma annotation;
+    kind*: ObjectAnnotKind ## Position in object - no used when
+                           ## generatic functions etc.
+    elements*: seq[NNode] ## List of pragma elements. For annotation
+                         ## like `{.hello, world.}` this will contain
+                         ## `@[hello, world]`
+
+  NPragma* = Pragma[NimNode]
+
+#===============================  Getters  ===============================#
+func getElem*(pragma: NPragma, name: string): Option[NimNode] =
+  ## Get element named `name` if it is present.
+  ## `getElem({.call.}, "call") -> call`
+  ## `getElem({.call(arg).}, "call") -> call(arg)`
+  for elem in pragma.elements:
+    case elem.kind:
+      of nnkIdent:
+        if elem.eqIdent(name):
+          return some(elem)
+      of nnkCall:
+        if elem[0].eqIdent(name):
+          return some(elem)
+      else:
+        raiseAssert("#[ IMPLEMENT ]#")
+
+func getElem*(optPragma: Option[NPragma], name: string): Option[NimNode] =
+  ## Get element from optional annotation
+  if optPragma.isSome():
+    return optPragma.get().getElem(name)
+
+#============================  constructors  =============================#
+func mkNPragma*(names: varargs[string]): NPragma =
+  ## Create pragma using each string as separate name.
+  ## `{.<<name1>, <name2>, ...>.}`
+  NPragma(elements: names.mapIt(ident it))
+
+func mkNPragma*(names: varargs[NimNode]): NPragma =
+  ## Create pragma using each node in `name` as separate name
+  NPragma(elements: names.mapIt(it))
+
+#========================  Other implementation  =========================#
+
+func toNNode*[NNode](pragma: Pragma[NNode]): NNode =
+  if pragma.elements.len == 0:
+    newEmptyNNode[NNode]()
+  else:
+    newTree[NNode](nnkPragma, pragma.elements)
+
+
+func toNimNode*(pragma: NPragma): NimNode =
+  ## Convert pragma to nim node. If pragma contains no elements
+  ## `EmptyNode` is generated.
+  toNNode[NimNode](pragma)
+
 
 
 #*************************************************************************#
@@ -218,14 +278,26 @@ func toBracketSeq*(elems: seq[NimNode]): NimNode =
 #===========================  Type definition  ===========================#
 
 type
+  NTypeKind* = enum
+    ntkIdent
+    ntkProc
+    ntkRange
+
   NType* = object
     ## Representation of generic nim type;
     ##
     ## TODO support `range[a..b]`, generic constraints: `A: B | C` and
     ## `A: B or C`
 
-    head*: string
-    genParams*: seq[NType]
+    case kind*: NTypeKind
+      of ntkIdent:
+        head*: string
+        genParams*: seq[NType]
+      of ntkProc:
+        rType*: Option[SingleIt[NType]]
+        argtypes*: seq[NType]
+      of ntkRange:
+        discard
 
   NVarDeclKind* = enum
     ## Kind of variable declaration
@@ -243,6 +315,17 @@ type
   PIdentDefs* = NIdentDefs[PNode]
 
 #=============================  Predicates  ==============================#
+func `==`*(l, r: NType): bool =
+  l.kind == r.kind and (
+    case l.kind:
+      of ntkIdent:
+        (l.head == r.head) and (l.genParams == r.genParams)
+      of ntkProc:
+        (l.rType == r.rType) and (l.argtypes == r.argtypes)
+      of ntkRange:
+        true
+  )
+
 
 #============================  Constructors  =============================#
 func toNIdentDefs*[NNode](
@@ -307,11 +390,19 @@ func toFormalParam*(nident: NIdentDefs[NimNode]): NimNode =
 func mkNType*(name: string, gparams: seq[string] = @[]): NType =
   ## Make `NType` with `name` as string and `gparams` as generic
   ## parameters
-  NType(head: name, genParams: gparams.mapIt(mkNType(it, @[])))
+  NType(
+    kind: ntkIdent,
+    head: name,
+    genParams: gparams.mapIt(mkNType(it, @[]))
+  )
 
 func mkNType*(name: string, gparams: openarray[NType]): NType =
   ## Make `NType`
-  NType(head: name, genParams: toSeq(gparams))
+  NType(
+    kind: ntkIdent,
+    head: name,
+    genParams: toSeq(gparams)
+  )
 
 func mkNTypeNNode*[NNode](impl: NNode): NType =
   ## Convert type described in `NimNode` into `NType`
@@ -550,67 +641,9 @@ macro enumNames*(en: typed): seq[string] =
   newLit en.getEnumNames()
 
 
-
-
 #*************************************************************************#
-#*****************  Pragma - pragma annotation wrapper  ******************#
+#***************  Procedure declaration & implementation  ****************#
 #*************************************************************************#
-#===========================  Type definition  ===========================#
-type
-  Pragma*[NNode] = object
-    ## Body of pragma annotation;
-    kind*: ObjectAnnotKind ## Position in object - no used when
-                           ## generatic functions etc.
-    elements*: seq[NNode] ## List of pragma elements. For annotation
-                         ## like `{.hello, world.}` this will contain
-                         ## `@[hello, world]`
-
-  NPragma* = Pragma[NimNode]
-
-#===============================  Getters  ===============================#
-func getElem*(pragma: NPragma, name: string): Option[NimNode] =
-  ## Get element named `name` if it is present.
-  ## `getElem({.call.}, "call") -> call`
-  ## `getElem({.call(arg).}, "call") -> call(arg)`
-  for elem in pragma.elements:
-    case elem.kind:
-      of nnkIdent:
-        if elem.eqIdent(name):
-          return some(elem)
-      of nnkCall:
-        if elem[0].eqIdent(name):
-          return some(elem)
-      else:
-        raiseAssert("#[ IMPLEMENT ]#")
-
-func getElem*(optPragma: Option[NPragma], name: string): Option[NimNode] =
-  ## Get element from optional annotation
-  if optPragma.isSome():
-    return optPragma.get().getElem(name)
-
-#============================  constructors  =============================#
-func mkNPragma*(names: varargs[string]): NPragma =
-  ## Create pragma using each string as separate name.
-  ## `{.<<name1>, <name2>, ...>.}`
-  NPragma(elements: names.mapIt(ident it))
-
-func mkNPragma*(names: varargs[NimNode]): NPragma =
-  ## Create pragma using each node in `name` as separate name
-  NPragma(elements: names.mapIt(it))
-
-#========================  Other implementation  =========================#
-
-func toNNode*[NNode](pragma: Pragma[NNode]): NNode =
-  if pragma.elements.len == 0:
-    newEmptyNNode[NNode]()
-  else:
-    newTree[NNode](nnkPragma, pragma.elements)
-
-
-func toNimNode*(pragma: NPragma): NimNode =
-  ## Convert pragma to nim node. If pragma contains no elements
-  ## `EmptyNode` is generated.
-  toNNode[NimNode](pragma)
 
 # ~~~~ proc declaration ~~~~ #
 
@@ -847,6 +880,7 @@ type
     ## recursive fields with case objects.
     annotation*: Option[Annot]
     value*: Option[Node]
+    exported*: bool
     case isTuple*: bool # REVIEW REFACTOR move tuples into separate
                         # object instead of mixing them into `object`
                         # wrapper.
@@ -895,6 +929,9 @@ type
   NField*[A] = ObjectField[NimNode, A]
   NObject*[A] = Object[NimNode, A]
   NPath*[A] = seq[NPathElem[A]]
+
+  PObject* = Object[PNode, Pragma[PNode]]
+  PField* = ObjectField[PNode, Pragma[PNode]]
 
   # PragmaField*[Node] = ObjectField[Node, Pragma[Node]]
   # NPragmaField* = PragmaField[NimNode]
@@ -1179,10 +1216,20 @@ func toNNode*[NNode, A](
       nnkRecList.newTree(branch.flds.mapIt(it.toNNode(annotConv))))
 
 
-func toNNode*[NNode, A](fld: ObjectField[NNode, A], annotConv: A ~> NNode): NNode =
+func toNNode*[NNode, A](
+  fld: ObjectField[NNode, A], annotConv: A ~> NNode): NNode =
+
+  let head =
+    if fld.exported:
+      newNTree[NNode](nnkPostfix,
+                      newNIdent[NNode]("*"),
+                      newNIdent[NNode](fld.name))
+    else:
+      newNIdent[NNode](fld.name)
+
   let selector = newNTree[NNode](
     nnkIdentDefs,
-    newNIdent[NNode](fld.name),
+    head,
     toNNode[NNode](fld.fldType),
     fld.annotation.isSome().tern(
       annotConv(fld.annotation.get()), newEmptyNNode[NNode]()))
@@ -1230,9 +1277,16 @@ func toNNode*[NNode, A](obj: Object[NNode, A], annotConv: A ~> NNode): NNode =
 
   # echov result.treeRepr()
 
-func toNNode*[NNode](obj: Object[NNode, PRagma[NNode]]): NNode =
-  toNNode[NNode](obj) do(pr: Pragma[NNode]) -> NNode:
+func toNNode*[NNode](
+  obj: Object[NNode, PRagma[NNode]], standalone: bool = false): NNode =
+  result = toNNode[NNode](obj) do(pr: Pragma[NNode]) -> NNode:
     toNNode[NNode](pr)
+
+  if standalone:
+    result = newNTree[NNode](
+      nnkTypeSection,
+      result
+    )
 
 func toNimNode*(obj: NObject[NPragma]): NimNode =
   toNNode[NimNode](obj)
