@@ -185,13 +185,18 @@ func addPrefix*(str, pref: string): string =
     str
 
 
-func splitCamel*(str: string): seq[string] =
+func splitCamel*(str: string, dropUnderscore: bool = true): seq[string] =
   ## Split abbreviation as **camelCase** identifier
   var pos = 0
   while pos < str.len:
     let start = pos
-    let next = start + str.skipUntil({'A'..'Z'}, start + 1)
-    result.add str[start..next]
+    let next = start + str.skipUntil({'A'..'Z', '_'}, start + 1)
+
+    if str[start..next].allOfIt(it in {'_'}) and dropUnderscore:
+      discard
+    else:
+      result.add str[start..next]
+
     pos = next + 1
 
 

@@ -719,6 +719,9 @@ suite "Misc algorithms":
     assertEq "helloWorld".splitCamel, @["hello", "World"]
     assertEq "H".splitCamel, @["H"]
     assertEq "".splitCamel, `@`[string]([])
+    assertEq "clang_Hello".splitCamel, @["clang", "Hello"]
+    assertEq "clang_HeeH".splitCamel(false), @[
+      "clang", "_", "Hee", "H"]
 
   test "{abbrevCamel}":
     assertEq abbrevCamel(
