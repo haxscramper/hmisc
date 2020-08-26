@@ -1,11 +1,13 @@
 import sugar, strutils, sequtils, strformat, options
-import compiler/renderer
+import compiler/[renderer, ast]
 import ../src/hmisc/macros/[obj_field_macros]
 import ../src/hmisc/types/[hnim_ast, colorstring]
 
 #===========================  implementation  ============================#
 
 #================================  tests  ================================#
+
+
 
 import unittest
 
@@ -19,6 +21,17 @@ type
 
     let obj = parseObject(parsePNodeStr(instr), parsePPragma)
     echo obj.toNNode()
+
+  test "{toNNode}":
+    let pr = mkProcNType[PNode](
+      @[
+        mkPType("int")
+      ],
+      mkPType("void"),
+      mkPPragma("cdecl")
+    )
+
+    echo pr.toNNode()
 
 
   test "{makeFieldsLiteral} No case fields :macro:":

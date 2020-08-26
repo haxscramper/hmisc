@@ -224,6 +224,7 @@ type
                          ## `@[hello, world]`
 
   NPragma* = Pragma[NimNode]
+  PPragma* = Pragma[PNode]
 
 #===============================  Getters  ===============================#
 func getElem*(pragma: NPragma, name: string): Option[NimNode] =
@@ -251,6 +252,11 @@ func mkNPragma*(names: varargs[string]): NPragma =
   ## Create pragma using each string as separate name.
   ## `{.<<name1>, <name2>, ...>.}`
   NPragma(elements: names.mapIt(ident it))
+
+func mkPPragma*(names: varargs[string]): PPragma =
+  ## Create pragma using each string as separate name.
+  ## `{.<<name1>, <name2>, ...>.}`
+  PPragma(elements: names.mapIt(newPIdent(it)))
 
 func mkNPragma*(names: varargs[NimNode]): NPragma =
   ## Create pragma using each node in `name` as separate name
@@ -295,7 +301,7 @@ type
         genParams*: seq[NType[NNode]]
       of ntkProc:
         rType*: Option[SingleIt[NType[NNode]]]
-        argtypes*: seq[NType[NNode]]
+        arguments*: seq[NIdentDefs[NNode]]
         pragma*: Pragma[NNode]
       of ntkRange:
         discard
@@ -322,7 +328,7 @@ func `==`*(l, r: NType): bool =
       of ntkIdent:
         (l.head == r.head) and (l.genParams == r.genParams)
       of ntkProc:
-        (l.rType == r.rType) and (l.argtypes == r.argtypes)
+        (l.rType == r.rType) and (l.arguments == r.arguments)
       of ntkRange:
         true
   )
@@ -332,7 +338,7 @@ func `==`*(l, r: NType): bool =
 func toNIdentDefs*[NNode](
   args: openarray[tuple[
     name: string,
-    atype: NType]]): seq[NIdentDefs[NNode]] =
+    atype: NType[NNode]]]): seq[NIdentDefs[NNode]] =
   ## Convert array of name-type pairs into sequence of `NIdentDefs`.
   ## Each identifier will be immutable (e.g. no `var` annotation).
   for (name, atype) in args:
@@ -341,7 +347,7 @@ func toNIdentDefs*[NNode](
 func toNIdentDefs*[NNode](
   args: openarray[tuple[
     name: string,
-    atype: NType,
+    atype: NType[NNode],
     nvd: NVarDeclKind
      ]]): seq[NIdentDefs[NNode]] =
   ## Convert array of name-type pairs into sequence of `NIdentDefs`.
@@ -350,14 +356,38 @@ func toNIdentDefs*[NNode](
   for (name, atype, nvd) in args:
     result.add NIdentDefs[NNode](varname: name, vtype: atype, kind: nvd)
 
-func toNNode*[NNode](ntype: NType): NNode =
-  if ntype.genParams.len == 0:
-    return newNIdent[NNode](ntype.head)
-  else:
-    result = newNTree[NNode](nnkBracketExpr, newNIdent[NNode](ntype.head))
-    for param in ntype.genParams:
-      result.add toNNode[NNode](param)
 
+
+func toNFormalParam*[NNode](nident: NIdentDefs[NNode]): NNode
+
+func toNNode*[NNode](ntype: NType[NNode]): NNode =
+  case ntype.kind:
+    of ntkProc:
+      result = newNTree[NNode](nnkProcTy)
+
+      let renamed: seq[NIdentDefs[NNode]] = ntype.arguments.mapPairs:
+        rhs.withIt do:
+          it.varname = "a" & $idx
+
+      result.add newNTree[NNode](
+        nnkFormalParams,
+        @[
+          if ntype.rtype.isSome():
+            ntype.rtype.get().getIt().toNNode()
+          else:
+            newEmptyNNode[NNode]()
+        ] & renamed.mapIt(it.toNFormalParam()))
+
+      result.add toNNode(ntype.pragma)
+
+
+    else:
+      if ntype.genParams.len == 0:
+        return newNIdent[NNode](ntype.head)
+      else:
+        result = newNTree[NNode](nnkBracketExpr, newNIdent[NNode](ntype.head))
+        for param in ntype.genParams:
+          result.add toNNode[NNode](param)
 
 func toNimNode*(ntype: NType): NimNode =
   ## Convert `NType` to nim node
@@ -368,13 +398,18 @@ func toPNode*(ntype: NType): PNode =
   toNNode[PNode](ntype)
 
 
+
 func toNFormalParam*[NNode](nident: NIdentDefs[NNode]): NNode =
   ## Convert to `nnkIdentDefs`
   let typespec =
     case nident.kind:
-      of nvdVar: newNTree[NNode](nnkVarTy, toNNode[NNode](nident.vtype))
+      of nvdVar: newNTree[NNode](
+        nnkVarTy, toNNode[NNode](nident.vtype))
+
       of nvdLet: toNNode[NNode](nident.vtype)
-      of nvdConst: newNTree[NNode](nnkConstTy, toNNode[NNode](nident.vtype))
+
+      of nvdConst: newNTree[NNode](
+        nnkConstTy, toNNode[NNode](nident.vtype))
 
   newNTree[NNode](
     nnkIdentDefs,
@@ -412,6 +447,15 @@ func mkNType*[NNode](
   ## Make `NType`
   NType[NNode](kind: ntkIdent, head: name, genParams: toSeq(gparams))
 
+func mkProcNType*[NNode](
+  args: seq[NType[NNode]],
+  rtype: NType[NNode], pragma: Pragma[NNode]): NType[NNode] =
+
+  NType[NNode](
+    kind: ntkProc,
+    arguments: toNIdentDefs[NNode](args.mapIt(("", it))),
+    pragma: pragma,
+    rType: some(mkIt(rtype)))
 
 func mkNTypeNNode*[NNode](impl: NNode): NType[NNode] =
   ## Convert type described in `NimNode` into `NType`
