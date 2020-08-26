@@ -753,3 +753,14 @@ suite "Misc algorithms":
     assertEq "???##".dropPrefix("???"), "##"
     assertEq "".dropPrefix("888"), ""
     assertEq "--".dropPrefix("-"), "-"
+
+  test "{commonPrefix}":
+    assertEq @[].commonPrefix(), ""
+    assertEq @["00"].commonPrefix(), "00"
+    assertEq @["--+", "--="].commonPrefix(), "--"
+    assertEq @["+=", "=+"].commonPrefix(), ""
+
+  test "{dropCommonPrefix}":
+    assertEq @["--"].dropCommonPrefix(), @[""]
+    assertEq @["a@", "a$"].dropCommonPrefix(), @["@", "$"]
+    assertEq @["---"].dropCommonPrefix(false), @["---"]
