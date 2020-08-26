@@ -109,9 +109,14 @@ func newEmptyNNode*[NNode](): NNode =
   else:
     newTree(nkEmpty)
 
+func newEmptyPNode*(): PNode = newEmptyNNode[PNode]()
+
 func newPLit*(i: int): PNode =
   newIntTypeNode(BiggestInt(i), PType(kind: tyInt))
 
+
+func newPLit*(i: string): PNode =
+  newStrNode(nkStrLit, i)
 
 type
   ObjectAnnotKind* = enum
@@ -248,6 +253,8 @@ func getElem*(optPragma: Option[NPragma], name: string): Option[NimNode] =
     return optPragma.get().getElem(name)
 
 #============================  constructors  =============================#
+func mkNNPragma*[NNode](): Pragma[NNode] = discard
+
 func mkNPragma*(names: varargs[string]): NPragma =
   ## Create pragma using each string as separate name.
   ## `{.<<name1>, <name2>, ...>.}`
@@ -261,6 +268,11 @@ func mkPPragma*(names: varargs[string]): PPragma =
 func mkNPragma*(names: varargs[NimNode]): NPragma =
   ## Create pragma using each node in `name` as separate name
   NPragma(elements: names.mapIt(it))
+
+
+func mkPPragma*(names: varargs[PNode]): PPragma =
+  ## Create pragma using each node in `name` as separate name
+  PPragma(elements: names.mapIt(it))
 
 #========================  Other implementation  =========================#
 
@@ -288,6 +300,7 @@ type
     ntkIdent
     ntkProc
     ntkRange
+    ntkGenericSpec
 
   NType*[NNode] = object
     ## Representation of generic nim type;
@@ -296,7 +309,7 @@ type
     ## `A: B or C`
 
     case kind*: NTypeKind
-      of ntkIdent:
+      of ntkIdent, ntkGenericSpec:
         head*: string
         genParams*: seq[NType[NNode]]
       of ntkProc:
@@ -456,6 +469,15 @@ func mkProcNType*[NNode](
     arguments: toNIdentDefs[NNode](args.mapIt(("", it))),
     pragma: pragma,
     rType: some(mkIt(rtype)))
+
+
+func mkProcNType*[NNode](args: seq[NType[NNode]]): NType[NNode] =
+    NType[NNode](
+      kind: ntkProc,
+      arguments: toNIdentDefs[NNode](args.mapIt(("", it))),
+      rtype: none(SingleIt[NType[NNode]]),
+      pragma: mkNNPragma[NNode]()
+    )
 
 func mkNTypeNNode*[NNode](impl: NNode): NType[NNode] =
   ## Convert type described in `NimNode` into `NType`
@@ -698,6 +720,25 @@ macro enumNames*(en: typed): seq[string] =
 #*************************************************************************#
 #***************  Procedure declaration & implementation  ****************#
 #*************************************************************************#
+#==========================  Type definitions  ===========================#
+
+type
+  ProcKind* = enum
+    pkRegular
+    pkOperator
+    pkHook
+    pkAssgn
+
+  ProcDecl*[NNode] = object
+    exported*: bool
+    name*: string
+    kind*: ProcKind
+    signature*: NType[NNode]
+    docstr*: string
+    genParams*: seq[NType[NNode]]
+    impl*: NNode
+
+
 
 # ~~~~ proc declaration ~~~~ #
 
@@ -737,9 +778,65 @@ macro `~>`*(a, b: untyped): untyped =
   result = createProcType(a, b, mkNPragma("noSideEffect"))
 
 
+func toNNode*[NNode](pr: ProcDecl[NNode]): NNode =
+  let headSym = case pr.kind:
+    of pkRegular: newNIdent[NNode](pr.name)
+    of pkHook: newNTree[NNode](
+      nnkAccQuoted,
+      newNIdent[NNode]("="),
+      newNIdent[NNode](pr.name))
+    of pkAssgn: newNTree[NNode](
+      nnkAccQuoted,
+      newNIdent[NNode](pr.name),
+      newNIdent[NNode]("="))
+    of pkOperator: newNTree[NNode](
+      nnkAccQuoted, newNIdent[NNode](pr.name))
+
+  let head =
+    if pr.exported: newNTree[NNode](
+      nnkPostfix, newNIdent[NNode]("*"), headSym)
+    else:
+      headSym
+
+  let genParams =
+    if pr.genParams.len == 0:
+      newEmptyNNode[NNode]()
+    else:
+      newNTree[NNode](nnkGenericParams, pr.genParams.mapIt(toNNode[NNode](it)))
+
+
+  let rettype =
+    if pr.signature.rType.isSome():
+      toNNode[NNode](pr.signature.rtype.get().getIt())
+    else:
+      newEmptyNNode[NNode]()
+
+  let impl =
+    if pr.impl == nil:
+      newEmptyNNode[NNode]()
+    else:
+      pr.impl
+
+
+  result = newNTree[NNode](
+    nnkProcDef,
+    head,
+    newEmptyNNode[NNode](),
+    genParams,
+    newNTree[NNode](
+      nnkFormalParams,
+      @[ rettype ] & pr.signature.arguments.mapIt(it.toNFormalParam())
+    ),
+    toNNode[NNode](pr.signature.pragma),
+    newEmptyNNode[NNode](),
+    impl
+  )
+
+
+
 func mkProcDeclNNode*[NNode](
   procHead: NNode,
-  rtype: Option[NType],
+  rtype: Option[NType[NNode]],
   args: seq[NIdentDefs[NNode]],
   impl: NNode,
   pragma: Pragma[NNode] = Pragma[NNode](),
@@ -774,7 +871,7 @@ func mkProcDeclNNode*[NNode](
 
 
 
-  newNTree[NNode](
+  result = newNTree[NNode](
     nnkProcDef,
     procHead,
     newEmptyNNode[NNode](),
@@ -791,12 +888,15 @@ func mkProcDeclNNode*[NNode](
     ),
     toNNode[NNode](pragma),
     newEmptyNNode[NNode](), # XXXX reserved slot,
-    impl,
   )
+
+  # if impl.kind.toNNK() != nnkEmpty:
+  result.add impl
+
 
 
 func mkProcDeclNode*(
-  head: NimNode, rtype: Option[NType], args: seq[NIdentDefs[NimNode]],
+  head: NimNode, rtype: Option[NType[NimNode]], args: seq[NIdentDefs[NimNode]],
   impl: NimNode, pragma: NPragma = NPragma(), exported: bool = true,
   comment: string = ""): NimNode =
 
@@ -805,7 +905,7 @@ func mkProcDeclNode*(
 
 
 func mkProcDeclNode*(
-  head: PNode, rtype: Option[NType], args: seq[PIdentDefs],
+  head: PNode, rtype: Option[NType[PNode]], args: seq[PIdentDefs],
   impl: PNode, pragma: Pragma[PNode] = Pragma[PNode](),
   exported: bool = true, comment: string = ""): PNode =
 
@@ -814,14 +914,14 @@ func mkProcDeclNode*(
 
 func mkProcDeclNode*[NNode](
   head: NNode,
-  args: openarray[tuple[name: string, atype: NType]],
+  args: openarray[tuple[name: string, atype: NType[NNode]]],
   impl: NNode,
   pragma: Pragma[NNode] = Pragma[NNode](),
   exported: bool = true,
   comment: string = ""): NNode =
   mkProcDeclNNode(
     head,
-    none(NType),
+    none(NType[NNode]),
     toNIdentDefs[NNode](args),
     impl,
     pragma,
@@ -833,7 +933,7 @@ func mkProcDeclNode*[NNode](
 func mkProcDeclNode*[NNode](
   accq: openarray[NNode],
   rtype: NType,
-  args: openarray[tuple[name: string, atype: NType]],
+  args: openarray[tuple[name: string, atype: NType[NNode]]],
   impl: NNode,
   pragma: Pragma[NNode] = Pragma[NNode](),
   exported: bool = true,
@@ -851,14 +951,14 @@ func mkProcDeclNode*[NNode](
 
 func mkProcDeclNode*[NNode](
   accq: openarray[NNode],
-  args: openarray[tuple[name: string, atype: NType]],
+  args: openarray[tuple[name: string, atype: NType[NNode]]],
   impl: NNode,
   pragma: Pragma[NNode] = Pragma[NNode](),
   exported: bool = true,
   comment: string = ""): NNode =
   mkProcDeclNNode(
     newNTree[NNode](nnkAccQuoted, accq),
-    none(NType),
+    none(NType[NNode]),
     toNIdentDefs[NNode](args),
     impl,
     pragma,
@@ -869,8 +969,8 @@ func mkProcDeclNode*[NNode](
 
 func mkProcDeclNode*[NNode](
   head: NNode,
-  rtype: NType,
-  args: openarray[tuple[name: string, atype: NType]],
+  rtype: NType[NNode],
+  args: openarray[tuple[name: string, atype: NType[NNode]]],
   impl: NNode,
   pragma: Pragma[NNode] = Pragma[NNode](),
   exported: bool = true,
@@ -889,7 +989,7 @@ func mkProcDeclNode*[NNode](
   head: NNode,
   args: openarray[tuple[
     name: string,
-    atype: NType,
+    atype: NType[NNode],
     nvd: NVarDeclKind]
   ],
   impl: NNode,
@@ -898,7 +998,7 @@ func mkProcDeclNode*[NNode](
   comment: string = ""): NNode =
   mkProcDeclNNode(
     head,
-    none(NType),
+    none(NType[NNode]),
     toNIdentDefs[NNode](args),
     impl,
     pragma,
@@ -1343,6 +1443,7 @@ func toNNode*[NNode](
     )
 
 func toNimNode*(obj: NObject[NPragma]): NimNode =
+  static: echo typeof obj
   toNNode[NimNode](obj)
 
 #===========================  Pretty-printing  ===========================#

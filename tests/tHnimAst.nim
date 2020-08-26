@@ -3,7 +3,7 @@ import ../src/hmisc/types/hnim_ast
 import ../src/hmisc/helpers
 import ../src/hmisc/macros/obj_field_macros
 
-import compiler/renderer
+import compiler/[renderer, ast]
 
 import hpprint
 
@@ -231,16 +231,25 @@ suite "working with PNode":
     echo newReturn(newPIdent("qqqq"))
     echo newPrefix("!", newPIdent("eee"))
     echo mkProcDeclNNode(
-      newPIdent("hello"), none(NType), @[], newPIdent("impl"))
+      newPIdent("hello"), none(NType[PNode]), @[], newPIdent("impl"))
 
     echo mkProcDeclNode(newPIdent("nice"), {
-      "arg1" : mkNType("HHH")
+      "arg1" : mkPType("HHH")
     }, newPIdent("implementation"), comment = "some documentation")
 
     block:
       var decl = mkProcDeclNode(newPIdent("nice"), [
-        ("arg1", mkNType("HHH"), nvdVar)
+        ("arg1", mkPType("HHH"), nvdVar)
       ], newPIdent("implementation"))
+
+
+      echo mkProcDeclNode(
+        newPIdent("noimpl"), {"arg1" : mkPType("HHH")}, newEmptyPNode())
+
+      var procdef: ProcDecl[PNode]
+      procdef.name = "Hello"
+      procdef.signature = mkProcNType[PNode](@[])
+      echo procdef.toNNode()
 
       decl.comment = "hello world"
       echo decl
