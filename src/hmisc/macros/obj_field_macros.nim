@@ -227,20 +227,33 @@ proc discardNimNode(
           fldType: fld.fldType
         )
 
-func parseNimPragma*(node: NimNode, position: ObjectAnnotKind): NPragma =
+func parsePragma*[NNode](node: NNode, position: ObjectAnnotKind): Pragma[NNode] =
   result.kind = position
   case position:
     of oakObjectField:
       # debugecho node.idxTreeRepr
       node.expectKind nnkIdentDefs
-      result.elements = toSeq(node[0][1].children)
+      result.elements = toSeq(node[0][1].subnodes)
     else:
       node.expectKind nnkPragma
-      result.elements = toSeq(node.children)
+      result.elements = toSeq(node.subnodes)
 
+
+func parseNimPragma*(node: NimNode, position: ObjectAnnotKind): NPragma =
+  parsePragma(node, position)
+
+func parsePPragma*(node: PNode, position: ObjectAnnotKind): Pragma[PNode] =
+  parsePragma(node, position)
 
 
 proc parseObject*[NNode, A](node: NNode, cb: ParseCb[NNode, A]): Object[NNode, A] =
+  let node =
+    if node.kind == nnkStmtList:
+      node[0].expectKind nnkTypeSection
+      node[0][0]
+    else:
+      node
+
   node.expectKind nnkTypeDef
   result = Object[NNode, A](
     flds: node[2].getFields(cb)
@@ -255,7 +268,7 @@ proc parseObject*[NNode, A](node: NNode, cb: ParseCb[NNode, A]): Object[NNode, A
         else:
           result.name = mkNType(node[0][0].strVal)
     else:
-      result.name = mkNType(node[0].strVal)
+      result.name = mkNType(node[0].getStrVal())
 
   when not (A is void):
     if node[0].kind.toNNK() == nnkPragmaExpr and cb != nil:

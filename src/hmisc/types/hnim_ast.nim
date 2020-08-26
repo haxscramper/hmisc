@@ -20,6 +20,17 @@ func `$!`*(n: NimNode): string =
   ## 'invalid node kind'
   n.toStrLit().strVal()
 
+func getStrVal*(n: NimNode): string = n.strVal()
+func getStrVal*(p: PNode): string =
+  case p.kind:
+    of nkIdent:
+      p.ident.s
+    else:
+      p.strVal
+
+func subnodes*(p: PNode): seq[PNode] = p.sons
+func subnodes*(n: NimNode): seq[NimNode] = toSeq(n.children)
+
 func skipNil*(n: NimNode): NimNode =
   ## If node `n` is `nil` generated new empty node, otherwise return
   ## `n`
@@ -36,6 +47,8 @@ func toNK*(kind: NimNodeKind): TNodeKind =
 
 func toNNK*(kind: TNodeKind): NimNodeKind = NimNodeKind(kind)
 func toNNK*(kind: NimNodeKind): NimNodeKind = kind
+
+func `==`*(k1: TNodeKind, k2: NimNodeKind): bool = k1.toNNK() == k2
 
 
 func newTree*(kind: NimNodeKind, subnodes: seq[PNode]): PNode =
@@ -309,8 +322,13 @@ func mkNTypeNNode*[NNode](impl: NNode): NType =
         mkNType(head, impl.sons[1..^1].mapIt(mkNTypeNNode(it)))
       else:
         mkNType(head, impl[1..^1].mapIt(mkNTypeNNode(it)))
-    of nnkIdent, nnkSym:
+    of nnkSym:
       mkNType(impl.strVal)
+    of nnkIdent:
+      when NNode is PNode:
+        mkNType(impl.ident.s)
+      else:
+        mkNType(impl.strVal)
     else:
       # debugecho impl.treeRepr
       raiseAssert("#[ IMPLEMENT ]#")
@@ -1145,64 +1163,79 @@ func onPath*[A](self: NimNode, path: NPath[A]): NimNode =
 #============================  Constructors  =============================#
 
 #========================  Other implementation  =========================#
-func toNimNode*[A](fld: NField[A], annotConv: A ~> NimNode): NimNode
-func toNimNode*[A](branch: NBranch[A], annotConv: A ~> NimNode): NimNode =
+func toNNode*[NNode, A](
+  fld: ObjectField[NNode, A], annotConv: A ~> NNode): NNode
+
+func toNNode*[NNode, A](
+  branch: ObjectBranch[NNode, A], annotConv: A ~> NNode): NNode =
   if branch.isElse:
-    nnkElse.newTree(
-      nnkRecList.newTree(branch.flds.mapIt(it.toNimNode(annotConv))))
+    newNTree[NNode](
+      nnkElse,
+      nnkRecList.newTree(branch.flds.mapIt(it.toNNode(annotConv))))
   else:
-    nnkOfBranch.newTree(
+    newNTree[NNode](
+      nnkOfBranch,
       branch.ofValue,
-      nnkRecList.newTree(branch.flds.mapIt(it.toNimNode(annotConv))))
+      nnkRecList.newTree(branch.flds.mapIt(it.toNNode(annotConv))))
 
 
-func toNimNode*[A](fld: NField[A], annotConv: A ~> NimNode): NimNode =
-  let selector = nnkIdentDefs.newTree(
-    ident fld.name,
-    fld.fldType.toNimNode(),
+func toNNode*[NNode, A](fld: ObjectField[NNode, A], annotConv: A ~> NNode): NNode =
+  let selector = newNTree[NNode](
+    nnkIdentDefs,
+    newNIdent[NNode](fld.name),
+    toNNode[NNode](fld.fldType),
     fld.annotation.isSome().tern(
-      annotConv(fld.annotation.get()), newEmptyNode()))
+      annotConv(fld.annotation.get()), newEmptyNNode[NNode]()))
 
   if fld.isKind:
     return nnkRecCase.newTree(
-      @[selector] & fld.branches.mapIt(it.toNimNode(annotConv)))
+      @[selector] & fld.branches.mapIt(toNNode[NNode](it, annotConv)))
   else:
     return selector
 
-func toNimNode*[A](obj: NObject[A], annotConv: A ~> NimNode): NimNode =
+func toNNode*[NNode, A](obj: Object[NNode, A], annotConv: A ~> NNode): NNode =
   let header =
     if obj.annotation.isSome():
       let node = annotConv obj.annotation.get()
       if node.kind != nnkEmpty:
-        nnkPragmaExpr.newTree(ident obj.name.head, node)
+        newNTree[NNode](
+          nnkPragmaExpr,
+          newNIdent[NNode](obj.name.head),
+          node
+        )
       else:
-        ident(obj.name.head)
+        newNIdent[NNode](obj.name.head)
     else:
-      ident(obj.name.head)
+      newNIdent[NNode](obj.name.head)
 
-  let genparams: NimNode =
+  let genparams: NNode =
     block:
-      let maps = obj.name.genParams.mapIt(it.toNimNode())
+      let maps = obj.name.genParams.mapIt(toNNode[NNode](it))
       if maps.len == 0:
-        newEmptyNode()
+        newEmptyNNode[NNode]()
       else:
-        nnkGenericParams.newTree(maps)
+        newNTree[NNode](nnkGenericParams, maps)
 
-  result = nnkTypeDef.newTree(
+  result = newNTree[NNode](
+    nnkTypeDef,
     header,
     genparams,
-    nnkObjectTy.newTree(
-      newEmptyNode(),
-      newEmptyNode(),
-      nnkRecList.newTree(
-        obj.flds.mapIt(it.toNimNode(annotConv))))) # loud LISP sounds
+    newNTree[NNode](
+      nnkObjectTy,
+      newEmptyNNode[NNode](),
+      newEmptyNNode[NNOde](),
+      newNTree[NNode](
+        nnkRecList,
+        obj.flds.mapIt(toNNode(it, annotConv))))) # loud LISP sounds
 
   # echov result.treeRepr()
 
+func toNNode*[NNode](obj: Object[NNode, PRagma[NNode]]): NNode =
+  toNNode[NNode](obj) do(pr: Pragma[NNode]) -> NNode:
+    toNNode[NNode](pr)
 
 func toNimNode*(obj: NObject[NPragma]): NimNode =
-  obj.toNimNode do(pr: NPragma) -> NimNode:
-    pr.toNimNode()
+  toNNode[NimNode](obj)
 
 #===========================  Pretty-printing  ===========================#
 

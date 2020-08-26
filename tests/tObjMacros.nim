@@ -1,4 +1,5 @@
 import sugar, strutils, sequtils, strformat, options
+import compiler/renderer
 import ../src/hmisc/macros/[obj_field_macros]
 import ../src/hmisc/types/[hnim_ast, colorstring]
 
@@ -16,7 +17,8 @@ type
     f1: int
 """
 
-    let obj = parseObject(parsePNodeStr(instr), noParseCbPnode)
+    let obj = parseObject(parsePNodeStr(instr), parsePPragma)
+    echo obj.toNNode()
 
 
   test "{makeFieldsLiteral} No case fields :macro:":
