@@ -35,3 +35,14 @@ template nnil*(): untyped =
                 )
     else:
       assert (result != nil)
+
+
+type
+  SingleIt*[T] = object
+    it: seq[T]
+
+func getIt*[T](it: SingleIt[T]): T = it.it[0]
+func setIt*[T](it: var SingleIt[T], val: T): void = (it.it[0] = val)
+func getIt*[T](it: var SingleIt[T]): var T = it.it[0]
+func mkIt*[T](it: T): SingleIt[T] = SingleIt[T](it: @[it])
+converter toT*[T](it: SingleIt[T]): T = it.it[0]

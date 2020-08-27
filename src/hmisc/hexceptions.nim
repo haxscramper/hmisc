@@ -273,6 +273,16 @@ template assertNodeIt*(
     if not cond:
       raise toCodeError(it, msg, annot)
 
+template assertNodeKind*(
+  node: NimNode, kindSet: set[NimNodeKind]): untyped =
+  ## assert node kind is in the set. Provide higlighted error with
+  ## list of expected types and kind of given node
+  node.assertNodeIt(
+    node.kind in kindSet,
+    (&"Unexpected node kind. Expected one of " &
+      $kindSet & " but found " & $node.kind),
+    $node.kind)
+
 
 func toLineInfo*(arg: tuple[
   filename: string, line: int, column: int]): LineInfo =

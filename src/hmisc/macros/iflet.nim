@@ -16,18 +16,18 @@ Expression is evaluated only once.
   # assert head.kind == nnkPar
   # assert head[0].kind == nnkAsgn
 
-  let varSymbol = head[0][0]
+  let varSymbol = ident head[0][0].strVal()
   let varValue = head[0][1]
 
   let ifBody = bodies[0]
 
   let optId = genSym(ident = "optValue")
 
+  # echo varSymbol.treeRepr()
   var condBranch = newIfStmt(
     ((quote do: `optId`.isSome()),
      quote do:
-       when declared(`varSymbol`): # Prevent shadowing of variables
-         # TODO check if `varSymbol` is mutable or not
+       when declared(`varSymbol`):
          `varSymbol` = `optId`.get()
        else:
          let `varSymbol` = `optId`.get()
@@ -41,3 +41,4 @@ Expression is evaluated only once.
     `condBranch`
 
   result = newStmtList(result)
+  # echo result.toStrLit()

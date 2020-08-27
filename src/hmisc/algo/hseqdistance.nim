@@ -1,17 +1,26 @@
-import sequtils
+import sequtils, tables, strformat
 
 ## Sequence distance metrics
 
-proc longestCommonSubsequence*[T](x, y: seq[T]): seq[T] =
-  # TODO Multiple subsequences
+# TODO performance benchmars for fuzzy string matching - no copying
+#      should occur
+
+# TODO add custom `cmp` proc for fuzzy matching instead of using `==`
+
+type EqCmpProc[T] = proc(x, y: T): bool {.noSideEffect.}
+
+func longestCommonSubsequence*[T](
+  x, y: seq[T],
+  itemCmp: EqCmpProc[T] = (proc(x, y: T): bool = x == y)): seq[seq[T]] =
   # TODO Weighted subsequences
+  # TODO return indices of matched elements
   var mem: CountTable[(int, int)]
   proc lcs(i, j: int): int =
     if (i, j) notin mem:
       mem[(i, j)] =
         if i == -1 or j == -1:
           0
-        elif x[i] == y[j]:
+        elif itemCmp(x[i], y[j]):
           lcs(i - 1, j - 1) + 1
         else:
           max(
@@ -25,23 +34,35 @@ proc longestCommonSubsequence*[T](x, y: seq[T]): seq[T] =
     m = x.len - 1
     n = y.len - 1
 
-  proc backtrack(i, j: int): seq[T] =
-    if i == 0:
-      @[x[i]]
-    elif j == 0:
-      @[y[j]]
-    elif x[i] == y[j]:
-      backtrack(i - 1, j - 1) & @[x[i]]
-    elif lcs(i, j - 1) > lcs(i - 1, j):
-      backtrack(i, j - 1)
-    else:
-      backtrack(i - 1, j)
+  proc backtrack(i, j: int): seq[seq[T]] =
+    result =
+      if lcs(i, j) == 0:
+        @[]
+      elif i == 0:
+        @[ @[x[i]] ]
+      elif j == 0:
+        @[ @[y[j]] ]
+      elif itemCmp(x[i], y[j]):
+        backtrack(i - 1, j - 1).mapIt(it & @[x[i]])
+      elif lcs(i, j - 1) > lcs(i - 1, j):
+        backtrack(i, j - 1)
+      elif lcs(i, j - 1) < lcs(i - 1, j):
+        backtrack(i - 1, j)
+      else: # both paths has valid subsequences. Can return all of them
+        backtrack(i - 1, j) & backtrack(i - 1, j)
 
-  result = backtrack(m, n)
+
+  let tmp = backtrack(m, n)
+  result = tmp
 
 
-proc longestCommonSubsequence*[T](x, y: openarray[T]): seq[T] =
-  longestCommonSubsequence(toSeq(x), toSeq(y))
+proc longestCommonSubsequence*[T](
+  x, y: openarray[T],
+  itemCmp: EqCmpProc[T] = (proc(x, y: T): bool = x == y)): seq[seq[T]] =
+  longestCommonSubsequence(toSeq(x), toSeq(y), itemCmp)
+
+
+
 
 
 proc fuzzyMatchRecursive[Seq, Item](
@@ -167,4 +188,5 @@ proc fuzzyMatch*(
   patt, other: string,
   matchScore: proc(patt, other: string, matches: seq[int]): int
                  ): tuple[ok: bool, score: int, matches: seq[int]] =
+  ## Fuzzy match overload for strings
   fuzzyMatchImpl[string, char](patt, other, matchScore)

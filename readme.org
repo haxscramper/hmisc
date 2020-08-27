@@ -6,9 +6,9 @@ Collection of miscellaneous helper algorithms and types.
 
 ** ~hmisc/hexceptions~ [[https://haxscramper.github.io/hmisc-doc/src/hmisc/hexceptions.html][documentation]]
 
-One of *THE* features of this library - effortlessly generate
-annotations for source code. Show exact line in the source code and
-provide custom annotations.
+One of features of this library - easily generate annotations for
+source code. Show exact line in the source code and provide custom
+annotations.
 
 #+begin_src nim :exports both
   {.define(plainStdout).} # Output is colored by default, disable for
@@ -108,7 +108,9 @@ else:
     wrapper strings.
   - Multiple overloads for ~join~ and ~startsWith~
   - ~enclosedIn~ - check if string is wrapped in delimiters
-  - ~dedent~ - derease indentation for multiline string
+  - ~dedent~ - decease indentation for multiline string
+  - ~camelSplit~ - split string as camel case identifier
+  - ~abbrevCamel~ - /camelCase/ abbreviation search.
 - other
   - ~ifSomeIt~ - same as ~opt.isSome() and (let it = opt.get();
     predicate)~
@@ -136,6 +138,10 @@ block:
 block:
   echo "-- join* --"
   echo {1 : "22", 3: "333"}.joinkv().join()
+
+block:
+  echo "-- abbrevCamel --"
+  echo abbrevCamel("AA", @["ABA", "AZZ", "A)"])
 #+end_src
 
 #+RESULTS:
@@ -145,6 +151,26 @@ block:
 : 1011eee
 : -- join* --
 : 0 = (1, "22") 1 = (3, "333")
+: -- abbrevCamel --
+: @["ABA"]
+
+** ~hmisc/algo/hseqdistance~
+
+Fuzzy string matching and generic longest common subsequece
+implementation
+
+- ~longestCommonSubsequence~ - generic implementation of LCS algorithm
+  for ~seq[T]~
+- ~fuzzyMatch~ - weighted sequence fuzzy match. Compare each element
+  in the sequence to pattern and assign similarity score. Should
+  behave similarly to ~fzf~ or sublime text. Reimplementation of
+  [[https://www.forrestthewoods.com/blog/reverse_engineering_sublime_texts_fuzzy_match/]['Reverse engineering subtime text's fuzzy match']]
+
+todo:
+
+- [ ] levenstein distance
+- [ ] Damerau–Levenshtein distance
+- [ ] generate diffs for two sequences
 
 
 
@@ -166,6 +192,7 @@ block:
 - ~mapItDFS~ :: ~mapIt~ for converting trees in DFS order
 
 * Types
+
 
 ** ~hmisc/types/hprimitives~
 
@@ -251,3 +278,9 @@ any questions about implementation or just want to clarify some things
 (documentation might need more attention) feel free to join my
 [[https://discord.gg/hjfYJCU][discord server]] and ask questions
 there.
+
+todo:
+  - [ ] generic implementation of simple graph
+  - [ ] basic graph algorithms
+    - [ ] topological sorting
+    - [ ] strongly connected components

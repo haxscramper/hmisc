@@ -521,16 +521,21 @@ import math
 suite "Misc algorithms":
   test "{longestCommonSubsequence} :generic:value:":
     template tmp(s1, s2, s3: untyped): untyped =
-      assertEq longestCommonSubsequence(s1, s2), s3
+      assertEq longestCommonSubsequence(s1, s2)[0], s3
 
+    assert longestCommonSubsequence(@[1], @[2, 3]).len == 0
+    assert longestCommonSubsequence(@["Cond"], @["Int", "Lit"]).len == 0
+    assert longestCommonSubsequence(@[1], @[2]).len == 0
+    tmp("GAC", "AGCAT", "GA")
     tmp(@[1, 2], @[1, 2], @[1, 2])
     tmp(@[1, 2, 3], @[1, 2], @[1, 2])
-    tmp("GAC", "AGCAT", "GA")
     tmp("XMJYAUZ", "MZJAWXU", "MJAU")
     tmp("AABC", "BC", "BC")
     tmp("AC", "ABC", "AC")
     tmp("AB", "A", "A")
 
+
+  # if true: quit 0
   test "{fuzzyMatch} fuzzy string matching":
     template test(
       patt, input: string, expr: untyped, expected: seq[int]): untyped =
@@ -707,3 +712,67 @@ suite "Misc algorithms":
     ])
 
     echo err.toColorString()
+
+  test "{splitCamel}":
+    assertEq "HelloWorld".splitCamel, @["Hello", "World"]
+    assertEq "HHeelloWWorld".splitCamel, @["H", "Heello", "W", "World"]
+    assertEq "helloWorld".splitCamel, @["hello", "World"]
+    assertEq "H".splitCamel, @["H"]
+    assertEq "".splitCamel, `@`[string]([])
+    assertEq "clang_Hello".splitCamel, @["clang", "Hello"]
+    assertEq "clang_HeeH".splitCamel(false), @[
+      "clang", "_", "Hee", "H"]
+
+  test "{abbrevCamel}":
+    assertEq abbrevCamel(
+      "IfList", @["IfStmtList", "IfBlockList", "IfHello"]), @[
+        "IfStmtList", "IfBlockList"
+    ]
+
+    assertEq do:
+      abbrevCamel(
+        "Cond", @["ConditionExpr", "ConditionStmt", "Block"])
+    do:
+      @["ConditionExpr", "ConditionStmt"]
+
+    assertEq do:
+      abbrevCamel(@["Cond"],
+        @[
+          @["Str", "Lit"],
+          @["Int", "Lit"],
+          @["Ident"],
+          @["Call"],
+          @["Condition"]
+        ])
+    do:
+      @[ "Condition" ]
+
+    assertEq abbrevCamel("AA", @["ABA", "AZZ", "A)"]), @["ABA"]
+
+  test "{dropPrefix}":
+    assertEq "???##".dropPrefix("???"), "##"
+    assertEq "".dropPrefix("888"), ""
+    assertEq "--".dropPrefix("-"), "-"
+
+  test "{commonPrefix}":
+    assertEq @[].commonPrefix(), ""
+    assertEq @["00"].commonPrefix(), "00"
+    assertEq @["--+", "--="].commonPrefix(), "--"
+    assertEq @["+=", "=+"].commonPrefix(), ""
+
+  test "{dropCommonPrefix}":
+    assertEq @["--"].dropCommonPrefix(), @[""]
+    assertEq @["a@", "a$"].dropCommonPrefix(), @["@", "$"]
+    assertEq @["---"].dropCommonPrefix(false), @["---"]
+
+  test "{dropSubseq}":
+    assertEq @["C", "X", "X", "E"].dropSubseq(@["C", "X", "X"]), @["E"]
+    assertEq @["C", "X"].dropSubseq(@[]), @["C", "X"]
+    assertEq emptySeq[string]().dropSubseq(@["E"]), emptySeq[string]()
+    assertEq "eCXXE".splitCamel().dropSubseq(@["C", "X", "X"]), @["e", "E"]
+    assertEq "Eeeee".dropSubstr("eee"), "Ee"
+    assertEq dropSubstr("--+==", "-+="), "-="
+    assertEq dropLongestSubseq(
+      "CXIdxEntityCXXTemplateKind", @["CX", "CXX"]),
+      "CXIdxEntityTemplateKind"
+

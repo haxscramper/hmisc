@@ -1,8 +1,49 @@
-import terminal, sequtils, strformat, strutils, unicode, strscans, re,
-       macros
-import hmisc/algo/halgorithm
-import hmisc/hdebug_misc
+import sequtils, strformat, strutils, unicode, macros, strscans
 import ../macros/traceif
+
+
+when defined(nimscript):
+  type
+    Style* = enum        ## different styles for text output
+      styleBright = 1,   ## bright text
+      styleDim,          ## dim text
+      styleItalic,       ## italic (or reverse on terminals not supporting)
+      styleUnderscore,   ## underscored text
+      styleBlink,        ## blinking/bold text
+      styleBlinkRapid,   ## rapid blinking/bold text (not widely supported)
+      styleReverse,      ## reverse
+      styleHidden,       ## hidden text
+      styleStrikethrough ## strikethrough
+
+    ForegroundColor* = enum ## terminal's foreground colors
+      fgBlack = 30,         ## black
+      fgRed,                ## red
+      fgGreen,              ## green
+      fgYellow,             ## yellow
+      fgBlue,               ## blue
+      fgMagenta,            ## magenta
+      fgCyan,               ## cyan
+      fgWhite,              ## white
+      fg8Bit,               ## 256-color (not supported, see ``enableTrueColors`` instead.)
+      fgDefault             ## default terminal foreground color
+
+    BackgroundColor* = enum ## terminal's background colors
+      bgBlack = 40,         ## black
+      bgRed,                ## red
+      bgGreen,              ## green
+      bgYellow,             ## yellow
+      bgBlue,               ## blue
+      bgMagenta,            ## magenta
+      bgCyan,               ## cyan
+      bgWhite,              ## white
+      bg8Bit,               ## 256-color (not supported, see ``enableTrueColors`` instead.)
+      bgDefault             ## default terminal background color
+
+else:
+  import hmisc/algo/halgorithm
+  import hmisc/hdebug_misc
+  import terminal
+
 
 type
   PrintStyling* = object
@@ -22,8 +63,9 @@ func contains*(ps: PrintStyling, s: Style): bool =
   ps.style.contains(s)
 
 func initPrintStyling*(fg: ForegroundColor = fgDefault,
-                       bg: BackgroundColor = bgDefault): PrintStyling =
-  PrintStyling(fg: fg, bg: bg)
+                       bg: BackgroundColor = bgDefault,
+                       style: set[Style] = {}): PrintStyling =
+  PrintStyling(fg: fg, bg: bg, style: style)
 
 
 func uc*(s: static[string]): Rune = runeAt(s, 0)
@@ -131,6 +173,14 @@ func `$`*(colored: ColoredString): string =
 func lispRepr*(colstr: ColoredString): string =
   fmt("(\"{colstr.str}\" :bg {colstr.bg} :fg {colstr.fg} :style {colstr.style})")
 
+func toStyled*(
+  str: string,
+  style: PrintStyling,
+  colorize: bool = not defined(plainStdout)): string =
+  if colorize:
+    $ColoredString(str: str, styling: style)
+  else:
+    str
 
 func toRed*(str: string, style: set[Style] = {}): string =
   $initColoredString(str, style = style, fg = fgRed)
@@ -155,6 +205,12 @@ func toDefault*(
   $initColoredString(
     str, style = if colorize: style else: {}, fg = fgDefault)
 
+
+func toBlue*(str: string, style: set[Style] = {}): string =
+  $initColoredString(str, fg = fgBlue, style = style)
+
+func toBlue*(str: string, color: bool): string =
+  $initColoredString(str, fg = (if color: fgBlue else: fgDefault))
 
 func toRed*(str: string, color: bool): string =
   $initColoredString(str, fg = (if color: fgRed else: fgDefault))

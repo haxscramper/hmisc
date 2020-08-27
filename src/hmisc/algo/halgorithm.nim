@@ -1,5 +1,8 @@
-import math, strutils, sequtils, random, macros, options, strformat
+import math, strutils, sequtils, random, macros, options, strformat,
+       parseutils, algorithm, sugar
 import std/wordwrap
+
+import hseqdistance
 import ../types/[hprimitives]
 import hmath
 export hmath
@@ -165,11 +168,153 @@ proc matchWith*[K, V](
 
 #=========================  string operations  ===========================#
 
+func dropPrefix*(str, pref: string): string =
+  if str.startsWith(pref):
+    str[min(pref.len, str.len)..^1]
+  else:
+    str
+
+func addPrefix*(str: var string, pref: string): void =
+  if not str.startsWith(pref):
+    str = pref & str
+
+func addPrefix*(str, pref: string): string =
+  if not str.startsWith(pref):
+    pref & str
+  else:
+    str
+
+func commonPrefix*(strs: seq[string]): string =
+  if strs.len == 0:
+    return ""
+  else:
+    let strs = strs.sorted()
+    for i in 0 ..< min(strs[0].len, strs[^1].len):
+      if strs[0][i] == strs[^1][i]:
+        result.add strs[0][i]
+      else:
+        return
+
+func dropSubseq*[T](inseq, subseq: openarray[T]): seq[T] =
+  var i = 0
+  if subseq.len == 0:
+    result = toSeq(inseq)
+    return
+
+
+  var prev = -1
+  while i < inseq.len:
+    # debugecho i, " ", inseq[i..^1], " ", subseq
+    if prev == i:
+      raiseAssert("#[ IMPLEMENT ]#")
+    var matches: bool = true
+    for shift in 0 ..< subseq.len:
+      if (i + shift < inseq.len):
+        if (inseq[i + shift] != subseq[shift]):
+          matches = false
+      else:
+        matches = false
+
+
+    prev = i
+    # debugecho "@ ", inseq[i], " matches"
+    if not matches:
+      result.add inseq[i]
+      inc i
+    else:
+      i += subseq.len
+
+
+func dropLongestSubseq*[T](inseq: seq[T], subseqs: seq[seq[T]]): seq[T] =
+  let subseqs = subseqs.sortedByIt(-it.len)
+  # debugecho subseqs
+  result = inseq
+  for sub in subseqs:
+    let dropped = inseq.dropSubseq(sub)
+    # debugecho &"{inseq} dropped {sub} -> {dropped}"
+    if dropped.len != inseq.len:
+      result = dropped
+      break
+
+  # debugecho result
+
+
+func dropLongestSubseq*(inseq: string, inseqs: seq[string]): string =
+  let inseqs = collect(newSeq):
+    for str in inseqs:
+      str.mapIt(it)
+
+  dropLongestSubseq(inseq.mapIt(it), inseqs).join("")
+
+func dropSubstr*(instr, substr: string): string =
+  instr.dropSubseq(substr).join("")
+
+func dropCommonPrefix*(
+  strs: seq[string], dropSingle: bool = true): seq[string] =
+  if not dropSingle and strs.len == 1:
+    return strs
+
+  let pref = strs.commonPrefix()
+  for str in strs:
+    result.add str.dropPrefix(pref)
+
+func splitCamel*(str: string, dropUnderscore: bool = true): seq[string] =
+  ## Split abbreviation as **camelCase** identifier
+  var pos = 0
+  while pos < str.len:
+    let start = pos
+    let next = start + str.skipUntil({'A'..'Z', '_'}, start + 1)
+
+    if str[start..next].allOfIt(it in {'_'}) and dropUnderscore:
+      discard
+    else:
+      result.add str[start..next]
+
+    pos = next + 1
+
+
+func abbrevCamel*(
+  abbrSplit: seq[string],
+  splitWords: seq[seq[string]],
+  getExact: bool = false): seq[string] =
+  ## Split abbreviation and all worlds as **camelCase** identifiers.
+  ## Find all worlds that contains `abbrev` as subsequence.
+  let abbr = abbrSplit.join("")
+  for word in splitWords:
+    let lcs = longestCommonSubsequence(
+      abbrSplit, word,
+      itemCmp = proc(lhs, rhs: string): bool =
+                    # debugecho lhs, rhs
+                    # lhs == rhs
+                    rhs.startsWith(lhs)
+    )
+
+    if lcs.len > 0:
+      if lcs[0].len == abbrSplit.len:
+        let word = word.join("")
+        if getExact and word == abbr:
+          return @[word]
+        else:
+          result.add word
+
+func abbrevCamel*(
+  abbrev: string,
+  words: seq[string],
+  getExact: bool = false): seq[string] =
+  ## Split abbreviation and all worlds as **camelCase** identifiers.
+  ## Find all worlds that contains `abbrev` as subsequence. `getExact`
+  ## - if any of the alternatives fully matches input word return it
+  ## as only result
+  ##
+  ## To avoid ambiguous returns on tests like `"Else", @["Else",
+  ## "ElseBlock"]`)
+  abbrevCamel(abbrev.splitCamel(), words.mapIt(it.splitCamel()))
+
 func posString*(node: NimNode): string =
   let info = node.lineInfoObj()
   return "on line " & $info.line
 
-proc mismatchStart*(str1, str2: string): int =
+func mismatchStart*(str1, str2: string): int =
   ## Find position where two strings mismatch first
   # TODO implement mismatch with support for multiple
   # matching/mismatching sections - use larges common subsequence to
@@ -191,7 +336,7 @@ proc mismatchStart*(str1, str2: string): int =
     # No mismatch found
     return -1
 
-proc joinl*(inseq: openarray[string]): string =
+func joinl*(inseq: openarray[string]): string =
   ## Join items using newlines
   runnableExamples:
     assert @["as", "bn"].joinl == "as\nbn"
@@ -209,14 +354,14 @@ proc joinw*(inseq: openarray[string], sep = " "): string =
     assert @["as", ";;"].joinw == "as ;;"
   inseq.join(sep)
 
-proc joinq*(inseq: openarray[string], sep: string = " ", wrap: string = "\""): string =
+func joinq*(inseq: openarray[string], sep: string = " ", wrap: string = "\""): string =
   ## Join items using spaces and quote each item
   runnableExamples:
     assert @["as", "qq"].joinq == "\"as\" \"qq\""
 
   inseq.mapIt(wrap & it & wrap).join(sep)
 
-proc replaceN*(str: string, n: int, subst: char = ' '): string =
+func replaceN*(str: string, n: int, subst: char = ' '): string =
   ## Replace first `n` characters in string with `subst`
   runnableExamples:
     assert "123".replaceN(1) == " 23"
@@ -226,7 +371,7 @@ proc replaceN*(str: string, n: int, subst: char = ' '): string =
   for i in 0..<min(str.len, n):
     result[i] = subst
 
-proc wrapTwoColumns*(
+func wrapTwoColumns*(
   text: seq[(string, string)],
   padding: (int, int) = (0,0),
   widthColLimits: (int, int) = (30, -1),
@@ -305,7 +450,7 @@ proc printTwoColumns*(
   for (lhs, rhs) in wrapTwoColumns(text, padding, widthColLimits, maxWidthTotal):
     echo " $# $#" % [lhs, rhs]
 
-proc join*(text: openarray[(string, string)], sep: string = " "): string =
+func join*(text: openarray[(string, string)], sep: string = " "): string =
   text.mapIt(it[0] & it[1]).join(sep)
 
 func join*(text: openarray[string], sep: char = ' '): string =
