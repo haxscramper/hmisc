@@ -119,6 +119,12 @@ func endsWith*(str: string, chars: set[char]): bool =
 func startsWith*(str: string, chars: set[char]): bool =
   str[0] in chars
 
+func startsWith*(str: string, pref: varargs[string]): bool =
+  result = false
+  for pr in pref:
+    if str.startsWith(pr):
+      return true
+
 func msgjoinImpl*(args: seq[string]): string =
   for idx in 0 ..< args.len:
     if idx == args.len - 1:

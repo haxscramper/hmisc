@@ -211,8 +211,8 @@ todo:
 
 *** ~Seq2D~
 
-Always-rectangular 2d sequence of items. Public API prevents
-modification that will make it non-rectangular.
+Always-rectangular 2d sequence of items. API prevents modification
+that will make it non-rectangular.
 
 Helper functions are provided for
 
