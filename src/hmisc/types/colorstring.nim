@@ -507,7 +507,7 @@ func splitSGR_sep*(str: string, sep: string = "\n"): seq[seq[ColoredString]] =
   for idx, cstr in splitted:
     let splitl = cstr.split(sep)
 
-    traceIf false:
+    if true:
       if splitl[0].len == 0 and splitl[^1].len == 0:
         if idx == 0 and splitted.len == 1:
           for line in splitl:

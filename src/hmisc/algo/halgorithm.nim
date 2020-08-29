@@ -125,6 +125,12 @@ func startsWith*(str: string, pref: varargs[string]): bool =
     if str.startsWith(pr):
       return true
 
+func endsWith*(str: string, suffixes: varargs[string]): bool =
+  result = false
+  for suff in suffixes:
+    if str.endsWith(suff):
+      return true
+
 func msgjoinImpl*(args: seq[string]): string =
   for idx in 0 ..< args.len:
     if idx == args.len - 1:
@@ -348,8 +354,14 @@ func joinl*(inseq: openarray[string]): string =
     assert @["as", "bn"].joinl == "as\nbn"
   inseq.join("\n")
 
+func joinql*(
+  inseq: openarray[string],
+  wrap: string = "\"", ident: int = 1, identStr: string = "  "): string =
 
-func joinkv*[K, V](t: openarray[(K, V)], eqTok: string = "="): seq[string] =
+  inseq.mapIt(identStr.repeat(ident) & wrap & it & wrap).join("\n")
+
+func joinkv*[K, V](
+  t: openarray[(K, V)], eqTok: string = "="): seq[string] =
   ## Join table values as key-value pairs
   for k, v in t:
     result.add &"{k} {eqTok} {v}"
@@ -501,7 +513,7 @@ proc getRandomBase64*(length: int): string =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".
     sample()).join("")
 
-proc dedent*(multiline: string): string =
+func dedent*(multiline: string): string =
   ## Uniformly deindent multiline string
   let seplines = multiline.split('\n')
   var indent = 0
