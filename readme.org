@@ -103,6 +103,8 @@ else:
 - working with strings
   - ~joinw~, ~joinq~, ~joinl~, ~joinkv~ - join on whitespaces,
     whitespace + quote each string, newlines or key-value pairs.
+    Mostly useful in ~strformat.&~ - can write ~{somevar.join()}~
+    instead of ~{somevar.join(\"\\n\")}~
   - ~wrap~ - wrap strings in delimiters. Has convinience overload for
     ~.wrap("()")~ that automatically determines starting/ending
     wrapper strings.
@@ -111,6 +113,11 @@ else:
   - ~dedent~ - decease indentation for multiline string
   - ~camelSplit~ - split string as camel case identifier
   - ~abbrevCamel~ - /camelCase/ abbreviation search.
+  - Several variations of ~dropPrefix~, ~addPrefix~, ~startsWith~,
+    ~addSuffix~ for less common use cases
+  - Filtering sequence of strings by prefix
+  - Dropping subsequence in strings
+  - Finding common prefix in sequence of strings
 - other
   - ~ifSomeIt~ - same as ~opt.isSome() and (let it = opt.get();
     predicate)~
@@ -120,31 +127,35 @@ else:
     comparison.
 
 #+begin_src nim :exports both
-import hmisc/algo/halgorithm
+  import hmisc/algo/halgorithm, strformat
+  let v = @["w234", "333"]
 
-block:
-  echo "-- withIt --"
-  let immutable = (a: 12, b: 12)
-  echo immutable.withIt do:
-    it.a = 909
+  echo ": ", &"{v.joinq()}"
 
-block:
-  echo "-- withResIt --"
-  let immutable = (a: 12, b: "eee")
-  echo immutable.withResIt do:
-    it.a += 999
-    $it.a & it.b
+  block:
+    echo "-- withIt --"
+    let immutable = (a: 12, b: 12)
+    echo immutable.withIt do:
+      it.a = 909
 
-block:
-  echo "-- join* --"
-  echo {1 : "22", 3: "333"}.joinkv().join()
+  block:
+    echo "-- withResIt --"
+    let immutable = (a: 12, b: "eee")
+    echo immutable.withResIt do:
+      it.a += 999
+      $it.a & it.b
 
-block:
-  echo "-- abbrevCamel --"
-  echo abbrevCamel("AA", @["ABA", "AZZ", "A)"])
+  block:
+    echo "-- join* --"
+    echo {1 : "22", 3: "333"}.joinkv().join()
+
+  block:
+    echo "-- abbrevCamel --"
+    echo abbrevCamel("AA", @["ABA", "AZZ", "A)"])
 #+end_src
 
 #+RESULTS:
+: : "w234" "333"
 : -- withIt --
 : (a: 909, b: 12)
 : -- withResIt --
@@ -154,7 +165,7 @@ block:
 : -- abbrevCamel --
 : @["ABA"]
 
-** ~hmisc/algo/hseqdistance~
+** ~hmisc/algo/hseqdistance~ [[https://haxscramper.github.io/hmisc-doc/src/hmisc/algo/hseqdistance.html][documentation]]
 
 Fuzzy string matching and generic longest common subsequece
 implementation
@@ -164,7 +175,43 @@ implementation
 - ~fuzzyMatch~ - weighted sequence fuzzy match. Compare each element
   in the sequence to pattern and assign similarity score. Should
   behave similarly to ~fzf~ or sublime text. Reimplementation of
-  [[https://www.forrestthewoods.com/blog/reverse_engineering_sublime_texts_fuzzy_match/]['Reverse engineering subtime text's fuzzy match']]
+  [[https://www.forrestthewoods.com/blog/reverse_engineering_sublime_texts_fuzzy_match/]['Reverse engineering subtime text's fuzzy match']]. I haven't used it
+  in any interactive applications as of yet, but there are some unit
+  tests. It has generic implementation and somewhat annoying to use,
+  but provides very flexible interface, allowing to completely
+  customize how fuzzy matching is performed.
+
+#+begin_src nim
+  import hmisc/doc_examples
+
+  echo "# ~~~~ leading / ~~~~ #\n"
+  matchTest "//hell.txt", "/nice/we/hell.txt":
+    if other[matches[0]] == '/':
+      1000 # high cost if have exact match with starting /
+    else:
+      matches.sum()
+
+  echo "\n# ~~~~ no leading / ~~~~ #\n"
+  matchTest "nicehell.txt", "/nice/we/hell.txt":
+    if other[matches[0]] == '/':
+      1000
+    else:
+      matches.sum()
+#+end_src
+
+#+RESULTS:
+: # ~~~~ leading / ~~~~ #
+:
+: input: /nice/we/hell.txt //hell.txt :1000
+: match: /    /   hell.txt
+:
+: # ~~~~ no leading / ~~~~ #
+:
+: input: /nice/we/hell.txt nicehell.txt :113
+: match:  nic   e hell.txt
+
+
+
 
 todo:
 

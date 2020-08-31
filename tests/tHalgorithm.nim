@@ -545,28 +545,43 @@ suite "Misc algorithms":
           let p {.inject.} = p
           let o {.inject.} = o
           let m {.inject.} = m
+          # echo m
           expr
       )
 
       assert res.ok
-      assertEq res.matches, expected
 
       if res.matches != expected:
-        echo input
+        echo "input: ", input
         var buf = " ".repeat(input.len)
         for pattIdx, inIdx in res.matches:
           buf[inIdx] = patt[pattIdx]
 
-        echo buf
+        echo "match: ", buf
 
         buf = " ".repeat(input.len)
         for pattIdx, inIdx in expected:
           buf[inIdx] = patt[pattIdx]
 
-        echo buf
+        echo "expec: ", buf
+
+      assertEq res.matches, expected
+
+    test("123", "1123", (
+      block:
+        var res: int
+        for idx in m:
+          res += o.len - idx
+        res
+    ) , @[0, 2, 3])
 
     test("123", "010233", m.sum() * 7, @[1, 3, 5])
     test("123", "01122330", 1, @[1, 3, 5])
+    test("===", "===", 1, @[0, 1, 2])
+    test("123", "0123", 1, @[1, 2, 3])
+    test("123", "0123", m.sum(), @[1, 2, 3])
+
+    test("123", "1123", m.sum(), @[1, 2, 3])
 
   test "Colored string wrapping":
     assertEq "999".toRed(), "\e[31m999\e[39m"
@@ -711,7 +726,7 @@ suite "Misc algorithms":
       )
     ])
 
-    echo err.toColorString()
+    # echo err.toColorString()
 
 suite "String helper functions":
   test "{msgjoin}":
