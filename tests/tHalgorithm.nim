@@ -713,6 +713,11 @@ suite "Misc algorithms":
 
     echo err.toColorString()
 
+suite "String helper functions":
+  test "{msgjoin}":
+    assert msgjoin("_", "nice", "_") == "_nice_"
+    assert msgjoin("hello,", "nice", "weather") == "hello, nice weather"
+
   test "{splitCamel}":
     assertEq "HelloWorld".splitCamel, @["Hello", "World"]
     assertEq "HHeelloWWorld".splitCamel, @["H", "Heello", "W", "World"]
@@ -764,6 +769,12 @@ suite "Misc algorithms":
     assertEq @["--"].dropCommonPrefix(), @[""]
     assertEq @["a@", "a$"].dropCommonPrefix(), @["@", "$"]
     assertEq @["---"].dropCommonPrefix(false), @["---"]
+    assertEq @[].dropCommonPrefix(), emptySeq[string]()
+
+
+    assert @["--", "-="].dropCommonPrefix() == @["-", "="]
+    assert @["---"].dropCommonPrefix(false) == @["---"]
+
 
   test "{dropSubseq}":
     assertEq @["C", "X", "X", "E"].dropSubseq(@["C", "X", "X"]), @["E"]
@@ -776,3 +787,15 @@ suite "Misc algorithms":
       "CXIdxEntityCXXTemplateKind", @["CX", "CXX"]),
       "CXIdxEntityTemplateKind"
 
+    # for runnable examples
+    assert "CXX_CX".dropLongestSubseq(@["CXX", "CX"]) == "_CX"
+    assert "CX_CX_EEECX".dropSubstr("CX") == "__EEE"
+
+
+  test "{startsWith}":
+    assert "        ()".startsWith(Whitespace, "()")
+    assert "-".startsWith({}, "-")
+
+  test "{dropSuffix}":
+    assertEq "999".dropSuffix("9"), "99"
+    assertEq "hello.txt".dropSuffix(".txt").addSuffix(".nim"), "hello.nim"

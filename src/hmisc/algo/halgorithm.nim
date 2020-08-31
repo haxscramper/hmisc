@@ -114,22 +114,44 @@ func splitList*[T](s: openarray[T]): (T, seq[T]) =
   (s[0], s[1..^1])
 
 func endsWith*(str: string, chars: set[char]): bool =
-  str[^1] in chars
+  ## True if last character of the strings is in `chars`
+  (str.len > 0) and (str[^1] in chars)
 
 func startsWith*(str: string, chars: set[char]): bool =
-  str[0] in chars
+  ## True if first character of the strings is in `chars`
+  (str.len > 0) and (str[0] in chars)
+
+func startsWith*(str: string; skip: set[char], pref: string): bool =
+  ## Return true if string has prefix `<skip*><pref>` - one or more
+  ## occurencies of chars in `skip` set, followed by prefix.
+  (str.len > 0) and str[str.skipWhile(skip)..^1].startsWith(pref)
+
+
+func startsWith*(str: string; skip: set[char], pref: set[char]): bool =
+  ## Return true if string has prefix `<skip*><pref>` - one or more
+  ## occurencies of chars in `skip` set, followed by prefix.
+  (str.len > 0) and str[str.skipWhile(skip)..^1].startsWith(pref)
 
 func startsWith*(str: string, pref: varargs[string]): bool =
+  ## True if string starts with any of the prefixes
   result = false
   for pr in pref:
     if str.startsWith(pr):
       return true
 
 func endsWith*(str: string, suffixes: varargs[string]): bool =
+  ## True if string ends with any of the suffixes
   result = false
   for suff in suffixes:
     if str.endsWith(suff):
       return true
+
+func filterPrefix*(str: seq[string], pref: seq[string]): seq[string] =
+  ## Return only strings that have prefix in `pref`
+  for s in str:
+    if s.startsWith(pref):
+      result.add s
+
 
 func msgjoinImpl*(args: seq[string]): string =
   for idx in 0 ..< args.len:
@@ -145,10 +167,22 @@ func msgjoinImpl*(args: seq[string]): string =
         result &= args[idx] & " "
 
 func msgjoin*(args: varargs[string, `$`]): string =
+  ## Concatenate arguments by adding whitespaces when necessary. When
+  ## string ends with `_`, `'`, `"` or other similar characters (used
+  ## when wrapping things like in `msgjoin("_", text, "_")`).
+  ## Whitespace is omitted when strings *ends with* any of `[('#@` +
+  ## wrapper characters or next one *starts with* `, .` + wrapper
+  ## characters. Wrapper characters are: `_' "``
+  runnableExamples:
+    assert msgjoin("_", "nice", "_") == "_nice_"
+    assert msgjoin("hello,", "nice", "weather") == "hello, nice weather"
+
+
   msgjoinImpl(toSeq(args))
 
 template raisejoin*(text: seq[string]): untyped =
   raiseAssert(msgjoinImpl(text))
+
 
 template last*[T](stack: var seq[T]): var T = stack[^1]
 template last*[T](stack: seq[T]): T = stack[^1]
@@ -180,23 +214,62 @@ proc matchWith*[K, V](
 
 #=========================  string operations  ===========================#
 
+func makeCommentSection*(str: string, level: range[0..2]): string =
+  ## Generate separation comment
+  case level:
+    of 2:
+      &"# ~~~~ {str} ~~~~ #"
+    of 1:
+      "#" & center(" " & str.strip() & " ", 73, '=') & "#"
+    of 0:
+      "#" & "*".repeat(73) & "#\n" &
+      "#" & center(" " & str.strip() & " ", 73, '*') & "#\n" &
+      "#" & "*".repeat(73) & "#"
+
 func dropPrefix*(str, pref: string): string =
+  ## Drop prefix if already present
   if str.startsWith(pref):
     str[min(pref.len, str.len)..^1]
   else:
     str
 
+func dropSuffix*(str, suff: string): string =
+  ## Drop suffix `suff` is present
+  if str.endsWith(suff):
+    str[0 ..^ (suff.len + 1)]
+  else:
+    str
+
+func dropSuffix*(str: string, suff: seq[string]): string =
+  ## Drop suffix `suff` is present
+  for s in suff:
+    let drop = str.dropSuffix(s)
+    if drop.len != str.len:
+      return drop
+
+  return str
+
+func addSuffix*(str, suff: string): string =
+  ## Add suffix `suff` if not already present
+  if str.endsWith(suff):
+    return str
+  else:
+    return str & suff
+
 func addPrefix*(str: var string, pref: string): void =
+  ## Add prefix to string if it not starts with `pref`
   if not str.startsWith(pref):
     str = pref & str
 
 func addPrefix*(str, pref: string): string =
+  ## Add prefix to string if it not starts with `pref`
   if not str.startsWith(pref):
     pref & str
   else:
     str
 
 func commonPrefix*(strs: seq[string]): string =
+  ## Find common prefix for list of strings
   if strs.len == 0:
     return ""
   else:
@@ -208,6 +281,7 @@ func commonPrefix*(strs: seq[string]): string =
         return
 
 func dropSubseq*[T](inseq, subseq: openarray[T]): seq[T] =
+  ## Drop all non-overlapping occurencies of `subseq` in `inseq`
   var i = 0
   if subseq.len == 0:
     result = toSeq(inseq)
@@ -238,20 +312,23 @@ func dropSubseq*[T](inseq, subseq: openarray[T]): seq[T] =
 
 
 func dropLongestSubseq*[T](inseq: seq[T], subseqs: seq[seq[T]]): seq[T] =
+  ## Sort `subseq` by lenght and try to drop each from `inseq`. First
+  ## first drop attempt that changes result length is returned.
   let subseqs = subseqs.sortedByIt(-it.len)
-  # debugecho subseqs
   result = inseq
   for sub in subseqs:
     let dropped = inseq.dropSubseq(sub)
-    # debugecho &"{inseq} dropped {sub} -> {dropped}"
     if dropped.len != inseq.len:
       result = dropped
       break
 
-  # debugecho result
-
 
 func dropLongestSubseq*(inseq: string, inseqs: seq[string]): string =
+  ## Sort `subseq` by lenght and try to drop each from `inseq`. First
+  ## first drop attempt that changes result length is returned.
+  runnableExamples:
+    assert "CXX_CX".dropLongestSubseq(@["CXX", "CX"]) == "_CX"
+
   let inseqs = collect(newSeq):
     for str in inseqs:
       str.mapIt(it)
@@ -259,10 +336,20 @@ func dropLongestSubseq*(inseq: string, inseqs: seq[string]): string =
   dropLongestSubseq(inseq.mapIt(it), inseqs).join("")
 
 func dropSubstr*(instr, substr: string): string =
+  ## Drop all occurencies of `substr` in `instr`
+  runnableExamples:
+    assert "CX_CX_EEECX".dropSubstr("CX") == "__EEE"
+
   instr.dropSubseq(substr).join("")
 
 func dropCommonPrefix*(
   strs: seq[string], dropSingle: bool = true): seq[string] =
+  ## Drop common prefix from sequence of strings. If `dropSingle` is
+  ## false sequences with `len == 1` are returned as-is.
+  runnableExamples:
+    assert @["--", "-="].dropCommonPrefix() == @["-", "="]
+    assert @["---"].dropCommonPrefix(false) == @["---"]
+
   if not dropSingle and strs.len == 1:
     return strs
 
@@ -355,8 +442,8 @@ func joinl*(inseq: openarray[string]): string =
   inseq.join("\n")
 
 func joinql*(
-  inseq: openarray[string],
-  wrap: string = "\"", ident: int = 1, identStr: string = "  "): string =
+  inseq: openarray[string], ident: int = 1,
+  wrap: string = "\"", identStr: string = "  "): string =
 
   inseq.mapIt(identStr.repeat(ident) & wrap & it & wrap).join("\n")
 
@@ -544,6 +631,14 @@ proc `==`*[A, B](tpl: (Option[A], Option[B]), tpl1: (A, B)): bool =
 template ifSomeIt*[T](opt: Option[T], predicate: untyped): bool =
   opt.isSome() and ((let it {.inject.} = opt.get(); predicate))
 
+
+template getSomeIt*[T](opt: Option[T], value, default: untyped): untyped =
+  if opt.isSome():
+    let it {.inject.} = opt.get()
+    value
+  else:
+    default
+
 #================================  tests  ================================#
 
 import unittest
@@ -560,10 +655,10 @@ proc testEq*[A, B](lhs: A, rhs: B) =
       lhsStr = ($lhs).replace("\e", "\\e")
       rhsStr = ($rhs).replace("\e", "\\e")
 
-    testEnded(
-      ConsoleOutputFormatter(colorOutput: true, isInSuite: true),
-      TestResult(testName: "Equality comparison", status: FAILED)
-    )
+    # testEnded(
+    #   ConsoleOutputFormatter(colorOutput: true, isInSuite: true),
+    #   TestResult(testName: "Equality comparison", status: FAILED)
+    # )
 
     let diffPos = mismatchStart(lhsStr, rhsStr)
     if '\n' in lhsStr or '\n' in rhsStr:

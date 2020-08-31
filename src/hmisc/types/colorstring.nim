@@ -491,7 +491,7 @@ func splitColor*(str: string, sep: string): seq[string] =
     for chunk in chunks[1..^1]:
       result.add $chunk
 
-func addToLast*[T](sseq: var seq[seq[T]], val: T): void =
+func addToLast[T](sseq: var seq[seq[T]], val: T): void =
   if sseq.len == 0:
     sseq.add @[val]
   else:

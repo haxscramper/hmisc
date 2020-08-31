@@ -1,6 +1,34 @@
-import streams, strutils, osproc
+when not defined(NimScript):
+  import osproc, streams, os
+
+import strutils, strformat
+
+# TODO better way of building command for execution.
+# TODO overload for `runShell` that accepts callbacks
+#      failed execution. Make `runShell` raise
+#      exception if command exited with non-zero code
+# TODO generate log calls?
+# TODO easy way to pipe things to stdout
+
+type
+  ShellError* = ref object of OSError
+    cmd*: string ## Command that returned non-zero exit code
+    cwd*: string ## Absolute path of initial command execution directory
+    retcode*: int ## Exit code
+    errstr*: string ## Stderr for command
+    outstr*: string ## Stdout for command
+
+proc printShellError*() =
+  when defined(NimScript):
+    echo getCurrentExceptionMsg()
+  else:
+    let err = ShellError(getCurrentException())
+    echo err.errstr
+
+    echo err.outstr
 
 iterator iterstdout*(command: string): string =
+  # TODO raise exception on failed command
   let pid = startProcess(command, options = {poEvalCommand})
 
   let outStream = pid.outputStream
@@ -18,25 +46,54 @@ iterator iterstdout*(command: string): string =
   for line in (if rem.len > 0: rem[0..^2] else: rem):
     yield line
 
-proc runShell*(command: string): tuple[
-  outstr, outerr: string,
-  outcode: int]
-  =
-  let pid = startProcess(command, options = {poEvalCommand})
+proc runShell*(command: string, doRaise: bool = true): tuple[
+  stdout, stderr: string, code: int] =
 
-  let outStream = pid.outputStream
-  var line = ""
+  when not defined(NimScript):
+    let pid = startProcess(command, options = {poEvalCommand})
 
-  while pid.running:
+    let outStream = pid.outputStream
+    var line = ""
+
+    while pid.running:
+      try:
+        let streamRes = outStream.readLine(line)
+        if streamRes:
+          result.stdout &= line & "\n" # WARNING remove trailing newline
+                                       # on the stdout
+      except IOError, OSError:
+        assert outStream.isNil
+        echo "process died" # NOTE possible place to raise exception
+
+    result.stdout &= outStream.readAll()
+    result.code = pid.peekExitCode()
+    result.stderr = pid.errorStream.readAll()
+
+  else:
+    let nscmd = &"cd {getCurrentDir()} && " & command
+    let (res, code) = gorgeEx(nscmd, "", "")
+    result.stdout = res
+    result.code = code
+
+
+  if doRaise and result.code != 0:
+    raise ShellError(
+      msg: &"Command '{command}' executed in directory " &
+        getCurrentDir() & " exited with non-zero code",
+      retcode: result.code,
+      errorCode: int32(result.code),
+      errstr: result.stderr,
+      outstr: result.stdout,
+      cwd: getCurrentDir(),
+      cmd: command
+    )
+
+
+when not defined(nimscript):
+  template withDir*(dir: string; body: untyped): untyped =
+    var curDir = getCurrentDir()
     try:
-      let streamRes = outStream.readLine(line)
-      if streamRes:
-        result.outstr &= line & "\n"
-    except IOError, OSError:
-      assert outStream.isNil
-      echo "process died"
-
-  result.outstr &= outStream.readAll()
-  result.outcode = pid.peekExitCode()
-  if result.outcode != 0:
-    result.outerr = pid.errorStream.readAll()
+      setCurrentDir(dir)
+      body
+    finally:
+      setCurrentDir(curDir)
