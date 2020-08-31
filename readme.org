@@ -2,6 +2,20 @@
 
 Collection of miscellaneous helper algorithms and types.
 
+** Installation:
+
+#+begin_src sh
+nimble install hmisc
+#+end_src
+
+** Links
+
+- [[https://nimble.directory/pkg/hmisc][nimble package]]
+- [[https://haxscramper.github.io/hmisc-doc/src/hmisc.html][documentation]]
+- [[https://github.com/haxscramper/hmisc][github]]
+- [[https://discord.gg/hjfYJCU][discord server]]
+
+
 * Toplevel
 
 ** ~hmisc/hexceptions~ [[https://haxscramper.github.io/hmisc-doc/src/hmisc/hexceptions.html][documentation]]

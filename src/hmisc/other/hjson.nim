@@ -6,7 +6,8 @@ export json
 
 ##[
 
-This module provides helper functions for working with json.
+This module provides helper functions for working with json that don't
+silently ignore errors. If something is missing exception is raised.
 
 - `as*` functions - throw exception if node kind does not match
   (stdlib implementations silently return default value)

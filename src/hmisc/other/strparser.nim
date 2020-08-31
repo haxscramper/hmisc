@@ -1,8 +1,11 @@
-import strformat, strutils, sequtils
+import strformat, strutils, sequtils, options
 import re
-import helpers, options
+import ../helpers
 
-#~#=== Primitives parsing
+## Simple string parsing algorithm for splitting things like `[a, b]`
+## into `["a", "b"]`. Not fully finished & usable, but there are unit
+## tests in `tHalgorithm.nim::Strparser`
+
 proc toInt*(str: string): int = str.parseInt()
 proc toStr*(str: string): string = str
 proc toBool*(str: string): bool = str == "1" # IMPLEMENT
@@ -43,8 +46,8 @@ proc fmtArgs*(
   result = (res, argEnd + 1)
 
 
-#~#=== Compound types
 proc toStrSeq*(str: string): seq[string] =
+  ## Parser string to sequence of strings
   let defaults = @[",", "'\"", "t"]
   let (args, left) =
     if str =~ re"^~.,?(.*,?)+\[.*?\]":
@@ -70,17 +73,17 @@ proc toStrSeq*(str: string): seq[string] =
 proc toIntSeq*(str: string): seq[int] =
   str.toStrSeq().mapIt(it.parseInt)
 
-proc parseTo*(val: string, t: string): Opt[string] =
+proc parseTo*(val: string, t: string): Option[string] =
   some(val)
 
-proc parseTo*(str: string, t: int): Opt[int] =
+proc parseTo*(str: string, t: int): Option[int] =
   try:
     some(parseInt(str))
   except ValueError:
     none(int)
 
 proc parseTo*(str: string, t: seq[string]):
-    Opt[seq[string]] =
+    Option[seq[string]] =
 
   some(str.toStrSeq())
 
@@ -102,59 +105,3 @@ proc toTuple*[A](str: string): (A,A) =
   result = (
     parseTo(res[0], a).get(),
     parseTo(res[1], a).get())
-
-
-
-
-when isMainModule:
-  testEq(
-    "[a,b,c,d]".toStrSeq(),
-    @["a", "b", "c", "d"])
-
-  testEq(
-    "[a,  b]".toStrSeq(),
-    @["a", "b"])
-
-  testEq(
-    "~|[a|b]".toStrSeq(),
-    @["a", "b"])
-
-  testEq(
-    "a,b,c".toStrSeq(),
-    @["a", "b", "c"])
-
-  testEq(
-    toTuple[seq[string]]("(~|[a|b],~![a!b])"),
-    (@["a", "b"], @["a", "b"]))
-
-  testEq(
-    toTuple[seq[string]]("~*([a,b]*[a,b])"),
-    (@["a", "b"], @["a", "b"]))
-
-  testEq(
-    toTuple[seq[string]]("~*([a]*[a])"),
-    (@["a"], @["a"]))
-
-  testEq(
-    toTuple[seq[string]]("(a,a)"),
-    (@["a"], @["a"]))
-
-  testEq(
-    "['a', 'b']".toStrSeq(),
-    @["a", "b"])
-
-  testEq(
-    "~|,,a['  a'| 'b']".toStrSeq(),
-    @["a", "'b'"])
-
-  testEq(
-    "['input.tmp.pl']".toStrSeq(),
-    @["input.tmp.pl"])
-
-  testEq(
-    "input.tmp.pl".toStrSeq(),
-    @["input.tmp.pl"])
-
-  testEq(
-    toTuple[string]("~||(test.tmp.pl||test1.sh)"),
-    ("test.tmp.pl", "test1.sh"))

@@ -814,3 +814,36 @@ suite "String helper functions":
   test "{dropSuffix}":
     assertEq "999".dropSuffix("9"), "99"
     assertEq "hello.txt".dropSuffix(".txt").addSuffix(".nim"), "hello.nim"
+
+import hmisc/other/strparser
+
+suite "Strparser":
+  test "main":
+    assertEq("[a,b,c,d]".toStrSeq(), @["a", "b", "c", "d"])
+    assertEq("[a,  b]".toStrSeq(), @["a", "b"])
+    assertEq("~|[a|b]".toStrSeq(), @["a", "b"])
+    assertEq("a,b,c".toStrSeq(), @["a", "b", "c"])
+
+    assertEq(
+      toTuple[seq[string]]("(~|[a|b],~![a!b])"),
+      (@["a", "b"], @["a", "b"]))
+
+    assertEq(
+      toTuple[seq[string]]("~*([a,b]*[a,b])"),
+      (@["a", "b"], @["a", "b"]))
+
+    assertEq(toTuple[seq[string]]("~*([a]*[a])"), (@["a"], @["a"]))
+
+    assertEq(toTuple[seq[string]]("(a,a)"), (@["a"], @["a"]))
+
+    assertEq("['a', 'b']".toStrSeq(), @["a", "b"])
+
+    assertEq("~|,,a['  a'| 'b']".toStrSeq(), @["a", "'b'"])
+
+    assertEq("['input.tmp.pl']".toStrSeq(), @["input.tmp.pl"])
+
+    assertEq("input.tmp.pl".toStrSeq(), @["input.tmp.pl"])
+
+    assertEq(
+      toTuple[string]("~||(test.tmp.pl||test1.sh)"),
+      ("test.tmp.pl", "test1.sh"))
