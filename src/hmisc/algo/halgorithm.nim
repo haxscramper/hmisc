@@ -214,6 +214,17 @@ proc matchWith*[K, V](
 
 #=========================  string operations  ===========================#
 
+func dashedWords*(
+  str: string,
+  toDash: set[char] = {'-', '_', ' ', '.', ',', ';', ':'},
+  toLower: set[char] = {'a'..'z', 'A'..'Z', '0'..'9'}): string =
+
+  for ch in str:
+    if ch in toDash:
+      result &= '-'
+    elif ch in toLower:
+      result &= ch.toLowerAscii()
+
 func makeCommentSection*(str: string, level: range[0..2]): string =
   ## Generate separation comment
   case level:
@@ -270,6 +281,7 @@ func addPrefix*(str, pref: string): string =
 
 func commonPrefix*(strs: seq[string]): string =
   ## Find common prefix for list of strings
+  # TODO implement without sorting
   if strs.len == 0:
     return ""
   else:
