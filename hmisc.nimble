@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.4.0"
+version       = "0.4.2"
 author        = "haxscramper"
 description   = "Collection of helper utilities"
 license       = "Apache-2.0"
@@ -13,30 +13,12 @@ srcDir        = "src"
 requires "nim >= 1.2.4", "with", "shell"
 requires "macroutils"
 
-import strformat, strutils
+from os import `/`
 
-func makeSeparator*(msg: string, col: string): string =
-  "\e[" & col & "m" & (&"  {msg}  ").center(80, '~') & "\e[39m"
-
-proc info(msg: string): void = echo makeSeparator(msg, "32")
-proc err(msg: string): void = echo makeSeparator(msg, "31")
-
-proc runDockerTest(
-  projDir, tmpDir, cmd: string, cleanup: bool = true): void =
-  if tmpDir.dirExists:
-    rmDir tmpDir
-
-  cpDir projDir, tmpDir
-  let cmd =
-      &"docker run -it --rm -v={tmpDir}:/hmisc nim-base sh -c '" &
-      &"cd /hmisc && {cmd}" &
-      "'"
-
-
-  echo(cmd)
-  exec(cmd)
-  if cleanup:
-    rmDir tmpDir
+when fileExists(thisDir() / "src/hmisc/other/nimbleutils.nim"):
+  import src/hmisc/other/nimbleutils
+else:
+  import hmisc/other/nimbleutils
 
 task dockertest, "Run test suite in new docker container":
   runDockerTest(thisDir(), "/tmp/docker-hmisc", "nimble test")
@@ -53,12 +35,18 @@ task testallTask, "~~~ testall implementation ~~~":
     exec("nimble test")
     info "Stable test passed"
   except:
-    discard
+    err "Stable test failed"
 
   try:
     exec("choosenim devel")
     exec("nimble test")
     info "Devel test passed"
-  finally:
+  except:
     exec("choosenim devel")
     err "Devel test failed"
+
+  try:
+    exec("nimble install")
+    info "Installation OK"
+  except:
+    err "Installation failed"
