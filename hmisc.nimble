@@ -13,7 +13,6 @@ srcDir        = "src"
 requires "nim >= 1.2.4", "with", "shell"
 requires "macroutils"
 
-import src/hmisc/other/hshell
 import strformat
 
 proc runDockerTest(projDir, tmpDir: string, cleanup: bool = true): void =
