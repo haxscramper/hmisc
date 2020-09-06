@@ -31,5 +31,4 @@ install:
   - choosenim $CHANNEL
 
 script:
-  - nimble install -y
-  - nimble -y travis
+  - nimble -y test
