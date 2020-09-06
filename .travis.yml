@@ -18,10 +18,10 @@ matrix:
       env: CHANNEL=devel
       compiler: gcc
 
-cache:
-  directories:
-    - "$HOME/.nimble"
-    - "$HOME/.choosenim"
+# cache:
+#   directories:
+#     - "$HOME/.nimble"
+#     - "$HOME/.choosenim"
 
 install:
   - curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh
