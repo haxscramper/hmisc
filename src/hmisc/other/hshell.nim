@@ -18,33 +18,39 @@ type
     errstr*: string ## Stderr for command
     outstr*: string ## Stdout for command
 
-proc printShellError*() =
-  when defined(NimScript):
-    echo getCurrentExceptionMsg()
-  else:
-    let err = ShellError(getCurrentException())
-    echo err.errstr
+when not defined(NimScript):
+  proc printShellError*() =
+    when defined(NimScript):
+      echo getCurrentExceptionMsg()
+    else:
+      let err = ShellError(getCurrentException())
+      echo err.errstr
 
-    echo err.outstr
+      echo err.outstr
 
 iterator iterstdout*(command: string): string =
   # TODO raise exception on failed command
-  let pid = startProcess(command, options = {poEvalCommand})
+  when defined(NimScript):
+    let (res, code) = gorgeEx(command, "", "")
+    for line in res.split("\n"):
+      yield line
+  else:
+    let pid = startProcess(command, options = {poEvalCommand})
 
-  let outStream = pid.outputStream
-  var line = ""
+    let outStream = pid.outputStream
+    var line = ""
 
-  while pid.running:
-    try:
-      let streamRes = outStream.readLine(line)
-      if streamRes:
-        yield line
-    except IOError, OSError:
-      assert outStream.isNil
+    while pid.running:
+      try:
+        let streamRes = outStream.readLine(line)
+        if streamRes:
+          yield line
+      except IOError, OSError:
+        assert outStream.isNil
 
-  let rem = outStream.readAll().split("\n")
-  for line in (if rem.len > 0: rem[0..^2] else: rem):
-    yield line
+    let rem = outStream.readAll().split("\n")
+    for line in (if rem.len > 0: rem[0..^2] else: rem):
+      yield line
 
 proc runShell*(command: string, doRaise: bool = true): tuple[
   stdout, stderr: string, code: int] =
