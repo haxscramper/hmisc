@@ -26,6 +26,7 @@ proc runDockerTest(projDir, tmpDir: string, cleanup: bool = true): void =
       &"cd /hmisc && nimble test" &
       "'"
 
+
   echo(cmd)
   exec(cmd)
   if cleanup:
