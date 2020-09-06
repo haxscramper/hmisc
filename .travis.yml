@@ -14,10 +14,6 @@ matrix:
       env: CHANNEL=stable
       compiler: gcc
 
-    - os: linux
-      env: CHANNEL=devel
-      compiler: gcc
-
 install:
   - curl https://nim-lang.org/choosenim/init.sh -sSf > init.sh
   - sh init.sh -y
