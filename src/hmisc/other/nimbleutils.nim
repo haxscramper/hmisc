@@ -7,11 +7,13 @@ import hshell
 ## Helper utilities for running nimble tasks
 
 func makeSeparator*(msg: string, col: string): string =
-  "\e[" & col & "m" & (&"  {msg}  ").center(80, '~') & "\e[39m"
+  "\e[" & col & "m" & (
+    "  " & msg.alignLeft(46, ' ') & "  ").center(80, '~') & "\e[39m"
 
 proc info*(msg: string): void = echo makeSeparator(msg, "34")
 proc notice*(msg: string): void = echo makeSeparator(msg, "32")
 proc err*(msg: string): void = echo makeSeparator(msg, "31")
+proc debug*(msg: string): void = echo makeSeparator(msg, "39")
 
 proc runDockerTest*(
   projDir, tmpDir, cmd: string, runCb: proc() = (proc() = discard)): void =
@@ -89,6 +91,7 @@ proc makeLocalDevel*(testDir: string, pkgs: seq[string]): string =
     for nimble in meta.readFile().split("\n"):
       if nimble.endsWith(&"{pkg}.nimble"): # XXX
         let dir = parentDir(nimble)
+        debug dir
         # echo "copied ", dir, " to ", testDir / pkg
         cpDir dir, (testDir / pkg)
 
@@ -126,6 +129,10 @@ proc runDockerTestDevel*(
   cmd: string, cb: proc()) =
   let develCmd = makeLocalDevel(testDir, localDevel)
   let cmd = develCmd && ("cd " & "/project/main") && cmd
+
+  info "executing docker container"
+  debug "command is"
+  echo cmd
 
   runDockerTest(thisDir(), testDir, cmd) do:
     cb()
