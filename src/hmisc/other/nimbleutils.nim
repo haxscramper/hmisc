@@ -40,7 +40,7 @@ proc runDockerTest*(
     exec(cmd)
     # rmDir tmpDir
   except OSError:
-    echo "failed"
+    echo "\e[31mfailed\e[39m"
     proc hlCmd(str: string): string =
       let split = str.split(" ")
       result = "\e[33m" & split[0] & "\e[39m " & split[1..^1].join(" ")
@@ -87,8 +87,33 @@ proc makeLocalDevel*(testDir: string, pkgs: seq[string]): string =
     for nimble in meta.readFile().split("\n"):
       if nimble.endsWith(&"{pkg}.nimble"): # XXX
         let dir = parentDir(nimble)
-        echo "copied ", dir, " to ", testDir / pkg
+        # echo "copied ", dir, " to ", testDir / pkg
         cpDir dir, (testDir / pkg)
 
   for pkg in pkgs:
     result = result && &"cd /project/{pkg}" && "nimble develop"
+
+proc writeTestConfig*(str: string): void =
+  "tests/nim.cfg".writeFile(str.unindent())
+
+proc testAllImpl*(): void =
+  try:
+    exec("choosenim stable")
+    exec("nimble test")
+    info "Stable test passed"
+  except:
+    err "Stable test failed"
+
+  try:
+    exec("choosenim devel")
+    exec("nimble test")
+    info "Devel test passed"
+  except:
+    exec("choosenim devel")
+    err "Devel test failed"
+
+  try:
+    exec("nimble install")
+    info "Installation OK"
+  except:
+    err "Installation failed"
