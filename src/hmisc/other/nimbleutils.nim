@@ -9,7 +9,8 @@ import hshell
 func makeSeparator*(msg: string, col: string): string =
   "\e[" & col & "m" & (&"  {msg}  ").center(80, '~') & "\e[39m"
 
-proc info*(msg: string): void = echo makeSeparator(msg, "32")
+proc info*(msg: string): void = echo makeSeparator(msg, "34")
+proc notice*(msg: string): void = echo makeSeparator(msg, "32")
 proc err*(msg: string): void = echo makeSeparator(msg, "31")
 
 proc runDockerTest*(
@@ -70,6 +71,7 @@ proc pkgVersion*(pkg: string): string =
 
 
 proc makeLocalDevel*(testDir: string, pkgs: seq[string]): string =
+  info "Copying local development versions"
   let home = getHomeDir()
   let dirs = collect(newSeq):
     for pkg in pkgs:
