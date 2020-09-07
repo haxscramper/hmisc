@@ -118,3 +118,12 @@ proc testAllImpl*(): void =
     info "Installation on stable OK"
   except:
     err "Installation on stable failed"
+
+proc runDockerTestDevel*(
+  startDir, testDir: string, localDevel: seq[string],
+  cmd: string, cb: proc()) =
+  let develCmd = makeLocalDevel(testDir, localDevel)
+  let cmd = develCmd && ("cd " & "/project/main") && cmd
+
+  runDockerTest(thisDir(), testDir, cmd) do:
+    cb()

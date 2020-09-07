@@ -30,23 +30,4 @@ task testall, "Run full test suite in all variations":
   runDockerTest(thisDir(), "/tmp/docker-hmisc/", "nimble testallTask")
 
 task testallTask, "~~~ testall implementation ~~~":
-  try:
-    exec("choosenim stable")
-    exec("nimble test")
-    info "Stable test passed"
-  except:
-    err "Stable test failed"
-
-  try:
-    exec("choosenim devel")
-    exec("nimble test")
-    info "Devel test passed"
-  except:
-    exec("choosenim devel")
-    err "Devel test failed"
-
-  try:
-    exec("nimble install")
-    info "Installation OK"
-  except:
-    err "Installation failed"
+  testAllImpl()
