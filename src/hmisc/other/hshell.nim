@@ -9,6 +9,9 @@ import strutils, strformat
 #      exception if command exited with non-zero code
 # TODO generate log calls?
 # TODO easy way to pipe things to stdout
+# TODO pretty-print long shell commands on failure - can split on `&&`
+#      and left-align commands. Highlight `--flags`, `commands` and
+#      arguments.
 
 type
   ShellError* = ref object of OSError
@@ -30,6 +33,7 @@ when not defined(NimScript):
 
 iterator iterstdout*(command: string): string =
   # TODO raise exception on failed command
+  # REVIEW how cleanup is performed when iterator finishes main loop?
   when defined(NimScript):
     let (res, code) = gorgeEx(command, "", "")
     for line in res.split("\n"):
