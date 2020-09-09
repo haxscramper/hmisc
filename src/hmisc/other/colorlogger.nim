@@ -1,7 +1,12 @@
 import logging, macros, strutils
 
+export info, debug, notice, warn
+
+proc logError*(args: varargs[string, `$`]): void =
+  logging.error(args)
+
 macro err*(args: varargs[untyped]): untyped =
-  result = newCall(newDotExpr(ident "logging", ident "error"))
+  result = newCall("logError")
   for arg in args:
     result.add arg
 
@@ -20,6 +25,12 @@ proc dedentLog* =
   for handler in getHandlers():
     if ColorLogger(handler) != nil:
       dec ColorLogger(handler).ident
+
+proc getIdent*(): int =
+  for handler in getHandlers():
+    if ColorLogger(handler) != nil:
+      return ColorLogger(handler).ident
+
 
 method log*(logger: ColorLogger, level: Level, args: varargs[string, `$`]) =
   let ident = "  ".repeat(logger.ident)

@@ -815,6 +815,16 @@ suite "String helper functions":
     assertEq "999".dropSuffix("9"), "99"
     assertEq "hello.txt".dropSuffix(".txt").addSuffix(".nim"), "hello.nim"
 
+  test "{splitTokenize}":
+    assertEq "std::vector<int>".splitTokenize(@["::", "<", ">"]), @[
+      "std", "::", "vector", "<", "int", ">"
+    ]
+
+    assertEq "(())".splitTokenize(@["(", ")"]), @["(", "(", ")", ")"]
+    assertEq "(())".splitTokenize({'(', ')'}), @["(", "(", ")", ")"]
+    assertEq "hello<world>".splitTokenize({'<', '>'}), @[
+      "hello", "<", "world", ">"]
+
 import hmisc/other/strparser
 
 suite "Strparser":

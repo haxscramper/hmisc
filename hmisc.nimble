@@ -10,7 +10,7 @@ srcDir        = "src"
 
 # Dependencies
 
-requires "nim >= 1.2.4", "with", "shell"
+requires "nim >= 1.2.4", "with"
 requires "macroutils"
 
 from os import `/`

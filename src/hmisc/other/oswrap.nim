@@ -1,26 +1,23 @@
 ## `os` module function wrappers than can work with both nimscript and
 ## regular target.
 
-import os
+import os, strutils
 
 export os.`/`, os.`/../`
 
 template osOrNims(osCode, nimsCode: untyped): untyped =
-  when defined(NimScript):
-    system.nimsCode
+  when not defined(NimScript):
+    osCode
   else:
-    os.osCode
+    nimsCode
 
 
 template osAndNims*(code: untyped): untyped =
-  when defined(NimScript):
-    system.code
-  else:
-    os.code
+  code
 
 proc getCurrentDir*(): string  =
   ## Retrieves the current working directory.
-  osNims(getCurrentDir())
+  osAndNims(getCurrentDir())
 
 proc paramStr*(i: int): string =
   ## Retrieves the i'th command line parameter.
@@ -30,7 +27,7 @@ proc paramCount*(): int =
   ## Retrieves the number of command line parameters.
   osAndNims(paramCount())
 
-proc getEnv**(key: string; default = ""): string =
+proc getEnv*(key: string; default = ""): string =
   ## Retrieves the environment variable of name key.
   osAndNims(getEnv(key, default))
 
@@ -77,7 +74,7 @@ proc listDirs*(dir: string): seq[string] =
   when defined(NimScript):
     return system.listDirs()
   else:
-    for kind, path in os.walkDirs(dir):
+    for (kind, path) in os.walkDir(dir):
       if kind == pcDir:
         result.add path
 
@@ -86,44 +83,68 @@ proc listFiles*(dir: string): seq[string] =
   when defined(NimScript):
     return system.listFiles(dir)
   else:
-    for kind, path in os.walkDirs(dir):
+    for (kind, path) in os.walkDir(dir):
       if kind == pcFile:
         result.add path
 
 proc rmDir*(dir: string; checkDir = false) =
   ## Removes the directory dir.
-  osOrNims(removeDir(dir, checkDir), rmDir(dir, checkDir))
+  osOrNims(
+    os.removeDir(dir, checkDir),
+    system.rmDir(dir, checkDir)
+  )
 
 proc rmFile*(file: string) =
   ## Removes the file.
-  osOrNims(removeFile(file), rmFile(file))
+  osOrNims(
+    os.removeFile(file),
+    system.rmFile(file)
+  )
 
 proc mkDir*(dir: string) =
   ## Creates the directory dir including all necessary subdirectories.
   ## If the directory already exists, no error is raised.
-  osOrNims(createDir(dir), mkDir(dir))
+  osOrNims(
+    os.createDir(dir),
+    system.mkDir(dir)
+  )
 
 proc mvFile*(source, dest: string) =
   ## Moves the file from to to.
-  osOrNims(moveFile(source, to), mvFile(source, to))
+  osOrNims(
+    os.moveFile(source, dest),
+    system.mvFile(source, dest)
+  )
 
 proc mvDir*(source, dest: string) =
   ## Moves the dir from to to.
-  osOrNims(moveDir(source, dest), moveDir(source, dest))
+  osOrNims(
+    os.moveDir(source, dest),
+    system.mvDir(source, dest)
+  )
 
 proc cpFile*(source, dest: string) =
   ## Copies the file from to to.
-  osOrNims(copyFile(source, dest), cpFile(source, dest))
+  osOrNims(
+    os.copyFile(source, dest),
+    system.cpFile(source, dest)
+  )
 
 proc cpDir*(source, dest: string) =
   ## Copies the dir from to to.
-  osOrNims(copyDir(source, dest), cpDir(source, dest))
+  osOrNims(
+    os.copyDir(source, dest),
+    system.cpDir(source, dest)
+  )
 
 proc cd*(dir: string) =
   ## Changes the current directory.
-  osOrNims(setCurrentDir(dir), cd(dir))
+  osOrNims(
+    os.setCurrentDir(dir),
+    system.cd(dir)
+  )
 
-proc findExe(bin: string): string {...}
+proc findExe(bin: string): string =
   ## Searches for bin in the current working directory and then in
   ## directories listed in the PATH environment variable. Returns "" if
   ## the exe cannot be found.
@@ -142,6 +163,8 @@ func `&&`*(lhs, rhs: string): string =
       lhs & " " & rhs
     else:
       lhs & " && " & rhs
+
+proc `~`*(path: string): string = getHomeDir() / path
 
 template withDir*(dir: string; body: untyped): untyped =
   ## Changes the current directory temporarily.

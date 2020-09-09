@@ -279,6 +279,10 @@ func addPrefix*(str, pref: string): string =
   else:
     str
 
+func addPrefix*(str: seq[string], pref: string): seq[string] =
+  for s in str:
+    result.add s.addPrefix(pref)
+
 func commonPrefix*(strs: seq[string]): string =
   ## Find common prefix for list of strings
   # TODO implement without sorting
@@ -369,8 +373,49 @@ func dropCommonPrefix*(
   for str in strs:
     result.add str.dropPrefix(pref)
 
+func splitTokenize*(str: string, seps: seq[string]): seq[string] =
+  var prev = 0
+  var curr = 0
+  # var cnt = 0
+  while curr < str.len:
+    # inc cnt
+    # if cnt > 20:
+    #   break
+
+    # debugecho curr, result, str[prev .. curr]
+    block nextSep:
+      for sep in seps:
+        if str.continuesWith(sep, curr):
+          if prev != curr:
+            result.add str[prev ..< curr]
+            prev = curr
+
+          curr += sep.len
+          result.add str[prev ..< curr]
+          prev = curr
+          break nextSep
+
+      inc curr
+
+
+func splitTokenize*(str: string, seps: set[char]): seq[string] =
+  var prev = 0
+  var curr = 0
+  while curr < str.len:
+    if str[curr] in seps:
+      if prev != curr:
+        result.add str[prev ..< curr]
+
+      result.add $str[curr]
+      inc curr
+      prev = curr
+    else:
+      inc curr
+
+
 func splitCamel*(str: string, dropUnderscore: bool = true): seq[string] =
   ## Split abbreviation as **camelCase** identifier
+  # TODO handle `kebab-style-identifiers`
   var pos = 0
   while pos < str.len:
     let start = pos
