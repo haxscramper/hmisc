@@ -296,6 +296,19 @@ func commonPrefix*(strs: seq[string]): string =
       else:
         return
 
+func isSubseq*[T](subseq, inseq: openarray[T]): bool =
+  var inPos, subPos: int
+  while subPos < subseq.len:
+    # debugecho inseq[inPos .. ^1], " ", subseq[subPos]
+    let inPos = inseq[inPos .. ^1].find(subseq[subPos])
+    # debugecho inPos
+    if inPos == -1:
+      return false
+    else:
+      inc subPos
+      result = true
+
+
 func dropSubseq*[T](inseq, subseq: openarray[T]): seq[T] =
   ## Drop all non-overlapping occurencies of `subseq` in `inseq`
   var i = 0

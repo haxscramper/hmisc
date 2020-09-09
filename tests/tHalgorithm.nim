@@ -790,6 +790,12 @@ suite "String helper functions":
     assert @["--", "-="].dropCommonPrefix() == @["-", "="]
     assert @["---"].dropCommonPrefix(false) == @["---"]
 
+  test "{isSubseq}":
+    assert @["usr", "include", "vector"].isSubseq(@[
+      "usr", "include", "c++", "vector"])
+
+    assert @["A"].isSubseq(@["A"])
+    assert not @["B"].isSubseq(@["A"])
 
   test "{dropSubseq}":
     assertEq @["C", "X", "X", "E"].dropSubseq(@["C", "X", "X"]), @["E"]
