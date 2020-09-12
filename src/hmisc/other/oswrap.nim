@@ -1,7 +1,7 @@
 ## `os` module function wrappers than can work with both nimscript and
 ## regular target.
 
-import os, strutils
+import os, strutils, macros
 
 export os.`/`, os.`/../`
 
@@ -11,9 +11,24 @@ template osOrNims(osCode, nimsCode: untyped): untyped =
   else:
     nimsCode
 
+dumpTree:
+  getCurrentDir(i)
+  os.getCurrentDir(i)
 
-template osAndNims*(code: untyped): untyped =
-  code
+macro osAndNims*(code: untyped): untyped =
+  var
+    osExpr = newCall newDotExpr(ident "os", code[0])
+    nimsExpr = newCall newDotExpr(ident "system", code[0])
+
+  for arg in code[1..^1]:
+    osExpr.add arg
+    nimsExpr.add arg
+
+  result = quote do:
+    when not defined(NimScript):
+      `osExpr`
+    else:
+      `nimsExpr`
 
 proc getCurrentDir*(): string  =
   ## Retrieves the current working directory.
@@ -174,3 +189,23 @@ template withDir*(dir: string; body: untyped): untyped =
     body
   finally:
     cd(curDir)
+
+template withEnv*(envs: openarray[(string, string)], body: untyped): untyped =
+  var prevValues: seq[(string, string)]
+  var noValues: seq[string]
+  for (varn, value) in envs:
+    if oswrap.existsEnv(varn):
+      prevValues.add (varn, oswrap.getEnv(varn))
+    else:
+      noValues.add varn
+
+    oswrap.putEnv(varn, value)
+
+
+  body
+
+  for (varn, value) in prevValues:
+    oswrap.putEnv(varn, value)
+
+  for varn in noValues:
+    oswrap.delEnv(varn)

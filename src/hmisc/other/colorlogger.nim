@@ -1,4 +1,5 @@
 import logging, macros, strutils
+import ../types/colorstring
 
 export info, debug, notice, warn
 
@@ -31,6 +32,13 @@ proc getIdent*(): int =
     if ColorLogger(handler) != nil:
       return ColorLogger(handler).ident
 
+template logIdented*(body: untyped): untyped =
+  try:
+    identLog()
+    body
+  finally:
+    dedentLog()
+
 
 method log*(logger: ColorLogger, level: Level, args: varargs[string, `$`]) =
   let ident = "  ".repeat(logger.ident)
@@ -45,8 +53,11 @@ method log*(logger: ColorLogger, level: Level, args: varargs[string, `$`]) =
       of lvlAll: "ALL"
       of lvlNone: ""
 
-  for line in args.join(" ").split("\n"):
-    echo ident, prefix, " ", line
+  let mlines = args.join(" ").split("\n")
+  echo ident, prefix, " ", mlines[0]
+
+  for line in mlines[1 .. ^1]:
+    echo ident, " ".repeat(prefix.termLen()), " ", line
 
 proc startColorLogger*(): void =
   var logger = ColorLogger(ident: 2)

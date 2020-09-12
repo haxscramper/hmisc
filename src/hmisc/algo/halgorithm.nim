@@ -429,6 +429,8 @@ func splitTokenize*(str: string, seps: set[char]): seq[string] =
 func splitCamel*(str: string, dropUnderscore: bool = true): seq[string] =
   ## Split abbreviation as **camelCase** identifier
   # TODO handle `kebab-style-identifiers`
+  # TODO Split things like `ABBRName` into either `ABBR, Name` or
+  #      `A, B, B ...`
   var pos = 0
   while pos < str.len:
     let start = pos

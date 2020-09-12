@@ -330,20 +330,39 @@ template pprintErr*(): untyped =
       printSeparator("Exception")
       echo ""
 
+    var fileW = 0
     for tr in stackEntries:
+      let (_, name, ext) = ($tr.filename).splitFile()
+      fileW = max(name.len, fileW)
+
+
+    var foundErr: bool = false
+    for idx, tr in stackEntries:
       let filename: string = $tr.filename
 
       let prefix =
-        if not filename.startsWith(choosenim): "(usr) "
-        else: $("(sys) ".toGreen())
+        if not filename.startsWith(choosenim):
+          if ($tr.procname).startsWith(@["expect", "assert"]):
+            "(asr) ".toBlue()
+          else:
+            "(usr) "
+        else:
+          $("(sys) ".toGreen())
 
 
       let (_, name, ext) = filename.splitFile()
+      var filePref = $name.alignLeft(fileW)
+      if (not foundErr) and idx + 1 < stackEntries.len:
+        let next = stackEntries[idx + 1]
+        let nextFile = $next.filename
+        if nextFile.startsWith(choosenim) or ($next.procname).startsWith(@[
+          "expect", "assert"]):
+          filePref = filePref.toRed()
+          foundErr = true
+
       echo(
-        prefix &
-        $name.toDefault(style = { styleDim }) &
-          ":" &
-          $($tr.line).toDefault(style = { styleUnderscore }) &
+        prefix & (filePref) & ":" &
+          $(($tr.line).alignLeft(4)).toDefault(style = { styleUnderscore }) &
           " " &
           $($tr.procname).toYellow())
 

@@ -79,6 +79,8 @@ proc runShell*(command: string, doRaise: bool = true): tuple[
     result.code = pid.peekExitCode()
     result.stderr = pid.errorStream.readAll()
 
+    close(pid)
+
   else:
     let nscmd = &"cd {getCurrentDir()} && " & command
     let (res, code) = gorgeEx(nscmd, "", "")
