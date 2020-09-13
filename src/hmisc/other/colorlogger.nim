@@ -1,5 +1,6 @@
 import logging, macros, strutils
 import ../types/colorstring
+import ../algo/halgorithm
 
 export info, debug, notice, warn
 
@@ -53,7 +54,7 @@ method log*(logger: ColorLogger, level: Level, args: varargs[string, `$`]) =
       of lvlAll: "ALL"
       of lvlNone: ""
 
-  let mlines = args.join(" ").split("\n")
+  let mlines = args.msgjoin().split("\n")
   echo ident, prefix, " ", mlines[0]
 
   for line in mlines[1 .. ^1]:

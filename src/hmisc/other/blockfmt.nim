@@ -13,7 +13,7 @@ import colorlogger
 
 startColorLogger()
 
-const infty = 1024 * 1024 * 1024
+const infty = 1024 * 1024 * 1024 * 1024
 
 func `*`(a: SomeNumber, b: bool): SomeNumber = (if b: a else: 0)
 func get*[T](inseq: seq[Option[T]]): seq[T] =
@@ -279,19 +279,22 @@ func curValueAt(self: Solution, margin: int): float =
 
 func nextKnot(self: Solution): int =
   ## The knot after the once currently indexed.
-  try:
-    return self.knots[self.index + 1]
-  except IndexError:
-    return infty
+  if self.index + 1 >= self.knots.len:
+    infty
+  else:
+    self.knots[self.index + 1]
 
-func moveToMargin(self: var Solution, margin: int) =
+proc moveToMargin(self: var Solution, margin: int) =
   ## Adjust the index so m falls between the current knot and the next.
   if self.curKnot() > margin:
     while self.curKnot() > margin:
       self.retreat()
   else:
-    while self.nextKnot() <= margin:
+    while self.nextKnot() <= margin and self.nextKnot() != infty:
       self.advance()
+      # info "Advancing to position", self.curIndex(),
+      #   "next knot is", self.nextKnot(), "margin is", margin,
+      #   self.nextKnot() <= margin
 
 
 #==========================  Solution factory  ===========================#
@@ -427,6 +430,8 @@ proc vSumSolution(solutions: seq[Solution]): Solution =
   info "Vertical sum of #", solutions.len, "solutions"
   defer: dedentLog()
 
+  assert solutions.len > 0
+
   if len(solutions) == 1:
     return solutions[0]
 
@@ -448,6 +453,7 @@ proc vSumSolution(solutions: seq[Solution]): Solution =
     )
 
     # The distance to the closest next knot from the current margin.
+    info "Knots:", solutions.map(nextKnot)
     let d_star = min(
       solutions.
       filterIt(it.nextKnot() > margin).
@@ -461,6 +467,7 @@ proc vSumSolution(solutions: seq[Solution]): Solution =
     for s in mitems(solutions):
       s.moveToMargin(margin)
 
+  info "Done vertical sum"
   return col.makeSolution()
 
 proc hPlusSolution(s1, s2: Solution): Solution =
@@ -808,7 +815,7 @@ proc doOptVerbLayout(
 proc doOptLayout(
   self: var Block, rest_of_line: Option[Solution]): Option[Solution] =
 
-  info "Optimal layout for", self
+  info "Optimal layout for ", self
 
   logIdented:
     result = case self.kind:

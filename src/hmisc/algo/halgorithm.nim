@@ -154,14 +154,22 @@ func filterPrefix*(str: seq[string], pref: seq[string]): seq[string] =
 
 
 func msgjoinImpl*(args: seq[string]): string =
+  var openwrap: bool = false
   for idx in 0 ..< args.len:
     if idx == args.len - 1:
       result &= args[idx]
     else:
       const wraps: set[char] = {'_', '`', '\'', '\"', ' '}
       if args[idx].endsWith({'[', '(', '\'', '#', '@'} + wraps):
+        if (args[idx].endsWith wraps) and openwrap:
+          openwrap = false
+
         result &= args[idx]
       elif args[idx + 1].startsWith({',', ' ', '.'} + wraps):
+        # if openwrap:
+        #   result &= args[idx]
+        # else:
+        #   openwrap = true
         result &= args[idx]
       else:
         result &= args[idx] & " "
@@ -640,6 +648,12 @@ func enclosedIn*(
   return str.startsWith(delim.left) and
     str.endsWith(delim.right)
 
+func enclosedIn*(
+  str: string,
+  delim: tuple[left, right: set[char]]): bool =
+  ## Check if string starts and ends with strings.
+  return str.startsWith(delim.left) and
+    str.endsWith(delim.right)
 
 func wrap*(
   str: string,

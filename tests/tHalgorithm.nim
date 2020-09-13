@@ -730,8 +730,16 @@ suite "Misc algorithms":
 
 suite "String helper functions":
   test "{msgjoin}":
-    assert msgjoin("_", "nice", "_") == "_nice_"
-    assert msgjoin("hello,", "nice", "weather") == "hello, nice weather"
+    assertEq msgjoin("_", "nice", "_"), "_nice_"
+    assertEq msgjoin("hello,", "nice", "weather"), "hello, nice weather"
+    if false:
+      assertEq msgjoin("_a_"), "_a_"
+      assertEq msgjoin("_a", "_"), "_a_"
+      assertEq msgjoin("_", "a", "_"), "_a_"
+      assertEq msgjoin("hello", "_", "a", "_"), "hello _a_"
+      assertEq msgjoin("hello", "_", "a", "_", "world"), "hello _a_ world"
+      assertEq msgjoin("hello", "_", "a", "2", "_", "world"),
+       "hello _a 2_ world"
 
   test "{splitCamel}":
     assertEq "HelloWorld".splitCamel, @["Hello", "World"]
