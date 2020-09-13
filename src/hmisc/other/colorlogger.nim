@@ -40,6 +40,11 @@ template logIdented*(body: untyped): untyped =
   finally:
     dedentLog()
 
+template logDefer*(logCmd, before: untyped): untyped =
+  logCmd before
+  identLog()
+  defer: dedentLog()
+
 
 method log*(logger: ColorLogger, level: Level, args: varargs[string, `$`]) =
   let ident = "  ".repeat(logger.ident)

@@ -146,6 +146,27 @@ func endsWith*(str: string, suffixes: varargs[string]): bool =
     if str.endsWith(suff):
       return true
 
+
+func enclosedIn*(
+  str: string,
+  delim: tuple[left, right: string]): bool =
+  ## Check if string starts and ends with strings.
+  return str.startsWith(delim.left) and
+    str.endsWith(delim.right)
+
+func enclosedIn*(
+  str: string,
+  delim: tuple[left, right: set[char]]): bool =
+  ## Check if string starts and ends with strings.
+  return str.startsWith(delim.left) and
+    str.endsWith(delim.right)
+
+
+func enclosedIn*(str: string, delim: set[char]): bool =
+  ## Check if string starts and ends with strings.
+  return str.startsWith(delim) and str.endsWith(delim)
+
+
 func filterPrefix*(str: seq[string], pref: seq[string]): seq[string] =
   ## Return only strings that have prefix in `pref`
   for s in str:
@@ -160,7 +181,9 @@ func msgjoinImpl*(args: seq[string]): string =
       result &= args[idx]
     else:
       const wraps: set[char] = {'_', '`', '\'', '\"', ' '}
-      if args[idx].endsWith({'[', '(', '\'', '#', '@'} + wraps):
+      if args[idx].enclosedIn(wraps):
+        result &= " " & args[idx] & " "
+      elif args[idx].endsWith({'[', '(', '\'', '#', '@'} + wraps):
         if (args[idx].endsWith wraps) and openwrap:
           openwrap = false
 
@@ -640,20 +663,6 @@ func join*(text: openarray[(string, string)], sep: string = " "): string =
 
 func join*(text: openarray[string], sep: char = ' '): string =
   text.join($sep)
-
-func enclosedIn*(
-  str: string,
-  delim: tuple[left, right: string]): bool =
-  ## Check if string starts and ends with strings.
-  return str.startsWith(delim.left) and
-    str.endsWith(delim.right)
-
-func enclosedIn*(
-  str: string,
-  delim: tuple[left, right: set[char]]): bool =
-  ## Check if string starts and ends with strings.
-  return str.startsWith(delim.left) and
-    str.endsWith(delim.right)
 
 func wrap*(
   str: string,

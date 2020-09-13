@@ -53,6 +53,7 @@ type
     ##
     ## Refer to the corresponding methods of the Console class for
     ## descriptions of the methods involved.
+    text: string
     impl: proc(pr: Console)
 
   Layout = object
@@ -137,6 +138,17 @@ proc printOn(self: Layout, console: Console): void =
 proc printLayout(self: Console, layout: Layout): void =
   layout.printOn(self)
 
+proc `$`(le: LayoutElement): string = le.text
+
+proc `$`(sln: Solution): string =
+  sln.layouts.mapIt($it).join(" ")
+
+proc `$`(sln: Option[Solution]): string =
+  if sln.isSome(): return $sln.get()
+
+proc `$`(lt: Layout): string =
+  lt.elements.mapIt($it).join(" ")
+
 proc `$`(blc: Block): string =
   case blc.kind:
     of bkText: &"\"{blc.text}\""
@@ -171,15 +183,6 @@ type
     cpack: int ## cost (per element) for packing justified layouts
     format_policy: FormatPolicy[StrTree]
 
-let opts = Options(
-  m0: 0,
-  m1: 80,
-  c0: 0.05,
-  c1: 100,
-  cb: 2,
-  ind: 2
-)
-
 func hash(elem: LayoutElement): Hash = hash(elem.impl)
 func hash(lyt: Layout): Hash = hash(lyt.elements)
 
@@ -202,12 +205,15 @@ func hash(sln: Option[Solution]): Hash =
 #*******************************  Layout  ********************************#
 #*************************************************************************#
 func lytString(s: string): LayoutElement =
+  result.text = s
   result.impl = proc(c: Console) = stdout.write s
 
 func lytNewline(indent: bool = true): LayoutElement =
+  result.text = "\\n"
   result.impl = proc(c: Console) = stdout.write "\n"
 
 func lytPrint(lyt: Layout): LayoutElement =
+  result.text = &"[{lyt}]"
   result.impl = proc(c: Console) = c.printLayout(lyt)
 
 func getStacked(layouts: seq[Layout]): Layout =
@@ -227,7 +233,9 @@ func getStacked(layouts: seq[Layout]): Layout =
   return Layout(elements: l_elts[0 .. ^2])  # Drop the last NewLine()
 
 func initLayout*(elems: openarray[LayoutElement]): Layout =
-  result.elements = toSeq(elems)
+  # NOTE HACK I don't know why/where things are reversed in the first
+  # place, so I had to use this counter-hack to fix it.
+  result.elements = toSeq(elems).reversed()
 
 #*************************************************************************#
 #******************************  Solution  *******************************#
@@ -311,10 +319,11 @@ type
     entries: seq[tuple[
       knot, span: int, intercept, gradient: float, lyt: Layout]]
 
-func add(
+proc add(
   self: var SolutionFactory,
   knot, span: int, intercept, gradient: float, layout: Layout): void =
   ## Add a segment to a Solution under construction.
+  # debug "Add layout", layout, "to solution"
   if self.entries.len > 0:
     # Don't add a knot if the new segment is a linear extrapolation of
     # the last.
@@ -330,10 +339,12 @@ func add(
 
   self.entries.add (knot, span, intercept, gradient, layout)
 
-func makeSolution(self: SolutionFactory): Solution =
+proc makeSolution(self: SolutionFactory): Solution =
   ## Construct and return a new Solution with the data in this
   ## object
   new(result)
+  # debug "Constructing solution with", self.entries.len, "elements"
+  # debug self.entries.mapIt(it.lyt)
   for (k, s, i, g, l) in self.entries:
     result.knots.add k
     result.spans.add s
@@ -352,6 +363,7 @@ proc minSolution(solutions: seq[Solution]): Option[Solution] =
   ## Returns:
   ##   values Solution object whose cost is the piecewise minimum of the Solutions
   ##   provided, and which associates the minimum-cost layout with each piece.
+  # debug "Minimal solution out of #", solutions.len
   if len(solutions) == 1:
     return some(solutions[0])
 
@@ -431,7 +443,7 @@ proc vSumSolution(solutions: seq[Solution]): Solution =
 
 
   assert solutions.len > 0
-  debug "Vertical stack #", solutions.len, "solution"
+  # debug "Vertical stack #", solutions.len, "solution"
 
   if len(solutions) == 1:
     return solutions[0]
@@ -469,7 +481,7 @@ proc vSumSolution(solutions: seq[Solution]): Solution =
 
   return col.makeSolution()
 
-proc hPlusSolution(s1, s2: var Solution): Solution =
+proc hPlusSolution(s1, s2: var Solution, opts: Options): Solution =
   ## The Solution that results from joining two Solutions side-by-side.
 
   ## Args:
@@ -487,7 +499,10 @@ proc hPlusSolution(s1, s2: var Solution): Solution =
   ## `s2`'s layouts may occupy multiple lines, in which case `s2`'s
   ## layout begins at the end of the last line of `s1`'s layout---the
   ## span in this case is the span of `s1`'s last line.
-  debug "Horizontal stack solutions"
+  # debug "Horizontal stack solutions"
+  identLog()
+  defer: dedentLog()
+
   var col: SolutionFactory
   s1.reset()
   s2.reset()
@@ -554,7 +569,7 @@ func plusConst(self: Solution, val: float): Solution =
 
 proc withRestOfLine(
   self: var Option[Solution],
-  rest_of_line: var Option[Solution]): Option[Solution] =
+  rest_of_line: var Option[Solution], opts: Options): Option[Solution] =
   ## Return a Solution that joins the rest of the line right of this one.
 
   ## Args:
@@ -566,7 +581,7 @@ proc withRestOfLine(
   if restOfLine.isNone():
     self
   else:
-    some self.get().hplusSolution(restOfLine.get())
+    some self.get().hplusSolution(restOfLine.get(), opts)
 
 
 #*************************************************************************#
@@ -621,10 +636,12 @@ func makeWrapBlock*(elems: seq[Block]): Block =
 #============================  Layout logic  =============================#
 
 proc doOptLayout(
-  self: var Block, rest_of_line: var Option[Solution]): Option[Solution]
+  self: var Block,
+  rest_of_line: var Option[Solution], opts: Options): Option[Solution]
 
 proc optLayout(
-  self: var Block, rest_of_line: var Option[Solution]): Option[Solution] =
+  self: var Block,
+  rest_of_line: var Option[Solution], opts: Options): Option[Solution] =
   ## Retrieve or compute the least-cost (optimum) layout for this block.
   ##
   ## Args:
@@ -638,12 +655,13 @@ proc optLayout(
   # supplied repeatedly to the same block. Without memoisation, this
   # may result in an exponential blow-up in the layout algorithm.
   if rest_of_line notin self.layout_cache:
-    self.layout_cache[rest_of_line] = self.doOptLayout(rest_of_line)
+    self.layout_cache[rest_of_line] = self.doOptLayout(rest_of_line, opts)
 
   return self.layout_cache[rest_of_line]
 
 proc doOptTextLayout(
-  self: Block, rest_of_line: var Option[Solution]): Option[Solution] =
+  self: Block,
+  rest_of_line: var Option[Solution], opts: Options): Option[Solution] =
 
   let
     span = len(self.text)
@@ -679,11 +697,13 @@ proc doOptTextLayout(
       @[layout, layout, layout] # XXXX
     )
 
-  return result.withRestOfLine(rest_of_line)
+  return result.withRestOfLine(rest_of_line, opts)
 
 
 proc doOptLineLayout(
-  self: var Block, rest_of_line: var Option[Solution]): Option[Solution] =
+  self: var Block,
+  rest_of_line: var Option[Solution], opts: Options): Option[Solution] =
+  # logDefer debug, "Line layout"
   if self.elements.len == 0:
     return rest_of_line
 
@@ -710,7 +730,8 @@ proc doOptLineLayout(
 
     for idx, elt in mpairs(ln):
       if idx < ln.len:
-        ln_layout = elt.optLayout(ln_layout)
+        ln_layout = elt.optLayout(ln_layout, opts)
+        # debug "Line layout", ln_layout
 
     line_solns.add ln_layout
 
@@ -720,18 +741,20 @@ proc doOptLineLayout(
 
 
 proc doOptChoiceLayout(
-  self: var Block, rest_of_line: var Option[Solution]): Option[Solution] =
+  self: var Block, rest_of_line: var Option[Solution],
+  opts: Options): Option[Solution] =
   # The optimum layout of this block is simply the piecewise minimum of its
   # elements' layouts.
   return minSolution(
     self.elements.mutMapIt(
-      it.optLayout(rest_of_line)
+      it.optLayout(rest_of_line, opts)
     ).get()
   )
 
 
 proc doOptStackLayout(
-  self: var Block, rest_of_line: var Option[Solution]): Option[Solution] =
+  self: var Block,
+  rest_of_line: var Option[Solution], opts: Options): Option[Solution] =
   # The optimum layout for this block arranges the elements vertically. Only
   # the final element is composed with the continuation provided---all the
   # others see an empty continuation ("None"), since they face the end of
@@ -742,9 +765,9 @@ proc doOptStackLayout(
   let soln = vSumSolution: get: collect(newSeq):
     for idx, elem in mpairs(self.elements):
       if idx == self.elements.len - 1:
-        elem.optLayout(restOfLine)
+        elem.optLayout(restOfLine, opts)
       else:
-        none(Solution).withResIt do: elem.optLayout(it)
+        none(Solution).withResIt do: elem.optLayout(it, opts)
 
 
   # Under some odd circumstances involving comments, we may have a
@@ -761,25 +784,26 @@ proc doOptStackLayout(
 
 
 proc doOptWrapLayout(
-  self: var Block, rest_of_line: var Option[Solution]): Option[Solution] =
+  self: var Block,
+  rest_of_line: var Option[Solution], opts: Options): Option[Solution] =
   # Computing the optimum layout for this class of block involves
   # finding the optimal packing of elements into lines, a problem
   # which we address using dynamic programming.
   var sep_layout = (makeTextBlock(self.sep), none(Solution)).withResIt do:
-    it[0].optLayout(it[1])
+    it[0].optLayout(it[1], opts)
 
   # TODO(pyelland): Investigate why OptLayout doesn't work here.
   var prefix_layout: Option[Solution] =
     if self.prefix.isSome():
       (makeTextBlock(self.prefix.get()), none(Solution)).withResIt do:
-        it[0].doOptLayout(it[1])
+        it[0].doOptLayout(it[1], opts)
     else:
       none(Solution)
 
   var elt_layouts: seq[Option[Solution]] = self.wrapElements.mutMapIt(
     block:
       var tmp = none(Solution)
-      it.optLayout(tmp)
+      it.optLayout(tmp, opts)
   )
 
   # Entry i in the list wrap_solutions contains the optimum layout for the
@@ -808,7 +832,7 @@ proc doOptWrapLayout(
       if prefix_layout.isNone():
         elt_layouts[i]
       else:
-        prefix_layout.withRestOfLine(elt_layouts[i])
+        prefix_layout.withRestOfLine(elt_layouts[i], opts)
 
     var last_breaking: bool = self.wrapElements[i].is_breaking
     for j in i ..< self.len - 1: # XXXX
@@ -826,13 +850,14 @@ proc doOptWrapLayout(
         break
       # Otherwise, add a separator and the next element to the line
       # layout and continue.
-      var sep_elt_layout = sep_layout.withRestOfLine(elt_layouts[j + 1])
+      var sep_elt_layout = sep_layout.withRestOfLine(
+        elt_layouts[j + 1], opts)
 
-      line_layout = line_layout.withRestOfLine(sep_elt_layout)
+      line_layout = line_layout.withRestOfLine(sep_elt_layout, opts)
       last_breaking = self.wrapElements[j + 1].is_breaking
 
     if not last_breaking:
-      solutions_i.add line_layout.withRestOfLine(rest_of_line).get()
+      solutions_i.add line_layout.withRestOfLine(rest_of_line, opts).get()
 
     wrap_solutions[i] = minSolution(solutions_i)
   # Once wrap_solutions is complete, the optimum layout for the entire
@@ -840,21 +865,23 @@ proc doOptWrapLayout(
   return wrap_solutions[0]
 
 proc doOptVerbLayout(
-  self: var Block, rest_of_line: var Option[Solution]): Option[Solution] =
+  self: var Block,
+  rest_of_line: var Option[Solution], opts: Options): Option[Solution] =
   discard
 
 proc doOptLayout(
-  self: var Block, rest_of_line: var Option[Solution]): Option[Solution] =
+  self: var Block,
+  rest_of_line: var Option[Solution], opts: Options): Option[Solution] =
 
-  info "Opt layout for ", self
-  logIdented:
-    result = case self.kind:
-      of bkText: self.doOptTextLayout(restOfLine)
-      of bkLine: self.doOptLineLayout(restOfLine)
-      of bkChoice: self.doOptChoiceLayout(restOfLine)
-      of bkStack: self.doOptStackLayout(restOfLine)
-      of bkWrap: self.doOptWrapLayout(restOfLine)
-      of bkVerb: self.doOptVerbLayout(restOfLine)
+  # info "Opt layout for ", self
+  # logIdented:
+  result = case self.kind:
+    of bkText: self.doOptTextLayout(restOfLine, opts)
+    of bkLine: self.doOptLineLayout(restOfLine, opts)
+    of bkChoice: self.doOptChoiceLayout(restOfLine, opts)
+    of bkStack: self.doOptStackLayout(restOfLine, opts)
+    of bkWrap: self.doOptWrapLayout(restOfLine, opts)
+    of bkVerb: self.doOptVerbLayout(restOfLine, opts)
 
 
 func tree(head: string, elems: varargs[StrTree]): StrTree =
@@ -862,26 +889,28 @@ func tree(head: string, elems: varargs[StrTree]): StrTree =
   result.subn = toSeq(elems)
 
 
-let content = (0 .. 5).mapIt(makeTextBlock &"[{it}]")
+let content = (0 .. 20).mapIt(makeTextBlock &"[ {it} ]")
 
-echo content
-# var blocks = makeChoiceBlock(
-#   @[
-#     makeLineBlock(content),
-#     makeStackBlock(content)
-#   ]
-# )
+let opts = Options(
+  m0: 0,
+  m1: 40,
+  c0: 0.05,
+  c1: 100,
+  cb: 2,
+  ind: 2
+)
 
-var blocks = makeLineBlock(content)
 
-# let sln = blocks.doOptLayout(none(Solution)).get()
-let sln = none(Solution).withResIt do:
-  blocks.doOptLayout(it).get()
 
-let c = Console()
+for blocks in @[
+  makeLineBlock(content), makeStackBlock(content), makeWrapBlock(content)]:
+  var blocks = blocks
+  let sln = none(Solution).withResIt do:
+    blocks.doOptLayout(it, opts).get()
 
-echo "---"
-for lyt in sln.layouts:
-  lyt.printOn(c)
+  let c = Console()
+
+  echo "---"
+  sln.layouts[0].printOn(c)
   echo "\n---"
 
