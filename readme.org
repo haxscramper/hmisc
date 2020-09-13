@@ -195,7 +195,7 @@ implementation
   but provides very flexible interface, allowing to completely
   customize how fuzzy matching is performed.
 
-#+begin_src nim
+#+begin_src nim :exports both
   import hmisc/doc_examples
 
   echo "# ~~~~ leading / ~~~~ #\n"
