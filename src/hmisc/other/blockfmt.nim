@@ -5,15 +5,38 @@
 # just blatant copy-paste of python code with added type annotations.
 
 import strutils, sequtils, macros, tables, strformat, lenientops,
-       options, hashes, math
+       options, hashes, math, sugar
 
 import nimtraits
-import ../algo/hmath
+import ../algo/[hmath, halgorithm]
 
 
 const infty = 1024 * 1024 * 1024
 
 func `*`(a: int, b: bool): int = (if b: a else: 0)
+func get*[T](inseq: seq[Option[T]]): seq[T] =
+  for elem in inseq:
+    if elem.isSome():
+      result.add elem.get()
+
+#*************************************************************************#
+#***************************  Printer console  ***************************#
+#*************************************************************************#
+#===========================  Type definition  ===========================#
+
+type
+  Console = object
+    margins: seq[int]
+
+proc printString(c: Console, str: string): void =
+  stdout.write(str)
+
+proc printSpace(c: Console, n: int): void =
+  ## Write a string of `n` spaces on the console.
+  c.printString(" ".repeat(n))
+
+
+
 
 #*************************************************************************#
 #****************************  Format policy  ****************************#
@@ -29,7 +52,7 @@ type
     ##
     ## Refer to the corresponding methods of the Console class for
     ## descriptions of the methods involved.
-    impl: proc()
+    impl: proc(pr: Console)
 
   Layout = object
     ## An object containing a sequence of directives to the console.
@@ -53,6 +76,7 @@ type
 
   Block = object
     layout_cache: Table[Option[Solution], Option[Solution]]
+    isBreaking: bool
     case kind: BlockKind
       of bkVerb:
         textLines: seq[string]
@@ -60,10 +84,9 @@ type
       of bkText:
         text: string
       of bkWrap:
-        prefix: string
-        concatSep: string
+        prefix: Option[string]
+        sep: string
         breakMult: int
-        isBreaking: bool
         wrapElements: seq[Block]
       of bkStack, bkChoice, bkLine:
         elements: seq[Block]
@@ -104,6 +127,8 @@ type
     breakElementLines: proc(blc: seq[seq[Block]]): seq[seq[Block]] ## Hook
     ## for formatting around comment-induced line breaks.
 
+    # formats: Table[string, ]
+
 #*************************************************************************#
 #************************  Options configuration  ************************#
 #*************************************************************************#
@@ -127,43 +152,34 @@ type
     cpack: int
     format_policy: FormatPolicy[StrTree]
 
-let opts = Options(
-  format_policy: FormatPolicy[StrTree](
-    blocksFor: (
-      proc(tr: StrTree): seq[Block] =
+let opts = Options()
 
-    )
-  )
-)
+func hash(elem: LayoutElement): Hash = hash(elem.impl)
+func hash(lyt: Layout): Hash = hash(lyt.elements)
 
 func hash(sln: Option[Solution]): Hash =
-  raiseAssert("#[ IMPLEMENT ]#")
-
-#*************************************************************************#
-#***************************  Printer console  ***************************#
-#*************************************************************************#
-#===========================  Type definition  ===========================#
-
-type
-  Console = object
-    margins: seq[int]
-
-proc printString(c: Console, str: string): void =
-  stdout.write(str)
-
-proc printSpace(c: Console, n: int): void =
-  ## Write a string of `n` spaces on the console.
-  c.printString(" ".repeat(n))
+  if sln.isNone():
+    return
+  else:
+    let sln = sln.get()
+    result = !$(
+      hash(sln.knots) !&
+      hash(sln.spans) !&
+      hash(sln.intercepts) !&
+      hash(sln.gradients) !&
+      hash(sln.layouts) !&
+      hash(sln.index)
+    )
 
 
 #*************************************************************************#
 #*******************************  Layout  ********************************#
 #*************************************************************************#
 func lytString(s: string): LayoutElement =
- raiseAssert("#[ IMPLEMENT ]#")
+  result.impl = proc(c: Console) = stdout.write s
 
 func lytNewline(indent: bool = true): LayoutElement =
- raiseAssert("#[ IMPLEMENT ]#")
+  result.impl = proc(c: Console) = stdout.write "\n"
 
 func lytPrint(lyt: Layout): LayoutElement =
  raiseAssert("#[ IMPLEMENT ]#")
@@ -298,6 +314,83 @@ func makeSolution(self: SolutionFactory): Solution =
 #=====================  Solution manipulation logic  =====================#
 
 
+proc minSolution(solutions: seq[Solution]): Option[Solution] =
+  ## Form the piecewise minimum of a sequence of Solutions.
+
+  ## Args:
+  ##   solutions: a non-empty sequence of Solution objects
+  ## Returns:
+  ##   values Solution object whose cost is the piecewise minimum of the Solutions
+  ##   provided, and which associates the minimum-cost layout with each piece.
+  if len(solutions) == 1:
+    return some(solutions[0])
+
+  var
+    factory: SolutionFactory
+    solutions = solutions
+
+  for s in mitems(solutions):
+    s.reset()
+
+  let n = len(solutions)
+  var
+    k_l = 0
+    last_i_min_soln = -1  # Index of the last minimum solution
+    last_index = -1  # Index of the current knot in the last minimum
+    # solution Move through the intervals [k_l, k_h] defined by the
+    # glb of the partitions defined by each of the solutions.
+
+  while k_l < infty:
+    let
+      k_h = min(solutions.map(nextKnot)) - 1
+      gradients = solutions.map(curGradient)
+
+    while true:
+      let values = solutions.mapIt(it.curValueAt(k_l))
+      # Use the index of the corresponding solution to break ties.
+      let (min_value, min_gradient, i_min_soln) =
+        (0 .. n #[ XXXX ]#).mapIt((values[it], gradients[it], it)).min()
+
+      let min_soln = solutions[i_min_soln]
+      if i_min_soln != last_i_min_soln or min_soln.curIndex() != last_index:
+        # Add another piece to the new Solution
+        factory.add(
+          k_l,
+          min_soln.curSpan(),
+          min_value,
+          min_gradient,
+          min_soln.curLayout()
+        )
+
+        last_i_min_soln = i_min_soln
+        last_index = min_soln.curIndex()
+      # It's possible that within the current interval, the minimum
+      # solution may change, should a solution with a lower initial
+      # value but greater gradient surpass the value of one with a
+      # higher initial value but lesser gradient. In such instances,
+      # we need to add an extra piece to the new solution.
+      let distances_to_cross = collect(newSeq):
+        for i in 0 .. n: # XXX
+          if gradients[i] < min_gradient:
+            ceil((values[i] - min_value) / (min_gradient - gradients[i]))
+
+      # Compute positions of all crossovers in [k_l, k_h]
+      let crossovers = collect(newSeq):
+        for d in distances_to_cross:
+          if k_l + d <= k_h:
+            k_l + d
+
+      if crossovers.len > 0:  # Proceed to crossover in [k_l, k_h]
+        k_l = min(crossovers).int # XXXX
+      else:  # Proceed to next piece
+        k_l = k_h + 1
+        if k_l < infty:
+          for s in mitems(solutions):
+            s.moveToMargin(k_l)
+        break
+
+  return some factory.makeSolution()
+
 proc vSumSolution(solutions: seq[Solution]): Solution =
   ## The layout that results from stacking several Solutions vertically.
   ## Args:
@@ -319,7 +412,7 @@ proc vSumSolution(solutions: seq[Solution]): Solution =
   while true:
     col.add(
       margin,
-      solutions[-1].curSpan(),
+      solutions[^1].curSpan(),
       solutions.mapIt(it.curValueAt(margin)).sum(),
       solutions.mapIt(it.curGradient()).sum(),
       solutions.mapIt(it.curLayout()).getStacked()
@@ -428,7 +521,8 @@ func plusConst(self: Solution, val: float): Solution =
     a += val
 
 proc withRestOfLine(
-  self: Solution, rest_of_line: Option[Solution]): Solution =
+  self: Option[Solution],
+  rest_of_line: Option[Solution]): Option[Solution] =
   ## Return a Solution that joins the rest of the line right of this one.
 
   ## Args:
@@ -440,7 +534,7 @@ proc withRestOfLine(
   if restOfLine.isNone():
     self
   else:
-    self.hplusSolution(restOfLine.get())
+    some self.get().hplusSolution(restOfLine.get())
 
 
 #*************************************************************************#
@@ -466,6 +560,12 @@ proc `elements=`(self: var Block; it: seq[Block]) =
   if not matched:
     raiseAssert("#[ IMPLEMENT:ERRMSG ]#")
 
+func len*(blc: Block): int =
+  case blc.kind:
+    of bkWrap: blc.wrapElements.len()
+    else: blc.elements.len()
+
+
 #============================  Constructors  =============================#
 
 func makeTextBlock*(text: string): Block =
@@ -476,6 +576,15 @@ func makeIndentBlock*(blc: Block, indent: int): Block =
 
 func makeChoiceBlock*(elems: seq[Block]): Block =
   Block(kind: bkChoice, elements: elems)
+
+func makeStackBlock*(elems: seq[Block]): Block =
+  Block(kind: bkStack, elements: elems)
+
+func makeLineBlock*(elems: seq[Block]): Block =
+  Block(kind: bkLine, elements: elems)
+
+func makeWrapBlock*(elems: seq[Block]): Block =
+  Block(kind: bkWrap, wrapElements: elems)
 
 #============================  Layout logic  =============================#
 
@@ -538,7 +647,7 @@ proc doOptTextLayout(
       @[layout, layout, layout] # XXXX
     )
 
-  return some result.get().withRestOfLine(rest_of_line)
+  return result.withRestOfLine(rest_of_line)
 
 
 proc doOptLineLayout(
@@ -589,7 +698,79 @@ proc doOptStackLayout(
 
 proc doOptWrapLayout(
   self: var Block, rest_of_line: Option[Solution]): Option[Solution] =
-  discard
+  # Computing the optimum layout for this class of block involves
+  # finding the optimal packing of elements into lines, a problem
+  # which we address using dynamic programming.
+  let sep_layout = makeTextBlock(self.sep).withResIt do:
+    it.optLayout(none(Solution))
+
+  # TODO(pyelland): Investigate why OptLayout doesn't work here.
+  let prefix_layout: Option[Solution] =
+    if self.prefix.isSome():
+      makeTextBlock(self.prefix.get()).withResIt do:
+        it.doOptLayout(none(Solution))
+    else:
+      none(Solution)
+
+  var elt_layouts: seq[Option[Solution]] = self.wrapElements.mapIt(
+    it.withResIt do: it.optLayout(none(Solution)))
+
+  # Entry i in the list wrap_solutions contains the optimum layout for the
+  # last n - i elements of the block.
+  var wrap_solutions: seq[Option[Solution]] =
+    self.len.newSeqWith(none(Solution))
+
+  # Note that we compute the entries for wrap_solutions in reverse
+  # order, at each iteration considering all the elements from i ... n
+  # - 1 (the actual number of elements considered increases by one on
+  # each iteration). This means that the complete solution, with
+  # elements 0 ... n - 1 is computed last.
+  for i in countdown(self.len - 1, -1):
+    # To calculate wrap_solutions[i], consider breaking the last n - i
+    # elements after element j, for j = i ... n - 1. By induction,
+    # wrap_solutions contains the optimum layout of the elements after
+    # the break, so the full layout is calculated by composing a line
+    # with the elements before the break with the entry from
+    # wrap_solutions corresponding to the elements after the break.
+    # The optimum layout to be entered into wrap_solutions[i] is then
+    # simply the minimum of the full layouts calculated for each j.
+    var solutions_i: seq[Solution]
+    # The layout of the elements before the break is built up incrementally
+    # in line_layout.
+    var line_layout: Option[Solution] =
+      if prefix_layout.isNone():
+        elt_layouts[i]
+      else:
+        prefix_layout.withRestOfLine(elt_layouts[i])
+
+    var last_breaking: bool = self.wrapElements[i].is_breaking
+    for j in i ..< self.len - 1: # XXXX
+      let full_soln = vSumSolution(
+        @[line_layout, wrap_solutions[j + 1]].get())
+      # We adjust the cost of the full solution by adding the cost of
+      # the line break we've introduced, and a small penalty
+      # (_options.cpack) to favor (ceteris paribus) layouts with
+      # elements packed into earlier lines.
+      solutions_i.add(full_soln.plusConst float(
+        opts.cb * self.break_mult + opts.cpack * (self.len - j)))
+      # If the element at the end of the line mandates a following
+      # line break, we're done.
+      if last_breaking:
+        break
+      # Otherwise, add a separator and the next element to the line
+      # layout and continue.
+      let sep_elt_layout = sep_layout.withRestOfLine(elt_layouts[j + 1])
+
+      line_layout = line_layout.withRestOfLine(sep_elt_layout)
+      last_breaking = self.elements[j + 1].is_breaking
+
+    if not last_breaking:
+      solutions_i.add line_layout.withRestOfLine(rest_of_line).get()
+
+    wrap_solutions[i] = minSolution(solutions_i)
+  # Once wrap_solutions is complete, the optimum layout for the entire
+  # block is the optimum layout for the last n - 0 elements.
+  return wrap_solutions[0]
 
 proc doOptVerbLayout(
   self: var Block, rest_of_line: Option[Solution]): Option[Solution] =
@@ -612,5 +793,20 @@ func tree(head: string, elems: varargs[StrTree]): StrTree =
   result.subn = toSeq(elems)
 
 
-let intree = "hello".tree("world".tree, "2134".tree)
-var blocks = opts.format_policy.blocksFor(intree)
+var blocks = makeWrapBlock(@[
+  makeTextBlock("Hello"),
+  makeTextBlock("nice"),
+  makeTextBlock("nice"),
+  makeTextBlock("nice"),
+  makeTextBlock("nice"),
+  makeTextBlock("nice"),
+  makeTextBlock("nice"),
+  makeTextBlock("nice"),
+  makeTextBlock("nice"),
+  makeTextBlock("nice"),
+  makeTextBlock("nice"),
+  makeTextBlock("nice"),
+  makeTextBlock("nice"),
+])
+
+let sln = blocks.doOptLayout(none(Solution)).get()
