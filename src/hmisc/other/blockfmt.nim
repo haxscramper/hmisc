@@ -9,11 +9,13 @@ import strutils, sequtils, macros, tables, strformat, lenientops,
 
 import nimtraits
 import ../algo/[hmath, halgorithm]
+import colorlogger
 
+startColorLogger()
 
 const infty = 1024 * 1024 * 1024
 
-func `*`(a: int, b: bool): int = (if b: a else: 0)
+func `*`(a: SomeNumber, b: bool): SomeNumber = (if b: a else: 0)
 func get*[T](inseq: seq[Option[T]]): seq[T] =
   for elem in inseq:
     if elem.isSome():
@@ -34,9 +36,6 @@ proc printString(c: Console, str: string): void =
 proc printSpace(c: Console, n: int): void =
   ## Write a string of `n` spaces on the console.
   c.printString(" ".repeat(n))
-
-
-
 
 #*************************************************************************#
 #****************************  Format policy  ****************************#
@@ -129,6 +128,24 @@ type
 
     # formats: Table[string, ]
 
+proc printOn(self: Layout, console: Console): void =
+  for elem in self.elements:
+    elem.impl(console)
+
+proc printLayout(self: Console, layout: Layout): void =
+  layout.printOn(self)
+
+proc `$`(blc: Block): string =
+  case blc.kind:
+    of bkText: &"\"{blc.text}\""
+    of bkStack: blc.elements.mapIt($it).join(" ↕ ").wrap("()")
+    of bkLine: blc.elements.mapIt($it).join(" ↔ ").wrap("()")
+    of bkChoice: blc.elements.mapIt($it).join(" ? ").wrap("()")
+    of bkWrap: blc.wrapElements.mapIt($it).join(" ").wrap("[]")
+    of bkVerb: &">>{blc.text}<<"
+
+
+
 #*************************************************************************#
 #************************  Options configuration  ************************#
 #*************************************************************************#
@@ -139,20 +156,27 @@ type
 
 type
   Options = object
-    m0: int
-    m1: int
-    c0: int
-    c1: int
-    cb: int
-    ind: int
-    adj_comment: int
-    adj_flow: int
-    adj_call: int
-    adj_arg: int
-    cpack: int
+    m0: int ## position of the first right margin
+    m1: int ## position of the second right margin
+    c0: float ## cost (per character) beyond margin 0
+    c1: float ## cost (per character) beyond margin 1
+    cb: int ## cost per line-break
+    ind: int ## spaces per indent
+    # adj_comment: int
+    # adj_flow: int #
+    # adj_call: int
+    # adj_arg: int
+    cpack: int ## cost (per element) for packing justified layouts
     format_policy: FormatPolicy[StrTree]
 
-let opts = Options()
+let opts = Options(
+  m0: 0,
+  m1: 80,
+  c0: 0.05,
+  c1: 100,
+  cb: 2,
+  ind: 2
+)
 
 func hash(elem: LayoutElement): Hash = hash(elem.impl)
 func hash(lyt: Layout): Hash = hash(lyt.elements)
@@ -182,7 +206,7 @@ func lytNewline(indent: bool = true): LayoutElement =
   result.impl = proc(c: Console) = stdout.write "\n"
 
 func lytPrint(lyt: Layout): LayoutElement =
- raiseAssert("#[ IMPLEMENT ]#")
+  result.impl = proc(c: Console) = c.printLayout(lyt)
 
 func getStacked(layouts: seq[Layout]): Layout =
   ## Return the vertical composition of a sequence of layouts.
@@ -289,7 +313,7 @@ func add(
   if self.entries.len > 0:
     # Don't add a knot if the new segment is a linear extrapolation of
     # the last.
-    let (k_last, s_last, i_last, g_last, _) = self.entries[-1]
+    let (k_last, s_last, i_last, g_last, _) = self.entries[^1]
     if (span == s_last and gradient == g_last and
         i_last + (knot - k_last) * g_last == intercept):
       return
@@ -349,7 +373,7 @@ proc minSolution(solutions: seq[Solution]): Option[Solution] =
       let values = solutions.mapIt(it.curValueAt(k_l))
       # Use the index of the corresponding solution to break ties.
       let (min_value, min_gradient, i_min_soln) =
-        (0 .. n #[ XXXX ]#).mapIt((values[it], gradients[it], it)).min()
+        (0 ..< n).mapIt((values[it], gradients[it], it)).min()
 
       let min_soln = solutions[i_min_soln]
       if i_min_soln != last_i_min_soln or min_soln.curIndex() != last_index:
@@ -370,7 +394,7 @@ proc minSolution(solutions: seq[Solution]): Option[Solution] =
       # higher initial value but lesser gradient. In such instances,
       # we need to add an extra piece to the new solution.
       let distances_to_cross = collect(newSeq):
-        for i in 0 .. n: # XXX
+        for i in 0 ..< n:
           if gradients[i] < min_gradient:
             ceil((values[i] - min_value) / (min_gradient - gradients[i]))
 
@@ -398,6 +422,11 @@ proc vSumSolution(solutions: seq[Solution]): Solution =
   ## Returns:
   ##   A Solution object that lays out the solutions vertically, separated by
   ##   newlines, with the same left margin.
+
+  identLog()
+  info "Vertical sum of #", solutions.len, "solutions"
+  defer: dedentLog()
+
   if len(solutions) == 1:
     return solutions[0]
 
@@ -424,7 +453,7 @@ proc vSumSolution(solutions: seq[Solution]): Solution =
       filterIt(it.nextKnot() > margin).
       mapIt(it.nextKnot() - margin))  # TODO(pyelland): Redundant check?
 
-    if d_star == infty:
+    if d_star >= infty:
       break
 
     margin += d_star
@@ -725,7 +754,7 @@ proc doOptWrapLayout(
   # - 1 (the actual number of elements considered increases by one on
   # each iteration). This means that the complete solution, with
   # elements 0 ... n - 1 is computed last.
-  for i in countdown(self.len - 1, -1):
+  for i in countdown(self.len - 1, 0): # XXXX
     # To calculate wrap_solutions[i], consider breaking the last n - i
     # elements after element j, for j = i ... n - 1. By induction,
     # wrap_solutions contains the optimum layout of the elements after
@@ -762,7 +791,7 @@ proc doOptWrapLayout(
       let sep_elt_layout = sep_layout.withRestOfLine(elt_layouts[j + 1])
 
       line_layout = line_layout.withRestOfLine(sep_elt_layout)
-      last_breaking = self.elements[j + 1].is_breaking
+      last_breaking = self.wrapElements[j + 1].is_breaking
 
     if not last_breaking:
       solutions_i.add line_layout.withRestOfLine(rest_of_line).get()
@@ -779,13 +808,16 @@ proc doOptVerbLayout(
 proc doOptLayout(
   self: var Block, rest_of_line: Option[Solution]): Option[Solution] =
 
-  case self.kind:
-    of bkText: self.doOptTextLayout(restOfLine)
-    of bkLine: self.doOptLineLayout(restOfLine)
-    of bkChoice: self.doOptChoiceLayout(restOfLine)
-    of bkStack: self.doOptStackLayout(restOfLine)
-    of bkWrap: self.doOptWrapLayout(restOfLine)
-    of bkVerb: self.doOptVerbLayout(restOfLine)
+  info "Optimal layout for", self
+
+  logIdented:
+    result = case self.kind:
+      of bkText: self.doOptTextLayout(restOfLine)
+      of bkLine: self.doOptLineLayout(restOfLine)
+      of bkChoice: self.doOptChoiceLayout(restOfLine)
+      of bkStack: self.doOptStackLayout(restOfLine)
+      of bkWrap: self.doOptWrapLayout(restOfLine)
+      of bkVerb: self.doOptVerbLayout(restOfLine)
 
 
 func tree(head: string, elems: varargs[StrTree]): StrTree =
@@ -795,18 +827,18 @@ func tree(head: string, elems: varargs[StrTree]): StrTree =
 
 var blocks = makeWrapBlock(@[
   makeTextBlock("Hello"),
-  makeTextBlock("nice"),
-  makeTextBlock("nice"),
-  makeTextBlock("nice"),
-  makeTextBlock("nice"),
-  makeTextBlock("nice"),
-  makeTextBlock("nice"),
-  makeTextBlock("nice"),
-  makeTextBlock("nice"),
-  makeTextBlock("nice"),
-  makeTextBlock("nice"),
-  makeTextBlock("nice"),
-  makeTextBlock("nice"),
+  makeTextBlock("1 nice"),
+  makeTextBlock("2 nice"),
+  makeTextBlock("3 nice"),
+  makeTextBlock("4 nice"),
 ])
 
 let sln = blocks.doOptLayout(none(Solution)).get()
+
+let c = Console()
+
+for lyt in sln.layouts:
+  lyt.printOn(c)
+
+echo "done"
+
