@@ -53,7 +53,8 @@ type
     ##
     ## Refer to the corresponding methods of the Console class for
     ## descriptions of the methods involved.
-    text: string
+    text: string ## Textual reprsentation of layout element for
+                 ## pretty-printing
     impl: proc(pr: var Console)
 
   Layout = object
@@ -66,32 +67,32 @@ type
     intercepts: seq[float]
     gradients: seq[float]
     layouts: seq[Layout]
-    index: int
+    index: int 
 
-  BlockKind = enum
-    bkText
-    bkLine
-    bkChoice
-    bkStack
-    bkWrap
-    bkVerb
+  BlockKind* = enum
+    bkText ## Single line text block
+    bkLine ## Horizontally stacked lines
+    bkChoice ## Several alternating layouts
+    bkStack ## Vertically stacked layouts
+    bkWrap ## Mulitple blocks wrapped to create lowerst-cost layout
+    bkVerb ## Multiple lines verbatim
 
-  Block = ref object
+  Block* = ref object
     layout_cache: Table[Option[Solution], Option[Solution]]
-    isBreaking: bool
-    breakMult: int
-    case kind: BlockKind
+    isBreaking*: bool ## Whether or not this block should end the line
+    breakMult*: int
+    case kind*: BlockKind
       of bkVerb:
-        textLines: seq[string]
-        firstNl: bool
+        textLines*: seq[string] ## Lines of text
+        firstNl*: bool ## Insert newline at the block start
       of bkText:
-        text: string
+        text*: string ## Line of text
       of bkWrap:
-        prefix: Option[string]
-        sep: string
-        wrapElements: seq[Block]
+        prefix*: Option[string]
+        sep*: string ## Separator for block wraps
+        wrapElements*: seq[Block]
       of bkStack, bkChoice, bkLine:
-        elements: seq[Block]
+        elements*: seq[Block]
 
   FormatPolicy[Tree] = object
     ## Formatter protocol
@@ -149,7 +150,7 @@ proc `$`(sln: Option[Solution]): string =
 proc `$`(lt: Layout): string =
   lt.elements.mapIt($it).join(" ")
 
-proc `$`(blc: Block): string =
+proc `$`*(blc: Block): string =
   case blc.kind:
     of bkText: &"\"{blc.text}\""
     of bkStack: blc.elements.mapIt($it).join(" ↕ ").wrap("()")
@@ -239,14 +240,14 @@ func getStacked(layouts: seq[Layout]): Layout =
 
   return Layout(elements: l_elts[0 .. ^2])  # Drop the last NewLine()
 
-func initLayout*(elems: openarray[LayoutElement]): Layout =
+func initLayout(elems: openarray[LayoutElement]): Layout =
   result.elements = toSeq(elems)
 
 #*************************************************************************#
 #******************************  Solution  *******************************#
 #*************************************************************************#
 
-func initSolution*(
+func initSolution(
     knots: seq[int], spans: seq[int], intercepts: seq[float],
     gradients: seq[float], layouts: seq[Layout]): Solution =
 
@@ -650,6 +651,7 @@ func makeVerbBlock*(
         isBreaking: breaking, firstNl: firstNl)
 
 func makeIndentBlock*(element: Block, indent: int = 0): Block =
+  ## Create line block with `indent` leading whitespaces
   makeLineBlock(@[
     makeTextBlock(" ".repeat(indent)),
     element
@@ -933,6 +935,8 @@ proc doOptLayout(
 
 
 proc layoutBlock*(blc: Block, opts: Options = defaultFormatOpts): string =
+  ## Perform search optimal block layout and return string
+  ## reprsentation of the most cost-effective one
   var blocks = blc
   let sln = none(Solution).withResIt do:
     blocks.doOptLayout(it, opts).get()
@@ -945,12 +949,15 @@ proc wrapBlocks*(blocks: seq[Block],
                  opts: Options = defaultFormatOpts,
                  margin: int = opts.m1
                 ): string =
+  ## Create wrap block and return most optimal layout for it
   var opts = opts
   opts.m1 = margin
   layoutBlock(makeWrapBlock(blocks), opts)
 
 proc stackBlocks*(
   blocks: seq[BLock], opts: Options = defaultFormatOpts): string =
+  ## Return string representation of the most optimal layout for
+  ## vertically stacked blocks.
   layoutBlock(makeStackBlock(blocks), opts)
 
 

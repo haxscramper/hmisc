@@ -198,14 +198,14 @@ implementation
 #+begin_src nim :exports both
   import hmisc/doc_examples
 
-  echo "# ~~~~ leading / ~~~~ #\n"
+  echo "# ~~~~ leading / ~~~~ #\n|"
   matchTest "//hell.txt", "/nice/we/hell.txt":
     if other[matches[0]] == '/':
       1000 # high cost if have exact match with starting /
     else:
       matches.sum()
 
-  echo "\n# ~~~~ no leading / ~~~~ #\n"
+  echo "|\n# ~~~~ no leading / ~~~~ #\n|"
   matchTest "nicehell.txt", "/nice/we/hell.txt":
     if other[matches[0]] == '/':
       1000
@@ -215,12 +215,12 @@ implementation
 
 #+RESULTS:
 : # ~~~~ leading / ~~~~ #
-:
+: |
 : input: /nice/we/hell.txt //hell.txt :1000
 : match: /    /   hell.txt
-:
+: |
 : # ~~~~ no leading / ~~~~ #
-:
+: |
 : input: /nice/we/hell.txt nicehell.txt :113
 : match:  nic   e hell.txt
 
@@ -251,7 +251,7 @@ todo:
 - ~iterateItDFS~ :: iterate over tree in DFS order. Uses iterative DFS
   instead of recursive call.
 - ~mapItDFS~ :: ~mapIt~ for converting trees in DFS order
-
+  
 * Types
 
 
@@ -349,7 +349,7 @@ are introduced.
 - ~mkDir~, ~getEnv~, ~delEnv~, ~toExe~, ~listDirs~, ~rmFile~, ~mkDir~,
   ~mvFile~, ~cpFile~, ~cpDir~, ~cd~ - default file/directory
   manipulation functions
-- ~~~ (prefix tilda) prefix operator to get path relative to home
+- ~ (prefix tilda) prefix operator to get path relative to home
   directory. Same as ~getHomeDir() / path~
 - ~&&~ join shell command strings with correct spacing
 - ~withDir~ - temporarily set directory for body
@@ -387,12 +387,6 @@ any questions about implementation or just want to clarify some things
 (documentation might need more attention) feel free to join my
 [[https://discord.gg/hjfYJCU][discord server]] and ask questions
 there.
-
-todo:
-  - [ ] generic implementation of simple graph
-  - [ ] basic graph algorithms
-    - [ ] topological sorting
-    - [ ] strongly connected components
 
 * References
 
