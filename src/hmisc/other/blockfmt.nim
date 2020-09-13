@@ -624,6 +624,9 @@ func len*(blc: Block): int =
 func makeTextBlock*(text: string): Block =
   Block(kind: bkText, text: text)
 
+proc makeTextBlocks*(text: seq[string]): seq[Block] =
+  text.mapIt(makeTextBlock(it))
+
 func makeIndentBlock*(blc: Block, indent: int): Block =
   Block(kind: bkLine, elements: @[makeTextBlock(" ".repeat(indent)), blc])
 
@@ -929,31 +932,6 @@ proc doOptLayout(
     of bkWrap: self.doOptWrapLayout(restOfLine, opts)
     of bkVerb: self.doOptVerbLayout(restOfLine, opts)
 
-block:
-  let content = (0 .. 10).mapIt(makeTextBlock &"[ {it} ]")
-
-  for blocks in @[
-    makeLineBlock(content), makeStackBlock(content), makeWrapBlock(content)]:
-    var blocks = blocks
-    let sln = none(Solution).withResIt do:
-      blocks.doOptLayout(it, defaultFormatOpts).get()
-
-    var c = Console()
-    sln.layouts[0].printOn(c)
-    echo c.text
-
-block:
-  let content = (0 .. 5).mapIt(makeTextBlock &"[ {it} ]") & @[
-    makeVerbBlock(@["hello", "world"], firstNl = true)
-  ] & (5 .. 10).mapIt(makeTextBlock &"[ {it} ]")
-
-  var blocks = makeWrapBlock(content)
-  let sln = none(Solution).withResIt do:
-    blocks.doOptLayout(it, defaultFormatOpts).get()
-
-  var c = Console()
-  sln.layouts[0].printOn(c)
-  echo c.text
 
 proc layoutBlock*(blc: Block, opts: Options = defaultFormatOpts): string =
   var blocks = blc
@@ -965,9 +943,42 @@ proc layoutBlock*(blc: Block, opts: Options = defaultFormatOpts): string =
   return c.text
 
 proc wrapBlocks*(blocks: seq[Block],
-                 opts: Options = defaultFormatOpts): string =
+                 opts: Options = defaultFormatOpts,
+                 margin: int = opts.m1
+                ): string =
+  var opts = opts
+  opts.m1 = margin
   layoutBlock(makeWrapBlock(blocks), opts)
 
 proc stackBlocks*(
   blocks: seq[BLock], opts: Options = defaultFormatOpts): string =
   layoutBlock(makeStackBlock(blocks), opts)
+
+
+when isMainModule:
+  block:
+    let content = (0 .. 10).mapIt(makeTextBlock &"[ {it} ]")
+
+    for blocks in @[
+      makeLineBlock(content), makeStackBlock(content), makeWrapBlock(content)]:
+      var blocks = blocks
+      let sln = none(Solution).withResIt do:
+        blocks.doOptLayout(it, defaultFormatOpts).get()
+
+      var c = Console()
+      sln.layouts[0].printOn(c)
+      echo c.text
+
+  block:
+    let content = (0 .. 5).mapIt(makeTextBlock &"[ {it} ]") & @[
+      makeVerbBlock(@["hello", "world"], firstNl = true)
+    ] & (5 .. 10).mapIt(makeTextBlock &"[ {it} ]")
+
+    var blocks = makeWrapBlock(content)
+    let sln = none(Solution).withResIt do:
+      blocks.doOptLayout(it, defaultFormatOpts).get()
+
+    var c = Console()
+    sln.layouts[0].printOn(c)
+    echo c.text
+
