@@ -196,6 +196,20 @@ template mapPairs*(inseq: untyped, op: untyped): untyped =
   mixin nthType1, nthType2
   mapPairs(inseq, op, (lhs: lhs, rhs: rhs, idx: idx))
 
+template mutMapIt*(s: typed, op: untyped): untyped =
+  type OutType = typeof((
+    block:
+      var it{.inject.}: typeof(mitems(s), typeOfIter);
+      op), typeOfProc)
+
+  var i = 0
+  var result = newSeq[OutType](s.len)
+  for it {.inject.} in mitems(s):
+    result[i] = op
+    i += 1
+  result
+
+
 #==============================  searching  ==============================#
 
 template findIt*(s: typed, op: untyped): int =
