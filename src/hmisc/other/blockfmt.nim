@@ -7,7 +7,6 @@
 import strutils, sequtils, macros, tables, strformat, lenientops,
        options, hashes, math, sugar
 
-import nimtraits
 import ../algo/[hmath, halgorithm, hseq_mapping]
 import colorlogger
 
@@ -15,10 +14,10 @@ startColorLogger()
 
 const infty = 1024 * 1024 * 1024 * 1024
 
-func inf*(a: int): bool = (infty - 4096 <= a) and (a <= infty + 4096)
+func inf(a: int): bool = (infty - 4096 <= a) and (a <= infty + 4096)
 
 func `*`(a: SomeNumber, b: bool): SomeNumber = (if b: a else: 0)
-func get*[T](inseq: seq[Option[T]]): seq[T] =
+func get[T](inseq: seq[Option[T]]): seq[T] =
   for elem in inseq:
     if elem.isSome():
       result.add elem.get()

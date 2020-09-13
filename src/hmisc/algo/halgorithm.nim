@@ -181,7 +181,7 @@ func msgjoinImpl*(args: seq[string]): string =
       result &= args[idx]
     else:
       const wraps: set[char] = {'_', '`', '\'', '\"', ' '}
-      if args[idx].enclosedIn(wraps):
+      if args[idx].len >= 3 and args[idx].enclosedIn(wraps):
         result &= " " & args[idx] & " "
       elif args[idx].endsWith({'[', '(', '\'', '#', '@'} + wraps):
         if (args[idx].endsWith wraps) and openwrap:

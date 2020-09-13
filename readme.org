@@ -329,6 +329,54 @@ Provides two types for colored text - ~ColoredString~ (string +
 styling) and ~ColoredRune~ (unicode rune + styling).
 
 
+* Other
+
+** ~hmisc/other/hshell~
+
+Helper functions for running shell commands. 
+
+- ~runShell~ Raise exception when command has exited with non-zero
+  code (because you will be checking return code anyway), get stderr
+  and stdout separately.
+- ~iterstdout~ - iterate each line for executed program's stdout
+
+** ~hmisc/other/oswrap~
+
+Wrapper on top of ~os~ and ~nimscsrip~ that allows to use the same
+code on ~c~ and ~nimscript~ targets. Some helper templates/functions
+are introduced.
+
+- ~mkDir~, ~getEnv~, ~delEnv~, ~toExe~, ~listDirs~, ~rmFile~, ~mkDir~,
+  ~mvFile~, ~cpFile~, ~cpDir~, ~cd~ - default file/directory
+  manipulation functions
+- ~~~ (prefix tilda) prefix operator to get path relative to home
+  directory. Same as ~getHomeDir() / path~
+- ~&&~ join shell command strings with correct spacing
+- ~withDir~ - temporarily set directory for body
+- ~withEnv~ - temporarily set environment variables for body
+
+** ~hmisc/other/blockfmt~ 
+
+Reimplementation of google's text formatting algorithm from [[https://github.com/google/rfmt][rfmt]].
+Combinator-based API for optimal (cost-based) string block layout.
+Supports block wrapping, stacking (horizontally and veritcally),
+forced line breaks (for example if you want to pretty-print code block
+that includes line comment)
+
+** ~hmisc/other/hjson~
+
+This module provides helper functions for working with json that don't
+silently ignore errors. If something is missing exception is raised.
+
+~as*~ functions - throw exception if node kind does not match (stdlib
+implementations silently return default value)
+
+** ~hmisc/other/nimbleutils~
+
+Helper functions for nimble packages that I use in other projects.
+Right now this is mostly automated testin in local docker container
+and some logging functions.
+
 * Contribution & development
 
 Most of the features in this library were implemented on
@@ -345,3 +393,7 @@ todo:
   - [ ] basic graph algorithms
     - [ ] topological sorting
     - [ ] strongly connected components
+
+* References
+
+- [[https://research.google/pubs/pub44667/][A new apprach to optimal code formatting]]
