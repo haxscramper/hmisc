@@ -30,14 +30,15 @@ func get*[T](inseq: seq[Option[T]]): seq[T] =
 
 type
   Console = object
+    text: string
     margins: seq[int]
 
-proc printString(c: Console, str: string): void =
-  stdout.write(str)
+proc printString(c: var Console, str: string): void =
+  c.text &= str
 
-proc printSpace(c: Console, n: int): void =
+proc printSpace(c: var Console, n: int): void =
   ## Write a string of `n` spaces on the console.
-  c.printString(" ".repeat(n))
+  c.text &= " ".repeat(n)
 
 #*************************************************************************#
 #****************************  Format policy  ****************************#
@@ -54,7 +55,7 @@ type
     ## Refer to the corresponding methods of the Console class for
     ## descriptions of the methods involved.
     text: string
-    impl: proc(pr: Console)
+    impl: proc(pr: var Console)
 
   Layout = object
     ## An object containing a sequence of directives to the console.
@@ -131,11 +132,11 @@ type
 
     # formats: Table[string, ]
 
-proc printOn(self: Layout, console: Console): void =
+proc printOn(self: Layout, console: var Console): void =
   for elem in self.elements:
     elem.impl(console)
 
-proc printLayout(self: Console, layout: Layout): void =
+proc printLayout(self: var Console, layout: Layout): void =
   layout.printOn(self)
 
 proc `$`(le: LayoutElement): string = le.text
@@ -170,18 +171,25 @@ type
 
 type
   Options = object
-    m0: int ## position of the first right margin
-    m1: int ## position of the second right margin
-    c0: float ## cost (per character) beyond margin 0
-    c1: float ## cost (per character) beyond margin 1
+    m0: int ## position of the first right margin. Expected `0`
+    m1: int ## position of the second right margin. Set for `80` to
+            ## wrap on default column limit.
+    c0: float ## cost (per character) beyond margin 0. Expected value
+              ## `~0.05`
+    c1: float ## cost (per character) beyond margin 1. Should be much
+              ## higher than `c0`. Expected value `~100`
     cb: int ## cost per line-break
     ind: int ## spaces per indent
     # adj_comment: int
     # adj_flow: int #
     # adj_call: int
     # adj_arg: int
-    cpack: int ## cost (per element) for packing justified layouts
+    cpack: float ## cost (per element) for packing justified layouts.
+                 ## Expected value `~0.001`
     format_policy: FormatPolicy[StrTree]
+
+const defaultFormatOpts* = Options(
+  m0: 0, m1: 40, c0: 0.05, c1: 100, cb: 2, ind: 2, cpack: 0.001)
 
 func hash(elem: LayoutElement): Hash = hash(elem.impl)
 func hash(lyt: Layout): Hash = hash(lyt.elements)
@@ -206,15 +214,15 @@ func hash(sln: Option[Solution]): Hash =
 #*************************************************************************#
 func lytString(s: string): LayoutElement =
   result.text = s
-  result.impl = proc(c: Console) = stdout.write s
+  result.impl = proc(c: var Console) = c.printString(s)
 
 func lytNewline(indent: bool = true): LayoutElement =
   result.text = "\\n"
-  result.impl = proc(c: Console) = stdout.write "\n"
+  result.impl = proc(c: var Console) = c.printString("\n")
 
 func lytPrint(lyt: Layout): LayoutElement =
   result.text = &"[{lyt}]"
-  result.impl = proc(c: Console) = c.printLayout(lyt)
+  result.impl = proc(c: var Console) = c.printLayout(lyt)
 
 func getStacked(layouts: seq[Layout]): Layout =
   ## Return the vertical composition of a sequence of layouts.
@@ -233,9 +241,7 @@ func getStacked(layouts: seq[Layout]): Layout =
   return Layout(elements: l_elts[0 .. ^2])  # Drop the last NewLine()
 
 func initLayout*(elems: openarray[LayoutElement]): Layout =
-  # NOTE HACK I don't know why/where things are reversed in the first
-  # place, so I had to use this counter-hack to fix it.
-  result.elements = toSeq(elems).reversed()
+  result.elements = toSeq(elems)
 
 #*************************************************************************#
 #******************************  Solution  *******************************#
@@ -628,10 +634,29 @@ func makeStackBlock*(elems: seq[Block]): Block =
   Block(kind: bkStack, elements: elems)
 
 func makeLineBlock*(elems: seq[Block]): Block =
-  Block(kind: bkLine, elements: elems)
+  # NOTE HACK I don't know why/where things are reversed in the first
+  # place, so I had to use this counter-hack to fix it.
+  Block(kind: bkLine, elements: elems.reversed())
 
 func makeWrapBlock*(elems: seq[Block]): Block =
   Block(kind: bkWrap, wrapElements: elems)
+
+func makeVerbBlock*(
+  textLines: seq[string], breaking: bool = true,
+  firstNl: bool = false): Block =
+  Block(kind: bkVerb, textLines: textLines,
+        isBreaking: breaking, firstNl: firstNl)
+
+func makeIndentBlock*(element: Block, indent: int = 0): Block =
+  makeLineBlock(@[
+    makeTextBlock(" ".repeat(indent)),
+    element
+  ])
+
+func makeLineCommentBlock*(
+  text: string, prefix: string = "# "): Block =
+  makeVerbBlock(@[prefix & text])
+
 
 #============================  Layout logic  =============================#
 
@@ -867,7 +892,28 @@ proc doOptWrapLayout(
 proc doOptVerbLayout(
   self: var Block,
   rest_of_line: var Option[Solution], opts: Options): Option[Solution] =
-  discard
+  # The solution for this block is essentially that of a TextBlock(''), with
+  # an abberant layout calculated as follows.
+  var l_elts: seq[LayoutElement]
+
+  for i, ln in self.textLines:
+    if i > 0 or self.first_nl:
+      l_elts.add lytNewLine()
+
+    l_elts.add lytString(ln)
+
+  let layout = initLayout(l_elts)
+  let span = 0
+  var sf: SolutionFactory
+  if opts.m0 > 0:  # Prevent incoherent solutions
+    sf.add(0, span, 0, 0, layout)
+  # opts.m1 == 0 is absurd
+  sf.add(opts.m0 - span, span, 0, opts.c0, layout)
+  sf.add(
+    opts.m1 - span, span,
+    (opts.m1 - opts.m0) * opts.c0, opts.c0 + opts.c1, layout)
+
+  return some sf.makeSolution()
 
 proc doOptLayout(
   self: var Block,
@@ -883,34 +929,45 @@ proc doOptLayout(
     of bkWrap: self.doOptWrapLayout(restOfLine, opts)
     of bkVerb: self.doOptVerbLayout(restOfLine, opts)
 
+block:
+  let content = (0 .. 10).mapIt(makeTextBlock &"[ {it} ]")
 
-func tree(head: string, elems: varargs[StrTree]): StrTree =
-  result.val = head
-  result.subn = toSeq(elems)
+  for blocks in @[
+    makeLineBlock(content), makeStackBlock(content), makeWrapBlock(content)]:
+    var blocks = blocks
+    let sln = none(Solution).withResIt do:
+      blocks.doOptLayout(it, defaultFormatOpts).get()
 
+    var c = Console()
+    sln.layouts[0].printOn(c)
+    echo c.text
 
-let content = (0 .. 20).mapIt(makeTextBlock &"[ {it} ]")
+block:
+  let content = (0 .. 5).mapIt(makeTextBlock &"[ {it} ]") & @[
+    makeVerbBlock(@["hello", "world"], firstNl = true)
+  ] & (5 .. 10).mapIt(makeTextBlock &"[ {it} ]")
 
-let opts = Options(
-  m0: 0,
-  m1: 40,
-  c0: 0.05,
-  c1: 100,
-  cb: 2,
-  ind: 2
-)
+  var blocks = makeWrapBlock(content)
+  let sln = none(Solution).withResIt do:
+    blocks.doOptLayout(it, defaultFormatOpts).get()
 
+  var c = Console()
+  sln.layouts[0].printOn(c)
+  echo c.text
 
-
-for blocks in @[
-  makeLineBlock(content), makeStackBlock(content), makeWrapBlock(content)]:
-  var blocks = blocks
+proc layoutBlock*(blc: Block, opts: Options = defaultFormatOpts): string =
+  var blocks = blc
   let sln = none(Solution).withResIt do:
     blocks.doOptLayout(it, opts).get()
 
-  let c = Console()
-
-  echo "---"
+  var c = Console()
   sln.layouts[0].printOn(c)
-  echo "\n---"
+  return c.text
 
+proc wrapBlocks*(blocks: seq[Block],
+                 opts: Options = defaultFormatOpts): string =
+  layoutBlock(makeWrapBlock(blocks), opts)
+
+proc stackBlocks*(
+  blocks: seq[BLock], opts: Options = defaultFormatOpts): string =
+  layoutBlock(makeStackBlock(blocks), opts)
