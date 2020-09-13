@@ -15,6 +15,8 @@ startColorLogger()
 
 const infty = 1024 * 1024 * 1024 * 1024
 
+func inf*(a: int): bool = (infty - 4096 <= a) and (a <= infty + 4096)
+
 func `*`(a: SomeNumber, b: bool): SomeNumber = (if b: a else: 0)
 func get*[T](inseq: seq[Option[T]]): seq[T] =
   for elem in inseq:
@@ -426,9 +428,6 @@ proc vSumSolution(solutions: seq[Solution]): Solution =
   ##   A Solution object that lays out the solutions vertically, separated by
   ##   newlines, with the same left margin.
 
-  identLog()
-  info "Vertical sum of #", solutions.len, "solutions"
-  defer: dedentLog()
 
   assert solutions.len > 0
 
@@ -453,13 +452,12 @@ proc vSumSolution(solutions: seq[Solution]): Solution =
     )
 
     # The distance to the closest next knot from the current margin.
-    info "Knots:", solutions.map(nextKnot)
     let d_star = min(
       solutions.
-      filterIt(it.nextKnot() > margin).
+      filterIt(it.nextKnot() >= margin).
       mapIt(it.nextKnot() - margin))  # TODO(pyelland): Redundant check?
 
-    if d_star >= infty:
+    if d_star.inf:
       break
 
     margin += d_star
@@ -467,7 +465,6 @@ proc vSumSolution(solutions: seq[Solution]): Solution =
     for s in mitems(solutions):
       s.moveToMargin(margin)
 
-  info "Done vertical sum"
   return col.makeSolution()
 
 proc hPlusSolution(s1, s2: Solution): Solution =
@@ -691,7 +688,8 @@ proc doOptLineLayout(
   if self.elements.len == 0:
     return rest_of_line
 
-  var element_lines: seq[seq[Block]]
+  var element_lines: seq[seq[Block]] = @[]
+  element_lines.add @[]
 
   for i, elt in self.elements:
     element_lines[^1].add elt
@@ -724,7 +722,14 @@ proc doOptLineLayout(
 
 proc doOptChoiceLayout(
   self: var Block, rest_of_line: Option[Solution]): Option[Solution] =
-  discard
+  # The optimum layout of this block is simply the piecewise minimum of its
+  # elements' layouts.
+  return minSolution(
+    self.elements.mapIt(
+      it.withResIt do:
+        it.optLayout(rest_of_line)
+    ).get()
+  )
 
 
 proc doOptStackLayout(
@@ -815,8 +820,6 @@ proc doOptVerbLayout(
 proc doOptLayout(
   self: var Block, rest_of_line: Option[Solution]): Option[Solution] =
 
-  info "Optimal layout for ", self
-
   logIdented:
     result = case self.kind:
       of bkText: self.doOptTextLayout(restOfLine)
@@ -832,20 +835,21 @@ func tree(head: string, elems: varargs[StrTree]): StrTree =
   result.subn = toSeq(elems)
 
 
-var blocks = makeWrapBlock(@[
-  makeTextBlock("Hello"),
-  makeTextBlock("1 nice"),
-  makeTextBlock("2 nice"),
-  makeTextBlock("3 nice"),
-  makeTextBlock("4 nice"),
-])
+let content = (makeTextBlock "[eeee]").repeat(4)
+echo content
+var blocks = makeChoiceBlock(
+  @[
+    makeLineBlock(content),
+    makeStackBlock(content)
+  ]
+)
 
 let sln = blocks.doOptLayout(none(Solution)).get()
 
 let c = Console()
 
-for lyt in sln.layouts:
-  lyt.printOn(c)
+echo "---"
+sln.layouts[0].printOn(c)
 
-echo "done"
+echo "\n---"
 
