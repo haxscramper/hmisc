@@ -110,10 +110,16 @@ suite "Matching":
 
 
   test "Variable binding":
-    discard
+    startHax()
+
+    echo case (a: 12, b: 2):
+           of (a: $a, b: $b): $a & $b
+           else: "✠ ♰ ♱ ☩ ☦ ☨ ☧ ⁜ ☥"
+
+    stopHax()
+
 
   test "Alternative":
-    startHax()
     echo case (a: 12, c: 90):
            of (a: 12 | 90, c: it > 10): "matched"
            else: "not matched"

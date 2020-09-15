@@ -92,6 +92,13 @@ template stopHax*() =
   static:
     doLog = false
 
+template workHax*(body: untyped): untyped =
+  startHax()
+
+  body
+
+  stopHax()
+
 template haxThis*(a: untyped): untyped =
   {.noSideEffect.}:
     if doLog:

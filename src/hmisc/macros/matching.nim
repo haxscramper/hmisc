@@ -163,8 +163,15 @@ func makeExpected(node: NimNode): EStruct =
     of nnkTableConstr:
       return EStruct(kind: kPairs)
     of nnkPrefix:
-      assertNodeIt(node, node[0] == ident("@"), "Unexpected prefix")
-      return EStruct(kind: kList)
+      case node[0].strVal():
+        of "@":
+          assertNodeKind(node[1], {nnkBracket})
+          return EStruct(kind: kList)
+        of "$":
+          return EStruct(kind: kItem)
+        else:
+          node.raiseCodeError("Unexpected prefix")
+
     else:
       raiseAssert(&"#[ IMPLEMENT for kind {node.kind} ]#")
 
@@ -227,15 +234,17 @@ func updateExpected(
           raiseAssert("#[ IMPLEMENT ]#")
 
     of nnkPrefix:
-      assert parent.kind == kList
+      let str = node[0].strVal()
+      if str == "@" and node[1].kind in {nnkBracket}:
+        assert parent.kind == kList
 
-      for idx, subn in node[1]:
-        if parent.item.isNil:
-          parent.item = makeExpected(subn)
+        for idx, subn in node[1]:
+          if parent.item.isNil:
+            parent.item = makeExpected(subn)
 
-        parent.item.updateExpected(subn, path & @[
-          AccsElem(inStruct: kList)
-        ])
+          parent.item.updateExpected(subn, path & @[
+            AccsElem(inStruct: kList)
+          ])
 
     of nnkIdent, nnkIntLit, nnkInfix, nnkStrLit, nnkCall:
       if node.isInfixPatt():
@@ -432,11 +441,7 @@ macro match*(
 
 
   # For each branch, update toplevel structure
-  let path: Path = @[] #  @ =  case toplevel.kind:
-    # of kObject:
-    #   @[AccsElem(inStruct: kObject, fld: "expr")]
-    # else:
-    #   @[]
+  let path: Path = @[]
 
   for head in cs.heads:
     toplevel.updateExpected(head, path)
