@@ -6,6 +6,20 @@ template `->`(a, b: bool): bool = (if a: b else: true)
 
 import hpprint
 
+var doLog {.compiletime.}: bool = false
+
+template startLog*() =
+  static:
+    doLog = true
+
+template stopLog*() =
+  static:
+    doLog = false
+
+template logThis(a: untyped): untyped =
+  if doLog:
+    echov a
+
 type
   EStructKind = enum
     kItem
@@ -67,7 +81,7 @@ func `$`(es: EStruct): string =
     "nil"
   else:
     case es.kind:
-      of kList: &"[{es}]"
+      of kList: &"[{es.item}]"
       of kItem: "*"
       of kTuple: es.elements.mapIt($it).join(", ").wrap("()")
       of kPairs: &"{{{es.key}: {es.value}}}"
@@ -81,6 +95,7 @@ func isNamedTuple(node: NimNode): bool =
   node.allOfIt((it.kind == nnkIdent) -> it.strVal == "_")
 
 func makeExpected(node: NimNode): EStruct =
+  # echov node
   case node.kind:
     of nnkCurly:
       return EStruct(kind: kPairs)
@@ -97,6 +112,9 @@ func makeExpected(node: NimNode): EStruct =
       return EStruct(kind: kItem)
     of nnkTableConstr:
       return EStruct(kind: kPairs)
+    of nnkPrefix:
+      assertNodeIt(node, node[0] == ident("@"), "Unexpected prefix")
+      return EStruct(kind: kList)
     else:
       raiseAssert(&"#[ IMPLEMENT for kind {node.kind} ]#")
 
@@ -158,6 +176,17 @@ func updateExpected(
         else:
           raiseAssert("#[ IMPLEMENT ]#")
 
+    of nnkPrefix:
+      assert parent.kind == kList
+
+      for idx, subn in node[1]:
+        if parent.item.isNil:
+          parent.item = makeExpected(subn)
+
+        parent.item.updateExpected(subn, path & @[
+          AccsElem(inStruct: kList)
+        ])
+
     of nnkIdent, nnkIntLit, nnkInfix, nnkStrLit:
       discard
 
@@ -204,13 +233,8 @@ func makeInput(top: EStruct, path: Path): NimNode =
 
     of kPairs:
       discard
-
-
-
-
-
-    else:
-      raiseAssert(&"#[ IMPLEMENT for kind {top.kind} ]#")
+    of kList:
+      return newCall("toSeq", path.toAccs())
 
 func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): NimNode =
   case n.kind:
@@ -242,6 +266,32 @@ func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): NimNode =
                 ], struct.elements[idx])
 
         result = conds.foldl(nnkInfix.newTree(ident "and", a, b))
+
+    of nnkPrefix:
+      let conds = collect(newSeq):
+        for idx, elem in n[1]:
+          let
+            parent = path.toAccs()
+            key = newLit(idx)
+            subexp = elem.makeMatchExpr(@[
+              AccsElem(inStruct: kList, idx: idx)
+            ], struct.item)
+
+            input = struct.item.makeInput(@[])
+
+          quote do:
+            ((
+              block:
+                if `key` < `parent`.len:
+                  # let it {.inject.} = expr[`key`]
+                  # let expr {.inject.} = `parent`[`key`]
+                  `subexp`
+                else:
+                  false
+            ))
+
+      result = conds.foldl(nnkInfix.newTree(ident "and", a, b))
+
     of nnkTableConstr:
       let conds = collect(newSeq):
         for kv in n:
@@ -255,11 +305,14 @@ func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): NimNode =
 
 
           quote do:
-            if `key` in `parent`:
-              let expr {.inject.} = `parent`[`key`]
-              `subexp`
-            else:
-              false
+            ((
+              block:
+                if `key` in `parent`:
+                  let expr {.inject.} = `parent`[`key`]
+                  `subexp`
+                else:
+                  false
+            ))
 
       result = conds.foldl(nnkInfix.newTree(ident "and", a, b))
 
@@ -268,7 +321,6 @@ func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): NimNode =
       result = quote do:
         let it {.inject.} = `accs`
         `n`
-
     else:
       raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#")
 
@@ -290,7 +342,8 @@ func makeMatch(n: NimNode, path: Path, top: EStruct): NimNode =
           raiseAssert(&"#[ IMPLEMENT for kind {elem.kind} ]#")
 
 
-macro match*(n: tuple | object | ref object | openarray): untyped =
+macro match*(
+  n: tuple | object | ref object | seq): untyped =
   var cs: Case
   cs.expr = n[0]
   for elem in n[1 .. ^1]:
@@ -325,7 +378,7 @@ macro match*(n: tuple | object | ref object | openarray): untyped =
   for head in cs.heads:
     toplevel.updateExpected(head, path)
 
-  echo toplevel
+  # echo toplevel
 
   # Generate input tuple for expression
   let inputExpr = toplevel.makeInput(path)
@@ -341,6 +394,6 @@ macro match*(n: tuple | object | ref object | openarray): untyped =
       let input {.inject.} = `inputExpr`
       `matchcase`
 
-  echo result.toStrLit()
+  logThis result.toStrLit()
 
 
