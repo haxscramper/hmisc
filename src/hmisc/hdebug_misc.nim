@@ -81,3 +81,20 @@ template plog*(body: untyped): untyped =
   when defined(haxPrintLogging):
     {.noSideEffect.}:
       body
+
+var doLog {.compiletime.}: bool = false
+
+template startHax*() =
+  static:
+    doLog = true
+
+template stopHax*() =
+  static:
+    doLog = false
+
+template haxThis*(a: untyped): untyped =
+  {.noSideEffect.}:
+    if doLog:
+      echov a
+
+

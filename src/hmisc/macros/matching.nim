@@ -6,23 +6,6 @@ import ../hexceptions
 
 template `->`(a, b: bool): bool = (if a: b else: true)
 
-import hpprint
-
-var doLog {.compiletime.}: bool = false
-
-template startLog*() =
-  static:
-    doLog = true
-
-template stopLog*() =
-  static:
-    doLog = false
-
-template logThis(a: untyped): untyped =
-  if doLog:
-    echov a
-
-
 func parseEnumField*(fld: NimNode): string =
   case fld.kind:
     of nnkEnumFieldDef:
@@ -146,6 +129,9 @@ func isNamedTuple(node: NimNode): bool =
 func isKindCall(node: NimNode): bool =
   node[0].kind == nnkIdent and node[0].strVal()[0].isUpperAscii()
 
+func isInfixPatt(node: NimNode): bool =
+  node.kind == nnkInfix and node[0].strVal() in ["|"]
+
 func makeExpected(node: NimNode): EStruct =
   # echov node
   case node.kind:
@@ -161,7 +147,14 @@ func makeExpected(node: NimNode): EStruct =
           "Mix of named and unnamed fields is not allowed")
 
     of nnkIdent, nnkIntLit, nnkInfix, nnkStrLit:
-      return EStruct(kind: kItem)
+      if node.isInfixPatt():
+        # NOTE assuming only one type of objects will be matched in
+        # infix alternative. Some limited support for things like `12
+        # | "hello"` is present because such things are all mapped to
+        # `kItem`
+        return makeExpected(node[1])
+      else:
+        return EStruct(kind: kItem)
     of nnkCall:
       if node.isKindCall():
         return EStruct(kind: kObject)
@@ -245,7 +238,9 @@ func updateExpected(
         ])
 
     of nnkIdent, nnkIntLit, nnkInfix, nnkStrLit, nnkCall:
-      discard
+      if node.isInfixPatt():
+        for subn in node[1..^1]:
+          parent.updateExpected(subn, path)
 
     else:
       raiseAssert(&"#[ IMPLEMENT for kind {node.kind} ]#")
@@ -376,6 +371,13 @@ func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): NimNode =
     elif n.isKindCall():
       result = newCall(ident "hasKind", path.toAccs(), n[0])
 
+    elif n.isInfixPatt():
+      let conds = collect(newSeq):
+        for patt in n[1..^1]:
+          patt.makeMatchExpr(path, struct)
+
+      result = conds.foldl(nnkInfix.newTree(ident "or", a, b))
+
     elif n.kind in {nnkInfix, nnkCall}:
       let accs = path.toAccs()
 
@@ -455,6 +457,6 @@ macro match*(
       let input {.inject.} = `inputExpr`
       `matchcase`
 
-  logThis result.toStrLit()
+  haxThis result.toStrLit()
 
 

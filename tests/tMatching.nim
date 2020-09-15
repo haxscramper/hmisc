@@ -91,7 +91,6 @@ suite "Matching":
                      else: raiseAssert("#[ IMPLEMENT ]#") 
 
   test "Case objects":
-    startLog()
     type
       En = enum
         enEE
@@ -114,7 +113,14 @@ suite "Matching":
     discard
 
   test "Alternative":
-    discard
+    startHax()
+    echo case (a: 12, c: 90):
+           of (a: 12 | 90, c: it > 10): "matched"
+           else: "not matched"
+
+    assertEq 12, case (a: 9):
+                  of (a: 9 | 12): 12
+                  else: 666
 
   test "Trailing one-or-more":
     discard
