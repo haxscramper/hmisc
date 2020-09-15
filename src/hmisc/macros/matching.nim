@@ -1,4 +1,4 @@
-import sequtils, macros, tables, options, strformat, sugar
+import sequtils, macros, tables, options, strformat, sugar, strutils
 import ../helpers
 import ../hexceptions
 
@@ -62,6 +62,20 @@ type
     heads: seq[NimNode]
     default: Option[NimNode]
 
+func `$`(es: EStruct): string =
+  if es.isNil:
+    "nil"
+  else:
+    case es.kind:
+      of kList: &"[{es}]"
+      of kItem: "*"
+      of kTuple: es.elements.mapIt($it).join(", ").wrap("()")
+      of kPairs: &"{{{es.key}: {es.value}}}"
+      of kObject: es.flds.
+        mapPairs(&"{lhs}: {rhs}").
+        join(", ").wrap(("#(", ")"))
+
+
 func isNamedTuple(node: NimNode): bool =
   node.allOfIt(it.kind in {nnkExprColonExpr, nnkIdent}) and
   node.allOfIt((it.kind == nnkIdent) -> it.strVal == "_")
@@ -72,21 +86,43 @@ func makeExpected(node: NimNode): EStruct =
       return EStruct(kind: kPairs)
     of nnkPar:
       if node.isNamedTuple():
-        result = EStruct(kind: kObject)
+        return EStruct(kind: kObject)
       elif node.noneOfIt(it.kind in {nnkExprColonExpr}):
-        result = EStruct(kind: kTuple)
+        return EStruct(kind: kTuple)
       else:
         node.raiseCodeError(
           "Mix of named and unnamed fields is not allowed")
 
-    of nnkIdent, nnkIntLit, nnkInfix:
+    of nnkIdent, nnkIntLit, nnkInfix, nnkStrLit:
       return EStruct(kind: kItem)
+    of nnkTableConstr:
+      return EStruct(kind: kPairs)
     else:
       raiseAssert(&"#[ IMPLEMENT for kind {node.kind} ]#")
 
 func updateExpected(
   parent: var EStruct, node: NimNode, path: Path): void =
+  assert not parent.isNil
   case node.kind:
+    of nnkTableConstr:
+      assert parent.kind == kPairs
+      for kv in node:
+        assertNodeKind(kv, {nnkExprColonExpr})
+        if parent.key.isNil:
+          parent.key = makeExpected(kv[0])
+
+        if parent.value.isNil:
+          parent.value = makeExpected(kv[1])
+
+        parent.key.updateExpected(kv[0], path & @[
+          AccsElem(inStruct: kPairs, parentKey: true, key: kv[0])
+        ])
+
+        parent.value.updateExpected(kv[1], path & @[
+          AccsElem(inStruct: kPairs, parentKey: false, key: kv[1])
+        ])
+
+
     of nnkCurly:
       assert parent.kind == kPairs
       for idx, subn in node:
@@ -122,8 +158,7 @@ func updateExpected(
         else:
           raiseAssert("#[ IMPLEMENT ]#")
 
-
-    of nnkIdent, nnkIntLit, nnkInfix:
+    of nnkIdent, nnkIntLit, nnkInfix, nnkStrLit:
       discard
 
     else:
@@ -145,7 +180,10 @@ func toAccs(path: Path): NimNode =
     if top.len > 1:
       result = result.aux(top[1 ..^ 1])
 
-  return (ident "expr").aux(path)
+  if path.len > 0:
+    return (ident "expr").aux(path)
+  else:
+    return ident "expr"
 
 func makeInput(top: EStruct, path: Path): NimNode =
   case top.kind:
@@ -164,10 +202,17 @@ func makeInput(top: EStruct, path: Path): NimNode =
             AccsElem(inStruct: kObject, fld: name)
           ]))
 
+    of kPairs:
+      discard
+
+
+
+
+
     else:
       raiseAssert(&"#[ IMPLEMENT for kind {top.kind} ]#")
 
-func makeMatchExpr(n: NimNode, path: Path): NimNode =
+func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): NimNode =
   case n.kind:
     of nnkIdent, nnkSym, nnkIntLit:
       if n == ident "_":
@@ -182,19 +227,42 @@ func makeMatchExpr(n: NimNode, path: Path): NimNode =
                 if kv.kind == nnkIdent:
                   makeMatchExpr(kv, path & @[
                     AccsElem(inStruct: kTuple, idx: idx)
-                  ])
+                  ], struct.flds[idx].struct)
                 else:
                   makeMatchExpr(kv[1], path & @[
-                    AccsElem(inStruct: kObject, fld: kv[0].strVal())
-                  ])
+                    AccsElem(inStruct: kObject, fld: kv[0].strVal()
+                    )], struct.flds.findItFirst(
+                      it.name == kv[0].strVal()).struct
+                  )
           else:
             collect(newSeq):
               for idx, val in n:
                 makeMatchExpr(val, path & @[
                   AccsElem(inStruct: kTuple, idx: idx)
-                ])
+                ], struct.elements[idx])
 
         result = conds.foldl(nnkInfix.newTree(ident "and", a, b))
+    of nnkTableConstr:
+      let conds = collect(newSeq):
+        for kv in n:
+          let
+            parent = path.toAccs()
+            key = kv[0]
+            subexp = kv[1].makeMatchExpr(@[
+                AccsElem(inStruct: kPairs, key: kv[0])
+            ], struct.value)
+            input = struct.value.makeInput(@[])
+
+
+          quote do:
+            if `key` in `parent`:
+              let expr {.inject.} = `parent`[`key`]
+              `subexp`
+            else:
+              false
+
+      result = conds.foldl(nnkInfix.newTree(ident "and", a, b))
+
     of nnkInfix:
       let accs = path.toAccs()
       result = quote do:
@@ -206,13 +274,13 @@ func makeMatchExpr(n: NimNode, path: Path): NimNode =
 
 
 
-func makeMatch(n: NimNode, path: Path): NimNode =
+func makeMatch(n: NimNode, path: Path, top: EStruct): NimNode =
   result = nnkIfStmt.newTree()
   for elem in n[1 ..^ 1]:
     case elem.kind:
       of nnkOfBranch:
         result.add nnkElifBranch.newTree(
-          makeMatchExpr(elem[0], path),
+          makeMatchExpr(elem[0], path, top),
           elem[1]
         )
       of nnkElifBranch, nnkElse:
@@ -257,13 +325,14 @@ macro match*(n: tuple | object | ref object | openarray): untyped =
   for head in cs.heads:
     toplevel.updateExpected(head, path)
 
+  echo toplevel
+
   # Generate input tuple for expression
   let inputExpr = toplevel.makeInput(path)
 
   # Generate matcher expressions
-  let matchcase = n.makeMatch(path)
+  let matchcase = n.makeMatch(path, toplevel)
 
-  # echov matchcase
 
   let head = cs.expr
   result = quote do:
