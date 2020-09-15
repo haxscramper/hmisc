@@ -275,6 +275,11 @@ func dropPrefix*(str, pref: string): string =
   else:
     str
 
+func dropPrefix*(str: seq[string], pref: string): string =
+  ## Drop prefix if already present
+  for s in str:
+    result.add s.dropPrefix(pref)
+
 func dropSuffix*(str, suff: string): string =
   ## Drop suffix `suff` is present
   if str.endsWith(suff):

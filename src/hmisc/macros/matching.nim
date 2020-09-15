@@ -1,4 +1,6 @@
-import sequtils, macros, tables, options, strformat, sugar, strutils
+import sequtils, macros, tables, options, strformat, sugar, strutils,
+       parseutils
+
 import ../helpers
 import ../hexceptions
 
@@ -19,6 +21,53 @@ template stopLog*() =
 template logThis(a: untyped): untyped =
   if doLog:
     echov a
+
+
+func parseEnumField*(fld: NimNode): string =
+  case fld.kind:
+    of nnkEnumFieldDef:
+      fld[0].strVal
+    of nnkSym:
+      fld.strVal
+    else:
+      raiseAssert(&"#[ IMPLEMENT {fld.kind} ]#")
+
+func parseEnumImpl*(en: NimNode): seq[string] =
+  case en.kind:
+    of nnkSym:
+      let impl = en.getTypeImpl()
+      case impl.kind:
+        of nnkBracketExpr:
+          return parseEnumImpl(impl.getTypeInst()[1].getImpl())
+        of nnkEnumTy:
+          result = parseEnumImpl(impl)
+        else:
+          raiseAssert(&"#[ IMPLEMENT {impl.kind} ]#")
+    of nnkTypeDef:
+      result = parseEnumImpl(en[2])
+    of nnkEnumTy:
+      for fld in en[1..^1]:
+        result.add parseEnumField(fld)
+    of nnkTypeSection:
+      result = parseEnumImpl(en[0])
+    else:
+      raiseAssert(&"#[ IMPLEMENT {en.kind} ]#")
+
+
+func pref*(name: string): string =
+  discard name.parseUntil(result, {'A' .. 'Z', '0' .. '9'})
+
+macro hasKindImpl*(head: typed, kind: untyped): untyped =
+  let
+    impl = head.getTypeImpl().parseEnumImpl()
+    pref = impl.commonPrefix().pref()
+    names = impl.dropPrefix(pref)
+    kind = ident(kind.toStrLit().strVal().addPrefix(pref))
+
+  return nnkInfix.newTree(ident "==", head, kind)
+
+template hasKind*(head, kindExpr: untyped): untyped =
+  hasKindImpl(head.kind, kindExpr)
 
 type
   EStructKind = enum
@@ -94,6 +143,9 @@ func isNamedTuple(node: NimNode): bool =
   node.allOfIt(it.kind in {nnkExprColonExpr, nnkIdent}) and
   node.allOfIt((it.kind == nnkIdent) -> it.strVal == "_")
 
+func isKindCall(node: NimNode): bool =
+  node[0].kind == nnkIdent and node[0].strVal()[0].isUpperAscii()
+
 func makeExpected(node: NimNode): EStruct =
   # echov node
   case node.kind:
@@ -108,8 +160,13 @@ func makeExpected(node: NimNode): EStruct =
         node.raiseCodeError(
           "Mix of named and unnamed fields is not allowed")
 
-    of nnkIdent, nnkIntLit, nnkInfix, nnkStrLit, nnkCall:
+    of nnkIdent, nnkIntLit, nnkInfix, nnkStrLit:
       return EStruct(kind: kItem)
+    of nnkCall:
+      if node.isKindCall():
+        return EStruct(kind: kObject)
+      else:
+        return EStruct(kind: kItem)
     of nnkTableConstr:
       return EStruct(kind: kPairs)
     of nnkPrefix:
@@ -316,8 +373,12 @@ func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): NimNode =
 
       result = conds.foldl(nnkInfix.newTree(ident "and", a, b))
 
-    of nnkInfix, nnkCall:
+    elif n.isKindCall():
+      result = newCall(ident "hasKind", path.toAccs(), n[0])
+
+    elif n.kind in {nnkInfix, nnkCall}:
       let accs = path.toAccs()
+
       result = quote do:
         let it {.inject.} = `accs`
         `n`

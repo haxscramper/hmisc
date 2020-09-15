@@ -12,6 +12,23 @@ import json
 import unittest
 
 suite "Matching":
+  test "Has kind for anything":
+    type
+      En = enum
+        eN11
+        eN12
+
+      Obj = object
+        case kind: En
+         of eN11:
+           f1: int
+         of eN12:
+           f2: float
+
+    let val = Obj()
+    echo val.hasKind(N11)
+    echo val.hasKind(eN11)
+
   test "Main test":
     assertEq 12, case (12, 24):
                    of (_, it == 24): expr[1] div 2
@@ -62,7 +79,6 @@ suite "Matching":
 
     func public(a: A): string = $a.hidden
 
-    startLog()
 
     case A():
       of (public: it.startsWith("0")):
@@ -75,9 +91,23 @@ suite "Matching":
                      else: raiseAssert("#[ IMPLEMENT ]#") 
 
   test "Case objects":
-    discard
-    # type
-    #   En = object
+    startLog()
+    type
+      En = enum
+        enEE
+        enZZ
+
+      Obj = object
+        case kind: En
+          of enEE:
+            discard
+          of enZZ:
+            fl: int
+
+    echo case Obj():
+           of EE(): "00"
+           of ZZ(): "hello worlkd"
+           else: raiseAssert("#[ IMPLEMENT ]#")
 
 
   test "Variable binding":
