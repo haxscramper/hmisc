@@ -2,7 +2,7 @@ import json
 import tables
 import sequtils
 import strutils
-export json
+export json except items
 
 ##[
 
@@ -49,6 +49,11 @@ func asSeq*(node: JsonNode): seq[JsonNode] =
 func asTable*(node: JsonNode): OrderedTable[string, JsonNode] =
   ## Convert node to table and throw exception if kind does not match
   jsonConversion(JObject, getFields)
+
+iterator items*(node: JsonNode): JsonNode =
+  assert node.kind == JArray
+  for node in node.getElems():
+    yield node
 
 func joinArr*(node: JsonNode): string =
   ## Convert node to list of strings and join them. Throw exception if

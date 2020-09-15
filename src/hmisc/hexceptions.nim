@@ -25,7 +25,8 @@ type
 
 func startpos*(node: NimNode): LineInfo =
   case node.kind:
-    of nnkBracketExpr, nnkDotExpr, nnkAsgn, nnkCall:
+    of nnkBracketExpr, nnkDotExpr, nnkAsgn, nnkCall,
+       nnkExprColonExpr:
       node[0].lineInfoObj()
     of nnkInfix:
       node[1].lineInfoObj()
@@ -280,6 +281,17 @@ template assertNodeKind*(
   node.assertNodeIt(
     node.kind in kindSet,
     (&"Unexpected node kind. Expected one of " &
+      $kindSet & " but found " & $node.kind),
+    $node.kind)
+
+
+template assertNodeKindNot*(
+  node: NimNode, kindSet: set[NimNodeKind]): untyped =
+  ## assert node kind is in the set. Provide higlighted error with
+  ## list of expected types and kind of given node
+  node.assertNodeIt(
+    node.kind notin kindSet,
+    (&"Unexpected node kind - not allowed node kinds: " &
       $kindSet & " but found " & $node.kind),
     $node.kind)
 

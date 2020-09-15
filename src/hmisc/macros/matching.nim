@@ -2,6 +2,10 @@ import sequtils, macros, tables, options, strformat, sugar
 import ../helpers
 import ../hexceptions
 
+template `->`(a, b: bool): bool = (if a: b else: true)
+
+import hpprint
+
 type
   EStructKind = enum
     kItem
@@ -58,15 +62,19 @@ type
     heads: seq[NimNode]
     default: Option[NimNode]
 
+func isNamedTuple(node: NimNode): bool =
+  node.allOfIt(it.kind in {nnkExprColonExpr, nnkIdent}) and
+  node.allOfIt((it.kind == nnkIdent) -> it.strVal == "_")
+
 func makeExpected(node: NimNode): EStruct =
   case node.kind:
     of nnkCurly:
       return EStruct(kind: kPairs)
     of nnkPar:
-      if node.allOfIt(it.kind in {nnkExprColonExpr, nnkIdent}):
-        return EStruct(kind: kObject)
-      elif node.noneOfIt(it.kind in {nnkExprColonExpr, nnkIdent}):
-        return EStruct(kind: kTuple)
+      if node.isNamedTuple():
+        result = EStruct(kind: kObject)
+      elif node.noneOfIt(it.kind in {nnkExprColonExpr}):
+        result = EStruct(kind: kTuple)
       else:
         node.raiseCodeError(
           "Mix of named and unnamed fields is not allowed")
@@ -134,25 +142,84 @@ func toAccs(path: Path): NimNode =
       of kItem:
         prefix
 
-    result = result.aux(top[1 ..^ 1])
+    if top.len > 1:
+      result = result.aux(top[1 ..^ 1])
 
   return (ident "expr").aux(path)
 
 func makeInput(top: EStruct, path: Path): NimNode =
   case top.kind:
     of kItem:
-      discard
+      return path.toAccs()
     of kTuple:
       return newPar: collect(newSeq):
-        for subn in top.elements:
-          subn.makeInput(path)
+        for idx, subn in top.elements:
+          subn.makeInput(path & @[
+            AccsElem(inStruct: kTuple, idx: idx)
+          ])
     of kObject:
       return newPar: collect(newSeq):
         for (name, struct) in top.flds:
-          newColonExpr(ident name, struct.makeInput(path))
+          newColonExpr(ident name, struct.makeInput(path & @[
+            AccsElem(inStruct: kObject, fld: name)
+          ]))
 
     else:
       raiseAssert(&"#[ IMPLEMENT for kind {top.kind} ]#")
+
+func makeMatchExpr(n: NimNode, path: Path): NimNode =
+  case n.kind:
+    of nnkIdent, nnkSym, nnkIntLit:
+      if n == ident "_":
+        result = ident("true")
+      else:
+        result = nnkInfix.newTree(ident "==", path.toAccs(), n)
+    of nnkPar:
+        let conds =
+          if n.isNamedTuple():
+            collect(newSeq):
+              for idx, kv in n:
+                if kv.kind == nnkIdent:
+                  makeMatchExpr(kv, path & @[
+                    AccsElem(inStruct: kTuple, idx: idx)
+                  ])
+                else:
+                  makeMatchExpr(kv[1], path & @[
+                    AccsElem(inStruct: kObject, fld: kv[0].strVal())
+                  ])
+          else:
+            collect(newSeq):
+              for idx, val in n:
+                makeMatchExpr(val, path & @[
+                  AccsElem(inStruct: kTuple, idx: idx)
+                ])
+
+        result = conds.foldl(nnkInfix.newTree(ident "and", a, b))
+    of nnkInfix:
+      let accs = path.toAccs()
+      result = quote do:
+        let it {.inject.} = `accs`
+        `n`
+
+    else:
+      raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#")
+
+
+
+func makeMatch(n: NimNode, path: Path): NimNode =
+  result = nnkIfStmt.newTree()
+  for elem in n[1 ..^ 1]:
+    case elem.kind:
+      of nnkOfBranch:
+        result.add nnkElifBranch.newTree(
+          makeMatchExpr(elem[0], path),
+          elem[1]
+        )
+      of nnkElifBranch, nnkElse:
+        result.add elem
+      else:
+        block:
+          raiseAssert(&"#[ IMPLEMENT for kind {elem.kind} ]#")
 
 
 macro match*(n: tuple | object | ref object | openarray): untyped =
@@ -179,15 +246,31 @@ macro match*(n: tuple | object | ref object | openarray): untyped =
         if next.kind != toplevel.kind:
           raiseCodeError(head, "#[ IMPLEMENT:ERRMSG ]#")
 
+
   # For each branch, update toplevel structure
-  let path = @[AccsElem(inStruct: toplevel.kind)]
+  let path: Path = @[] #  @ =  case toplevel.kind:
+    # of kObject:
+    #   @[AccsElem(inStruct: kObject, fld: "expr")]
+    # else:
+    #   @[]
+
   for head in cs.heads:
     toplevel.updateExpected(head, path)
 
   # Generate input tuple for expression
-  result = toplevel.makeInput(path)
+  let inputExpr = toplevel.makeInput(path)
 
   # Generate matcher expressions
+  let matchcase = n.makeMatch(path)
+
+  # echov matchcase
+
+  let head = cs.expr
+  result = quote do:
+    block:
+      let expr {.inject.} = `head`
+      let input {.inject.} = `inputExpr`
+      `matchcase`
 
   echo result.toStrLit()
 

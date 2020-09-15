@@ -49,3 +49,6 @@ converter toT*[T](it: SingleIt[T]): T = it.it[0]
 
 func takesOnlyMutable*[T](v: var T) = discard
 template isMutable*(v: typed): untyped = compiles(takesOnlyMutable(v))
+
+macro dumpStr*(body: untyped): untyped =
+  newCall(ident "echo", newLit(body.treeRepr()))

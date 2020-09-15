@@ -56,11 +56,17 @@ iterator iterstdout*(command: string): string =
     for line in (if rem.len > 0: rem[0..^2] else: rem):
       yield line
 
-proc runShell*(command: string, doRaise: bool = true): tuple[
+proc runShell*(
+  command: string, doRaise: bool = true, stdin: string = ""): tuple[
   stdout, stderr: string, code: int] =
 
   when not defined(NimScript):
     let pid = startProcess(command, options = {poEvalCommand})
+
+    let ins = pid.inputStream()
+    ins.write(stdin)
+    # ins.flush()
+    ins.close()
 
     let outStream = pid.outputStream
     var line = ""
