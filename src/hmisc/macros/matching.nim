@@ -108,7 +108,7 @@ func makeExpected(node: NimNode): EStruct =
         node.raiseCodeError(
           "Mix of named and unnamed fields is not allowed")
 
-    of nnkIdent, nnkIntLit, nnkInfix, nnkStrLit:
+    of nnkIdent, nnkIntLit, nnkInfix, nnkStrLit, nnkCall:
       return EStruct(kind: kItem)
     of nnkTableConstr:
       return EStruct(kind: kPairs)
@@ -187,7 +187,7 @@ func updateExpected(
           AccsElem(inStruct: kList)
         ])
 
-    of nnkIdent, nnkIntLit, nnkInfix, nnkStrLit:
+    of nnkIdent, nnkIntLit, nnkInfix, nnkStrLit, nnkCall:
       discard
 
     else:
@@ -238,7 +238,7 @@ func makeInput(top: EStruct, path: Path): NimNode =
 
 func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): NimNode =
   case n.kind:
-    of nnkIdent, nnkSym, nnkIntLit:
+    of nnkIdent, nnkSym, nnkIntLit, nnkStrLit:
       if n == ident "_":
         result = ident("true")
       else:
@@ -316,7 +316,7 @@ func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): NimNode =
 
       result = conds.foldl(nnkInfix.newTree(ident "and", a, b))
 
-    of nnkInfix:
+    of nnkInfix, nnkCall:
       let accs = path.toAccs()
       result = quote do:
         let it {.inject.} = `accs`

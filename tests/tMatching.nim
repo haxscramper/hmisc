@@ -38,20 +38,47 @@ suite "Matching":
            of {"hello": _}: "000"
            else: "discard"
 
-    startLog()
-
     echo case @[12, 32]:
            of @[_, it mod 2 == 1]: expr[0]
            else: 999
 
   test "Regular objects":
-    discard
+    type
+      A = object
+        f1: int
+
+    case A(f1: 12):
+      of (f1: it > 10):
+        echo "> 10"
+
+    assertEq 10, case A(f1: 90):
+                   of (f1: 0 <= it and it <= 80): 80
+                   else: 10
 
   test "Private fields":
-    discard
+    type
+      A = object
+        hidden: float
+
+    func public(a: A): string = $a.hidden
+
+    startLog()
+
+    case A():
+      of (public: it.startsWith("0")):
+        echo "matched: ", expr.public
+      else:
+        echo expr.public
+
+    assertEq "10", case A(hidden: 8.0):
+                     of (public: "8.0"): "10"
+                     else: raiseAssert("#[ IMPLEMENT ]#") 
 
   test "Case objects":
     discard
+    # type
+    #   En = object
+
 
   test "Variable binding":
     discard
