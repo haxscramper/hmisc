@@ -2,7 +2,7 @@ import math, strutils, sequtils, random, macros, options, strformat,
        parseutils, algorithm, sugar
 import std/wordwrap
 
-import hseqdistance
+import hseq_distance
 import ../types/[hprimitives]
 import hmath
 export hmath

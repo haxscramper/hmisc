@@ -1,4 +1,7 @@
-import sugar, strutils, sequtils, strformat, heapqueue, tables
+import sugar, strutils, sequtils, strformat, heapqueue, tables,
+       macros, algorithm
+
+import halgorithm
 
 type
   NodeId = distinct int
@@ -7,8 +10,107 @@ type
 
   NodeQue = HeapQueue[NodeId]
 
+  Tree = object
+    label: int
+    value: string
+    subn: seq[Tree]
+
   TreeIndex = object
 
+  EditCmdKind = enum
+    ekIns
+    ekDel
+    ekMov
+    ekUpd
+
+  EditCmd = object
+    discard
+
+  EditScript = object
+    discard
+
+proc add(es: var EditScript, ec: EditCmd): void =
+  discard
+
+proc makeMove(): EditCmd =
+  discard
+
+proc matched(n: NodeId): bool =
+  discard
+
+proc inOrder(b: NodeId): bool =
+  discard
+
+proc `inOrder=`(b: NodeId, val: bool) =
+  discard
+
+proc idx(n: NodeId): int =
+  discard
+
+proc candidate(n: NodeId, m: Mapping): NodeId =
+  discard
+
+proc partner(n: NodeId, m: Mapping): NodeId =
+  discard
+
+proc siblings(n: NodeId): tuple[left, right: seq[NodeId]] =
+  discard
+
+proc leftmostInOrder(n: NodeId): NodeId =
+  discard
+
+proc `==`(n: NodeId, other: typeof(nil)): bool =
+  discard
+
+proc opt(t1, t2: NodeId): Mapping =
+  discard
+
+iterator items(m: Mapping): (NodeId, NodeId) =
+  discard
+
+proc sort(m: var Mapping, cmp: proc(a, b: NodeId): bool) =
+  discard
+
+func add(m: var Mapping, t: (NodeId, NodeId)) =
+  ## Add mapping to mapping
+  discard
+
+macro `notin`(lhs: untyped, rhs: (Mapping, Mapping)): untyped =
+  quote do:
+    true
+
+macro `notin`(lhs: untyped, rhs: Mapping): untyped =
+  quote do:
+    false
+
+
+proc label(n: NodeId): int =
+  discard
+
+func `==`(a, b: NodeId): bool = a.int == b.int
+
+iterator items(id: NodeId): NodeId =
+  ## Iterate over subnodes for node pointed to by `id`
+  discard
+
+iterator items(tr: Tree): NodeId =
+  discard
+
+func s(t: NodeId): seq[NodeId] =
+  ## Return list of subnodes
+  discard
+
+func parent(t: NodeId): NodeId =
+  discard
+
+func size(a: Mapping): int =
+  discard
+
+func remove(a: var Mapping, `?`: int): (NodeId, NodeId) =
+  discard
+
+template delItIf(a: var Mapping, expr: untyped): untyped =
+  discard
 
 proc children(node: NodeId): seq[NodeId] =
   ## Get list of children for node `node`
@@ -35,7 +137,7 @@ iterator carthesian[T](a, b: seq[T]): (T, T) =
     for valB in b:
       yield (valA, valB)
 
-proc isomprhic(t1, t2: Tree): bool =
+proc isomorphic(t1, t2: NodeId): bool =
   ## Check if two trees are isomorphic
   discard
 
@@ -43,11 +145,15 @@ proc root(t: Tree): NodeId =
   ## Get root node for tree
   discard
 
+proc dice(t1, t2: NodeId, m: Mapping): float =
+  discard
 
-proc topDown(T1, T2: Tree, minHeight: int = 2): Mapping =
+proc topDown(
+  T1, T2: Tree, minHeight: int, minDice: float): Mapping =
   var
     L1: NodeQue
     L2: NodeQue
+    A, M: Mapping
 
   push(root(T1), L1)
   push(root(T2), L2)
@@ -77,25 +183,26 @@ proc topDown(T1, T2: Tree, minHeight: int = 2): Mapping =
               if isomorphic(is1, is2):
                 add(M, (is1, is2))
 
-    for t1 in h1:
-      if (t1, _) notin A + M:
-        open(t1, l1)
+      for t1 in H1:
+        if (t1, _) notin (A, M):
+          open(t1, L1)
 
-   for t2 in h2:
-     if (_, t2) notin A + M:
-       open(t2, l2)
+      for t2 in H2:
+        if (_, t2) notin (A, M):
+          open(t2, L2)
 
   A.sort() do(t1, t2: NodeId) -> bool:
-    dice(parent(t1), parent(t2), m)
+    dice(parent(t1), parent(t2), M) > minDice
 
   while size(A) > 0:
     let (t1, t2)  = remove(A, 0)
     # TODO Add all pairs of isomprhic nodes of `s(t1)` and `s(t2)` to m
-    A = A \ A.filterIt(it[0] == t1)
-    A = A \ A.filterIt(it[1] == t2)
+    A.delItIf(it[0] == t1)
+    A.delItIf(it[1] == t2)
 
 proc bottomUp(
-  t1, t2: Tree, m: Mapping, minDice: float, maxSize: int): Mapping =
+  T1, T2: Tree, M: Mapping, minDice: float, maxSize: int): Mapping =
+  var M = M
   for t1 in T2:
     if not t1.matched() and t1.children.anyOfIt(it.matched()):
       let t2 = candidate(t1, M)
@@ -116,15 +223,15 @@ proc findPos(x: NodeId, M: Mapping): int =
   if y.leftmostInOrder() == x:
     return 1
 
-  var w: NodeId
-  for node in s.siblings().left().reversed():
+  var v: NodeId
+  for node in x.siblings().left.reversed():
     if node.inOrder:
-      w = node
+      v = node
 
 
-  return w.partner(M).idx + 1
+  return v.partner(M).idx + 1
 
-proc editScript(M: Matching, T1, T2: Tree): EditScript =
+proc editScript(M: Mapping, T1, T2: Tree): EditScript =
   var E: EditScript
 
   proc alignChildren(w, x: NodeId) =
