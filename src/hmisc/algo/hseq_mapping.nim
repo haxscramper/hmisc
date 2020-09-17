@@ -210,6 +210,33 @@ template mutMapIt*(s: typed, op: untyped): untyped =
   result
 
 
+template foldlTuple*(sequence, operation: untyped): untyped =
+  let s = sequence
+  assert s.len > 0, "Can't fold empty sequences"
+  static:
+    assert s[0] is tuple, $typeof(s[0]) & " sequence of (" &
+      $typeof(s) & ") "
+
+  var result: tuple[opres: type(s[0][0]), side: seq[type(s[0][1])]]
+  result.opres = s[0][0]
+  result.side.add s[0][1]
+
+  for i in 1 ..< s.len:
+    let
+      a {.inject.} = result.opres
+      b {.inject.} = s[i][0]
+
+    result.opres = operation
+    result.side.add s[i][1]
+
+  result
+
+func concatSide*[A, B](arg: (A, seq[seq[B]])): (A, seq[B]) =
+  result[1] = arg[1].concat()
+  result[0] = arg[0]
+
+
+
 #==============================  searching  ==============================#
 
 template findIt*(s: typed, op: untyped): int =

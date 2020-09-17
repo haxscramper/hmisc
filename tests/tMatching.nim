@@ -88,7 +88,7 @@ suite "Matching":
 
     assertEq "10", case A(hidden: 8.0):
                      of (public: "8.0"): "10"
-                     else: raiseAssert("#[ IMPLEMENT ]#") 
+                     else: raiseAssert("#[ IMPLEMENT ]#")
 
   test "Case objects":
     type
@@ -110,13 +110,18 @@ suite "Matching":
 
 
   test "Variable binding":
-    startHax()
+    # startHax()
 
     echo case (a: 12, b: 2):
            of (a: $a, b: $b): $a & $b
            else: "✠ ♰ ♱ ☩ ☦ ☨ ☧ ⁜ ☥"
 
-    stopHax()
+    assertEq 12, case (a: 2, b: 10):
+                   of (a: $a, b: $b): a + b
+                   else: 89
+
+    # stopHax()
+    echo "hello"
 
 
   test "Alternative":

@@ -5,7 +5,7 @@ import sugar, json, sequtils, tables, strformat, options, terminal
 
 import hmisc/types/[hvariant, colorstring]
 import hmisc/[helpers, hexceptions]
-import hmisc/algo/[halgorithm, htree_mapping, hseqdistance]
+import hmisc/algo/[halgorithm, htree_mapping, hseq_distance]
 
 type
   InTest = object
@@ -328,6 +328,10 @@ suite "Tree mapping":
 import strutils
 
 suite "Simple sequence templates":
+  test "{foldlTuple}":
+    assertEq @[(0, 2)].foldlTuple(a + b), (0, @[2])
+    assertEq @[(1, 2), (3, 4)].foldlTuple(a + b), (4, @[2, 4])
+
   test "{maxIt}":
     assert @[1,2,3,4].maxIt(it) == 4
     var empty: seq[int]

@@ -1,6 +1,34 @@
 import strutils, macros
 import times
 
+var doLog {.compiletime.}: bool = false
+var doLogRuntime: bool = false
+
+template startHax*() =
+  static:
+    doLog = true
+
+  doLogRuntime = true
+
+template stopHax*() =
+  static:
+    doLog = false
+
+  doLogRuntime = false
+
+template workHax*(body: untyped): untyped =
+  startHax()
+
+  body
+
+  stopHax()
+
+template haxThis*(a: untyped): untyped =
+  {.noSideEffect.}:
+    if doLog:
+      echov a
+
+
 proc colorPrint*(
   node: NimNode,
   tmpfile: string = "/tmp/nimast_tmp.nim",
@@ -68,11 +96,39 @@ proc echoi*(message: varargs[string, `$`]): void =
   echo message.join(" ")
 
 template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
+  # Store previous indentation echo and print next level indented or
+  # unindented based on new column value.
   {.noSideEffect.}:
-    when variable is string:
-      debugecho astToStr(variable), ": \"", variable, "\" ", other.join(" ")
-    else:
-      debugecho astToStr(variable), ": ", variable, " ", other.join(" ")
+    block:
+      let iinfo = instantiationInfo()
+      var line = ($iinfo.line).alignLeft(4) & " | "
+          # & " ".repeat(max(iinfo.column - 6, 0))
+
+      var vart = $variable
+
+      when variable is string:
+        if vart.split("\n").len > 1:
+          vart = "\n\"\"\"\n" & vart & "\"\"\"\n"
+        else:
+          vart = "\"" & vart & "\""
+      else:
+        if vart.split("\n").len > 1:
+          vart = "\n" & vart
+
+      if vart.split().len > 1 and other.len > 0:
+        vart = vart & "\n"
+
+      var text = line & astToStr(variable) & ": " & vart & other.join(" ")
+
+      when compiles(doLog):
+        if doLog:
+          debugecho text
+      else:
+        if doLogRuntime:
+          debugecho text
+
+
+
 
 
 
@@ -81,27 +137,3 @@ template plog*(body: untyped): untyped =
   when defined(haxPrintLogging):
     {.noSideEffect.}:
       body
-
-var doLog {.compiletime.}: bool = false
-
-template startHax*() =
-  static:
-    doLog = true
-
-template stopHax*() =
-  static:
-    doLog = false
-
-template workHax*(body: untyped): untyped =
-  startHax()
-
-  body
-
-  stopHax()
-
-template haxThis*(a: untyped): untyped =
-  {.noSideEffect.}:
-    if doLog:
-      echov a
-
-
