@@ -10,9 +10,12 @@ type
 
   NodeQue = HeapQueue[NodeId]
 
+  Label = int
+  Value = string
+
   Tree = object
-    label: int
-    value: string
+    label: Label
+    value: Value
     subn: seq[Tree]
 
   TreeIndex = object
@@ -27,13 +30,30 @@ type
     discard
 
   EditScript = object
-    discard
+    cmds: seq[EditCmd]
 
 proc add(es: var EditScript, ec: EditCmd): void =
   discard
 
-proc makeMove(): EditCmd =
+proc makeMove(
+  nodeId, newParent: NodeId,
+  newIdx: int
+): EditCmd =
   discard
+
+proc makeIns(
+  newnode: tuple[leafId: NodeId, label: Label, value: Value],
+  parent: NodeId,
+  idx: int
+): EditCmd =
+  discard
+
+proc makeUpd(id: NodeId, val: Value): EditCmd =
+  discard
+
+proc makeDel(id: NodeId): EditCmd =
+  discard
+
 
 proc matched(n: NodeId): bool =
   discard
@@ -42,9 +62,11 @@ proc inOrder(b: NodeId): bool =
   discard
 
 proc `inOrder=`(b: NodeId, val: bool) =
+  ## mark node as "in order"
   discard
 
 proc idx(n: NodeId): int =
+  ## get node index in sequence of parent's subnodes
   discard
 
 proc candidate(n: NodeId, m: Mapping): NodeId =
@@ -54,18 +76,22 @@ proc partner(n: NodeId, m: Mapping): NodeId =
   discard
 
 proc siblings(n: NodeId): tuple[left, right: seq[NodeId]] =
+  ## return sibling nodes to the left and right of node
   discard
 
 proc leftmostInOrder(n: NodeId): NodeId =
+  ## return leftmost node that is marked as "in order"
   discard
 
 proc `==`(n: NodeId, other: typeof(nil)): bool =
   discard
 
 proc opt(t1, t2: NodeId): Mapping =
+  ## ? Wtf is this shit
   discard
 
 iterator items(m: Mapping): (NodeId, NodeId) =
+  ## iterate over all pairs in mapping
   discard
 
 proc sort(m: var Mapping, cmp: proc(a, b: NodeId): bool) =
@@ -94,6 +120,7 @@ iterator items(id: NodeId): NodeId =
   discard
 
 iterator items(tr: Tree): NodeId =
+  ## iterate over all subnodes of tree root node
   discard
 
 func s(t: NodeId): seq[NodeId] =
@@ -101,15 +128,19 @@ func s(t: NodeId): seq[NodeId] =
   discard
 
 func parent(t: NodeId): NodeId =
+  ## Get parent node for node
   discard
 
 func size(a: Mapping): int =
+  ## get number of items in mapping
   discard
 
 func remove(a: var Mapping, `?`: int): (NodeId, NodeId) =
+  ## remove something from mapping. Now idea what ? Should actually be.
   discard
 
 template delItIf(a: var Mapping, expr: untyped): untyped =
+  ## delete all mapping pairs that satisfy predicate expression
   discard
 
 proc children(node: NodeId): seq[NodeId] =
@@ -133,6 +164,7 @@ proc open(node: NodeId, que: var NodeQue) =
   discard
 
 iterator carthesian[T](a, b: seq[T]): (T, T) =
+  ## iterate over carthesian product of two sequences
   for valA in a:
     for valB in b:
       yield (valA, valB)
@@ -146,6 +178,7 @@ proc root(t: Tree): NodeId =
   discard
 
 proc dice(t1, t2: NodeId, m: Mapping): float =
+  ## get fraction of equal subnodes for two trees relative to total size of trees.
   discard
 
 proc topDown(
@@ -155,11 +188,14 @@ proc topDown(
     L2: NodeQue
     A, M: Mapping
 
-  push(root(T1), L1)
-  push(root(T2), L2)
+  push(root(T1), L1) ## store root node
+  push(root(T2), L2) ## for each input
 
+  ## until subtree of necessary height hasn't been reached
   while min(peekMax(L1), peekMax(L2)) > minHeight:
+    ## if two top subtrees don't have equal height
     if peekMax(L1) != peekMax(L2):
+      ## insert all nodes from tallest subforest
       if peekMax(L1) > peekMax(L2):
         for t in pop(L1):
           open(t, L1)
@@ -168,26 +204,41 @@ proc topDown(
           open(t, L2)
 
     else:
+      ## otherwise get two subforest of equal height
       let
         H1 = pop(L1)
         H2 = pop(L2)
 
+      ## for each combination of Therese is these forests
       for (t1, t2) in carthesian(H1, H2):
+        ## if pair of trees is isomorphic
         if isomorphic(t1, t2):
+          ## if any of the child nodes for t2 is isomorphic to t1 itself (and vice-versa)
           if t2.anyOfIt(isomorphic(t1, it) and it != t2) or
              t1.anyOfIt(isomorphic(it, t2) and it != t1):
+            ## add both t1 and t2 to mapping
             add(A, (t1, t2))
 
+          ## otherwise
           else:
+            ## iterate over all pairs of child nodes
             for (is1, is2) in carthesian(s(t1), s(t2)):
+              ## and determine they are isomorphic
               if isomorphic(is1, is2):
                 add(M, (is1, is2))
 
+      ## so we basically determine if there is any isomorphic
+      ## mapping between (1) roots two highest subforests or (2) root
+      ## and subnodes of a root in other tree
+
       for t1 in H1:
+        ## if there is unmatched forest root in first forest
         if (t1, _) notin (A, M):
+          ## insert it's subnodes
           open(t1, L1)
 
       for t2 in H2:
+        #ß do the same for other forest
         if (_, t2) notin (A, M):
           open(t2, L2)
 
@@ -196,18 +247,25 @@ proc topDown(
 
   while size(A) > 0:
     let (t1, t2)  = remove(A, 0)
-    # TODO Add all pairs of isomprhic nodes of `s(t1)` and `s(t2)` to m
+    ## TODO Add all pairs of isomprhic nodes of `s(t1)` and `s(t2)` to m
     A.delItIf(it[0] == t1)
     A.delItIf(it[1] == t2)
 
 proc bottomUp(
   T1, T2: Tree, M: Mapping, minDice: float, maxSize: int): Mapping =
   var M = M
-  for t1 in T2:
+  for t1 in T1:
+    ## for all nodes in left, if node itself is not matched, but
+    ## has any children matched
     if not t1.matched() and t1.children.anyOfIt(it.matched()):
+      # get candidate node
       let t2 = candidate(t1, M)
+      ## if it is a valid candidate and matches criteria for
+      ## minimum number of shares subnodes
       if t2 != nil and dice(t1, t2, M) > minDice:
+        ## add node to mapping
         add(M, (t1, t2))
+        ## if max of number of subnodes does not exceed threshold
         if max(s(t1).len, s(t2).len) < maxSize:
           let R = opt(t1, t2)
           for (ta, tb) in R:
@@ -235,6 +293,10 @@ proc editScript(M: Mapping, T1, T2: Tree): EditScript =
   var E: EditScript
 
   proc alignChildren(w, x: NodeId) =
+    ## generate optimal sequence of moves that will align
+    ## child nodes of w and x
+
+    ## map all subnodes for
     for ch in w:
       ch.inOrder = false
 
@@ -253,6 +315,8 @@ proc editScript(M: Mapping, T1, T2: Tree): EditScript =
             ch
 
       S = LCS(S1, S2) do(a, b: NodeId) -> bool:
+        ## left and right subnodes are considered equal if
+        ## this is a pair which already exists in mapping.
         (a, b) in M
 
     for (a, b) in carthesian(S1, S2):
@@ -265,23 +329,34 @@ proc editScript(M: Mapping, T1, T2: Tree): EditScript =
         b.inOrder = true
 
   for x in T2.dfsIterate:
+    ## iderate all nodes in tree in DFS order
     let
-      y = x.parent
-      z = y.partner(M)
+      y = x.parent ## parent node in right tree
+      z = y.partner(M) ## partner of right parent tree.
+      ## left parent tree.
 
     if z == nil:
+      ## if current node's parent does not have a corresponding
+      ## partner in mapping
       let k = findPos(x)
       E.add makeIns((w, a, value(x)), z, k)
       E.applyLast(T1)
     elif not x.isRoot:
+      ## if node parent has partner and the node itself
+      ## is not root
       let
-        w = x.partner(M)
-        v = parent(w, T1)
+        w = x.partner(M) ## get partner of current node
+        v = parent(w, T1) ## parent of the partner
 
+      ## I'd node and partner have different values
       if value(w) != value(x):
+        ## add update to edit script
         E.add makeUpd(w, value(x))
         E.applyLast(T1)
 
+
+      ## if mapping current node and it's
+      ## partner are not in mapping
       if (y, v) notin M:
         let
           z = y.partner(M)
@@ -290,9 +365,14 @@ proc editScript(M: Mapping, T1, T2: Tree): EditScript =
         E.add makeMove(w, z, k)
         E.applyLast(T1)
 
+
+    ## align subnodes for current node and it's counterpart
     alignChildren(w, x)
 
   for w in T1.postDFS:
+    ## for each node in post order traversal of left tree
     if w.partner(M) == nil:
+      ## if current node does not have a parent, remove it
+      ## deletion will happen from leaves to roots
       E.add makeDel(w)
       E.applyLast(T1)
