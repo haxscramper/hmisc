@@ -537,5 +537,5 @@ macro match*(
       let input {.inject.} = `inputExpr`
       `matchcase`
 
-  # haxThis result.toStrLit()
+  haxThis result.toStrLit()
   assert inputExpr != nil

@@ -99,14 +99,16 @@ suite "Matching":
     type
       En = enum
         enEE
+        enEE1
         enZZ
 
       Obj = object
         case kind: En
-          of enEE:
+          of enEE, enEE1:
             eee: seq[Obj]
           of enZZ:
             fl: int
+
     echo case Obj():
            of EE(): "00"
            of ZZ(): "hello worlkd"
@@ -136,6 +138,24 @@ suite "Matching":
       else:
         fail()
 
+    startHax()
+    case Obj(kind: enEE, eee: @[Obj(), Obj()]):
+      of EE(eee: [_, _, _]): fail()
+      of EE(eee: [_, _]): discard
+      else: fail()
+    stopHax()
+
+    # case Obj(kind: enEE1, eee: @[Obj(), Obj()]):
+    #   of EE([_, _]):
+    #     fail()
+    #   of EE1([_, _, _]):
+    #     fail()
+    #   of EE1([_, _]):
+    #     discard
+    #   else:
+    #     fail()
+
+
 
   test "Variable binding":
 
@@ -147,7 +167,6 @@ suite "Matching":
                    of (a: $a, b: $b): a + b
                    else: 89
 
-    startHax()
     echo case (1, (3, 4, ("e", (9, 2)))):
            of ($a, _): a
            of (_, ($a, $b, _)): a + b
