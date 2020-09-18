@@ -29,7 +29,7 @@ suite "Matching":
     echo val.hasKind(N11)
     echo val.hasKind(eN11)
 
-  test "Main test":
+  test "Simple uses":
     assertEq 12, case (12, 24):
                    of (_, it == 24): expr[1] div 2
                    else: raiseAssert("#[ not possible ]#")
@@ -58,6 +58,7 @@ suite "Matching":
     echo case @[12, 32]:
            of @[_, it mod 2 == 1]: expr[0]
            else: 999
+
 
   test "Regular objects":
     type
@@ -110,7 +111,6 @@ suite "Matching":
 
 
   test "Variable binding":
-    # startHax()
 
     echo case (a: 12, b: 2):
            of (a: $a, b: $b): $a & $b
@@ -120,7 +120,16 @@ suite "Matching":
                    of (a: $a, b: $b): a + b
                    else: 89
 
-    # stopHax()
+    startHax()
+    echo case (1, (3, 4, ("e", (9, 2)))):
+           of ($a, _): a
+           of (_, ($a, $b, _)): a + b
+           of (_, (_, _, (_, ($c, $d)))): c * d
+           else: 12
+
+
+
+    stopHax()
     echo "hello"
 
 

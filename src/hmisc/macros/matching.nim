@@ -68,7 +68,7 @@ type
   EStruct = ref object
     case kind: EStructKind
       of kItem:
-        discard
+        canOverride: bool
       of kList:
         item: EStruct
       of kPairs:
@@ -154,7 +154,10 @@ func makeExpected(node: NimNode): EStruct =
         # `kItem`
         return makeExpected(node[1])
       else:
-        return EStruct(kind: kItem)
+        result = EStruct(kind: kItem)
+        if node.kind == nnkIdent and node.strVal() == "_":
+          result.canOverride = true
+
     of nnkCall:
       if node.isKindCall():
         return EStruct(kind: kObject)
@@ -226,12 +229,21 @@ func updateExpected(
           for idx, subn in node:
             if parent.elements.len >= idx:
               assertNodeKindNot(subn, {nnkExprColonExpr})
+              # echov subn
               parent.elements.add makeExpected(subn)
+              # echov parent
 
             parent.elements[idx].updateExpected(subn, path & @[
               AccsElem(inStruct: kTuple, idx: idx)])
+        of kItem:
+          if parent.canOverride:
+            # echov node, "Overriding parent from", node
+            parent = makeExpected(node)
+            parent.updateExpected(node, path)
+            # echov parent
+
         else:
-          raiseAssert("#[ IMPLEMENT ]#")
+          raiseAssert(&"#[ IMPLEMENT {parent.kind} ]#")
 
     of nnkPrefix:
       let str = node[0].strVal()
@@ -486,9 +498,9 @@ macro match*(
   let path: Path = @[]
 
   for head in cs.heads:
+    echov toplevel
     toplevel.updateExpected(head, path)
 
-  # echo toplevel
 
   # Generate input tuple for expression
   let inputExpr = toplevel.makeInput(path)
@@ -501,7 +513,7 @@ macro match*(
   result = quote do:
     block:
       let expr {.inject.} = `head`
-      let input {.inject.} = `inputExpr`
+      # let input {.inject.} = `inputExpr`
       `matchcase`
 
   haxThis result.toStrLit()
