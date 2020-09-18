@@ -97,8 +97,27 @@ iterator items(m: Mapping): (NodeId, NodeId) =
 proc sort(m: var Mapping, cmp: proc(a, b: NodeId): bool) =
   discard
 
+proc LCS(lhs, rhs: seq[NodeId],
+         eq: proc(a, b: NodeId): bool): seq[(NodeId, NodeId)] =
+  discard
+
 func add(m: var Mapping, t: (NodeId, NodeId)) =
   ## Add mapping to mapping
+  discard
+
+proc bfsIterate(tree: Tree, cb: proc(n: NodeId)) =
+  discard
+
+proc dfsIteratePost(tree: Tree, cb: proc(n: NodeId)) =
+  discard
+
+proc applyLast(script: EditScript, tree: var Tree): void =
+  discard
+
+proc contains(parent, subnode: NodeId): bool =
+  discard
+
+proc contains(mapping: Mapping, pair: (NodeId, NodeId)): bool =
   discard
 
 macro `notin`(lhs: untyped, rhs: (Mapping, Mapping)): untyped =
@@ -109,8 +128,13 @@ macro `notin`(lhs: untyped, rhs: Mapping): untyped =
   quote do:
     false
 
-
 proc label(n: NodeId): int =
+  discard
+
+proc value(n: NodeId): string =
+  discard
+
+proc isRoot(n: NodeId): bool =
   discard
 
 func `==`(a, b: NodeId): bool = a.int == b.int
@@ -219,16 +243,15 @@ proc topDown(
             ## add both t1 and t2 to mapping
             add(A, (t1, t2))
 
-          ## otherwise
           else:
-            ## iterate over all pairs of child nodes
+            ## otherwise iterate over all pairs of child nodes
             for (is1, is2) in carthesian(s(t1), s(t2)):
               ## and determine they are isomorphic
               if isomorphic(is1, is2):
                 add(M, (is1, is2))
 
-      ## so we basically determine if there is any isomorphic
-      ## mapping between (1) roots two highest subforests or (2) root
+      ## so we basically determine if there is any isomorphic mapping
+      ## between either (1) roots two highest subforests or (2) root
       ## and subnodes of a root in other tree
 
       for t1 in H1:
@@ -238,7 +261,7 @@ proc topDown(
           open(t1, L1)
 
       for t2 in H2:
-        #ß do the same for other forest
+        ## do the same for other forest
         if (_, t2) notin (A, M):
           open(t2, L2)
 
@@ -290,6 +313,7 @@ proc findPos(x: NodeId, M: Mapping): int =
   return v.partner(M).idx + 1
 
 proc editScript(M: Mapping, T1, T2: Tree): EditScript =
+  var T1 = T1
   var E: EditScript
 
   proc alignChildren(w, x: NodeId) =
@@ -320,16 +344,16 @@ proc editScript(M: Mapping, T1, T2: Tree): EditScript =
         (a, b) in M
 
     for (a, b) in carthesian(S1, S2):
-      if ((a, b) in M) and (not (a, b) in S):
-        let k = b.findPos()
+      if ((a, b) in M) and ((a, b) notin S):
+        let k = b.findPos(M)
         E.add makeMove(a, w, k)
-        E.apply(T1)
+        E.applyLast(T1)
 
         a.inOrder = true
         b.inOrder = true
 
-  for x in T2.dfsIterate:
-    ## iderate all nodes in tree in DFS order
+  T2.bfsIterate() do(x: NodeId):
+    ## iderate all nodes in tree in BFS order
     let
       y = x.parent ## parent node in right tree
       z = y.partner(M) ## partner of right parent tree.
@@ -338,15 +362,15 @@ proc editScript(M: Mapping, T1, T2: Tree): EditScript =
     if z == nil:
       ## if current node's parent does not have a corresponding
       ## partner in mapping
-      let k = findPos(x)
-      E.add makeIns((w, a, value(x)), z, k)
+      let k = findPos(x, M)
+      E.add makeIns((partner(x, M), label(x), value(x)), z, k)
       E.applyLast(T1)
     elif not x.isRoot:
       ## if node parent has partner and the node itself
       ## is not root
       let
         w = x.partner(M) ## get partner of current node
-        v = parent(w, T1) ## parent of the partner
+        v = parent(w) ## parent of the partner
 
       ## I'd node and partner have different values
       if value(w) != value(x):
@@ -360,16 +384,16 @@ proc editScript(M: Mapping, T1, T2: Tree): EditScript =
       if (y, v) notin M:
         let
           z = y.partner(M)
-          k = x.findPos()
+          k = x.findPos(M)
 
         E.add makeMove(w, z, k)
         E.applyLast(T1)
 
 
     ## align subnodes for current node and it's counterpart
-    alignChildren(w, x)
+    alignChildren(x.partner(M), x)
 
-  for w in T1.postDFS:
+  T1.dfsIteratePost do(w: NodeId):
     ## for each node in post order traversal of left tree
     if w.partner(M) == nil:
       ## if current node does not have a parent, remove it
