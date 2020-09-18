@@ -4,6 +4,11 @@ import times
 var doLog {.compiletime.}: bool = false
 var doLogRuntime: bool = false
 
+template ifHaxComp*(body: untyped): untyped =
+  static:
+    if doLog:
+      body
+
 template startHax*() =
   static:
     doLog = true
@@ -16,12 +21,14 @@ template stopHax*() =
 
   doLogRuntime = false
 
-template workHax*(body: untyped): untyped =
-  startHax()
+template workHax*(doIt: static[bool], body: untyped): untyped =
+  when doIt:
+    startHax()
 
   body
 
-  stopHax()
+  when doIt:
+    stopHax()
 
 template haxThis*(a: untyped): untyped =
   {.noSideEffect.}:
@@ -30,11 +37,16 @@ template haxThis*(a: untyped): untyped =
 
 template dieHereComp*(): untyped =
   static:
-    if true:
+    if doLog:
       quit 1
 
+
+template dieHereMacro*(): untyped =
+  if doLog:
+    quit 1
+
 template dieHere*(): untyped =
-  if true:
+  if doLogRuntime:
     quit 1
 
 
@@ -129,7 +141,9 @@ template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
           vart = "\"" & vart & "\""
       else:
         if vart.split("\n").len > 1:
-          when variable is NimNode:
+          if (variable is NimNode) and
+             (vart[0] == '"') and
+             (vart[^1] == '"'):
             vart = "\n" & vart[1..^2]
           else:
             vart = "\n" & vart

@@ -30,6 +30,12 @@ suite "Matching":
     echo val.hasKind(eN11)
 
   test "Simple uses":
+    case [1,2,3,4]:
+      of [_]: fail()
+      of [_, 3, _]: fail()
+      of [_, 2, 3, _]:
+        discard
+
     assertEq 12, case (12, 24):
                    of (_, 24): expr[1] div 2
                    else: raiseAssert("#[ not possible ]#")
@@ -95,30 +101,60 @@ suite "Matching":
                      of (public: "8.0"): "10"
                      else: raiseAssert("#[ IMPLEMENT ]#")
 
-  test "Case objects":
-    type
-      En = enum
-        enEE
-        enEE1
-        enZZ
+  type
+    En = enum
+      enEE
+      enEE1
+      enZZ
 
-      Obj = object
-        case kind: En
-          of enEE, enEE1:
-            eee: seq[Obj]
-          of enZZ:
-            fl: int
+    Obj = object
+      case kind: En
+        of enEE, enEE1:
+          eee: seq[Obj]
+        of enZZ:
+          fl: int
+
+
+  test "Case objects":
 
     echo case Obj():
            of EE(): "00"
            of ZZ(): "hello worlkd"
            else: raiseAssert("#[ IMPLEMENT ]#")
 
-    case Obj(kind: enEE, eee: @[Obj(kind: enZZ, fl: 12)]):
-      of enEE(eee: [(kind: enZZ, f1: 12)]):
-        discard
-      else:
-        fail()
+    workHax false:
+      case (c: (a: 12)):
+        of (c: (a: _)): discard
+        else: fail()
+
+    workHax false:
+      case [(a: 12, b: 3)]:
+        of [(a: 12, b: 22)]: fail()
+        of [(a: _, b: _)]: discard
+
+    workHax false:
+      case (c: [3, 3, 4]):
+        of (c: [_, _, _]): discard
+        of (c: _): fail()
+
+
+    workHax false:
+      case (c: [(a: [1, 3])]):
+        of (c: [(a: [_])]): fail()
+        else: discard
+
+    workHax false:
+      case (c: [(a: [1, 3]), (a: [1, 4])]):
+        of (c: [(a: [_]), _]): fail()
+        else:
+          discard
+
+    workHax false:
+      case Obj(kind: enEE, eee: @[Obj(kind: enZZ, fl: 12)]):
+        of enEE(eee: [(kind: enZZ, fl: 12)]):
+          discard
+        else:
+          fail()
 
     case Obj():
       of enEE():
@@ -128,6 +164,7 @@ suite "Matching":
       else:
         fail()
 
+  test "Object items":
     iterator items(o: Obj): Obj =
       for it in o.eee:
         yield it
@@ -138,12 +175,12 @@ suite "Matching":
       else:
         fail()
 
-    startHax()
+    # startHax()
     case Obj(kind: enEE, eee: @[Obj(), Obj()]):
       of EE(eee: [_, _, _]): fail()
       of EE(eee: [_, _]): discard
       else: fail()
-    stopHax()
+    # stopHax()
 
     # case Obj(kind: enEE1, eee: @[Obj(), Obj()]):
     #   of EE([_, _]):

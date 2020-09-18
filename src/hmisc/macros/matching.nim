@@ -2,6 +2,7 @@ import sequtils, macros, tables, options, strformat, sugar, strutils,
        parseutils
 
 import ../helpers
+import iflet
 import ../hexceptions
 
 template `->`(a, b: bool): bool = (if a: b else: true)
@@ -289,10 +290,14 @@ func toAccs(path: Path, name: string): NimNode =
     if top.len > 1:
       result = result.aux(top[1 ..^ 1])
 
-  if path.len > 0:
-    return (ident name).aux(path)
-  else:
-    return ident name
+
+  result = 
+    if path.len > 0:
+      (ident name).aux(path)
+    else:
+      ident name
+
+  # echov result
 
 func makeInput(top: EStruct, path: Path): NimNode =
   case top.kind:
@@ -328,6 +333,7 @@ type ExprRes = tuple[
   node: NimNode, vars: seq[tuple[name: string, path: Path]]]
 
 func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): ExprRes =
+  # echov path, "Make match expression"
   case n.kind:
     of nnkIdent, nnkSym, nnkIntLit, nnkStrLit:
       if n == ident "_":
@@ -344,10 +350,11 @@ func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): ExprRes =
                   AccsElem(inStruct: kTuple, idx: idx)
                 ], struct.flds[idx].struct)
               else:
+                echov kv[1], kv[0].strVal()
                 let val = makeMatchExpr(kv[1], path & @[
-                  AccsElem(inStruct: kObject, fld: kv[0].strVal()
-                  )], struct.flds.findItFirst(
-                    it.name == kv[0].strVal()).struct
+                  AccsElem(inStruct: kObject, fld: kv[0].strVal())
+                ],
+                  struct.flds.findItFirst(it.name == kv[0].strVal()).struct
                 )
 
                 val
@@ -360,6 +367,8 @@ func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): ExprRes =
 
       result = conds.foldlTuple(
         nnkInfix.newTree(ident "and", a, b)).concatSide()
+
+      # echov result.node
 
     of nnkPrefix:
       let conds: seq[ExprRes] =
@@ -382,13 +391,14 @@ func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): ExprRes =
         nnkInfix.newTree(ident "and", a, b)).concatSide()
 
     of nnkBracket:
+      let pattSize = newLit(n.len)
       let conds =
         collect(newSeq):
           for idx, elem in n:
             let
               parent = path.toAccs("input")
               key = newLit(idx)
-              (subexp, vars) = elem.makeMatchExpr(@[
+              (subexp, vars) = elem.makeMatchExpr(path & @[
                 AccsElem(inStruct: kList, idx: idx)
               ], struct.item)
 
@@ -397,7 +407,7 @@ func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): ExprRes =
             let node = quote do:
               ((((
                 block:
-                  if `key` < `parent`.len:
+                  if `parent`.len == `pattSize`:
                     # let it {.inject.} = expr[`key`]
                     # let expr {.inject.} = `parent`[`key`]
                     `subexp`
@@ -439,7 +449,50 @@ func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): ExprRes =
 
 
     elif n.kind in {nnkObjConstr, nnkCall}:
-      result.node = newCall(ident "hasKind", path.toAccs("input"), n[0])
+      let kindCheck = newCall(ident "hasKind", path.toAccs("input"), n[0])
+      if struct.kind == kObject:
+        iflet (errn = n[1..^1].findItFirstOpt(it.kind notin {
+          nnkExprColonExpr, nnkBracket})):
+          errn.raiseCodeError(
+            "Only `fld: <patt>` or `[<items>]` matches can be used in object")
+
+
+      var conds: seq[ExprRes]
+      conds.add (newCall(ident "hasKind", path.toAccs("input"), n[0]), @[])
+
+      # echov struct
+      for idx, kv in n[1..^1]:
+        # echov path
+        let parent = path.toAccs("input")
+
+        let tmp = kv[1].makeMatchExpr(path & @[
+          AccsElem(
+            inStruct: kObject,
+            fld:
+              if kv.kind == nnkBracket:
+                "items"
+              else:
+                kv[0].strVal()
+          )
+        ],
+          struct.flds.findItFirst(it.name == kv[0].strVal()).struct
+          # if kv.kind == nnkBracket:
+          #   "items"
+          # else:
+            # kv[0].strVal()
+        )
+
+        # echov parent
+        # echov kv
+        # echov tmp.node
+
+        conds.add tmp
+
+
+      result = conds.foldlTuple(
+        nnkInfix.newTree(ident "and", a, b)).concatSide()
+
+      # echov result.node
 
     elif n.isInfixPatt():
       let conds: seq[ExprRes] = collect(newSeq):
@@ -535,7 +588,11 @@ macro match*(
     block:
       let expr {.inject.} = `head`
       let input {.inject.} = `inputExpr`
+      ifHaxComp:
+        echo typeof(input)
+
       `matchcase`
 
   haxThis result.toStrLit()
+  # dieHereMacro()
   assert inputExpr != nil
