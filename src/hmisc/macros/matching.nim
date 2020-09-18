@@ -47,7 +47,8 @@ macro hasKindImpl*(head: typed, kind: untyped): untyped =
     names = impl.dropPrefix(pref)
     kind = ident(kind.toStrLit().strVal().addPrefix(pref))
 
-  return nnkInfix.newTree(ident "==", head, kind)
+  result = nnkInfix.newTree(ident "==", head, kind)
+  echov result
 
 template hasKind*(head, kindExpr: untyped): untyped =
   hasKindImpl(head.kind, kindExpr)
@@ -77,6 +78,7 @@ type
       of kTuple:
         elements: seq[EStruct]
       of kObject:
+        isKind: bool
         flds: seq[tuple[
           name: string,
           struct: EStruct
@@ -126,8 +128,8 @@ func isNamedTuple(node: NimNode): bool =
   node.allOfIt(it.kind in {nnkExprColonExpr, nnkIdent}) and
   node.allOfIt((it.kind == nnkIdent) -> it.strVal == "_")
 
-func isKindCall(node: NimNode): bool =
-  node[0].kind == nnkIdent and node[0].strVal()[0].isUpperAscii()
+# func isKindCall(node: NimNode): bool =
+#   node[0].kind == nnkIdent and node[0].strVal()[0].isUpperAscii()
 
 func isInfixPatt(node: NimNode): bool =
   node.kind == nnkInfix and node[0].strVal() in ["|"]
@@ -158,7 +160,7 @@ func makeExpected(node: NimNode): EStruct =
         if node.kind == nnkIdent and node.strVal() == "_":
           result.canOverride = true
 
-    of nnkCall:
+    of nnkCall, nnkObjConstr:
       return EStruct(kind: kObject)
     of nnkTableConstr:
       return EStruct(kind: kPairs)
@@ -173,7 +175,6 @@ func makeExpected(node: NimNode): EStruct =
           return EStruct(kind: kItem, canOverride: true)
         else:
           node.raiseCodeError("Unexpected prefix")
-
     else:
       raiseAssert(&"#[ IMPLEMENT for kind {node.kind} ]#")
 
@@ -208,9 +209,12 @@ func updateExpected(
           AccsElem(inStruct: kPairs, parentKey: true)])
         parent.value.updateExpected(subn[1], path & @[
           AccsElem(inStruct: kPairs, parentKey: true)])
-    of nnkPar:
+    of nnkPar, nnkObjConstr:
       case parent.kind:
         of kObject:
+          if node.kind == nnkObjConstr:
+            parent.isKind = true
+
           for idx, subn in node:
             if subn.kind notin {nnkIdent}:
               assertNodeKind(subn[0], {nnkIdent}) # TODO nnkAccQuoted
@@ -226,10 +230,11 @@ func updateExpected(
 
         of kTuple:
           for idx, subn in node:
-            if parent.elements.len >= idx:
+            if parent.elements.len <= idx:
               assertNodeKindNot(subn, {nnkExprColonExpr})
-              # echov subn
+              # echov subn, "Created new subnode for parent", parent
               parent.elements.add makeExpected(subn)
+              # echov parent
               # echov parent
 
             parent.elements[idx].updateExpected(subn, path & @[
@@ -248,6 +253,9 @@ func updateExpected(
       discard
 
     of nnkIdent, nnkIntLit, nnkInfix, nnkStrLit, nnkCall:
+      if node.kind == nnkCall:
+        parent.isKind = true
+
       if node.isInfixPatt():
         for subn in node[1..^1]:
           parent.updateExpected(subn, path)
@@ -265,7 +273,7 @@ func updateExpected(
     else:
       raiseAssert(&"#[ IMPLEMENT for kind {node.kind} ]#")
 
-func toAccs(path: Path): NimNode =
+func toAccs(path: Path, name: string): NimNode =
   func aux(prefix: NimNode, top: Path): NimNode =
     let head = top[0]
     result = case head.inStruct:
@@ -282,14 +290,14 @@ func toAccs(path: Path): NimNode =
       result = result.aux(top[1 ..^ 1])
 
   if path.len > 0:
-    return (ident "expr").aux(path)
+    return (ident name).aux(path)
   else:
-    return ident "expr"
+    return ident name
 
 func makeInput(top: EStruct, path: Path): NimNode =
   case top.kind:
     of kItem:
-      return path.toAccs()
+      return path.toAccs("expr")
     of kTuple:
       return newPar: collect(newSeq):
         for idx, subn in top.elements:
@@ -297,16 +305,24 @@ func makeInput(top: EStruct, path: Path): NimNode =
             AccsElem(inStruct: kTuple, idx: idx)
           ])
     of kObject:
-      return newPar: collect(newSeq):
+      let flds = collect(newSeq):
         for (name, struct) in top.flds:
           newColonExpr(ident name, struct.makeInput(path & @[
             AccsElem(inStruct: kObject, fld: name)
           ]))
 
+      if top.isKind:
+        return newPar: flds & @[
+          newColonExpr(ident "kind",
+                       newDotExpr(path.toAccs("expr"), ident "kind"))
+        ]
+      else:
+        return newPar(flds)
+
     of kPairs:
-      discard
+      return path.toAccs("expr")
     of kList:
-      return newCall("toSeq", path.toAccs())
+      return newCall("toSeq", path.toAccs("expr"))
 
 type ExprRes = tuple[
   node: NimNode, vars: seq[tuple[name: string, path: Path]]]
@@ -317,7 +333,7 @@ func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): ExprRes =
       if n == ident "_":
         result.node = ident("true")
       else:
-        result.node = nnkInfix.newTree(ident "==", path.toAccs(), n)
+        result.node = nnkInfix.newTree(ident "==", path.toAccs("input"), n)
     of nnkPar:
       let conds: seq[ExprRes] =
         if n.isNamedTuple():
@@ -349,7 +365,7 @@ func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): ExprRes =
       let conds: seq[ExprRes] =
         if n[0].strVal() == "$":
           let
-            accs = path.toAccs()
+            accs = path.toAccs("input")
             vars = n[1]
             node = quote do:
               ((((
@@ -370,7 +386,7 @@ func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): ExprRes =
         collect(newSeq):
           for idx, elem in n:
             let
-              parent = path.toAccs()
+              parent = path.toAccs("input")
               key = newLit(idx)
               (subexp, vars) = elem.makeMatchExpr(@[
                 AccsElem(inStruct: kList, idx: idx)
@@ -398,7 +414,7 @@ func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): ExprRes =
       let conds: seq[ExprRes] = collect(newSeq):
         for kv in n:
           let
-            parent = path.toAccs()
+            parent = path.toAccs("input")
             key = kv[0]
             (subexp, vars) = kv[1].makeMatchExpr(@[
                 AccsElem(inStruct: kPairs, key: kv[0])
@@ -422,8 +438,8 @@ func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): ExprRes =
         nnkInfix.newTree(ident "and", a, b)).concatSide()
 
 
-    elif n.isKindCall():
-      result.node = newCall(ident "hasKind", path.toAccs(), n[0])
+    elif n.kind in {nnkObjConstr, nnkCall}:
+      result.node = newCall(ident "hasKind", path.toAccs("input"), n[0])
 
     elif n.isInfixPatt():
       let conds: seq[ExprRes] = collect(newSeq):
@@ -449,9 +465,7 @@ func makeMatch(n: NimNode, path: Path, top: EStruct): NimNode =
         for v in vars:
           let
             name = ident(v.name)
-            typeExpr = toAccs(v.path)
-
-          echov name
+            typeExpr = toAccs(v.path, "input")
 
           exprNew.add quote do:
             var `name`: typeof(`typeExpr`)
@@ -484,6 +498,12 @@ macro match*(
   for head in n[1 ..^  1]:
     if head.kind == nnkOfBranch:
       let head = head[0]
+      if head == ident "_":
+        raiseCodeError(head,
+                       "To create catch-all match use `else` clause",
+                       "Replace `_` with `else` here"
+        )
+
       let next = makeExpected(head)
       if toplevel.isNil:
         toplevel = next
@@ -496,8 +516,9 @@ macro match*(
   let path: Path = @[]
 
   for head in cs.heads:
-    echov toplevel
+    # echov head
     toplevel.updateExpected(head, path)
+    # echov toplevel
 
 
   # Generate input tuple for expression
@@ -506,12 +527,15 @@ macro match*(
   # Generate matcher expressions
   let matchcase = n.makeMatch(path, toplevel)
 
+  # dieHere()
+
 
   let head = cs.expr
   result = quote do:
     block:
       let expr {.inject.} = `head`
-      # let input {.inject.} = `inputExpr`
+      let input {.inject.} = `inputExpr`
       `matchcase`
 
-  haxThis result.toStrLit()
+  # haxThis result.toStrLit()
+  assert inputExpr != nil

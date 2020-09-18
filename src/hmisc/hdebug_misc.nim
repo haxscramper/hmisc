@@ -28,6 +28,15 @@ template haxThis*(a: untyped): untyped =
     if doLog:
       echov a
 
+template dieHereComp*(): untyped =
+  static:
+    if true:
+      quit 1
+
+template dieHere*(): untyped =
+  if true:
+    quit 1
+
 
 proc colorPrint*(
   node: NimNode,
@@ -104,7 +113,14 @@ template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
       var line = ($iinfo.line).alignLeft(4) & " | "
           # & " ".repeat(max(iinfo.column - 6, 0))
 
-      var vart = $variable
+      var vart =
+        when variable is NimNode:
+          variable.toStrLit().strVal().multiReplace({
+            "\\\"" : "\"",
+            "\\n" : "\n"
+          })
+        else:
+          $variable
 
       when variable is string:
         if vart.split("\n").len > 1:
@@ -113,12 +129,16 @@ template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
           vart = "\"" & vart & "\""
       else:
         if vart.split("\n").len > 1:
-          vart = "\n" & vart
+          when variable is NimNode:
+            vart = "\n" & vart[1..^2]
+          else:
+            vart = "\n" & vart
 
-      if vart.split().len > 1 and other.len > 0:
+      if vart.split("\n").len > 1 and other.len > 0:
         vart = vart & "\n"
 
-      var text = line & astToStr(variable) & ": " & vart & other.join(" ")
+      var text = line & "\e[32m" & astToStr(variable) & "\e[39m: " &
+        vart & " " & other.join(" ")
 
       when compiles(doLog):
         if doLog:
