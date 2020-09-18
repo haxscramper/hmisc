@@ -159,10 +159,7 @@ func makeExpected(node: NimNode): EStruct =
           result.canOverride = true
 
     of nnkCall:
-      if node.isKindCall():
-        return EStruct(kind: kObject)
-      else:
-        return EStruct(kind: kItem)
+      return EStruct(kind: kObject)
     of nnkTableConstr:
       return EStruct(kind: kPairs)
     of nnkBracket:
@@ -173,7 +170,7 @@ func makeExpected(node: NimNode): EStruct =
           assertNodeKind(node[1], {nnkBracket})
           return EStruct(kind: kList)
         of "$":
-          return EStruct(kind: kItem)
+          return EStruct(kind: kItem, canOverride: true)
         else:
           node.raiseCodeError("Unexpected prefix")
 
@@ -435,13 +432,6 @@ func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): ExprRes =
 
       result = conds.foldlTuple(
         nnkInfix.newTree(ident "or", a, b)).concatSide()
-
-    elif n.kind in {nnkInfix, nnkCall}:
-      let accs = path.toAccs()
-
-      result.node = quote do:
-        let it {.inject.} = `accs`
-        `n`
     else:
       raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#")
 
@@ -477,7 +467,7 @@ func makeMatch(n: NimNode, path: Path, top: EStruct): NimNode =
 
 
 macro match*(
-  n: tuple | object | ref object | seq): untyped =
+  n: tuple | object | ref object | seq | array): untyped =
   var cs: Case
   cs.expr = n[0]
   for elem in n[1 .. ^1]:

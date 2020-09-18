@@ -31,33 +31,37 @@ suite "Matching":
 
   test "Simple uses":
     assertEq 12, case (12, 24):
-                   of (_, it == 24): expr[1] div 2
+                   of (_, 24): expr[1] div 2
                    else: raiseAssert("#[ not possible ]#")
 
 
-    echo case (true, false):
+    assertEq "hehe", case (true, false):
            of (true, _): "hehe"
            else: "2222"
 
-    echo case (a: 12, b: 12):
+    assertEq "hello world", case (a: 12, b: 12):
            of (a: 12, b: 22): "nice"
-           of (a: it mod 2 == 0, b: _): "hello world"
+           of (a: 12, b: _): "hello world"
            else: "default value"
 
-    echo case (a: 22, b: 90):
-           of (_, b: it * 2 < 90): "900999"
+    assertEq "default fallback", case (a: 22, b: 90):
+           of (_, b: 91): "900999"
            elif "some other" == "check": "rly?"
            elif true: "default fallback"
            else: raiseAssert("#[ not possible ! ]#")
 
-    echo case %{"hello" : %"world"}:
+    assertEq "000", case %{"hello" : %"world"}:
            of {"999": _}: "nice"
            of {"hello": _}: "000"
            else: "discard"
 
-    echo case @[12, 32]:
-           of [_, it mod 2 == 1]: expr[0]
+    assertEq 12, case @[12, 32]:
+           of [_, 32]: expr[0]
            else: 999
+
+    assertEq 1, case [(1, 3), (3, 4)]:
+                  of [(1, _), _]: 1
+                  else: 999
 
 
   test "Regular objects":
@@ -66,11 +70,11 @@ suite "Matching":
         f1: int
 
     case A(f1: 12):
-      of (f1: it > 10):
-        echo "> 10"
+      of (f1: 12):
+        discard "> 10"
 
     assertEq 10, case A(f1: 90):
-                   of (f1: 0 <= it and it <= 80): 80
+                   of (f1: 20): 80
                    else: 10
 
   test "Private fields":
@@ -82,7 +86,7 @@ suite "Matching":
 
 
     case A():
-      of (public: it.startsWith("0")):
+      of (public: _):
         echo "matched: ", expr.public
       else:
         echo expr.public
@@ -120,22 +124,20 @@ suite "Matching":
                    of (a: $a, b: $b): a + b
                    else: 89
 
-    startHax()
+    # startHax()
     echo case (1, (3, 4, ("e", (9, 2)))):
            of ($a, _): a
            of (_, ($a, $b, _)): a + b
            of (_, (_, _, (_, ($c, $d)))): c * d
            else: 12
 
-
-
-    stopHax()
+    # stopHax()
     echo "hello"
 
 
   test "Alternative":
     echo case (a: 12, c: 90):
-           of (a: 12 | 90, c: it > 10): "matched"
+           of (a: 12 | 90, c: _): "matched"
            else: "not matched"
 
     assertEq 12, case (a: 9):
