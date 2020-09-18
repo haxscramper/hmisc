@@ -56,7 +56,7 @@ suite "Matching":
            else: "discard"
 
     echo case @[12, 32]:
-           of @[_, it mod 2 == 1]: expr[0]
+           of [_, it mod 2 == 1]: expr[0]
            else: 999
 
 

@@ -165,6 +165,8 @@ func makeExpected(node: NimNode): EStruct =
         return EStruct(kind: kItem)
     of nnkTableConstr:
       return EStruct(kind: kPairs)
+    of nnkBracket:
+      return EStruct(kind: kList)
     of nnkPrefix:
       case node[0].strVal():
         of "@":
@@ -246,22 +248,22 @@ func updateExpected(
           raiseAssert(&"#[ IMPLEMENT {parent.kind} ]#")
 
     of nnkPrefix:
-      let str = node[0].strVal()
-      if str == "@" and node[1].kind in {nnkBracket}:
-        assert parent.kind == kList
-
-        for idx, subn in node[1]:
-          if parent.item.isNil:
-            parent.item = makeExpected(subn)
-
-          parent.item.updateExpected(subn, path & @[
-            AccsElem(inStruct: kList)
-          ])
+      discard
 
     of nnkIdent, nnkIntLit, nnkInfix, nnkStrLit, nnkCall:
       if node.isInfixPatt():
         for subn in node[1..^1]:
           parent.updateExpected(subn, path)
+
+    of nnkBracket:
+      assert parent.kind == kList
+      for idx, subn in node:
+        if parent.item.isNil:
+          parent.item = makeExpected(subn)
+
+        parent.item.updateExpected(subn, path & @[
+          AccsElem(inStruct: kList)
+        ])
 
     else:
       raiseAssert(&"#[ IMPLEMENT for kind {node.kind} ]#")
@@ -361,33 +363,39 @@ func makeMatchExpr(n: NimNode, path: Path, struct: EStruct): ExprRes =
 
           @[(node, @[(n[1].strVal(), path)])]
         else:
-          collect(newSeq):
-            for idx, elem in n[1]:
-              let
-                parent = path.toAccs()
-                key = newLit(idx)
-                (subexp, vars) = elem.makeMatchExpr(@[
-                  AccsElem(inStruct: kList, idx: idx)
-                ], struct.item)
-
-                input = struct.item.makeInput(@[])
-
-              let node = quote do:
-                ((((
-                  block:
-                    if `key` < `parent`.len:
-                      # let it {.inject.} = expr[`key`]
-                      # let expr {.inject.} = `parent`[`key`]
-                      `subexp`
-                    else:
-                      false
-                ))))
-
-              (node, vars)
+          n.raiseCodeError("Unexpected prefix")
 
       result = conds.foldlTuple(
         nnkInfix.newTree(ident "and", a, b)).concatSide()
 
+    of nnkBracket:
+      let conds =
+        collect(newSeq):
+          for idx, elem in n:
+            let
+              parent = path.toAccs()
+              key = newLit(idx)
+              (subexp, vars) = elem.makeMatchExpr(@[
+                AccsElem(inStruct: kList, idx: idx)
+              ], struct.item)
+
+              input = struct.item.makeInput(@[])
+
+            let node = quote do:
+              ((((
+                block:
+                  if `key` < `parent`.len:
+                    # let it {.inject.} = expr[`key`]
+                    # let expr {.inject.} = `parent`[`key`]
+                    `subexp`
+                  else:
+                    false
+              ))))
+
+            (node, vars)
+
+      result = conds.foldlTuple(
+        nnkInfix.newTree(ident "and", a, b)).concatSide()
 
     of nnkTableConstr:
       let conds: seq[ExprRes] = collect(newSeq):
