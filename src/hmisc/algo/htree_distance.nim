@@ -1,10 +1,13 @@
 import sugar, strutils, sequtils, strformat, heapqueue, tables,
-       macros, algorithm
+       macros, algorithm, hashes
 
 import halgorithm
 
 type
-  NodeId = distinct int
+  NodeId = object
+    id: int
+    isSrc: bool
+
   Mapping = object
     table: Table[NodeId, seq[NodeId]]
 
@@ -19,6 +22,16 @@ type
     subn: seq[Tree]
 
   TreeIndex = object
+    hashes: Table[NodeId, Hash] ## Hash for each node - used for
+                                ## efficient O(1) tree isomprhism test
+
+    subnodes: Table[NodeId, seq[NodeId]] ## Table of subnodes for each
+                                         ## node
+
+    parentTable: Table[NodeId, NodeId] ## node-parent
+
+    idVals: Table[NodeId, Value]
+    idLabel: Table[NodeId, Label]
 
   EditCmdKind = enum
     ekIns
@@ -31,6 +44,34 @@ type
 
   EditScript = object
     cmds: seq[EditCmd]
+
+var
+  srcIndex: TreeIndex
+  targetIndex: TreeIndex
+
+func hash(id: NodeId): Hash =
+  !$(hash(id.id) !& hash(id.isSrc))
+
+proc makeIndex(tree: Tree, isSrc: bool): TreeIndex =
+  proc fillIndex(
+    index: var TreeIndex, tree: Tree, isSrc: bool, idx: var int,
+    parentIdx: int
+       ): tuple[id: NodeId, hash: Hash] {.discardable.} =
+    ## Fill tree index with nodes from `tree`
+    result.id = NodeId(id: idx, isSrc: isSrc)
+    inc idx
+    let (id, hashes) = unzip: collect(newSeq):
+      for sub in tree.subn:
+        fillIndex(index, sub, isSrc, idx, idx)
+
+    index.subnodes[result.id] = id
+
+    # index.
+
+  var idx: int
+  discard fillIndex(result, tree, isSrc, idx, idx)
+
+
 
 proc add(es: var EditScript, ec: EditCmd): void =
   discard
@@ -105,39 +146,54 @@ func add(m: var Mapping, t: (NodeId, NodeId)) =
   ## Add mapping to mapping
   discard
 
-proc bfsIterate(tree: Tree, cb: proc(n: NodeId)) =
+iterator bfsIterate(tree: Tree): NodeId =
+  ## Yield each node id in tree in BFS order
   discard
 
-proc dfsIteratePost(tree: Tree, cb: proc(n: NodeId)) =
+iterator dfsIteratePost(tree: Tree): NodeId =
+  ## Yield each node in tree in post-order DFS traversal
   discard
 
 proc applyLast(script: EditScript, tree: var Tree): void =
+  ## Apply last added script element to tree `tree`
   discard
 
 proc contains(parent, subnode: NodeId): bool =
+  ## Returne tree if `parent` node contains `subnode` as one of it's
+  ## children
   discard
 
 proc contains(mapping: Mapping, pair: (NodeId, NodeId)): bool =
+  ## Return true if mapping between `pair[0]` and `pair[1]` exists in
+  ## tree
   discard
 
 macro `notin`(lhs: untyped, rhs: (Mapping, Mapping)): untyped =
+  ## For lhs in form of `(src, _)` determine if there is a pair if any
+  ## of two mappings that maps `src` to something. For `(_, target)`
+  ## check if anything maps to `target`.
   quote do:
     true
 
 macro `notin`(lhs: untyped, rhs: Mapping): untyped =
+  ## Same as `notin` for two mappings
   quote do:
     false
 
-proc label(n: NodeId): int =
+proc label(n: NodeId): Label =
+  ## Get label associated with node
   discard
 
-proc value(n: NodeId): string =
+proc value(n: NodeId): Value =
+  ## Get value associated with node
   discard
 
 proc isRoot(n: NodeId): bool =
+  ## Return true if node is a root node
   discard
 
-func `==`(a, b: NodeId): bool = a.int == b.int
+func `==`(a, b: NodeId): bool =
+  (a.id == b.id) and (a.isSrc == b.isSrc)
 
 iterator items(id: NodeId): NodeId =
   ## Iterate over subnodes for node pointed to by `id`
@@ -157,6 +213,10 @@ func parent(t: NodeId): NodeId =
 
 func size(a: Mapping): int =
   ## get number of items in mapping
+  discard
+
+proc len(id: NodeId): int =
+  ## Get number of subnodes for node `id`
   discard
 
 func remove(a: var Mapping, `?`: int): (NodeId, NodeId) =
@@ -202,8 +262,21 @@ proc root(t: Tree): NodeId =
   discard
 
 proc dice(t1, t2: NodeId, m: Mapping): float =
-  ## get fraction of equal subnodes for two trees relative to total size of trees.
-  discard
+  ## ratio of common descendants between two nodes given a set of
+  ## mappings M
+  when false:
+    2 .× ⟦ {t₁ .∈ s(t₁) | (t₁, t₂) .∈ M} ⟧
+    ---------------------------------------
+             ⟦ s(t₂) ⟧ + ⟦ s(t₁) ⟧
+
+
+  result = (
+    2 * (
+      float(t1.mapIt((it, t2) in m).len)
+    )
+  ) / (
+    float(t1.len + t2.len)
+  )
 
 proc topDown(
   srcTree, targetTree: Tree, minHeight: int, minDice: float): Mapping =
@@ -276,25 +349,26 @@ proc topDown(
     A.delItIf(it[1] == target)
 
 proc bottomUp(
-  srcTree, targetTree: Tree, M: Mapping, minDice: float, maxSize: int): Mapping =
-  var M = M
+  srcTree, targetTree: Tree,
+  map: Mapping, minDice: float, maxSize: int): Mapping =
+  var map = map
   for src in srcTree:
     ## for all nodes in left, if node itself is not matched, but
     ## has any children matched
     if not src.matched() and src.children.anyOfIt(it.matched()):
       # get candidate node
-      let target = candidate(src, M)
+      let target = candidate(src, map)
       ## if it is a valid candidate and matches criteria for
       ## minimum number of shares subnodes
-      if target != nil and dice(src, target, M) > minDice:
+      if target != nil and dice(src, target, map) > minDice:
         ## add node to mapping
-        add(M, (src, target))
+        add(map, (src, target))
         ## if max of number of subnodes does not exceed threshold
         if max(s(src).len, s(target).len) < maxSize:
           let R = opt(src, target)
           for (ta, tb) in R:
-            if ((ta, tb) notin M) and (label(ta) == label(tb)):
-              add(M, (ta, tb))
+            if ((ta, tb) notin map) and (label(ta) == label(tb)):
+              add(map, (ta, tb))
 
 
 proc findPos(curr: NodeId, map: Mapping): int =
@@ -315,7 +389,7 @@ proc findPos(curr: NodeId, map: Mapping): int =
 
 proc editScript(map: Mapping, srcTree, targetTree: Tree): EditScript =
   var srcTree = srcTree
-  var E: EditScript
+  var script: EditScript
 
   proc alignChildren(other, curr: NodeId) =
     ## generate optimal sequence of moves that will align
@@ -329,30 +403,31 @@ proc editScript(map: Mapping, srcTree, targetTree: Tree): EditScript =
       ch.inOrder = false
 
     let
-      S1 = collect(newSeq):
+      srcSubn: seq[NodeId] = collect(newSeq):
         for ch in other:
           if ch.partner(map) in curr:
             ch
 
-      S2 = collect(newSeq):
+      targetSubn: seq[NodeId] = collect(newSeq):
         for ch in curr:
           if ch.partner(map) in other:
             ch
 
-      S = LCS(S1, S2) do(a, b: NodeId) -> bool:
+      matches: seq[(NodeId, NodeId)] =
+                LCS(srcSubn, targetSubn) do(a, b: NodeId) -> bool:
         ## left and right subnodes are considered equal if
         ## this is a pair which already exists in mapping.
         (a, b) in map
 
-    for (a, b) in carthesian(S1, S2):
-      if ((a, b) in map) and ((a, b) notin S):
-        E.add makeMove(a, other, b.findPos(map))
-        E.applyLast(srcTree)
+    for (a, b) in carthesian(srcSubn, targetSubn):
+      if ((a, b) in map) and ((a, b) notin matches):
+        script.add makeMove(a, other, b.findPos(map))
+        script.applyLast(srcTree)
 
         a.inOrder = true
         b.inOrder = true
 
-  targetTree.bfsIterate() do(curr: NodeId):
+  for curr in targetTree.bfsIterate():
     ## iderate all nodes in tree in BFS order
     let
       currPar = curr.parent ## parent node in right tree
@@ -363,11 +438,11 @@ proc editScript(map: Mapping, srcTree, targetTree: Tree): EditScript =
       ## if current node's parent does not have a corresponding
       ## partner in mapping
       let currPos = findPos(curr, map)
-      E.add makeIns(
+      script.add makeIns(
         (partner(curr, map), label(curr), value(curr)),
         otherPar, currPos)
 
-      E.applyLast(srcTree)
+      script.applyLast(srcTree)
     elif not curr.isRoot:
       ## if node parent has partner and the node itself
       ## is not root
@@ -378,8 +453,8 @@ proc editScript(map: Mapping, srcTree, targetTree: Tree): EditScript =
       ## I'd node and partner have different values
       if value(other) != value(curr):
         ## add update to edit script
-        E.add makeUpd(other, value(curr))
-        E.applyLast(srcTree)
+        script.add makeUpd(other, value(curr))
+        script.applyLast(srcTree)
 
 
       ## if mapping current node and it's
@@ -389,17 +464,19 @@ proc editScript(map: Mapping, srcTree, targetTree: Tree): EditScript =
           otherPar = currPar.partner(map)
           k = curr.findPos(map)
 
-        E.add makeMove(other, otherPar, k)
-        E.applyLast(srcTree)
+        script.add makeMove(other, otherPar, k)
+        script.applyLast(srcTree)
 
 
     ## align subnodes for current node and it's counterpart
     alignChildren(curr.partner(map), curr)
 
-  srcTree.dfsIteratePost do(curr: NodeId):
+  for curr in srcTree.dfsIteratePost():
     ## for each node in post order traversal of left tree
     if curr.partner(map) == nil:
       ## if current node does not have a parent, remove it
       ## deletion will happen from leaves to roots
-      E.add makeDel(curr)
-      E.applyLast(srcTree)
+      script.add makeDel(curr)
+      script.applyLast(srcTree)
+
+  return script
