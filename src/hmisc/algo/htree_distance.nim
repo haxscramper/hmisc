@@ -206,197 +206,200 @@ proc dice(t1, t2: NodeId, m: Mapping): float =
   discard
 
 proc topDown(
-  T1, T2: Tree, minHeight: int, minDice: float): Mapping =
+  srcTree, targetTree: Tree, minHeight: int, minDice: float): Mapping =
   var
-    L1: NodeQue
-    L2: NodeQue
-    A, M: Mapping
+    srcQue: NodeQue
+    targetQue: NodeQue
+    A, map: Mapping
 
-  push(root(T1), L1) ## store root node
-  push(root(T2), L2) ## for each input
+  push(root(srcTree), srcQue) ## store root node
+  push(root(targetTree), targetQue) ## for each input
 
   ## until subtree of necessary height hasn't been reached
-  while min(peekMax(L1), peekMax(L2)) > minHeight:
+  while min(peekMax(srcQue), peekMax(targetQue)) > minHeight:
     ## if two top subtrees don't have equal height
-    if peekMax(L1) != peekMax(L2):
+    if peekMax(srcQue) != peekMax(targetQue):
       ## insert all nodes from tallest subforest
-      if peekMax(L1) > peekMax(L2):
-        for t in pop(L1):
-          open(t, L1)
+      if peekMax(srcQue) > peekMax(targetQue):
+        for t in pop(srcQue):
+          open(t, srcQue)
       else:
-        for t in pop(L2):
-          open(t, L2)
+        for t in pop(targetQue):
+          open(t, targetQue)
 
     else:
       ## otherwise get two subforest of equal height
       let
-        H1 = pop(L1)
-        H2 = pop(L2)
+        srcTops = pop(srcQue)
+        targetTops = pop(targetQue)
 
       ## for each combination of Therese is these forests
-      for (t1, t2) in carthesian(H1, H2):
+      for (src, target) in carthesian(srcTops, targetTops):
         ## if pair of trees is isomorphic
-        if isomorphic(t1, t2):
-          ## if any of the child nodes for t2 is isomorphic to t1 itself (and vice-versa)
-          if t2.anyOfIt(isomorphic(t1, it) and it != t2) or
-             t1.anyOfIt(isomorphic(it, t2) and it != t1):
-            ## add both t1 and t2 to mapping
-            add(A, (t1, t2))
+        if isomorphic(src, target):
+          ## if any of the child nodes for target is isomorphic to src
+          ## itself (and vice-versa)
+          if target.anyOfIt(isomorphic(src, it) and it != target) or
+             src.anyOfIt(isomorphic(it, target) and it != src):
+            ## add both src and target to mapping
+            add(A, (src, target))
 
           else:
             ## otherwise iterate over all pairs of child nodes
-            for (is1, is2) in carthesian(s(t1), s(t2)):
+            for (is1, is2) in carthesian(s(src), s(target)):
               ## and determine they are isomorphic
               if isomorphic(is1, is2):
-                add(M, (is1, is2))
+                add(map, (is1, is2))
 
       ## so we basically determine if there is any isomorphic mapping
       ## between either (1) roots two highest subforests or (2) root
       ## and subnodes of a root in other tree
 
-      for t1 in H1:
+      for src in srcTops:
         ## if there is unmatched forest root in first forest
-        if (t1, _) notin (A, M):
+        if (src, _) notin (A, map):
           ## insert it's subnodes
-          open(t1, L1)
+          open(src, srcQue)
 
-      for t2 in H2:
+      for target in targetTops:
         ## do the same for other forest
-        if (_, t2) notin (A, M):
-          open(t2, L2)
+        if (_, target) notin (A, map):
+          open(target, targetQue)
 
-  A.sort() do(t1, t2: NodeId) -> bool:
-    dice(parent(t1), parent(t2), M) > minDice
+  A.sort() do(src, target: NodeId) -> bool:
+    dice(parent(src), parent(target), map) > minDice
 
   while size(A) > 0:
-    let (t1, t2)  = remove(A, 0)
-    ## TODO Add all pairs of isomprhic nodes of `s(t1)` and `s(t2)` to m
-    A.delItIf(it[0] == t1)
-    A.delItIf(it[1] == t2)
+    let (src, target)  = remove(A, 0)
+    ## TODO Add all pairs of isomprhic nodes of `s(src)` and `s(target)` to m
+    A.delItIf(it[0] == src)
+    A.delItIf(it[1] == target)
 
 proc bottomUp(
-  T1, T2: Tree, M: Mapping, minDice: float, maxSize: int): Mapping =
+  srcTree, targetTree: Tree, M: Mapping, minDice: float, maxSize: int): Mapping =
   var M = M
-  for t1 in T1:
+  for src in srcTree:
     ## for all nodes in left, if node itself is not matched, but
     ## has any children matched
-    if not t1.matched() and t1.children.anyOfIt(it.matched()):
+    if not src.matched() and src.children.anyOfIt(it.matched()):
       # get candidate node
-      let t2 = candidate(t1, M)
+      let target = candidate(src, M)
       ## if it is a valid candidate and matches criteria for
       ## minimum number of shares subnodes
-      if t2 != nil and dice(t1, t2, M) > minDice:
+      if target != nil and dice(src, target, M) > minDice:
         ## add node to mapping
-        add(M, (t1, t2))
+        add(M, (src, target))
         ## if max of number of subnodes does not exceed threshold
-        if max(s(t1).len, s(t2).len) < maxSize:
-          let R = opt(t1, t2)
+        if max(s(src).len, s(target).len) < maxSize:
+          let R = opt(src, target)
           for (ta, tb) in R:
             if ((ta, tb) notin M) and (label(ta) == label(tb)):
               add(M, (ta, tb))
 
 
-proc findPos(x: NodeId, M: Mapping): int =
+proc findPos(curr: NodeId, map: Mapping): int =
   let
-    y = parent(x)
-    w = x.partner(M)
+    currPar = parent(curr)
+    w = curr.partner(map)
 
-  if y.leftmostInOrder() == x:
+  if currPar.leftmostInOrder() == curr:
     return 1
 
   var v: NodeId
-  for node in x.siblings().left.reversed():
+  for node in curr.siblings().left.reversed():
     if node.inOrder:
       v = node
 
 
-  return v.partner(M).idx + 1
+  return v.partner(map).idx + 1
 
-proc editScript(M: Mapping, T1, T2: Tree): EditScript =
-  var T1 = T1
+proc editScript(map: Mapping, srcTree, targetTree: Tree): EditScript =
+  var srcTree = srcTree
   var E: EditScript
 
-  proc alignChildren(w, x: NodeId) =
+  proc alignChildren(other, curr: NodeId) =
     ## generate optimal sequence of moves that will align
     ## child nodes of w and x
 
     ## map all subnodes for
-    for ch in w:
+    for ch in other:
       ch.inOrder = false
 
-    for ch in x:
+    for ch in curr:
       ch.inOrder = false
 
     let
       S1 = collect(newSeq):
-        for ch in w:
-          if ch.partner(M) in x:
+        for ch in other:
+          if ch.partner(map) in curr:
             ch
 
       S2 = collect(newSeq):
-        for ch in x:
-          if ch.partner(M) in w:
+        for ch in curr:
+          if ch.partner(map) in other:
             ch
 
       S = LCS(S1, S2) do(a, b: NodeId) -> bool:
         ## left and right subnodes are considered equal if
         ## this is a pair which already exists in mapping.
-        (a, b) in M
+        (a, b) in map
 
     for (a, b) in carthesian(S1, S2):
-      if ((a, b) in M) and ((a, b) notin S):
-        let k = b.findPos(M)
-        E.add makeMove(a, w, k)
-        E.applyLast(T1)
+      if ((a, b) in map) and ((a, b) notin S):
+        E.add makeMove(a, other, b.findPos(map))
+        E.applyLast(srcTree)
 
         a.inOrder = true
         b.inOrder = true
 
-  T2.bfsIterate() do(x: NodeId):
+  targetTree.bfsIterate() do(curr: NodeId):
     ## iderate all nodes in tree in BFS order
     let
-      y = x.parent ## parent node in right tree
-      z = y.partner(M) ## partner of right parent tree.
+      currPar = curr.parent ## parent node in right tree
+      otherPar = currPar.partner(map) ## partner of right parent tree.
       ## left parent tree.
 
-    if z == nil:
+    if otherPar == nil:
       ## if current node's parent does not have a corresponding
       ## partner in mapping
-      let k = findPos(x, M)
-      E.add makeIns((partner(x, M), label(x), value(x)), z, k)
-      E.applyLast(T1)
-    elif not x.isRoot:
+      let currPos = findPos(curr, map)
+      E.add makeIns(
+        (partner(curr, map), label(curr), value(curr)),
+        otherPar, currPos)
+
+      E.applyLast(srcTree)
+    elif not curr.isRoot:
       ## if node parent has partner and the node itself
       ## is not root
       let
-        w = x.partner(M) ## get partner of current node
-        v = parent(w) ## parent of the partner
+        other = curr.partner(map) ## get partner of current node
+        otherPar = parent(other) ## parent of the partner
 
       ## I'd node and partner have different values
-      if value(w) != value(x):
+      if value(other) != value(curr):
         ## add update to edit script
-        E.add makeUpd(w, value(x))
-        E.applyLast(T1)
+        E.add makeUpd(other, value(curr))
+        E.applyLast(srcTree)
 
 
       ## if mapping current node and it's
       ## partner are not in mapping
-      if (y, v) notin M:
+      if (currPar, otherPar) notin map:
         let
-          z = y.partner(M)
-          k = x.findPos(M)
+          otherPar = currPar.partner(map)
+          k = curr.findPos(map)
 
-        E.add makeMove(w, z, k)
-        E.applyLast(T1)
+        E.add makeMove(other, otherPar, k)
+        E.applyLast(srcTree)
 
 
     ## align subnodes for current node and it's counterpart
-    alignChildren(x.partner(M), x)
+    alignChildren(curr.partner(map), curr)
 
-  T1.dfsIteratePost do(w: NodeId):
+  srcTree.dfsIteratePost do(curr: NodeId):
     ## for each node in post order traversal of left tree
-    if w.partner(M) == nil:
+    if curr.partner(map) == nil:
       ## if current node does not have a parent, remove it
       ## deletion will happen from leaves to roots
-      E.add makeDel(w)
-      E.applyLast(T1)
+      E.add makeDel(curr)
+      E.applyLast(srcTree)
