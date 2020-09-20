@@ -1,7 +1,7 @@
 ## `os` module function wrappers than can work with both nimscript and
 ## regular target.
 
-import os, strutils, macros
+import os, strutils, macros, random
 
 export os.`/`, os.`/../`
 
@@ -10,10 +10,6 @@ template osOrNims(osCode, nimsCode: untyped): untyped =
     osCode
   else:
     nimsCode
-
-dumpTree:
-  getCurrentDir(i)
-  os.getCurrentDir(i)
 
 macro osAndNims*(code: untyped): untyped =
   var
@@ -181,6 +177,20 @@ func `&&`*(lhs, rhs: string): string =
 
 proc `~`*(path: string): string = getHomeDir() / path
 
+proc getNewTempDir*(
+  dir: string = "/tmp", patt: string = dir / "XXXXXXXX"): string =
+  ## Get name for new temporary directory
+  while true:
+    var next: string
+    for ch in patt:
+      if ch == 'X':
+        next.add sample({'a' .. 'z', 'A' .. 'Z'})
+      else:
+        next.add ch
+
+    if not dirExists(next):
+      return next
+
 template withDir*(dir: string; body: untyped): untyped =
   ## Changes the current directory temporarily.
   var curDir = getCurrentDir()
@@ -189,6 +199,25 @@ template withDir*(dir: string; body: untyped): untyped =
     body
   finally:
     cd(curDir)
+
+template withTempDir*(clean: bool, body: untyped): untyped =
+  ## Create temporary directory (not don't cd into it!), execute
+  ## `body` and remove it afterwards if `clean` is true
+  let tmpDir {.inject.} = getNewTempDir()
+  mkDir(tmpDir)
+
+  try:
+    body
+  finally:
+    if clean:
+      rmDir(tmpDir)
+
+template withinTempDir*(clean: bool, body: untyped): untyped =
+  withTempDir(clean):
+    cd(tmpDir)
+    body
+
+
 
 template withEnv*(envs: openarray[(string, string)], body: untyped): untyped =
   var prevValues: seq[(string, string)]

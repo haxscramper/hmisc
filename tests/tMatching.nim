@@ -69,6 +69,10 @@ suite "Matching":
                   of [(1, _), _]: 1
                   else: 999
 
+    assertEq 2, case (true, false):
+                  of (true, true) | (false, false): 3
+                  else: 2
+
   test "Nim Node":
     macro e(body: untyped): untyped =
       case body:
