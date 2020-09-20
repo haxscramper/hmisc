@@ -168,26 +168,35 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
       # echov result.node
 
     of nnkPrefix:
-      let conds: seq[ExprRes] =
-        if n[0].strVal() == "$":
-          let
-            accs = path.toAccs("expr")
-            vars = n[1]
-            matched = ident("matched" & n[1].strVal())
-            node = quote do:
-              ((((
-                block:
-                  if `matched`:
-                    `vars` == `accs`
-                  else:
-                    `vars` = `accs`
-                    `matched` = true
-                    true
-              ))))
+      var conds: seq[ExprRes]
 
-          @[(node, @[(n[1].strVal(), path)])]
-        else:
-          n.raiseCodeError("Unexpected prefix")
+      if n[0].strVal() == "$":
+        let
+          accs = path.toAccs("expr")
+          vars = n[1]
+          matched = ident("matched" & n[1].strVal())
+          node = quote do:
+            ((((
+              block:
+                if `matched`:
+                  `vars` == `accs`
+                else:
+                  `vars` = `accs`
+                  `matched` = true
+                  true
+            ))))
+
+        conds = @[(node, @[(n[1].strVal(), path)])]
+      elif n[0].strVal() == "in":
+        let
+          accs = path.toAccs("expr")
+          sets = n[1]
+          node = quote do:
+            (( `accs` in `sets` ))
+
+        conds.add (node, @[])
+      else:
+        n.raiseCodeError("Unexpected prefix")
 
       result = conds.foldlTuple(
         nnkInfix.newTree(ident "and", a, b)).concatSide()
@@ -283,6 +292,7 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
 
       result = conds.foldlTuple(
         nnkInfix.newTree(ident "or", a, b)).concatSide()
+
     else:
       raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#")
 

@@ -177,6 +177,12 @@ suite "Matching":
       else:
         fail()
 
+    case Obj():
+      of (kind: in {enEE, enEE1}):
+        discard
+      else:
+        fail()
+
   test "Object items":
     func `[]`(o: Obj, idx: int): Obj = o.eee[idx]
     func len(o: Obj): int = o.eee.len
