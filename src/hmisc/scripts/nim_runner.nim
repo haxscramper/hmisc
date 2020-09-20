@@ -19,13 +19,20 @@ var cmd = makeNimCmd("nim").withIt do:
   it.opt "o", file
   it.strArg instr
 
+var fileCmd = makeFileCmd(file)
+
+let (compArgs, fileArgs) = paramStrs().splitOnIt(it == "--")
+
+compArgs.eachIt(cmd.raw it)
+fileArgs.eachIt(fileCmd.raw it)
+
 var buf: string
 
 withinTempDir true:
   let res = runShell(cmd, false)
   buf.add res.stdout.strip() & "\n" & res.stderr.strip()
   if res.code == 0:
-    let res = runShell(makeFileCmd(file))
+    let res = runShell(fileCmd)
     buf.add "\n" & res.stdout.strip() & "\n" & res.stderr.strip()
 
 echo buf.strip()

@@ -34,6 +34,15 @@ proc paramStr*(i: int): string =
   ## Retrieves the i'th command line parameter.
   osAndNims(paramStr(i))
 
+proc paramStrs*(addBin: bool = false): seq[string] =
+  ## Return sequence of command line parameters as strings. If
+  ## `addBin` is failse (default) omit first parameter (which is a
+  ## name/path of binary being called - most of the time you only need
+  ## the parameters itself)
+  for i in 0 .. paramCount():
+    if i > 0 or addBin:
+      result.add paramStr(i)
+
 proc paramCount*(): int =
   ## Retrieves the number of command line parameters.
   osAndNims(paramCount())

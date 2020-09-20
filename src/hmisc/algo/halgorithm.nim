@@ -47,6 +47,24 @@ template withResIt*(val, body: untyped): untyped =
     var it {.inject.} = val
     body
 
+template splitOnIt*[T](s: seq[T], op: untyped): tuple[
+  before, after: seq[T]] =
+  var res: tuple[before, after: seq[T]]
+  var found: bool = false
+  for it {.inject.} in s:
+    if found:
+      res.after.add it
+    else:
+      if op:
+        found = true
+      else:
+        res.before.add it
+
+  res
+
+template eachIt*(ins, op: untyped): untyped =
+  for it {.inject.} in ins:
+    op
 
 template anyOfIt*(sequence: typed, predicate: untyped): bool =
   ## Return `true` if for any of the items in sequence `predicate`

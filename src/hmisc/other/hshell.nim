@@ -5,9 +5,7 @@ import strutils, strformat
 import ../algo/halgorithm
 
 # TODO better way of building command for execution.
-# TODO overload for `runShell` that accepts callbacks
-#      failed execution. Make `runShell` raise
-#      exception if command exited with non-zero code
+# TODO overload for `runShell` that accepts callbacks failed execution.
 # TODO generate log calls?
 # TODO easy way to pipe things to stdout
 # TODO pretty-print long shell commands on failure - can split on `&&`
@@ -62,6 +60,9 @@ func opt*(cmd: var Cmd, opts: openarray[tuple[key, val: string]]) =
 
 func cmd*(cmd: var Cmd, sub: string) =
    cmd.opts.add sub
+
+func raw*(cmd: var Cmd, str: string) =
+  cmd.opts.add str
 
 func strArg*(cmd: var Cmd, sub: string) =
   cmd.opts.add:
