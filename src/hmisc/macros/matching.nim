@@ -67,24 +67,6 @@ type
     mkIn
     mkItExpr
 
-  EStruct = ref object
-    case kind: EStructKind
-      of kItem:
-        canOverride: bool
-      of kList:
-        item: EStruct
-      of kPairs:
-        key: EStruct
-        value: EStruct
-      of kTuple:
-        elements: seq[EStruct]
-      of kObject:
-        isKind: bool
-        flds: seq[tuple[
-          name: string,
-          struct: EStruct
-        ]]
-
   AccsElem = object
     case inStruct: EStructKind
       of kList, kTuple:
@@ -111,20 +93,6 @@ type
     heads: seq[NimNode]
     default: Option[NimNode]
 
-func `$`(es: EStruct): string =
-  if es.isNil:
-    "nil"
-  else:
-    case es.kind:
-      of kList: &"[{es.item}]"
-      of kItem: "*"
-      of kTuple: es.elements.mapIt($it).join(", ").wrap("()")
-      of kPairs: &"{{{es.key}: {es.value}}}"
-      of kObject: es.flds.
-        mapPairs(&"{lhs}: {rhs}").
-        join(", ").wrap(("#(", ")"))
-
-
 func isNamedTuple(node: NimNode): bool =
   node.allOfIt(it.kind in {nnkExprColonExpr, nnkIdent}) and
   node.allOfIt((it.kind == nnkIdent) -> it.strVal == "_")
@@ -134,149 +102,6 @@ func isNamedTuple(node: NimNode): bool =
 
 func isInfixPatt(node: NimNode): bool =
   node.kind == nnkInfix and node[0].strVal() in ["|"]
-
-func makeExpected(node: NimNode): EStruct =
-  # echov node
-  case node.kind:
-    of nnkCurly:
-      return EStruct(kind: kPairs)
-    of nnkPar:
-      if node.isNamedTuple():
-        return EStruct(kind: kObject)
-      elif node.noneOfIt(it.kind in {nnkExprColonExpr}):
-        return EStruct(kind: kTuple)
-      else:
-        node.raiseCodeError(
-          "Mix of named and unnamed fields is not allowed")
-
-    of nnkIdent, nnkIntLit, nnkInfix, nnkStrLit:
-      if node.isInfixPatt():
-        # NOTE assuming only one type of objects will be matched in
-        # infix alternative. Some limited support for things like `12
-        # | "hello"` is present because such things are all mapped to
-        # `kItem`
-        return makeExpected(node[1])
-      else:
-        result = EStruct(kind: kItem)
-        if node.kind == nnkIdent and node.strVal() == "_":
-          result.canOverride = true
-
-    of nnkCall, nnkObjConstr:
-      return EStruct(kind: kObject)
-    of nnkTableConstr:
-      return EStruct(kind: kPairs)
-    of nnkBracket:
-      return EStruct(kind: kList)
-    of nnkPrefix:
-      case node[0].strVal():
-        of "@":
-          assertNodeKind(node[1], {nnkBracket})
-          return EStruct(kind: kList)
-        of "$":
-          return EStruct(kind: kItem, canOverride: true)
-        else:
-          node.raiseCodeError("Unexpected prefix")
-    else:
-      raiseAssert(&"#[ IMPLEMENT for kind {node.kind} ]#")
-
-func updateExpected(
-  parent: var EStruct, node: NimNode, path: Path): void =
-  assert not parent.isNil
-  echov node
-  case node.kind:
-    of nnkTableConstr:
-      assert parent.kind == kPairs
-      for kv in node:
-        assertNodeKind(kv, {nnkExprColonExpr})
-        if parent.key.isNil:
-          parent.key = makeExpected(kv[0])
-
-        if parent.value.isNil:
-          parent.value = makeExpected(kv[1])
-
-        parent.key.updateExpected(kv[0], path & @[
-          AccsElem(inStruct: kPairs, parentKey: true, key: kv[0])
-        ])
-
-        parent.value.updateExpected(kv[1], path & @[
-          AccsElem(inStruct: kPairs, parentKey: false, key: kv[1])
-        ])
-
-
-    of nnkCurly:
-      assert parent.kind == kPairs
-      for idx, subn in node:
-        assertNodeKind(subn, {nnkExprColonExpr})
-        parent.key.updateExpected(subn[0], path & @[
-          AccsElem(inStruct: kPairs, parentKey: true)])
-        parent.value.updateExpected(subn[1], path & @[
-          AccsElem(inStruct: kPairs, parentKey: true)])
-    of nnkPar, nnkObjConstr:
-      case parent.kind:
-        of kObject:
-          if node.kind == nnkObjConstr:
-            parent.isKind = true
-
-          for idx, subn in node:
-            if subn.kind notin {nnkIdent}:
-              assertNodeKind(subn[0], {nnkIdent}) # TODO nnkAccQuoted
-              let fld = subn[0].strVal()
-              var idx = parent.flds.findIt(it.name == fld)
-              if idx == -1:
-                parent.flds.add (name: fld, struct: makeExpected(subn[1]))
-                idx = parent.flds.len - 1
-
-              parent.flds[idx].struct.updateExpected(subn[1], path & @[
-                AccsElem(inStruct: kObject, fld: fld)
-              ])
-
-        of kTuple:
-          for idx, subn in node:
-            if parent.elements.len <= idx:
-              assertNodeKindNot(subn, {nnkExprColonExpr})
-              # echov subn, "Created new subnode for parent", parent
-              parent.elements.add makeExpected(subn)
-              # echov parent
-              # echov parent
-
-            parent.elements[idx].updateExpected(subn, path & @[
-              AccsElem(inStruct: kTuple, idx: idx)])
-        of kItem:
-          if parent.canOverride:
-            # echov node, "Overriding parent from", node
-            parent = makeExpected(node)
-            parent.updateExpected(node, path)
-            # echov parent
-
-        else:
-          raiseAssert(&"#[ IMPLEMENT {parent.kind} ]#")
-
-    of nnkPrefix:
-      discard
-
-    # of nnkCall:
-
-    of nnkIdent, nnkIntLit, nnkInfix, nnkStrLit, nnkCall:
-      if node.kind == nnkCall:
-        parent.isKind = true
-
-      echov node
-      if node.isInfixPatt():
-        for subn in node[1..^1]:
-          parent.updateExpected(subn, path)
-
-    of nnkBracket:
-      assert parent.kind == kList
-      for idx, subn in node:
-        if parent.item.isNil:
-          parent.item = makeExpected(subn)
-
-        parent.item.updateExpected(subn, path & @[
-          AccsElem(inStruct: kList)
-        ])
-
-    else:
-      raiseAssert(&"#[ IMPLEMENT for kind {node.kind} ]#")
 
 func toAccs(path: Path, name: string): NimNode =
   func aux(prefix: NimNode, top: Path): NimNode =
@@ -302,36 +127,6 @@ func toAccs(path: Path, name: string): NimNode =
       ident name
 
   # echov result
-
-func makeInput(top: EStruct, path: Path): NimNode =
-  case top.kind:
-    of kItem:
-      return path.toAccs("expr")
-    of kTuple:
-      return newPar: collect(newSeq):
-        for idx, subn in top.elements:
-          subn.makeInput(path & @[
-            AccsElem(inStruct: kTuple, idx: idx)
-          ])
-    of kObject:
-      let flds = collect(newSeq):
-        for (name, struct) in top.flds:
-          newColonExpr(ident name, struct.makeInput(path & @[
-            AccsElem(inStruct: kObject, fld: name)
-          ]))
-
-      if top.isKind:
-        return newPar: flds & @[
-          newColonExpr(ident "kind",
-                       newDotExpr(path.toAccs("expr"), ident "kind"))
-        ]
-      else:
-        return newPar(flds)
-
-    of kPairs:
-      return path.toAccs("expr")
-    of kList:
-      return newCall("toSeq", path.toAccs("expr"))
 
 type ExprRes = tuple[
   node: NimNode, vars: seq[tuple[name: string, path: Path]]]
@@ -448,12 +243,6 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
 
     elif n.kind in {nnkObjConstr, nnkCall}:
       let kindCheck = newCall(ident "hasKind", path.toAccs("expr"), n[0])
-      # if not n.allOfIt(it.kind in {nnkExprColonExpr, nnkBracket}):
-      #   iflet (errn = n[1..^1].findItFirstOpt(it.kind notin {
-      #     nnkExprColonExpr, nnkBracket})):
-      #     errn.raiseCodeError(
-      #       "Only `fld: <patt>` or `[<items>]` matches can be used in object")
-
 
       var conds: seq[ExprRes]
       conds.add (newCall(ident "hasKind", path.toAccs("expr"), n[0]), @[])
@@ -473,22 +262,7 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
               else:
                 @[]
           ))
-          # struct.flds.findItFirst(
-          #   if kv.kind == nnkBracket:
-          #     it.name == "items"
-          #   else:
-          #     it.name == kv[0].strVal()
-          # ).struct
-          # if kv.kind == nnkBracket:
-          #   "items"
-          # else:
-            # kv[0].strVal()
         )
-
-        # echov parent
-        # echov kv
-        # echov tmp.node
-
         conds.add tmp
 
 
@@ -549,8 +323,6 @@ macro match*(
       else:
         raiseAssert(&"#[ IMPLEMENT for kind {elem.kind} ]#")
 
-  # Determine kind of expected toplevel structure
-  var toplevel: EStruct
   for head in n[1 ..^  1]:
     if head.kind == nnkOfBranch:
       let head = head[0]
@@ -559,26 +331,6 @@ macro match*(
                        "To create catch-all match use `else` clause",
                        "Replace `_` with `else` here"
         )
-
-      # let next = makeExpected(head)
-      # if toplevel.isNil:
-      #   toplevel = next
-      # else:
-      #   if next.kind != toplevel.kind:
-      #     raiseCodeError(head, "#[ IMPLEMENT:ERRMSG ]#")
-
-
-  # For each branch, update toplevel structure
-  # let path: Path = @[]
-
-  # for head in cs.heads:
-  #   # echov head
-  #   toplevel.updateExpected(head, path)
-  #   # echov toplevel
-
-
-  # # Generate input tuple for expression
-  # let inputExpr = toplevel.makeInput(path)
 
   # Generate matcher expressions
   let matchcase = n.makeMatch(@[])
