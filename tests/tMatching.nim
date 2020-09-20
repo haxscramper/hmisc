@@ -1,4 +1,4 @@
-import sugar, strutils, sequtils, strformat
+import sugar, strutils, sequtils, strformat, macros
 import hmisc/helpers
 import hmisc/macros/matching
 import json
@@ -69,6 +69,19 @@ suite "Matching":
                   of [(1, _), _]: 1
                   else: 999
 
+  test "Nim Node":
+    macro e(body: untyped): untyped =
+      case body:
+        of ForStmt([$ident, $expr, $expr]):
+          quote do:
+            echo `expr`
+        else:
+          quote do:
+            echo "Not a for stmt"
+
+    e:
+      for i in 10 .. 12:
+        echo i
 
   test "Regular objects":
     type
@@ -165,9 +178,8 @@ suite "Matching":
         fail()
 
   test "Object items":
-    iterator items(o: Obj): Obj =
-      for it in o.eee:
-        yield it
+    func `[]`(o: Obj, idx: int): Obj = o.eee[idx]
+    func len(o: Obj): int = o.eee.len
 
     case Obj(kind: enEE, eee: @[Obj(), Obj()]):
       of [_, _]:

@@ -23,12 +23,20 @@ template stopHax*() =
 
 template workHax*(doIt: static[bool], body: untyped): untyped =
   when doIt:
-    startHax()
+    when nimvm:
+      doLog = true
+    else:
+      doLogRuntime = true
+    # startHax()
 
   body
 
   when doIt:
-    stopHax()
+    when nimvm:
+      doLog = true
+    else:
+      doLogRuntime = true
+    # stopHax()
 
 template haxThis*(a: untyped): untyped =
   {.noSideEffect.}:
@@ -127,16 +135,17 @@ template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
 
       var vart =
         when variable is NimNode:
-          variable.toStrLit().strVal().multiReplace({
-            "\\\"" : "\"",
-            "\\n" : "\n"
-          })
+          "\e[34m" & ($variable.kind)[3..^1] & "\e[39m " &
+            variable.toStrLit().strVal().multiReplace({
+              "\\\"" : "\"",
+              "\\n" : "\n"
+            })
         else:
           $variable
 
       when variable is string:
         if vart.split("\n").len > 1:
-          vart = "\n\"\"\"\n" & vart & "\"\"\"\n"
+          vart = "\n\"\"\"\n" & vart & "\n\"\"\"\n"
         else:
           vart = "\"" & vart & "\""
       else:
@@ -154,10 +163,12 @@ template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
       var text = line & "\e[32m" & astToStr(variable) & "\e[39m: " &
         vart & " " & other.join(" ")
 
-      when compiles(doLog):
+      when nimvm:
+      # when compiles(doLogRuntime):
         if doLog:
           debugecho text
       else:
+
         if doLogRuntime:
           debugecho text
 

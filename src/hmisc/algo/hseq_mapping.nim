@@ -259,7 +259,13 @@ template findItFirst*(s: typed, op: untyped): untyped =
       found = true
       break
 
-  assert found, "Item not found in sequence"
+  assert found, "Item not found in sequence " & astToStr(op) & ((
+    block:
+      if s.len == 0:
+        "; no elements in sequence"
+      else:
+        ""
+  )) & " " & $instantiationInfo()
 
   res
 
