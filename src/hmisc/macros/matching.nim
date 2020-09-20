@@ -173,11 +173,16 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
           let
             accs = path.toAccs("expr")
             vars = n[1]
+            matched = ident("matched" & n[1].strVal())
             node = quote do:
               ((((
                 block:
-                  `vars` = `accs`
-                  true
+                  if `matched`:
+                    `vars` == `accs`
+                  else:
+                    `vars` = `accs`
+                    `matched` = true
+                    true
               ))))
 
           @[(node, @[(n[1].strVal(), path)])]
@@ -295,9 +300,11 @@ func makeMatch(n: NimNode, path: Path): NimNode =
         for v in vars:
           let
             name = ident(v.name)
+            matched = ident("matched" & v.name)
             typeExpr = toAccs(v.path, "expr")
 
           exprNew.add quote do:
+            var `matched`: bool
             var `name`: typeof(`typeExpr`)
 
         exprNew.add expr
