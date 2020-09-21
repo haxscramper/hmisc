@@ -9,16 +9,14 @@ template ifHaxComp*(body: untyped): untyped =
     if doLog:
       body
 
-template startHax*() =
+template startHaxComp*() =
   static:
     doLog = true
 
+template startHax*() =
   doLogRuntime = true
 
 template stopHax*() =
-  static:
-    doLog = false
-
   doLogRuntime = false
 
 template workHax*(doIt: static[bool], body: untyped): untyped =

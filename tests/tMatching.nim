@@ -75,13 +75,19 @@ suite "Matching":
 
   test "Nim Node":
     macro e(body: untyped): untyped =
-      case body:
-        of ForStmt([$ident, $expr, $expr]):
+      startHaxComp()
+
+      result = case body:
+        of ForStmt([$ident, _, $expr]):
           quote do:
-            echo `expr`
+            9
+        of ForStmt([$ident, Infix([%ident(".."), $rbegin, $rend]), $expr]):
+          quote do:
+            `rbegin` + `rend`
         else:
           quote do:
-            echo "Not a for stmt"
+            90
+
 
     e:
       for i in 10 .. 12:

@@ -139,6 +139,9 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
         result.node = ident("true")
       else:
         result.node = nnkInfix.newTree(ident "==", path.toAccs("expr"), n)
+    of nnkAccQuoted:
+      # FIXED should be used instead of `%` prefix
+      result.node = nnkInfix.newTree(ident "==", path.toAccs("expr"), n)
     of nnkPar:
       let conds: seq[ExprRes] =
         if n.isNamedTuple():
@@ -170,21 +173,14 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
     of nnkPrefix:
       var conds: seq[ExprRes]
 
-      if n[0].strVal() == "$":
+      if n[0].strVal() == "%":
+        conds.add((nnkInfix.newTree(ident "==", path.toAccs("expr"), n[1]), @[]))
+      elif n[0].strVal() == "$":
         let
           accs = path.toAccs("expr")
           vars = n[1]
-          matched = ident("matched" & n[1].strVal())
           node = quote do:
-            ((((
-              block:
-                if `matched`:
-                  `vars` == `accs`
-                else:
-                  `vars` = `accs`
-                  `matched` = true
-                  true
-            ))))
+            (`vars` = `accs`; true)
 
         conds = @[(node, @[(n[1].strVal(), path)])]
       elif n[0].strVal() == "in":
@@ -194,7 +190,7 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
           node = quote do:
             (( `accs` in `sets` ))
 
-        conds.add (node, @[])
+        conds.add((node, @[]))
       else:
         n.raiseCodeError("Unexpected prefix")
 
@@ -214,20 +210,12 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
               ])
 
             let node = quote do:
-              ((((
-                block:
-                  if `parent`.len == `pattSize`:
-                    # let it {.inject.} = expr[`key`]
-                    # let expr {.inject.} = `parent`[`key`]
-                    `subexp`
-                  else:
-                    false
-              ))))
+              (`parent`.len == `pattSize` and `subexp`)
 
             (node, vars)
 
       result = conds.foldlTuple(
-        nnkInfix.newTree(ident "and", a, b)).concatSide()
+        nnkInfix.newTree(ident "and", newPar(a), b)).concatSide()
 
     of nnkTableConstr:
       let conds: seq[ExprRes] = collect(newSeq):
@@ -240,19 +228,12 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
             ])
 
           let node = quote do:
-            ((
-              block:
-                if `key` in `parent`:
-                  # let expr {.inject.} = `parent`[`key`]
-                  `subexp`
-                else:
-                  false
-            ))
+            (`key` in `parent` and `subexp`)
 
           (node, vars)
 
       result = conds.foldlTuple(
-        nnkInfix.newTree(ident "and", a, b)).concatSide()
+        nnkInfix.newTree(ident "and", newPar(a), b)).concatSide()
 
 
     elif n.kind in {nnkObjConstr, nnkCall}:
@@ -267,23 +248,16 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
         let parent = path.toAccs("expr")
         echov kv
 
-
-        let tmp = kv[1].makeMatchExpr(path &
-          ((
-            block:
-              if kv.kind != nnkBracket:
-                @[ AccsElem(inStruct: kObject, fld: kv[0].strVal()) ]
-              else:
-                @[]
-          ))
-        )
-        conds.add tmp
-
+        if kv.kind == nnkBracket:
+          for idx, patt in kv:
+            conds.add patt.makeMatchExpr(
+              path & @[ AccsElem(inStruct: kList, idx: idx) ])
+        else:
+          conds.add kv[1].makeMatchExpr(
+            path & @[ AccsElem(inStruct: kObject, fld: kv[0].strVal()) ])
 
       result = conds.foldlTuple(
-        nnkInfix.newTree(ident "and", a, b)).concatSide()
-
-      # echov result.node
+        nnkInfix.newTree(ident "and", newPar(a), b)).concatSide()
 
     elif n.isInfixPatt():
       let conds: seq[ExprRes] = collect(newSeq):
@@ -291,7 +265,7 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
           patt.makeMatchExpr(path)
 
       result = conds.foldlTuple(
-        nnkInfix.newTree(ident "or", a, b)).concatSide()
+        nnkInfix.newTree(ident "or", newPar(a), b)).concatSide()
 
     else:
       raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#")
@@ -310,11 +284,9 @@ func makeMatch(n: NimNode, path: Path): NimNode =
         for v in vars:
           let
             name = ident(v.name)
-            matched = ident("matched" & v.name)
             typeExpr = toAccs(v.path, "expr")
 
           exprNew.add quote do:
-            var `matched`: bool
             var `name`: typeof(`typeExpr`)
 
         exprNew.add expr
