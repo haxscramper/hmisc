@@ -1,5 +1,5 @@
 import strutils, macros
-import times
+# import times
 
 var doLog {.compiletime.}: bool = false
 var doLogRuntime: bool = false
@@ -31,7 +31,9 @@ template workHax*(doIt: static[bool], body: untyped): untyped =
   try:
     body
   except:
-    echo getCurrentExceptionMsg()
+    when not nimvm:
+      echo getCurrentExceptionMsg()
+
     echo instantiationInfo()
     quit 1
 

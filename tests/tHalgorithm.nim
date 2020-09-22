@@ -881,3 +881,10 @@ import hmisc/other/blockfmt
 suite "Block formatting":
   test "Wrap blocks":
     assertEq makeTextBlocks(@["1", "2", "3"]).wrapBlocks(margin = 2), "12\n3"
+
+import hmisc/other/hshell
+
+suite "Hshell":
+  test "can compile":
+    if false:
+      discard runShell("nice")

@@ -341,12 +341,13 @@ suite "Matching":
         fail()
 
 
-    case [1,2,3,4]:
-      of [*@a]:
-        assert a is seq[int]
-        assert a == @[1,2,3,4]
-      else:
-        fail()
+    workHax true:
+      case [1,2,3,4]:
+        of [*@a]:
+          assert a is seq[int]
+          assert a == @[1,2,3,4]
+        else:
+          fail()
 
     startHaxComp()
     stopHaxComp()

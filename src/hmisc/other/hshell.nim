@@ -2,7 +2,7 @@ when not defined(NimScript):
   import osproc, streams, os
 
 import strutils, strformat
-import ../algo/halgorithm
+# import ../algo/halgorithm
 
 # TODO better way of building command for execution.
 # TODO overload for `runShell` that accepts callbacks failed execution.
@@ -66,7 +66,7 @@ func raw*(cmd: var Cmd, str: string) =
 
 func strArg*(cmd: var Cmd, sub: string) =
   cmd.opts.add:
-    if not sub.enclosedIn("\""):
+    if not ((sub[0] == '"') and (sub[^1] == '"')):
       &"\"{sub}\""
     else:
       sub
