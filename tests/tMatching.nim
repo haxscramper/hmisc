@@ -297,5 +297,21 @@ suite "Matching":
                   of (a: 9 | 12): 12
                   else: 666
 
+
+  test "Set":
+    # startHaxComp()
+    case {0 .. 3}:
+      of {2, 3}: discard
+      else: fail()
+
+    case {4 .. 10}:
+      of {@a, 9}:
+        assert a is set
+        assert 7 in a
+      else:
+        fail()
+
+
+
   test "Trailing one-or-more":
     discard

@@ -100,6 +100,13 @@ func isNamedTuple(node: NimNode): bool =
 func isInfixPatt(node: NimNode): bool =
   node.kind == nnkInfix and node[0].strVal() in ["|"]
 
+func newInfix(s: string, a, b: NimNode): NimNode =
+  nnkInfix.newTree(ident s, a, b)
+
+func foldInfix(s: seq[NimNode],
+               inf: string, start: seq[NimNode] = @[]): NimNode =
+  ( start & s ).foldl(newInfix(inf, newPar(a), b))
+
 func toAccs(path: Path, name: string): NimNode =
   func aux(prefix: NimNode, top: Path): NimNode =
     let head = top[0]
@@ -125,8 +132,9 @@ func toAccs(path: Path, name: string): NimNode =
 
   # echov result
 
-type ExprRes = tuple[
-  node: NimNode, vars: seq[tuple[decl: VarSpec, path: Path]]]
+type
+  VarUse = tuple[decl: VarSpec, path: Path]
+  ExprRes = tuple[node: NimNode, vars: seq[VarUse]]
 
 func makeMatchExpr(n: NimNode, path: Path): ExprRes =
   # echov path, "Make match expression"
@@ -235,6 +243,51 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
       result = conds.foldlTuple(
         nnkInfix.newTree(ident "and", newPar(a), b)).concatSide()
 
+    of nnkCurly:
+      var
+        varTrail: VarUse
+        captureCount: int = 0 # Number of toplevel captured variables
+        conds: seq[ExprRes] # Conditions
+        excluded: seq[NimNode]
+      let parent = path.toAccs("expr")
+
+      for it in n:
+
+        if it.kind == nnkPrefix and it[0].strVal() == "@":
+          # Set variable capture
+          if captureCount > 0:
+            it.raiseCodeError(
+              "Only one toplevel variable capture is allowed for set")
+          else:
+            varTrail = (makeVarSpec(it[1].strVal(), it[0]), path)
+            inc captureCount
+        else:
+          conds.add nnkInfix.newTree(ident "in", it, parent), @[]
+          excluded.add it
+
+
+      if captureCount > 0:
+        conds.add do:
+          let
+            it = ident "it"
+            val = ident "val"
+            capture = ident varTrail.decl.name
+            noteq = excluded.mapIt(newInfix("!=", val, it)).foldInfix(
+              "and", @[ident "true"])
+
+          echov capture
+          quote do:
+            block:
+              for `val` in `parent`:
+                if `noteq`:
+                  `capture`.incl `val`
+
+              true
+        do:
+          @[varTrail]
+
+      result = conds.foldlTuple(
+        nnkInfix.newTree(ident "and", newPar(a), b)).concatSide()
 
     elif n.kind in {nnkObjConstr, nnkCall}:
       let kindCheck = newCall(ident "hasKind", path.toAccs("expr"), n[0])
@@ -327,7 +380,7 @@ func makeMatch(n: NimNode, path: Path): NimNode =
 
 
 macro match*(
-  n: tuple | object | ref object | seq | array): untyped =
+  n: tuple | object | ref object | seq | array | set): untyped =
   var cs: Case
   cs.expr = n[0]
   for elem in n[1 .. ^1]:
