@@ -17,7 +17,9 @@ template subnodesEq*(lhs, rhs, field: untyped): untyped =
   zip(lhs.field, rhs.field).allOfIt(it[0] == it[1])
 
 template fail*(msg: string): untyped =
+  debugecho "Fail on ", instantiationInfo()
   raiseAssert(msg)
+
 template nnil*(): untyped =
   defer:
     let iinfo = instantiationInfo()

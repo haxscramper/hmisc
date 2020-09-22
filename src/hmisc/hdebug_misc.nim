@@ -19,11 +19,21 @@ template startHax*() =
 template stopHax*() =
   doLogRuntime = false
 
+template stopHaxComp*() =
+  static:
+    doLog = false
+
+
 template workHax*(doIt: static[bool], body: untyped): untyped =
   when doIt:
     doLogRuntime = true
 
-  body
+  try:
+    body
+  except:
+    echo getCurrentExceptionMsg()
+    echo instantiationInfo()
+    quit 1
 
   when doIt:
     doLogRuntime = true
@@ -46,16 +56,16 @@ template haxThis*(a: untyped): untyped =
 
 template dieHereComp*(): untyped =
   static:
-    if doLog:
+    if true:
       quit 1
 
 
 template dieHereMacro*(): untyped =
-  if doLog:
+  if true:
     quit 1
 
 template dieHere*(): untyped =
-  if doLogRuntime:
+  if true:
     quit 1
 
 

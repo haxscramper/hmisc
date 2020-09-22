@@ -107,6 +107,17 @@ func newInfix(s: string, a, b: NimNode): NimNode =
 func newPrefix(s: string, a: NimNode): NimNode =
   nnkPrefix.newTree(ident s, a)
 
+func isVariadic(path: Path): bool =
+  path.anyOfIt(it.variadicContext)
+
+func makeVarSet(v: string, expr: NimNode): NimNode =
+  let
+    varset = ident "varset"
+    varname = ident v
+
+  quote do:
+    `varset`(`varname`, `expr`)
+
 func foldInfix(s: seq[NimNode],
                inf: string, start: seq[NimNode] = @[]): NimNode =
   ( start & s ).foldl(newInfix(inf, newPar(a), b))
@@ -116,7 +127,7 @@ func toAccs(path: Path, name: string): NimNode =
     let head = top[0]
     result = case head.inStruct:
       of kList, kTuple:
-        nnkBracketExpr.newTree(prefix, newLit(top[0].idx))
+        nnkBracketExpr.newTree(prefix, top[0].idx)
       of kObject:
         nnkDotExpr.newTree(prefix, ident head.fld)
       of kPairs:
@@ -168,7 +179,6 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
 
                 val
         else:
-          echov n
           collect(newSeq):
             for idx, val in n:
               makeMatchExpr(val, path & @[
@@ -193,8 +203,9 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
           accs = path.toAccs("expr")
           tmp = n[1].copyNimNode()
           vars = n[1]
+          varset = makeVarSet(tmp.strVal(), `accs`)
           node = quote do:
-            ((`vars` = `accs`; true))
+            ((`varset`; true))
 
         conds = @[(node, @[(makeVarSpec(tmp.strVal(), tmp), path)])]
       elif n[0].strVal() == "in":
@@ -218,17 +229,38 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
         nnkInfix.newTree(ident "and", a, b)).concatSide()
 
     of nnkBracket:
+      let pos = ident("pos")
       var
         minLen: int = 0
         idx: int = 0
+        exactMatches: seq[int]
+        elemPath = path & @[AccsElem(inStruct: kList, idx: pos)]
 
       let
-        pos = ident("pos")
         matched = ident("matched")
         maxPos = ident("maxPos")
         parent = path.toAccs("expr")
         matchBlocks = newStmtList()
-        elemPath = path & @[AccsElem(inStruct: kList, idx: pos)]
+        matchBlock = ident("matchBlock")
+
+      func isExactMatch(it: NimNode): bool =
+        if it.kind == nnkPrefix:
+          it[0].strVal() == "@"
+        else:
+          true
+
+      for idx, it in n:
+        if it.isExactMatch():
+          exactMatches.add idx
+        else:
+          break
+
+      for idx in countdown(n.len - 1, 0):
+        if n[idx].isExactMatch():
+          if idx notin exactMatches:
+            exactMatches.add idx
+        else:
+          break
 
       echov n
       while idx < n.len:
@@ -243,6 +275,7 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
               }).toCodeError(
                 "Consecutive variadic expressions are not allowed")
 
+          echov elem
           case elem[0].strVal():
             of "*", "*@", "..":
               let matchExpr =
@@ -251,7 +284,16 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
                     elem[1]
                   of "*@":
                     elem[1].assertNodeKind({nnkIdent})
-                    elem[1]
+                    # result.vars.add(
+                    #   makeVarSpec(elem[1].strVal(), elem),
+                    #   elemPath.withIt do:
+                    #     it[^1].variadicContext = true
+                    # )
+
+                    elem.withIt do:
+                      echov it[0]
+                      it[0] = ident "@"
+
                   of "..":
                     if elem[1].strVal() != "_":
                       elem.raiseCodeError(
@@ -262,9 +304,13 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
                     raiseAssert("#[ IMPLEMENT ]#")
 
 
+              echov elem
               echov matchExpr
               let
-                (expr, vars) = matchExpr.makeMatchExpr(elemPath)
+                (expr, vars) = matchExpr.makeMatchExpr(
+                  elemPath.withIt do:
+                    it[^1].variadicContext = true)
+
                 next = if idx + 1 < n.len:
                          inc idx
                          let (subex, vars) = n[idx].makeMatchExpr(elemPath)
@@ -278,44 +324,75 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
               matchBlocks.add quote do:
                 block:
                   var matchedNext = false
-                  while pos < `maxPos`:
-                    inc pos
+                  while `pos` < `maxPos`:
+                    inc `pos`
                     if `next`:
                       matchedNext = true
                       break
                     else:
-                      dec pos
+                      dec `pos`
                       if not `expr`:
-                        break matchBlock
+                        break `matchBlock`
                       else:
                         inc `pos`
 
                   if matchedNext:
-                    inc pos
+                    inc `pos`
                   else:
-                    break matchBlock
+                    break `matchBlock`
 
 
 
             of "@":
+              elem[1].assertNodeKind({nnkIdent})
+              matchBlocks.add quote do:
+                inc `pos`
+
+              result.vars.add(makeVarSpec(elem[1].strVal(), elem), elemPath)
               inc minLen
 
         else:
           inc minLen
+          let (expr, vars) = elem.makeMatchExpr(elemPath)
+          matchBlocks.add quote do:
+            if not `expr`:
+              echov `expr`
+              break `matchBlock`
+            else:
+              inc `pos`
+
+          result.vars.add vars
+
+        inc idx
+
+
+      let exactMatch = exactMatches.len == n.len
+
+      let okCond =
+        if exactMatch:
+          quote do: (`pos` == `minLen`)
+        else:
+          quote do: (`pos` + 1 >= `minLen`)
+
+      let startCOnd =
+        if exactMatch:
+          quote do: `maxPos` == `minLen`
+        else:
+          quote do: `maxPos` >= `minLen`
 
       result.node = quote do:
-        block:
-          var `matched`: bool = false
+        (((
+          block:
+            var `matched`: bool = false
+            let `maxPos` = `parent`.len
+            if `startCond`:
+              var `pos` = 0
+              block `matchBlock`:
+                `matchBlocks`
+                `matched` = `okCond`
 
-          let `maxPos` = `parent`.len
-          if `maxPos` >= `minLen`:
-            var `pos` = 0
-            block matchBlock:
-              `matchBlocks`
-
-              `matched` = true
-
-          `matched`
+            `matched`
+        )))
 
 
       # let pattSize = newLit(minLen)
@@ -452,7 +529,23 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
     else:
       raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#")
 
+func updateVarSet(nn: NimNode, variadics: seq[string]): void =
+  for idx, node in nn:
+    if node.kind == nnkCall and
+       node[0] == ident "varset":
+      # debugecho node.treeRepr()
+      let
+        varn = node[1]
+        expr = node[2]
 
+      if varn.strVal() in variadics:
+        nn[idx] = quote do:
+          `varn`.add `expr`
+      else:
+        nn[idx] = quote do:
+          `varn` = `expr`
+    else:
+      updateVarSet(nn[idx], variadics)
 
 func makeMatch(n: NimNode, path: Path): NimNode =
   result = nnkIfStmt.newTree()
@@ -461,12 +554,17 @@ func makeMatch(n: NimNode, path: Path): NimNode =
       of nnkOfBranch:
         let (expr, vars) = makeMatchExpr(elem[0], path)
 
+        var
+          variadics: seq[string]
+
         for varUses in vars.twoPassSortByIt(
           it.decl.name, # Sort by names
           it.decl.decl.lineInfoObj().line + # And by declaration order
           it.decl.decl.lineInfoObj().column * 1000,
         ):
-          if varUses.len > 1:
+          if varUses.anyOfIt(it.path.isVariadic()):
+            variadics.add varUses[0].decl.name
+          elif varUses.len > 1:
             raise varUses.mapIt((it.decl.decl, "")).toCodeError(
               &"Multiple uses of binding for `{varUses[0].decl.name}`. " &
                 "Only one capture instance is allowed per variable binding"
@@ -478,17 +576,23 @@ func makeMatch(n: NimNode, path: Path): NimNode =
             name = ident(v.decl.name)
             typeExpr = toAccs(v.path, "expr")
 
-          exprNew.add quote do:
-            var `name`: typeof(`typeExpr`)
+          if v.decl.name in variadics:
+            exprNew.add quote do:
+              var `name`: seq[typeof(`typeExpr`)]
+          else:
+            exprNew.add quote do:
+              var `name`: typeof(`typeExpr`)
 
         exprNew.add expr
 
         result.add nnkElifBranch.newTree(exprNew, elem[1])
+        updateVarSet(result, variadics)
       of nnkElifBranch, nnkElse:
         result.add elem
       else:
         block:
           raiseAssert(&"#[ IMPLEMENT for kind {elem.kind} ]#")
+
 
 
 macro match*(
@@ -523,6 +627,7 @@ macro match*(
   result = quote do:
     block:
       let expr {.inject.} = `head`
+      let pos {.inject.}: int = 0
       # let input {.inject.} = `inputExpr`
       # ifHaxComp:
       #   echo typeof(input)

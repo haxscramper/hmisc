@@ -30,7 +30,6 @@ suite "Matching":
     echo val.hasKind(eN11)
 
   test "Simple uses":
-    startHaxComp()
     case [1,2,3,4]:
       of [_]: fail()
       of [_, 3, _]: fail()
@@ -139,7 +138,6 @@ suite "Matching":
 
 
   test "Case objects":
-
     echo case Obj():
            of EE(): "00"
            of ZZ(): "hello worlkd"
@@ -148,27 +146,31 @@ suite "Matching":
     workHax false:
       case (c: (a: 12)):
         of (c: (a: _)): discard
-        else: fail()
+        else: fail("")
 
     workHax false:
       case [(a: 12, b: 3)]:
-        of [(a: 12, b: 22)]: fail()
+        of [(a: 12, b: 22)]: fail("")
         of [(a: _, b: _)]: discard
+
 
     workHax false:
       case (c: [3, 3, 4]):
         of (c: [_, _, _]): discard
-        of (c: _): fail()
+        of (c: _): fail("")
+
+    # starthaxComp()
 
 
-    workHax false:
+    workHax true:
       case (c: [(a: [1, 3])]):
-        of (c: [(a: [_])]): fail()
+        of (c: [(a: [_])]): fail("")
         else: discard
+    # stopHaxComp()
 
     workHax false:
       case (c: [(a: [1, 3]), (a: [1, 4])]):
-        of (c: [(a: [_]), _]): fail()
+        of (c: [(a: [_]), _]): fail("")
         else:
           discard
 
@@ -177,7 +179,7 @@ suite "Matching":
         of enEE(eee: [(kind: enZZ, fl: 12)]):
           discard
         else:
-          fail()
+          fail("")
 
     case Obj():
       of enEE():
@@ -321,62 +323,66 @@ suite "Matching":
           raiseAssert("#[ IMPLEMENT ]#")
 
     assertEq 1, testCase([1], [@a], a)
+
+    # startHaxComp()
     assertEq @[1], testCase([1], [*@a], a)
-    assertEq @[2, 2, 2], testCase([1, 2, 2, 2, 4], [_, *@a, 4], a)
-    assertEq (@[1], @[3, 3, 3]), testCase(
-      [1, 2, 3, 3, 3], [*@a, 2, *@b], (a, b))
+  #   dieHereComp()
 
-    case [1,2,3,4]:
-      of [@a, .._]:
-        assert a is int
-        assert a == 1
-      else:
-        fail()
+  #   assertEq @[2, 2, 2], testCase([1, 2, 2, 2, 4], [_, *@a, 4], a)
+  #   assertEq (@[1], @[3, 3, 3]), testCase(
+  #     [1, 2, 3, 3, 3], [*@a, 2, *@b], (a, b))
 
-    case [1,2,3,4]:
-      of [*@a]:
-        assert a is seq[int]
-        assert a == @[1,2,3,4]
-      else:
-        fail()
+  #   case [1,2,3,4]:
+  #     of [@a, .._]:
+  #       assert a is int
+  #       assert a == 1
+  #     else:
+  #       fail()
 
-  test "Optional matches":
-    case [1,2,3,4]:
-      of [@a is *(1 | 2), _, _, 5 ?@ a]:
-        echo a
+  #   case [1,2,3,4]:
+  #     of [*@a]:
+  #       assert a is seq[int]
+  #       assert a == @[1,2,3,4]
+  #     else:
+  #       fail()
 
-    case [1,2,2,1,1,1]:
-      of [*(1 | @a)]:
-        assert a is seq[int]
-        assertEq a, @[2, 2]
+  # test "Optional matches":
+  #   case [1,2,3,4]:
+  #     of [@a is *(1 | 2), _, _, 5 ?@ a]:
+  #       echo a
 
-    case (1, some(12)):
-      of (_, 13 ?@ hello):
-        assert hello is int
-        assertEq hello, 13
+  #   case [1,2,2,1,1,1]:
+  #     of [*(1 | @a)]:
+  #       assert a is seq[int]
+  #       assertEq a, @[2, 2]
 
-    case (1, none(int)):
-      of (_, 15 ?@ hello):
-        assert hello is int
-        assertEq hello, 15
+  #   case (1, some(12)):
+  #     of (_, 13 ?@ hello):
+  #       assert hello is int
+  #       assertEq hello, 13
 
-    case (3, none(string)):
-      of (_, ?@ hello):
-        assert hello is Option[string]
-        assert hello.isNone()
+  #   case (1, none(int)):
+  #     of (_, 15 ?@ hello):
+  #       assert hello is int
+  #       assertEq hello, 15
+
+  #   case (3, none(string)):
+  #     of (_, ?@ hello):
+  #       assert hello is Option[string]
+  #       assert hello.isNone()
 
 
-  dumpTree:
-    IfStmt([*ElseIf([_, @bodies]), newEmptyNode() ?@ bodies])
-    # [@a, .._ @b] [.._ @b, @c] [@b, @c .._]
-    # [@a, *_ @b] [*_ @b, @c] [@b, @c *_]
-    # A(a = a: _, b: 2)
-    # [->a, .._ ->b]
-    # ForStmt([-> ident,
-    #          Infix([== ident(".."),
-    #                 -> rbegin,
-    #                 -> rend]),
-    #          -> body])
+  # dumpTree:
+  #   IfStmt([*ElseIf([_, @bodies]), newEmptyNode() ?@ bodies])
+  #   # [@a, .._ @b] [.._ @b, @c] [@b, @c .._]
+  #   # [@a, *_ @b] [*_ @b, @c] [@b, @c *_]
+  #   # A(a = a: _, b: 2)
+  #   # [->a, .._ ->b]
+  #   # ForStmt([-> ident,
+  #   #          Infix([== ident(".."),
+  #   #                 -> rbegin,
+  #   #                 -> rend]),
+  #   #          -> body])
 
-  test "Trailing one-or-more":
-    discard
+  # test "Trailing one-or-more":
+  #   discard
