@@ -330,24 +330,26 @@ suite "Matching":
     assertEq (@[1], @[3, 3, 3]), testCase(
       [1, 2, 3, 3, 3], [*@a, 2, *@b], (a, b))
 
-    startHaxComp()
-    stopHaxComp()
   #   dieHereComp()
 
 
-  #   case [1,2,3,4]:
-  #     of [@a, .._]:
-  #       assert a is int
-  #       assert a == 1
-  #     else:
-  #       fail()
+    case [1,2,3,4]:
+      of [@a, .._]:
+        assert a is int
+        assert a == 1
+      else:
+        fail()
 
-  #   case [1,2,3,4]:
-  #     of [*@a]:
-  #       assert a is seq[int]
-  #       assert a == @[1,2,3,4]
-  #     else:
-  #       fail()
+
+    case [1,2,3,4]:
+      of [*@a]:
+        assert a is seq[int]
+        assert a == @[1,2,3,4]
+      else:
+        fail()
+
+    startHaxComp()
+    stopHaxComp()
 
   # test "Optional matches":
   #   case [1,2,3,4]:

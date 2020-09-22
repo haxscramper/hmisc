@@ -268,7 +268,8 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
         if elem.kind == nnkPrefix:
           if idx + 1 < n.len:
             if n[idx + 1].kind == nnkPrefix and
-               n[idx + 1][0].strVal() in ["*", "*@", ".."]:
+               n[idx + 1][0].strVal() in ["*", "*@", ".."] and
+               n[idx][0].strVal() in ["*", "*@", ".."]:
               raise ({
                 n[idx + 1] : "Following variadic expression",
                 n[idx] : "Variadic expression"
@@ -306,7 +307,7 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
 
               # echov elem
               # echov matchExpr
-              let
+              var
                 (expr, vars) = matchExpr.makeMatchExpr(
                   elemPath.withIt do:
                     it[^1].variadicContext = true)
@@ -327,10 +328,13 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
               let nextTest =
                 if next == ident("true"):
                   quote do:
-                    (matchedNext = true; true)
+                    ((matchedNext = true; true))
                 else:
                   quote do:
                     not (`next` and (matchedNext = true; true))
+
+              if matchExpr == ident("true"):
+                expr = ident("true")
 
               matchBlocks.add quote do:
                 block:
