@@ -326,11 +326,14 @@ suite "Matching":
 
     # startHaxComp()
     assertEq @[1], testCase([1], [*@a], a)
+    assertEq @[2, 2, 2], testCase([1, 2, 2, 2, 4], [_, *@a, 4], a)
+    assertEq (@[1], @[3, 3, 3]), testCase(
+      [1, 2, 3, 3, 3], [*@a, 2, *@b], (a, b))
+
+    startHaxComp()
+    stopHaxComp()
   #   dieHereComp()
 
-  #   assertEq @[2, 2, 2], testCase([1, 2, 2, 2, 4], [_, *@a, 4], a)
-  #   assertEq (@[1], @[3, 3, 3]), testCase(
-  #     [1, 2, 3, 3, 3], [*@a, 2, *@b], (a, b))
 
   #   case [1,2,3,4]:
   #     of [@a, .._]:

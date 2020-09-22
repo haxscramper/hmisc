@@ -304,8 +304,8 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
                     raiseAssert("#[ IMPLEMENT ]#")
 
 
-              echov elem
-              echov matchExpr
+              # echov elem
+              # echov matchExpr
               let
                 (expr, vars) = matchExpr.makeMatchExpr(
                   elemPath.withIt do:
@@ -313,7 +313,10 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
 
                 next = if idx + 1 < n.len:
                          inc idx
-                         let (subex, vars) = n[idx].makeMatchExpr(elemPath)
+                         let (subex, vars) = n[idx].makeMatchExpr(
+                           elemPath.withIt do:
+                             it[^1].variadicContext = true)
+
                          result.vars.add vars
                          subex
                        else:
@@ -321,20 +324,23 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
 
               result.vars.add vars
 
+              let nextTest =
+                if next == ident("true"):
+                  quote do:
+                    (matchedNext = true; true)
+                else:
+                  quote do:
+                    not (`next` and (matchedNext = true; true))
+
               matchBlocks.add quote do:
                 block:
-                  var matchedNext = false
-                  while `pos` < `maxPos`:
-                    inc `pos`
-                    if `next`:
-                      matchedNext = true
-                      break
+                  var matchedNext {.inject.} = false
+                  while (`pos` < `maxPos`) and `nextTest`:
+                    # echov `parent`, "@", `pos`
+                    if not `expr`:
+                      break `matchBlock`
                     else:
-                      dec `pos`
-                      if not `expr`:
-                        break `matchBlock`
-                      else:
-                        inc `pos`
+                      inc `pos`
 
                   if matchedNext:
                     inc `pos`
@@ -342,10 +348,26 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
                     break `matchBlock`
 
 
+                  # while (not matchedNext) and (`pos` < `maxPos`):
+                  #   inc `pos`
+                  #   echov `parent`, "@", `pos`
+                  #   if `next`:
+                  #     echov "Matched next"
+                  #     matchedNext = true
+                  #     break
+                  #   else:
+                  #     dec `pos`
+
+
+
 
             of "@":
               elem[1].assertNodeKind({nnkIdent})
+              let varn = elem[1]
               matchBlocks.add quote do:
+                echov `parent`[`pos`]
+                varset(`varn`, `parent`[`pos`])
+                echov `varn`
                 inc `pos`
 
               result.vars.add(makeVarSpec(elem[1].strVal(), elem), elemPath)
@@ -356,7 +378,6 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
           let (expr, vars) = elem.makeMatchExpr(elemPath)
           matchBlocks.add quote do:
             if not `expr`:
-              echov `expr`
               break `matchBlock`
             else:
               inc `pos`
@@ -533,7 +554,7 @@ func updateVarSet(nn: NimNode, variadics: seq[string]): void =
   for idx, node in nn:
     if node.kind == nnkCall and
        node[0] == ident "varset":
-      # debugecho node.treeRepr()
+      echov node
       let
         varn = node[1]
         expr = node[2]
