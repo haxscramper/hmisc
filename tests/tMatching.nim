@@ -73,27 +73,6 @@ suite "Matching":
                   of (true, true) | (false, false): 3
                   else: 2
 
-  test "Nim Node":
-    macro e(body: untyped): untyped =
-      case body[0]:
-        of ForStmt([$ident, _, $expr]):
-          quote do:
-            9
-        of ForStmt([$ident, Infix([%ident(".."), $rbegin, $rend]),
-                    $body]):
-          quote do:
-            `rbegin` + `rend`
-        else:
-          quote do:
-            90
-
-
-    let a = e:
-      for i in 10 .. 12:
-        echo i
-
-    assertEq a, 22
-
   test "Len test":
     macro e(body: untyped): untyped =
       expandMacros:
@@ -108,23 +87,6 @@ suite "Matching":
     echo e([2,3,4])
     echo e([[1, 3, 4]])
     echo e([3, 4])
-
-  test "Iflet 2":
-    macro ifLet2(head: untyped,  body: untyped): untyped =
-      case head[0]:
-        of Asgn([$lhs is Ident(), $rhs]):
-          quote do:
-            let expr = `rhs`
-            if expr.isSome():
-              let `lhs` = expr.get()
-              `body`
-        else:
-          head[0].assertNodeKind({nnkAsgn})
-          head[0][0].assertNodeKind({nnkIdent})
-          head[0].raiseCodeError("Expected assgn expression")
-
-    ifLet2 (nice = some(69)):
-      echo nice
 
     # ifLet2 (`nice` = some(69)):
     #   echo nice
@@ -268,21 +230,62 @@ suite "Matching":
           fail()
 
     echo case (a: 12, b: 2):
-           of (a: $a, b: $b): $a & $b
+           of (a: @a, b: @b): $a & $b
            else: "✠ ♰ ♱ ☩ ☦ ☨ ☧ ⁜ ☥"
 
     assertEq 12, case (a: 2, b: 10):
-                   of (a: $a, b: $b): a + b
+                   of (a: @a, b: @b): a + b
                    else: 89
 
     echo case (1, (3, 4, ("e", (9, 2)))):
-           of ($a, _): a
-           of (_, ($a, $b, _)): a + b
-           of (_, (_, _, (_, ($c, $d)))): c * d
+           of (@a, _): a
+           of (_, (@a, @b, _)): a + b
+           of (_, (_, _, (_, (@c, @d)))): c * d
            else: 12
 
     # stopHax()
     echo "hello"
+
+
+  test "Nim Node":
+    macro e(body: untyped): untyped =
+      case body[0]:
+        of ForStmt([@ident, _, @expr]):
+          quote do:
+            9
+        of ForStmt([@ident, Infix([== ident(".."), @rbegin, @rend]),
+                    @body]):
+          quote do:
+            `rbegin` + `rend`
+        else:
+          quote do:
+            90
+
+
+    let a = e:
+      for i in 10 .. 12:
+        echo i
+
+    assertEq a, 22
+
+
+  test "Iflet 2":
+    macro ifLet2(head: untyped,  body: untyped): untyped =
+      case head[0]:
+        of Asgn([@lhs is Ident(), @rhs]):
+          quote do:
+            let expr = `rhs`
+            if expr.isSome():
+              let `lhs` = expr.get()
+              `body`
+        else:
+          head[0].assertNodeKind({nnkAsgn})
+          head[0][0].assertNodeKind({nnkIdent})
+          head[0].raiseCodeError("Expected assgn expression")
+
+    ifLet2 (nice = some(69)):
+      echo nice
+
 
 
   test "Alternative":

@@ -170,10 +170,11 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
     of nnkPrefix:
       var conds: seq[ExprRes]
 
-      if n[0].strVal() == "%":
+      if n[0].strVal() == "==":
         conds.add((
           nnkInfix.newTree(ident "==", path.toAccs("expr"), n[1]), @[]))
-      elif n[0].strVal() == "$":
+
+      elif n[0].strVal() == "@":
         let
           accs = path.toAccs("expr")
           tmp = n[1].copyNimNode()
