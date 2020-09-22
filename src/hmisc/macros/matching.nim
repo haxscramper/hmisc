@@ -83,22 +83,19 @@ type
 
   VarSpec = object
     name: string
-    isList: bool
-    firstDecl: NimNode
-
-  VarTable = Table[string, VarSpec]
+    decl {.requiresinit.}: NimNode
 
   Case = object
     expr: NimNode
     heads: seq[NimNode]
     default: Option[NimNode]
 
+func makeVarSpec(name: string, decl: NimNode): VarSpec =
+  VarSpec(name: name, decl: decl)
+
 func isNamedTuple(node: NimNode): bool =
   node.allOfIt(it.kind in {nnkExprColonExpr, nnkIdent}) and
   node.allOfIt((it.kind == nnkIdent) -> it.strVal == "_")
-
-# func isKindCall(node: NimNode): bool =
-#   node[0].kind == nnkIdent and node[0].strVal()[0].isUpperAscii()
 
 func isInfixPatt(node: NimNode): bool =
   node.kind == nnkInfix and node[0].strVal() in ["|"]
@@ -129,7 +126,7 @@ func toAccs(path: Path, name: string): NimNode =
   # echov result
 
 type ExprRes = tuple[
-  node: NimNode, vars: seq[tuple[name: string, path: Path]]]
+  node: NimNode, vars: seq[tuple[decl: VarSpec, path: Path]]]
 
 func makeMatchExpr(n: NimNode, path: Path): ExprRes =
   # echov path, "Make match expression"
@@ -174,15 +171,17 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
       var conds: seq[ExprRes]
 
       if n[0].strVal() == "%":
-        conds.add((nnkInfix.newTree(ident "==", path.toAccs("expr"), n[1]), @[]))
+        conds.add((
+          nnkInfix.newTree(ident "==", path.toAccs("expr"), n[1]), @[]))
       elif n[0].strVal() == "$":
         let
           accs = path.toAccs("expr")
+          tmp = n[1].copyNimNode()
           vars = n[1]
           node = quote do:
-            (`vars` = `accs`; true)
+            ((`vars` = `accs`; true))
 
-        conds = @[(node, @[(n[1].strVal(), path)])]
+        conds = @[(node, @[(makeVarSpec(tmp.strVal(), tmp), path)])]
       elif n[0].strVal() == "in":
         let
           accs = path.toAccs("expr")
@@ -267,6 +266,23 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
       result = conds.foldlTuple(
         nnkInfix.newTree(ident "or", newPar(a), b)).concatSide()
 
+    elif n.kind == nnkInfix and n[0].strVal() == "is":
+      echov n
+      n[1].assertNodeKind({nnkPrefix})
+      n[1][0].assertNodeKind({nnkIdent})
+
+      let name = n[1][1]
+      echov name
+      let accs = path.toAccs("expr")
+      let node = quote do:
+        (`name` = `accs`; true)
+
+      var conds: seq[ExprRes]
+      conds.add n[2].makeMatchExpr(path)
+      conds.add((node, @[(makeVarSpec(name.strVal(), name),path)]))
+
+      result = conds.foldlTuple(
+        nnkInfix.newTree(ident "and", newPar(a), b)).concatSide()
     else:
       raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#")
 
@@ -279,11 +295,21 @@ func makeMatch(n: NimNode, path: Path): NimNode =
       of nnkOfBranch:
         let (expr, vars) = makeMatchExpr(elem[0], path)
 
-        let varDecsl = vars.deduplicateIt(it.name)
+        for varUses in vars.twoPassSortByIt(
+          it.decl.name, # Sort by names
+          it.decl.decl.lineInfoObj().line + # And by declaration order
+          it.decl.decl.lineInfoObj().column * 1000,
+        ):
+          if varUses.len > 1:
+            raise varUses.mapIt((it.decl.decl, "")).toCodeError(
+              &"Multiple uses of binding for `{varUses[0].decl.name}`. " &
+                "Only one capture instance is allowed per variable binding"
+            )
+
         var exprNew = nnkStmtList.newTree()
         for v in vars:
           let
-            name = ident(v.name)
+            name = ident(v.decl.name)
             typeExpr = toAccs(v.path, "expr")
 
           exprNew.add quote do:

@@ -91,13 +91,14 @@ proc toColorString*(err: CodeError): string =
               fg = fgRed
             ), colorize = docolor)
 
-          inc spacing
-          for line in annot.annotation.split("\n"):
-            let line = if docolor: line else: line.stripSGR()
-            for idx, ch in line:
-              buf[spacing, start + idx] = toColored(ch)
-
+          if annot.annotation.len > 0:
             inc spacing
+            for line in annot.annotation.split("\n"):
+              let line = if docolor: line else: line.stripSGR()
+              for idx, ch in line:
+                buf[spacing, start + idx] = toColored(ch)
+
+              inc spacing
 
         for line in buf:
           result &= $line & "\n"

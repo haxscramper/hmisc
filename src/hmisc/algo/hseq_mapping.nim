@@ -102,11 +102,13 @@ template twoPassSortByIt*(
 
 
   let s = sequence
-  let firstSorted = sortedByIt(sequence, operation1)
-
   var secondSorted: seq[type(@[s[0]])]
-  for equal in firstSorted.mergeUniqByIt(operation1):
-    secondSorted.add(equal.sortedByIt(operation2))
+
+  if s.len > 0:
+    let firstSorted = sortedByIt(sequence, operation1)
+
+    for equal in firstSorted.mergeUniqByIt(operation1):
+      secondSorted.add(equal.sortedByIt(operation2))
 
   secondSorted
 

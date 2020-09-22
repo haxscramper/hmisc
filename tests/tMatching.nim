@@ -1,5 +1,5 @@
-import sugar, strutils, sequtils, strformat, macros
-import hmisc/helpers
+import sugar, strutils, sequtils, strformat, macros, options
+import hmisc/[helpers, hexceptions]
 import hmisc/macros/matching
 import json
 
@@ -75,13 +75,12 @@ suite "Matching":
 
   test "Nim Node":
     macro e(body: untyped): untyped =
-      startHaxComp()
-
-      result = case body:
+      case body[0]:
         of ForStmt([$ident, _, $expr]):
           quote do:
             9
-        of ForStmt([$ident, Infix([%ident(".."), $rbegin, $rend]), $expr]):
+        of ForStmt([$ident, Infix([%ident(".."), $rbegin, $rend]),
+                    $body]):
           quote do:
             `rbegin` + `rend`
         else:
@@ -89,9 +88,47 @@ suite "Matching":
             90
 
 
-    e:
+    let a = e:
       for i in 10 .. 12:
         echo i
+
+    assertEq a, 22
+
+  test "Len test":
+    macro e(body: untyped): untyped =
+      expandMacros:
+        case body:
+          of Bracket([Bracket(len: in {1 .. 3})]):
+            newLit("Nested bracket !")
+          of Bracket(len: in {3 .. 6}):
+            newLit(expr.toStrLit().strVal() & " matched")
+          else:
+            newLit("not matched")
+
+    echo e([2,3,4])
+    echo e([[1, 3, 4]])
+    echo e([3, 4])
+
+  test "Iflet 2":
+    macro ifLet2(head: untyped,  body: untyped): untyped =
+      case head[0]:
+        of Asgn([$lhs is Ident(), $rhs]):
+          quote do:
+            let expr = `rhs`
+            if expr.isSome():
+              let `lhs` = expr.get()
+              `body`
+        else:
+          head[0].assertNodeKind({nnkAsgn})
+          head[0][0].assertNodeKind({nnkIdent})
+          head[0].raiseCodeError("Expected assgn expression")
+
+    ifLet2 (nice = some(69)):
+      echo nice
+
+    # ifLet2 (`nice` = some(69)):
+    #   echo nice
+
 
   test "Regular objects":
     type
@@ -223,6 +260,12 @@ suite "Matching":
 
 
   test "Variable binding":
+    when false: # NOTE compilation error test
+      case (1, 2):
+        of ($a, $a, $a, $a):
+          discard
+        else:
+          fail()
 
     echo case (a: 12, b: 2):
            of (a: $a, b: $b): $a & $b
