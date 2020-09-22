@@ -68,9 +68,10 @@ type
     mkItExpr
 
   AccsElem = object
+    variadicContext: bool
     case inStruct: EStructKind
       of kList, kTuple:
-        idx: int
+        idx: NimNode
       of kObject:
         fld: string
       of kPairs:
@@ -102,6 +103,9 @@ func isInfixPatt(node: NimNode): bool =
 
 func newInfix(s: string, a, b: NimNode): NimNode =
   nnkInfix.newTree(ident s, a, b)
+
+func newPrefix(s: string, a: NimNode): NimNode =
+  nnkPrefix.newTree(ident s, a)
 
 func foldInfix(s: seq[NimNode],
                inf: string, start: seq[NimNode] = @[]): NimNode =
@@ -154,7 +158,7 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
             for idx, kv in n:
               if kv.kind == nnkIdent:
                 makeMatchExpr(kv, path & @[
-                  AccsElem(inStruct: kTuple, idx: idx)
+                  AccsElem(inStruct: kTuple, idx: newLit(idx))
                 ])
               else:
                 echov kv[1], kv[0].strVal()
@@ -164,10 +168,11 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
 
                 val
         else:
+          echov n
           collect(newSeq):
             for idx, val in n:
               makeMatchExpr(val, path & @[
-                AccsElem(inStruct: kTuple, idx: idx)
+                AccsElem(inStruct: kTuple, idx: newLit(idx))
               ])
 
       result = conds.foldlTuple(
@@ -183,6 +188,7 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
           nnkInfix.newTree(ident "==", path.toAccs("expr"), n[1]), @[]))
 
       elif n[0].strVal() == "@":
+        n[1].assertNodeKind({nnkIdent})
         let
           accs = path.toAccs("expr")
           tmp = n[1].copyNimNode()
@@ -199,6 +205,12 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
             (( `accs` in `sets` ))
 
         conds.add((node, @[]))
+      elif n[0].strVal() == "..":
+        if not (n[1].kind == nnkIdent and n[1].strVal() == "_"):
+          n[1].raiseCodeError("`..` prefix only allowed with `_`")
+
+        n.raiseCodeError("`.._` only allowed in sequence matches")
+
       else:
         n.raiseCodeError("Unexpected prefix")
 
@@ -206,24 +218,124 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
         nnkInfix.newTree(ident "and", a, b)).concatSide()
 
     of nnkBracket:
-      let pattSize = newLit(n.len)
-      let conds =
-        collect(newSeq):
-          for idx, elem in n:
-            let
-              parent = path.toAccs("expr")
-              key = newLit(idx)
-              (subexp, vars) = elem.makeMatchExpr(path & @[
-                AccsElem(inStruct: kList, idx: idx)
-              ])
+      var
+        minLen: int = 0
+        idx: int = 0
 
-            let node = quote do:
-              (`parent`.len == `pattSize` and `subexp`)
+      let
+        pos = ident("pos")
+        matched = ident("matched")
+        maxPos = ident("maxPos")
+        parent = path.toAccs("expr")
+        matchBlocks = newStmtList()
+        elemPath = path & @[AccsElem(inStruct: kList, idx: pos)]
 
-            (node, vars)
+      echov n
+      while idx < n.len:
+        let elem = n[idx]
+        if elem.kind == nnkPrefix:
+          if idx + 1 < n.len:
+            if n[idx + 1].kind == nnkPrefix and
+               n[idx + 1][0].strVal() in ["*", "*@", ".."]:
+              raise ({
+                n[idx + 1] : "Following variadic expression",
+                n[idx] : "Variadic expression"
+              }).toCodeError(
+                "Consecutive variadic expressions are not allowed")
 
-      result = conds.foldlTuple(
-        nnkInfix.newTree(ident "and", newPar(a), b)).concatSide()
+          case elem[0].strVal():
+            of "*", "*@", "..":
+              let matchExpr =
+                case elem[0].strVal():
+                  of "*":
+                    elem[1]
+                  of "*@":
+                    elem[1].assertNodeKind({nnkIdent})
+                    elem[1]
+                  of "..":
+                    if elem[1].strVal() != "_":
+                      elem.raiseCodeError(
+                        "`..` must be followed by underscore `_`")
+
+                    ident("true")
+                  else:
+                    raiseAssert("#[ IMPLEMENT ]#")
+
+
+              echov matchExpr
+              let
+                (expr, vars) = matchExpr.makeMatchExpr(elemPath)
+                next = if idx + 1 < n.len:
+                         inc idx
+                         let (subex, vars) = n[idx].makeMatchExpr(elemPath)
+                         result.vars.add vars
+                         subex
+                       else:
+                         ident("true")
+
+              result.vars.add vars
+
+              matchBlocks.add quote do:
+                block:
+                  var matchedNext = false
+                  while pos < `maxPos`:
+                    inc pos
+                    if `next`:
+                      matchedNext = true
+                      break
+                    else:
+                      dec pos
+                      if not `expr`:
+                        break matchBlock
+                      else:
+                        inc `pos`
+
+                  if matchedNext:
+                    inc pos
+                  else:
+                    break matchBlock
+
+
+
+            of "@":
+              inc minLen
+
+        else:
+          inc minLen
+
+      result.node = quote do:
+        block:
+          var `matched`: bool = false
+
+          let `maxPos` = `parent`.len
+          if `maxPos` >= `minLen`:
+            var `pos` = 0
+            block matchBlock:
+              `matchBlocks`
+
+              `matched` = true
+
+          `matched`
+
+
+      # let pattSize = newLit(minLen)
+      # var
+      #   conds: seq[ExprRes]
+      #   idx: int = 0
+
+      # for idx, elem in n:
+      #     key = newLit(idx)
+      #     (subexp, vars) = elem.makeMatchExpr(path & @[
+      #       AccsElem(inStruct: kList, idx: idx)
+      #     ])
+
+      #   let node = quote do:
+      #     (`parent`.len == `pattSize` and `subexp`)
+
+      #   conds.add(node, vars)
+
+      # result = conds.foldlTuple(
+      #   nnkInfix.newTree(ident "and", newPar(a), b)).concatSide()
 
     of nnkTableConstr:
       let conds: seq[ExprRes] = collect(newSeq):
@@ -304,7 +416,7 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
         if kv.kind == nnkBracket:
           for idx, patt in kv:
             conds.add patt.makeMatchExpr(
-              path & @[ AccsElem(inStruct: kList, idx: idx) ])
+              path & @[ AccsElem(inStruct: kList, idx: newLit(idx)) ])
         else:
           conds.add kv[1].makeMatchExpr(
             path & @[ AccsElem(inStruct: kObject, fld: kv[0].strVal()) ])

@@ -21,20 +21,23 @@ template stopHax*() =
 
 template workHax*(doIt: static[bool], body: untyped): untyped =
   when doIt:
-    when nimvm:
-      doLog = true
-    else:
-      doLogRuntime = true
-    # startHax()
+    doLogRuntime = true
 
   body
 
   when doIt:
-    when nimvm:
+    doLogRuntime = true
+
+template workHaxComp*(doIt: static[bool], body: untyped): untyped =
+  when doIt:
+    static:
       doLog = true
-    else:
-      doLogRuntime = true
-    # stopHax()
+
+  body
+
+  when doIt:
+    static:
+      doLog = false
 
 template haxThis*(a: untyped): untyped =
   {.noSideEffect.}:

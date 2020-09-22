@@ -30,6 +30,7 @@ suite "Matching":
     echo val.hasKind(eN11)
 
   test "Simple uses":
+    startHaxComp()
     case [1,2,3,4]:
       of [_]: fail()
       of [_, 3, _]: fail()
@@ -299,7 +300,6 @@ suite "Matching":
 
 
   test "Set":
-    # startHaxComp()
     case {0 .. 3}:
       of {2, 3}: discard
       else: fail()
@@ -311,7 +311,72 @@ suite "Matching":
       else:
         fail()
 
+  test "One-or-more":
+    template testCase(main, patt, body: untyped): untyped =
+      case main:
+        of patt:
+          body
+        else:
+          fail()
+          raiseAssert("#[ IMPLEMENT ]#")
 
+    assertEq 1, testCase([1], [@a], a)
+    assertEq @[1], testCase([1], [*@a], a)
+    assertEq @[2, 2, 2], testCase([1, 2, 2, 2, 4], [_, *@a, 4], a)
+    assertEq (@[1], @[3, 3, 3]), testCase(
+      [1, 2, 3, 3, 3], [*@a, 2, *@b], (a, b))
+
+    case [1,2,3,4]:
+      of [@a, .._]:
+        assert a is int
+        assert a == 1
+      else:
+        fail()
+
+    case [1,2,3,4]:
+      of [*@a]:
+        assert a is seq[int]
+        assert a == @[1,2,3,4]
+      else:
+        fail()
+
+  test "Optional matches":
+    case [1,2,3,4]:
+      of [@a is *(1 | 2), _, _, 5 ?@ a]:
+        echo a
+
+    case [1,2,2,1,1,1]:
+      of [*(1 | @a)]:
+        assert a is seq[int]
+        assertEq a, @[2, 2]
+
+    case (1, some(12)):
+      of (_, 13 ?@ hello):
+        assert hello is int
+        assertEq hello, 13
+
+    case (1, none(int)):
+      of (_, 15 ?@ hello):
+        assert hello is int
+        assertEq hello, 15
+
+    case (3, none(string)):
+      of (_, ?@ hello):
+        assert hello is Option[string]
+        assert hello.isNone()
+
+
+  dumpTree:
+    IfStmt([*ElseIf([_, @bodies]), newEmptyNode() ?@ bodies])
+    # [@a, .._ @b] [.._ @b, @c] [@b, @c .._]
+    # [@a, *_ @b] [*_ @b, @c] [@b, @c *_]
+    # A(a = a: _, b: 2)
+    # [->a, .._ ->b]
+    # ForStmt([-> ident,
+    #          Infix([== ident(".."),
+    #                 -> rbegin,
+    #                 -> rend]),
+    #          -> body])
 
   test "Trailing one-or-more":
     discard
