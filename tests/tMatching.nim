@@ -148,10 +148,9 @@ suite "Matching":
         of (c: (a: _)): discard
         else: fail("")
 
-    workHax false:
-      case [(a: 12, b: 3)]:
-        of [(a: 12, b: 22)]: fail("")
-        of [(a: _, b: _)]: discard
+    case [(a: 12, b: 3)]:
+      of [(a: 12, b: 22)]: fail("")
+      of [(a: _, b: _)]: discard
 
 
     workHax false:
@@ -249,6 +248,15 @@ suite "Matching":
     # stopHax()
     echo "hello"
 
+
+    proc tupleOpen(a: (bool, int)): int =
+      case a:
+        of (true, @capture): capture
+        else: -90
+
+    assertEq 12, tupleOpen((true, 12))
+
+    # proc f((a, b): (bool, int)) = if a: b else: b+10
 
   test "Nim Node":
     macro e(body: untyped): untyped =
@@ -378,17 +386,32 @@ suite "Matching":
   #       assert hello.isNone()
 
 
-  # dumpTree:
-  #   IfStmt([*ElseIf([_, @bodies]), newEmptyNode() ?@ bodies])
-  #   # [@a, .._ @b] [.._ @b, @c] [@b, @c .._]
-  #   # [@a, *_ @b] [*_ @b, @c] [@b, @c *_]
-  #   # A(a = a: _, b: 2)
-  #   # [->a, .._ ->b]
-  #   # ForStmt([-> ident,
-  #   #          Infix([== ident(".."),
-  #   #                 -> rbegin,
-  #   #                 -> rend]),
-  #   #          -> body])
+  dumpTree:
+    IfStmt([*ElseIf([_, @bodies]), newEmptyNode() ?@ bodies])
+    [@a, .._ @b] [.._ @b, @c] [@b, @c .._]
 
-  # test "Trailing one-or-more":
-  #   discard
+    ForStmt([-> ident,
+             Infix([== ident(".."),
+                    -> rbegin,
+                    -> rend]),
+             -> body])
+
+    [_.isString() isnot doError()]
+    #  capture all leading elements until found "d"; do not include it
+    [add @a is Patt(), until "d", .._]
+    # capture all leading icludiinng
+    [add @a is Patt(), incl "d", .._]
+    # optional second value
+    [add Patt(), opt @b]
+    [add @s, until 4]
+    [add @s, with 4]
+    # optional with default value
+    [add @head, opt @tail ? "default"]
+
+    [add @leading, until @middle is "d", add @trailing]
+
+    [*@leading, @middle is "d", *@trailing]
+
+    case node:
+      of IfStmt([add ElseIf([@cond, @body]), opt @elseClause]):
+        discard

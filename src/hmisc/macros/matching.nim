@@ -41,15 +41,19 @@ func parseEnumImpl*(en: NimNode): seq[string] =
 func pref*(name: string): string =
   discard name.parseUntil(result, {'A' .. 'Z', '0' .. '9'})
 
-macro hasKindImpl*(head: typed, kind: untyped): untyped =
-  let
-    impl = head.getTypeImpl().parseEnumImpl()
-    pref = impl.commonPrefix().pref()
-    names = impl.dropPrefix(pref)
-    kind = ident(kind.toStrLit().strVal().addPrefix(pref))
 
-  result = nnkInfix.newTree(ident "==", head, kind)
-  echov result
+macro hasKindImpl*(head: typed, kind: untyped): untyped =
+  echo head.treeRepr()
+  if head[0][0].strVal() == kind.strVal():
+    result = newLit("true")
+  else:
+    let
+      impl = head.getTypeImpl().parseEnumImpl()
+      pref = impl.commonPrefix().pref()
+      names = impl.dropPrefix(pref)
+      kind = ident(kind.toStrLit().strVal().addPrefix(pref))
+
+    result = nnkInfix.newTree(ident "==", head, kind)
 
 template hasKind*(head, kindExpr: untyped): untyped =
   hasKindImpl(head.kind, kindExpr)

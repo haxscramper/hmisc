@@ -733,6 +733,14 @@ suite "Misc algorithms":
     # echo err.toColorString()
 
 suite "String helper functions":
+  test "{[^]}":
+    assert "hello"[^"lo"]
+    assert "hello"["he"]
+    assert "hello"[{'h'}, {'o'}]
+    assert "hello"[{'h'}, "lo"]
+    assert "hello"['h', "lo"]
+    assert "hello"['h', ["lo", "le"]]
+
   test "{msgjoin}":
     assertEq msgjoin("_", "nice", "_"), "_nice_"
     assertEq msgjoin("hello,", "nice", "weather"), "hello, nice weather"
@@ -785,6 +793,7 @@ suite "String helper functions":
     assertEq "???##".dropPrefix("???"), "##"
     assertEq "".dropPrefix("888"), ""
     assertEq "--".dropPrefix("-"), "-"
+    assertEq "90".dropPrefix({'1', '9'}), "0"
 
   test "{commonPrefix}":
     assertEq @[].commonPrefix(), ""
@@ -828,6 +837,15 @@ suite "String helper functions":
   test "{startsWith}":
     assert "        ()".startsWith(Whitespace, "()")
     assert "-".startsWith({}, "-")
+    assert "---".startsWith({'-'})
+    assert "--".startsWith('-')
+
+
+  test "{endsWith}":
+    assert "--, 9".endsWith("9", ", 9")
+    assert "---".endsWith({'-'})
+    assert "--".endsWith('-')
+
 
   test "{dropSuffix}":
     assertEq "999".dropSuffix("9"), "99"

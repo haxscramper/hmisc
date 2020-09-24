@@ -134,13 +134,133 @@ func splitList*[T](s: openarray[T]): (T, seq[T]) =
   assert s.len > 0, "Cannot split empty list"
   (s[0], s[1..^1])
 
-func endsWith*(str: string, chars: set[char]): bool =
-  ## True if last character of the strings is in `chars`
-  (str.len > 0) and (str[^1] in chars)
+type
+  StrBackIndex* = distinct string
+  StrPartKind* = enum
+    spkSet
+    spkSubstr
 
-func startsWith*(str: string, chars: set[char]): bool =
-  ## True if first character of the strings is in `chars`
-  (str.len > 0) and (str[0] in chars)
+
+  StrPart* = object
+    case kind: StrPartKind
+      of spkSet:
+        chars*: set[char]
+      of spkSubstr:
+        strs*: seq[string]
+
+  StrPartTuple* = tuple[lhs, rhs: StrPart]
+  StrPartConv* = char | set[char] | string | seq[string] |
+    openarray[string]
+
+converter toStrPart*(c: char): StrPart =
+  StrPart(kind: spkSet, chars: {c})
+
+converter toStrPart*(s: string): StrPart =
+  StrPart(kind: spkSubstr, strs: @[s])
+
+converter toStrPart*(s: openarray[string]): StrPart =
+  StrPart(kind: spkSubstr, strs: toSeq(s))
+
+converter toStrPart*(cs: set[char]): StrPart =
+  StrPart(kind: spkSet, chars: cs)
+
+converter toStrPartTuple*[A: StrPartConv, B: StrPartConv](
+  indata: (A, B)): StrPartTuple =
+
+  (
+    lhs: toStrPart(indata[0]),
+    rhs: toStrPart(indata[1])
+  )
+
+
+func startsWith*(s: string, part: StrPart): bool =
+  case part.kind:
+    of spkSet:
+      return (s.len > 0) and (s[0] in part.chars)
+    else:
+      for elem in part.strs:
+        if s.startsWith(elem):
+          return true
+
+
+      return false
+
+func endsWith*(s: string, part: Strpart): bool =
+  case part.kind:
+    of spkSet:
+      return (s.len > 0) and (s[^1] in part.chars)
+    else:
+      for elem in part.strs:
+        if s.endsWith(elem):
+          return true
+
+
+      return false
+
+func `^`*(s: string): StrBackIndex = StrBackIndex(s)
+
+func `[]`*(ins: string, back: StrBackIndex): bool =
+  ins.endsWith(back.string)
+
+func `[]`*(ins: string, forward: string): bool =
+  ins.startsWith(forward.string)
+
+func `[]`*(ins: string, beg: StrPart, final: StrPartConv): bool =
+  ins.startsWith(beg) and ins.endsWith(toStrPart(final))
+
+func `[]`*(ins: string, beg: StrPart, final: openarray[string]): bool =
+  ins[beg, toSeq(final)]
+
+iterator items*(part: StrPart): StrPart =
+  case part.kind:
+    of spkSet:
+      for ch in part.chars:
+        yield toStrPart(ch)
+    of spkSubstr:
+      for s in part.strs:
+        yield toStrPart(s)
+
+func len*(part: StrPart): int =
+  case part.kind:
+    of spkSet:
+      if part.chars.len == 0:
+        0
+      else:
+        1
+    of spkSubstr:
+      if part.strs.len == 1:
+        part.strs[0].len
+      elif part.strs.len == 0:
+        0
+      else:
+        raiseAssert(
+          "Cannot get length for string part with more that one substring")
+
+func dropPrefix*(str: string, part: StrPart): string =
+  for alt in part:
+    if str.startsWith(alt):
+      return str[min(alt.len, str.len)..^1]
+
+  return str
+
+
+func dropSuffix*(str: string, part: StrPart): string =
+  for alt in part:
+    if str.endsWith(alt):
+      return str[0 ..^ (alt.len + 1)]
+
+  return str
+
+
+
+
+# func endsWith*(str: string, chars: set[char]): bool =
+#   ## True if last character of the strings is in `chars`
+#   (str.len > 0) and (str[^1] in chars)
+
+# func startsWith*(str: string, chars: set[char]): bool =
+#   ## True if first character of the strings is in `chars`
+#   (str.len > 0) and (str[0] in chars)
 
 func startsWith*(str: string; skip: set[char], pref: string): bool =
   ## Return true if string has prefix `<skip*><pref>` - one or more
@@ -167,28 +287,15 @@ func endsWith*(str: string, suffixes: varargs[string]): bool =
     if str.endsWith(suff):
       return true
 
-
-func enclosedIn*(
-  str: string,
-  delim: tuple[left, right: string]): bool =
+func enclosedIn*(str: string, delim: StrPartTuple): bool =
   ## Check if string starts and ends with strings.
-  return str.startsWith(delim.left) and
-    str.endsWith(delim.right)
+  str.startsWith(delim.lhs) and str.endsWith(delim.rhs)
 
-func enclosedIn*(
-  str: string,
-  delim: tuple[left, right: set[char]]): bool =
-  ## Check if string starts and ends with strings.
-  return str.startsWith(delim.left) and
-    str.endsWith(delim.right)
-
-
-func enclosedIn*(str: string, delim: set[char]): bool =
+func enclosedIn*(str: string, delim: StrPart): bool =
   ## Check if string starts and ends with strings.
   return str.startsWith(delim) and str.endsWith(delim)
 
-
-func filterPrefix*(str: seq[string], pref: seq[string]): seq[string] =
+func filterPrefix*(str: seq[string], pref: StrPart): seq[string] =
   ## Return only strings that have prefix in `pref`
   for s in str:
     if s.startsWith(pref):
@@ -266,6 +373,7 @@ proc matchWith*[K, V](
 
 #=========================  string operations  ===========================#
 
+    
 func dashedWords*(
   str: string,
   toDash: set[char] = {'-', '_', ' ', '.', ',', ';', ':'},
@@ -288,34 +396,6 @@ func makeCommentSection*(str: string, level: range[0..2]): string =
       "#" & "*".repeat(73) & "#\n" &
       "#" & center(" " & str.strip() & " ", 73, '*') & "#\n" &
       "#" & "*".repeat(73) & "#"
-
-func dropPrefix*(str, pref: string): string =
-  ## Drop prefix if already present
-  if str.startsWith(pref):
-    str[min(pref.len, str.len)..^1]
-  else:
-    str
-
-func dropPrefix*(str: seq[string], pref: string): string =
-  ## Drop prefix if already present
-  for s in str:
-    result.add s.dropPrefix(pref)
-
-func dropSuffix*(str, suff: string): string =
-  ## Drop suffix `suff` is present
-  if str.endsWith(suff):
-    str[0 ..^ (suff.len + 1)]
-  else:
-    str
-
-func dropSuffix*(str: string, suff: seq[string]): string =
-  ## Drop suffix `suff` is present
-  for s in suff:
-    let drop = str.dropSuffix(s)
-    if drop.len != str.len:
-      return drop
-
-  return str
 
 func addSuffix*(str, suff: string): string =
   ## Add suffix `suff` if not already present
