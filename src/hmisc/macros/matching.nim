@@ -1,6 +1,7 @@
 import sequtils, macros, tables, options, strformat, sugar, strutils,
        parseutils, hpprint
 
+# import ../types/colorstring
 import ../helpers
 import iflet
 import ../hexceptions
@@ -62,6 +63,7 @@ type
     kPairs
     kObject
     kSet
+    kAlt
 
   ListKeyword = enum
     lkAny ## Any element from list
@@ -99,6 +101,8 @@ type
             isCall: bool
             predBody: NimNode
 
+      of kAlt:
+        altElems: seq[Match]
       of kList:
         listElems: seq[ListStructure]
       of kTuple:
@@ -116,7 +120,7 @@ type
         ]]
 
         kvMatches: Option[Match]
-        subscriptMatches: Option[Match]
+        listMatches: Option[Match]
 
 
   EMatchKind = enum
@@ -134,7 +138,7 @@ type
       of kPairs:
         parentKey: bool
         key: NimNode
-      of kItem, kSet:
+      of kItem, kSet, kAlt:
         discard
 
   Path = seq[AccsElem]
@@ -191,7 +195,7 @@ func toAccs(path: Path, name: string): NimNode =
         nnkDotExpr.newTree(prefix, ident head.fld)
       of kPairs:
         nnkBracketExpr.newTree(prefix, head.key)
-      of kItem:
+      of kItem, kAlt:
         prefix
       of kSet:
         raiseAssert("#[ IMPLEMENT ]#")
@@ -211,15 +215,33 @@ func parseMatchExpr(n: NimNode): Match
 
 func parseKVTuple(n: NimNode): Match =
   result = Match(kind: kObject)
-  for elem in n:
-    discard
+  var start = 0
+  if n.kind in {nnkCall, nnkObjConstr}:
+    start = 1
+    result.kindCall = some(n[0].strVal())
+
+  debugecho n.treeREpr()
+  for elem in n[start .. ^1]:
+    case elem.kind:
+      of nnkExprColonExpr:
+        elem[0].assertNodeKind({nnkIdent})
+        result.fldElems.add((
+          elem[0].strVal(),
+          elem[1].parseMatchExpr()))
+      of nnkBracket:
+        result.listMatches = some(elem.parseMatchExpr())
+      else:
+        elem.assertNodeKind({nnkExprColonExpr})
 
 func parseListMatch(n: NimNode): seq[ListStructure] =
   for elem in n:
     case elem.kind:
       of nnkCall, nnkCommand:
         raiseAssert("#[ IMPLEMENT ]#")
-      of nnkInfix, nnkPrefix, nnkIdent:
+      of nnkInfix, nnkPrefix,
+         nnkIdent, nnkSym, nnkIntLit, nnkStrLit,
+         nnkPar, nnkObjConstr:
+
         var
           match = parseMatchExpr(elem)
           bindv = match.bindVar
@@ -234,7 +256,8 @@ func parseListMatch(n: NimNode): seq[ListStructure] =
         raiseAssert(&"#[ IMPLEMENT for kind {elem.kind} ]#")
 
 func parseTableMatch(n: NimNode): seq[KVPair] =
-  discard
+  for elem in n:
+    result.add((elem[0], elem[1].parseMatchExpr()))
 
 func parseMatchExpr(n: NimNode): Match =
   case n.kind:
@@ -266,19 +289,27 @@ func parseMatchExpr(n: NimNode): Match =
 
       else:
         result = Match(
-          kind: kItem, itemMatch: imkInfixEq, infix: n[0].strVal())
+          kind: kItem, itemMatch: imkInfixEq, infix: n[0].strVal(),
+          rhsNode: n[1]
+        )
 
     of nnkBracket:
       result = Match(kind: kList, listElems: parseListMatch(n))
     of nnkTableConstr:
       result = Match(kind: kPairs, pairElems: parseTableMatch(n))
     of nnkCurly:
-      discard
+      result = Match(kind: kPairs, pairElems: parseTableMatch(n))
     of nnkObjConstr, nnkCall:
-      result = parseKVTuple(n[1])
-      result.kindCall = some(n[0].strVal())
+      result = parseKVTuple(n)
     elif n.isInfixPatt():
-      raiseAssert("#[ IMPLEMENT ]#")
+      let
+        lhs = n[1].parseMatchExpr()
+        rhs = n[2].parseMatchExpr()
+
+      var alts: seq[Match]
+      if lhs.kind == kAlt: alts.add lhs.altElems else: alts.add lhs
+      if rhs.kind == kAlt: alts.add rhs.altElems else: alts.add rhs
+      result = Match(kind: kAlt, altElems: alts)
     elif n.kind == nnkInfix:
       n[1].assertNodeKind({nnkIdent})
       if n[0].strVal() == "is":
@@ -305,6 +336,8 @@ func makeListMatch(list: Match, vt: var VarTable, path: Path): NimNode =
         list.listElems[idx].decl : "Must be last in sequence but found"
       }).toCodeError("Greedy list match must be last element in pattern")
 
+    inc idx
+
   let
     posid = ident("pos")
     matched = genSym(nskVar, "matched")
@@ -314,14 +347,23 @@ func makeListMatch(list: Match, vt: var VarTable, path: Path): NimNode =
 
   result = newStmtList()
   for idx, elem in list.listElems:
-    let expr = elem.patt.makeMatchExpr(vt, path & @[
-      AccsElem(inStruct: kTuple, idx: posid)])
+    let
+      parent = path & @[AccsElem(inStruct: kTuple, idx: posid)]
+      expr = elem.patt.makeMatchExpr(vt, parent)
 
     case elem.kind:
       of lkPos:
-        result.add quote do:
-          if not `expr`:
-            `failBreak`
+        if elem.patt.isPlaceholder:
+          result.add newCall(ident "inc", posid)
+          iflet (bindv = elem.patt.bindVar):
+            result.add makeVarSet(bindv, expr)
+            # TODO add variable to vtable
+        else:
+          result.add quote do:
+            if `expr`:
+              inc `posid`
+            else:
+              `failBreak`
 
       else:
         if true:
@@ -355,7 +397,7 @@ func makeMatchExpr(m: Match, vt: var VarTable, path: Path): NimNode =
           if m.isPlaceholder:
             return newLit(true)
           else:
-            let inf = newInfix(m.infix, m.rhsNode, parent)
+            let inf = newInfix(m.infix, parent, m.rhsNode)
             iflet (vname = m.bindVar):
               let bindVar = makeVarSet(vname, parent)
               return quote do:
@@ -379,6 +421,40 @@ func makeMatchExpr(m: Match, vt: var VarTable, path: Path): NimNode =
           ])
 
       return conds.foldInfix("and")
+    of kObject:
+      var conds: seq[NimNode]
+      for (fld, patt) in m.fldElems:
+        conds.add patt.makeMatchExpr(vt, path & @[
+          AccsElem(inStruct: kObject, fld: fld)
+        ])
+
+      iflet (list = m.listMatches):
+        conds.add list.makeMatchExpr(vt, path)
+
+      iflet (kv = m.kvMatches):
+        conds.add kv.makeMatchExpr(vt, path)
+
+      return conds.foldInfix("and")
+
+    of kPairs:
+      var conds: seq[NimNode]
+      for (key, val) in m.pairElems:
+        conds.add newInfix(
+          "and",
+          newInfix("in", key, path.toAccs("expr")),
+          val.makeMatchExpr(vt, path & @[
+            AccsElem(inStruct: kPairs, key: key)
+        ]))
+
+      return conds.foldInfix("and")
+    of kAlt:
+      let conds = collect(newSeq):
+        for alt in m.altElems:
+          alt.makeMatchExpr(vt, path & @[
+            AccsElem(inStruct: kAlt)
+          ])
+
+      return conds.foldInfix("or")
     else:
       raiseAssert("#[ IMPLEMENT ]#")
 

@@ -26,7 +26,7 @@ type
 func startpos*(node: NimNode): LineInfo =
   case node.kind:
     of nnkBracketExpr, nnkDotExpr, nnkAsgn, nnkCall,
-       nnkExprColonExpr:
+       nnkExprColonExpr, nnkObjConstr:
       node[0].lineInfoObj()
     of nnkInfix:
       node[1].lineInfoObj()

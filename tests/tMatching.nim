@@ -54,7 +54,7 @@ suite "Matching":
            else: "default value"
 
     assertEq "default fallback", case (a: 22, b: 90):
-           of (_, b: 91): "900999"
+           of (b: 91): "900999"
            elif "some other" == "check": "rly?"
            elif true: "default fallback"
            else: raiseAssert("#[ not possible ! ]#")

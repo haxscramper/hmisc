@@ -4,6 +4,8 @@ import macros
 # https://github.com/rust-lang/rfcs/blob/master/text/2497-if-let-chains.md
 # and https://github.com/rust-lang/rust/issues/53667
 
+# TODO support not only optional types but also pointers and references.
+
 macro ifLet*(head: untyped, bodies: varargs[untyped]): untyped =
   ##[
 Unwrap optional value into variable if it contains something.
