@@ -43,17 +43,13 @@ func pref*(name: string): string =
 
 
 macro hasKindImpl*(head: typed, kind: untyped): untyped =
-  echo head.treeRepr()
-  if head[0][0].strVal() == kind.strVal():
-    result = newLit("true")
-  else:
-    let
-      impl = head.getTypeImpl().parseEnumImpl()
-      pref = impl.commonPrefix().pref()
-      names = impl.dropPrefix(pref)
-      kind = ident(kind.toStrLit().strVal().addPrefix(pref))
+  let
+    impl = head.getTypeImpl().parseEnumImpl()
+    pref = impl.commonPrefix().pref()
+    names = impl.dropPrefix(pref)
+    kind = ident(kind.toStrLit().strVal().addPrefix(pref))
 
-    result = nnkInfix.newTree(ident "==", head, kind)
+  result = nnkInfix.newTree(ident "==", head, kind)
 
 template hasKind*(head, kindExpr: untyped): untyped =
   hasKindImpl(head.kind, kindExpr)
@@ -65,6 +61,41 @@ type
     kTuple
     kPairs
     kObject
+
+  ListKeyword = enum
+    lkAny ## Any element from list
+    lkAll ## All elements from list
+    lkNone
+    lkOpt
+    lkUntil ## All elements until
+    lkPos ## Exact position
+
+  ListStructure = object
+    bindVar: Option[string]
+    patt: Option[PattStructure]
+    kind: ListKeyword
+
+  PattStructure = object
+    bindVar: Option[string]
+    case kind: EStructKind
+      of kItem:
+        rhs: NimNode
+      of kList:
+        listElems: seq[ListStructure]
+      of kTuple:
+        tupleElems: seq[PattStructure]
+      of kPairs:
+        pairElems: seq[tuple[
+          key: NimNode,
+          patt: PattStructure
+        ]]
+
+      of kObject:
+        fldElems: seq[tuple[
+          name: string,
+          patt: PattStructure
+        ]]
+
 
   EMatchKind = enum
     mkEq

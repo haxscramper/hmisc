@@ -243,6 +243,10 @@ func dropPrefix*(str: string, part: StrPart): string =
 
   return str
 
+func dropPrefix*(ss: seq[string], patt: StrPart): seq[string] =
+  for s in ss:
+    result.add s.dropPrefix(patt)
+
 
 func dropSuffix*(str: string, part: StrPart): string =
   for alt in part:
