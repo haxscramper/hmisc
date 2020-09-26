@@ -273,10 +273,10 @@ func parseMatchExpr(n: NimNode): Match =
     else:
       raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#")
 
-func makeMatchExpr(n: NimNode, path: Path): ExprRes =
+func makeMatchExpr(m: Match, path: Path): ExprRes =
   discard
 
-func updateVarSet(nn: var NimNode, variadics: seq[string]): void =
+func updateVarSet(nn: NimNode, variadics: seq[string]): void =
   ## Recursively walk generate pattern match and replace dummy
   ## variable assignments with correct code
   for idx, node in nn:
@@ -296,11 +296,9 @@ func updateVarSet(nn: var NimNode, variadics: seq[string]): void =
       updateVarSet(nn[idx], variadics)
 
 func toNode(expr: ExprRes): NimNode =
-  let (expr, vars) = makeMatchExpr(elem[0], path)
+  let (expr, vars) = expr
 
-  var
-    variadics: seq[string]
-
+  var variadics: seq[string]
   for varUses in vars.twoPassSortByIt(
     it.decl.name, # Sort by names
     it.decl.decl.lineInfoObj().line + # And by declaration order
@@ -327,16 +325,13 @@ func toNode(expr: ExprRes): NimNode =
       exprNew.add quote do:
         var `name`: typeof(`typeExpr`)
 
-  exprNew.add expr
-
-  result.add nnkElifBranch.newTree(exprNew, elem[1])
   updateVarSet(result, variadics)
 
 
 
 macro match*(
   n: tuple | object | ref object | seq | array | set): untyped =
-  var result = nnkIfStmt.newTree()
+  var matchcase = nnkIfStmt.newTree()
   for elem in n[1 .. ^1]:
     case elem.kind:
       of nnkOfBranch:
@@ -346,15 +341,16 @@ macro match*(
             "Replace `_` with `else` here")
 
 
-        result.add nnkElifBranch.newTree(
-          elem[0].parseMatchExpr().makeMatchExpr(),
+        matchcase.add nnkElifBranch.newTree(
+          elem[0].parseMatchExpr().makeMatchExpr(@[]).toNode(),
           elem[1]
         )
 
       of nnkElifBranch, nnkElse:
-        result.add elem
+        matchcase.add elem
       else:
-        raiseAssert(&"#[ IMPLEMENT for kind {elem.kind} ]#")
+        discard
+        # raiseAssert(&"#[ IMPLEMENT for kind {elem.kind} ]#")
 
   let head = n[0]
   result = quote do:
