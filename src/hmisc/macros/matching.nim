@@ -1,5 +1,5 @@
 import sequtils, macros, tables, options, strformat, sugar, strutils,
-       parseutils
+       parseutils, hpprint
 
 import ../helpers
 import iflet
@@ -72,8 +72,9 @@ type
     lkPos ## Exact position
 
   ListStructure = object
+    decl: NimNode
     bindVar: Option[string]
-    patt: Option[Match]
+    patt: Match
     kind: ListKeyword
 
   ItemMatchKind = enum
@@ -138,17 +139,19 @@ type
 
   Path = seq[AccsElem]
 
+  VarKind = enum
+    vkRegular
+    vkSequence
+    vkOption
+    vkSet
+
   VarSpec = object
-    name: string
     decl {.requiresinit.}: NimNode
+    varKind: VarKind
+    hasAltContext: bool
+    typePath: Path
 
-# func makeItemMatch(
-#   node: NimNode,
-#   varname = none(string),
-#   infix = none(string))
-
-func makeVarSpec(name: string, decl: NimNode): VarSpec =
-  VarSpec(name: name, decl: decl)
+  VarTable = Table[string, VarSpec]
 
 func isNamedTuple(node: NimNode): bool =
   node.allOfIt(it.kind in {nnkExprColonExpr, nnkIdent}) and
@@ -203,9 +206,8 @@ func toAccs(path: Path, name: string): NimNode =
     else:
       ident name
 
-type
-  VarUse = tuple[decl: VarSpec, path: Path]
-  ExprRes = tuple[node: NimNode, vars: seq[VarUse]]
+
+func parseMatchExpr(n: NimNode): Match
 
 func parseKVTuple(n: NimNode): Match =
   result = Match(kind: kObject)
@@ -213,7 +215,23 @@ func parseKVTuple(n: NimNode): Match =
     discard
 
 func parseListMatch(n: NimNode): seq[ListStructure] =
-  discard
+  for elem in n:
+    case elem.kind:
+      of nnkCall, nnkCommand:
+        raiseAssert("#[ IMPLEMENT ]#")
+      of nnkInfix, nnkPrefix, nnkIdent:
+        var
+          match = parseMatchExpr(elem)
+          bindv = match.bindVar
+
+        match.bindVar = none(string)
+
+        result.add ListStructure(
+          patt: match,
+          bindVar: bindv,
+          kind: lkPos)
+      else:
+        raiseAssert(&"#[ IMPLEMENT for kind {elem.kind} ]#")
 
 func parseTableMatch(n: NimNode): seq[KVPair] =
   discard
@@ -232,6 +250,8 @@ func parseMatchExpr(n: NimNode): Match =
         result = parseKVTuple(n)
       else:
         result = Match(kind: kTuple)
+        for elem in n:
+          result.tupleElems.add parseMatchExpr(elem)
     of nnkPrefix:
       if n[0].strVal() == "is":
         result = Match(
@@ -273,10 +293,104 @@ func parseMatchExpr(n: NimNode): Match =
     else:
       raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#")
 
-func makeMatchExpr(m: Match, path: Path): ExprRes =
-  discard
 
-func updateVarSet(nn: NimNode, variadics: seq[string]): void =
+func makeMatchExpr(m: Match, vt: var VarTable, path: Path): NimNode
+
+func makeListMatch(list: Match, vt: var VarTable, path: Path): NimNode =
+  var idx = 1
+  while idx < list.listElems.len:
+    if list.listElems[idx - 1].kind notin {lkUntil, lkPos, lkOpt}:
+      raise ({
+        list.listElems[idx - 1].decl : "Greedy list match pattern",
+        list.listElems[idx].decl : "Must be last in sequence but found"
+      }).toCodeError("Greedy list match must be last element in pattern")
+
+  let
+    posid = ident("pos")
+    matched = genSym(nskVar, "matched")
+    failBlock = ident("failBlock")
+    failBreak = nnkBreakStmt.newTree(failBlock)
+
+
+  result = newStmtList()
+  for idx, elem in list.listElems:
+    let expr = elem.patt.makeMatchExpr(vt, path & @[
+      AccsElem(inStruct: kTuple, idx: posid)])
+
+    case elem.kind:
+      of lkPos:
+        result.add quote do:
+          if not `expr`:
+            `failBreak`
+
+      else:
+        if true:
+          raiseAssert("#[ IMPLEMENT ]#")
+
+  result = quote do:
+    var `matched` = false
+    block `failBlock`:
+      var `posid` = 0
+
+      `result`
+
+      `matched` = true
+
+    `matched`
+
+
+
+  result = result.newPar().newPar()
+
+
+
+
+func makeMatchExpr(m: Match, vt: var VarTable, path: Path): NimNode =
+  case m.kind:
+    of kItem:
+      let parent = path.toAccs("expr")
+
+      case m.itemMatch:
+        of imkInfixEq:
+          if m.isPlaceholder:
+            return newLit(true)
+          else:
+            let inf = newInfix(m.infix, m.rhsNode, parent)
+            iflet (vname = m.bindVar):
+              let bindVar = makeVarSet(vname, parent)
+              return quote do:
+                if `inf`:
+                  `bindVar`
+                  true
+                else:
+                  false
+            else:
+              return inf
+        else:
+          raiseAssert("#[ IMPLEMENT ]#")
+
+    of kList:
+      return makeListMatch(m, vt, path)
+    of kTuple:
+      let conds = collect(newSeq):
+        for idx, it in m.tupleElems:
+          it.makeMatchExpr(vt, path & @[
+            AccsElem(inStruct: kTuple, idx: newLit(idx))
+          ])
+
+      return conds.foldInfix("and")
+    else:
+      raiseAssert("#[ IMPLEMENT ]#")
+
+
+
+
+func makeMatchExpr(m: Match): tuple[expr: NimNode, vtable: VarTable] =
+  debugpprint m
+  result.expr = makeMatchExpr(m, result.vtable, @[])
+  # debugecho result.expr.toStrLit().strVal()
+
+func updateVarSet(nn: NimNode, vtable: VarTable): void =
   ## Recursively walk generate pattern match and replace dummy
   ## variable assignments with correct code
   for idx, node in nn:
@@ -286,47 +400,49 @@ func updateVarSet(nn: NimNode, variadics: seq[string]): void =
         varn = node[1]
         expr = node[2]
 
-      if varn.strVal() in variadics:
-        nn[idx] = quote do:
-          `varn`.add `expr`
-      else:
-        nn[idx] = quote do:
-          `varn` = `expr`
+      case vtable[varn.strVal()].varKind:
+        of vkSequence:
+          nn[idx] = quote do:
+            `varn`.add `expr`
+
+        of vkOption:
+          nn[idx] = quote do:
+            `varn` = some(`expr`)
+
+        of vkSet:
+          nn[idx] = quote do:
+            `varn`.incl some(`expr`)
+
+        of vkRegular:
+          nn[idx] = quote do:
+            `varn` = `expr`
+
     else:
-      updateVarSet(nn[idx], variadics)
+      updateVarSet(nn[idx], vtable)
 
-func toNode(expr: ExprRes): NimNode =
-  let (expr, vars) = expr
-
-  var variadics: seq[string]
-  for varUses in vars.twoPassSortByIt(
-    it.decl.name, # Sort by names
-    it.decl.decl.lineInfoObj().line + # And by declaration order
-    it.decl.decl.lineInfoObj().column * 1000,
-  ):
-    if varUses.anyOfIt(it.path.isVariadic()):
-      variadics.add varUses[0].decl.name
-    elif varUses.len > 1:
-      raise varUses.mapIt((it.decl.decl, "")).toCodeError(
-        &"Multiple uses of binding for `{varUses[0].decl.name}`. " &
-          "Only one capture instance is allowed per variable binding"
-      )
+func toNode(input: tuple[expr: NimNode, vtable: VarTable]): NimNode =
+  var (expr, vtable) = input
 
   var exprNew = nnkStmtList.newTree()
-  for v in vars:
-    let
-      name = ident(v.decl.name)
-      typeExpr = toAccs(v.path, "expr")
+  for name, spec in vtable:
+    let typeExpr = toAccs(spec.typePath, "expr")
+    case spec.varKind:
+      of vkSequence:
+        exprNew.add quote do:
+          var `name`: seq[typeof(`typeExpr`)]
 
-    if v.decl.name in variadics:
-      exprNew.add quote do:
-        var `name`: seq[typeof(`typeExpr`)]
-    else:
-      exprNew.add quote do:
-        var `name`: typeof(`typeExpr`)
+      of vkOption:
+        exprNew.add quote do:
+          var `name`: Option[typeof(`typeExpr`)]
 
-  updateVarSet(result, variadics)
+      of vkSet, vkRegular:
+        exprNew.add quote do:
+          var `name`: typeof(`typeExpr`)
 
+  updateVarSet(expr, vtable)
+  return quote do:
+    `exprNew`
+    `expr`
 
 
 macro match*(
@@ -342,7 +458,7 @@ macro match*(
 
 
         matchcase.add nnkElifBranch.newTree(
-          elem[0].parseMatchExpr().makeMatchExpr(@[]).toNode(),
+          elem[0].parseMatchExpr().makeMatchExpr().toNode(),
           elem[1]
         )
 
@@ -358,3 +474,5 @@ macro match*(
       let expr {.inject.} = `head`
       let pos {.inject.}: int = 0
       `matchcase`
+
+  debugecho result

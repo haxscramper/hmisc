@@ -30,15 +30,18 @@ suite "Matching":
     echo val.hasKind(eN11)
 
   test "Simple uses":
-    case [1,2,3,4]:
-      of [_]: fail()
-      of [_, 3, _]: fail()
-      of [_, 2, 3, _]:
-        discard
-
     assertEq 12, case (12, 24):
                    of (_, 24): expr[1] div 2
                    else: raiseAssert("#[ not possible ]#")
+
+
+    case [1]:
+      of [_]: discard
+
+    case [1,2,3,4]:
+      of [_]: fail()
+      of [_, 2, 3, _]:
+        discard
 
 
     assertEq "hehe", case (true, false):
