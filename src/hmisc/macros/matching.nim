@@ -61,6 +61,7 @@ type
     kTuple
     kPairs
     kObject
+    kSet
 
   ListKeyword = enum
     lkAny ## Any element from list
@@ -75,26 +76,46 @@ type
     patt: Option[Match]
     kind: ListKeyword
 
-  Match = object
+  ItemMatchKind = enum
+    imkInfixEq
+    imkSubpatt
+    imkPredicate
+
+  KVPair = tuple[key: NimNode, patt: Match]
+  Match = ref object
     bindVar: Option[string]
+    declNode: NimNode
     case kind: EStructKind
       of kItem:
-        rhs: NimNode
+        case itemMatch: ItemMatchKind
+          of imkInfixEq:
+            infix: string
+            rhsNode: NimNode
+            isPlaceholder: bool
+          of imkSubpatt:
+            rhsPatt: Match
+          of imkPredicate:
+            isCall: bool
+            predBody: NimNode
+
       of kList:
         listElems: seq[ListStructure]
       of kTuple:
         tupleElems: seq[Match]
       of kPairs:
-        pairElems: seq[tuple[
-          key: NimNode,
-          patt: Match
-        ]]
+        pairElems: seq[KVPair]
 
+      of kSet:
+        setElems: seq[Match]
       of kObject:
+        kindCall: Option[string]
         fldElems: seq[tuple[
           name: string,
           patt: Match
         ]]
+
+        kvMatches: Option[Match]
+        subscriptMatches: Option[Match]
 
 
   EMatchKind = enum
@@ -112,7 +133,7 @@ type
       of kPairs:
         parentKey: bool
         key: NimNode
-      of kItem:
+      of kItem, kSet:
         discard
 
   Path = seq[AccsElem]
@@ -121,10 +142,10 @@ type
     name: string
     decl {.requiresinit.}: NimNode
 
-  Case = object
-    expr: NimNode
-    heads: seq[NimNode]
-    default: Option[NimNode]
+# func makeItemMatch(
+#   node: NimNode,
+#   varname = none(string),
+#   infix = none(string))
 
 func makeVarSpec(name: string, decl: NimNode): VarSpec =
   VarSpec(name: name, decl: decl)
@@ -169,6 +190,8 @@ func toAccs(path: Path, name: string): NimNode =
         nnkBracketExpr.newTree(prefix, head.key)
       of kItem:
         prefix
+      of kSet:
+        raiseAssert("#[ IMPLEMENT ]#")
 
     if top.len > 1:
       result = result.aux(top[1 ..^ 1])
@@ -184,375 +207,78 @@ type
   VarUse = tuple[decl: VarSpec, path: Path]
   ExprRes = tuple[node: NimNode, vars: seq[VarUse]]
 
-func parseMatchExpr(n: NimNode): Match =
+func parseKVTuple(n: NimNode): Match =
+  result = Match(kind: kObject)
+  for elem in n:
+    discard
+
+func parseListMatch(n: NimNode): seq[ListStructure] =
   discard
 
-func makeMatchExpr(n: NimNode, path: Path): ExprRes =
+func parseTableMatch(n: NimNode): seq[KVPair] =
+  discard
+
+func parseMatchExpr(n: NimNode): Match =
   case n.kind:
     of nnkIdent, nnkSym, nnkIntLit, nnkStrLit:
+      result = Match(kind: kItem, itemMatch: imkInfixEq)
       if n == ident "_":
-        result.node = ident("true")
+        result.isPlaceholder = true
       else:
-        result.node = nnkInfix.newTree(ident "==", path.toAccs("expr"), n)
-    of nnkAccQuoted:
-      # FIXED should be used instead of `%` prefix
-      result.node = nnkInfix.newTree(ident "==", path.toAccs("expr"), n)
+        result.rhsNode = n
+        result.infix = "=="
     of nnkPar:
-      let conds: seq[ExprRes] =
-        if n.isNamedTuple():
-          collect(newSeq):
-            for idx, kv in n:
-              if kv.kind == nnkIdent:
-                makeMatchExpr(kv, path & @[
-                  AccsElem(inStruct: kTuple, idx: newLit(idx))
-                ])
-              else:
-                let val = makeMatchExpr(kv[1], path & @[
-                  AccsElem(inStruct: kObject, fld: kv[0].strVal())
-                ])
-
-                val
-        else:
-          collect(newSeq):
-            for idx, val in n:
-              makeMatchExpr(val, path & @[
-                AccsElem(inStruct: kTuple, idx: newLit(idx))
-              ])
-
-      result = conds.foldlTuple(
-        nnkInfix.newTree(ident "and", a, b)).concatSide()
-
+      if n.isNamedTuple():
+        result = parseKVTuple(n)
+      else:
+        result = Match(kind: kTuple)
     of nnkPrefix:
-      var conds: seq[ExprRes]
-
-      if n[0].strVal() == "==":
-        conds.add((
-          nnkInfix.newTree(ident "==", path.toAccs("expr"), n[1]), @[]))
+      if n[0].strVal() == "is":
+        result = Match(
+          kind: kItem, itemMatch: imkSubpatt,
+          rhsPatt: parseMatchExpr(n[1]))
 
       elif n[0].strVal() == "@":
         n[1].assertNodeKind({nnkIdent})
-        let
-          accs = path.toAccs("expr")
-          tmp = n[1].copyNimNode()
-          vars = n[1]
-          varset = makeVarSet(tmp.strVal(), `accs`)
-          node = quote do:
-            ((`varset`; true))
-
-        conds = @[(node, @[(makeVarSpec(tmp.strVal(), tmp), path)])]
-      elif n[0].strVal() == "in":
-        let
-          accs = path.toAccs("expr")
-          sets = n[1]
-          node = quote do:
-            (( `accs` in `sets` ))
-
-        conds.add((node, @[]))
-      elif n[0].strVal() == "..":
-        if not (n[1].kind == nnkIdent and n[1].strVal() == "_"):
-          n[1].raiseCodeError("`..` prefix only allowed with `_`")
-
-        n.raiseCodeError("`.._` only allowed in sequence matches")
+        result = Match(
+          kind: kItem, itemMatch: imkInfixEq, isPlaceholder: true,
+          bindVar: some(n[1].strVal()),)
 
       else:
-        n.raiseCodeError("Unexpected prefix")
-
-      result = conds.foldlTuple(
-        nnkInfix.newTree(ident "and", a, b)).concatSide()
+        result = Match(
+          kind: kItem, itemMatch: imkInfixEq, infix: n[0].strVal())
 
     of nnkBracket:
-      let pos = ident("pos")
-      var
-        minLen: int = 0
-        idx: int = 0
-        exactMatches: seq[int]
-        elemPath = path & @[AccsElem(inStruct: kList, idx: pos)]
-
-      let
-        matched = ident("matched")
-        maxPos = ident("maxPos")
-        parent = path.toAccs("expr")
-        matchBlocks = newStmtList()
-        matchBlock = ident("matchBlock")
-
-      func isExactMatch(it: NimNode): bool =
-        if it.kind == nnkPrefix:
-          it[0].strVal() == "@"
-        else:
-          true
-
-      for idx, it in n:
-        if it.isExactMatch():
-          exactMatches.add idx
-        else:
-          break
-
-      for idx in countdown(n.len - 1, 0):
-        if n[idx].isExactMatch():
-          if idx notin exactMatches:
-            exactMatches.add idx
-        else:
-          break
-
-      while idx < n.len:
-        let elem = n[idx]
-        if elem.kind == nnkPrefix:
-          if idx + 1 < n.len:
-            if n[idx + 1].kind == nnkPrefix and
-               n[idx + 1][0].strVal() in ["*", "*@", ".."] and
-               n[idx][0].strVal() in ["*", "*@", ".."]:
-              raise ({
-                n[idx + 1] : "Following variadic expression",
-                n[idx] : "Variadic expression"
-              }).toCodeError(
-                "Consecutive variadic expressions are not allowed")
-
-          case elem[0].strVal():
-            of "*", "*@", "..":
-              let matchExpr =
-                case elem[0].strVal():
-                  of "*":
-                    elem[1]
-                  of "*@":
-                    elem[1].assertNodeKind({nnkIdent})
-                    elem.withIt do:
-                      it[0] = ident "@"
-
-                  of "..":
-                    if elem[1].strVal() != "_":
-                      elem.raiseCodeError(
-                        "`..` must be followed by underscore `_`")
-
-                    ident("true")
-                  else:
-                    raiseAssert("#[ IMPLEMENT ]#")
-
-              var
-                (expr, vars) = matchExpr.makeMatchExpr(
-                  elemPath.withIt do:
-                    it[^1].variadicContext = true)
-
-                next = if idx + 1 < n.len:
-                         inc idx
-                         let (subex, vars) = n[idx].makeMatchExpr(
-                           elemPath.withIt do:
-                             it[^1].variadicContext = true)
-
-                         result.vars.add vars
-                         subex
-                       else:
-                         ident("true")
-
-              result.vars.add vars
-
-              let nextTest =
-                if next == ident("true"):
-                  quote do:
-                    ((matchedNext = true; true))
-                else:
-                  quote do:
-                    not (`next` and (matchedNext = true; true))
-
-              if matchExpr == ident("true"):
-                expr = ident("true")
-
-              matchBlocks.add quote do:
-                block:
-                  var matchedNext {.inject.} = false
-                  while (`pos` < `maxPos`) and `nextTest`:
-                    if not `expr`:
-                      break `matchBlock`
-                    else:
-                      inc `pos`
-
-                  if matchedNext:
-                    inc `pos`
-                  else:
-                    break `matchBlock`
-
-
-            of "@":
-              elem[1].assertNodeKind({nnkIdent})
-              let varn = elem[1]
-              matchBlocks.add quote do:
-                varset(`varn`, `parent`[`pos`])
-                inc `pos`
-
-              result.vars.add(makeVarSpec(elem[1].strVal(), elem), elemPath)
-              inc minLen
-
-        else:
-          inc minLen
-          let (expr, vars) = elem.makeMatchExpr(elemPath)
-          matchBlocks.add quote do:
-            if not `expr`:
-              break `matchBlock`
-            else:
-              inc `pos`
-
-          result.vars.add vars
-
-        inc idx
-
-
-      let exactMatch = exactMatches.len == n.len
-
-      let okCond =
-        if exactMatch:
-          quote do: (`pos` == `minLen`)
-        else:
-          quote do: (`pos` + 1 >= `minLen`)
-
-      let startCOnd =
-        if exactMatch:
-          quote do: `maxPos` == `minLen`
-        else:
-          quote do: `maxPos` >= `minLen`
-
-      result.node = quote do:
-        (((
-          block:
-            var `matched`: bool = false
-            let `maxPos` = `parent`.len
-            if `startCond`:
-              var `pos` = 0
-              block `matchBlock`:
-                `matchBlocks`
-                `matched` = `okCond`
-
-            `matched`
-        )))
-
-
-      # let pattSize = newLit(minLen)
-      # var
-      #   conds: seq[ExprRes]
-      #   idx: int = 0
-
-      # for idx, elem in n:
-      #     key = newLit(idx)
-      #     (subexp, vars) = elem.makeMatchExpr(path & @[
-      #       AccsElem(inStruct: kList, idx: idx)
-      #     ])
-
-      #   let node = quote do:
-      #     (`parent`.len == `pattSize` and `subexp`)
-
-      #   conds.add(node, vars)
-
-      # result = conds.foldlTuple(
-      #   nnkInfix.newTree(ident "and", newPar(a), b)).concatSide()
-
+      result = Match(kind: kList, listElems: parseListMatch(n))
     of nnkTableConstr:
-      let conds: seq[ExprRes] = collect(newSeq):
-        for kv in n:
-          let
-            parent = path.toAccs("expr")
-            key = kv[0]
-            (subexp, vars) = kv[1].makeMatchExpr(path & @[
-                AccsElem(inStruct: kPairs, key: kv[0])
-            ])
-
-          let node = quote do:
-            (`key` in `parent` and `subexp`)
-
-          (node, vars)
-
-      result = conds.foldlTuple(
-        nnkInfix.newTree(ident "and", newPar(a), b)).concatSide()
-
+      result = Match(kind: kPairs, pairElems: parseTableMatch(n))
     of nnkCurly:
-      var
-        varTrail: VarUse
-        captureCount: int = 0 # Number of toplevel captured variables
-        conds: seq[ExprRes] # Conditions
-        excluded: seq[NimNode]
-      let parent = path.toAccs("expr")
-
-      for it in n:
-
-        if it.kind == nnkPrefix and it[0].strVal() == "@":
-          # Set variable capture
-          if captureCount > 0:
-            it.raiseCodeError(
-              "Only one toplevel variable capture is allowed for set")
-          else:
-            varTrail = (makeVarSpec(it[1].strVal(), it[0]), path)
-            inc captureCount
-        else:
-          conds.add nnkInfix.newTree(ident "in", it, parent), @[]
-          excluded.add it
-
-
-      if captureCount > 0:
-        conds.add do:
-          let
-            it = ident "it"
-            val = ident "val"
-            capture = ident varTrail.decl.name
-            noteq = excluded.mapIt(newInfix("!=", val, it)).foldInfix(
-              "and", @[ident "true"])
-
-          quote do:
-            block:
-              for `val` in `parent`:
-                if `noteq`:
-                  `capture`.incl `val`
-
-              true
-        do:
-          @[varTrail]
-
-      result = conds.foldlTuple(
-        nnkInfix.newTree(ident "and", newPar(a), b)).concatSide()
-
-    elif n.kind in {nnkObjConstr, nnkCall}:
-      let kindCheck = newCall(ident "hasKind", path.toAccs("expr"), n[0])
-
-      var conds: seq[ExprRes]
-      conds.add (newCall(ident "hasKind", path.toAccs("expr"), n[0]), @[])
-
-      for idx, kv in n[1..^1]:
-        let parent = path.toAccs("expr")
-
-        if kv.kind == nnkBracket:
-          for idx, patt in kv:
-            conds.add patt.makeMatchExpr(
-              path & @[ AccsElem(inStruct: kList, idx: newLit(idx)) ])
-        else:
-          conds.add kv[1].makeMatchExpr(
-            path & @[ AccsElem(inStruct: kObject, fld: kv[0].strVal()) ])
-
-      result = conds.foldlTuple(
-        nnkInfix.newTree(ident "and", newPar(a), b)).concatSide()
-
+      discard
+    of nnkObjConstr, nnkCall:
+      result = parseKVTuple(n[1])
+      result.kindCall = some(n[0].strVal())
     elif n.isInfixPatt():
-      let conds: seq[ExprRes] = collect(newSeq):
-        for patt in n[1..^1]:
-          patt.makeMatchExpr(path)
+      raiseAssert("#[ IMPLEMENT ]#")
+    elif n.kind == nnkInfix:
+      n[1].assertNodeKind({nnkIdent})
+      if n[0].strVal() == "is":
+        result = Match(
+          kind: kItem, itemMatch: imkSubpatt,
+          rhsPatt: parseMatchExpr(n[1]))
+      else:
+        result = Match(
+          kind: kItem, itemMatch: imkInfixEq, infix: n[0].strVal())
 
-      result = conds.foldlTuple(
-        nnkInfix.newTree(ident "or", newPar(a), b)).concatSide()
-
-    elif n.kind == nnkInfix and n[0].strVal() == "is":
-      n[1].assertNodeKind({nnkPrefix})
-      n[1][0].assertNodeKind({nnkIdent})
-
-      let name = n[1][1]
-      let accs = path.toAccs("expr")
-      let node = quote do:
-        (`name` = `accs`; true)
-
-      var conds: seq[ExprRes]
-      conds.add n[2].makeMatchExpr(path)
-      conds.add((node, @[(makeVarSpec(name.strVal(), name),path)]))
-
-      result = conds.foldlTuple(
-        nnkInfix.newTree(ident "and", newPar(a), b)).concatSide()
+      result.bindVar = some(n[1].strVal())
     else:
       raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#")
 
-func updateVarSet(nn: NimNode, variadics: seq[string]): void =
+func makeMatchExpr(n: NimNode, path: Path): ExprRes =
+  discard
+
+func updateVarSet(nn: var NimNode, variadics: seq[string]): void =
+  ## Recursively walk generate pattern match and replace dummy
+  ## variable assignments with correct code
   for idx, node in nn:
     if node.kind == nnkCall and
        node[0] == ident "varset":
@@ -569,92 +295,70 @@ func updateVarSet(nn: NimNode, variadics: seq[string]): void =
     else:
       updateVarSet(nn[idx], variadics)
 
-func makeMatch(n: NimNode, path: Path): NimNode =
-  result = nnkIfStmt.newTree()
-  for elem in n[1 ..^ 1]:
-    case elem.kind:
-      of nnkOfBranch:
-        let (expr, vars) = makeMatchExpr(elem[0], path)
+func toNode(expr: ExprRes): NimNode =
+  let (expr, vars) = makeMatchExpr(elem[0], path)
 
-        var
-          variadics: seq[string]
+  var
+    variadics: seq[string]
 
-        for varUses in vars.twoPassSortByIt(
-          it.decl.name, # Sort by names
-          it.decl.decl.lineInfoObj().line + # And by declaration order
-          it.decl.decl.lineInfoObj().column * 1000,
-        ):
-          if varUses.anyOfIt(it.path.isVariadic()):
-            variadics.add varUses[0].decl.name
-          elif varUses.len > 1:
-            raise varUses.mapIt((it.decl.decl, "")).toCodeError(
-              &"Multiple uses of binding for `{varUses[0].decl.name}`. " &
-                "Only one capture instance is allowed per variable binding"
-            )
+  for varUses in vars.twoPassSortByIt(
+    it.decl.name, # Sort by names
+    it.decl.decl.lineInfoObj().line + # And by declaration order
+    it.decl.decl.lineInfoObj().column * 1000,
+  ):
+    if varUses.anyOfIt(it.path.isVariadic()):
+      variadics.add varUses[0].decl.name
+    elif varUses.len > 1:
+      raise varUses.mapIt((it.decl.decl, "")).toCodeError(
+        &"Multiple uses of binding for `{varUses[0].decl.name}`. " &
+          "Only one capture instance is allowed per variable binding"
+      )
 
-        var exprNew = nnkStmtList.newTree()
-        for v in vars:
-          let
-            name = ident(v.decl.name)
-            typeExpr = toAccs(v.path, "expr")
+  var exprNew = nnkStmtList.newTree()
+  for v in vars:
+    let
+      name = ident(v.decl.name)
+      typeExpr = toAccs(v.path, "expr")
 
-          if v.decl.name in variadics:
-            exprNew.add quote do:
-              var `name`: seq[typeof(`typeExpr`)]
-          else:
-            exprNew.add quote do:
-              var `name`: typeof(`typeExpr`)
+    if v.decl.name in variadics:
+      exprNew.add quote do:
+        var `name`: seq[typeof(`typeExpr`)]
+    else:
+      exprNew.add quote do:
+        var `name`: typeof(`typeExpr`)
 
-        exprNew.add expr
+  exprNew.add expr
 
-        result.add nnkElifBranch.newTree(exprNew, elem[1])
-        updateVarSet(result, variadics)
-      of nnkElifBranch, nnkElse:
-        result.add elem
-      else:
-        block:
-          raiseAssert(&"#[ IMPLEMENT for kind {elem.kind} ]#")
+  result.add nnkElifBranch.newTree(exprNew, elem[1])
+  updateVarSet(result, variadics)
 
 
 
 macro match*(
   n: tuple | object | ref object | seq | array | set): untyped =
-  var cs: Case
-  cs.expr = n[0]
+  var result = nnkIfStmt.newTree()
   for elem in n[1 .. ^1]:
     case elem.kind:
-      of nnkOfBranch, nnkElifBranch:
-        cs.heads.add elem[0]
-      of nnkElse:
-        cs.default = some(elem)
+      of nnkOfBranch:
+        if elem[0] == ident "_":
+          elem[0].raiseCodeError(
+            "To create catch-all match use `else` clause",
+            "Replace `_` with `else` here")
+
+
+        result.add nnkElifBranch.newTree(
+          elem[0].parseMatchExpr().makeMatchExpr(),
+          elem[1]
+        )
+
+      of nnkElifBranch, nnkElse:
+        result.add elem
       else:
         raiseAssert(&"#[ IMPLEMENT for kind {elem.kind} ]#")
 
-  for head in n[1 ..^  1]:
-    if head.kind == nnkOfBranch:
-      let head = head[0]
-      if head == ident "_":
-        raiseCodeError(head,
-                       "To create catch-all match use `else` clause",
-                       "Replace `_` with `else` here"
-        )
-
-  # Generate matcher expressions
-  let matchcase = n.makeMatch(@[])
-
-  # dieHere()
-
-
-  let head = cs.expr
+  let head = n[0]
   result = quote do:
     block:
       let expr {.inject.} = `head`
       let pos {.inject.}: int = 0
-      # let input {.inject.} = `inputExpr`
-      # ifHaxComp:
-
       `matchcase`
-
-  haxThis result.toStrLit()
-  # dieHereMacro()
-  # assert inputExpr != nil
