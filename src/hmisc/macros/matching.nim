@@ -72,10 +72,10 @@ type
 
   ListStructure = object
     bindVar: Option[string]
-    patt: Option[PattStructure]
+    patt: Option[Match]
     kind: ListKeyword
 
-  PattStructure = object
+  Match = object
     bindVar: Option[string]
     case kind: EStructKind
       of kItem:
@@ -83,17 +83,17 @@ type
       of kList:
         listElems: seq[ListStructure]
       of kTuple:
-        tupleElems: seq[PattStructure]
+        tupleElems: seq[Match]
       of kPairs:
         pairElems: seq[tuple[
           key: NimNode,
-          patt: PattStructure
+          patt: Match
         ]]
 
       of kObject:
         fldElems: seq[tuple[
           name: string,
-          patt: PattStructure
+          patt: Match
         ]]
 
 
@@ -180,14 +180,14 @@ func toAccs(path: Path, name: string): NimNode =
     else:
       ident name
 
-  # echov result
-
 type
   VarUse = tuple[decl: VarSpec, path: Path]
   ExprRes = tuple[node: NimNode, vars: seq[VarUse]]
 
+func parseMatchExpr(n: NimNode): Match =
+  discard
+
 func makeMatchExpr(n: NimNode, path: Path): ExprRes =
-  # echov path, "Make match expression"
   case n.kind:
     of nnkIdent, nnkSym, nnkIntLit, nnkStrLit:
       if n == ident "_":
@@ -207,7 +207,6 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
                   AccsElem(inStruct: kTuple, idx: newLit(idx))
                 ])
               else:
-                echov kv[1], kv[0].strVal()
                 let val = makeMatchExpr(kv[1], path & @[
                   AccsElem(inStruct: kObject, fld: kv[0].strVal())
                 ])
@@ -222,8 +221,6 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
 
       result = conds.foldlTuple(
         nnkInfix.newTree(ident "and", a, b)).concatSide()
-
-      # echov result.node
 
     of nnkPrefix:
       var conds: seq[ExprRes]
@@ -297,7 +294,6 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
         else:
           break
 
-      echov n
       while idx < n.len:
         let elem = n[idx]
         if elem.kind == nnkPrefix:
@@ -311,7 +307,6 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
               }).toCodeError(
                 "Consecutive variadic expressions are not allowed")
 
-          echov elem
           case elem[0].strVal():
             of "*", "*@", "..":
               let matchExpr =
@@ -320,14 +315,7 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
                     elem[1]
                   of "*@":
                     elem[1].assertNodeKind({nnkIdent})
-                    # result.vars.add(
-                    #   makeVarSpec(elem[1].strVal(), elem),
-                    #   elemPath.withIt do:
-                    #     it[^1].variadicContext = true
-                    # )
-
                     elem.withIt do:
-                      echov it[0]
                       it[0] = ident "@"
 
                   of "..":
@@ -339,9 +327,6 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
                   else:
                     raiseAssert("#[ IMPLEMENT ]#")
 
-
-              # echov elem
-              # echov matchExpr
               var
                 (expr, vars) = matchExpr.makeMatchExpr(
                   elemPath.withIt do:
@@ -375,7 +360,6 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
                 block:
                   var matchedNext {.inject.} = false
                   while (`pos` < `maxPos`) and `nextTest`:
-                    # echov `parent`, "@", `pos`
                     if not `expr`:
                       break `matchBlock`
                     else:
@@ -387,26 +371,11 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
                     break `matchBlock`
 
 
-                  # while (not matchedNext) and (`pos` < `maxPos`):
-                  #   inc `pos`
-                  #   echov `parent`, "@", `pos`
-                  #   if `next`:
-                  #     echov "Matched next"
-                  #     matchedNext = true
-                  #     break
-                  #   else:
-                  #     dec `pos`
-
-
-
-
             of "@":
               elem[1].assertNodeKind({nnkIdent})
               let varn = elem[1]
               matchBlocks.add quote do:
-                echov `parent`[`pos`]
                 varset(`varn`, `parent`[`pos`])
-                echov `varn`
                 inc `pos`
 
               result.vars.add(makeVarSpec(elem[1].strVal(), elem), elemPath)
@@ -524,7 +493,6 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
             noteq = excluded.mapIt(newInfix("!=", val, it)).foldInfix(
               "and", @[ident "true"])
 
-          echov capture
           quote do:
             block:
               for `val` in `parent`:
@@ -544,11 +512,8 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
       var conds: seq[ExprRes]
       conds.add (newCall(ident "hasKind", path.toAccs("expr"), n[0]), @[])
 
-      # echov struct
       for idx, kv in n[1..^1]:
-        # echov path
         let parent = path.toAccs("expr")
-        echov kv
 
         if kv.kind == nnkBracket:
           for idx, patt in kv:
@@ -570,12 +535,10 @@ func makeMatchExpr(n: NimNode, path: Path): ExprRes =
         nnkInfix.newTree(ident "or", newPar(a), b)).concatSide()
 
     elif n.kind == nnkInfix and n[0].strVal() == "is":
-      echov n
       n[1].assertNodeKind({nnkPrefix})
       n[1][0].assertNodeKind({nnkIdent})
 
       let name = n[1][1]
-      echov name
       let accs = path.toAccs("expr")
       let node = quote do:
         (`name` = `accs`; true)
@@ -593,7 +556,6 @@ func updateVarSet(nn: NimNode, variadics: seq[string]): void =
   for idx, node in nn:
     if node.kind == nnkCall and
        node[0] == ident "varset":
-      echov node
       let
         varn = node[1]
         expr = node[2]
@@ -690,7 +652,6 @@ macro match*(
       let pos {.inject.}: int = 0
       # let input {.inject.} = `inputExpr`
       # ifHaxComp:
-      #   echo typeof(input)
 
       `matchcase`
 

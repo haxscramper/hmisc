@@ -386,32 +386,32 @@ suite "Matching":
   #       assert hello.isNone()
 
 
-  dumpTree:
-    IfStmt([*ElseIf([_, @bodies]), newEmptyNode() ?@ bodies])
-    [@a, .._ @b] [.._ @b, @c] [@b, @c .._]
+  # dumpTree:
+  #   IfStmt([*ElseIf([_, @bodies]), newEmptyNode() ?@ bodies])
+  #   [@a, .._ @b] [.._ @b, @c] [@b, @c .._]
 
-    ForStmt([-> ident,
-             Infix([== ident(".."),
-                    -> rbegin,
-                    -> rend]),
-             -> body])
+  #   ForStmt([-> ident,
+  #            Infix([== ident(".."),
+  #                   -> rbegin,
+  #                   -> rend]),
+  #            -> body])
 
-    [_.isString() isnot doError()]
-    #  capture all leading elements until found "d"; do not include it
-    [add @a is Patt(), until "d", .._]
-    # capture all leading icludiinng
-    [add @a is Patt(), incl "d", .._]
-    # optional second value
-    [add Patt(), opt @b]
-    [add @s, until 4]
-    [add @s, with 4]
-    # optional with default value
-    [add @head, opt @tail ? "default"]
+  #   [_.isString() isnot doError()]
+  #   #  capture all leading elements until found "d"; do not include it
+  #   [add @a is Patt(), until "d", .._]
+  #   # capture all leading icludiinng
+  #   [add @a is Patt(), incl "d", .._]
+  #   # optional second value
+  #   [add Patt(), opt @b]
+  #   [add @s, until 4]
+  #   [add @s, with 4]
+  #   # optional with default value
+  #   [add @head, opt @tail ? "default"]
 
-    [add @leading, until @middle is "d", add @trailing]
+  #   [add @leading, until @middle is "d", add @trailing]
 
-    [*@leading, @middle is "d", *@trailing]
+  #   [*@leading, @middle is "d", *@trailing]
 
-    case node:
-      of IfStmt([add ElseIf([@cond, @body]), opt @elseClause]):
-        discard
+  #   case node:
+  #     of IfStmt([add ElseIf([@cond, @body]), opt @elseClause]):
+  #       discard
