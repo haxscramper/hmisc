@@ -331,8 +331,12 @@ suite "Matching":
     block: [_, _, _] := @[1,2,3]
     block: (@a, @b) := ("1", "2")
     block: (_, (@a, @b)) := (1, (2, 3))
+    block:
+      let tmp = [1,2,3,4,5,6,5,6]
+      [until @a == 6, .._] := tmp; assertEq a, @[1,2,3,4,5]
 
     block: # REVIEW special case ?
+      # startHaxComp()
       block: [0..3 is @head] := @[1,2,3,4]
 
     case [%*"hello", %*"12"]:

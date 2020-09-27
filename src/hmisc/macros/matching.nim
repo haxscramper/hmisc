@@ -76,6 +76,7 @@ type
     lkUntil = "until" ## All elements until
     lkPos ## Exact position
     lkSlice ## Subrange slice
+    lkTrail
 
   ListStructure = object
     decl: NimNode
@@ -297,34 +298,39 @@ func parseListMatch(n: NimNode): seq[ListStructure] =
 
   else:
     for elem in n:
-      let (elem, opKind) =
-        if elem.kind in {nnkCall, nnkCommand} and elem[0].strVal() in [
-          lkAny, lkAll, lkNone, lkOpt, lkUntil]:
-          var kwd: ListKeyword
-          for (key, val) in {
-            "any" : lkAny,
-            "all" : lkAll,
-            "opt" : lkOpt,
-            "until" : lkUntil,
-            "none" : lkNone
-              }:
-            if elem[0].eqIdent(key):
-              kwd = val
-              break
+      if elem.kind == nnkPrefix and elem[0].eqIdent(".."):
+        result.add ListStructure(kind: lkTrail, patt: Match(
+          declNode: elem
+        ))
+      else:
+        let (elem, opKind) =
+          if elem.kind in {nnkCall, nnkCommand} and elem[0].strVal() in [
+            lkAny, lkAll, lkNone, lkOpt, lkUntil]:
+            var kwd: ListKeyword
+            for (key, val) in {
+              "any" : lkAny,
+              "all" : lkAll,
+              "opt" : lkOpt,
+              "until" : lkUntil,
+              "none" : lkNone
+                }:
+              if elem[0].eqIdent(key):
+                kwd = val
+                break
 
 
-          (elem[1], kwd)
-        else:
-          (elem, lkPos)
+            (elem[1], kwd)
+          else:
+            (elem, lkPos)
 
-      var
-        match = parseMatchExpr(elem)
-        bindv = match.bindVar
+        var
+          match = parseMatchExpr(elem)
+          bindv = match.bindVar
 
-      match.bindVar = none(NimNode)
+        match.bindVar = none(NimNode)
 
-      result.add ListStructure(bindVar: bindv, kind: opKind).withIt do:
-          it.patt = match
+        result.add ListStructure(bindVar: bindv, kind: opKind).withIt do:
+            it.patt = match
 
 func parseTableMatch(n: NimNode): seq[KVPair] =
   for elem in n:
@@ -337,6 +343,7 @@ func parseMatchExpr(n: NimNode): Match =
       if n == ident "_":
         result.isPlaceholder = true
       else:
+        echov n
         result.rhsNode = n
         result.infix = "=="
     of nnkPar:
@@ -397,6 +404,7 @@ func parseMatchExpr(n: NimNode): Match =
       else:
         result = Match(
           kind: kItem, itemMatch: imkInfixEq,
+          rhsNode: n[2],
           infix: n[0].strVal(), declNode: n)
 
       result.bindVar = some(n[1][1])
@@ -530,7 +538,10 @@ func makeListMatch(
       result.add makeVarSet(elem.bindVar.get(), parent.toAccs(mainExpr))
       vt.addvar(elem.bindVar.get(), parent)
       maxLen = 5000
+    elif elem.kind == lkTrail:
+      maxLen = 5000
     else:
+      # echov elem.kind
       let
         parent = path & @[AccsElem(
           inStruct: kList, pos: posid,
@@ -627,6 +638,7 @@ func makeMatchExpr(
               if m.isPlaceholder:
                 newLit(true)
               else:
+                echov m.rhsNode
                 newInfix(m.infix, parent, m.rhsNode)
              else:
                makeMatchExpr(m.rhsPatt, vt, path, trace, mainExpr)
