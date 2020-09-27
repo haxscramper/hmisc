@@ -261,6 +261,34 @@ suite "Matching":
 
     # proc f((a, b): (bool, int)) = if a: b else: b+10
 
+  test "Infix":
+    macro a(): untyped  =
+      case newPar(ident "1", ident "2"):
+        of Par([@ident1, @ident2]):
+          assert ident1.strVal == "1"
+          assert ident2.strVal == "2"
+        else:
+          assert false
+
+    a()
+
+  test "Iflet 2":
+    macro ifLet2(head: untyped,  body: untyped): untyped =
+      case head[0]:
+        of Asgn([@lhs is Ident(), @rhs]):
+          quote do:
+            let expr = `rhs`
+            if expr.isSome():
+              let `lhs` = expr.get()
+              `body`
+        else:
+          head[0].assertNodeKind({nnkAsgn})
+          head[0][0].assertNodeKind({nnkIdent})
+          head[0].raiseCodeError("Expected assgn expression")
+
+    ifLet2 (nice = some(69)):
+      echo nice
+
   test "Nim Node":
     macro e(body: untyped): untyped =
       case body[0]:
@@ -281,24 +309,6 @@ suite "Matching":
         echo i
 
     assertEq a, 22
-
-
-  test "Iflet 2":
-    macro ifLet2(head: untyped,  body: untyped): untyped =
-      case head[0]:
-        of Asgn([@lhs is Ident(), @rhs]):
-          quote do:
-            let expr = `rhs`
-            if expr.isSome():
-              let `lhs` = expr.get()
-              `body`
-        else:
-          head[0].assertNodeKind({nnkAsgn})
-          head[0][0].assertNodeKind({nnkIdent})
-          head[0].raiseCodeError("Expected assgn expression")
-
-    ifLet2 (nice = some(69)):
-      echo nice
 
 
 

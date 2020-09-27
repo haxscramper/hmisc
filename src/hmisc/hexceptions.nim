@@ -23,6 +23,15 @@ type
 ## function call), support colored multiline annotations for
 ## exceptions, multiple annotations on the same line etc.
 
+func toLineInfo*(arg: tuple[
+  filename: string, line: int, column: int]): LineInfo =
+  LineInfo(
+    filename: arg.filename,
+    line: arg.line,
+    column: arg.column
+  )
+
+
 func startpos*(node: NimNode): LineInfo =
   case node.kind:
     of nnkBracketExpr, nnkDotExpr, nnkAsgn, nnkCall,
@@ -140,7 +149,8 @@ func toCodeError*(node: NimNode, message: string,
 
 func toCodeError*(nodes: openarray[tuple[node: NimNode, annot: string]],
                   message: string,
-                  iinfo: LineInfo = LineInfo()): CodeError =
+                  iinfo: LineInfo = instantiationInfo().toLineInfo()
+                 ): CodeError =
   new(result)
   {.noSideEffect.}:
     result.msg = toColorString(CodeError(
@@ -159,7 +169,8 @@ func toStaticMessage*(
   errpos: LineInfo,
   expr: string,
   message: string,
-  annot: string, iinfo: LineInfo = LineInfo()): string =
+  annot: string,
+  iinfo: LineInfo = instantiationInfo().toLineInfo()): string =
   {.noSideEffect.}:
     toColorString(CodeError(
         msg: message,
@@ -174,7 +185,8 @@ func toStaticMessage*(
 
 func toStaticMessage*(
   node: NimNode, message: string,
-  annot: string, iinfo: LineInfo = LineInfo()): string =
+  annot: string,
+  iinfo: LineInfo = instantiationInfo().toLineInfo()): string =
   toStaticMessage(node.startpos(), node.toStrLit().strval(),
                   message, annot, iinfo)
 
@@ -262,7 +274,8 @@ when isMainModule:
 
 template assertNodeIt*(
   node: NimNode, cond: untyped,
-  msg: untyped, annot: string = ""): untyped =
+  msg: untyped, annot: string = "",
+  iinfo: LineInfo = LineInfo()): untyped =
   # IDEA generate assertions for expected node kinds (for untyped
   # macros) and types (for `typed` arguments) using `NType` from
   # initcalls.
@@ -276,14 +289,16 @@ template assertNodeIt*(
       raise toCodeError(it, msg, annot)
 
 template assertNodeKind*(
-  node: NimNode, kindSet: set[NimNodeKind]): untyped =
+  node: NimNode, kindSet: set[NimNodeKind],
+  iinfo: LineInfo = instantiationInfo().toLineInfo()
+         ): untyped =
   ## assert node kind is in the set. Provide higlighted error with
   ## list of expected types and kind of given node
   node.assertNodeIt(
     node.kind in kindSet,
     (&"Unexpected node kind. Expected one of " &
       $kindSet & " but found " & $node.kind),
-    $node.kind)
+    $node.kind, iinfo)
 
 
 template assertNodeKindNot*(
@@ -297,13 +312,6 @@ template assertNodeKindNot*(
     $node.kind)
 
 
-func toLineInfo*(arg: tuple[
-  filename: string, line: int, column: int]): LineInfo =
-  LineInfo(
-    filename: arg.filename,
-    line: arg.line,
-    column: arg.column
-  )
 
 template raiseCodeError*(node: NimNode, message: string,
                          annotation: string = "",
