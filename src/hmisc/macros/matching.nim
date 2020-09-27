@@ -295,8 +295,10 @@ func parseMatchExpr(n: NimNode): Match =
       result = Match(
         kind: kPairs, pairElems: parseTableMatch(n), declNode: n)
     of nnkCurly:
-      result = Match(
-        kind: kPairs, pairElems: parseTableMatch(n), declNode: n)
+      result = Match(kind: kSet, declNode: n)
+      for node in n:
+        node.assertNodeKindNot({nnkExprColonExpr})
+        result.setElems.add parseMatchExpr(node)
     of nnkObjConstr, nnkCall:
       result = parseKVTuple(n)
     elif n.isInfixPatt():
@@ -366,23 +368,27 @@ func makeListMatch(list: Match, vt: var VarTable, path: Path): NimNode =
     matched = genSym(nskVar, "matched")
     failBlock = ident("failBlock")
     failBreak = nnkBreakStmt.newTree(failBlock)
+    parent = path & @[AccsElem(inStruct: kList, pos: posid)]
 
 
   result = newStmtList()
+  var minLen = 0
+  var maxLen = 0
   for idx, elem in list.listElems:
-    let
-      parent = path & @[AccsElem(inStruct: kList, pos: posid)]
-      expr = elem.patt.makeMatchExpr(vt, parent)
+    let expr = elem.patt.makeMatchExpr(vt, parent)
 
-    result.add newCommentStmtNode($elem.kind & " " & elem.patt.declNode.repr)
+    result.add newCommentStmtNode(
+      $elem.kind & " " & elem.patt.declNode.repr)
     case elem.kind:
       of lkPos:
+        inc minLen
+        inc maxLen
         if elem.patt.kind == kItem and
            elem.patt.itemMatch == imkInfixEq and
            elem.patt.isPlaceholder:
           iflet (bindv = elem.bindVar):
             result.add makeVarSet(bindv, parent.toAccs("expr"))
-            vt.addvar(bindv, path)
+            vt.addvar(bindv, parent)
 
           result.add newCall(ident "inc", posid)
         else:
@@ -396,22 +402,32 @@ func makeListMatch(list: Match, vt: var VarTable, path: Path): NimNode =
         if true:
           raiseAssert("#[ IMPLEMENT ]#")
 
-  let comment = newCommentStmtNode(list.declNode.repr)
+  let
+    comment = newCommentStmtNode(list.declNode.repr)
+    minNode = newLit(minLen)
+    maxNode = newLit(maxLen)
+    parentPath = path.toAccs("expr")
+
   result = quote do:
     `comment`
     var `matched` = false
     block `failBlock`:
-      var `posid` = 0
+      var `posid` = 0 ## Start list match
+
+      if `parentPath`.len notin {`minNode` .. `maxNode`}:
+        ## fail on seq len
+        break `failBlock`
 
       `result`
 
-      `matched` = true
+      `matched` = true ## List match ok
 
     `matched`
 
 
 
   result = result.newPar().newPar()
+  # debugecho result.repr
 
 
 
@@ -499,7 +515,7 @@ func makeMatchExpr(m: Match, vt: var VarTable, path: Path): NimNode =
 
 
 func makeMatchExpr(m: Match): tuple[expr: NimNode, vtable: VarTable] =
-  debugpprint m
+  # debugpprint m
   result.expr = makeMatchExpr(m, result.vtable, @[])
   # debugecho result.expr.toStrLit().strVal()
 
@@ -534,14 +550,7 @@ func updateVarSet(nn: NimNode, vtable: VarTable): void =
             `varn`.incl some(`expr`) ## Add element to set
 
         of vkRegular:
-          try:
-            nn[idx] = quote do:
-              `varn` = `expr` ## Set regular variable
-          except:
-            # debugecho nn.repr
-            # debugecho node.repr
-            # debugecho nn[idx].repr
-            raiseAssert("#[ IMPLEMENT ]#")
+          nn[idx] = nnkAsgn.newTree(varn, expr)
 
         of vkAlt:
           raiseAssert("#[ IMPLEMENT ]#")
@@ -599,7 +608,8 @@ macro match*(
 
 
         matchcase.add nnkElifBranch.newTree(
-          elem[0].parseMatchExpr().makeMatchExpr().toNode(),
+          elem[0].parseMatchExpr().makeMatchExpr().
+            toNode().newPar().newPar(),
           elem[1]
         )
 
@@ -616,4 +626,5 @@ macro match*(
       let pos {.inject.}: int = 0
       `matchcase`
 
-  debugecho result
+  echov result
+  # debugecho result

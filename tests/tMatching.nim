@@ -12,6 +12,29 @@ import json
 import unittest
 
 suite "Matching":
+  # FIXME
+  # test "Nim Node":
+  #   macro e(body: untyped): untyped =
+  #     case body[0]:
+  #       of ForStmt([@ident, _, @expr]):
+  #         quote do:
+  #           9
+  #       of ForStmt([@ident, Infix([== ident(".."), @rbegin, @rend]),
+  #                   @body]):
+  #         quote do:
+  #           `rbegin` + `rend`
+  #       else:
+  #         quote do:
+  #           90
+
+
+  #   let a = e:
+  #     for i in 10 .. 12:
+  #       echo i
+
+  #   assertEq a, 22
+
+
   test "Has kind for anything":
     type
       En = enum
@@ -38,10 +61,11 @@ suite "Matching":
     case [1]:
       of [_]: discard
 
-    case [1,2,3,4]:
-      of [_]: fail()
-      of [_, 2, 3, _]:
-        discard
+    workHaxComp false:
+      case [1,2,3,4]:
+        of [_]: fail()
+        of [_, 2, 3, _]:
+          discard
 
 
     assertEq "hehe", case (true, false):
@@ -263,12 +287,13 @@ suite "Matching":
 
   test "Infix":
     macro a(): untyped  =
-      case newPar(ident "1", ident "2"):
-        of Par([@ident1, @ident2]):
-          assert ident1.strVal == "1"
-          assert ident2.strVal == "2"
-        else:
-          assert false
+      workHaxComp false:
+        case newPar(ident "1", ident "2"):
+          of Par([@ident1, @ident2]):
+            assert ident1.strVal == "1"
+            assert ident2.strVal == "2"
+          else:
+            assert false
 
     a()
 
@@ -289,27 +314,6 @@ suite "Matching":
     ifLet2 (nice = some(69)):
       echo nice
 
-  test "Nim Node":
-    macro e(body: untyped): untyped =
-      case body[0]:
-        of ForStmt([@ident, _, @expr]):
-          quote do:
-            9
-        of ForStmt([@ident, Infix([== ident(".."), @rbegin, @rend]),
-                    @body]):
-          quote do:
-            `rbegin` + `rend`
-        else:
-          quote do:
-            90
-
-
-    let a = e:
-      for i in 10 .. 12:
-        echo i
-
-    assertEq a, 22
-
 
 
   test "Alternative":
@@ -322,56 +326,56 @@ suite "Matching":
                   else: 666
 
 
-  test "Set":
-    case {0 .. 3}:
-      of {2, 3}: discard
-      else: fail()
+  # test "Set":
+  #   case {0 .. 3}:
+  #     of {2, 3}: discard
+  #     else: fail()
 
-    case {4 .. 10}:
-      of {@a, 9}:
-        assert a is set
-        assert 7 in a
-      else:
-        fail()
+  #   case {4 .. 10}:
+  #     of {@a, 9}:
+  #       assert a is set
+  #       assert 7 in a
+  #     else:
+  #       fail()
 
-  test "One-or-more":
-    template testCase(main, patt, body: untyped): untyped =
-      case main:
-        of patt:
-          body
-        else:
-          fail()
-          raiseAssert("#[ IMPLEMENT ]#")
+  # test "One-or-more":
+  #   template testCase(main, patt, body: untyped): untyped =
+  #     case main:
+  #       of patt:
+  #         body
+  #       else:
+  #         fail()
+  #         raiseAssert("#[ IMPLEMENT ]#")
 
-    assertEq 1, testCase([1], [@a], a)
+  #   assertEq 1, testCase([1], [@a], a)
 
-    # startHaxComp()
-    assertEq @[1], testCase([1], [*@a], a)
-    assertEq @[2, 2, 2], testCase([1, 2, 2, 2, 4], [_, *@a, 4], a)
-    assertEq (@[1], @[3, 3, 3]), testCase(
-      [1, 2, 3, 3, 3], [*@a, 2, *@b], (a, b))
+  #   # startHaxComp()
+  #   assertEq @[1], testCase([1], [*@a], a)
+  #   assertEq @[2, 2, 2], testCase([1, 2, 2, 2, 4], [_, *@a, 4], a)
+  #   assertEq (@[1], @[3, 3, 3]), testCase(
+  #     [1, 2, 3, 3, 3], [*@a, 2, *@b], (a, b))
 
-  #   dieHereComp()
-
-
-    case [1,2,3,4]:
-      of [@a, .._]:
-        assert a is int
-        assert a == 1
-      else:
-        fail()
+  # #   dieHereComp()
 
 
-    workHax true:
-      case [1,2,3,4]:
-        of [*@a]:
-          assert a is seq[int]
-          assert a == @[1,2,3,4]
-        else:
-          fail()
+  #   case [1,2,3,4]:
+  #     of [@a, .._]:
+  #       assert a is int
+  #       assert a == 1
+  #     else:
+  #       fail()
 
-    startHaxComp()
-    stopHaxComp()
+
+  #   workHax true:
+  #     case [1,2,3,4]:
+  #       of [*@a]:
+  #         assert a is seq[int]
+  #         assert a == @[1,2,3,4]
+  #       else:
+  #         fail()
+
+  #   startHaxComp()
+  #   stopHaxComp()
 
   # test "Optional matches":
   #   case [1,2,3,4]:
