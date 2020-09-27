@@ -394,10 +394,13 @@ func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
 
 
 func makeMatchExpr(
-  m: Match, vt: var VarTable, path: Path, trace: Option[NimNode]): NimNode
+  m: Match, vt: var VarTable,
+  path: Path, trace: Option[NimNode],
+  mainExpr: string): NimNode
 
 func makeListMatch(
-  list: Match, vt: var VarTable, path: Path, trace: Option[NimNode]): NimNode =
+  list: Match, vt: var VarTable, path: Path,
+  trace: Option[NimNode], mainExpr: string): NimNode =
   var idx = 1
   while idx < list.listElems.len:
     if list.listElems[idx - 1].kind notin {lkUntil, lkPos, lkOpt}:
@@ -413,7 +416,7 @@ func makeListMatch(
     matched = genSym(nskVar, "matched")
     failBlock = ident("failBlock")
     failBreak = nnkBreakStmt.newTree(failBlock)
-    getLen = newCall("len", path.toAccs("expr"))
+    getLen = newCall("len", path.toAccs(mainExpr))
 
 
   var subtrace: Option[NimNode]
@@ -429,7 +432,7 @@ func makeListMatch(
         inStruct: kList, pos: posid,
         isVariadic: elem.kind notin {lkPos})]
 
-      expr = elem.patt.makeMatchExpr(vt, parent, subtrace)
+      expr = elem.patt.makeMatchExpr(vt, parent, subtrace, mainExpr)
 
 
     result.add newCommentStmtNode(
@@ -441,7 +444,7 @@ func makeListMatch(
       traceErr = newEmptyNode()
 
     iflet (tr = subtrace):
-      let parent = parent.toAccs("expr")
+      let parent = parent.toAccs(mainExpr)
       let expr = newLit(elem.patt.declNode.repr)
       traceOk = quote do:
         `tr`.register(`expr`, $`parent`, true)
@@ -455,7 +458,7 @@ func makeListMatch(
         inc minLen
         inc maxLen
         iflet (bindv = elem.bindVar):
-          result.add makeVarSet(bindv, parent.toAccs("expr"))
+          result.add makeVarSet(bindv, parent.toAccs(mainExpr))
           vt.addvar(bindv, parent)
 
         if elem.patt.kind == kItem and
@@ -476,7 +479,7 @@ func makeListMatch(
         var varset = newEmptyNode()
 
         iflet (bindv = elem.bindVar):
-          varset = makeVarSet(bindv, parent.toAccs("expr"))
+          varset = makeVarSet(bindv, parent.toAccs(mainExpr))
           vt.addvar(bindv, parent)
 
         case elem.kind:
@@ -523,7 +526,7 @@ func makeListMatch(
   iflet (tr = trace):
     let
       subtrace = subtrace.get()
-      parent = path.toAccs("expr")
+      parent = path.toAccs(mainExpr)
       expr = newLit(list.declNode.repr)
 
     storeTrace = quote do:
@@ -564,10 +567,10 @@ func makeListMatch(
 
 func makeMatchExpr(
   m: Match, vt: var VarTable, path: Path,
-  trace: Option[NimNode]): NimNode =
+  trace: Option[NimNode], mainExpr: string): NimNode =
   case m.kind:
     of kItem:
-      let parent = path.toAccs("expr")
+      let parent = path.toAccs(mainExpr)
       # echov pstring m
       case m.itemMatch:
         of imkInfixEq, imkSubpatt:
@@ -578,7 +581,7 @@ func makeMatchExpr(
               else:
                 newInfix(m.infix, parent, m.rhsNode)
              else:
-               makeMatchExpr(m.rhsPatt, vt, path, trace)
+               makeMatchExpr(m.rhsPatt, vt, path, trace, mainExpr)
 
           iflet (vname = m.bindVar):
             # echov m.bindVar
@@ -601,29 +604,29 @@ func makeMatchExpr(
           raiseAssert("#[ IMPLEMENT ]#")
 
     of kList:
-      return makeListMatch(m, vt, path, trace)
+      return makeListMatch(m, vt, path, trace, mainExpr)
     of kTuple:
       let conds = collect(newSeq):
         for idx, it in m.tupleElems:
           it.makeMatchExpr(vt, path & @[
             AccsElem(inStruct: kTuple, idx: idx)
-          ], trace)
+          ], trace, mainExpr)
 
       return conds.foldInfix("and")
     of kObject:
       var conds: seq[NimNode]
       for (fld, patt) in m.fldElems:
         conds.add patt.makeMatchExpr(vt, path & @[
-          AccsElem(inStruct: kObject, fld: fld)], trace)
+          AccsElem(inStruct: kObject, fld: fld)], trace, mainExpr)
 
       iflet (list = m.listMatches):
-        conds.add list.makeMatchExpr(vt, path, trace)
+        conds.add list.makeMatchExpr(vt, path, trace, mainExpr)
 
       iflet (kv = m.kvMatches):
-        conds.add kv.makeMatchExpr(vt, path, trace)
+        conds.add kv.makeMatchExpr(vt, path, trace, mainExpr)
 
       iflet (kc = m.kindCall):
-        conds.add newCall(ident "hasKind", path.toAccs("expr"), kc)
+        conds.add newCall(ident "hasKind", path.toAccs(mainExpr), kc)
 
       return conds.foldInfix("and")
 
@@ -632,15 +635,16 @@ func makeMatchExpr(
       for (key, val) in m.pairElems:
         conds.add newInfix(
           "and",
-          newInfix("in", key, path.toAccs("expr")),
+          newInfix("in", key, path.toAccs(mainExpr)),
           val.makeMatchExpr(vt, path & @[
-            AccsElem(inStruct: kPairs, key: key)], trace))
+            AccsElem(inStruct: kPairs, key: key)], trace, mainExpr))
 
       return conds.foldInfix("and")
     of kAlt:
       let conds = collect(newSeq):
         for alt in m.altElems:
-          alt.makeMatchExpr(vt, path & @[AccsElem(inStruct: kAlt)], trace)
+          alt.makeMatchExpr(
+            vt, path & @[AccsElem(inStruct: kAlt)], trace, mainExpr)
 
       return conds.foldInfix("or")
     else:
@@ -649,10 +653,10 @@ func makeMatchExpr(
 
 
 
-func makeMatchExpr(m: Match, trace: Option[NimNode]): tuple[
+func makeMatchExpr(m: Match, trace: Option[NimNode], mainExpr: string): tuple[
     expr: NimNode, vtable: VarTable] =
 
-  result.expr = makeMatchExpr(m, result.vtable, @[], trace)
+  result.expr = makeMatchExpr(m, result.vtable, @[], trace, mainExpr)
 
 func updateTypeof(nn: NimNode): void =
   for idx, node in nn:
@@ -698,14 +702,15 @@ func updateVarSet(nn: NimNode, vtable: VarTable): void =
     else:
       updateVarSet(nn[idx], vtable)
 
-func toNode(input: tuple[expr: NimNode, vtable: VarTable]): NimNode =
+func toNode(
+  input: tuple[expr: NimNode, vtable: VarTable], mainExpr: string): NimNode =
   var (expr, vtable) = input
 
   var exprNew = nnkStmtList.newTree()
   for name, spec in vtable:
     let vname = ident(name)
     # debugecho vname.lispRepr()
-    let typeExpr = toAccs(spec.typePath, "expr")
+    let typeExpr = toAccs(spec.typePath, mainExpr)
     updateTypeof(typeExpr)
     case spec.varKind:
       of vkSequence:
@@ -750,8 +755,8 @@ macro match*(
 
 
         matchcase.add nnkElifBranch.newTree(
-          elem[0].parseMatchExpr().makeMatchExpr(trace).
-            toNode().newPar().newPar(),
+          elem[0].parseMatchExpr().makeMatchExpr(trace, "expr").
+            toNode("expr").newPar().newPar(),
           elem[1]
         )
 
@@ -780,12 +785,20 @@ macro match*(
   echov result
 
 macro assertMatch*(input: typed, pattern: untyped): untyped =
-  let matched = pattern.parseMatchExpr().
-    makeMatchExpr(some ident "trace").toNode()
+  let
+    tr = genSym(nskVar, "trace")
+    expr = ident genSym(nskLet, "expr").repr
+    matched = pattern.parseMatchExpr().
+      makeMatchExpr(none NimNode, expr.repr).toNode(expr.repr)
 
+
+  let patt = newLit(pattern.repr)
   return quote do:
-    var trace {.inject.}: MatchTrace
-    let expr {.inject.} = `input`
+    let `expr` = `input`
     let ok = `matched`
-    if not `matched`:
-      raiseAssert("Pattern match failed " & $trace)
+
+    if not ok:
+      raiseAssert("Pattern match failed " & `patt`)
+
+template `:=`*(lhs, rhs: untyped): untyped =
+  assertMatch(rhs, lhs)

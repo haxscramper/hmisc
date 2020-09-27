@@ -321,6 +321,13 @@ suite "Matching":
 
   test "Match assertions":
     [1,2,3].assertMatch([all @res]); assertEq res, @[1,2,3]
+    [1,2,3].assertMatch([all @res2]); assertEq res2, @[1,2,3]
+    [1,2,3].assertMatch([@first, all @other])
+
+    block: [@first, all @other] := [1,2,3]
+
+    assertEq first, 1
+    assertEq other, @[2, 3]
 
   test "One-or-more":
     template testCase(main, patt, body: untyped): untyped =
