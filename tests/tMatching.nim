@@ -323,11 +323,32 @@ suite "Matching":
     [1,2,3].assertMatch([all @res]); assertEq res, @[1,2,3]
     [1,2,3].assertMatch([all @res2]); assertEq res2, @[1,2,3]
     [1,2,3].assertMatch([@first, all @other])
-
-    block: [@first, all @other] := [1,2,3]
-
     assertEq first, 1
     assertEq other, @[2, 3]
+
+
+    block: [@first, all @other] := [1,2,3]
+    block: [_, _, _] := @[1,2,3]
+    block: (@a, @b) := ("1", "2")
+    block: (_, (@a, @b)) := (1, (2, 3))
+
+    block: # REVIEW special case ?
+      block: [0..3 is @head] := @[1,2,3,4]
+
+    case [%*"hello", %*"12"]:
+      of [any @elem is JString()]:
+        discard
+      else:
+        fail()
+
+    case ("foo", 78)
+      of ("foo", 78):
+        discard
+      of ("bar", 88):
+        fail()
+
+    expandMacros:
+      block: Some(@x) := some("hello")
 
   test "One-or-more":
     template testCase(main, patt, body: untyped): untyped =

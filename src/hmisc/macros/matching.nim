@@ -75,12 +75,16 @@ type
     lkOpt = "opt"
     lkUntil = "until" ## All elements until
     lkPos ## Exact position
+    lkSlice ## Subrange slice
 
   ListStructure = object
     decl: NimNode
     bindVar: Option[NimNode]
-    patt: Match
-    kind: ListKeyword
+    case kind: ListKeyword
+      of lkSlice:
+        slice: NimNode
+      else:
+        patt: Match
 
   ItemMatchKind = enum
     imkInfixEq
@@ -145,6 +149,7 @@ type
       of kPairs:
         parentKey: bool
         key: NimNode
+        nocheck: bool
       of kSet, kAlt:
         discard
       of kItem:
@@ -236,6 +241,20 @@ func toAccs(path: Path, name: string): NimNode =
 func parseMatchExpr(n: NimNode): Match
 
 func parseKVTuple(n: NimNode): Match =
+  if n[0].eqIdent("Some"):
+    n.assertNodeIt(n.len <= 2, "Expected `Some(@varBind)`")
+    n[1].assertNodeKind({nnkPrefix})
+    n[1][0].assertNodeKind({nnkIdent})
+
+    return Match(kind: kObject, declNode: n, fldElems: @{
+      "isSome": Match(kind: kItem, itemMatch: imkInfixEq, declNode: n[0],
+                      rhsNode: newLit(true), infix: "=="),
+      "get": Match(kind: kItem, itemMatch: imkInfixEq,
+                   declNode: n[1], isPlaceholder: true,
+                   bindVar: some(n[1][1])),
+    })
+
+
   result = Match(kind: kObject, declNode: n)
   var start = 0
   if n.kind in {nnkCall, nnkObjConstr}:
@@ -260,34 +279,52 @@ func contains(kwds: openarray[ListKeyword], str: string): bool =
       return true
 
 func parseListMatch(n: NimNode): seq[ListStructure] =
-  for elem in n:
-    let (elem, opKind) =
-      if elem.kind in {nnkCall, nnkCommand} and elem[0].strVal() in [
-        lkAny, lkAll, lkNone, lkOpt, lkUntil]:
-        var kwd: ListKeyword
-        for (key, val) in {
-          "any" : lkAny,
-          "all" : lkAll,
-          "opt" : lkOpt,
-          "until" : lkUntil,
-          "none" : lkNone
-            }:
-          if elem[0].eqIdent(key):
-            kwd = val
-            break
+  func ok(n: NimNode): bool =
+    echov n.lispRepr()
+    (n.kind == nnkInfix) and
+    (n[1].kind == nnkInfix) and
+    n[1][0].eqIdent("..")
+
+  if n.anyOfIt(it.ok):
+    iflet (err = n.findItFirstOpt(not it.ok)):
+      raiseCodeError(err, "Not all elements in array are slice patterns")
+
+    for elem in n:
+      elem[2].assertNodeKind({nnkPrefix})
+      elem[2][1].assertNodeKind({nnkIdent})
+      result.add ListStructure(
+        slice: elem[1], bindVar: some(elem[2][1]), kind: lkSlice)
+
+  else:
+    for elem in n:
+      let (elem, opKind) =
+        if elem.kind in {nnkCall, nnkCommand} and elem[0].strVal() in [
+          lkAny, lkAll, lkNone, lkOpt, lkUntil]:
+          var kwd: ListKeyword
+          for (key, val) in {
+            "any" : lkAny,
+            "all" : lkAll,
+            "opt" : lkOpt,
+            "until" : lkUntil,
+            "none" : lkNone
+              }:
+            if elem[0].eqIdent(key):
+              kwd = val
+              break
 
 
-        (elem[1], kwd)
-      else:
-        (elem, lkPos)
+          (elem[1], kwd)
+        else:
+          (elem, lkPos)
 
-    var
-      match = parseMatchExpr(elem)
-      bindv = match.bindVar
+      var
+        match = parseMatchExpr(elem)
+        bindv = match.bindVar
 
-    match.bindVar = none(NimNode)
+      match.bindVar = none(NimNode)
 
-    result.add ListStructure(patt: match, bindVar: bindv, kind: opKind)
+      result.add ListStructure(bindVar: bindv, kind: opKind).withIt do:
+          it.patt = match
 
 func parseTableMatch(n: NimNode): seq[KVPair] =
   for elem in n:
@@ -353,7 +390,6 @@ func parseMatchExpr(n: NimNode): Match =
       n[1].assertNodeKind({nnkPrefix})
       n[1][1].assertNodeKind({nnkIdent})
       if n[0].strVal() == "is":
-        echov n
         result = Match(
           kind: kItem, itemMatch: imkSubpatt,
           rhsPatt: parseMatchExpr(n[2]), declNode: n)
@@ -398,6 +434,65 @@ func makeMatchExpr(
   path: Path, trace: Option[NimNode],
   mainExpr: string): NimNode
 
+template makeElemMatch(): untyped {.dirty.} =
+  case elem.kind:
+    of lkPos:
+      inc minLen
+      inc maxLen
+      iflet (bindv = elem.bindVar):
+        result.add makeVarSet(bindv, parent.toAccs(mainExpr))
+        vt.addvar(bindv, parent)
+
+      if elem.patt.kind == kItem and
+         elem.patt.itemMatch == imkInfixEq and
+         elem.patt.isPlaceholder:
+        result.add newCall(ident "inc", posid)
+      else:
+        result.add quote do:
+          if `expr`:
+            `traceOk`
+            inc `posid`
+          else:
+            `traceErr`
+            `failBreak`
+
+    else:
+      maxLen = 5000
+      var varset = newEmptyNode()
+
+      iflet (bindv = elem.bindVar):
+        varset = makeVarSet(bindv, parent.toAccs(mainExpr))
+        vt.addvar(bindv, parent)
+
+      case elem.kind:
+        of lkAll:
+          result.add quote do:
+            block:
+              var allOk: bool = true
+              while `posid` < `getLen` and allOk:
+                if not `expr`:
+                  allOk = false
+                  `traceErr`
+                else:
+                  `varset`
+                  `traceOk`
+                  inc `posid`
+
+              if not allOk:
+                break `failBlock`
+
+        of lkUntil:
+          result.add quote do:
+            while (`posid` < `getLen`) and (not `expr`):
+              `varset`
+              `traceOk`
+              inc `posid`
+        else:
+          if false:
+            raiseAssert("#[ IMPLEMENT ]#")
+
+
+
 func makeListMatch(
   list: Match, vt: var VarTable, path: Path,
   trace: Option[NimNode], mainExpr: string): NimNode =
@@ -427,88 +522,41 @@ func makeListMatch(
   var minLen = 0
   var maxLen = 0
   for idx, elem in list.listElems:
-    let
-      parent = path & @[AccsElem(
-        inStruct: kList, pos: posid,
-        isVariadic: elem.kind notin {lkPos})]
+    if elem.kind == lkSlice:
+      let
+        parent = path & @[AccsElem(
+          inStruct: kPairs, key: elem.slice, nocheck: true)]
 
-      expr = elem.patt.makeMatchExpr(vt, parent, subtrace, mainExpr)
+      result.add makeVarSet(elem.bindVar.get(), parent.toAccs(mainExpr))
+      vt.addvar(elem.bindVar.get(), parent)
+      maxLen = 5000
+    else:
+      let
+        parent = path & @[AccsElem(
+          inStruct: kList, pos: posid,
+          isVariadic: elem.kind notin {lkPos})]
 
-
-    result.add newCommentStmtNode(
-      $elem.kind & " " & elem.patt.declNode.repr)
-
-
-    var
-      traceOk = newEmptyNode()
-      traceErr = newEmptyNode()
-
-    iflet (tr = subtrace):
-      let parent = parent.toAccs(mainExpr)
-      let expr = newLit(elem.patt.declNode.repr)
-      traceOk = quote do:
-        `tr`.register(`expr`, $`parent`, true)
-
-      traceErr = quote do:
-        `tr`.register(`expr`, $`parent`, false)
+        expr = elem.patt.makeMatchExpr(vt, parent, subtrace, mainExpr)
 
 
-    case elem.kind:
-      of lkPos:
-        inc minLen
-        inc maxLen
-        iflet (bindv = elem.bindVar):
-          result.add makeVarSet(bindv, parent.toAccs(mainExpr))
-          vt.addvar(bindv, parent)
+      result.add newCommentStmtNode(
+        $elem.kind & " " & elem.patt.declNode.repr)
 
-        if elem.patt.kind == kItem and
-           elem.patt.itemMatch == imkInfixEq and
-           elem.patt.isPlaceholder:
-          result.add newCall(ident "inc", posid)
-        else:
-          result.add quote do:
-            if `expr`:
-              `traceOk`
-              inc `posid`
-            else:
-              `traceErr`
-              `failBreak`
 
-      else:
-        maxLen = 5000
-        var varset = newEmptyNode()
+      var
+        traceOk = newEmptyNode()
+        traceErr = newEmptyNode()
 
-        iflet (bindv = elem.bindVar):
-          varset = makeVarSet(bindv, parent.toAccs(mainExpr))
-          vt.addvar(bindv, parent)
+      iflet (tr = subtrace):
+        let parent = parent.toAccs(mainExpr)
+        let expr = newLit(elem.patt.declNode.repr)
+        traceOk = quote do:
+          `tr`.register(`expr`, $`parent`, true)
 
-        case elem.kind:
-          of lkAll:
-            result.add quote do:
-              block:
-                var allOk: bool = true
-                while `posid` < `getLen` and allOk:
-                  if not `expr`:
-                    allOk = false
-                    `traceErr`
-                  else:
-                    `varset`
-                    `traceOk`
-                    inc `posid`
+        traceErr = quote do:
+          `tr`.register(`expr`, $`parent`, false)
 
-                if not allOk:
-                  break `failBlock`
-
-          of lkUntil:
-            result.add quote do:
-              while (`posid` < `getLen`) and (not `expr`):
-                `varset`
-                `traceOk`
-                inc `posid`
-          else:
-            if false:
-              raiseAssert("#[ IMPLEMENT ]#")
-
+      makeElemMatch()
 
   let
     comment = newCommentStmtNode(list.declNode.repr)
@@ -710,7 +758,10 @@ func toNode(
   for name, spec in vtable:
     let vname = ident(name)
     # debugecho vname.lispRepr()
-    let typeExpr = toAccs(spec.typePath, mainExpr)
+    var typeExpr = toAccs(spec.typePath, mainExpr)
+    typeExpr = quote do:
+      ((let tmp = `typeExpr`; tmp))
+
     updateTypeof(typeExpr)
     case spec.varKind:
       of vkSequence:
@@ -793,12 +844,14 @@ macro assertMatch*(input: typed, pattern: untyped): untyped =
 
 
   let patt = newLit(pattern.repr)
-  return quote do:
+  result = quote do:
     let `expr` = `input`
     let ok = `matched`
 
     if not ok:
       raiseAssert("Pattern match failed " & `patt`)
+
+  echov result
 
 template `:=`*(lhs, rhs: untyped): untyped =
   assertMatch(rhs, lhs)
