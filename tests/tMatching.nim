@@ -332,11 +332,12 @@ suite "Matching":
     block: (@a, @b) := ("1", "2")
     block: (_, (@a, @b)) := (1, (2, 3))
     block:
-      let tmp = [1,2,3,4,5,6,5,6]
+      let tmp = @[1,2,3,4,5,6,5,6]
       block: [until @a == 6, .._] := tmp; assertEq a, @[1,2,3,4,5]
       block: [@a, .._] := tmp; assertEq a, 1
-      startHaxComp()
       block: [any @a(it < 100)] := tmp; assertEq a, tmp
+      startHaxComp()
+      stopHaxComp()
 
     block: # REVIEW special case ?
       block: [0..3 is @head] := @[1,2,3,4]

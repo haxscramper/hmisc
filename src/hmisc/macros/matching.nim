@@ -473,6 +473,20 @@ template makeElemMatch(): untyped {.dirty.} =
           result.add quote do:
             while (`posid` < `getLen`) and (not `expr`):
               `varset`
+              inc `posid`
+        of lkAny:
+          result.add quote do:
+            block:
+              var foundOk: bool = false
+              while `posid` < `getLen`:
+                if `expr`:
+                  foundOk = true
+                  `varset`
+                  inc `posid`
+
+              if not foundOk:
+                break `failBlock`
+
         else:
           if false:
             raiseAssert("#[ IMPLEMENT ]#")
@@ -600,13 +614,8 @@ func makeMatchExpr(
         of imkPredicate:
           let pred = m.predBody
           var bindVar = newEmptyNode()
-          iflet (vname = m.bindVar):
-            vt.addvar(vname, path)
-            bindVar = makeVarSet(vname, parent)
-
-          return quote do:
-            let it {.inject.} = `parent`
-            (`pred` and (`bindVar`; true))
+          result = quote do:
+            (let it {.inject.} = `parent`; `pred`)
 
     of kList:
       return makeListMatch(m, vt, path, mainExpr)
