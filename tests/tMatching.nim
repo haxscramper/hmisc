@@ -379,16 +379,10 @@ suite "Matching":
       of [all @a]: assertEq a, @[1]
       else: fail()
 
-    static:
-      debugTraceMatch = true
-
-
-    # startHaxComp()
     case [1,2,3,4]:
       of [_, until @a is 4, 4]:
         assertEq a, @[2,3]
       else:
-        echo trace
         fail()
 
     # assertEq 1, testCase([1], [@a], a)
