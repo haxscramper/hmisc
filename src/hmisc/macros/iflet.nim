@@ -6,6 +6,8 @@ import macros
 
 # TODO support not only optional types but also pointers and references.
 
+# TODO `iflet (val1 = opt1 and val2 = opt2)`
+
 macro ifLet*(head: untyped, bodies: varargs[untyped]): untyped =
   ##[
 Unwrap optional value into variable if it contains something.

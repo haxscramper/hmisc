@@ -108,12 +108,9 @@ suite "Matching":
         else:
           newLit("not matched")
 
-    echo e([2,3,4])
-    echo e([[1, 3, 4]])
-    echo e([3, 4])
-
-    # ifLet2 (`nice` = some(69)):
-    #   echo nice
+    discard e([2,3,4])
+    discard e([[1, 3, 4]])
+    discard e([3, 4])
 
 
   test "Regular objects":
@@ -124,6 +121,8 @@ suite "Matching":
     case A(f1: 12):
       of (f1: 12):
         discard "> 10"
+      else:
+        fail()
 
     assertEq 10, case A(f1: 90):
                    of (f1: 20): 80
@@ -136,16 +135,15 @@ suite "Matching":
 
     func public(a: A): string = $a.hidden
 
-
     case A():
       of (public: _):
-        echo "matched: ", expr.public
+        discard
       else:
-        echo expr.public
+        fail()
 
-    assertEq "10", case A(hidden: 8.0):
-                     of (public: "8.0"): "10"
-                     else: raiseAssert("#[ IMPLEMENT ]#")
+    case A(hidden: 8.0):
+      of (public: "8.0"): discard
+      else: fail()
 
   type
     En = enum
@@ -162,47 +160,36 @@ suite "Matching":
 
 
   test "Case objects":
-    echo case Obj():
-           of EE(): "00"
-           of ZZ(): "hello worlkd"
-           else: raiseAssert("#[ IMPLEMENT ]#")
+    case Obj():
+      of EE(): discard
+      of ZZ(): fail()
 
-    workHax false:
-      case (c: (a: 12)):
-        of (c: (a: _)): discard
-        else: fail("")
+    case (c: (a: 12)):
+      of (c: (a: _)): discard
+      else: fail("")
 
     case [(a: 12, b: 3)]:
       of [(a: 12, b: 22)]: fail("")
       of [(a: _, b: _)]: discard
 
+    case (c: [3, 3, 4]):
+      of (c: [_, _, _]): discard
+      of (c: _): fail("")
 
-    workHax false:
-      case (c: [3, 3, 4]):
-        of (c: [_, _, _]): discard
-        of (c: _): fail("")
+    case (c: [(a: [1, 3])]):
+      of (c: [(a: [_])]): fail("")
+      else: discard
 
-    # starthaxComp()
+    case (c: [(a: [1, 3]), (a: [1, 4])]):
+      of (c: [(a: [_]), _]): fail("")
+      else:
+        discard
 
-
-    workHax true:
-      case (c: [(a: [1, 3])]):
-        of (c: [(a: [_])]): fail("")
-        else: discard
-    # stopHaxComp()
-
-    workHax false:
-      case (c: [(a: [1, 3]), (a: [1, 4])]):
-        of (c: [(a: [_]), _]): fail("")
-        else:
-          discard
-
-    workHax false:
-      case Obj(kind: enEE, eee: @[Obj(kind: enZZ, fl: 12)]):
-        of enEE(eee: [(kind: enZZ, fl: 12)]):
-          discard
-        else:
-          fail("")
+    case Obj(kind: enEE, eee: @[Obj(kind: enZZ, fl: 12)]):
+      of enEE(eee: [(kind: enZZ, fl: 12)]):
+        discard
+      else:
+        fail("")
 
     case Obj():
       of enEE():
@@ -255,23 +242,19 @@ suite "Matching":
         else:
           fail()
 
-    echo case (a: 12, b: 2):
-           of (a: @a, b: @b): $a & $b
-           else: "✠ ♰ ♱ ☩ ☦ ☨ ☧ ⁜ ☥"
+    assertEq "122", case (a: 12, b: 2):
+                      of (a: @a, b: @b): $a & $b
+                      else: "✠ ♰ ♱ ☩ ☦ ☨ ☧ ⁜ ☥"
 
     assertEq 12, case (a: 2, b: 10):
                    of (a: @a, b: @b): a + b
                    else: 89
 
-    echo case (1, (3, 4, ("e", (9, 2)))):
-           of (@a, _): a
-           of (_, (@a, @b, _)): a + b
-           of (_, (_, _, (_, (@c, @d)))): c * d
-           else: 12
-
-    # stopHax()
-    echo "hello"
-
+    assertEq 1, case (1, (3, 4, ("e", (9, 2)))):
+      of (@a, _): a
+      of (_, (@a, @b, _)): a + b
+      of (_, (_, _, (_, (@c, @d)))): c * d
+      else: 12
 
     proc tupleOpen(a: (bool, int)): int =
       case a:
@@ -296,6 +279,7 @@ suite "Matching":
 
   test "Iflet 2":
     macro ifLet2(head: untyped,  body: untyped): untyped =
+      # startHaxComp()
       case head[0]:
         of Asgn([@lhs is Ident(), @rhs]):
           quote do:
@@ -309,14 +293,14 @@ suite "Matching":
           head[0].raiseCodeError("Expected assgn expression")
 
     ifLet2 (nice = some(69)):
-      echo nice
+      assert nice == 69
 
 
 
   test "Alternative":
-    echo case (a: 12, c: 90):
-           of (a: 12 | 90, c: _): "matched"
-           else: "not matched"
+    assertEq "matched", case (a: 12, c: 90):
+      of (a: 12 | 90, c: _): "matched"
+      else: "not matched"
 
     assertEq 12, case (a: 9):
                   of (a: 9 | 12): 12
@@ -344,12 +328,31 @@ suite "Matching":
           fail()
           raiseAssert("#[ IMPLEMENT ]#")
 
-    assertEq 1, testCase([1], [@a], a)
+    case [1]:
+      of [@a]: assertEq a, 1
+      else: fail()
 
-    assertEq @[1], testCase([1], [all @a], a)
-    startHaxComp()
-    assertEq @[2, 2, 2], testCase([1, 2, 2, 2, 4],
-                                  [_, until @a is 4, 4], a)
+    case [1]:
+      of [all @a]: assertEq a, @[1]
+      else: fail()
+
+    static:
+      debugTraceMatch = true
+
+
+    # startHaxComp()
+    case [1,2,3,4]:
+      of [_, until @a is 4, 4]:
+        assertEq a, @[2,3]
+      else:
+        echo trace
+        fail()
+
+    # assertEq 1, testCase([1], [@a], a)
+
+    # assertEq @[1], testCase([1], [all @a], a)
+    # assertEq @[2, 2, 2], testCase([1, 2, 2, 2, 4],
+    #                               [_, until @a is 4, 4], a)
 
     # assertEq (@[1], @[3, 3, 3]), testCase(
     #   [1, 2, 3, 3, 3], [until @a is 2, _, all @b], (a, b))
