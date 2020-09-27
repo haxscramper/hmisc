@@ -383,7 +383,19 @@ func parseMatchExpr(n: NimNode): Match =
         node.assertNodeKindNot({nnkExprColonExpr})
         result.setElems.add parseMatchExpr(node)
     of nnkObjConstr, nnkCall:
-      result = parseKVTuple(n)
+      if n[0].kind == nnkPrefix:
+        assertNodeKind(n[0][1], {nnkIdent})
+        # echov n
+        # echov n.lispRepr()
+        result = Match(
+          kind: kItem,
+          itemMatch: imkPredicate,
+          bindVar: some(n[0][1]),
+          declNode: n,
+          predBody: n[1]
+        )
+      else:
+        result = parseKVTuple(n)
     elif n.isInfixPatt():
       let
         lhs = n[1].parseMatchExpr()
@@ -660,8 +672,16 @@ func makeMatchExpr(
                     false
           else:
             return inf
-        else:
-          raiseAssert("#[ IMPLEMENT ]#")
+        of imkPredicate:
+          let pred = m.predBody
+          var bindVar = newEmptyNode()
+          iflet (vname = m.bindVar):
+            vt.addvar(vname, path)
+            bindVar = makeVarSet(vname, parent)
+
+          return quote do:
+            let it {.inject.} = `parent`
+            (`pred` and (`bindVar`; true))
 
     of kList:
       return makeListMatch(m, vt, path, trace, mainExpr)
@@ -865,5 +885,19 @@ macro assertMatch*(input: typed, pattern: untyped): untyped =
 
   echov result
 
+macro matches*(input: typed, pattern: untyped): untyped =
+  let
+    expr = ident genSym(nskLet, "expr").repr
+    matched = pattern.parseMatchExpr().
+      makeMatchExpr(none NimNode, expr.repr).toNode(expr.repr)
+
+  return quote do:
+    let `expr` = `input`
+    `matched`
+
 template `:=`*(lhs, rhs: untyped): untyped =
   assertMatch(rhs, lhs)
+
+
+template `?=`*(lhs, rhs: untyped): untyped =
+  matches(rhs, lhs)

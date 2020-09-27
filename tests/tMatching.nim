@@ -333,10 +333,12 @@ suite "Matching":
     block: (_, (@a, @b)) := (1, (2, 3))
     block:
       let tmp = [1,2,3,4,5,6,5,6]
-      [until @a == 6, .._] := tmp; assertEq a, @[1,2,3,4,5]
+      block: [until @a == 6, .._] := tmp; assertEq a, @[1,2,3,4,5]
+      block: [@a, .._] := tmp; assertEq a, 1
+      startHaxComp()
+      block: [any @a(it < 100)] := tmp; assertEq a, tmp
 
     block: # REVIEW special case ?
-      # startHaxComp()
       block: [0..3 is @head] := @[1,2,3,4]
 
     case [%*"hello", %*"12"]:
@@ -351,8 +353,14 @@ suite "Matching":
       of ("bar", 88):
         fail()
 
-    expandMacros:
-      block: Some(@x) := some("hello")
+    block: Some(@x) := some("hello")
+
+    if (Some(@x) ?= some("hello")) and
+       (Some(@y) ?= some("world")):
+      assertEq x, "hello"
+      assertEq y, "world"
+    else:
+      discard
 
   test "One-or-more":
     template testCase(main, patt, body: untyped): untyped =
