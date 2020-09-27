@@ -319,6 +319,9 @@ suite "Matching":
   #     else:
   #       fail()
 
+  test "Match assertions":
+    [1,2,3].assertMatch([all @res]); assertEq res, @[1,2,3]
+
   test "One-or-more":
     template testCase(main, patt, body: untyped): untyped =
       case main:

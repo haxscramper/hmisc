@@ -778,4 +778,14 @@ macro match*(
       `matchcase`
 
   echov result
-  # debugecho result
+
+macro assertMatch*(input: typed, pattern: untyped): untyped =
+  let matched = pattern.parseMatchExpr().
+    makeMatchExpr(some ident "trace").toNode()
+
+  return quote do:
+    var trace {.inject.}: MatchTrace
+    let expr {.inject.} = `input`
+    let ok = `matched`
+    if not `matched`:
+      raiseAssert("Pattern match failed " & $trace)
