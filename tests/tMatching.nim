@@ -49,8 +49,6 @@ suite "Matching":
            f2: float
 
     let val = Obj()
-    echo val.hasKind(N11)
-    echo val.hasKind(eN11)
 
   test "Simple uses":
     assertEq 12, case (12, 24):
@@ -102,14 +100,13 @@ suite "Matching":
 
   test "Len test":
     macro e(body: untyped): untyped =
-      expandMacros:
-        case body:
-          of Bracket([Bracket(len: in {1 .. 3})]):
-            newLit("Nested bracket !")
-          of Bracket(len: in {3 .. 6}):
-            newLit(expr.toStrLit().strVal() & " matched")
-          else:
-            newLit("not matched")
+      case body:
+        of Bracket([Bracket(len: in {1 .. 3})]):
+          newLit("Nested bracket !")
+        of Bracket(len: in {3 .. 6}):
+          newLit(expr.toStrLit().strVal() & " matched")
+        else:
+          newLit("not matched")
 
     echo e([2,3,4])
     echo e([[1, 3, 4]])
@@ -338,24 +335,25 @@ suite "Matching":
   #     else:
   #       fail()
 
-  # test "One-or-more":
-  #   template testCase(main, patt, body: untyped): untyped =
-  #     case main:
-  #       of patt:
-  #         body
-  #       else:
-  #         fail()
-  #         raiseAssert("#[ IMPLEMENT ]#")
+  test "One-or-more":
+    template testCase(main, patt, body: untyped): untyped =
+      case main:
+        of patt:
+          body
+        else:
+          fail()
+          raiseAssert("#[ IMPLEMENT ]#")
 
-  #   assertEq 1, testCase([1], [@a], a)
+    assertEq 1, testCase([1], [@a], a)
 
-  #   # startHaxComp()
-  #   assertEq @[1], testCase([1], [*@a], a)
-  #   assertEq @[2, 2, 2], testCase([1, 2, 2, 2, 4], [_, *@a, 4], a)
-  #   assertEq (@[1], @[3, 3, 3]), testCase(
-  #     [1, 2, 3, 3, 3], [*@a, 2, *@b], (a, b))
+    assertEq @[1], testCase([1], [all @a], a)
+    startHaxComp()
+    assertEq @[2, 2, 2], testCase([1, 2, 2, 2, 4],
+                                  [_, until @a is 4, 4], a)
 
-  # #   dieHereComp()
+    # assertEq (@[1], @[3, 3, 3]), testCase(
+    #   [1, 2, 3, 3, 3], [until @a is 2, _, all @b], (a, b))
+
 
 
   #   case [1,2,3,4]:

@@ -288,28 +288,30 @@ template assertNodeIt*(
     if not cond:
       raise toCodeError(it, msg, annot)
 
-template assertNodeKind*(
+proc assertNodeKind*(
   node: NimNode, kindSet: set[NimNodeKind],
-  iinfo: LineInfo = instantiationInfo().toLineInfo()
-         ): untyped =
+  iinfo = instantiationInfo()): void =
   ## assert node kind is in the set. Provide higlighted error with
   ## list of expected types and kind of given node
-  node.assertNodeIt(
-    node.kind in kindSet,
-    (&"Unexpected node kind. Expected one of " &
-      $kindSet & " but found " & $node.kind),
-    $node.kind, iinfo)
+  if node.kind notin kindSet:
+    raise toCodeError(node,
+      (&"Unexpected node kind. Expected one of " &
+        $kindSet & " but found " & $node.kind),
+      $node.kind,
+      iinfo = iinfo.toLineInfo())
 
 
-template assertNodeKindNot*(
-  node: NimNode, kindSet: set[NimNodeKind]): untyped =
+proc assertNodeKindNot*(
+  node: NimNode, kindSet: set[NimNodeKind],
+  iinfo: LineInfo = instantiationInfo().toLineInfo()): void =
   ## assert node kind is in the set. Provide higlighted error with
   ## list of expected types and kind of given node
-  node.assertNodeIt(
-    node.kind notin kindSet,
-    (&"Unexpected node kind - not allowed node kinds: " &
-      $kindSet & " but found " & $node.kind),
-    $node.kind)
+  if node.kind in kindSet:
+    raise node.toCodeError(
+      (&"Unexpected node kind - not allowed node kinds: " &
+        $kindSet & " but found " & $node.kind),
+      $node.kind, iinfo = iinfo
+    )
 
 
 

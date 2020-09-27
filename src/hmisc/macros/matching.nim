@@ -235,20 +235,33 @@ func contains(kwds: openarray[ListKeyword], str: string): bool =
 
 func parseListMatch(n: NimNode): seq[ListStructure] =
   for elem in n:
-    if elem.kind in {nnkCall} and elem[0].strVal() in [
-      lkAny, lkAll, lkNone, lkOpt, lkUntil]:
-      raiseAssert("#[ IMPLEMENT ]#")
-    else:
-      var
-        match = parseMatchExpr(elem)
-        bindv = match.bindVar
+    let (elem, opKind) =
+      if elem.kind in {nnkCall, nnkCommand} and elem[0].strVal() in [
+        lkAny, lkAll, lkNone, lkOpt, lkUntil]:
+        var kwd: ListKeyword
+        for (key, val) in {
+          "any" : lkAny,
+          "all" : lkAll,
+          "opt" : lkOpt,
+          "until" : lkUntil,
+          "none" : lkNone
+            }:
+          if elem[0].eqIdent(key):
+            kwd = val
+            break
 
-      match.bindVar = none(NimNode)
 
-      result.add ListStructure(
-        patt: match,
-        bindVar: bindv,
-        kind: lkPos)
+        (elem[1], kwd)
+      else:
+        (elem, lkPos)
+
+    var
+      match = parseMatchExpr(elem)
+      bindv = match.bindVar
+
+    match.bindVar = none(NimNode)
+
+    result.add ListStructure(patt: match, bindVar: bindv, kind: opKind)
 
 func parseTableMatch(n: NimNode): seq[KVPair] =
   for elem in n:
@@ -312,7 +325,7 @@ func parseMatchExpr(n: NimNode): Match =
       result = Match(kind: kAlt, altElems: alts, declNode: n)
     elif n.kind == nnkInfix:
       n[1].assertNodeKind({nnkPrefix})
-      n[1][0].assertNodeKind({nnkIdent})
+      n[1][1].assertNodeKind({nnkIdent})
       if n[0].strVal() == "is":
         result = Match(
           kind: kItem, itemMatch: imkSubpatt,
@@ -322,7 +335,7 @@ func parseMatchExpr(n: NimNode): Match =
           kind: kItem, itemMatch: imkInfixEq,
           infix: n[0].strVal(), declNode: n)
 
-      result.bindVar = some(n[1])
+      result.bindVar = some(n[1][1])
     else:
       raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#")
 
@@ -334,6 +347,7 @@ func isOption(p: Path): bool = p.anyOfIt(
   it.inStruct == kItem and it.isOpt)
 
 func classifyPath(path: Path): VarKind =
+  echov pstring path
   if path.isVariadic:
     vkSequence
   elif path.isAlt:
@@ -368,17 +382,23 @@ func makeListMatch(list: Match, vt: var VarTable, path: Path): NimNode =
     matched = genSym(nskVar, "matched")
     failBlock = ident("failBlock")
     failBreak = nnkBreakStmt.newTree(failBlock)
-    parent = path & @[AccsElem(inStruct: kList, pos: posid)]
-
+    getLen = newCall("len", path.toAccs("expr"))
 
   result = newStmtList()
   var minLen = 0
   var maxLen = 0
   for idx, elem in list.listElems:
-    let expr = elem.patt.makeMatchExpr(vt, parent)
+    let
+      parent = path & @[AccsElem(
+        inStruct: kList, pos: posid,
+        isVariadic: elem.kind notin {lkPos})]
+
+      expr = elem.patt.makeMatchExpr(vt, parent)
+
 
     result.add newCommentStmtNode(
       $elem.kind & " " & elem.patt.declNode.repr)
+
     case elem.kind:
       of lkPos:
         inc minLen
@@ -399,14 +419,50 @@ func makeListMatch(list: Match, vt: var VarTable, path: Path): NimNode =
               `failBreak`
 
       else:
-        if true:
-          raiseAssert("#[ IMPLEMENT ]#")
+        maxLen = 5000
+        var varset = newEmptyNode()
+
+        iflet (bindv = elem.bindVar):
+          varset = makeVarSet(bindv, parent.toAccs("expr"))
+          vt.addvar(bindv, parent)
+
+
+        case elem.kind:
+          of lkAll:
+            result.add quote do:
+              block:
+                var allOk: bool = true
+                while `posid` < `getLen` and allOk:
+                  if not `expr`:
+                    allOk = false
+                  else:
+                    `varset`
+                    inc `posid`
+
+                if not allOk:
+                  break `failBlock`
+
+          of lkUntil:
+            result.add quote do:
+              while (`posid` < `getLen`) and (not `expr`):
+                `varset`
+                inc `posid`
+          else:
+            if false:
+              raiseAssert("#[ IMPLEMENT ]#")
+
 
   let
     comment = newCommentStmtNode(list.declNode.repr)
     minNode = newLit(minLen)
     maxNode = newLit(maxLen)
-    parentPath = path.toAccs("expr")
+    setCheck =
+      if maxLen >= 5000:
+        quote do:
+          `getLen` < `minNode`
+      else:
+        quote do:
+          `getLen` notin {`minNode` .. `maxNode`}
 
   result = quote do:
     `comment`
@@ -414,7 +470,7 @@ func makeListMatch(list: Match, vt: var VarTable, path: Path): NimNode =
     block `failBlock`:
       var `posid` = 0 ## Start list match
 
-      if `parentPath`.len notin {`minNode` .. `maxNode`}:
+      if `setCheck`:
         ## fail on seq len
         break `failBlock`
 
@@ -451,12 +507,17 @@ func makeMatchExpr(m: Match, vt: var VarTable, path: Path): NimNode =
           iflet (vname = m.bindVar):
             vt.addvar(vname, path)
             let bindVar = makeVarSet(vname, parent)
-            return quote do:
-              if `inf`:
-                `bindVar`
-                true
-              else:
-                false
+            if inf == newLit(true):
+              return quote do:
+                (`bindVar`; true)
+            else:
+              return quote do:
+                block:
+                  if `inf`:
+                    `bindVar`
+                    true
+                  else:
+                    false
           else:
             return inf
         else:
