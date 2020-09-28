@@ -1,8 +1,8 @@
 import sugar, strutils, sequtils, strformat, macros, options, tables
 import hmisc/[helpers, hexceptions]
-import hmisc/macros/matching
 import json
 
+import hmisc/macros/matching
 {.experimental: "caseStmtMacros".}
 
 #===========================  implementation  ============================#
