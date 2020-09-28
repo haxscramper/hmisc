@@ -43,15 +43,43 @@ func parseEnumImpl*(en: NimNode): seq[string] =
 func pref*(name: string): string =
   discard name.parseUntil(result, {'A' .. 'Z', '0' .. '9'})
 
+func newInfix(s: string, a, b: NimNode): NimNode =
+  nnkInfix.newTree(ident s, a, b)
+
+func newPrefix(s: string, a: NimNode): NimNode =
+  nnkPrefix.newTree(ident s, a)
+
+func foldInfix(s: seq[NimNode],
+               inf: string, start: seq[NimNode] = @[]): NimNode =
+  ( start & s ).mapIt(it.newPar().newPar()).foldl(newInfix(inf, a, b))
+
 
 macro hasKindImpl*(head: typed, kind: untyped): untyped =
   let
     impl = head.getTypeImpl().parseEnumImpl()
     pref = impl.commonPrefix().pref()
     names = impl.dropPrefix(pref)
-    kind = ident(kind.toStrLit().strVal().addPrefix(pref))
 
-  result = nnkInfix.newTree(ident "==", head, kind)
+  kind.assertNodeKind({nnkIdent, nnkCurly})
+  if kind.kind == nnkCurly:
+    var idents: seq[NimNode]
+    var setadds: seq[NimNode]
+
+    for it in kind:
+      if it.kind == nnkIdent:
+        idents.add ident(it.toStrLit().strVal().addPrefix(pref))
+      elif it.kind == nnkPrefix:
+        assertNodeKind(it[1], {nnkIdent})
+        setadds.add it[1]
+
+    setadds.add nnkCurly.newTree(idents)
+
+    result = newInfix("in", head, newPar(setadds.foldInfix("+")))
+
+  else:
+    let kind = ident(kind.toStrLit().strVal().addPrefix(pref))
+    result = nnkInfix.newTree(ident "==", head, kind)
+
 
 template hasKind*(head, kindExpr: untyped): untyped =
   hasKindImpl(head.kind, kindExpr)
@@ -171,20 +199,9 @@ func isNamedTuple(node: NimNode): bool =
 func isInfixPatt(node: NimNode): bool =
   node.kind == nnkInfix and node[0].strVal() in ["|"]
 
-func newInfix(s: string, a, b: NimNode): NimNode =
-  nnkInfix.newTree(ident s, a, b)
-
-func newPrefix(s: string, a: NimNode): NimNode =
-  nnkPrefix.newTree(ident s, a)
-
-
 func makeVarSet(v: NimNode, expr: NimNode): NimNode =
   v.assertNodeKind({nnkIdent})
   newCall(ident "varset", v, expr)
-
-func foldInfix(s: seq[NimNode],
-               inf: string, start: seq[NimNode] = @[]): NimNode =
-  ( start & s ).mapIt(it.newPar().newPar()).foldl(newInfix(inf, a, b))
 
 func toAccs(path: Path, name: string): NimNode =
   func aux(prefix: NimNode, top: Path): NimNode =

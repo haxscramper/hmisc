@@ -164,6 +164,17 @@ suite "Matching":
       of EE(): discard
       of ZZ(): fail()
 
+    # startHaxCOmp()
+    case Obj():
+      of {EE, ZZ}(): discard
+      else: fail()
+
+
+    const eKinds = {enEE, enEE1}
+    case Obj():
+      of {EE, +eKinds}(): discard
+      else: fail()
+
     case (c: (a: 12)):
       of (c: (a: _)): discard
       else: fail("")
@@ -215,22 +226,20 @@ suite "Matching":
       else:
         fail()
 
-    # startHax()
     case Obj(kind: enEE, eee: @[Obj(), Obj()]):
       of EE(eee: [_, _, _]): fail()
       of EE(eee: [_, _]): discard
       else: fail()
-    # stopHax()
 
-    # case Obj(kind: enEE1, eee: @[Obj(), Obj()]):
-    #   of EE([_, _]):
-    #     fail()
-    #   of EE1([_, _, _]):
-    #     fail()
-    #   of EE1([_, _]):
-    #     discard
-    #   else:
-    #     fail()
+    case Obj(kind: enEE1, eee: @[Obj(), Obj()]):
+      of EE([_, _]):
+        fail()
+      of EE1([_, _, _]):
+        fail()
+      of EE1([_, _]):
+        discard
+      else:
+        fail()
 
 
 
