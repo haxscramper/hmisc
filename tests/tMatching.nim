@@ -372,6 +372,21 @@ suite "Matching":
         [until 'd', .._] := "word"
         assertEq head, @['w', 'o', 'r']
 
+      block:
+        [
+          [@a, @b],
+          [@c, @d, all @e],
+          [@f, @g, all @h]
+        ] := @[
+          @[1,2],
+          @[2,3,4,5,6,7],
+          @[5,6,7,2,3,4]
+        ]
+
+      block: (@a, (@b, @c), @d) := (1, (2, 3), 4)
+      block: (Some(@x), @y) := (some(12), none(float))
+      block: @hello != nil := (var tmp: ref int; new(tmp); tmp)
+
       block: [all @head] := [1,2,3]; assertEq head, @[1,2,3]
       block: [all (1|2|3|4|5)] := [1,2,3,4,1,1,2]
       block:

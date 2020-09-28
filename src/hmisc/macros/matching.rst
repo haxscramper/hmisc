@@ -1,3 +1,8 @@
+.. raw:: html
+  <blockquote><p>
+  "you can probably make a macro for that" -- Rika, 22-09-2020 10:41:51
+  </p></blockquote>
+
 This module implements pattern matching DSL.
 
 ## Use example
