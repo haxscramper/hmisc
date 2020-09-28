@@ -273,7 +273,6 @@ func contains(kwds: openarray[ListKeyword], str: string): bool =
 
 func parseListMatch(n: NimNode): seq[ListStructure] =
   func ok(n: NimNode): bool =
-    echov n.lispRepr()
     (n.kind == nnkInfix) and
     (n[1].kind == nnkInfix) and
     n[1][0].eqIdent("..")
@@ -316,8 +315,6 @@ func parseListMatch(n: NimNode): seq[ListStructure] =
           else:
             (elem, lkPos)
 
-        # echov elem.treeRepr()
-        # echov elem
         var
           match = parseMatchExpr(elem)
           bindv = match.bindVar
@@ -351,12 +348,9 @@ func parseMatchExpr(n: NimNode): Match =
       if n == ident "_":
         result.isPlaceholder = true
       else:
-        echov n
         result.rhsNode = n
         result.infix = "=="
     of nnkPar:
-      echov n
-      echov n.treeRepr()
       if n.isNamedTuple():
         result = parseKVTuple(n)
       elif n[0].isInfixPatt():
@@ -397,8 +391,6 @@ func parseMatchExpr(n: NimNode): Match =
     of nnkObjConstr, nnkCall:
       if n[0].kind == nnkPrefix:
         assertNodeKind(n[0][1], {nnkIdent})
-        # echov n
-        # echov n.lispRepr()
         result = Match(
           kind: kItem,
           itemMatch: imkPredicate,
@@ -428,7 +420,6 @@ func parseMatchExpr(n: NimNode): Match =
           result.isOptional = true
 
       result.bindVar = some(n[1][1])
-      # echov pstring result
     else:
       raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#")
 
@@ -437,11 +428,9 @@ func isVariadic(p: Path): bool = p.anyOfIt(it.isVariadic)
 func isAlt(p: Path): bool = p.anyOfIt(it.inStruct == kAlt)
 
 func isOption(p: Path): bool =
-  echov p
   p.anyOfIt(it.inStruct == kItem and it.isOpt)
 
 func classifyPath(path: Path): VarKind =
-  # echov pstring path
   if path.isVariadic:
     vkSequence
   elif path.isAlt:
@@ -452,8 +441,6 @@ func classifyPath(path: Path): VarKind =
     vkRegular
 
 func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
-  echov vsym
-  echov path
   let vs = vsym.strVal()
   if vs notin tbl:
     tbl[vs] = VarSpec(
@@ -485,7 +472,6 @@ func makeMatchExpr(
   m: Match, vt: var VarTable, path: Path, mainExpr: string): NimNode
 
 template makeElemMatch(): untyped {.dirty.} =
-  echov elem.kind
   case elem.kind:
     of lkPos:
       inc minLen
@@ -553,8 +539,6 @@ template makeElemMatch(): untyped {.dirty.} =
               inc `posid`
         of lkOpt:
           var default = nnkDiscardStmt.newTree(newEmptyNode())
-          echov elem.patt.isOptional
-          echov elem.bindVar
           if elem.patt.isOptional:
             iflet (bindv = elem.bindVar):
               if elem.patt.rhsNode != nil:
@@ -569,7 +553,6 @@ template makeElemMatch(): untyped {.dirty.} =
                   AccsElem(inStruct: kItem, isOpt: true)
                 ])
 
-          echov default
           result.add quote do:
             if `posid` < `getLen`:
               `varset`
@@ -618,7 +601,6 @@ func makeListMatch(
     elif elem.kind == lkTrail:
       maxLen = 5000
     else:
-      # echov elem.kind
       let
         parent = path & @[AccsElem(
           inStruct: kList, pos: posid,
@@ -670,7 +652,6 @@ func makeMatchExpr(
   case m.kind:
     of kItem:
       let parent = path.toAccs(mainExpr)
-      # echov pstring m
       case m.itemMatch:
         of imkInfixEq, imkSubpatt:
           let inf =
@@ -678,13 +659,11 @@ func makeMatchExpr(
               if m.isPlaceholder:
                 newLit(true)
               else:
-                echov m.rhsNode
                 newInfix(m.infix, parent, m.rhsNode)
              else:
                makeMatchExpr(m.rhsPatt, vt, path, mainExpr)
 
           iflet (vname = m.bindVar):
-            # echov m.bindVar
             vt.addvar(vname, path)
             let bindVar = makeVarSet(vname, parent)
             if inf == newLit(true):
@@ -706,7 +685,6 @@ func makeMatchExpr(
           result = quote do:
             (let it {.inject.} = `parent`; `pred`)
 
-          echov result
 
     of kList:
       return makeListMatch(m, vt, path, mainExpr)
@@ -875,7 +853,6 @@ macro match*(
       let pos {.inject.}: int = 0
       `matchcase`
 
-  echov result
 
 macro assertMatch*(input: typed, pattern: untyped): untyped =
   let
@@ -892,7 +869,6 @@ macro assertMatch*(input: typed, pattern: untyped): untyped =
     if not ok:
       raiseAssert("Pattern match failed " & `patt`)
 
-  echov result
 
 macro matches*(input: typed, pattern: untyped): untyped =
   let

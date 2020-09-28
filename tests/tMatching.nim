@@ -59,11 +59,10 @@ suite "Matching":
     case [1]:
       of [_]: discard
 
-    workHaxComp false:
-      case [1,2,3,4]:
-        of [_]: fail()
-        of [_, 2, 3, _]:
-          discard
+    case [1,2,3,4]:
+      of [_]: fail()
+      of [_, 2, 3, _]:
+        discard
 
 
     assertEq "hehe", case (true, false):
