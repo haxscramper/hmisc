@@ -1,4 +1,4 @@
-import sugar, strutils, sequtils, strformat, macros, options
+import sugar, strutils, sequtils, strformat, macros, options, tables
 import hmisc/[helpers, hexceptions]
 import hmisc/macros/matching
 import json
@@ -10,6 +10,13 @@ import json
 #================================  tests  ================================#
 
 import unittest
+
+
+template `:=`*(lhs, rhs: untyped): untyped =
+  assertMatch(rhs, lhs)
+
+template `?=`*(lhs, rhs: untyped): untyped =
+  matches(rhs, lhs)
 
 suite "Matching":
   # FIXME
@@ -346,15 +353,36 @@ suite "Matching":
       block: [any @a(it < 100)] := tmp; assertEq a, tmp
       block: [pref @a is (1|2|3)] := [1,2,3]; assertEq a, @[1,2,3]
       block: [pref (1|2|3)] := [1,2,3]
-      block: [until 3] := [1,2,3] # REVIEW this should fail or is it a
-                                  # correct pattern? `[1,2,3]` is not
-                                  # matched fully
+      block: [until 3, _] := [1,2,3]
       block: [all 1] := [1,1,1]
       block: assert [all 1] ?= [1,1,1]
       block: assert not ([all 1] ?= [1,2,3])
       block: [opt @a or 12] := `@`[int]([]); assertEq a, 12
       block: [opt @a] := [1]; assertEq a, some(1)
       block: [opt @a] := `@`[int]([]); assertEq  a, none(int)
+      block: (f: @hello is ("2" | "3")) := (f: "2"); assertEq hello, "2"
+      block: (f: @a(it mod 2 == 0)) := (f: 2); assertEq a, 2
+      block: assert not ([1,2] ?= [1,2,3])
+      block: assert [1, .._] ?= [1,2,3]
+      block: assert [1,2,_] ?= [1,2,3]
+      block:
+        ## Explicitly use `_` to match whole sequence
+        [until @head is 'd', _] := "word"
+        ## Can also use trailing `.._`
+        [until 'd', .._] := "word"
+        assertEq head, @['w', 'o', 'r']
+
+      block: [all @head] := [1,2,3]; assertEq head, @[1,2,3]
+      block: [all (1|2|3|4|5)] := [1,2,3,4,1,1,2]
+      block:
+        [until @head is 2, all @tail] := [1,2,3]
+        assertEq head, @[1]
+        assertEq tail, @[2,3]
+
+      block: (_, _, _) := (1, 2, "fa")
+      block: ([1,2,3]) := [1,2,3]
+      block: ({0: 1, 1: 2, 2: 3}) := {0: 1, 1: 2, 2: 3}.toTable()
+
 
     block:
       block: [0..3 is @head] := @[1,2,3,4]

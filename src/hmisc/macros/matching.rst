@@ -118,7 +118,7 @@ value of first binding.
 - Variable can be used only once if in alternative
 
 
--------------------------- -------------------------------------
+========================== =====================================
  Pattern                     Ijected variables
 ========================== =====================================
  ``[@a]``                    ``var a: typeof(expr[0])``
@@ -127,7 +127,7 @@ value of first binding.
  ``[opt @val]``              ``var a: Option[typeof(expr[0])]``
  ``[opt @val or default]``   ``var a: typeof(expr[0])``
  ``(fld: @val)``             ``var val: typeof(expr.fld)``
--------------------------- -------------------------------------
+========================== =====================================
 
 ## Matching different things
 
@@ -137,12 +137,12 @@ Input sequence: ``[1,2,3,4,5,6,5,6]``
 
 ================================= ======================== ====================================
  Pattern                           Result                   Comment
---------------------------------- ------------------------ ------------------------------------
+================================= ======================== ====================================
  ``[_]``                           **Fail**                 Input sequence size mismatch
- ``[.._]``                         **Ok**                   \
+ ``[.._]``                         **Ok**
  ``[@a]``                          **Fail**                 Input sequence size mismatch
- ``[@a, .._]``                     **Ok**, ``a = 1``        \
- ``[any @a, .._]``                 **Error**                 [4]_
+ ``[@a, .._]``                     **Ok**, ``a = 1``
+ ``[any @a, .._]``                 **Error**
  ``[any @a.(it < 10)]``            **Ok**, ``a = [1..6]``   Capture all elements that match
  ``[until @a == 6, .._]``          **Ok**                   All until first ocurrence of ``6``
  ``[all @a == 6, .._]``            **Ok** ``a = []``        All leading ``6``
@@ -162,7 +162,6 @@ Input sequence: ``[1,2,3,4,5,6,5,6]``
 
     - ``all @val is <expr>``: capture all elements in ``@val`` if ``<expr>``
       is true for every one of them.
-
 ``opt``
     Single element match
 
@@ -170,7 +169,6 @@ Input sequence: ``[1,2,3,4,5,6,5,6]``
 
     - ``opt @a or "default"``: either match element to a or set a to
       "default"
-
 ``any``
     greedy. Consume all sequence elements until the end and
     succed only if any element has matched.
@@ -179,7 +177,11 @@ Input sequence: ``[1,2,3,4,5,6,5,6]``
 
 ``none``
     greedy. Consume all sequence elements until the end and
-    succed only if any element has matched.
+    succed only if any element has matched. EE
+
+``[m .. n is @capture]``
+    Special syntax for extracing multiple slices from sequence at the
+    same time.
 
 Greedy patterns match until the end of a sequence and cannot be
 followed by anything else.
@@ -187,13 +189,13 @@ followed by anything else.
 For sequence to match is must either be completely matched by all
 subpatterns or have trailing ``.._`` in pattern.
 
-------------- -------------- --------------
+============= ============== ==============
  Sequence      Pattern        Match result
 ============= ============== ==============
  ``[1,2,3]``   ``[1,2]``      **Fail**
                ``[1, .._]``   **Ok**
                ``[1,2,_]``    **Ok**
-------------- -------------- --------------
+============= ============== ==============
 
 More use examples
 
@@ -213,14 +215,14 @@ More use examples
 
 Input tuple: ``(1, 2, "fa")``
 
----------------------------- ---------- ------------
+============================ ========== ============
  Pattern                      Result      Comment
 ============================ ========== ============
  ``(_, _, _)``                **Ok**      Match all
  ``(@a, @a, _)``              **Fail**
  ``(@a is (1 | 2), @a, _)``   **Error**
  ``(1, 1 | 2, _)``            **Ok**
----------------------------- ---------- ------------
+============================ ========== ============
 
 ### Case object matching
 

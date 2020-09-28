@@ -1,6 +1,7 @@
 import sequtils, macros, tables, options, strformat, sugar, strutils,
        parseutils
-        # hpprint
+
+# import hpprint
 
 # import ../types/colorstring
 import ../helpers
@@ -193,8 +194,16 @@ type
   VarTable = Table[string, VarSpec]
 
 func isNamedTuple(node: NimNode): bool =
-  node.allOfIt(it.kind in {nnkExprColonExpr, nnkIdent}) and
-  node.allOfIt((it.kind == nnkIdent) -> it.strVal == "_")
+  # if node.allOfIt(it.kind == nnkIdent and it.strVal == "_"):
+  #   # Special case for match-all tuples - `(_, _, _)`
+  #   false
+  # else:
+  node.allOfIt(it.kind in {
+    nnkExprColonExpr, # `(fld: )`
+    nnkBracket, # `([])`
+    nnkTableConstr # `{key: val}`
+  }) and
+  node.allOfIt((it.kind == nnkIdent) -> (it.strVal == "_"))
 
 func isInfixPatt(node: NimNode): bool =
   node.kind == nnkInfix and node[0].strVal() in ["|"]
@@ -263,8 +272,12 @@ func parseKVTuple(n: NimNode): Match =
           elem[1].parseMatchExpr()))
       of nnkBracket:
         result.listMatches = some(elem.parseMatchExpr())
+      of nnkTableConstr:
+        result.kvMatches = some(elem.parseMatchExpr())
       else:
-        elem.assertNodeKind({nnkExprColonExpr})
+        elem.assertNodeKind({
+          nnkExprColonExpr
+        })
 
 func contains(kwds: openarray[ListKeyword], str: string): bool =
   for kwd in kwds:
@@ -275,7 +288,7 @@ func parseListMatch(n: NimNode): seq[ListStructure] =
   func ok(n: NimNode): bool =
     (n.kind == nnkInfix) and
     (n[1].kind == nnkInfix) and
-    n[1][0].eqIdent("..")
+    n[1][0].strVal().startsWith("..")
 
   if n.anyOfIt(it.ok):
     iflet (err = n.findItFirstOpt(not it.ok)):
@@ -343,7 +356,7 @@ func parseAltMatch(n: NimNode): Match =
 
 func parseMatchExpr(n: NimNode): Match =
   case n.kind:
-    of nnkIdent, nnkSym, nnkIntLit, nnkStrLit:
+    of nnkIdent, nnkSym, nnkIntLit, nnkStrLit, nnkCharLit:
       result = Match(kind: kItem, itemMatch: imkInfixEq, declNode: n)
       if n == ident "_":
         result.isPlaceholder = true
@@ -520,6 +533,12 @@ template makeElemMatch(): untyped {.dirty.} =
             while (`posid` < `getLen`) and (not `expr`):
               `varset`
               inc `posid`
+
+          if idx == list.listElems.len - 1:
+            result.add quote do:
+              if (`posid` < `getLen`): ## Not full match
+                break `failBlock`
+
         of lkAny:
           result.add quote do:
             block:
@@ -649,6 +668,7 @@ func makeListMatch(
 
 func makeMatchExpr(
   m: Match, vt: var VarTable, path: Path, mainExpr: string): NimNode =
+  # echov pstring m
   case m.kind:
     of kItem:
       let parent = path.toAccs(mainExpr)
@@ -682,8 +702,17 @@ func makeMatchExpr(
         of imkPredicate:
           let pred = m.predBody
           var bindVar = newEmptyNode()
+          iflet (vname = m.bindVar):
+            vt.addvar(vname, path)
+            bindVar = makeVarSet(vname, parent)
+
           result = quote do:
-            (let it {.inject.} = `parent`; `pred`)
+            let it {.inject.} = `parent`
+            if `pred`:
+              `bindVar`
+              true
+            else:
+              false
 
 
     of kList:
@@ -738,7 +767,6 @@ func makeMatchExpr(
 
 func makeMatchExpr(m: Match, mainExpr: string): tuple[
     expr: NimNode, vtable: VarTable] =
-
   result.expr = makeMatchExpr(m, result.vtable, @[],  mainExpr)
 
 func updateTypeof(nn: NimNode): void =
@@ -854,6 +882,7 @@ macro match*(
       `matchcase`
 
 
+
 macro assertMatch*(input: typed, pattern: untyped): untyped =
   let
     expr = ident genSym(nskLet, "expr").repr
@@ -867,7 +896,9 @@ macro assertMatch*(input: typed, pattern: untyped): untyped =
     let ok = `matched`
 
     if not ok:
-      raiseAssert("Pattern match failed " & `patt`)
+      raiseAssert("Pattern match failed `" & `patt` & "`")
+
+  # echov result
 
 
 macro matches*(input: typed, pattern: untyped): untyped =
@@ -879,10 +910,3 @@ macro matches*(input: typed, pattern: untyped): untyped =
   return quote do:
     let `expr` = `input`
     `matched`
-
-template `:=`*(lhs, rhs: untyped): untyped =
-  assertMatch(rhs, lhs)
-
-
-template `?=`*(lhs, rhs: untyped): untyped =
-  matches(rhs, lhs)
