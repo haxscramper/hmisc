@@ -72,6 +72,7 @@ type
     lkNone = "none"
     lkOpt = "opt"
     lkUntil = "until" ## All elements until
+    lkPref = "pref" ## All elements while
     lkPos ## Exact position
     lkSlice ## Subrange slice
     lkTrail
@@ -279,14 +280,15 @@ func parseListMatch(n: NimNode): seq[ListStructure] =
       else:
         let (elem, opKind) =
           if elem.kind in {nnkCall, nnkCommand} and elem[0].strVal() in [
-            lkAny, lkAll, lkNone, lkOpt, lkUntil]:
+            lkAny, lkAll, lkNone, lkOpt, lkUntil, lkPref]:
             var kwd: ListKeyword
             for (key, val) in {
               "any" : lkAny,
               "all" : lkAll,
               "opt" : lkOpt,
               "until" : lkUntil,
-              "none" : lkNone
+              "none" : lkNone,
+              "pref" : lkPref
                 }:
               if elem[0].eqIdent(key):
                 kwd = val
@@ -297,6 +299,8 @@ func parseListMatch(n: NimNode): seq[ListStructure] =
           else:
             (elem, lkPos)
 
+        # echov elem.treeRepr()
+        # echov elem
         var
           match = parseMatchExpr(elem)
           bindv = match.bindVar
@@ -310,6 +314,17 @@ func parseTableMatch(n: NimNode): seq[KVPair] =
   for elem in n:
     result.add((elem[0], elem[1].parseMatchExpr()))
 
+func parseAltMatch(n: NimNode): Match =
+  let
+    lhs = n[1].parseMatchExpr()
+    rhs = n[2].parseMatchExpr()
+
+  var alts: seq[Match]
+  if lhs.kind == kAlt: alts.add lhs.altElems else: alts.add lhs
+  if rhs.kind == kAlt: alts.add rhs.altElems else: alts.add rhs
+  result = Match(kind: kAlt, altElems: alts, declNode: n)
+
+
 func parseMatchExpr(n: NimNode): Match =
   case n.kind:
     of nnkIdent, nnkSym, nnkIntLit, nnkStrLit:
@@ -321,8 +336,12 @@ func parseMatchExpr(n: NimNode): Match =
         result.rhsNode = n
         result.infix = "=="
     of nnkPar:
+      echov n
+      echov n.treeRepr()
       if n.isNamedTuple():
         result = parseKVTuple(n)
+      elif n[0].isInfixPatt():
+        result = parseAltMatch(n[0])
       else:
         result = Match(kind: kTuple, declNode: n)
         for elem in n:
@@ -371,14 +390,7 @@ func parseMatchExpr(n: NimNode): Match =
       else:
         result = parseKVTuple(n)
     elif n.isInfixPatt():
-      let
-        lhs = n[1].parseMatchExpr()
-        rhs = n[2].parseMatchExpr()
-
-      var alts: seq[Match]
-      if lhs.kind == kAlt: alts.add lhs.altElems else: alts.add lhs
-      if rhs.kind == kAlt: alts.add rhs.altElems else: alts.add rhs
-      result = Match(kind: kAlt, altElems: alts, declNode: n)
+      result = parseAltMatch(n)
     elif n.kind == nnkInfix:
       n[1].assertNodeKind({nnkPrefix})
       n[1][1].assertNodeKind({nnkIdent})
@@ -392,6 +404,9 @@ func parseMatchExpr(n: NimNode): Match =
           kind: kItem, itemMatch: imkInfixEq,
           rhsNode: n[2],
           infix: n[0].strVal(), declNode: n)
+
+        if result.infix == "or":
+          result.isOptional = true
 
       result.bindVar = some(n[1][1])
       # echov pstring result
@@ -486,10 +501,27 @@ template makeElemMatch(): untyped {.dirty.} =
 
               if not foundOk:
                 break `failBlock`
+        of lkPref:
+          result.add quote do:
+            while `posid` < `getLen` and `expr`:
+              `varset`
+              inc `posid`
+        of lkOpt:
+          var default = nnkDiscardStmt.newTree(newEmptyNode())
+          if elem.patt.isOptional:
+            iflet (bindv = elem.bindVar):
+              default = makeVarSet(bindv, elem.patt.rhsNode)
+              vt.addvar(bindv, parent)
 
+          result.add quote do:
+            if `posid` < `getLen`:
+              `varset`
+              inc `posid`
+            else:
+              `default`
         else:
-          if false:
-            raiseAssert("#[ IMPLEMENT ]#")
+          if true:
+            raiseAssert(&"#[ IMPLEMENT for kind {elem.kind} ]#")
 
 
 
@@ -498,7 +530,7 @@ func makeListMatch(
   mainExpr: string): NimNode =
   var idx = 1
   while idx < list.listElems.len:
-    if list.listElems[idx - 1].kind notin {lkUntil, lkPos, lkOpt}:
+    if list.listElems[idx - 1].kind notin {lkUntil, lkPos, lkOpt, lkPref}:
       raise ({
         list.listElems[idx - 1].decl : "Greedy list match pattern",
         list.listElems[idx].decl : "Must be last in sequence but found"
@@ -616,6 +648,8 @@ func makeMatchExpr(
           var bindVar = newEmptyNode()
           result = quote do:
             (let it {.inject.} = `parent`; `pred`)
+
+          echov result
 
     of kList:
       return makeListMatch(m, vt, path, mainExpr)

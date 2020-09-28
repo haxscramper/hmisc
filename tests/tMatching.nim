@@ -336,8 +336,6 @@ suite "Matching":
       block: [until @a == 6, .._] := tmp; assertEq a, @[1,2,3,4,5]
       block: [@a, .._] := tmp; assertEq a, 1
       block: [any @a(it < 100)] := tmp; assertEq a, tmp
-      startHaxComp()
-      stopHaxComp()
 
     block: # REVIEW special case ?
       block: [0..3 is @head] := @[1,2,3,4]
@@ -386,40 +384,34 @@ suite "Matching":
       else:
         fail()
 
-    # assertEq 1, testCase([1], [@a], a)
 
-    # assertEq @[1], testCase([1], [all @a], a)
-    # assertEq @[2, 2, 2], testCase([1, 2, 2, 2, 4],
-    #                               [_, until @a is 4, 4], a)
-
-    # assertEq (@[1], @[3, 3, 3]), testCase(
-    #   [1, 2, 3, 3, 3], [until @a is 2, _, all @b], (a, b))
-
+    case [1,2,3,4]:
+      of [@a, .._]:
+        assert a is int
+        assert a == 1
+      else:
+        fail()
 
 
-  #   case [1,2,3,4]:
-  #     of [@a, .._]:
-  #       assert a is int
-  #       assert a == 1
-  #     else:
-  #       fail()
+    workHax true:
+      case [1,2,3,4]:
+        of [all @a]:
+          assert a is seq[int]
+          assert a == @[1,2,3,4]
+        else:
+          fail()
+
+  test "Optional matches":
+    case [1,2,3,4]:
+      of [pref @a is (1 | 2), _, opt @a or 5]:
+        assertEq a, @[1,2,4]
 
 
-  #   workHax true:
-  #     case [1,2,3,4]:
-  #       of [*@a]:
-  #         assert a is seq[int]
-  #         assert a == @[1,2,3,4]
-  #       else:
-  #         fail()
-
-  #   startHaxComp()
-  #   stopHaxComp()
-
-  # test "Optional matches":
-  #   case [1,2,3,4]:
-  #     of [@a is *(1 | 2), _, _, 5 ?@ a]:
-  #       echo a
+    # startHaxComp()
+    case [1,2,3]:
+      of [pref @a is (1 | 2), _, opt @a or 5]:
+        assertEq a, @[1,2,5]
+    # stopHaxComp()
 
   #   case [1,2,2,1,1,1]:
   #     of [*(1 | @a)]:
