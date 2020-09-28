@@ -95,6 +95,7 @@ type
   Match = ref object
     bindVar: Option[NimNode]
     declNode {.requiresinit.}: NimNode
+    isOptional: bool
     case kind: EStructKind
       of kItem:
         case itemMatch: ItemMatchKind
@@ -102,7 +103,6 @@ type
             infix: string
             rhsNode: NimNode
             isPlaceholder: bool
-            isOptional: bool
           of imkSubpatt:
             rhsPatt: Match
           of imkPredicate:
@@ -306,9 +306,11 @@ func parseListMatch(n: NimNode): seq[ListStructure] =
           bindv = match.bindVar
 
         match.bindVar = none(NimNode)
+        match.isOptional = opKind in {lkOpt}
 
         result.add ListStructure(bindVar: bindv, kind: opKind).withIt do:
             it.patt = match
+            # it.patt.isOptional = opKind in {lkOpt}
 
 func parseTableMatch(n: NimNode): seq[KVPair] =
   for elem in n:
@@ -417,8 +419,9 @@ func isVariadic(p: Path): bool = p.anyOfIt(it.isVariadic)
 
 func isAlt(p: Path): bool = p.anyOfIt(it.inStruct == kAlt)
 
-func isOption(p: Path): bool = p.anyOfIt(
-  it.inStruct == kItem and it.isOpt)
+func isOption(p: Path): bool =
+  echov p
+  p.anyOfIt(it.inStruct == kItem and it.isOpt)
 
 func classifyPath(path: Path): VarKind =
   # echov pstring path
@@ -426,22 +429,46 @@ func classifyPath(path: Path): VarKind =
     vkSequence
   elif path.isAlt:
     vkAlt
+  elif path.isOption:
+    vkOption
   else:
-    vkREgular
+    vkRegular
 
 func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
-  if vsym.strVal() notin tbl:
-    tbl[vsym.strVal()] = VarSpec(
+  echov vsym
+  echov path
+  let vs = vsym.strVal()
+  if vs notin tbl:
+    tbl[vs] = VarSpec(
       decl: vsym,
       varKind: path.classifyPath(),
       typePath: path
     )
+  else:
+    let class = path.classifyPath()
+    var update = false
+    case class:
+      of vkSequence:
+        update = true
+
+      of vkOption:
+        if tbl[vs].varKind in {vkRegular}:
+          update = true
+
+      else:
+        discard
+
+    if update:
+      tbl[vs].varKind = class
+      tbl[vs].typePath = path
+
 
 
 func makeMatchExpr(
   m: Match, vt: var VarTable, path: Path, mainExpr: string): NimNode
 
 template makeElemMatch(): untyped {.dirty.} =
+  echov elem.kind
   case elem.kind:
     of lkPos:
       inc minLen
@@ -465,6 +492,7 @@ template makeElemMatch(): untyped {.dirty.} =
       maxLen = 5000
       var varset = newEmptyNode()
 
+      # if elem.kind notin {lkOpt}:
       iflet (bindv = elem.bindVar):
         varset = makeVarSet(bindv, parent.toAccs(mainExpr))
         vt.addvar(bindv, parent)
@@ -508,11 +536,23 @@ template makeElemMatch(): untyped {.dirty.} =
               inc `posid`
         of lkOpt:
           var default = nnkDiscardStmt.newTree(newEmptyNode())
+          echov elem.patt.isOptional
+          echov elem.bindVar
           if elem.patt.isOptional:
             iflet (bindv = elem.bindVar):
-              default = makeVarSet(bindv, elem.patt.rhsNode)
-              vt.addvar(bindv, parent)
+              if elem.patt.rhsNode != nil:
+                default = makeVarSet(bindv, elem.patt.rhsNode)
+                vt.addvar(bindv, path & @[
+                  AccsElem(inStruct: kList, pos: posid),
+                  AccsElem(inStruct: kItem)
+                ])
+              else:
+                vt.addvar(bindv, path & @[
+                  AccsElem(inStruct: kList, pos: posid),
+                  AccsElem(inStruct: kItem, isOpt: true)
+                ])
 
+          echov default
           result.add quote do:
             if `posid` < `getLen`:
               `varset`
@@ -565,7 +605,7 @@ func makeListMatch(
       let
         parent = path & @[AccsElem(
           inStruct: kList, pos: posid,
-          isVariadic: elem.kind notin {lkPos})]
+          isVariadic: elem.kind notin {lkPos, lkOpt})]
 
         expr = elem.patt.makeMatchExpr(vt, parent, mainExpr)
 

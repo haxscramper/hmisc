@@ -51,6 +51,11 @@ template workHaxComp*(doIt: static[bool], body: untyped): untyped =
     static:
       doLog = false
 
+template haxc*(body: untyped): untyped =
+  workHaxComp true:
+    block:
+      body
+
 template haxThis*(a: untyped): untyped =
   {.noSideEffect.}:
     if doLog:

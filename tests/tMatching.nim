@@ -336,8 +336,19 @@ suite "Matching":
       block: [until @a == 6, .._] := tmp; assertEq a, @[1,2,3,4,5]
       block: [@a, .._] := tmp; assertEq a, 1
       block: [any @a(it < 100)] := tmp; assertEq a, tmp
+      block: [pref @a is (1|2|3)] := [1,2,3]; assertEq a, @[1,2,3]
+      block: [pref (1|2|3)] := [1,2,3]
+      block: [until 3] := [1,2,3] # REVIEW this should fail or is it a
+                                  # correct pattern? `[1,2,3]` is not
+                                  # matched fully
+      block: [all 1] := [1,1,1]
+      block: assert [all 1] ?= [1,1,1]
+      block: assert not ([all 1] ?= [1,2,3])
+      block: [opt @a or 12] := `@`[int]([]); assertEq a, 12
+      block: [opt @a] := [1]; assertEq a, some(1)
+      block: [opt @a] := `@`[int]([]); assertEq  a, none(int)
 
-    block: # REVIEW special case ?
+    block:
       block: [0..3 is @head] := @[1,2,3,4]
 
     case [%*"hello", %*"12"]:
