@@ -353,6 +353,11 @@ func parseAltMatch(n: NimNode): Match =
   if rhs.kind == kAlt: alts.add rhs.altElems else: alts.add rhs
   result = Match(kind: kAlt, altElems: alts, declNode: n)
 
+func nodeStr(n: NimNode): string =
+  case n.kind:
+    of nnkIdent: n.strVal()
+    of nnkOpenSymChoice: n[0].strVal()
+    else: raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#") 
 
 func parseMatchExpr(n: NimNode): Match =
   case n.kind:
@@ -373,12 +378,14 @@ func parseMatchExpr(n: NimNode): Match =
         for elem in n:
           result.tupleElems.add parseMatchExpr(elem)
     of nnkPrefix:
-      if n[0].strVal() == "is":
+      echov n
+      echov n.lispRepr()
+      if n[0].nodeStr() == "is":
         result = Match(
           kind: kItem, itemMatch: imkSubpatt,
           rhsPatt: parseMatchExpr(n[1]), declNode: n)
 
-      elif n[0].strVal() == "@":
+      elif n[0].nodeStr() == "@":
         n[1].assertNodeKind({nnkIdent})
         result = Match(
           kind: kItem, itemMatch: imkInfixEq, isPlaceholder: true,
@@ -880,6 +887,8 @@ macro match*(
       let expr {.inject.} = `head`
       let pos {.inject.}: int = 0
       `matchcase`
+
+  # echov result
 
 
 

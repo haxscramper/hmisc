@@ -423,6 +423,35 @@ suite "Matching":
     else:
       discard
 
+  test "More examples":
+    func butLast(a: seq[int]): int =
+      case a:
+        of []: raiseAssert(
+          "Cannot take one but last from empty list!")
+        of [_]: raiseAssert(
+          "Cannot take one but last from list with only one element!")
+        of [@pre, _]: pre
+        of [_, all @tail]: butLast(tail)
+        else: raiseAssert("Not possible")
+
+    assertEq butLast(@[1,2,3,4]), 3
+
+
+    func butLastGen[T](a: seq[T]): T =
+      expandMacros: # FIXME removing `expandMacros` creates `Error:
+                    # undeclared identifier: '_'` error
+        case a:
+          of []: raiseAssert(
+            "Cannot take one but last from empty list!")
+          of [_]: raiseAssert(
+            "Cannot take one but last from list with only one element!")
+          of [@pre, _]: pre
+          of [_, all @tail]: butLastGen(tail)
+          else: raiseAssert("Not possible")
+
+    assertEq butLastGen(@["1", "2"]), "1"
+
+
   test "One-or-more":
     template testCase(main, patt, body: untyped): untyped =
       case main:

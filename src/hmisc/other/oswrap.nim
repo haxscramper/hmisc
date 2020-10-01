@@ -59,6 +59,10 @@ proc putEnv*(key, val: string): void =
   ## Sets the value of the environment variable named key to val.
   osAndNims(putEnv(key, val))
 
+proc setEnv*(key, val: string): void =
+  ## Sets the value of the environment variable named key to val.
+  putEnv(key, val)
+
 proc delEnv*(key: string) =
   ## Deletes the environment variable named key.
   osAndNims(delEnv(key))
