@@ -12,11 +12,6 @@ import hmisc/macros/matching
 import unittest
 
 
-template `:=`*(lhs, rhs: untyped): untyped =
-  assertMatch(rhs, lhs)
-
-template `?=`*(lhs, rhs: untyped): untyped =
-  matches(rhs, lhs)
 
 suite "Matching":
   # FIXME

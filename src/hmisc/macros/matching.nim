@@ -357,7 +357,7 @@ func nodeStr(n: NimNode): string =
   case n.kind:
     of nnkIdent: n.strVal()
     of nnkOpenSymChoice: n[0].strVal()
-    else: raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#") 
+    else: raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#")
 
 func parseMatchExpr(n: NimNode): Match =
   case n.kind:
@@ -919,3 +919,9 @@ macro matches*(input: typed, pattern: untyped): untyped =
   return quote do:
     let `expr` = `input`
     `matched`
+
+template `:=`*(lhs, rhs: untyped): untyped =
+  assertMatch(rhs, lhs)
+
+template `?=`*(lhs, rhs: untyped): untyped =
+  matches(rhs, lhs)

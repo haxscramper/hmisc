@@ -75,6 +75,9 @@ func strArg*(cmd: var Cmd, sub: string) =
     else:
       sub
 
+func arg*(cmd: var Cmd, arg: string) =
+  cmd.opts.add arg
+
 func makeNimCmd*(bin: string): Cmd =
   result.conf = ccNimFlags
   result.bin = bin
@@ -82,6 +85,13 @@ func makeNimCmd*(bin: string): Cmd =
 func makeX11Cmd*(bin: string): Cmd =
   ## Create command for `X11` cli tools (single dash)
   result.conf = ccOneDashFlags
+  result.bin = bin
+
+func makeGnuCmd*(bin: string): Cmd =
+  ## Create command for CLI applications that conform to GNU standard
+  ## for command line interface `link
+  ## <https://www.gnu.org/prep/standards/html_node/Command_002dLine-Interfaces.html>`_
+  result.conf = ccRegularFlags
   result.bin = bin
 
 func makeFileCmd*(file: string, conf: CmdConf = ccRegularFlags): Cmd =
