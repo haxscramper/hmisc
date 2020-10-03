@@ -1,4 +1,5 @@
 import sugar, strutils, sequtils, strformat
+import ../src/hmisc/helpers
 import ../src/hmisc/other/[hshell, oswrap, pathwrap]
 
 #===========================  implementation  ============================#
@@ -9,7 +10,7 @@ import unittest
 
 suite "Pathwrap":
   test "test":
-    echo AbsDir("/a/b/c") /../ 2 /../ "hello"
+    assertEq AbsDir("/a/b/c") /../ 2 /../ RelDir("hello"), AbsDir("/hello")
 
   test "A":
     echo getNewTempDir()
@@ -21,3 +22,11 @@ suite "Pathwrap":
         else:
           discard
 
+  test "dirs":
+    for dir in parentDirs(cwd()):
+      echo dir
+
+suite "Shell":
+  test "shell":
+    expect ShellError:
+      discard runShell("hello")

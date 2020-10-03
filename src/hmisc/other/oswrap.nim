@@ -1,10 +1,18 @@
 ## `os` module function wrappers than can work with both nimscript and
 ## regular target.
 
-import strutils, macros, random
+import strutils, macros, random, times
 from os import nil
 
-# export os.`/`, os.`/../`
+export os.PathComponent
+export os.FileInfo
+export os.FilePermission
+
+export os.sleep, os.getCurrentProcessId
+export os.unixToNativePath
+export os.quoteShellWindows
+export os.quoteShellPosix
+
 
 const weirdTarget = defined(nimscript) or defined(js)
 
@@ -28,7 +36,31 @@ type
 
   AnyPath* = AbsFile | AbsDir | RelFile | RelDir
   AnyDir* = AbsDir | RelDir
-  AnyFile* = AbsFile | AbsDir
+  AnyFile* = AbsFile | RelFile
+
+
+type
+  File = object
+    case isRelative*: bool
+      of true:
+        relFile*: RelFile
+      of false:
+        absFile*: AbsFile
+
+  Dir = object
+    case isRelative*: bool
+      of true:
+        relDir*: RelDir
+      of false:
+        absDir*: AbsDir
+
+  Path = object
+    case kind*: os.PathComponent
+      of os.pcFile, os.pcLinkToFile:
+        file*: File
+      of os.pcDir, os.pcLinkToDir:
+        dir*: Dir
+
 
 const
   CurDir* = RelDir($os.CurDir)
@@ -36,8 +68,10 @@ const
   DirSep* = os.DirSep
   AltSep* = os.AltSep
   PathSep* = os.PathSep
+  ExeExts* = os.ExeExts
 
 func `$`*(path: AnyPath): string = path.string
+# func `==`*(pathA, pathB: AnyPath, str: string): bool = path.string == str
 
 macro osAndNims*(code: untyped): untyped =
   var
@@ -54,9 +88,27 @@ macro osAndNims*(code: untyped): untyped =
     else:
       `nimsExpr`
 
+converter toFile*(absFile: AbsFile): File =
+  File(isRelative: false, absFile: absFile)
+
+converter toFile*(relFile: RelFile): File =
+  File(isRelative: true, relFile: relFile)
+
+converter toDir*(relDir: RelDir): Dir =
+  Dir(isRelative: true, relDir: relDir)
+
+converter toDir*(absDir: AbsDir): Dir =
+  Dir(isRelative: false, absDir: absDir)
+
+converter toAbsDir*(str: string): AbsDir =
+  assert os.isAbsolute(str)
+  AbsDir(str)
+
 proc getCurrentDir*(): AbsDir =
   ## Retrieves the current working directory.
   AbsDir(osAndNims(getCurrentDir()))
+
+proc cwd*(): AbsDir = getCurrentDir()
 
 import pathnorm
 
@@ -97,14 +149,20 @@ proc tailDir*(path: AnyDir): string = os.tailDir(path.string)
 # proc isRootDir*(path: string): bool
 #   ## Checks whether a given `path` is a root directory.
 
-# iterator parentDirs*(path: AnyPath, fromRoot=false, inclusive=true): AbsPath =
+iterator parentDirs*(
+  path: AnyPath,
+  fromRoot: bool = false,
+  inclusive: bool = true): AbsPath =
+
+  for p in os.parentDirs(path.string, fromRoot, inclusive):
+    yield AbsPath(p)
 
 proc `/../`*(head: AbsDir, repeat: int): AbsDir =
   result = head
   for i in 0 ..< repeat:
     result = AbsDir(os.parentDir(result.string))
 
-proc `/../`*(head: AbsDir, tail: string | RelDir): AbsDir =
+proc `/../`*(head: AbsDir, tail: RelDir): AbsDir =
   AbsDir(os.parentDir(head.string).AbsDir / tail.RelDir)
 
 proc searchExtPos*(path: AnyFile): int = os.searchExtPos(path.string)
@@ -137,182 +195,86 @@ proc addFileExt*(filename: RelFile, ext: string): RelFile =
 proc cmpPaths*(pathA, pathB: AnyPath): int =
   os.cmpPaths(pathA.string, pathB.string)
 
-# proc unixToNativePath*(path: string, drive=""): string {.
+proc getHomeDir*(): AbsDir = AbsDir os.getHomeDir()
 
-proc getHomeDir*(): AbsDir = os.getHomeDir().AbsDir()
-
-# proc getConfigDir*(): string {.rtl, extern: "nos$1",
+proc getConfigDir*(): AbsDir = AbsDir os.getConfigDir()
 
 proc getTempDir*(): AbsDir =
   AbsDir(os.getTempDir())
 
-# proc quoteShellWindows*(s: string): string {.noSideEffect, rtl, extern: "nosp$1".} =
+proc symlinkExists*(link: AnyPath): bool = os.symlinkExists(link.string)
 
-# proc quoteShellPosix*(s: string): string {.noSideEffect, rtl, extern: "nosp$1".} =
+proc findExe*(
+  exe: string,
+  followSymlinks: bool = true,
+  extensions: openArray[string] = ExeExts): AbsPath =
+  AbsPath(os.findExe(exe, followSymlinks, extensions))
 
-# proc symlinkExists*(link: string): bool {.rtl, extern: "nos$1",
+proc getLastModificationTime*(file: AnyFile): times.Time =
+  os.getLastModificationTime(file.string)
 
-# proc findExe*(exe: string, followSymlinks: bool = true;
-#               extensions: openArray[string]=ExeExts): string {.
+proc getLastAccessTime*(file: AnyFile): times.Time =
+  os.getLastAccessTime(file.string)
 
-# proc getLastModificationTime*(file: string): times.Time {.rtl, extern: "nos$1", noNimScript.} =
+proc getCreationTime*(file: AnyFile): times.Time =
+  os.getCreationTime(file.string)
 
-# proc getLastAccessTime*(file: string): times.Time {.rtl, extern: "nos$1", noNimScript.} =
+proc fileNewer*(base, other: AnyFile): bool =
+  os.fileNewer(base.string, other.string)
 
-# proc getCreationTime*(file: string): times.Time {.rtl, extern: "nos$1", noNimScript.} =
+proc absolute*(dir: RelDir, root: AbsDir = getCurrentDir()): AbsDir =
+  AbsDir(os.absolutePath(dir.string, root.string))
 
-# proc fileNewer*(a, b: string): bool {.rtl, extern: "nos$1", noNimScript.} =
+proc absolute*(file: RelFile, root: AbsDir = getCurrentDir()): AbsFile =
+  AbsFile(os.absolutePath(file.string, root.string))
 
-# proc getCurrentDir*(): string {.rtl, extern: "nos$1", tags: [], noNimScript.} =
+proc normalizePath*(path: var AnyPath) =
+  os.normalizePath(path.string)
 
-# proc setCurrentDir*(newDir: string) {.inline, tags: [], noNimScript.} =
+proc normalizedPath*(path: AbsDir): AbsDir =
+  AbsDir os.normalizedPath(path.string)
 
-when not weirdTarget:
-  # proc absolutePath*(path: string, root = getCurrentDir()): string {.noNimScript.} =
-  discard
+proc normalizedPath*(path: RelDir): RelDir =
+  RelDir os.normalizedPath(path.string)
 
-# proc normalizePath*(path: var string) {.rtl, extern: "nos$1", tags: [].} =
+proc normalizedPath*(path: AbsFile): AbsFile =
+  AbsFile os.normalizedPath(path.string)
 
-# proc normalizedPath*(path: string): string {.rtl, extern: "nos$1", tags: [].} =
+proc normalizedPath*(path: RelFile): RelFile =
+  RelFile os.normalizedPath(path.string)
 
-# proc sameFile*(path1, path2: string): bool {.rtl, extern: "nos$1",
+proc sameFile*(file1, file2: AnyFile): bool =
+  os.sameFile(file1.string, file2.string)
+
+proc sameDir*(dir1, dir2: AnyDir): bool =
+  os.cmpPaths(dir1.string, dir2.string) == 0
+
+proc `==`*(file1, file2: AnyFile): bool = sameFile(file1, file2)
+proc `==`*(dir1, dir2: AnyDir): bool = sameDir(dir1, dir2)
+
 # proc sameFileContent*(path1, path2: string): bool {.rtl, extern: "nos$1",
 
-export os.FilePermission
 
 proc getFilePermissions*(
-  filename: string | AnyFile): set[os.FilePermission] =
+  filename: AnyFile): set[os.FilePermission] =
   os.getFilePermissions(filename.string)
 
 proc setFilePermissions*(
-  filename: string | AnyFile, permissions: set[os.FilePermission]) =
+  filename: AnyFile, permissions: set[os.FilePermission]) =
   os.setFilePermissions(filename.string, permissions)
-
-# proc copyFile*(source, dest: string) {.rtl, extern: "nos$1",
-
-# when not declared(ENOENT) and not defined(Windows):
-#   when NoFakeVars:
-#     when not defined(haiku):
-#       const ENOENT = cint(2) # 2 on most systems including Solaris
-#     else:
-#       const ENOENT = cint(-2147459069)
-#   else:
-#     var ENOENT {.importc, header: "<errno.h>".}: cint
-
-# when defined(Windows) and not weirdTarget:
-#   when useWinUnicode:
-#     template deleteFile(file: untyped): untyped  = deleteFileW(file)
-#     template setFileAttributes(file, attrs: untyped): untyped =
-#       setFileAttributesW(file, attrs)
-#   else:
-#     template deleteFile(file: untyped): untyped = deleteFileA(file)
-#     template setFileAttributes(file, attrs: untyped): untyped =
-#       setFileAttributesA(file, attrs)
-
-# proc tryRemoveFile*(file: string): bool {.rtl, extern: "nos$1", tags: [WriteDirEffect], noNimScript.} =
-
-# proc removeFile*(file: string) {.rtl, extern: "nos$1", tags: [WriteDirEffect], noNimScript.} =
 
 # proc tryMoveFSObject(source, dest: string): bool {.noNimScript.} =
 
-# proc moveFile*(source, dest: string) {.rtl, extern: "nos$1",
-
 # proc exitStatusLikeShell*(status: cint): cint =
-#   ## Converts exit code from `c_system` into a shell exit code.
-#   when defined(posix) and not weirdTarget:
-#     if WIFSIGNALED(status):
-#       # like the shell!
-#       128 + WTERMSIG(status)
-#     else:
-#       WEXITSTATUS(status)
-#   else:
-#     status
-
 
 # iterator walkPattern*(pattern: string): string {.tags: [ReadDirEffect], noNimScript.} =
-#   ## Iterate over all the files and directories that match the `pattern`.
-#   ##
-#   ## On POSIX this uses the `glob`:idx: call.
-#   ## `pattern` is OS dependent, but at least the `"\*.ext"`
-#   ## notation is supported.
-#   ##
-#   ## See also:
-#   ## * `walkFiles iterator <#walkFiles.i,string>`_
-#   ## * `walkDirs iterator <#walkDirs.i,string>`_
-#   ## * `walkDir iterator <#walkDir.i,string>`_
-#   ## * `walkDirRec iterator <#walkDirRec.i,string>`_
-#   walkCommon(pattern, defaultWalkFilter)
 
 # iterator walkFiles*(pattern: string): string {.tags: [ReadDirEffect], noNimScript.} =
-#   ## Iterate over all the files that match the `pattern`.
-#   ##
-#   ## On POSIX this uses the `glob`:idx: call.
-#   ## `pattern` is OS dependent, but at least the `"\*.ext"`
-#   ## notation is supported.
-#   ##
-#   ## See also:
-#   ## * `walkPattern iterator <#walkPattern.i,string>`_
-#   ## * `walkDirs iterator <#walkDirs.i,string>`_
-#   ## * `walkDir iterator <#walkDir.i,string>`_
-#   ## * `walkDirRec iterator <#walkDirRec.i,string>`_
-#   walkCommon(pattern, isFile)
 
 # iterator walkDirs*(pattern: string): string {.tags: [ReadDirEffect], noNimScript.} =
-#   ## Iterate over all the directories that match the `pattern`.
-#   ##
-#   ## On POSIX this uses the `glob`:idx: call.
-#   ## `pattern` is OS dependent, but at least the `"\*.ext"`
-#   ## notation is supported.
-#   ##
-#   ## See also:
-#   ## * `walkPattern iterator <#walkPattern.i,string>`_
-#   ## * `walkFiles iterator <#walkFiles.i,string>`_
-#   ## * `walkDir iterator <#walkDir.i,string>`_
-#   ## * `walkDirRec iterator <#walkDirRec.i,string>`_
-#   walkCommon(pattern, isDir)
 
 # proc expandFilename*(filename: string): string {.rtl, extern: "nos$1",
 
-export os.PathComponent
-
-type
-  File = object
-    case isRelative*: bool
-      of true:
-        relFile*: RelFile
-      of false:
-        absFile*: AbsFile
-
-  Dir = object
-    case isRelative*: bool
-      of true:
-        relDir*: RelDir
-      of false:
-        absDir*: AbsDir
-
-  Path = object
-    case kind*: os.PathComponent
-      of os.pcFile, os.pcLinkToFile:
-        file*: File
-      of os.pcDir, os.pcLinkToDir:
-        dir*: Dir
-
-converter toFile*(absFile: AbsFile): File =
-  File(isRelative: false, absFile: absFile)
-
-converter toFile*(relFile: RelFile): File =
-  File(isRelative: true, relFile: relFile)
-
-
-converter toDir*(relDir: RelDir): Dir =
-  Dir(isRelative: true, relDir: relDir)
-
-converter toDir*(absDir: AbsDir): Dir =
-  Dir(isRelative: false, absDir: absDir)
-
-converter toAbsDir*(str: string): AbsDir =
-  assert os.isAbsolute(str)
-  AbsDir(str)
 
 iterator walkDir*(dir: AnyDir; relative = false, checkDir = false): Path =
   for (comp, path) in os.walkDir(dir.string):
@@ -354,135 +316,68 @@ iterator walkDirRec*(
     discard
 
 
-# proc existsOrCreateDir*(dir: string): bool {.rtl, extern: "nos$1",
-#   tags: [WriteDirEffect, ReadDirEffect], noNimScript.} =
-#   ## Check if a `directory`:idx: `dir` exists, and create it otherwise.
-#   ##
-#   ## Does not create parent directories (fails if parent does not exist).
-#   ## Returns `true` if the directory already exists, and `false`
-#   ## otherwise.
-#   ##
-#   ## See also:
-#   ## * `removeDir proc <#removeDir,string>`_
-#   ## * `createDir proc <#createDir,string>`_
-#   ## * `copyDir proc <#copyDir,string,string>`_
-#   ## * `copyDirWithPermissions proc <#copyDirWithPermissions,string,string>`_
-#   ## * `moveDir proc <#moveDir,string,string>`_
-#   result = not rawCreateDir(dir)
-#   if result:
-#     # path already exists - need to check that it is indeed a directory
-#     if not existsDir(dir):
-#       raise newException(IOError, "Failed to create '" & dir & "'")
+proc existsOrCreateDir*(dir: AnyDir): bool =
+  os.existsOrCreateDir(dir.string)
 
-# proc createSymlink*(src, dest: string) {.noNimScript.} =
+proc createSymlink*[Src: AnyPath, Dest: AnyPath](
+  src: Src, dest: Dest) =
+  os.createSymlink(src.string, dest.string)
 
-# proc createHardlink*(src, dest: string) {.noNimScript.} =
+proc createHardlink*[Src: AnyPath, Dest: AnyPath](
+  src: Src, dest: Dest) =
+  os.createHardlink(src.string, dest.string)
 
-# proc copyFileWithPermissions*(source, dest: string,
-#                               ignorePermissionErrors = true) {.noNimScript.} =
+proc copyFileWithPermissions*(source, dest: AnyFile,
+                              ignorePermissionErrors = true) =
+  os.copyFileWithPermissions(
+    source.string, dest.string, ignorePermissionErrors)
 
-# proc copyDirWithPermissions*(source, dest: string,
-#     ignorePermissionErrors = true) {.rtl, extern: "nos$1",
-#     tags: [WriteIOEffect, ReadIOEffect], benign, noNimScript.} =
-#   ## Copies a directory from `source` to `dest` preserving file permissions.
-#   ##
-#   ## If this fails, `OSError` is raised. This is a wrapper proc around `copyDir
-#   ## <#copyDir,string,string>`_ and `copyFileWithPermissions
-#   ## <#copyFileWithPermissions,string,string>`_ procs
-#   ## on non-Windows platforms.
-#   ##
-#   ## On Windows this proc is just a wrapper for `copyDir proc
-#   ## <#copyDir,string,string>`_ since that proc already copies attributes.
-#   ##
-#   ## On non-Windows systems permissions are copied after the file or directory
-#   ## itself has been copied, which won't happen atomically and could lead to a
-#   ## race condition. If `ignorePermissionErrors` is true (default), errors while
-#   ## reading/setting file attributes will be ignored, otherwise will raise
-#   ## `OSError`.
-#   ##
-#   ## See also:
-#   ## * `copyDir proc <#copyDir,string,string>`_
-#   ## * `copyFile proc <#copyFile,string,string>`_
-#   ## * `copyFileWithPermissions proc <#copyFileWithPermissions,string,string>`_
-#   ## * `removeDir proc <#removeDir,string>`_
-#   ## * `moveDir proc <#moveDir,string,string>`_
-#   ## * `existsOrCreateDir proc <#existsOrCreateDir,string>`_
-#   ## * `createDir proc <#createDir,string>`_
-#   createDir(dest)
-#   when not defined(Windows):
-#     try:
-#       setFilePermissions(dest, getFilePermissions(source))
-#     except:
-#       if not ignorePermissionErrors:
-#         raise
-#   for kind, path in walkDir(source):
-#     var noSource = splitPath(path).tail
-#     case kind
-#     of pcFile:
-#       copyFileWithPermissions(path, dest / noSource, ignorePermissionErrors)
-#     of pcDir:
-#       copyDirWithPermissions(path, dest / noSource, ignorePermissionErrors)
-#     else: discard
+proc copyDirWithPermissions*(source, dest: AnyDir,
+    ignorePermissionErrors = true) =
 
-# proc inclFilePermissions*(filename: string,
-#                           permissions: set[FilePermission]) {.
+  os.copyDirWithPermissions(
+    source.string, dest.string, ignorePermissionErrors)
 
-# proc exclFilePermissions*(filename: string,
-#                           permissions: set[FilePermission]) {.
+proc inclFilePermissions*(filename: AnyFile,
+                          permissions: set[os.FilePermission]) =
+  os.inclFilePermissions(filename.string, permissions)
 
-# proc expandSymlink*(symlinkPath: string): string {.noNimScript.} =
+proc exclFilePermissions*(filename: AnyFile,
+                          permissions: set[os.FilePermission]) =
+  os.exclFilePermissions(filename.string, permissions)
 
-# proc parseCmdLine*(c: string): seq[string] {.
+proc expandSymlink*(path: AbsDir): AbsDir =
+  AbsDir os.expandSymlink(path.string)
 
+proc expandSymlink*(path: AbsFile): AbsFile =
+  AbsFile os.expandSymlink(path.string)
 
-# proc getAppFilename*(): string {.rtl, extern: "nos$1", tags: [ReadIOEffect], noNimScript.} =
+proc splitCmdLine*(c: string): seq[string] = os.parseCmdLine(c)
 
-# proc getAppDir*(): string {.rtl, extern: "nos$1", tags: [ReadIOEffect], noNimScript.} =
+proc getAppFilename*(): string = os.getAppFilename()
 
-export os.sleep
+proc getAppDir*(): AbsDir = AbsDir os.getAppDir()
 
-# proc getFileSize*(file: string): BiggestInt {.rtl, extern: "nos$1",
+proc getFileSize*(file: AnyFile): BiggestInt =
+  os.getFileSize(file.string)
 
-export os.FileInfo
+proc getFileInfo*(handle: FileHandle): os.FileInfo =
+  os.getFileInfo(handle)
 
-# proc getFileInfo*(handle: FileHandle): FileInfo {.noNimScript.} =
-#   ## Retrieves file information for the file object represented by the given
-#   ## handle.
-#   ##
-#   ## If the information cannot be retrieved, such as when the file handle
-#   ## is invalid, `OSError` is raised.
-#   ##
-#   ## See also:
-#   ## * `getFileInfo(file) proc <#getFileInfo,File>`_
-#   ## * `getFileInfo(path) proc <#getFileInfo,string>`_
+proc getFileInfo*(file: AnyFile): os.FileInfo =
+  os.getFileInfo(file.string)
 
-#   # Done: ID, Kind, Size, Permissions, Link Count
-#   when defined(Windows):
-#     var rawInfo: BY_HANDLE_FILE_INFORMATION
-#     # We have to use the super special '_get_osfhandle' call (wrapped above)
-#     # To transform the C file descriptor to a native file handle.
-#     var realHandle = get_osfhandle(handle)
-#     if getFileInformationByHandle(realHandle, addr rawInfo) == 0:
-#       raiseOSError(osLastError(), $handle)
-#     rawToFormalFileInfo(rawInfo, "", result)
-#   else:
-#     var rawInfo: Stat
-#     if fstat(handle, rawInfo) < 0'i32:
-#       raiseOSError(osLastError(), $handle)
-#     rawToFormalFileInfo(rawInfo, "", result)
+proc getFileInfo*(path: AnyFile, followSymlink: bool = true): os.FileInfo =
+  os.getFileInfo(path.string, followSymlink)
 
-# proc getFileInfo*(file: File): FileInfo {.noNimScript.} =
+proc isHidden*(path: AnyPath): bool =
+  os.isHidden(path.string)
 
-# proc getFileInfo*(path: string, followSymlink = true): FileInfo {.noNimScript.} =
+proc setLastModificationTime*(file: AnyFile, t: times.Time) =
+  os.setLastModificationTime(file.string, t)
 
-# proc isHidden*(path: string): bool {.noNimScript.} =
-
-# proc getCurrentProcessId*(): int {.noNimScript.} =
-
-# proc setLastModificationTime*(file: string, t: times.Time) {.noNimScript.} =
-
-func isValidFilename*(filename: AbsFile, maxLen = 259.Positive): bool  =
-  os.isValidFilename(filename.string)
+func isValidFilename*(filename: AbsFile, maxLen = 259.Positive): bool =
+  os.isValidFilename(filename.string, maxLen)
 
 
 
@@ -709,5 +604,3 @@ template withEnv*(envs: openarray[(string, string)], body: untyped): untyped =
 
   for varn in noValues:
     oswrap.delEnv(varn)
-
-

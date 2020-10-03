@@ -15,8 +15,11 @@ import strutils, strformat, strtabs, sequtils
 # TODO implement functions for callsite checks in program execution
 #      Determine if all file parameters are present (create separate
 #      `fileArg` procedure), if binary itself is available and so on.
+# TODO Support command chaining using `&&`, `||` (`and`, `or`) and pipes
+#      `|` for redirecting output streams.
 
 type
+  ShellExecEffect = object of IOEffect
   ShellError* = ref object of OSError
     cmd*: string ## Command that returned non-zero exit code
     cwd*: string ## Absolute path of initial command execution directory
@@ -34,6 +37,9 @@ type
     opts: seq[string]
     conf: CmdConf
     envVals: seq[tuple[key, val: string]]
+
+converter toCmd*(a: string): Cmd =
+  result.bin = a
 
 func toBegin(cmd: Cmd, fl: string): string =
   if cmd.conf == ccOneDashFlags or fl.len == 1:
@@ -165,7 +171,12 @@ proc runShell*(
   maxErrorLines: int = 12,
   discardOut: bool = false
              ): tuple[
-  stdout, stderr: string, code: int] =
+  stdout, stderr: string, code: int] {.tags: [
+    ShellExecEffect,
+    ExecIOEffect,
+    ReadEnvEffect,
+    RootEffect
+    ].} =
   ## Execute shell command and return it's output. `stdin` - optional
   ## parameter, will be piped into process. `doRaise` - raise
   ## exception (default) if command finished with non-zero code.
