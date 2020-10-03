@@ -40,26 +40,26 @@ type
 
 
 type
-  File = object
+  FsFile = object
     case isRelative*: bool
       of true:
         relFile*: RelFile
       of false:
         absFile*: AbsFile
 
-  Dir = object
+  FsDir = object
     case isRelative*: bool
       of true:
         relDir*: RelDir
       of false:
         absDir*: AbsDir
 
-  Path = object
+  FsEntry = object
     case kind*: os.PathComponent
       of os.pcFile, os.pcLinkToFile:
-        file*: File
+        file*: FsFile
       of os.pcDir, os.pcLinkToDir:
-        dir*: Dir
+        dir*: FsDir
 
 
 const
@@ -88,17 +88,17 @@ macro osAndNims*(code: untyped): untyped =
     else:
       `nimsExpr`
 
-converter toFile*(absFile: AbsFile): File =
-  File(isRelative: false, absFile: absFile)
+converter toFile*(absFile: AbsFile): FsFile =
+  FsFile(isRelative: false, absFile: absFile)
 
-converter toFile*(relFile: RelFile): File =
-  File(isRelative: true, relFile: relFile)
+converter toFile*(relFile: RelFile): FsFile =
+  FsFile(isRelative: true, relFile: relFile)
 
-converter toDir*(relDir: RelDir): Dir =
-  Dir(isRelative: true, relDir: relDir)
+converter toDir*(relDir: RelDir): FsDir =
+  FsDir(isRelative: true, relDir: relDir)
 
-converter toDir*(absDir: AbsDir): Dir =
-  Dir(isRelative: false, absDir: absDir)
+converter toDir*(absDir: AbsDir): FsDir =
+  FsDir(isRelative: false, absDir: absDir)
 
 converter toAbsDir*(str: string): AbsDir =
   assert os.isAbsolute(str)
@@ -276,12 +276,13 @@ proc setFilePermissions*(
 # proc expandFilename*(filename: string): string {.rtl, extern: "nos$1",
 
 
-iterator walkDir*(dir: AnyDir; relative = false, checkDir = false): Path =
+iterator walkDir*(
+  dir: AnyDir; relative: bool = false, checkDir: bool = false): FsEntry =
   for (comp, path) in os.walkDir(dir.string):
     let comp = comp
     case comp:
       of os.pcFile, os.pcLinkToFile:
-        yield Path(kind: comp, file:
+        yield FsEntry(kind: comp, file:
           block:
             if relative:
               RelFile(path).toFile()
@@ -290,7 +291,7 @@ iterator walkDir*(dir: AnyDir; relative = false, checkDir = false): Path =
         )
 
       of os.pcDir, os.pcLinkToDir:
-        yield Path(kind: comp, dir:
+        yield FsEntry(kind: comp, dir:
           block:
             if relative:
               RelDir(path).toDir()
@@ -304,7 +305,7 @@ iterator walkDirRec*(
   followFilter = {os.pcDir},
   relative = false,
   checkDir = false
-         ): Path =
+         ): FsEntry =
 
   for dir in os.walkDirRec(
     dir.string,

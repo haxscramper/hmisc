@@ -27,39 +27,81 @@ type
     errstr*: string ## Stderr for command
     outstr*: string ## Stdout for command
 
-  CmdConf* = enum
-    ccNimFlags
+  CmdFlagConf* = enum
     ccRegularFlags
     ccOneDashFlags
 
+  CmdConf = object
+    flagConf*: CmdFlagConf
+    kvSep*: string
+
+  CmdPartKind* = enum
+    cpkSubCommand
+    cpkArgument
+    cpkOption
+    cpkFlag
+    cpkRaw
+
+  CmdPart* = object
+    case kind*: CmdPartKind
+      of cpkSubCommand:
+        subcommand*: string
+      of cpkArgument:
+        argument*: string
+      of cpkFlag:
+        flag*: string
+      of cpkOption:
+        key*: string
+        value*: string
+
+        case overrideKv*: bool ## Override key-value separator for
+          ## configuration. Used in cases like `-I` flag in C
+          ## compilers that othewise handle `--key=value` pairs.
+          of true:
+            kvSep*: string
+          of false:
+            discard
+
+      of cpkRaw:
+        rawstring*: string
+
   Cmd* = object
     bin*: string
-    opts: seq[string]
+    opts: seq[CmdPart]
     conf: CmdConf
     envVals: seq[tuple[key, val: string]]
+
+const
+  GnuCmdConf* = CmdConf(
+    flagConf: ccRegularFlags,
+    kvSep: "="
+  )
+
+  NimCmdConf* = CmdConf(
+    flagConf: ccRegularFlags,
+    kvSep: ":"
+  )
+
+  X11CmdConf* = CmdConf(
+    flagConf: ccOneDashFlags,
+    kvSep: " "
+  )
 
 converter toCmd*(a: string): Cmd =
   result.bin = a
 
-func toBegin(cmd: Cmd, fl: string): string =
-  if cmd.conf == ccOneDashFlags or fl.len == 1:
-    &"-{fl}"
-  else:
-    &"--{fl}"
+# func toBegin(cmd: Cmd, fl: string): string =
+#   if cmd.conf == ccOneDashFlags or fl.len == 1:
+#     &"-{fl}"
+#   else:
+#     &"--{fl}"
 
 
 func flag*(cmd: var Cmd, fl: string) =
-  cmd.opts.add(cmd.toBegin(fl))
+  cmd.opts.add CmdPart(kind: cpkFlag, flag: fl)
 
 func opt*(cmd: var Cmd, inKey, val: string) =
-  let key = cmd.toBegin(inKey)
-  cmd.opts.add case cmd.conf:
-    of ccNimFlags: &"{key}:{val}"
-    else:
-      if inKey.len == 1:
-        &"{key}{val}"
-      else:
-        &"{key}={val}"
+  cmd.opts.add CmdPart(kind: cpkOption, key: inKey, value: val)
 
 func env*(cmd: var Cmd, key, val: string): void =
   cmd.envVals.add (key, val)
@@ -68,47 +110,68 @@ func opt*(cmd: var Cmd, opts: openarray[tuple[key, val: string]]) =
   for (key, val) in opts:
     cmd.opt(key, val)
 
-func cmd*(cmd: var Cmd, sub: string) =
-   cmd.opts.add sub
+func subCmd*(cmd: var Cmd, sub: string) =
+   cmd.opts.add CmdPart(kind: cpkSubCommand, subcommand: sub)
 
 func raw*(cmd: var Cmd, str: string) =
-  cmd.opts.add str
-
-func strArg*(cmd: var Cmd, sub: string) =
-  cmd.opts.add:
-    if not ((sub[0] == '"') and (sub[^1] == '"')):
-      &"\"{sub}\""
-    else:
-      sub
+  cmd.opts.add Cmdpart(kind: cpkRaw, rawstring: str)
 
 func arg*(cmd: var Cmd, arg: string) =
-  cmd.opts.add arg
+  cmd.opts.add CmdPart(kind: cpkArgument, argument: arg)
 
 func makeNimCmd*(bin: string): Cmd =
-  result.conf = ccNimFlags
+  result.conf = NimCmdConf
   result.bin = bin
 
 func makeX11Cmd*(bin: string): Cmd =
   ## Create command for `X11` cli tools (single dash)
-  result.conf = ccOneDashFlags
+  result.conf = X11CmdConf
   result.bin = bin
 
 func makeGnuCmd*(bin: string): Cmd =
   ## Create command for CLI applications that conform to GNU standard
   ## for command line interface `link
   ## <https://www.gnu.org/prep/standards/html_node/Command_002dLine-Interfaces.html>`_
-  result.conf = ccRegularFlags
+  result.conf = CmdConf(flagConf: ccRegularFlags)
   result.bin = bin
 
-func makeFileCmd*(file: string, conf: CmdConf = ccRegularFlags): Cmd =
+func makeFileCmd*(file: string, conf: CmdConf = GnuCmdConf): Cmd =
   result.conf = conf
   if file.startsWith("/"):
     result.bin = file
   else:
     result.bin = "./" & file
 
+# func quoteShell*(str: string): string = str
+
+func toStr*(part: CmdPart, conf: CmdConf): string =
+  let longPrefix =
+    case conf.flagConf:
+      of ccRegularFlags: "--"
+      of ccOneDashFlags: "-"
+
+  case part.kind:
+    of cpkRaw:
+      return part.rawstring
+    of cpkSubCommand:
+      return part.subcommand
+    of cpkFlag:
+      if part.flag.len > 1:
+        return longPrefix & part.flag
+      else:
+        return "-" & part.flag
+    of cpkOption:
+      let kv = if part.overrideKv: part.kvSep else: conf.kvSep
+      if part.key.len > 1:
+        return longPrefix & kv & part.value.quoteShell()
+      else:
+        return "-" & kv & part.value.quoteShell()
+    of cpkArgument:
+      return part.argument.quoteShell()
+
+
 func toStr*(cmd: Cmd): string =
-  (@[ cmd.bin ] & cmd.opts).join(" ")
+  (@[ cmd.bin ] & cmd.opts.mapIt(it.toStr(cmd.conf))).join(" ")
 
 when not defined(NimScript):
   proc printShellError*() =
