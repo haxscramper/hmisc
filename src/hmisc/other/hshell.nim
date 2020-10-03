@@ -131,7 +131,10 @@ func arg*(cmd: var Cmd, arg: string) =
   cmd.opts.add CmdPart(kind: cpkArgument, argument: arg)
 
 func `-`*(cmd: var Cmd, fl: string) = cmd.flag fl
-func `-`*(cmd: var Cmd, kv: (string, string)) = cmd.opt kv[0], kv[1]
+func `--`*(cmd: var Cmd, kv: (string, string)) =
+  # debugecho kv
+  cmd.opt(kv[0], kv[1])
+  # debugecho cmd
 
 func makeNimCmd*(bin: string): Cmd =
   result.conf = NimCmdConf
@@ -146,7 +149,7 @@ func makeGnuCmd*(bin: string): Cmd =
   ## Create command for CLI applications that conform to GNU standard
   ## for command line interface `link
   ## <https://www.gnu.org/prep/standards/html_node/Command_002dLine-Interfaces.html>`_
-  result.conf = CmdConf(flagConf: ccRegularFlags)
+  result.conf = GnuCmdConf
   result.bin = bin
 
 func makeFileCmd*(file: string, conf: CmdConf = GnuCmdConf): Cmd =
@@ -177,9 +180,9 @@ func toStr*(part: CmdPart, conf: CmdConf): string =
     of cpkOption:
       let kv = if part.overrideKv: part.kvSep else: conf.kvSep
       if part.key.len > 1:
-        return longPrefix & kv & part.value.quoteShell()
+        return longPrefix & part.key & kv & part.value.quoteShell()
       else:
-        return "-" & kv & part.value.quoteShell()
+        return "-" & part.key & kv & part.value.quoteShell()
     of cpkArgument:
       return part.argument.quoteShell()
 
@@ -332,7 +335,12 @@ proc runShell*(
     var msg = &"Command '{command}'\nExecuted in directory " &
       $cwd() & &"\n{envAdd}Exited with non-zero code:\n"
 
-    let split = result.stderr.split("\n")
+    let split =
+      when cbackend:
+        result.stderr.split("\n")
+      else:
+        result.stdout.split("\n")
+
     msg.add split[0 ..< min(split.len(), maxErrorLines)].join("\n")
 
     raise ShellError(

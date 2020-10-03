@@ -34,25 +34,17 @@ proc runDockerTest*(
     runCb()
 
   let dockerCmd = makeGnuCmd("docker").withIt do:
+    it.subCmd "run"
     it - "i"
-    it - "t"
+    it - "i"
     it - "rm"
-    it - ("v", $tmpDir & ":/project")
+    it -- ("v", $tmpDir & ":/project")
     it.arg "nim-base"
     it.arg "sh"
     it - "c"
     it.raw &"'cd /project/main && {cmd}'"
 
-  try:
-    discard runShell(dockerCmd)
-  except OSError:
-    echo "\e[31mfailed\e[39m"
-    proc hlCmd(str: string): string =
-      let split = str.split(" ")
-      result = "\e[33m" & split[0] & "\e[39m " & split[1..^1].join(" ")
-
-    echo cmd.split("&&").mapIt(
-      it.strip().alignLeft(40).hlCmd()).join(" &&\n")
+  discard runShell(dockerCmd)
 
 
 func `&&`*(lhs, rhs: string): string =
