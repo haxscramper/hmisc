@@ -2,6 +2,7 @@
 
 import strformat, strutils, sugar, sequtils
 import hshell, oswrap
+import ../algo/htemplates
 
 ## Helper utilities for running nimble tasks
 
@@ -32,15 +33,18 @@ proc runDockerTest*(
   withDir tmpDir / "main":
     runCb()
 
-  let cmd =
-      &"docker run -it --rm -v={tmpDir}:/project nim-base sh -c '" &
-      &"cd /project/main && {cmd}" &
-      "'"
-
+  let dockerCmd = makeGnuCmd("docker").withIt do:
+    it - "i"
+    it - "t"
+    it - "rm"
+    it - ("v", $tmpDir & ":/project")
+    it.arg "nim-base"
+    it.arg "sh"
+    it - "c"
+    it.raw &"'cd /project/main && {cmd}'"
 
   try:
-    exec(cmd)
-    # rmDir tmpDir
+    discard runShell(dockerCmd)
   except OSError:
     echo "\e[31mfailed\e[39m"
     proc hlCmd(str: string): string =
@@ -92,8 +96,6 @@ proc makeLocalDevel*(testDir: string, pkgs: seq[string]): string =
     for nimble in meta.readFile().split("\n"):
       if nimble.endsWith(&"{pkg}.nimble"): # XXX
         let dir = parentDir(nimble)
-        debug dir
-        # echo "copied ", dir, " to ", testDir / pkg
         cpDir dir, (testDir / pkg)
 
   for pkg in pkgs:
@@ -104,23 +106,23 @@ proc writeTestConfig*(str: string): void =
 
 proc testAllImpl*(): void =
   try:
-    exec("choosenim stable")
-    exec("nimble test")
+    shExec("choosenim stable")
+    shExec("nimble test")
     info "Stable test passed"
   except:
     err "Stable test failed"
 
   try:
-    exec("choosenim devel")
-    exec("nimble test")
+    shExec("choosenim devel")
+    shExec("nimble test")
     info "Devel test passed"
   except:
     err "Devel test failed"
   finally:
-    exec("choosenim stable")
+    shExec("choosenim stable")
 
   try:
-    exec("nimble install")
+    shExec("nimble install")
     info "Installation on stable OK"
   except:
     err "Installation on stable failed"

@@ -1,6 +1,8 @@
 import math, strutils, sequtils, random, macros, options, strformat,
        parseutils, algorithm, sugar
 import std/wordwrap
+import htemplates
+export htemplates
 
 import hseq_distance
 import ../types/[hprimitives]
@@ -15,97 +17,6 @@ func add*[A, B](s: var seq[(A, B)], a: A, b: B) =
 template expectEqualTypes(a, b: untyped): untyped =
   assert (a is typeof(b)), "Mismatch between types: first is `" &
     $typeof(a) & "` and second is `" & $typeof(b) & "`"
-
-template tern*(
-  predicate: bool,
-  tBranch: untyped,
-  fBranch: untyped): untyped =
-    ## Shorthand for inline if/else.
-    runnableExamples:
-      let a = (1 == 2).tern("99", "0-")
-      assert a == "0-"
-
-    block:
-      # static: expectEqualTypes(tBranch, fBranch)
-      if predicate: tBranch
-      else: fBranch
-
-template orElse*(
-  value: untyped, predicate: bool, fallback: untyped): untyped =
-  if predicate: value
-  else: fallback
-
-template setIf*(lhs: untyped, predicate: bool, value: untyped): untyped =
-  if predicate: lhs = value
-
-template withIt*(val, body: untyped): untyped =
-  block:
-    var it {.inject.} = val
-    block:
-      body
-    it
-
-template withResIt*(val, body: untyped): untyped =
-  block:
-    var it {.inject.} = val
-    body
-
-template splitOnIt*[T](s: seq[T], op: untyped): tuple[
-  before, after: seq[T]] =
-  var res: tuple[before, after: seq[T]]
-  var found: bool = false
-  for it {.inject.} in s:
-    if found:
-      res.after.add it
-    else:
-      if op:
-        found = true
-      else:
-        res.before.add it
-
-  res
-
-template eachIt*(ins, op: untyped): untyped =
-  for it {.inject.} in ins:
-    op
-
-template anyOfIt*(sequence: typed, predicate: untyped): bool =
-  ## Return `true` if for any of the items in sequence `predicate`
-  ## evaluates as `true`. Otherwise return false.
-  var result = false
-  for it {.inject.} in sequence:
-    if predicate:
-      result = true
-      break
-
-  result
-
-template allOfIt*(s: untyped, op: untyped): bool =
-  ## True if for all items in `s` predicate `op` returns true.
-  mixin anyOfIt
-  not s.anyOfIt(not op)
-
-template getIterOpType*(s, op: untyped): untyped =
-  typeof((
-    block:
-      # var itRef
-      var it {.inject.}: typeof(items(s), typeOfIter);
-      op), typeOfProc)
-
-template maxIt*(s: untyped, op: untyped): untyped =
-  ## Maximize value for all elements in sequence
-  type OutType = getIterOpType(s, op)
-  var res: OutType
-  for it {.inject.} in s:
-    let val = op
-    if val > res:
-      res = val
-  res
-
-template noneOfIt*(s: untyped, op: untyped): bool =
-  ## True if for all items in `s` predicate `op` returns true.
-  mixin anyOfIt
-  not s.anyOfIt(op)
 
 macro disjointIterImpl(x: typed): untyped =
   var values: seq[NimNode]
@@ -377,7 +288,7 @@ proc matchWith*[K, V](
 
 #=========================  string operations  ===========================#
 
-    
+
 func dashedWords*(
   str: string,
   toDash: set[char] = {'-', '_', ' ', '.', ',', ';', ':'},

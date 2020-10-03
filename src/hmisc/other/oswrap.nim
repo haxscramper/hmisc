@@ -462,7 +462,7 @@ proc toDll*(filename: string): string =
   ## "lib$filename.so".
   (when defined(windows): filename & ".dll" else: "lib" & filename & ".so")
 
-proc listDirs*(dir: string | AnyDir): seq[AbsDir] =
+proc listDirs*(dir: AnyDir): seq[AbsDir] =
   ## Lists all absolute paths for all subdirectories (non-recursively)
   ## in the directory dir.
   when defined(NimScript):
@@ -472,7 +472,7 @@ proc listDirs*(dir: string | AnyDir): seq[AbsDir] =
       if kind == pcDir:
         result.add path
 
-proc listFiles*(dir: string | AnyDir): seq[AbsFile] =
+proc listFiles*(dir: AnyDir): seq[AbsFile] =
   ## Lists all the files (non-recursively) in the directory dir.
   when defined(NimScript):
     return system.listFiles(dir)
@@ -481,21 +481,24 @@ proc listFiles*(dir: string | AnyDir): seq[AbsFile] =
       if kind == pcFile:
         result.add path
 
-proc rmDir*(dir: string | AnyDir; checkDir = false) =
+template readFile*(file: AnyFile): untyped =
+  readFile(file.string)
+
+proc rmDir*(dir: AnyDir; checkDir = false) =
   ## Removes the directory dir.
   osOrNims(
     os.removeDir(dir.string, checkDir),
     system.rmDir(dir.string, checkDir)
   )
 
-proc rmFile*(file: string | AnyFile) =
+proc rmFile*(file: AnyFile) =
   ## Removes the file.
   osOrNims(
     os.removeFile(file.string),
     system.rmFile(file.string)
   )
 
-proc mkDir*(dir: string | AnyDir) =
+proc mkDir*(dir: AnyDir) =
   ## Creates the directory dir including all necessary subdirectories.
   ## If the directory already exists, no error is raised.
   osOrNims(
@@ -503,14 +506,14 @@ proc mkDir*(dir: string | AnyDir) =
     system.mkDir(dir.string)
   )
 
-proc mvFile*(source, dest: string | AnyFile) =
+proc mvFile*(source, dest: AnyFile) =
   ## Moves the file from to to.
   osOrNims(
     os.moveFile(source.string, dest.string),
     system.mvFile(source.string, dest.string)
   )
 
-proc mvDir*(source, dest: string | AnyDir) =
+proc mvDir*(source, dest: AnyDir) =
   ## Moves the dir from to to.
   osOrNims(
     os.moveDir(source.string, dest.string),
@@ -524,14 +527,14 @@ proc cpFile*(source, dest: string | AnyFile) =
     system.cpFile(source.string, dest.string)
   )
 
-proc cpDir*(source, dest: string | AnyDir) =
+proc cpDir*(source, dest: AnyDir) =
   ## Copies the dir from to to.
   osOrNims(
     os.copyDir(source.string, dest.string),
     system.cpDir(source.string, dest.string)
   )
 
-proc cd*(dir: string | AnyDir) =
+proc cd*(dir: AnyDir) =
   ## Changes the current directory.
   osOrNims(
     os.setCurrentDir(dir.string),
@@ -575,7 +578,7 @@ proc getNewTempDir*(
     if not dirExists(dir / RelDir(next)):
       return AbsDir(dir / RelDir(next))
 
-template withDir*(dir: string | AnyDir; body: untyped): untyped =
+template withDir*(dir: AnyDir, body: untyped): untyped =
   ## Changes the current directory temporarily.
   var curDir = cwd()
   try:

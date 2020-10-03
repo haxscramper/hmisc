@@ -130,6 +130,9 @@ func raw*(cmd: var Cmd, str: string) =
 func arg*(cmd: var Cmd, arg: string) =
   cmd.opts.add CmdPart(kind: cpkArgument, argument: arg)
 
+func `-`*(cmd: var Cmd, fl: string) = cmd.flag fl
+func `-`*(cmd: var Cmd, kv: (string, string)) = cmd.opt kv[0], kv[1]
+
 func makeNimCmd*(bin: string): Cmd =
   result.conf = NimCmdConf
   result.bin = bin
@@ -307,10 +310,15 @@ proc runShell*(
 
   else:
     let nscmd = &"cd {cwd()} && " & command
-    if not discardOut:
+
+    if poParentStreams in options:
+      exec(nscmd)
+    else:
       let (res, code) = gorgeEx(nscmd, "", "")
-      result.stdout = res
-      result.code = code
+
+      if not discardOut:
+        result.stdout = res
+        result.code = code
 
 
   if doRaise and result.code != 0:
@@ -337,28 +345,5 @@ proc runShell*(
       cmd: command
     )
 
-# pr# oc runShell*(
-  # cmd: Cmd,
-  # doRaise: bool = true,
-  # stdin: string = "",
-  # env: seq[tuple[key, val: string]] = @[],
-  # options: set[ProcessOption] = {poEvalCommand},
-  # maxErrorLines: int = 12
-  # discardOut: bool = false
-  #            ): tuple[
-  # stdout, stderr: string, code: int] =
-  # cmd.toStr().runShell(
-  #   env = cmd.envVals,
-  #   options = options,
-  #   maxErrorLines = maxErrorLines,
-  #   discardOut = discardOut
-  # )
-
-# when not defined(nimscript):
-#   template withDir*(dir: string; body: untyped): untyped =
-#     var curDir = getCurrentDir()
-#     try:
-#       setCurrentDir(dir)
-#       body
-#     finally:
-#       setCurrentDir(curDir)
+proc shExec*(cmd: string): void =
+  discard runShell(cmd, options = {poParentStreams})
