@@ -1,8 +1,7 @@
 #!/usr/bin/env nim
 
 import strformat, strutils, sugar, sequtils
-import os except dirExists
-import hshell
+import hshell, oswrap
 
 ## Helper utilities for running nimble tasks
 
@@ -79,7 +78,7 @@ proc makeLocalDevel*(testDir: string, pkgs: seq[string]): string =
     for pkg in pkgs:
       let dir = home / ".nimble/pkgs" / (pkg & "-#head")
 
-      assert system.existsDir(dir),
+      assert existsDir(dir),
           &"Could not find {dir} - run " &
             "`nimble develop` to make it available"
 
@@ -87,7 +86,9 @@ proc makeLocalDevel*(testDir: string, pkgs: seq[string]): string =
 
   mkDir testDir
   for pkg in pkgs:
-    let meta = home / &".nimble/pkgs/{pkg}-#head" / (pkg & ".nimble-link")
+    let meta = home / &".nimble/pkgs/{pkg}-#head" /
+      RelFile(pkg & ".nimble-link")
+
     for nimble in meta.readFile().split("\n"):
       if nimble.endsWith(&"{pkg}.nimble"): # XXX
         let dir = parentDir(nimble)

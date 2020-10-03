@@ -1,6 +1,17 @@
 when not defined(NimScript):
-  import osproc, streams, os
+  import osproc, streams
+else:
+  type
+    ProcessOption* = enum
+      poEchoCmd
+      poUsePath
+      poEvalCommand
+      poStdErrToStdOut
+      poParentStreams
+      poInteractive
+      poDaemon
 
+import oswrap
 import strutils, strformat, strtabs, sequtils
 # import ../algo/halgorithm
 
@@ -22,7 +33,7 @@ type
   ShellExecEffect = object of IOEffect
   ShellError* = ref object of OSError
     cmd*: string ## Command that returned non-zero exit code
-    cwd*: string ## Absolute path of initial command execution directory
+    cwd*: AbsDir ## Absolute path of initial command execution directory
     retcode*: int ## Exit code
     errstr*: string ## Stderr for command
     outstr*: string ## Stdout for command
@@ -208,22 +219,23 @@ iterator iterstdout*(command: string): string =
     for line in (if rem.len > 0: rem[0..^2] else: rem):
       yield line
 
-proc startShell*(
-  cmd: Cmd, options: set[ProcessOption] = {
-    poEvalCommand, poParentStreams}): Process =
+when cbackend:
+  proc startShell*(
+    cmd: Cmd, options: set[ProcessOption] = {
+      poEvalCommand, poParentStreams}): Process =
 
-  result = startProcess(
-    cmd.toStr(),
-    options = options,
-    env = if cmd.envVals.len > 0: newStringTable(cmd.envVals) else: nil
-  )
-
-  if result.isNil:
-    raise ShellError(
-      msg: "Command '" & cmd.toStr() & "' failed to start",
-      cwd: getCurrentDir(),
-      cmd: cmd.toStr()
+    result = startProcess(
+      cmd.toStr(),
+      options = options,
+      env = if cmd.envVals.len > 0: newStringTable(cmd.envVals) else: nil
     )
+
+    if result.isNil:
+      raise ShellError(
+        msg: "Command '" & cmd.toStr() & "' failed to start",
+        cwd: getCurrentDir(),
+        cmd: cmd.toStr()
+      )
 
 proc runShell*(
   command: Cmd,
@@ -294,7 +306,7 @@ proc runShell*(
     close(pid)
 
   else:
-    let nscmd = &"cd {getCurrentDir()} && " & command
+    let nscmd = &"cd {cwd()} && " & command
     if not discardOut:
       let (res, code) = gorgeEx(nscmd, "", "")
       result.stdout = res
@@ -310,7 +322,7 @@ proc runShell*(
         ""
 
     var msg = &"Command '{command}'\nExecuted in directory " &
-      getCurrentDir() & &"\n{envAdd}Exited with non-zero code:\n"
+      $cwd() & &"\n{envAdd}Exited with non-zero code:\n"
 
     let split = result.stderr.split("\n")
     msg.add split[0 ..< min(split.len(), maxErrorLines)].join("\n")
@@ -321,7 +333,7 @@ proc runShell*(
       errorCode: int32(result.code),
       errstr: result.stderr,
       outstr: result.stdout,
-      cwd: getCurrentDir(),
+      cwd: cwd(),
       cmd: command
     )
 

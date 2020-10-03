@@ -1,26 +1,26 @@
 ## `os` module function wrappers than can work with both nimscript and
 ## regular target.
 
-import strutils, macros, random, times
+import strutils, macros, random
 from os import nil
 
 export os.PathComponent
 export os.FileInfo
 export os.FilePermission
+export os.ReadDirEffect, os.ReadEnvEffect,
+       os.WriteDirEffect, os.WriteEnvEffect
 
 export os.sleep, os.getCurrentProcessId
 export os.unixToNativePath
 export os.quoteShellWindows
 export os.quoteShellPosix
+export os.quoteShell
 
 
-const weirdTarget = defined(nimscript) or defined(js)
+const cbackend* = not (defined(nimscript) or defined(js))
 
-template osOrNims(osCode, nimsCode: untyped): untyped =
-  when not defined(NimScript):
-    osCode
-  else:
-    nimsCode
+when cbackend:
+  import times
 
 ## `os` wrapper with more typesafe paths. Mostly taken from compiler
 ## pathutils and stdlib.
@@ -61,6 +61,9 @@ type
       of os.pcDir, os.pcLinkToDir:
         dir*: FsDir
 
+# when not cbackend:
+#   type
+#     ReadEnvEffect* = object of RootEffect
 
 const
   CurDir* = RelDir($os.CurDir)
@@ -82,11 +85,19 @@ macro osAndNims*(code: untyped): untyped =
     osExpr.add arg
     nimsExpr.add arg
 
-  result = quote do:
-    when not defined(NimScript):
-      `osExpr`
-    else:
-      `nimsExpr`
+  when cbackend:
+    result = osExpr
+  else:
+    result = nimsExpr
+
+  echo result.toStrLit()
+
+macro osOrNims(osCode, nimsCode: untyped): untyped =
+  when cbackend:
+    result = osCode
+  else:
+    result = nimsCode
+
 
 converter toFile*(absFile: AbsFile): FsFile =
   FsFile(isRelative: false, absFile: absFile)
@@ -123,7 +134,7 @@ proc normalizePathEnd*(path: var AnyPath; trailingSep = false): void =
 proc joinPath*(head: AbsDir, tail: RelFile): AbsFile =
   AbsFile(os.joinPath(head.string, tail.string))
 
-proc joinPath*(head: AbsDir, tail: RelDir): AbsDir =
+proc joinPath*(head: AbsDir, tail: RelDir | string): AbsDir =
   AbsDir(os.joinPath(head.string, tail.string))
 
 template `/`*(head, tail: AnyPath | string): untyped =
@@ -202,31 +213,43 @@ proc getConfigDir*(): AbsDir = AbsDir os.getConfigDir()
 proc getTempDir*(): AbsDir =
   AbsDir(os.getTempDir())
 
-proc symlinkExists*(link: AnyPath): bool = os.symlinkExists(link.string)
 
-proc findExe*(
-  exe: string,
-  followSymlinks: bool = true,
-  extensions: openArray[string] = ExeExts): AbsPath =
-  AbsPath(os.findExe(exe, followSymlinks, extensions))
+when cbackend:
+  proc symlinkExists*(link: AnyPath): bool = os.symlinkExists(link.string)
 
-proc getLastModificationTime*(file: AnyFile): times.Time =
-  os.getLastModificationTime(file.string)
+  proc getLastModificationTime*(file: AnyFile): times.Time =
+    os.getLastModificationTime(file.string)
 
-proc getLastAccessTime*(file: AnyFile): times.Time =
-  os.getLastAccessTime(file.string)
+  proc getLastAccessTime*(file: AnyFile): times.Time =
+    os.getLastAccessTime(file.string)
 
-proc getCreationTime*(file: AnyFile): times.Time =
-  os.getCreationTime(file.string)
+  proc getCreationTime*(file: AnyFile): times.Time =
+    os.getCreationTime(file.string)
 
-proc fileNewer*(base, other: AnyFile): bool =
-  os.fileNewer(base.string, other.string)
+  proc fileNewer*(base, other: AnyFile): bool =
+    os.fileNewer(base.string, other.string)
 
-proc absolute*(dir: RelDir, root: AbsDir = getCurrentDir()): AbsDir =
-  AbsDir(os.absolutePath(dir.string, root.string))
+  proc absolute*(dir: RelDir, root: AbsDir = getCurrentDir()): AbsDir =
+    AbsDir(os.absolutePath(dir.string, root.string))
 
-proc absolute*(file: RelFile, root: AbsDir = getCurrentDir()): AbsFile =
-  AbsFile(os.absolutePath(file.string, root.string))
+  proc absolute*(file: RelFile, root: AbsDir = getCurrentDir()): AbsFile =
+    AbsFile(os.absolutePath(file.string, root.string))
+
+  proc sameFile*(file1, file2: AnyFile): bool =
+    os.sameFile(file1.string, file2.string)
+
+  proc sameDir*(dir1, dir2: AnyDir): bool =
+    os.cmpPaths(dir1.string, dir2.string) == 0
+
+  proc getFilePermissions*(
+    filename: AnyFile): set[os.FilePermission] =
+    os.getFilePermissions(filename.string)
+
+  proc setFilePermissions*(
+    filename: AnyFile, permissions: set[os.FilePermission]) =
+    os.setFilePermissions(filename.string, permissions)
+
+
 
 proc normalizePath*(path: var AnyPath) =
   os.normalizePath(path.string)
@@ -243,25 +266,17 @@ proc normalizedPath*(path: AbsFile): AbsFile =
 proc normalizedPath*(path: RelFile): RelFile =
   RelFile os.normalizedPath(path.string)
 
-proc sameFile*(file1, file2: AnyFile): bool =
-  os.sameFile(file1.string, file2.string)
 
-proc sameDir*(dir1, dir2: AnyDir): bool =
-  os.cmpPaths(dir1.string, dir2.string) == 0
-
-proc `==`*(file1, file2: AnyFile): bool = sameFile(file1, file2)
-proc `==`*(dir1, dir2: AnyDir): bool = sameDir(dir1, dir2)
+when cbackend:
+  proc `==`*(file1, file2: AnyFile): bool = sameFile(file1, file2)
+  proc `==`*(dir1, dir2: AnyDir): bool = sameDir(dir1, dir2)
+else:
+  proc `==`*(file1, file2: AnyFile): bool = (file1.string == file2.string)
+  proc `==`*(dir1, dir2: AnyDir): bool = (dir1.string == dir2.string)
 
 # proc sameFileContent*(path1, path2: string): bool {.rtl, extern: "nos$1",
 
 
-proc getFilePermissions*(
-  filename: AnyFile): set[os.FilePermission] =
-  os.getFilePermissions(filename.string)
-
-proc setFilePermissions*(
-  filename: AnyFile, permissions: set[os.FilePermission]) =
-  os.setFilePermissions(filename.string, permissions)
 
 # proc tryMoveFSObject(source, dest: string): bool {.noNimScript.} =
 
@@ -316,69 +331,71 @@ iterator walkDirRec*(
   ):
     discard
 
+when cbackend:
+  proc existsOrCreateDir*(dir: AnyDir): bool =
+    os.existsOrCreateDir(dir.string)
 
-proc existsOrCreateDir*(dir: AnyDir): bool =
-  os.existsOrCreateDir(dir.string)
+  proc createSymlink*[Src: AnyPath, Dest: AnyPath](
+    src: Src, dest: Dest) =
+    os.createSymlink(src.string, dest.string)
 
-proc createSymlink*[Src: AnyPath, Dest: AnyPath](
-  src: Src, dest: Dest) =
-  os.createSymlink(src.string, dest.string)
+  proc createHardlink*[Src: AnyPath, Dest: AnyPath](
+    src: Src, dest: Dest) =
+    os.createHardlink(src.string, dest.string)
 
-proc createHardlink*[Src: AnyPath, Dest: AnyPath](
-  src: Src, dest: Dest) =
-  os.createHardlink(src.string, dest.string)
+  proc copyFileWithPermissions*(source, dest: AnyFile,
+                                ignorePermissionErrors = true) =
+    os.copyFileWithPermissions(
+      source.string, dest.string, ignorePermissionErrors)
 
-proc copyFileWithPermissions*(source, dest: AnyFile,
-                              ignorePermissionErrors = true) =
-  os.copyFileWithPermissions(
-    source.string, dest.string, ignorePermissionErrors)
+  proc copyDirWithPermissions*(source, dest: AnyDir,
+      ignorePermissionErrors = true) =
 
-proc copyDirWithPermissions*(source, dest: AnyDir,
-    ignorePermissionErrors = true) =
+    os.copyDirWithPermissions(
+      source.string, dest.string, ignorePermissionErrors)
 
-  os.copyDirWithPermissions(
-    source.string, dest.string, ignorePermissionErrors)
+  proc inclFilePermissions*(filename: AnyFile,
+                            permissions: set[os.FilePermission]) =
+    os.inclFilePermissions(filename.string, permissions)
 
-proc inclFilePermissions*(filename: AnyFile,
-                          permissions: set[os.FilePermission]) =
-  os.inclFilePermissions(filename.string, permissions)
+  proc exclFilePermissions*(filename: AnyFile,
+                            permissions: set[os.FilePermission]) =
+    os.exclFilePermissions(filename.string, permissions)
 
-proc exclFilePermissions*(filename: AnyFile,
-                          permissions: set[os.FilePermission]) =
-  os.exclFilePermissions(filename.string, permissions)
+  proc expandSymlink*(path: AbsDir): AbsDir =
+    AbsDir os.expandSymlink(path.string)
 
-proc expandSymlink*(path: AbsDir): AbsDir =
-  AbsDir os.expandSymlink(path.string)
+  proc expandSymlink*(path: AbsFile): AbsFile =
+    AbsFile os.expandSymlink(path.string)
 
-proc expandSymlink*(path: AbsFile): AbsFile =
-  AbsFile os.expandSymlink(path.string)
+  proc getAppFilename*(): string = os.getAppFilename()
+
+  proc getAppDir*(): AbsDir = AbsDir os.getAppDir()
+
+  proc getFileSize*(file: AnyFile): BiggestInt =
+    os.getFileSize(file.string)
+
+  proc getFileInfo*(handle: FileHandle): os.FileInfo =
+    os.getFileInfo(handle)
+
+  proc getFileInfo*(file: AnyFile): os.FileInfo =
+    os.getFileInfo(file.string)
+
+  proc getFileInfo*(path: AnyFile, followSymlink: bool = true): os.FileInfo =
+    os.getFileInfo(path.string, followSymlink)
+
+  proc isHidden*(path: AnyPath): bool =
+    os.isHidden(path.string)
+
+  proc setLastModificationTime*(file: AnyFile, t: times.Time) =
+    os.setLastModificationTime(file.string, t)
+
+  func isValidFilename*(filename: AbsFile, maxLen = 259.Positive): bool =
+    os.isValidFilename(filename.string, maxLen)
+
 
 proc splitCmdLine*(c: string): seq[string] = os.parseCmdLine(c)
 
-proc getAppFilename*(): string = os.getAppFilename()
-
-proc getAppDir*(): AbsDir = AbsDir os.getAppDir()
-
-proc getFileSize*(file: AnyFile): BiggestInt =
-  os.getFileSize(file.string)
-
-proc getFileInfo*(handle: FileHandle): os.FileInfo =
-  os.getFileInfo(handle)
-
-proc getFileInfo*(file: AnyFile): os.FileInfo =
-  os.getFileInfo(file.string)
-
-proc getFileInfo*(path: AnyFile, followSymlink: bool = true): os.FileInfo =
-  os.getFileInfo(path.string, followSymlink)
-
-proc isHidden*(path: AnyPath): bool =
-  os.isHidden(path.string)
-
-proc setLastModificationTime*(file: AnyFile, t: times.Time) =
-  os.setLastModificationTime(file.string, t)
-
-func isValidFilename*(filename: AbsFile, maxLen = 259.Positive): bool =
-  os.isValidFilename(filename.string, maxLen)
 
 
 
@@ -434,7 +451,7 @@ proc existsFile*(filename: string | AnyFile): bool =
 
 proc existsDir*(dir: string | AnyDir): bool =
   ## An alias for dirExists.
-  osAndNims(existsDir(dir.strign))
+  osAndNims(existsDir(dir.string))
 
 proc toExe*(filename: string): string =
   ##On Windows adds ".exe" to filename, else returns filename unmodified.
@@ -560,7 +577,7 @@ proc getNewTempDir*(
 
 template withDir*(dir: string | AnyDir; body: untyped): untyped =
   ## Changes the current directory temporarily.
-  var curDir = getCurrentDir()
+  var curDir = cwd()
   try:
     cd(dir.string)
     body
