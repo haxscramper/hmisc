@@ -1,7 +1,6 @@
 import sequtils, macros, tables, options, strformat, sugar, strutils,
-       parseutils
+       parseutils, algorithm
 
-import ../helpers
 import ../hexceptions
 
 template `->`(a, b: bool): bool = (if a: b else: true)
@@ -79,6 +78,42 @@ func foldInfix(s: seq[NimNode],
                inf: string, start: seq[NimNode] = @[]): NimNode =
   ( start & s ).mapIt(it.newPar().newPar()).foldl(newInfix(inf, a, b))
 
+
+func commonPrefix(strs: seq[string]): string =
+  ## Find common prefix for list of strings
+  if strs.len == 0:
+    return ""
+  else:
+    let strs = strs.sorted()
+    for i in 0 ..< min(strs[0].len, strs[^1].len):
+      if strs[0][i] == strs[^1][i]:
+        result.add strs[0][i]
+      else:
+        return
+
+
+func dropPrefix(str: string, alt: string): string =
+  if str.startsWith(alt):
+    return str[min(alt.len, str.len)..^1]
+  return str
+
+func dropPrefix(ss: seq[string], patt: string): seq[string] =
+  for s in ss:
+    result.add s.dropPrefix(patt)
+
+
+template findItFirstOpt*(s: typed, op: untyped): untyped =
+  var res: Option[typeof(s[0])]
+  for it {.inject.} in s:
+    if op:
+      res = some(it)
+      break
+
+  res
+
+
+func addPrefix*(str, pref: string): string =
+  if not str.startsWith(pref): pref & str else: str
 
 macro hasKindImpl*(head: typed, kind: untyped): untyped =
   let
@@ -250,12 +285,12 @@ type
   VarTable = Table[string, VarSpec]
 
 func isNamedTuple(node: NimNode): bool =
-  node.allOfIt(it.kind in {
+  node.allIt(it.kind in {
     nnkExprColonExpr, # `(fld: )`
     nnkBracket, # `([])`
     nnkTableConstr # `{key: val}`
   }) and
-  node.allOfIt((it.kind == nnkIdent) -> (it.strVal == "_"))
+  node.allIt((it.kind == nnkIdent) -> (it.strVal == "_"))
 
 func isInfixPatt(node: NimNode): bool =
   node.kind == nnkInfix and node[0].strVal() in ["|"]
@@ -343,7 +378,7 @@ func parseListMatch(n: NimNode): seq[ListStructure] =
     (n[1].kind == nnkInfix) and
     n[1][0].strVal().startsWith("..")
 
-  if n.anyOfIt(it.ok):
+  if n.anyIt(it.ok):
     if n.findItFirstOpt(not it.ok).getSome err:
       raiseCodeError(err, "Not all elements in array are slice patterns")
 
@@ -388,9 +423,9 @@ func parseListMatch(n: NimNode): seq[ListStructure] =
         match.bindVar = none(NimNode)
         match.isOptional = opKind in {lkOpt}
 
-        result.add ListStructure(bindVar: bindv, kind: opKind).withIt do:
-            it.patt = match
-            # it.patt.isOptional = opKind in {lkOpt}
+        var it = ListStructure(bindVar: bindv, kind: opKind)
+        it.patt = match
+        result.add(it)
 
 func parseTableMatch(n: NimNode): seq[KVPair] =
   for elem in n:
@@ -497,12 +532,12 @@ func parseMatchExpr*(n: NimNode): Match =
     else:
       raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#")
 
-func isVariadic(p: Path): bool = p.anyOfIt(it.isVariadic)
+func isVariadic(p: Path): bool = p.anyIt(it.isVariadic)
 
-func isAlt(p: Path): bool = p.anyOfIt(it.inStruct == kAlt)
+func isAlt(p: Path): bool = p.anyIt(it.inStruct == kAlt)
 
 func isOption(p: Path): bool =
-  p.anyOfIt(it.inStruct == kItem and it.isOpt)
+  p.anyIt(it.inStruct == kItem and it.isOpt)
 
 func classifyPath(path: Path): VarKind =
   if path.isVariadic:
@@ -830,7 +865,7 @@ func makeMatchExpr(m: Match, mainExpr: string): tuple[
 
 func updateTypeof(nn: NimNode): void =
   for idx, node in nn:
-    if node.kind == nnkSym and node.strVal[^"pos"]:
+    if node.kind == nnkSym and node.strVal.endsWith("pos"):
       nn[idx] = newLit(0)
     else:
       nn[idx].updateTypeof()
