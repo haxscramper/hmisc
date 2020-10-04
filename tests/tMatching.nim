@@ -432,19 +432,23 @@ suite "Matching":
     assertEq butLast(@[1,2,3,4]), 3
 
 
+    startHaxComp()
     func butLastGen[T](a: seq[T]): T =
-      expandMacros: # FIXME removing `expandMacros` creates `Error:
-                    # undeclared identifier: '_'` error
-        case a:
-          of []: raiseAssert(
-            "Cannot take one but last from empty list!")
-          of [_]: raiseAssert(
-            "Cannot take one but last from list with only one element!")
-          of [@pre, _]: pre
-          of [_, all @tail]: butLastGen(tail)
-          else: raiseAssert("Not possible")
+      expand case a:
+        of []: raiseAssert(
+          "Cannot take one but last from empty list!")
+        of [_]: raiseAssert(
+          "Cannot take one but last from list with only one element!")
+        of [@pre, _]: pre
+        of [_, all @tail]: butLastGen(tail)
+        else: raiseAssert("Not possible")
 
     assertEq butLastGen(@["1", "2"]), "1"
+
+  test "Use in generics":
+    func hello[T](a: seq[T]): T =
+      [@head, .._] := a
+      return head
 
 
   test "One-or-more":

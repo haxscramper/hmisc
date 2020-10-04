@@ -1,14 +1,35 @@
 import sequtils, macros, tables, options, strformat, sugar, strutils,
        parseutils
 
-# import hpprint
-
-# import ../types/colorstring
 import ../helpers
-import iflet
 import ../hexceptions
 
 template `->`(a, b: bool): bool = (if a: b else: true)
+
+
+# macro ifLet*(head: untyped, ifBody: untyped): untyped =
+#   let
+#     varSymbol = head[0][0]
+#     varValue = head[0][1]
+#     optId = genSym(ident = "optValue")
+
+#   varSymbol.expectKind(nnkIdent)
+
+#   result = quote do:
+#     let `optId` = `varValue`
+#     if `optId`.isSome():
+#        when declared(`varSymbol`):
+#          `varSymbol` = `optId`.get()
+#        else:
+#          let `varSymbol` = `optId`.get()
+
+#        `ifBody`
+
+#   echo result.toStrLit()
+
+
+template getSome*[T](opt: Option[T], injected: untyped): bool =
+  opt.isSome() and ((let injected {.inject.} = opt.get(); true))
 
 func parseEnumField*(fld: NimNode): string =
   ## Get name of enum field from nim node
@@ -243,7 +264,8 @@ func makeVarSet(v: NimNode, expr: NimNode): NimNode =
   v.assertNodeKind({nnkIdent})
   newCall(ident "varset", v, expr)
 
-func toAccs(path: Path, name: string): NimNode =
+func toAccs*(path: Path, name: string): NimNode =
+  ## Convert path in object to expression for getting element at path.
   func aux(prefix: NimNode, top: Path): NimNode =
     let head = top[0]
     result = case head.inStruct:
@@ -271,7 +293,7 @@ func toAccs(path: Path, name: string): NimNode =
       ident name
 
 
-func parseMatchExpr(n: NimNode): Match
+func parseMatchExpr*(n: NimNode): Match
 
 func parseKVTuple(n: NimNode): Match =
   if n[0].eqIdent("Some"):
@@ -322,7 +344,7 @@ func parseListMatch(n: NimNode): seq[ListStructure] =
     n[1][0].strVal().startsWith("..")
 
   if n.anyOfIt(it.ok):
-    iflet (err = n.findItFirstOpt(not it.ok)):
+    if n.findItFirstOpt(not it.ok).getSome err:
       raiseCodeError(err, "Not all elements in array are slice patterns")
 
     for elem in n:
@@ -390,7 +412,8 @@ func nodeStr(n: NimNode): string =
     of nnkOpenSymChoice: n[0].strVal()
     else: raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#")
 
-func parseMatchExpr(n: NimNode): Match =
+func parseMatchExpr*(n: NimNode): Match =
+  ## Parse match expression from nim node
   case n.kind:
     of nnkIdent, nnkSym, nnkIntLit, nnkStrLit, nnkCharLit:
       result = Match(kind: kItem, itemMatch: imkInfixEq, declNode: n)
@@ -409,8 +432,8 @@ func parseMatchExpr(n: NimNode): Match =
         for elem in n:
           result.tupleElems.add parseMatchExpr(elem)
     of nnkPrefix:
-      echov n
-      echov n.lispRepr()
+      # echov n
+      # echov n.lispRepr()
       if n[0].nodeStr() == "is":
         result = Match(
           kind: kItem, itemMatch: imkSubpatt,
@@ -517,9 +540,7 @@ func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
       tbl[vs].varKind = class
       tbl[vs].typePath = path
 
-
-
-func makeMatchExpr(
+func makeMatchExpr*(
   m: Match, vt: var VarTable, path: Path, mainExpr: string): NimNode
 
 template makeElemMatch(): untyped {.dirty.} =
@@ -527,7 +548,7 @@ template makeElemMatch(): untyped {.dirty.} =
     of lkPos:
       inc minLen
       inc maxLen
-      iflet (bindv = elem.bindVar):
+      if elem.bindVar.getSome(bindv):
         result.add makeVarSet(bindv, parent.toAccs(mainExpr))
         vt.addvar(bindv, parent)
 
@@ -546,8 +567,7 @@ template makeElemMatch(): untyped {.dirty.} =
       maxLen = 5000
       var varset = newEmptyNode()
 
-      # if elem.kind notin {lkOpt}:
-      iflet (bindv = elem.bindVar):
+      if elem.bindVar.getSome(bindv):
         varset = makeVarSet(bindv, parent.toAccs(mainExpr))
         vt.addvar(bindv, parent)
 
@@ -597,7 +617,7 @@ template makeElemMatch(): untyped {.dirty.} =
         of lkOpt:
           var default = nnkDiscardStmt.newTree(newEmptyNode())
           if elem.patt.isOptional:
-            iflet (bindv = elem.bindVar):
+            if elem.bindVar.getSome(bindv):
               if elem.patt.rhsNode != nil:
                 default = makeVarSet(bindv, elem.patt.rhsNode)
                 vt.addvar(bindv, path & @[
@@ -704,9 +724,10 @@ func makeListMatch(
 
 
 
-func makeMatchExpr(
+func makeMatchExpr*(
   m: Match, vt: var VarTable, path: Path, mainExpr: string): NimNode =
-  # echov pstring m
+  ## Create NimNode for checking whether or not item referred to by
+  ## `mainExpr` matches pattern described by `Match`
   case m.kind:
     of kItem:
       let parent = path.toAccs(mainExpr)
@@ -721,7 +742,7 @@ func makeMatchExpr(
              else:
                makeMatchExpr(m.rhsPatt, vt, path, mainExpr)
 
-          iflet (vname = m.bindVar):
+          if m.bindVar.getSome(vname):
             vt.addvar(vname, path)
             let bindVar = makeVarSet(vname, parent)
             if inf == newLit(true):
@@ -740,7 +761,7 @@ func makeMatchExpr(
         of imkPredicate:
           let pred = m.predBody
           var bindVar = newEmptyNode()
-          iflet (vname = m.bindVar):
+          if m.bindVar.getSome(vname):
             vt.addvar(vname, path)
             bindVar = makeVarSet(vname, parent)
 
@@ -769,13 +790,13 @@ func makeMatchExpr(
         conds.add patt.makeMatchExpr(vt, path & @[
           AccsElem(inStruct: kObject, fld: fld)],  mainExpr)
 
-      iflet (list = m.listMatches):
+      if m.listMatches.getSome(list):
         conds.add list.makeMatchExpr(vt, path,  mainExpr)
 
-      iflet (kv = m.kvMatches):
+      if m.kvMatches.getSome(kv):
         conds.add kv.makeMatchExpr(vt, path,  mainExpr)
 
-      iflet (kc = m.kindCall):
+      if m.kindCall.getSome(kc):
         conds.add newCall(ident "hasKind", path.toAccs(mainExpr), kc)
 
       return conds.foldInfix("and")
@@ -886,9 +907,9 @@ func toNode(
     `exprNew`
     `expr`
 
+macro expand*(body: typed): untyped = body
 
-macro match*(
-  n: tuple | object | ref object | seq | array | set): untyped =
+macro match*(n: untyped): untyped =
   var matchcase = nnkIfStmt.newTree()
   for elem in n[1 .. ^1]:
     case elem.kind:
@@ -909,21 +930,19 @@ macro match*(
         matchcase.add elem
       else:
         discard
-        # raiseAssert(&"#[ IMPLEMENT for kind {elem.kind} ]#")
 
   let head = n[0]
 
+  let pos = newCommentStmtNode($n.lineInfoObj())
+
   result = quote do:
     block:
+      `pos`
       let expr {.inject.} = `head`
       let pos {.inject.}: int = 0
       `matchcase`
 
-  # echov result
-
-
-
-macro assertMatch*(input: typed, pattern: untyped): untyped =
+macro assertMatch*(input, pattern: untyped): untyped =
   let
     expr = ident genSym(nskLet, "expr").repr
     matched = pattern.parseMatchExpr().
@@ -938,10 +957,7 @@ macro assertMatch*(input: typed, pattern: untyped): untyped =
     if not ok:
       raiseAssert("Pattern match failed `" & `patt` & "`")
 
-  # echov result
-
-
-macro matches*(input: typed, pattern: untyped): untyped =
+macro matches*(input, pattern: untyped): untyped =
   let
     expr = ident genSym(nskLet, "expr").repr
     matched = pattern.parseMatchExpr().
