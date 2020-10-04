@@ -1,8 +1,6 @@
 import sequtils, macros, tables, options, strformat, strutils,
        parseutils, algorithm
 
-import ../hexceptions
-
 template `->`(a, b: bool): bool = (if a: b else: true)
 
 template getSome*[T](opt: Option[T], injected: untyped): bool =
@@ -99,7 +97,7 @@ macro hasKindImpl*(head: typed, kind: untyped): untyped =
     pref = impl.commonPrefix().pref()
     names = impl.dropPrefix(pref)
 
-  kind.assertNodeKind({nnkIdent, nnkCurly})
+  kind.expectKind({nnkIdent, nnkCurly})
   if kind.kind == nnkCurly:
     var idents: seq[NimNode]
     var setadds: seq[NimNode]
@@ -108,7 +106,7 @@ macro hasKindImpl*(head: typed, kind: untyped): untyped =
       if it.kind == nnkIdent:
         idents.add ident(it.toStrLit().strVal().addPrefix(pref))
       elif it.kind == nnkPrefix:
-        assertNodeKind(it[1], {nnkIdent})
+        it[1].expectKind({nnkIdent})
         setadds.add it[1]
 
     setadds.add nnkCurly.newTree(idents)
@@ -274,7 +272,7 @@ func isInfixPatt(node: NimNode): bool =
   node.kind == nnkInfix and node[0].strVal() in ["|"]
 
 func makeVarSet(v: NimNode, expr: NimNode): NimNode =
-  v.assertNodeKind({nnkIdent})
+  v.expectKind({nnkIdent})
   newCall(ident "varset", v, expr)
 
 func toAccs*(path: Path, name: string): NimNode =
@@ -310,9 +308,11 @@ func parseMatchExpr*(n: NimNode): Match
 
 func parseKVTuple(n: NimNode): Match =
   if n[0].eqIdent("Some"):
-    n.assertNodeIt(n.len <= 2, "Expected `Some(@varBind)`")
-    n[1].assertNodeKind({nnkPrefix})
-    n[1][0].assertNodeKind({nnkIdent})
+    if not (n.len <= 2):
+      error("Expected `Some(@varBind)`", n)
+
+    n[1].expectKind({nnkPrefix})
+    n[1][0].expectKind({nnkIdent})
 
     return Match(kind: kObject, declNode: n, fldElems: @{
       "isSome": Match(kind: kItem, itemMatch: imkInfixEq, declNode: n[0],
@@ -332,7 +332,7 @@ func parseKVTuple(n: NimNode): Match =
   for elem in n[start .. ^1]:
     case elem.kind:
       of nnkExprColonExpr:
-        elem[0].assertNodeKind({nnkIdent})
+        elem[0].expectKind({nnkIdent})
         result.fldElems.add((
           elem[0].strVal(),
           elem[1].parseMatchExpr()))
@@ -341,9 +341,7 @@ func parseKVTuple(n: NimNode): Match =
       of nnkTableConstr:
         result.kvMatches = some(elem.parseMatchExpr())
       else:
-        elem.assertNodeKind({
-          nnkExprColonExpr
-        })
+        elem.expectKind({nnkExprColonExpr})
 
 func contains(kwds: openarray[ListKeyword], str: string): bool =
   for kwd in kwds:
@@ -358,11 +356,11 @@ func parseListMatch(n: NimNode): seq[ListStructure] =
 
   if n.anyIt(it.ok):
     if n.findItFirstOpt(not it.ok).getSome err:
-      raiseCodeError(err, "Not all elements in array are slice patterns")
+      error("Not all elements in array are slice patterns", err)
 
     for elem in n:
-      elem[2].assertNodeKind({nnkPrefix})
-      elem[2][1].assertNodeKind({nnkIdent})
+      elem[2].expectKind({nnkPrefix})
+      elem[2][1].expectKind({nnkIdent})
       result.add ListStructure(
         slice: elem[1], bindVar: some(elem[2][1]), kind: lkSlice)
 
@@ -453,7 +451,7 @@ func parseMatchExpr*(n: NimNode): Match =
           rhsPatt: parseMatchExpr(n[1]), declNode: n)
 
       elif n[0].nodeStr() == "@":
-        n[1].assertNodeKind({nnkIdent})
+        n[1].expectKind({nnkIdent})
         result = Match(
           kind: kItem, itemMatch: imkInfixEq, isPlaceholder: true,
           bindVar: some(n[1]), declNode: n)
@@ -473,11 +471,13 @@ func parseMatchExpr*(n: NimNode): Match =
     of nnkCurly:
       result = Match(kind: kSet, declNode: n)
       for node in n:
-        node.assertNodeKindNot({nnkExprColonExpr})
+        if node.kind in {nnkExprColonExpr}:
+          error("Unexpected colon", node) # TODO:DOC
+
         result.setElems.add parseMatchExpr(node)
     of nnkObjConstr, nnkCall:
       if n[0].kind == nnkPrefix:
-        assertNodeKind(n[0][1], {nnkIdent})
+        n[0][1].expectKind({nnkIdent})
         result = Match(
           kind: kItem,
           itemMatch: imkPredicate,
@@ -490,8 +490,8 @@ func parseMatchExpr*(n: NimNode): Match =
     elif n.isInfixPatt():
       result = parseAltMatch(n)
     elif n.kind == nnkInfix:
-      n[1].assertNodeKind({nnkPrefix})
-      n[1][1].assertNodeKind({nnkIdent})
+      n[1].expectKind({nnkPrefix})
+      n[1][1].expectKind({nnkIdent})
       if n[0].strVal() == "is":
         result = Match(
           kind: kItem, itemMatch: imkSubpatt,
@@ -661,10 +661,8 @@ func makeListMatch(
   var idx = 1
   while idx < list.listElems.len:
     if list.listElems[idx - 1].kind notin {lkUntil, lkPos, lkOpt, lkPref}:
-      raise ({
-        list.listElems[idx - 1].decl : "Greedy list match pattern",
-        list.listElems[idx].decl : "Must be last in sequence but found"
-      }).toCodeError("Greedy list match must be last element in pattern")
+      error("Greedy list match must be last element in pattern",
+            list.listElems[idx].decl)
 
     inc idx
 
@@ -928,9 +926,7 @@ macro match*(n: untyped): untyped =
     case elem.kind:
       of nnkOfBranch:
         if elem[0] == ident "_":
-          elem[0].raiseCodeError(
-            "To create catch-all match use `else` clause",
-            "Replace `_` with `else` here")
+          error("To create catch-all match use `else` clause", elem[0])
 
 
         matchcase.add nnkElifBranch.newTree(

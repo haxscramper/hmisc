@@ -1,5 +1,4 @@
 import sugar, strutils, sequtils, strformat, macros, options, tables
-import hmisc/[helpers, hexceptions]
 import json
 
 import hmisc/macros/matching
@@ -11,32 +10,13 @@ import hmisc/macros/matching
 
 import unittest
 
-
+template assertEq(a, b: untyped): untyped =
+  if a != b:
+    echo a
+    echo b
+    raiseAssert("Comparison failed in " & $instantiationInfo())
 
 suite "Matching":
-  # FIXME
-  # test "Nim Node":
-  #   macro e(body: untyped): untyped =
-  #     case body[0]:
-  #       of ForStmt([@ident, _, @expr]):
-  #         quote do:
-  #           9
-  #       of ForStmt([@ident, Infix([== ident(".."), @rbegin, @rend]),
-  #                   @body]):
-  #         quote do:
-  #           `rbegin` + `rend`
-  #       else:
-  #         quote do:
-  #           90
-
-
-  #   let a = e:
-  #     for i in 10 .. 12:
-  #       echo i
-
-  #   assertEq a, 22
-
-
   test "Has kind for anything":
     type
       En = enum
@@ -178,22 +158,22 @@ suite "Matching":
 
     case (c: (a: 12)):
       of (c: (a: _)): discard
-      else: fail("")
+      else: fail()
 
     case [(a: 12, b: 3)]:
-      of [(a: 12, b: 22)]: fail("")
+      of [(a: 12, b: 22)]: fail()
       of [(a: _, b: _)]: discard
 
     case (c: [3, 3, 4]):
       of (c: [_, _, _]): discard
-      of (c: _): fail("")
+      of (c: _): fail()
 
     case (c: [(a: [1, 3])]):
-      of (c: [(a: [_])]): fail("")
+      of (c: [(a: [_])]): fail()
       else: discard
 
     case (c: [(a: [1, 3]), (a: [1, 4])]):
-      of (c: [(a: [_]), _]): fail("")
+      of (c: [(a: [_]), _]): fail()
       else:
         discard
 
@@ -201,7 +181,7 @@ suite "Matching":
       of enEE(eee: [(kind: enZZ, fl: 12)]):
         discard
       else:
-        fail("")
+        fail()
 
     case Obj():
       of enEE():
@@ -273,34 +253,30 @@ suite "Matching":
 
     assertEq 12, tupleOpen((true, 12))
 
-    # proc f((a, b): (bool, int)) = if a: b else: b+10
-
   test "Infix":
     macro a(): untyped  =
-      workHaxComp false:
-        case newPar(ident "1", ident "2"):
-          of Par([@ident1, @ident2]):
-            assert ident1.strVal == "1"
-            assert ident2.strVal == "2"
-          else:
-            assert false
+      case newPar(ident "1", ident "2"):
+        of Par([@ident1, @ident2]):
+          assert ident1.strVal == "1"
+          assert ident2.strVal == "2"
+        else:
+          assert false
 
     a()
 
   test "Iflet 2":
     macro ifLet2(head: untyped,  body: untyped): untyped =
-      # startHaxComp()
       case head[0]:
         of Asgn([@lhs is Ident(), @rhs]):
-          quote do:
+          result = quote do:
             let expr = `rhs`
             if expr.isSome():
               let `lhs` = expr.get()
               `body`
         else:
-          head[0].assertNodeKind({nnkAsgn})
-          head[0][0].assertNodeKind({nnkIdent})
-          head[0].raiseCodeError("Expected assgn expression")
+          head[0].expectKind({nnkAsgn})
+          head[0][0].expectKind({nnkIdent})
+          error("Expected assgn expression", head[0])
 
     ifLet2 (nice = some(69)):
       assert nice == 69
@@ -431,8 +407,6 @@ suite "Matching":
 
     assertEq butLast(@[1,2,3,4]), 3
 
-
-    startHaxComp()
     func butLastGen[T](a: seq[T]): T =
       expand case a:
         of []: raiseAssert(
@@ -483,13 +457,12 @@ suite "Matching":
         fail()
 
 
-    workHax true:
-      case [1,2,3,4]:
-        of [all @a]:
-          assert a is seq[int]
-          assert a == @[1,2,3,4]
-        else:
-          fail()
+    case [1,2,3,4]:
+      of [all @a]:
+        assert a is seq[int]
+        assert a == @[1,2,3,4]
+      else:
+        fail()
 
   test "Optional matches":
     case [1,2,3,4]:
@@ -497,11 +470,9 @@ suite "Matching":
         assertEq a, @[1,2,4]
 
 
-    # startHaxComp()
     case [1,2,3]:
       of [pref @a is (1 | 2), _, opt @a or 5]:
         assertEq a, @[1,2,5]
-    # stopHaxComp()
 
   #   case [1,2,2,1,1,1]:
   #     of [*(1 | @a)]:
