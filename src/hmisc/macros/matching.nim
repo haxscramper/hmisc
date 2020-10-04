@@ -1,31 +1,9 @@
-import sequtils, macros, tables, options, strformat, sugar, strutils,
+import sequtils, macros, tables, options, strformat, strutils,
        parseutils, algorithm
 
 import ../hexceptions
 
 template `->`(a, b: bool): bool = (if a: b else: true)
-
-
-# macro ifLet*(head: untyped, ifBody: untyped): untyped =
-#   let
-#     varSymbol = head[0][0]
-#     varValue = head[0][1]
-#     optId = genSym(ident = "optValue")
-
-#   varSymbol.expectKind(nnkIdent)
-
-#   result = quote do:
-#     let `optId` = `varValue`
-#     if `optId`.isSome():
-#        when declared(`varSymbol`):
-#          `varSymbol` = `optId`.get()
-#        else:
-#          let `varSymbol` = `optId`.get()
-
-#        `ifBody`
-
-#   echo result.toStrLit()
-
 
 template getSome*[T](opt: Option[T], injected: untyped): bool =
   opt.isSome() and ((let injected {.inject.} = opt.get(); true))
@@ -812,11 +790,11 @@ func makeMatchExpr*(
     of kList:
       return makeListMatch(m, vt, path, mainExpr)
     of kTuple:
-      let conds = collect(newSeq):
-        for idx, it in m.tupleElems:
-          it.makeMatchExpr(vt, path & @[
-            AccsElem(inStruct: kTuple, idx: idx)
-          ],  mainExpr)
+      var conds: seq[NimNode]
+      for idx, it in m.tupleElems:
+        conds.add it.makeMatchExpr(vt, path & @[
+          AccsElem(inStruct: kTuple, idx: idx)
+        ],  mainExpr)
 
       return conds.foldInfix("and")
     of kObject:
@@ -847,10 +825,10 @@ func makeMatchExpr*(
 
       return conds.foldInfix("and")
     of kAlt:
-      let conds = collect(newSeq):
-        for alt in m.altElems:
-          alt.makeMatchExpr(
-            vt, path & @[AccsElem(inStruct: kAlt)],  mainExpr)
+      var conds: seq[NimNode]
+      for alt in m.altElems:
+        conds.add alt.makeMatchExpr(
+          vt, path & @[AccsElem(inStruct: kAlt)],  mainExpr)
 
       return conds.foldInfix("or")
     else:
