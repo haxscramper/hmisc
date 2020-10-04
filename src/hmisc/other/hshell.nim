@@ -12,7 +12,13 @@ else:
       poDaemon
 
 import oswrap
-import strutils, strformat, strtabs, sequtils
+import strutils, strformat, sequtils
+
+const hasStrtabs = cbackend or (NimMajor, NimMinor, NimPatch) > (1, 2, 6)
+
+when hasStrtabs: # https://github.com/nim-lang/Nim/pull/15172
+  import strtabs
+
 # import ../algo/halgorithm
 
 # TODO better way of building command for execution.
@@ -230,11 +236,18 @@ when cbackend:
     cmd: Cmd, options: set[ProcessOption] = {
       poEvalCommand, poParentStreams}): Process =
 
-    result = startProcess(
-      cmd.toStr(),
-      options = options,
-      env = if cmd.envVals.len > 0: newStringTable(cmd.envVals) else: nil
-    )
+    when hasStrtabs:
+      result = startProcess(
+        cmd.toStr(),
+        options = options,
+        env = if cmd.envVals.len > 0: newStringTable(cmd.envVals) else: nil
+      )
+    else:
+      if cmd.envVals.len > 0:
+        raiseAssert(
+          "Env variable passing is not supported for nimscript <= 1.2.6")
+      else:
+        result = startProcess(cmd.toStr(), options = options)
 
     if result.isNil:
       raise ShellError(
@@ -247,7 +260,6 @@ proc runShell*(
   command: Cmd,
   doRaise: bool = true,
   stdin: string = "",
-  # env: seq[tuple[key, val: string]] = @[],
   options: set[ProcessOption] = {poEvalCommand},
   maxErrorLines: int = 12,
   discardOut: bool = false
@@ -313,7 +325,6 @@ proc runShell*(
 
   else:
     let nscmd = &"cd {cwd()} && " & command
-
     if poParentStreams in options:
       exec(nscmd)
     else:
@@ -355,3 +366,7 @@ proc runShell*(
 
 proc shExec*(cmd: string): void =
   discard runShell(cmd, options = {poParentStreams})
+
+proc shExec*(cmd: Cmd): void =
+  discard runShell(
+    cmd.toStr(), discardOut = true, options = {poParentStreams})

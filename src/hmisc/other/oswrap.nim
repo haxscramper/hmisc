@@ -90,7 +90,7 @@ macro osAndNims*(code: untyped): untyped =
   else:
     result = nimsExpr
 
-  echo result.toStrLit()
+  # echo result.toStrLit()
 
 macro osOrNims(osCode, nimsCode: untyped): untyped =
   when cbackend:
@@ -120,9 +120,6 @@ proc getCurrentDir*(): AbsDir =
   AbsDir(osAndNims(getCurrentDir()))
 
 proc cwd*(): AbsDir = getCurrentDir()
-
-import pathnorm
-
 
 proc normalizePathEnd*(path: var AnyPath; trailingSep = false): void =
   ## Ensures ``path`` has exactly 0 or 1 trailing `DirSep`, depending on

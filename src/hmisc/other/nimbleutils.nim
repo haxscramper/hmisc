@@ -44,7 +44,7 @@ proc runDockerTest*(
     it - "c"
     it.raw &"'cd /project/main && {cmd}'"
 
-  discard runShell(dockerCmd)
+  shExec(dockerCmd)
 
 
 func `&&`*(lhs, rhs: string): string =
