@@ -251,7 +251,7 @@ todo:
 - ~iterateItDFS~ :: iterate over tree in DFS order. Uses iterative DFS
   instead of recursive call.
 - ~mapItDFS~ :: ~mapIt~ for converting trees in DFS order
-  
+
 * Types
 
 
@@ -331,23 +331,78 @@ styling) and ~ColoredRune~ (unicode rune + styling).
 
 * Other
 
+~hshell~ and ~oswrap~ modules provide more strictly typed wrappers for
+tasks that are usually performed using simple string concatenations.
+You get better static safety guarantees (not possible to pass relative
+path to function expecting absolute one) and less headaches related to
+correct quoting/CLI command syntax at the expense of little more
+verbose code.
+
+~oswrap~ is a ~1:1~ mapping of ~std/os~ and is expected to have all
+functions reimplemented (wrapped).
+
+~hshell~ also treats non-zero return codes as exceptions, so you can
+just execute shell commands without endless checks for ~code != 0:
+echo "oh no!"~. This can be turned off, but works by default, so when
+writing ~let (output, err, _) = runShell("someCommand")~ you will be
+sure that failures won't be silently ignored.
+
 ** ~hmisc/other/hshell~
 
-Helper functions for running shell commands. 
+Helper functions for running shell commands - reduce need for string
+concatenation for shell - ~Cmd~ object supports adding
+commands/flags/options/subcommands/arguments while deferring
+conversion to string as long as possible and taking care of correct
+syntax (correct dashes for ~X11~ CLI tools (always single prefix
+dash), key-value separators (nim tooling uses ~:~, GNU is most likely
+to expect ~=~ or spaces)).
+
+#+begin_src nim
+  # Nice addional effect - you can now comment on different flags and
+  # use checks/loops without worrying about correct
+  # spacing/concatnation/prefixes etc.
+  let dockerCmd = makeGnuCmd("docker").withIt do:
+    it.subCmd "run" # Add subcommand
+    it - "i"
+    it - "i"
+    if doCleanup:
+      it - "rm" # Remove container after test execution
+    it -- ("v", $tmpDir & ":/project") ## Key-value pair
+    it.arg "nim-base"
+    it.arg "sh"
+    it - "c"
+    it.raw &"'cd /project/main && {cmd}'"
+
+  shExec(dockerCmd)
+#+end_src
+
+NOTE: no special DSL syntax is introduced, just couple of overlads for
+common use cases (~-~ proc for flags/options)
 
 - ~runShell~ Raise exception when command has exited with non-zero
   code (because you will be checking return code anyway), get stderr
-  and stdout separately.
+  and stdout separately. Uses fallback ~exec~ and ~gorgeEx~ on
+  nimscript targets and tries to emulate compiled behaviour as close
+  as possible (respect execution flags).
 - ~iterstdout~ - iterate each line for executed program's stdout
+- ~shExec~ - execute shell command, redirect output into parent
+  streams.
 
 ** ~hmisc/other/oswrap~
 
 Wrapper on top of ~os~ and ~nimscsrip~ that allows to use the same
 code on ~c~ and ~nimscript~ targets. Some helper templates/functions
-are introduced.
+are introduced. Provide distinct string for files/directories - e.g.
+~RelDIr = distinct string~ as well as overloads for almost all
+functions in ~os~ module.
+
+NOTE it is expected to be imported *instead* of ~os~ module -
+functions without arguments were update to use ~distinct~ types too,
+so if two modules are imported togetether frequent type clashes are
+expected.
 
 - ~mkDir~, ~getEnv~, ~delEnv~, ~toExe~, ~listDirs~, ~rmFile~, ~mkDir~,
-  ~mvFile~, ~cpFile~, ~cpDir~, ~cd~ - default file/directory
+  ~mvFile~, ~cpFile~, ~cpDir~, ~cd~, ~cwd~ - default file/directory
   manipulation functions
 - ~ (prefix tilda) prefix operator to get path relative to home
   directory. Same as ~getHomeDir() / path~
@@ -355,7 +410,7 @@ are introduced.
 - ~withDir~ - temporarily set directory for body
 - ~withEnv~ - temporarily set environment variables for body
 
-** ~hmisc/other/blockfmt~ 
+** ~hmisc/other/blockfmt~
 
 Reimplementation of google's text formatting algorithm from [[https://github.com/google/rfmt][rfmt]].
 Combinator-based API for optimal (cost-based) string block layout.

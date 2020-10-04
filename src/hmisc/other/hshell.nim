@@ -365,8 +365,12 @@ proc runShell*(
     )
 
 proc shExec*(cmd: string): void =
+  ## `shExec` overload for regular string. WARNING: `cmd` will be
+  ## treated as `bin` and no `poEvalCommand` is used, so incorrectly
+  ## formed command will most likely fail at runtime.
   discard runShell(cmd, options = {poParentStreams})
 
 proc shExec*(cmd: Cmd): void =
-  discard runShell(
-    cmd.toStr(), discardOut = true, options = {poParentStreams})
+  ## Execute shell command with stdout/stderr redirection into parent
+  ## streams. To capture output use `runShell`
+  discard runShell(cmd, discardOut = true, options = {poParentStreams})

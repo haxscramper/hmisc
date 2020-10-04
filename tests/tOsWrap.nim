@@ -30,3 +30,8 @@ suite "Shell":
   test "shell":
     expect ShellError:
       discard runShell("hello")
+
+  test "Options":
+    var cmd = makeGnuCmd("cat")
+    # cmd["hello"] = "world"
+    # cmd["nice"]
