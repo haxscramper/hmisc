@@ -11,6 +11,7 @@ import ../hexceptions
 template `->`(a, b: bool): bool = (if a: b else: true)
 
 func parseEnumField*(fld: NimNode): string =
+  ## Get name of enum field from nim node
   case fld.kind:
     of nnkEnumFieldDef:
       fld[0].strVal
@@ -20,6 +21,7 @@ func parseEnumField*(fld: NimNode): string =
       raiseAssert(&"#[ IMPLEMENT {fld.kind} ]#")
 
 func parseEnumImpl*(en: NimNode): seq[string] =
+  ## Get sequence of enum value names
   case en.kind:
     of nnkSym:
       let impl = en.getTypeImpl()
@@ -41,14 +43,16 @@ func parseEnumImpl*(en: NimNode): seq[string] =
       raiseAssert(&"#[ IMPLEMENT {en.kind} ]#")
 
 
-func pref*(name: string): string =
+func pref(name: string): string =
   discard name.parseUntil(result, {'A' .. 'Z', '0' .. '9'})
 
-func newInfix(s: string, a, b: NimNode): NimNode =
-  nnkInfix.newTree(ident s, a, b)
+func newInfix*(s: string, lhs, rhs: NimNode): NimNode =
+  ## Create new infix operator `s` with `lhs` and `rhs` as parameters.
+  nnkInfix.newTree(ident s, lhs, rhs)
 
-func newPrefix(s: string, a: NimNode): NimNode =
-  nnkPrefix.newTree(ident s, a)
+func newPrefix*(s: string, arg: NimNode): NimNode =
+  ## Create new prefix operator with argument `arg`
+  nnkPrefix.newTree(ident s, arg)
 
 func foldInfix(s: seq[NimNode],
                inf: string, start: seq[NimNode] = @[]): NimNode =
@@ -83,85 +87,116 @@ macro hasKindImpl*(head: typed, kind: untyped): untyped =
 
 
 template hasKind*(head, kindExpr: untyped): untyped =
+  ## Determine if `head` has `kind` value. Either function/procedure
+  ## `kind` or field with the same name is expecte to be declared.
+  ## Type of `kind` must be an enum. Kind expression is a pattern
+  ## describing expected values. Possible examples of pattern
+  ## (assuming value of type `NimNode` is used as `head`)
+  ##
+  ## - `nnkIntLit` - match integer literal
+  ## - `IntLit` - alternative (preferred) syntax for matching enum values
+  ##   `nnk` prefix can be omitted.
+  ## - `{IntLit, StrLit}` - check for multiple kinds at the same time
+  ## - `{IntLit, +StrLiterals}` - check if kind value is either in an
+  ##   integer literal or is contained in set `StrLiterals` (which must)
+  ##   be declared externally. THis syntax is useful for checking common
+  ##   sets of kind values such as 'integer literals', 'literals' etc.
+  ##
+  ## NOTE: this template is used internally by `match` macro
+  ## implementation - all patterns can also be used to match case
+  ## objects (for example `{IntLit, StrLit}()` to match either integer
+  ## or string literal node or `{+Literals}()` for matching any
+  ## literal node)
   hasKindImpl(head.kind, kindExpr)
 
 type
-  EStructKind = enum
-    kItem
-    kList
-    kTuple
-    kPairs
-    kObject
-    kSet
-    kAlt
+  MatchKind = enum
+    ## Different kinds of matching patterns
+    kItem ## Match single element
+    kList ## Match sequence of elements
+    kTuple ## Mach tuple (anonymous or named)
+    kPairs ## Match key-value pairs
+    kObject ## Match object, named tuple or object-like value
+    kSet ## Match set of elements
+    kAlt ## Ordered choice - mactch any of patterns.
 
-  ListKeyword = enum
+  ListKeyword* = enum
+    ## Possible special words for list pattern matching
     lkAny = "any" ## Any element from list
     lkAll = "all" ## All elements from list
-    lkNone = "none"
-    lkOpt = "opt"
+    lkNone = "none"  ## None of the elements from list
+    lkOpt = "opt" ## Optionaly match element in list
     lkUntil = "until" ## All elements until
     lkPref = "pref" ## All elements while
     lkPos ## Exact position
     lkSlice ## Subrange slice
-    lkTrail
+    lkTrail ## Variadic placeholder `.._`
 
-  ListStructure = object
-    decl: NimNode
-    bindVar: Option[NimNode]
-    case kind: ListKeyword
+  ListStructure* = object
+    decl: NimNode ## Original declaration of the node
+    bindVar*: Option[NimNode] ## Optional bound variable
+    case kind*: ListKeyword
       of lkSlice:
-        slice: NimNode
+        slice*: NimNode
       else:
-        patt: Match
+        patt*: Match
 
-  ItemMatchKind = enum
-    imkInfixEq
-    imkSubpatt
-    imkPredicate
+  ItemMatchKind* = enum
+    ## Type of item pattern match
+    imkInfixEq ## Match item using infix operator
+    imkSubpatt ## Match item by checking it agains subpattern
+    imkPredicate ## Execute custom predicate to determine if element
+                 ## matches pattern.
 
-  KVPair = tuple[key: NimNode, patt: Match]
-  Match = ref object
-    bindVar: Option[NimNode]
-    declNode {.requiresinit.}: NimNode
+  KVPair* = tuple[key: NimNode, patt: Match]
+  Match* = ref object
+    ## Object describing single match for element
+    bindVar*: Option[NimNode] ## Bound variable (if any)
+    declNode {.requiresinit.}: NimNode ## Original declaration of match
     isOptional: bool
-    case kind: EStructKind
+    case kind*: MatchKind
       of kItem:
         case itemMatch: ItemMatchKind
           of imkInfixEq:
-            infix: string
-            rhsNode: NimNode
-            isPlaceholder: bool
+            infix*: string ## Infix operator used for comparison
+            rhsNode*: NimNode ## Rhs expression to compare against
+            isPlaceholder*: bool ## Always true? `_` pattern is an
+            ## infix expression with `isPlaceholder` equal to true
           of imkSubpatt:
-            rhsPatt: Match
+            rhsPatt*: Match ## Subpattern to compare value against
           of imkPredicate:
-            isCall: bool
-            predBody: NimNode
+            isCall*: bool ## Predicate is a call expression
+            ## (`@val.matches()`) or a free-standing expression
+            ## (`@val(it.len < 100)`)
+            predBody*: NimNode ## Body of the expression
 
       of kAlt:
-        altElems: seq[Match]
+        altElems*: seq[Match] ## Alternatives for matching
       of kList:
-        listElems: seq[ListStructure]
+        listElems*: seq[ListStructure] ## Sequence subpatterns
       of kTuple:
-        tupleElems: seq[Match]
+        tupleElems*: seq[Match] ## Tuple elements
       of kPairs:
-        pairElems: seq[KVPair]
+        pairElems*: seq[KVPair]
 
       of kSet:
-        setElems: seq[Match]
+        setElems*: seq[Match]
       of kObject:
-        kindCall: Option[NimNode]
-        fldElems: seq[tuple[
+        kindCall*: Option[NimNode] ## Optional node with kind
+        ## expression pattern (see `hasKind`)
+        fldElems*: seq[tuple[
           name: string,
           patt: Match
         ]]
 
-        kvMatches: Option[Match]
-        listMatches: Option[Match]
+        kvMatches*: Option[Match] ## Optional key-value matches for
+        ## expressions like `JObject({"key": @val})`
+        listMatches*: Option[Match]  ## Optional indexed matches for
+        ## subelement access using `Infix([@op, @lhs, @rhs])` pattern.
 
   AccsElem = object
     isVariadic: bool
-    case inStruct: EStructKind
+    case inStruct: MatchKind
       of kList:
         pos: NimNode
       of kTuple:
@@ -194,10 +229,6 @@ type
   VarTable = Table[string, VarSpec]
 
 func isNamedTuple(node: NimNode): bool =
-  # if node.allOfIt(it.kind == nnkIdent and it.strVal == "_"):
-  #   # Special case for match-all tuples - `(_, _, _)`
-  #   false
-  # else:
   node.allOfIt(it.kind in {
     nnkExprColonExpr, # `(fld: )`
     nnkBracket, # `([])`
