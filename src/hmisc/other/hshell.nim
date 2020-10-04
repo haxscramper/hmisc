@@ -45,8 +45,8 @@ type
     outstr*: string ## Stdout for command
 
   CmdFlagConf* = enum
-    ccRegularFlags
-    ccOneDashFlags
+    ccRegularFlags ## `-f` or `--flag`
+    ccOneDashFlags ## `-f` or `-flag`
 
   CmdConf = object
     flagConf*: CmdFlagConf
@@ -83,7 +83,7 @@ type
         rawstring*: string
 
   Cmd* = object
-    bin*: string
+    bin: string
     opts: seq[CmdPart]
     conf: CmdConf
     envVals: seq[tuple[key, val: string]]
@@ -105,42 +105,52 @@ const
   )
 
 converter toCmd*(a: string): Cmd =
+  ## Implicit conversion of string to command
+  ##
+  ## WARNING: `cmd` will be treated as `bin` and if `poEvalCommand` is
+  ## used, execution of command will most likely fail at runtime.
+  ##
+  ## NOTE: `GnuCmdConf` is used
+  result.conf = GnuCmdConf
   result.bin = a
 
-# func toBegin(cmd: Cmd, fl: string): string =
-#   if cmd.conf == ccOneDashFlags or fl.len == 1:
-#     &"-{fl}"
-#   else:
-#     &"--{fl}"
-
-
 func flag*(cmd: var Cmd, fl: string) =
+  ## Add flag for command
   cmd.opts.add CmdPart(kind: cpkFlag, flag: fl)
 
 func opt*(cmd: var Cmd, inKey, val: string) =
+  ## Add option (key-value pairs) for command
   cmd.opts.add CmdPart(kind: cpkOption, key: inKey, value: val)
 
 func env*(cmd: var Cmd, key, val: string): void =
+  ## Add environment variable configuration for command
   cmd.envVals.add (key, val)
 
 func opt*(cmd: var Cmd, opts: openarray[tuple[key, val: string]]) =
+  ## Add sequence of key-value pairs
   for (key, val) in opts:
     cmd.opt(key, val)
 
 func subCmd*(cmd: var Cmd, sub: string) =
-   cmd.opts.add CmdPart(kind: cpkSubCommand, subcommand: sub)
+  ## Add subcommand
+  cmd.opts.add CmdPart(kind: cpkSubCommand, subcommand: sub)
 
 func raw*(cmd: var Cmd, str: string) =
+  ## Add raw string for command (for things like `+2` that are not
+  ## covered by default options)
   cmd.opts.add Cmdpart(kind: cpkRaw, rawstring: str)
 
 func arg*(cmd: var Cmd, arg: string) =
+  ## Add argument for command
   cmd.opts.add CmdPart(kind: cpkArgument, argument: arg)
 
-func `-`*(cmd: var Cmd, fl: string) = cmd.flag fl
+func `-`*(cmd: var Cmd, fl: string) =
+  ## Add flag for command
+  cmd.flag fl
+
 func `--`*(cmd: var Cmd, kv: (string, string)) =
-  # debugecho kv
+  ## Add key-value pair for command
   cmd.opt(kv[0], kv[1])
-  # debugecho cmd
 
 func makeNimCmd*(bin: string): Cmd =
   result.conf = NimCmdConf
@@ -365,9 +375,11 @@ proc runShell*(
     )
 
 proc shExec*(cmd: string): void =
-  ## `shExec` overload for regular string. WARNING: `cmd` will be
-  ## treated as `bin` and no `poEvalCommand` is used, so incorrectly
-  ## formed command will most likely fail at runtime.
+  ## `shExec` overload for regular string.
+  ##
+  ## WARNING see implicit `toCmd` documentation for potential
+  ## pitfalls. It is recommended to use `shExec(cmd: Cmd)` overload -
+  ## this version exists only for quick prototyping.
   discard runShell(cmd, options = {poParentStreams})
 
 proc shExec*(cmd: Cmd): void =
