@@ -246,7 +246,7 @@ func msgjoin*(args: varargs[string, `$`]): string =
   ## when wrapping things like in `msgjoin("_", text, "_")`).
   ## Whitespace is omitted when strings *ends with* any of `[('#@` +
   ## wrapper characters or next one *starts with* `, .` + wrapper
-  ## characters. Wrapper characters are: `_' "``
+  ## characters. Wrapper characters are: `_' "`
   runnableExamples:
     assert msgjoin("_", "nice", "_") == "_nice_"
     assert msgjoin("hello,", "nice", "weather") == "hello, nice weather"

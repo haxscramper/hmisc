@@ -6,6 +6,11 @@ template `->`(a, b: bool): bool = (if a: b else: true)
 template getSome*[T](opt: Option[T], injected: untyped): bool =
   opt.isSome() and ((let injected {.inject.} = opt.get(); true))
 
+template assertKind*(node: NimNode, kindSet: set[NimNodeKind]): untyped =
+  if node.kind notin kindSet:
+    raiseAssert("Expected one of " & $kindSet & " but node has kind " &
+      $node.kind & "(assertion on " & $instantiationInfo() & ")")
+
 func parseEnumField*(fld: NimNode): string =
   ## Get name of enum field from nim node
   case fld.kind:
@@ -97,7 +102,7 @@ macro hasKindImpl*(head: typed, kind: untyped): untyped =
     pref = impl.commonPrefix().pref()
     names = impl.dropPrefix(pref)
 
-  kind.expectKind({nnkIdent, nnkCurly})
+  kind.assertKind({nnkIdent, nnkCurly})
   if kind.kind == nnkCurly:
     var idents: seq[NimNode]
     var setadds: seq[NimNode]
@@ -106,7 +111,7 @@ macro hasKindImpl*(head: typed, kind: untyped): untyped =
       if it.kind == nnkIdent:
         idents.add ident(it.toStrLit().strVal().addPrefix(pref))
       elif it.kind == nnkPrefix:
-        it[1].expectKind({nnkIdent})
+        it[1].assertKind({nnkIdent})
         setadds.add it[1]
 
     setadds.add nnkCurly.newTree(idents)
@@ -184,7 +189,7 @@ type
   Match* = ref object
     ## Object describing single match for element
     bindVar*: Option[NimNode] ## Bound variable (if any)
-    declNode {.requiresinit.}: NimNode ## Original declaration of match
+    declNode: NimNode ## Original declaration of match
     isOptional: bool
     case kind*: MatchKind
       of kItem:
@@ -254,7 +259,7 @@ type
     vkAlt
 
   VarSpec = object
-    decl {.requiresinit.}: NimNode
+    decl: NimNode
     varKind: VarKind
     typePath: Path
 
@@ -272,7 +277,7 @@ func isInfixPatt(node: NimNode): bool =
   node.kind == nnkInfix and node[0].strVal() in ["|"]
 
 func makeVarSet(v: NimNode, expr: NimNode): NimNode =
-  v.expectKind({nnkIdent})
+  v.assertKind({nnkIdent})
   newCall(ident "varset", v, expr)
 
 func toAccs*(path: Path, name: string): NimNode =
@@ -311,8 +316,8 @@ func parseKVTuple(n: NimNode): Match =
     if not (n.len <= 2):
       error("Expected `Some(@varBind)`", n)
 
-    n[1].expectKind({nnkPrefix})
-    n[1][0].expectKind({nnkIdent})
+    n[1].assertKind({nnkPrefix})
+    n[1][0].assertKind({nnkIdent})
 
     return Match(kind: kObject, declNode: n, fldElems: @{
       "isSome": Match(kind: kItem, itemMatch: imkInfixEq, declNode: n[0],
@@ -332,7 +337,7 @@ func parseKVTuple(n: NimNode): Match =
   for elem in n[start .. ^1]:
     case elem.kind:
       of nnkExprColonExpr:
-        elem[0].expectKind({nnkIdent})
+        elem[0].assertKind({nnkIdent})
         result.fldElems.add((
           elem[0].strVal(),
           elem[1].parseMatchExpr()))
@@ -341,7 +346,7 @@ func parseKVTuple(n: NimNode): Match =
       of nnkTableConstr:
         result.kvMatches = some(elem.parseMatchExpr())
       else:
-        elem.expectKind({nnkExprColonExpr})
+        elem.assertKind({nnkExprColonExpr})
 
 func contains(kwds: openarray[ListKeyword], str: string): bool =
   for kwd in kwds:
@@ -359,8 +364,8 @@ func parseListMatch(n: NimNode): seq[ListStructure] =
       error("Not all elements in array are slice patterns", err)
 
     for elem in n:
-      elem[2].expectKind({nnkPrefix})
-      elem[2][1].expectKind({nnkIdent})
+      elem[2].assertKind({nnkPrefix})
+      elem[2][1].assertKind({nnkIdent})
       result.add ListStructure(
         slice: elem[1], bindVar: some(elem[2][1]), kind: lkSlice)
 
@@ -371,26 +376,27 @@ func parseListMatch(n: NimNode): seq[ListStructure] =
           declNode: elem
         ))
       else:
-        let (elem, opKind) =
-          if elem.kind in {nnkCall, nnkCommand} and elem[0].strVal() in [
-            lkAny, lkAll, lkNone, lkOpt, lkUntil, lkPref]:
-            var kwd: ListKeyword
-            for (key, val) in {
-              "any" : lkAny,
-              "all" : lkAll,
-              "opt" : lkOpt,
-              "until" : lkUntil,
-              "none" : lkNone,
-              "pref" : lkPref
-                }:
-              if elem[0].eqIdent(key):
-                kwd = val
-                break
+        var (elem, opKind) = (elem, lkPos)
+        if elem.kind in {nnkCall, nnkCommand} and
+           elem[0].kind notin {nnkDotExpr} and
+           elem[0].strVal() in [
+          lkAny, lkAll, lkNone, lkOpt, lkUntil, lkPref]:
+          var kwd: ListKeyword
+          for (key, val) in {
+            "any" : lkAny,
+            "all" : lkAll,
+            "opt" : lkOpt,
+            "until" : lkUntil,
+            "none" : lkNone,
+            "pref" : lkPref
+              }:
+            if elem[0].eqIdent(key):
+              kwd = val
+              break
 
 
-            (elem[1], kwd)
-          else:
-            (elem, lkPos)
+          elem = elem[1]
+          opKind = kwd
 
         var
           match = parseMatchExpr(elem)
@@ -433,51 +439,50 @@ func parseMatchExpr*(n: NimNode): Match =
       else:
         result.rhsNode = n
         result.infix = "=="
-    of nnkPar:
-      if n.isNamedTuple():
+    of nnkPar: # Named or unnamed tuple
+      if n.isNamedTuple(): # `(fld1: ...)`
         result = parseKVTuple(n)
-      elif n[0].isInfixPatt():
+      elif n[0].isInfixPatt(): # `(12 | 3)`
         result = parseAltMatch(n[0])
-      else:
+      else: # Unnamed tuple `( , , , , )`
         result = Match(kind: kTuple, declNode: n)
         for elem in n:
           result.tupleElems.add parseMatchExpr(elem)
-    of nnkPrefix:
-      # echov n
-      # echov n.lispRepr()
-      if n[0].nodeStr() == "is":
+    of nnkPrefix: # `is Patt()`, `@capture` or other prefix expression
+      if n[0].nodeStr() == "is": # `is Patt()`
         result = Match(
           kind: kItem, itemMatch: imkSubpatt,
           rhsPatt: parseMatchExpr(n[1]), declNode: n)
 
-      elif n[0].nodeStr() == "@":
-        n[1].expectKind({nnkIdent})
+      elif n[0].nodeStr() == "@": # `@capture`
+        n[1].assertKind({nnkIdent})
         result = Match(
           kind: kItem, itemMatch: imkInfixEq, isPlaceholder: true,
           bindVar: some(n[1]), declNode: n)
 
-      else:
+      else: # Other prefix expression, for example `== 12`
         result = Match(
           kind: kItem, itemMatch: imkInfixEq, infix: n[0].strVal(),
           rhsNode: n[1], declNode: n
         )
 
-    of nnkBracket:
+    of nnkBracket: # `[1,2,3]` - list pattern
       result = Match(
         kind: kList, listElems: parseListMatch(n), declNode: n)
-    of nnkTableConstr:
+    of nnkTableConstr: # `{"key": "val"}` - key-value matches
       result = Match(
         kind: kPairs, pairElems: parseTableMatch(n), declNode: n)
-    of nnkCurly:
+    of nnkCurly: # `{1, 2}` - set pattern
       result = Match(kind: kSet, declNode: n)
       for node in n:
         if node.kind in {nnkExprColonExpr}:
           error("Unexpected colon", node) # TODO:DOC
 
+
         result.setElems.add parseMatchExpr(node)
     of nnkObjConstr, nnkCall:
       if n[0].kind == nnkPrefix:
-        n[0][1].expectKind({nnkIdent})
+        n[0][1].assertKind({nnkIdent}) # `@capture(<some-expression>)`
         result = Match(
           kind: kItem,
           itemMatch: imkPredicate,
@@ -485,13 +490,26 @@ func parseMatchExpr*(n: NimNode): Match =
           declNode: n,
           predBody: n[1]
         )
+      elif n[0].kind == nnkDotExpr: # `_.call("Arguments")`
+        # `(DotExpr (Ident "_") (Ident "<function-name>"))`
+        n[0][1].assertKind({nnkIdent})
+        n[0][0].assertKind({nnkIdent})
+        var body = n
+        # Replace `_` with `it` to make `it.call("arguments")`
+        body[0][0] = ident("it")
+        result = Match(
+          kind: kItem,
+          itemMatch: imkPredicate,
+          declNode: n,
+          predBody: body
+        )
       else:
         result = parseKVTuple(n)
     elif n.isInfixPatt():
       result = parseAltMatch(n)
     elif n.kind == nnkInfix:
-      n[1].expectKind({nnkPrefix})
-      n[1][1].expectKind({nnkIdent})
+      n[1].assertKind({nnkPrefix})
+      n[1][1].assertKind({nnkIdent})
       if n[0].strVal() == "is":
         result = Match(
           kind: kItem, itemMatch: imkSubpatt,
@@ -829,10 +847,19 @@ func makeMatchExpr*(
           vt, path & @[AccsElem(inStruct: kAlt)],  mainExpr)
 
       return conds.foldInfix("or")
-    else:
-      raiseAssert("#[ IMPLEMENT ]#")
+    of kSet:
+      var conds: seq[NimNode]
+      let setPath = path.toAccs(mainExpr)
+      for elem in m.setElems:
+        if elem.kind == kItem and elem.infix == "==":
+          conds.add newInfix("in", elem.rhsNode, setPath)
+        else:
+          error(
+            "Only `contains` check are supported for sets",
+            elem.declNode
+          )
 
-
+      return conds.foldInfix("and")
 
 
 func makeMatchExpr(m: Match, mainExpr: string): tuple[
@@ -890,7 +917,6 @@ func toNode(
   var exprNew = nnkStmtList.newTree()
   for name, spec in vtable:
     let vname = ident(name)
-    # debugecho vname.lispRepr()
     var typeExpr = toAccs(spec.typePath, mainExpr)
     typeExpr = quote do:
       ((let tmp = `typeExpr`; tmp))
@@ -912,7 +938,6 @@ func toNode(
       of vkAlt:
         if true: raiseAssert("#[ IMPLEMENT ]#")
 
-  # debugecho expr.repr
   updateVarSet(expr, vtable)
   return quote do:
     `exprNew`

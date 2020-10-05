@@ -293,17 +293,10 @@ suite "Matching":
                   else: 666
 
 
-  # test "Set":
-  #   case {0 .. 3}:
-  #     of {2, 3}: discard
-  #     else: fail()
-
-  #   case {4 .. 10}:
-  #     of {@a, 9}:
-  #       assert a is set
-  #       assert 7 in a
-  #     else:
-  #       fail()
+  test "Set":
+    case {0 .. 3}:
+      of {2, 3}: discard
+      else: fail()
 
   test "Match assertions":
     [1,2,3].assertMatch([all @res]); assertEq res, @[1,2,3]
@@ -424,6 +417,14 @@ suite "Matching":
       [@head, .._] := a
       return head
 
+  test "Predicates":
+    case ["hello"]:
+      of [_.startsWith("--")]:
+        fail()
+      of [_.startsWith("==")]:
+        fail()
+      else:
+        discard
 
   test "One-or-more":
     template testCase(main, patt, body: untyped): untyped =
@@ -474,53 +475,7 @@ suite "Matching":
       of [pref @a is (1 | 2), _, opt @a or 5]:
         assertEq a, @[1,2,5]
 
-  #   case [1,2,2,1,1,1]:
-  #     of [*(1 | @a)]:
-  #       assert a is seq[int]
-  #       assertEq a, @[2, 2]
-
-  #   case (1, some(12)):
-  #     of (_, 13 ?@ hello):
-  #       assert hello is int
-  #       assertEq hello, 13
-
-  #   case (1, none(int)):
-  #     of (_, 15 ?@ hello):
-  #       assert hello is int
-  #       assertEq hello, 15
-
-  #   case (3, none(string)):
-  #     of (_, ?@ hello):
-  #       assert hello is Option[string]
-  #       assert hello.isNone()
-
-
-  # dumpTree:
-  #   IfStmt([*ElseIf([_, @bodies]), newEmptyNode() ?@ bodies])
-  #   [@a, .._ @b] [.._ @b, @c] [@b, @c .._]
-
-  #   ForStmt([-> ident,
-  #            Infix([== ident(".."),
-  #                   -> rbegin,
-  #                   -> rend]),
-  #            -> body])
-
-  #   [_.isString() isnot doError()]
-  #   #  capture all leading elements until found "d"; do not include it
-  #   [add @a is Patt(), until "d", .._]
-  #   # capture all leading icludiinng
-  #   [add @a is Patt(), incl "d", .._]
-  #   # optional second value
-  #   [add Patt(), opt @b]
-  #   [add @s, until 4]
-  #   [add @s, with 4]
-  #   # optional with default value
-  #   [add @head, opt @tail ? "default"]
-
-  #   [add @leading, until @middle is "d", add @trailing]
-
-  #   [*@leading, @middle is "d", *@trailing]
-
-  #   case node:
-  #     of IfStmt([add ElseIf([@cond, @body]), opt @elseClause]):
-  #       discard
+    case [1,2,2,1,1,1]:
+      of [all (1 | @a)]:
+        assert a is seq[int]
+        assertEq a, @[2, 2]
