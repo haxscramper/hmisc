@@ -31,6 +31,48 @@ suite "Matching":
            f2: float
 
     let val = Obj()
+  test "Pattern parser tests":
+    macro main(): untyped =
+      template t(body: untyped): untyped =
+        block:
+          parseMatchExpr: quote: body
+
+      assert (t true).kind == kItem
+
+      block:
+        let s = t [1, 2, all @b, @a]
+        assert s.listElems[3].bindVar == some(ident("a"))
+        assert s.listElems[2].bindVar == some(ident("b"))
+        assert s.listElems[2].patt.bindVar == none(NimNode)
+
+      discard t([1,2,3,4])
+      discard t((1,2))
+      discard t((@a | @b))
+      discard t((a: 12, b: 2))
+      # dumpTree: [(0 .. 3) @patt is JString()]
+      # dumpTree: [0..3 @patt is JString()]
+      discard t([(0 .. 3) @patt is JString()])
+      discard t([0..3 @patt is JString()])
+
+      block:
+        let node = quote: (12 .. 33)
+
+        (
+          Par([Infix([_, @lhs, @rhs])]) |
+          Command([Infix([_, @lhs, @rhs])]) |
+          Infix([_, @lhs, @rhs])
+        ) := node
+
+        assert lhs == newLit(12)
+        assert rhs == newLit(33)
+
+    main()
+
+    # block: [0 .. 2 @a is 12] := [12, 12, 12]; assert a == @[12, 12, 12]
+    # block:
+    #   assert not ([0 .. 2 is 12] ?= [1, 2, 3])
+    #   assert not ([(0 .. 2) is 12] ?= [1, 2, 3])
+
 
   test "Simple uses":
     assertEq 12, case (12, 24):

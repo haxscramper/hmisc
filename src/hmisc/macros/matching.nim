@@ -11,6 +11,33 @@ template assertKind*(node: NimNode, kindSet: set[NimNodeKind]): untyped =
     raiseAssert("Expected one of " & $kindSet & " but node has kind " &
       $node.kind & "(assertion on " & $instantiationInfo() & ")")
 
+func nodeStr(n: NimNode): string =
+  case n.kind:
+    of nnkIdent: n.strVal()
+    of nnkOpenSymChoice: n[0].strVal()
+    else: raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#")
+
+func startsWith(n: NimNode, str: string): bool =
+  n.nodeStr().startsWith(str)
+
+
+func idxTreeRepr*(inputNode: NimNode, maxLevel: int = 120): string =
+  func aux(node: NimNode, parent: seq[int]): seq[string] =
+    result.add parent.mapIt(&"[{it}]").join("") &
+      "  ".repeat(6) &
+      ($node.kind)[3..^1] &
+      (if node.len == 0: " " & node.toStrLit().strVal() else: "")
+
+    for idx, subn in node:
+      if parent.len + 1 < maxLevel:
+        result &= aux(subn, parent & @[idx])
+      else:
+        result &= (parent & @[idx]).mapIt(&"[{it}]").join("") &
+          " ".repeat(6 + 3 + 3)  & "[...] " & ($subn.kind)[3..^1]
+
+  return aux(inputNode, @[]).join("\n")
+
+
 func parseEnumField*(fld: NimNode): string =
   ## Get name of enum field from nim node
   case fld.kind:
@@ -147,7 +174,7 @@ template hasKind*(head, kindExpr: untyped): untyped =
   hasKindImpl(head.kind, kindExpr)
 
 type
-  MatchKind = enum
+  MatchKind* = enum
     ## Different kinds of matching patterns
     kItem ## Match single element
     kList ## Match sequence of elements
@@ -172,11 +199,12 @@ type
   ListStructure* = object
     decl: NimNode ## Original declaration of the node
     bindVar*: Option[NimNode] ## Optional bound variable
+    patt*: Match
     case kind*: ListKeyword
       of lkSlice:
         slice*: NimNode
       else:
-        patt*: Match
+        discard
 
   ItemMatchKind* = enum
     ## Type of item pattern match
@@ -274,7 +302,9 @@ func isNamedTuple(node: NimNode): bool =
   node.allIt((it.kind == nnkIdent) -> (it.strVal == "_"))
 
 func isInfixPatt(node: NimNode): bool =
-  node.kind == nnkInfix and node[0].strVal() in ["|"]
+  node.kind == nnkInfix and
+  node[0].kind == nnkIdent and
+  node[0].strVal() in ["|"]
 
 func makeVarSet(v: NimNode, expr: NimNode): NimNode =
   v.assertKind({nnkIdent})
@@ -354,60 +384,108 @@ func contains(kwds: openarray[ListKeyword], str: string): bool =
       return true
 
 func parseListMatch(n: NimNode): seq[ListStructure] =
-  func ok(n: NimNode): bool =
-    (n.kind == nnkInfix) and
-    (n[1].kind == nnkInfix) and
-    n[1][0].strVal().startsWith("..")
+  for elem in n:
+    if elem.kind == nnkPrefix and elem[0].eqIdent(".."):
+      elem[1].assertKind({nnkIdent})
+      result.add ListStructure(kind: lkTrail, patt: Match(
+        declNode: elem
+      ))
+    elif
+      # `[0 .. 3 @head is Jstring()]`
+      (elem.kind == nnkInfix and (elem[0].startsWith(".."))) or
+      # `[(0 .. 3) @head is Jstring()]`
+      (elem.kind == nnkCommand and elem[0].kind == nnkPar) or
+      # `[0 .. 2 is 12]`
+      (elem.kind == nnkInfix and
+       elem[1].kind == nnkInfix and
+       elem[1][0].startsWith("..")
+      )
+      :
+      var dotInfix, rangeStart, rangeEnd, body: NimNode
+      if elem.kind == nnkInfix:
+        if elem.kind == nnkInfix and elem[1].kind == nnkInfix:
+          # `0 .. 2 is 12`
+          #             Infix
+          # [0]            Ident is
+          # [1]            Infix
+          # [1][0]            [...] Ident
+          # [1][1]            [...] IntLit
+          # [1][2]            [...] IntLit
+          # [2]            IntLit 12
+          dotInfix = elem[1][0]
+          rangeStart = elem[1][1]
+          rangeEnd = elem[1][2]
+          body = elem[2]
+        else:
+          # `0 .. 2 @a is 12`
+          #             Infix
+          # [0]            Ident ..
+          # [1]            IntLit 0
+          # [2]            Command
+          # [2][0]            IntLit 2
+          # [2][1]            Infix
+          # [2][1][0]            [...] Ident
+          # [2][1][1]            [...] Prefix
+          # [2][1][2]            [...] IntLit
+          dotInfix = ident elem[0].nodeStr()
+          rangeStart = elem[1]
+          rangeEnd = elem[2][0]
+          body = elem[2][1]
 
-  if n.anyIt(it.ok):
-    if n.findItFirstOpt(not it.ok).getSome err:
-      error("Not all elements in array are slice patterns", err)
+      elif elem.kind == nnkCommand:
+        # I wonder, why do we need pattern matching in stdlib?
+        dotInfix = ident elem[0][0][0].nodeStr()
+        rangeStart = elem[0][0][1]
+        rangeEnd = elem[0][0][1]
+        body = elem[1]
 
-    for elem in n:
-      elem[2].assertKind({nnkPrefix})
-      elem[2][1].assertKind({nnkIdent})
-      result.add ListStructure(
-        slice: elem[1], bindVar: some(elem[2][1]), kind: lkSlice)
+      var res = ListStructure(
+        kind: lkSlice, slice: nnkInfix.newTree(
+          dotInfix,
+          rangeStart,
+          rangeEnd
+        ),
+        patt: parseMatchExpr(body)
+      )
 
-  else:
-    for elem in n:
-      if elem.kind == nnkPrefix and elem[0].eqIdent(".."):
-        result.add ListStructure(kind: lkTrail, patt: Match(
-          declNode: elem
-        ))
-      else:
-        var (elem, opKind) = (elem, lkPos)
-        if elem.kind in {nnkCall, nnkCommand} and
-           elem[0].kind notin {nnkDotExpr} and
-           elem[0].strVal() in [
-          lkAny, lkAll, lkNone, lkOpt, lkUntil, lkPref]:
-          var kwd: ListKeyword
-          for (key, val) in {
-            "any" : lkAny,
-            "all" : lkAll,
-            "opt" : lkOpt,
-            "until" : lkUntil,
-            "none" : lkNone,
-            "pref" : lkPref
-              }:
-            if elem[0].eqIdent(key):
-              kwd = val
-              break
+      res.bindVar = res.patt.bindVar
+      res.patt.bindVar = none(NimNode)
+      result.add res
+
+      # debugecho elem.treeRepr()
+    else:
+      var (elem, opKind) = (elem, lkPos)
+      if elem.kind in {nnkCall, nnkCommand} and
+         elem[0].kind notin {nnkDotExpr} and
+         elem[0].strVal() in [
+        lkAny, lkAll, lkNone, lkOpt, lkUntil, lkPref]:
+        var kwd: ListKeyword
+        for (key, val) in {
+          "any" : lkAny,
+          "all" : lkAll,
+          "opt" : lkOpt,
+          "until" : lkUntil,
+          "none" : lkNone,
+          "pref" : lkPref
+            }:
+          if elem[0].eqIdent(key):
+            kwd = val
+            break
 
 
-          elem = elem[1]
-          opKind = kwd
+        elem = elem[1]
+        opKind = kwd
 
-        var
-          match = parseMatchExpr(elem)
-          bindv = match.bindVar
+      var
+        match = parseMatchExpr(elem)
+        bindv = match.bindVar
 
-        match.bindVar = none(NimNode)
-        match.isOptional = opKind in {lkOpt}
+      match.bindVar = none(NimNode)
+      match.isOptional = opKind in {lkOpt}
 
-        var it = ListStructure(bindVar: bindv, kind: opKind)
-        it.patt = match
-        result.add(it)
+      var it = ListStructure(bindVar: bindv, kind: opKind)
+      it.patt = match
+      result.add(it)
 
 func parseTableMatch(n: NimNode): seq[KVPair] =
   for elem in n:
@@ -422,12 +500,6 @@ func parseAltMatch(n: NimNode): Match =
   if lhs.kind == kAlt: alts.add lhs.altElems else: alts.add lhs
   if rhs.kind == kAlt: alts.add rhs.altElems else: alts.add rhs
   result = Match(kind: kAlt, altElems: alts, declNode: n)
-
-func nodeStr(n: NimNode): string =
-  case n.kind:
-    of nnkIdent: n.strVal()
-    of nnkOpenSymChoice: n[0].strVal()
-    else: raiseAssert(&"#[ IMPLEMENT for kind {n.kind} ]#")
 
 func parseMatchExpr*(n: NimNode): Match =
   ## Parse match expression from nim node
@@ -617,6 +689,16 @@ template makeElemMatch(): untyped {.dirty.} =
               if not allOk:
                 break `failBlock`
 
+        of lkSlice:
+          var rangeExpr = elem.slice
+          result.add quote do:
+            for tmp in `rangeExpr`:
+              `posid` = tmp
+              if `posid` < `getLen` and `expr`:
+                `varset`
+              else:
+                break `failBlock`
+
         of lkUntil:
           result.add quote do:
             while (`posid` < `getLen`) and (not `expr`):
@@ -696,15 +778,7 @@ func makeListMatch(
   var minLen = 0
   var maxLen = 0
   for idx, elem in list.listElems:
-    if elem.kind == lkSlice:
-      let
-        parent = path & @[AccsElem(
-          inStruct: kPairs, key: elem.slice, nocheck: true)]
-
-      result.add makeVarSet(elem.bindVar.get(), parent.toAccs(mainExpr))
-      vt.addvar(elem.bindVar.get(), parent)
-      maxLen = 5000
-    elif elem.kind == lkTrail:
+    if elem.kind == lkTrail:
       maxLen = 5000
     else:
       let
@@ -896,11 +970,8 @@ func updateVarSet(nn: NimNode, vtable: VarTable): void =
           nn[idx] = quote do:
             `varn`.incl some(`expr`) ## Add element to set
 
-        of vkRegular:
+        of vkRegular, vkAlt:
           nn[idx] = nnkAsgn.newTree(varn, expr)
-
-        of vkAlt:
-          raiseAssert("#[ IMPLEMENT ]#")
 
     elif node.kind == nnkIfStmt and
          node[0][0].kind in {nnkSym, nnkIdent} and
@@ -931,12 +1002,9 @@ func toNode(
         exprNew.add quote do:
           var `vname`: Option[typeof(`typeExpr`)]
 
-      of vkSet, vkRegular:
+      of vkSet, vkRegular, vkAlt:
         exprNew.add quote do:
           var `vname`: typeof(`typeExpr`)
-
-      of vkAlt:
-        if true: raiseAssert("#[ IMPLEMENT ]#")
 
   updateVarSet(expr, vtable)
   return quote do:
