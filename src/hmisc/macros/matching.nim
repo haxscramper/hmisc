@@ -126,7 +126,7 @@ func addPrefix*(str, pref: string): string =
 func hash(iinfo: LineInfo): Hash =
   !$(iinfo.line.hash !& iinfo.column.hash !& iinfo.filename.hash)
 
-macro hasKindImpl*(head: typed, kind: untyped): untyped =
+proc getKindNames*(head: NimNode): (string, seq[string]) =
   var
     pref: string
     names: seq[string]
@@ -147,6 +147,12 @@ macro hasKindImpl*(head: typed, kind: untyped): untyped =
     pref = cache[iinfo][0]
     names = cache[iinfo][1]
 
+  return (pref, names)
+
+
+
+macro hasKindImpl*(head: typed, kind: untyped): untyped =
+  let (pref, names) = getKindNames(head)
   kind.assertKind({nnkIdent, nnkCurly})
   if kind.kind == nnkCurly:
     var idents: seq[NimNode]
@@ -1115,6 +1121,83 @@ macro matches*(input, pattern: untyped): untyped =
   return quote do:
     let `expr` = `input`
     `matched`
+
+func buildTreeMaker(
+  prefix: string, resType: NimNode, match: Match): NimNode =
+
+  case match.kind:
+    of kItem:
+      if (match.itemMatch == imkInfixEq) and (match.infix == "=="):
+        if match.isPlaceholder:
+          if match.bindVar.getSome(bindv):
+            result = newIdentNode(bindv.strVal())
+          else:
+            error(
+              "Only variable placeholders allowed for pattern " &
+                "construction",
+              match.declNode
+            )
+        else:
+          if match.rhsNode != nil:
+            result = match.rhsNode
+          else:
+            error("Empty rhs node for item", match.declNode)
+    of kObject:
+      var res = newStmtList()
+      let
+        tmp = genSym(nskVar, "res")
+        kind = ident match.kindCall.get().strVal().addPrefix(prefix)
+
+
+      res.add quote do:
+        var `tmp`: `resType`
+        `tmp`.kind = `kind`
+
+      for (name, patt) in match.fldElems:
+        res.add nnkAsgn.newTree(newDotExpr(
+          ident "add",
+          tmp
+        ), buildTreeMaker(prefix, resType, patt))
+        # res.add newCall("add", tmp, buildTreeMaker(prefix, resType,
+        # patt))
+
+      if match.listMatches.isSome():
+        for sub in match.listMatches.get().listElems:
+          res.add newCall("add", tmp, buildTreeMaker(
+            prefix, resType, sub.patt))
+
+      res.add tmp
+
+      result = newBlockStmt(res)
+    else:
+      error(
+        &"Pattern of kind {match.kind} is " &
+          "not supported for tree construction",
+        match.declNode
+      )
+
+func `kind=`*(node: var NimNode, kind: NimNodeKind) =
+  node = kind.newTree()
+
+macro makeTreeImpl*(node, kind: typed, patt: untyped): untyped =
+  echo node.lispRepr()
+  echo kind.lispRepr()
+
+  let (pref, _) = kind.getKindNames()
+  echo pref
+  echo node.getType()
+
+  let match = patt.parseMatchExpr()
+
+  result = buildTreeMaker(pref, node.getType(), match)
+
+  echo result
+
+
+template makeTree*[T](patt: untyped): untyped =
+  block:
+    var tmp: T
+    makeTreeImpl(tmp, tmp.kind, patt)
 
 template `:=`*(lhs, rhs: untyped): untyped =
   assertMatch(rhs, lhs)

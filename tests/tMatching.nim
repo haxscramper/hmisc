@@ -521,3 +521,25 @@ suite "Matching":
       of [all (1 | @a)]:
         assert a is seq[int]
         assertEq a, @[2, 2]
+
+  test "Tree construction":
+    macro testImpl(): untyped =
+      let node = makeTree[NimNode](
+        IfStmt([
+          ElifBranch([
+            == ident("true"),
+            Call([
+              == ident("echo"),
+              == newLit("12")
+            ])
+          ])
+        ])
+      )
+
+      IfStmt([ElifBranch([@head, Call([@call, @arg])])]) := node
+      assertEq head, ident("true")
+      assertEq call, ident("echo")
+      assertEq arg, newLit("12")
+
+
+    testImpl()
