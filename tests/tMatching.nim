@@ -526,20 +526,22 @@ suite "Matching":
     macro testImpl(): untyped =
       let node = makeTree[NimNode](
         IfStmt[
-          ElifBranch[
-            == ident("true"),
+          ElifBranch[== ident("true"),
             Call[
               == ident("echo"),
-              == newLit("12")
-            ]
-          ]
-        ]
-      )
+              == newLit("12")]]])
 
-      IfStmt([ElifBranch([@head, Call([@call, @arg])])]) := node
+
+      IfStmt[ElifBranch[@head, Call[@call, @arg]]] := node
       assertEq head, ident("true")
       assertEq call, ident("echo")
       assertEq arg, newLit("12")
+
+      block:
+        let input = "hello"
+        # expandMacros:
+        Ident(str: @output) := makeTree[NimNode] Ident(str: input)
+        assertEq output, input
 
 
     testImpl()

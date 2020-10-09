@@ -1,6 +1,15 @@
 import sequtils, macros, tables, options, strformat, strutils,
        parseutils, algorithm, hashes
 
+const
+  NnkStrNodes* = { nnkStrLit .. nnkTripleStrLit }
+  NnkIntNodes* = { nnkCharLit .. nnkUInt64Lit }
+  NnkFloatNodes* = { nnkFloatLit .. nnkFloat128Lit }
+  NnkTokenNodes* = NnkStrNodes + NnkIntNodes + NnkFloatNodes + {
+    nnkIdent,
+    nnkSym
+  }
+
 template `->`(a, b: bool): bool = (if a: b else: true)
 
 template getSome*[T](opt: Option[T], injected: untyped): bool =
@@ -1165,11 +1174,12 @@ func buildTreeMaker(
         let kind = ident call.strVal().addPrefix(prefix)
         res.add quote do:
           `tmp`.kind = `kind`
+      else:
+        error("Named tuple construction is not supported", match.declNode)
 
       for (name, patt) in match.fldElems:
         res.add nnkAsgn.newTree(newDotExpr(
-          ident "add",
-          tmp
+          tmp, ident name
         ), buildTreeMaker(prefix, resType, patt))
         # res.add newCall("add", tmp, buildTreeMaker(prefix, resType,
         # patt))
@@ -1190,7 +1200,14 @@ func buildTreeMaker(
       )
 
 func `kind=`*(node: var NimNode, kind: NimNodeKind) =
-  node = kind.newTree()
+  node = newNimNode(kind, node)
+
+func str*(node: NimNode): string = node.strVal()
+func `str=`*(node: var NimNode, val: string) =
+  if node.kind in {nnkIdent, nnkSym}:
+    node = ident val
+  else:
+    node.strVal = val
 
 macro makeTreeImpl*(node, kind: typed, patt: untyped): untyped =
   # echo node.lispRepr()
