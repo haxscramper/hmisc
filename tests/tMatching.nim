@@ -525,15 +525,15 @@ suite "Matching":
   test "Tree construction":
     macro testImpl(): untyped =
       let node = makeTree[NimNode](
-        IfStmt([
-          ElifBranch([
+        IfStmt[
+          ElifBranch[
             == ident("true"),
-            Call([
+            Call[
               == ident("echo"),
               == newLit("12")
-            ])
-          ])
-        ])
+            ]
+          ]
+        ]
       )
 
       IfStmt([ElifBranch([@head, Call([@call, @arg])])]) := node

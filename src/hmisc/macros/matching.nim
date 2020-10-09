@@ -618,17 +618,29 @@ func parseMatchExpr*(n: NimNode): Match =
         )
       else:
         result = parseKVTuple(n)
-    elif n.isInfixPatt():
+    of nnkBracketExpr:
+      result = Match(
+        kindCall: some n[0],
+        kind: kObject,
+        declNode: n,
+        listMatches: some parseMatchExpr(
+          nnkBracket.newTree(n[1..^1])
+        )
+      )
+    elif n.isInfixPatt(): # `(true, true) | (false, false)`
       result = parseAltMatch(n)
     elif n.kind == nnkInfix:
       n[1].assertKind({nnkPrefix})
       n[1][1].assertKind({nnkIdent})
       if n[0].strVal() == "is":
+        # `@patt is JString()`
+        # `@head is 'd'`
         result = Match(
           kind: kItem, itemMatch: imkSubpatt,
           rhsPatt: parseMatchExpr(n[2]), declNode: n)
 
       else:
+        # `@a | @b`, `@a == 6`
         result = Match(
           kind: kItem, itemMatch: imkInfixEq,
           rhsNode: n[2],
@@ -1144,14 +1156,15 @@ func buildTreeMaker(
             error("Empty rhs node for item", match.declNode)
     of kObject:
       var res = newStmtList()
-      let
-        tmp = genSym(nskVar, "res")
-        kind = ident match.kindCall.get().strVal().addPrefix(prefix)
-
+      let tmp = genSym(nskVar, "res")
 
       res.add quote do:
         var `tmp`: `resType`
-        `tmp`.kind = `kind`
+
+      if match.kindCall.getSome(call):
+        let kind = ident call.strVal().addPrefix(prefix)
+        res.add quote do:
+          `tmp`.kind = `kind`
 
       for (name, patt) in match.fldElems:
         res.add nnkAsgn.newTree(newDotExpr(
@@ -1180,18 +1193,18 @@ func `kind=`*(node: var NimNode, kind: NimNodeKind) =
   node = kind.newTree()
 
 macro makeTreeImpl*(node, kind: typed, patt: untyped): untyped =
-  echo node.lispRepr()
-  echo kind.lispRepr()
+  # echo node.lispRepr()
+  # echo kind.lispRepr()
 
   let (pref, _) = kind.getKindNames()
-  echo pref
-  echo node.getType()
+  # echo pref
+  # echo node.getType()
 
   let match = patt.parseMatchExpr()
 
   result = buildTreeMaker(pref, node.getType(), match)
 
-  echo result
+  # echo result
 
 
 template makeTree*[T](patt: untyped): untyped =
