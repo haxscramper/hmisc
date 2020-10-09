@@ -374,15 +374,27 @@ proc runShell*(
       cmd: command
     )
 
-proc shExec*(cmd: string): void =
+
+proc execShell*(cmd: string): void =
   ## `shExec` overload for regular string.
   ##
   ## WARNING see implicit `toCmd` documentation for potential
   ## pitfalls. It is recommended to use `shExec(cmd: Cmd)` overload -
   ## this version exists only for quick prototyping.
-  discard runShell(cmd, options = {poParentStreams})
+  discard runShell(cmd, discardOut = true, options = {
+    poEvalCommand, poParentStreams})
 
-proc shExec*(cmd: Cmd): void =
+
+proc evalShell*(cmd: string): auto =
+  var opts = {poEvalCommand}
+  runShell(cmd, options = opts)
+
+proc evalShellStdout*(cmd: string): string =
+  let res = runShell(cmd, options = {poEvalCommand})
+  return res.stdout
+
+
+proc execShell*(cmd: Cmd): void =
   ## Execute shell command with stdout/stderr redirection into parent
   ## streams. To capture output use `runShell`
   discard runShell(cmd, discardOut = true, options = {poParentStreams})

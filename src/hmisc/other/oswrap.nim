@@ -34,9 +34,6 @@ type
   RelDir* = distinct string
   RelPath* = RelFile | RelDir
 
-  AnyPath* = AbsFile | AbsDir | RelFile | RelDir
-  AnyDir* = AbsDir | RelDir
-  AnyFile* = AbsFile | RelFile
 
 
 type
@@ -61,6 +58,35 @@ type
       of os.pcDir, os.pcLinkToDir:
         dir*: FsDir
 
+type
+  AnyPath* = AbsFile | AbsDir | RelFile | RelDir | FsFile | FsDir | FsEntry
+  AnyDir* = AbsDir | RelDir | FsDir
+  AnyFile* = AbsFile | RelFile | FsFile
+
+
+template getStr(path: AnyPath): string =
+  # `get` prefix is specifically used to indicate that this is an
+  # accessor to internal state of the `path`, not just property that
+  # you can get/set.
+  when path is FsDir:
+    if path.isRelative:
+      path.relDir.string
+    else:
+      path.absDir.string
+  elif path is FsFile:
+    if path.isRelative:
+      path.relFile.string
+    else:
+      path.absFile.string
+  elif path is FsEntry:
+    case path.kind:
+      of os.pcFile, os.pcLinkToFile:
+        file.str
+      else:
+        dir.str
+  else:
+    path.string
+
 # when not cbackend:
 #   type
 #     ReadEnvEffect* = object of RootEffect
@@ -72,6 +98,13 @@ const
   AltSep* = os.AltSep
   PathSep* = os.PathSep
   ExeExts* = os.ExeExts
+
+func parseFile*(file: string): FsFile =
+  # TODO check if path is not directory-only
+  if os.isAbsolute(file):
+    FsFile(isRelative: false, absFile: AbsFile(file))
+  else:
+    FsFile(isRelative: true, relFile: RelFile(file))
 
 func `$`*(path: AnyPath): string = path.string
 # func `==`*(pathA, pathB: AnyPath, str: string): bool = path.string == str
@@ -175,9 +208,9 @@ proc `/../`*(head: AbsDir, tail: RelDir): AbsDir =
 
 proc searchExtPos*(path: AnyFile): int = os.searchExtPos(path.string)
 
-proc splitFile*(path: AbsFile): tuple[
+proc splitFile*(path: AnyFile): tuple[
   dir: AbsDir, name, ext: string] =
-  let (dir, name, ext) = os.splitFile(path.string)
+  let (dir, name, ext) = os.splitFile(path.getStr())
   result.dir = AbsDir(dir)
   result.name = name
   result.ext = ext
@@ -228,6 +261,9 @@ when cbackend:
 
   proc absolute*(dir: RelDir, root: AbsDir = getCurrentDir()): AbsDir =
     AbsDir(os.absolutePath(dir.string, root.string))
+
+  proc toAbsFile*(file: AnyFile, root: AbsDir = getCurrentDir()): AbsFile =
+    AbsFile(os.absolutePath(file.getStr(), root.getStr()))
 
   proc absolute*(file: RelFile, root: AbsDir = getCurrentDir()): AbsFile =
     AbsFile(os.absolutePath(file.string, root.string))
@@ -434,19 +470,20 @@ proc delEnv*(key: string) =
   ## Deletes the environment variable named key.
   osAndNims(delEnv(key))
 
-proc fileExists*(filename: string | AnyFile): bool =
+proc fileExists*(filename: AnyFile): bool =
   ## Checks if the file exists.
   osAndNims(fileExists(filename.string))
 
-proc dirExists*(dir: string | AnyDir): bool =
+proc dirExists*(dir: AnyDir): bool =
   ## Checks if the directory dir exists.
-  osAndNims(dirExists(dir.string))
+  osAndNims(dirExists(dir.getStr()))
 
-proc existsFile*(filename: string | AnyFile): bool =
+proc existsFile*(filename: AnyFile): bool =
   ## An alias for fileExists.
-  osAndNims(existsFile(filename.string))
+  osAndNims(existsFile(filename.getStr()))
 
-proc existsDir*(dir: string | AnyDir): bool =
+
+proc existsDir*(dir: AnyDir): bool =
   ## An alias for dirExists.
   osAndNims(existsDir(dir.string))
 
@@ -622,3 +659,12 @@ template withEnv*(envs: openarray[(string, string)], body: untyped): untyped =
 
   for varn in noValues:
     oswrap.delEnv(varn)
+
+proc assertExists*(file: AnyFile): void =
+  var path: AbsFile
+  if file.isRelative:
+    path = file.toAbsFile()
+
+  if not file.existsFile():
+    raise newException(
+      OSError, &"No such file {path.string}")

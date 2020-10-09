@@ -1,4 +1,4 @@
-import sequtils, sugar, math, algorithm
+import sequtils, sugar, math, algorithm, strutils
 import ../types/colorstring
 
 ## https://xxyxyz.org/line-breaking/
@@ -17,6 +17,7 @@ type
     kind: WordKind
 
   TermWord = Word[string, PrintStyling]
+  TextWord = Word[string, void]
 
   MarkStyling = object
     wrap: char
@@ -28,6 +29,9 @@ func splitMark*(str: string): seq[MarkWord] =
     MarkWord(text: "hello", attr: MarkStyling(wrap: '*')),
     MarkWord(text: "world", attr: MarkStyling(wrap: '`'))
   ]
+
+func splitText*(str: string): seq[TextWord] =
+  str.split(" ").mapIt(TextWord(text: it))
 
 func len*[T, A](w: Word[T, A]): int = len(w.text)
 func `**`(a, b: SomeNumber): SomeNumber = a ^ b
@@ -106,6 +110,7 @@ func wrapTextImpl[T, A](
     n = count + 1
     i = 0
     offset = 0
+
   while true:
       let
         r = min(n, 2 ** (i + 1))
@@ -136,7 +141,30 @@ func wrapTextImpl[T, A](
 
   result.reverse()
 
-func `$`(mw: MarkWord): string = mw.text
+func `$`*(mw: MarkWord): string = mw.text
+func `$`*(mw: TextWord): string = mw.text
+
+
+func wrapText*[T, A](
+  words: seq[Word[T, A]], width: int): seq[seq[Word[T, A]]] =
+  wrapTextImpl(words, width)
+
+func joinText*[T, A](
+  wrapped: seq[seq[Word[T, A]]],
+  toStr: proc(w: Word[T, A]): string =
+             (proc(w: Word[T, A]): string = $w)
+                   ): string =
+
+  for line in wrapped:
+    var lineBuf: string
+    lineBuf.add line.mapIt(toStr(it)).join(" ")
+
+    result.add lineBuf & "\n"
+
+func wrapMarkLines*(str: string, width: int): seq[string] =
+  let buf = str.splitMark().wrapText(width)
+  for line in buf:
+    result.add line.mapIt($it).join(" ")
 
 when isMainModule:
   let text = "*hello* `world`".splitMark().wrapTextImpl(10)
