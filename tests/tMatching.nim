@@ -1,8 +1,9 @@
 import sugar, strutils, sequtils, strformat, macros, options, tables
-import json
+import json, parseopt
 
 import hmisc/macros/matching
 {.experimental: "caseStmtMacros".}
+import hmisc/hdebug_misc
 
 #===========================  implementation  ============================#
 
@@ -187,7 +188,6 @@ suite "Matching":
       of EE(): discard
       of ZZ(): fail()
 
-    # startHaxCOmp()
     case Obj():
       of {EE, ZZ}(): discard
       else: fail()
@@ -364,8 +364,33 @@ suite "Matching":
       block: assert [all 1] ?= [1,1,1]
       block: assert not ([all 1] ?= [1,2,3])
       block: [opt @a or 12] := `@`[int]([]); assertEq a, 12
+      block: [opt(@a or 12)] := [1]; assertEq a, 1
       block: [opt @a] := [1]; assertEq a, some(1)
       block: [opt @a] := `@`[int]([]); assertEq  a, none(int)
+      block: [opt(@a)] := [1]; assertEq a, some(1)
+      block:
+        {"k": opt @val1 or "12"} := {"k": "22"}.toTable()
+        static: assert val1 is string
+        {"k": opt(@val2 or "12")} := {"k": "22"}.toTable()
+        static: assert val2 is string
+        assertEq val1, val2
+        assertEq val1, "22"
+        assertEq val2, "22"
+
+      block:
+        {"h": Some(@x)} := {"h": some("22")}.toTable()
+        assert x is string
+        assert x == "22"
+
+      block:
+        {"k": opt @val, "z": opt @val2} := {"z" : "2"}.toTable()
+        assert val is Option[string]
+        assert val.isNone()
+        assert val2 is Option[string]
+        assert val2.isSome()
+        assert val2.get() == "2"
+
+      block: [all(@a)] := [1]; assertEq a, @[1]
       block: (f: @hello is ("2" | "3")) := (f: "2"); assertEq hello, "2"
       block: (f: @a(it mod 2 == 0)) := (f: 2); assertEq a, 2
       block: assert not ([1,2] ?= [1,2,3])
@@ -545,3 +570,59 @@ suite "Matching":
 
 
     testImpl()
+
+  test "withItCall":
+    macro withItCall(head: typed, body: untyped): untyped =
+      result = newStmtList()
+      result.add quote do:
+        var it {.inject.} = `head`
+
+      for stmt in body:
+        case stmt:
+          of {Call, Command}([@head is Ident(), all @arguments]):
+            result.add newCall(newDotExpr(
+              ident "it", head
+            ), arguments)
+          else:
+            result.add stmt
+
+      result.add ident("it")
+
+      result = newBlockStmt(result)
+
+
+    let res = @[12,3,3].withItCall do:
+      it = it.filterIt(it < 4)
+      it.add 99
+
+  test "optparse":
+    proc splitOpts(
+      cmdline: seq[TaintedString],
+      shortNoVal: set[char] = {},
+      longNoVal: seq[string] = @[],
+      allowWhitespaceAfterColon = true
+    ): tuple[args: seq[string], opts: Table[string, string]] =
+
+      var p = initOptParser(
+        cmdline, shortNoVal, longNoVal, allowWhitespaceAfterColon)
+
+      while true:
+        p.next()
+        case p.kind
+        of cmdEnd: break
+        of cmdShortOption, cmdLongOption:
+          result.opts[p.key] = p.val
+        of cmdArgument:
+          result.args.add p.key
+
+    let (args, opts) = splitOpts(@["hell", "--ni:12", "-e"])
+
+    # startHaxComp()
+    opts.assertMatch({
+      "ni" : @niVal or "<-->",
+      "e" : @eVal or "22"
+    })
+
+    echo eVal
+    assert eVal == ""
+    assert niVal == "12"

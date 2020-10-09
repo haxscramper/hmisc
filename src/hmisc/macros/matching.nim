@@ -1,6 +1,8 @@
 import sequtils, macros, tables, options, strformat, strutils,
        parseutils, algorithm, hashes
 
+import hmisc/hdebug_misc
+
 const
   NnkStrNodes* = { nnkStrLit .. nnkTripleStrLit }
   NnkIntNodes* = { nnkCharLit .. nnkUInt64Lit }
@@ -246,12 +248,16 @@ type
     imkPredicate ## Execute custom predicate to determine if element
                  ## matches pattern.
 
-  KVPair* = tuple[key: NimNode, patt: Match]
+  KVPair* = object
+    key: NimNode
+    patt: Match
+
   Match* = ref object
     ## Object describing single match for element
     bindVar*: Option[NimNode] ## Bound variable (if any)
     declNode: NimNode ## Original declaration of match
     isOptional: bool
+    fallback: Option[NimNode]
     case kind*: MatchKind
       of kItem:
         case itemMatch: ItemMatchKind
@@ -526,6 +532,7 @@ func parseListMatch(n: NimNode): seq[ListStructure] =
         elem = elem[1]
         opKind = kwd
 
+      echov elem.lispRepr()
       var
         match = parseMatchExpr(elem)
         bindv = match.bindVar
@@ -539,7 +546,10 @@ func parseListMatch(n: NimNode): seq[ListStructure] =
 
 func parseTableMatch(n: NimNode): seq[KVPair] =
   for elem in n:
-    result.add((elem[0], elem[1].parseMatchExpr()))
+    result.add(KVPair(
+      key: elem[0],
+      patt: elem[1].parseMatchExpr()
+    ))
 
 func parseAltMatch(n: NimNode): Match =
   let
@@ -551,8 +561,27 @@ func parseAltMatch(n: NimNode): Match =
   if rhs.kind == kAlt: alts.add rhs.altElems else: alts.add rhs
   result = Match(kind: kAlt, altElems: alts, declNode: n)
 
+func splitOpt(n: NimNode): tuple[
+  lhs: NimNode, rhs: Option[NimNode]] =
+
+  n[0].assertKind({nnkIdent})
+  if not n[0].eqIdent("opt"):
+    error("Only `opt` is supported for standalone item matches", n[0])
+
+  if not n.len == 2:
+    error("Expected exactly one parameter for `opt`", n)
+
+  if n[1].kind == nnkInfix:
+    echov n[1].lispRepr()
+    result.lhs = n[1][1]
+    result.rhs = some n[1][2]
+  else:
+    result.lhs = n[1]
+
+
 func parseMatchExpr*(n: NimNode): Match =
   ## Parse match expression from nim node
+  echov n
   case n.kind:
     of nnkIdent, nnkSym, nnkIntLit, nnkStrLit, nnkCharLit:
       result = Match(kind: kItem, itemMatch: imkInfixEq, declNode: n)
@@ -602,7 +631,17 @@ func parseMatchExpr*(n: NimNode): Match =
 
 
         result.setElems.add parseMatchExpr(node)
-    of nnkObjConstr, nnkCall:
+    of nnkBracketExpr:
+      result = Match(
+        kindCall: some n[0],
+        kind: kObject,
+        declNode: n,
+        listMatches: some parseMatchExpr(
+          nnkBracket.newTree(n[1..^1])
+        )
+      )
+    elif n.kind in {nnkObjConstr, nnkCall, nnkCommand} and
+         not n[0].eqIdent("opt"):
       if n[0].kind == nnkPrefix:
         n[0][1].assertKind({nnkIdent}) # `@capture(<some-expression>)`
         result = Match(
@@ -627,15 +666,11 @@ func parseMatchExpr*(n: NimNode): Match =
         )
       else:
         result = parseKVTuple(n)
-    of nnkBracketExpr:
-      result = Match(
-        kindCall: some n[0],
-        kind: kObject,
-        declNode: n,
-        listMatches: some parseMatchExpr(
-          nnkBracket.newTree(n[1..^1])
-        )
-      )
+    elif (n.kind in {nnkCommand, nnkCall}) and n[0].eqIdent("opt"):
+      let (lhs, rhs) = splitOpt(n)
+      result = lhs.parseMatchExpr()
+      result.isOptional = true
+      result.fallback = rhs
     elif n.isInfixPatt(): # `(true, true) | (false, false)`
       result = parseAltMatch(n)
     elif n.kind == nnkInfix:
@@ -657,6 +692,7 @@ func parseMatchExpr*(n: NimNode): Match =
 
         if result.infix == "or":
           result.isOptional = true
+          result.fallback = some n[2]
 
       result.bindVar = some(n[1][1])
     else:
@@ -702,7 +738,9 @@ func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
 func makeVarTable(m: Match): VarTable =
   func aux(sub: Match, vt: var VarTable, path: Path): void =
     if sub.bindVar.getSome(bindv):
-      if sub.isOptional and sub.rhsNode == nil:
+      # echov sub.rhsNode
+      if sub.isOptional and sub.fallback.isNone():
+        # echov "opt"
         vt.addvar(bindv, path & @[
           AccsElem(inStruct: kItem, isOpt: true)
         ])
@@ -725,7 +763,7 @@ func makeVarTable(m: Match): VarTable =
             isVariadic: elem.kind notin {lkPos, lkOpt})]
 
           if elem.bindVar.getSome(bindv):
-            if elem.patt.isOptional and elem.patt.rhsNode == nil:
+            if elem.patt.isOptional and elem.patt.fallback.isNone():
               vt.addVar(bindv, parent & @[
                 AccsElem(inStruct: kItem, isOpt: true)
               ])
@@ -738,8 +776,8 @@ func makeVarTable(m: Match): VarTable =
         for idx, it in sub.tupleElems:
           aux(it, vt, path & @[AccsElem(inStruct: kTuple, idx: idx)])
       of kPairs:
-        for (key, val) in sub.pairElems:
-          aux(val, vt, path & @[AccsElem(inStruct: kPairs, key: key)])
+        for pair in sub.pairElems:
+          aux(pair.patt, vt, path & @[AccsElem(inStruct: kPairs, key: pair.key)])
       of kObject:
         for (fld, patt) in sub.fldElems:
           aux(patt, vt, path & @[AccsElem(inStruct: kObject, fld: fld)])
@@ -788,17 +826,29 @@ template makeElemMatch(): untyped {.dirty.} =
 
       case elem.kind:
         of lkAll:
-          result.add quote do:
-            block:
-              var allOk: bool = true
-              while `posid` < `getLen` and allOk:
+          let allOk = genSym(nskVar, "allOk")
+          # debugecho expr.lispRepr()
+          let check =
+            if expr.kind in {nnkSym, nnkIdent} and expr.eqIdent("true"):
+              quote do:
+                `varset`
+                inc `posid`
+            else:
+              quote do:
                 if not `expr`:
-                  allOk = false
+                  `allOk` = false
                 else:
                   `varset`
                   inc `posid`
 
-              if not allOk:
+
+          result.add quote do:
+            block:
+              var `allOk`: bool = true
+              while `posid` < `getLen` and `allOk`:
+                `check`
+
+              if not `allOk`:
                 break `failBlock`
 
         of lkSlice:
@@ -843,9 +893,9 @@ template makeElemMatch(): untyped {.dirty.} =
           var default = nnkDiscardStmt.newTree(newEmptyNode())
           if elem.patt.isOptional and
              elem.bindVar.getSome(bindv) and
-             elem.patt.rhsNode != nil:
+             elem.patt.fallback.getSome(fallback):
 
-            default = makeVarSet(bindv, elem.patt.rhsNode, vtable)
+            default = makeVarSet(bindv, fallback, vtable)
                 # vtable.addvar(bindv, path & @[
                 #   AccsElem(inStruct: kList, pos: posid),
                 #   AccsElem(inStruct: kItem)
@@ -1019,12 +1069,43 @@ func makeMatchExpr*(
 
     of kPairs:
       var conds: seq[NimNode]
-      for (key, val) in m.pairElems:
-        conds.add newInfix(
-          "and",
-          newInfix("in", key, path.toAccs(mainExpr)),
-          val.makeMatchExpr(vtable, path & @[
-            AccsElem(inStruct: kPairs, key: key)],  mainExpr))
+      for pair in m.pairElems:
+        let
+          accs = path.toAccs(mainExpr)
+          incheck = newInfix("in", pair.key, accs)
+          valPath = path & @[AccsElem(inStruct: kPairs, key: pair.key)]
+          valGet = valPath.toAccs(mainExpr)
+
+        if not pair.patt.isOptional:
+          conds.add newInfix(
+            "and", incheck,
+            pair.patt.makeMatchExpr(vtable, valPath, mainExpr)
+          )
+
+        else:
+          let varn = pair.patt.bindVar.get
+          let varsetOk = makeVarSet(varn, valGet, vtable)
+          if pair.patt.fallback.getSome(fallback):
+            let varsetFail = makeVarSet(
+              varn, pair.patt.fallback.get(), vtable)
+
+            conds.add quote do:
+              block:
+                if `incheck`:
+                  `varsetOk`
+                else:
+                  `varsetFail`
+
+                true
+          else:
+            conds.add quote do:
+              if `incheck`:
+                `varsetOk`
+
+              true
+
+
+
 
       return conds.foldInfix("and")
     of kAlt:
@@ -1116,6 +1197,7 @@ macro match*(n: untyped): untyped =
       let pos {.inject.}: int = 0
       `matchcase`
 
+
 macro assertMatch*(input, pattern: untyped): untyped =
   let
     expr = ident genSym(nskLet, "expr").repr
@@ -1131,7 +1213,7 @@ macro assertMatch*(input, pattern: untyped): untyped =
     if not ok:
       raiseAssert("Pattern match failed `" & `patt` & "`")
 
-  # echov result
+  echov result
 
 macro matches*(input, pattern: untyped): untyped =
   let
