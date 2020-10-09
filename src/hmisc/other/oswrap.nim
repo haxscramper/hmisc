@@ -64,7 +64,7 @@ type
   AnyFile* = AbsFile | RelFile | FsFile
 
 
-template getStr(path: AnyPath): string =
+func getStr*(path: AnyPath): string =
   # `get` prefix is specifically used to indicate that this is an
   # accessor to internal state of the `path`, not just property that
   # you can get/set.
@@ -81,9 +81,9 @@ template getStr(path: AnyPath): string =
   elif path is FsEntry:
     case path.kind:
       of os.pcFile, os.pcLinkToFile:
-        file.str
+        path.file.getStr()
       else:
-        dir.str
+        path.dir.getStr()
   else:
     path.string
 
@@ -106,7 +106,8 @@ func parseFile*(file: string): FsFile =
   else:
     FsFile(isRelative: true, relFile: RelFile(file))
 
-func `$`*(path: AnyPath): string = path.string
+func `$`*(path: AnyPath): string = path.getStr()
+func `$`*(entry: FsEntry): string = entry.getStr()
 # func `==`*(pathA, pathB: AnyPath, str: string): bool = path.string == str
 
 macro osAndNims*(code: untyped): untyped =

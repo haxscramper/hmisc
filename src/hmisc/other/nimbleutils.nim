@@ -44,7 +44,7 @@ proc runDockerTest*(
     it - "c"
     it.raw &"'cd /project/main && {cmd}'"
 
-  shExec(dockerCmd)
+  execShell(dockerCmd)
 
 
 func `&&`*(lhs, rhs: string): string =
@@ -98,23 +98,23 @@ proc writeTestConfig*(str: string): void =
 
 proc testAllImpl*(): void =
   try:
-    shExec("choosenim stable")
-    shExec("nimble test")
+    execShell("choosenim stable")
+    execShell("nimble test")
     info "Stable test passed"
   except:
     err "Stable test failed"
 
   try:
-    shExec("choosenim devel")
-    shExec("nimble test")
+    execShell("choosenim devel")
+    execShell("nimble test")
     info "Devel test passed"
   except:
     err "Devel test failed"
   finally:
-    shExec("choosenim stable")
+    execShell("choosenim stable")
 
   try:
-    shExec("nimble install")
+    execShell("nimble install")
     info "Installation on stable OK"
   except:
     err "Installation on stable failed"
