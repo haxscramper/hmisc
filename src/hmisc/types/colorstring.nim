@@ -43,6 +43,7 @@ else:
   import hmisc/algo/halgorithm
   import hmisc/hdebug_misc
   import terminal
+  export terminal
 
 
 type

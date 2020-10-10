@@ -1,12 +1,20 @@
 import unittest
 
 import strformat, options
-import hmisc/helpers
+import hmisc/[helpers, hexceptions]
 import hmisc/macros/iflet
 
 func empty[T](): seq[T] = discard
 
 suite "Misc helper functions":
+  test "Long assertion fail":
+    try:
+      assertionFail:
+        "Nice {12 + 2}"
+        "12"
+    except:
+      discard
+
   test "Split list":
     expect AssertionError:
       discard empty[int]().splitList()

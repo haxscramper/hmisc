@@ -1,13 +1,11 @@
 import sequtils, macros, tables, options, strformat, strutils,
        parseutils, algorithm, hashes
 
-import hmisc/hdebug_misc
-
 const
-  NnkStrNodes* = { nnkStrLit .. nnkTripleStrLit }
-  NnkIntNodes* = { nnkCharLit .. nnkUInt64Lit }
-  NnkFloatNodes* = { nnkFloatLit .. nnkFloat128Lit }
-  NnkTokenNodes* = NnkStrNodes + NnkIntNodes + NnkFloatNodes + {
+  nnkStrKinds* = { nnkStrLit .. nnkTripleStrLit }
+  nnkIntKinds* = { nnkCharLit .. nnkUInt64Lit }
+  nnkFloatKinds* = { nnkFloatLit .. nnkFloat128Lit }
+  nnkTokenKinds* = nnkStrKinds + nnkIntKinds + nnkFloatKinds + {
     nnkIdent,
     nnkSym
   }
@@ -163,6 +161,8 @@ proc getKindNames*(head: NimNode): (string, seq[string]) =
 
 
 macro hasKindImpl*(head: typed, kind: untyped): untyped =
+  # TODO validate correcness of pattern in `kind` - if prefixed
+  # identifier is not valid enum name, report immediately.
   let (pref, names) = getKindNames(head)
   kind.assertKind({nnkIdent, nnkCurly})
   if kind.kind == nnkCurly:
@@ -439,6 +439,8 @@ func contains(kwds: openarray[ListKeyword], str: string): bool =
       return true
 
 func parseListMatch(n: NimNode): seq[ListStructure] =
+  # TEST `all is {+Set}(val: @lines)` and make sure it is the same as
+  # `all {+Set}(val: @lines)`. Handle prefixes uniformly
   for elem in n:
     if elem.kind == nnkPrefix and elem[0].eqIdent(".."):
       elem[1].assertKind({nnkIdent})
@@ -532,7 +534,6 @@ func parseListMatch(n: NimNode): seq[ListStructure] =
         elem = elem[1]
         opKind = kwd
 
-      echov elem.lispRepr()
       var
         match = parseMatchExpr(elem)
         bindv = match.bindVar
@@ -572,7 +573,6 @@ func splitOpt(n: NimNode): tuple[
     error("Expected exactly one parameter for `opt`", n)
 
   if n[1].kind == nnkInfix:
-    echov n[1].lispRepr()
     result.lhs = n[1][1]
     result.rhs = some n[1][2]
   else:
@@ -581,7 +581,6 @@ func splitOpt(n: NimNode): tuple[
 
 func parseMatchExpr*(n: NimNode): Match =
   ## Parse match expression from nim node
-  echov n
   case n.kind:
     of nnkIdent, nnkSym, nnkIntLit, nnkStrLit, nnkCharLit:
       result = Match(kind: kItem, itemMatch: imkInfixEq, declNode: n)
@@ -717,7 +716,6 @@ func classifyPath(path: Path): VarKind =
 
 func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
   let vs = vsym.strVal()
-  # echov vsym
   # echov path
   if vs notin tbl:
     tbl[vs] = VarSpec(
@@ -1052,6 +1050,9 @@ func makeMatchExpr*(
       return conds.foldInfix("and")
     of kObject:
       var conds: seq[NimNode]
+      if m.kindCall.getSome(kc):
+        conds.add newCall(ident "hasKind", path.toAccs(mainExpr), kc)
+
       for (fld, patt) in m.fldElems:
         conds.add patt.makeMatchExpr(vtable, path & @[
           AccsElem(inStruct: kObject, fld: fld)],  mainExpr)
@@ -1061,9 +1062,6 @@ func makeMatchExpr*(
 
       if m.kvMatches.getSome(kv):
         conds.add kv.makeMatchExpr(vtable, path,  mainExpr)
-
-      if m.kindCall.getSome(kc):
-        conds.add newCall(ident "hasKind", path.toAccs(mainExpr), kc)
 
       return conds.foldInfix("and")
 
@@ -1213,7 +1211,6 @@ macro assertMatch*(input, pattern: untyped): untyped =
     if not ok:
       raiseAssert("Pattern match failed `" & `patt` & "`")
 
-  echov result
 
 macro matches*(input, pattern: untyped): untyped =
   let

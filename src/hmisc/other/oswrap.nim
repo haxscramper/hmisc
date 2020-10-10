@@ -1,7 +1,8 @@
 ## `os` module function wrappers than can work with both nimscript and
 ## regular target.
 
-import strutils, macros, random
+import strutils, macros, random, hashes
+import ../algo/hstring_algo
 from os import nil
 
 export os.PathComponent
@@ -20,7 +21,7 @@ export os.quoteShell
 const cbackend* = not (defined(nimscript) or defined(js))
 
 when cbackend:
-  import times
+  import times, pathnorm
 
 ## `os` wrapper with more typesafe paths. Mostly taken from compiler
 ## pathutils and stdlib.
@@ -64,7 +65,7 @@ type
   AnyFile* = AbsFile | RelFile | FsFile
 
 
-func getStr*(path: AnyPath): string =
+func getStr*(path: AnyPath | string): string =
   # `get` prefix is specifically used to indicate that this is an
   # accessor to internal state of the `path`, not just property that
   # you can get/set.
@@ -90,6 +91,18 @@ func getStr*(path: AnyPath): string =
 # when not cbackend:
 #   type
 #     ReadEnvEffect* = object of RootEffect
+
+func hash*(path: AnyPath): Hash = hash(path.getStr())
+func len*(path: AnyPath): int = path.getStr().len()
+func contains*(path: AnyPath, substr: string): bool =
+  path.getStr().contains substr
+
+template endsWith*(path: AnyPath, expr: typed): bool =
+  path.getStr().endsWith(expr)
+
+template startsWith*(path: AnyPath, expr: typed): bool =
+  path.getStr().startsWith(expr)
+
 
 const
   CurDir* = RelDir($os.CurDir)
@@ -146,7 +159,9 @@ converter toDir*(absDir: AbsDir): FsDir =
   FsDir(isRelative: false, absDir: absDir)
 
 converter toAbsDir*(str: string): AbsDir =
-  assert os.isAbsolute(str)
+  assert os.isAbsolute(str),
+          "Path '" & str & "' is not an absolute directory"
+
   AbsDir(str)
 
 proc getCurrentDir*(): AbsDir =
@@ -165,16 +180,25 @@ proc normalizePathEnd*(path: var AnyPath; trailingSep = false): void =
 proc joinPath*(head: AbsDir, tail: RelFile): AbsFile =
   AbsFile(os.joinPath(head.string, tail.string))
 
-proc joinPath*(head: AbsDir, tail: RelDir | string): AbsDir =
+proc joinPath*(head: AbsDir, tail: RelDir): AbsDir =
   AbsDir(os.joinPath(head.string, tail.string))
 
 template `/`*(head, tail: AnyPath | string): untyped =
+  joinPath(head, RelDir(tail))
+
+template `/`*(head: AnyDir, tail: RelFile): untyped =
   joinPath(head, tail)
+
+template `/.`*(head: AnyPath, file: RelFile | string): untyped =
+  joinPath(head, RelFile(file))
 
 proc splitPath*(path: AbsFile): tuple[head: AbsDir, tail: RelFile] =
   let (head, tail) = os.splitPath(path.string)
   result.head = AbsDir(head)
   result.tail = RelFile(head)
+
+proc startsWith*(path: AnyPath, str: string): bool =
+  path.getStr().startsWith(str)
 
 proc relativePath*(path: AbsDir, base: AbsDir): RelDir =
   RelDir(os.relativePath(path.string, base.string))
@@ -215,6 +239,26 @@ proc splitFile*(path: AnyFile): tuple[
   result.dir = AbsDir(dir)
   result.name = name
   result.ext = ext
+
+func hasExt*(file: AnyFile, exts: openarray[string] = @[]): bool =
+  let (_, _, ext) = file.splitFile()
+  if exts.len == 0:
+    return ext.len > 0
+  else:
+    return ext in exts
+
+proc assertValid*(path: AnyPath): void =
+  assert path.getStr().len > 0, "Empty path string"
+  when path is RelPath:
+    if os.isAbsolute(path.getStr()):
+      assertionFail:
+        "Input path {path} has type {$typeof(path)}, but contains"
+        "invalid string - expected absolute path"
+  elif path is AbsPath:
+    if not os.isAbsolute(path.getStr()):
+      assertionFail:
+        "Input path {path} has type {$typeof(path)}, but contains"
+        "invalid string - expected absolute path"
 
 proc extractFilename*(path: AnyFile): string =
   os.extractFilename(path.string)
@@ -263,11 +307,41 @@ when cbackend:
   proc absolute*(dir: RelDir, root: AbsDir = getCurrentDir()): AbsDir =
     AbsDir(os.absolutePath(dir.string, root.string))
 
-  proc toAbsFile*(file: AnyFile, root: AbsDir = getCurrentDir()): AbsFile =
-    AbsFile(os.absolutePath(file.getStr(), root.getStr()))
+  proc isAbsolute*(path: AnyPath): bool =
+    os.isAbsolute(path.getStr())
+
+  proc toAbsFile*(file: AnyFile | string,
+                  checkExists: bool = false,
+                  root: AbsDir = getCurrentDir()): AbsFile =
+    # assert file.getStr().isAbsolute()
+    result = AbsFile(os.absolutePath(file.getStr(), root.getStr()))
+    if checkExists:
+      result.assertExists()
 
   proc absolute*(file: RelFile, root: AbsDir = getCurrentDir()): AbsFile =
     AbsFile(os.absolutePath(file.string, root.string))
+
+  proc isRelative*(file: AnyPath): bool =
+    assertValid file
+    when file is FsFile:
+      return file.isRelative
+    elif file is RelPath:
+      return true
+    elif file is AbsPath:
+      return false
+
+  # proc realpath*(path: string): string =
+  #   var resolved: cstring
+  #   let res = realpath(path.cstring, resolved)
+  #   result = $res
+
+  # proc realpath*()
+
+  proc normalize*(path: AbsDir): AbsDir =
+    AbsDir(normalizePath(path.string))
+
+  proc normalize*(path: AbsFile): AbsFile =
+    AbsFile(normalizePath(path.string))
 
   proc sameFile*(file1, file2: AnyFile): bool =
     os.sameFile(file1.string, file2.string)
@@ -301,12 +375,15 @@ proc normalizedPath*(path: RelFile): RelFile =
   RelFile os.normalizedPath(path.string)
 
 
-when cbackend:
-  proc `==`*(file1, file2: AnyFile): bool = sameFile(file1, file2)
-  proc `==`*(dir1, dir2: AnyDir): bool = sameDir(dir1, dir2)
-else:
-  proc `==`*(file1, file2: AnyFile): bool = (file1.string == file2.string)
-  proc `==`*(dir1, dir2: AnyDir): bool = (dir1.string == dir2.string)
+# when cbackend:
+#   proc `==`*(file1, file2: AnyFile): bool = sameFile(file1, file2)
+#   proc `==`*(dir1, dir2: AnyDir): bool = sameDir(dir1, dir2)
+# else:
+proc `==`*(file1, file2: AnyFile): bool =
+  (file1.getStr() == file2.getStr())
+
+proc `==`*(dir1, dir2: AnyDir): bool =
+  (dir1.getStr() == dir2.getStr())
 
 # proc sameFileContent*(path1, path2: string): bool {.rtl, extern: "nos$1",
 
@@ -488,6 +565,33 @@ proc existsDir*(dir: AnyDir): bool =
   ## An alias for dirExists.
   osAndNims(existsDir(dir.string))
 
+proc assertExists*(file: AnyFile): void =
+  var path: AbsFile
+  if file.isRelative:
+    path = file.toAbsFile()
+
+  if existsDir(AbsDir file.getStr()):
+    if path.isRelative and file.getStr().len == 0:
+      raise newException(
+        OSError,
+        &"Attempt to assert empty file name in directory {cwd()}")
+    else:
+      var msg =
+          &"{path.string} is expected to be a file but directory was found"
+
+      if file.isRelative:
+        msg &= &". Input file {file}, relative to {cwd()}"
+
+      raise newException(OSError, msg)
+
+  if not file.existsFile():
+    raise newException(
+      OSError,
+      &"No such file {path.string}")
+
+
+
+
 proc toExe*(filename: string): string =
   ##On Windows adds ".exe" to filename, else returns filename unmodified.
   (when defined(windows): filename & ".exe" else: filename)
@@ -517,20 +621,23 @@ proc listFiles*(dir: AnyDir): seq[AbsFile] =
         result.add path
 
 template readFile*(file: AnyFile): untyped =
-  readFile(file.string)
+  readFile(file.getStr())
+
+template writeFile*(file: AnyFile, text: string): untyped =
+  writeFile(file.getStr(), text)
 
 proc rmDir*(dir: AnyDir; checkDir = false) =
   ## Removes the directory dir.
   osOrNims(
-    os.removeDir(dir.string, checkDir),
-    system.rmDir(dir.string, checkDir)
+    os.removeDir(dir.getStr(), checkDir),
+    system.rmDir(dir.getStr(), checkDir)
   )
 
 proc rmFile*(file: AnyFile) =
   ## Removes the file.
   osOrNims(
-    os.removeFile(file.string),
-    system.rmFile(file.string)
+    os.removeFile(file.getStr()),
+    system.rmFile(file.getStr())
   )
 
 proc mkDir*(dir: AnyDir) =
@@ -661,11 +768,3 @@ template withEnv*(envs: openarray[(string, string)], body: untyped): untyped =
   for varn in noValues:
     oswrap.delEnv(varn)
 
-proc assertExists*(file: AnyFile): void =
-  var path: AbsFile
-  if file.isRelative:
-    path = file.toAbsFile()
-
-  if not file.existsFile():
-    raise newException(
-      OSError, &"No such file {path.string}")
