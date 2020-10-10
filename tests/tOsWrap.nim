@@ -28,11 +28,11 @@ suite "Pathwrap":
 
   test "Os errros":
     try:
-      discard newPathError(toAbsDir("/tmp"), fekExpectedRel):
+      discard newPathError(toAbsDir("/tmp"), pekExpectedRel):
         "Expected relative directory"
 
       let path = "12"
-      raise newPathError(AbsFile("12"), fekExpectedAbs): fmtJoin:
+      raise newPathError(AbsFile("12"), pekExpectedAbs): fmtJoin:
         "Input path {path} has type {$typeof(path)}, but contains"
         "invalid string - expected absolute path"
     except:
