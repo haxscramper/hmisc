@@ -26,6 +26,19 @@ suite "Pathwrap":
     for dir in parentDirs(cwd()):
       echo dir
 
+  test "Os errros":
+    try:
+      discard newPathError(toAbsDir("/tmp"), fekExpectedRel):
+        "Expected relative directory"
+
+      let path = "12"
+      raise newPathError(AbsFile("12"), fekExpectedAbs): fmtJoin:
+        "Input path {path} has type {$typeof(path)}, but contains"
+        "invalid string - expected absolute path"
+    except:
+      discard
+
+
 suite "Shell":
   test "shell":
     expect ShellError:

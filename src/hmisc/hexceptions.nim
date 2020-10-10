@@ -1,4 +1,5 @@
 import strformat, strutils, algorithm, sequtils, macros, os
+# TODO use `oswrap` instead of `os`
 import types/colorstring
 import algo/[hseq_mapping, hmath, halgorithm]
 import macros/matching
@@ -390,11 +391,12 @@ template pprintErr*(): untyped =
           " " &
           $($tr.procname).toYellow())
 
-    let idx = e.msg.find('(')
+    # let idx = e.msg.find('(')
     echo ""
-    echo(
-      (idx > 0).tern(e.msg[0 ..< idx].getFileName() & " ", "") &
-      e.msg[(if idx > 0: idx else: 0)..^1])
+    echo e.msg
+    # echo(
+    #   (idx > 0).tern(e.msg[0 ..< idx].getFileName() & " ", "") &
+    #   e.msg[(if idx > 0: idx else: 0)..^1])
 
 
 # DOC use formatting only on literal nodes, pas non-literal as-is

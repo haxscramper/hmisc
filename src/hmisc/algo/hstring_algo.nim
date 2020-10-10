@@ -216,12 +216,16 @@ template raisejoin*(text: seq[string]): untyped =
 macro joinLiteral*(body: untyped): untyped =
   if body.matches StmtList(
     [all (kind: in nnkStrKinds, strVal: @msgLines)]):
-    return newLit(msgjoin msgLines)
+    result = newLit(msgjoin msgLines)
+    # echo result.treeRepr()
   elif body.matches (kind: in nnkStrKinds, strVal: @msgText):
     return body
   else:
     error(
       "Expected either list of string literals or single literal", body)
+
+template fmtJoin*(body: untyped): untyped =
+  fmt(joinLiteral(body))
 
 template assertionCheck*(expression: untyped, body: untyped): untyped =
   ## Raise `AssertionError` if `expression` evaluates as false. Body

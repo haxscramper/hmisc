@@ -21,7 +21,7 @@ export os.quoteShell
 const cbackend* = not (defined(nimscript) or defined(js))
 
 when cbackend:
-  import times, pathnorm
+  import times, pathnorm, posix
 
 ## `os` wrapper with more typesafe paths. Mostly taken from compiler
 ## pathutils and stdlib.
@@ -34,8 +34,6 @@ type
   RelFile* = distinct string
   RelDir* = distinct string
   RelPath* = RelFile | RelDir
-
-
 
 type
   FsFile = object
@@ -60,9 +58,39 @@ type
         dir*: FsDir
 
 type
+  PathErrorKind* = enum
+    pekExpectedDir
+    pekExpectedFile
+    pekExpectedAbs
+    pekExpectedRel
+    pekNoSuchEntry
+    pekInvalidEntry
+
+  PathError* = ref object of OSError
+    entry*: FsEntry
+    kind*: PathErrorKind
+
+type
   AnyPath* = AbsFile | AbsDir | RelFile | RelDir | FsFile | FsDir | FsEntry
   AnyDir* = AbsDir | RelDir | FsDir
   AnyFile* = AbsFile | RelFile | FsFile
+
+func newPathError*(
+  entry: FsEntry, kind: PathErrorKind, msg: string): PathError =
+  PathError(msg: msg & " (" & $kind & ")", kind: kind, entry: entry)
+
+template newPathError*(
+  entry: FsEntry, kind: PathErrorKind, msg: typed): PathError =
+  newPathError(entry, kind, fmtJoin msg)
+
+template ignorePathErrors*(
+  kinds: set[PathErrorKind], body: untyped): untyped =
+  try:
+    body
+  except PathError:
+    let err = PathError(getCurrentException())
+    if err.kind notin kinds:
+      raise err
 
 
 func getStr*(path: AnyPath | string): string =
@@ -158,6 +186,18 @@ converter toDir*(relDir: RelDir): FsDir =
 converter toDir*(absDir: AbsDir): FsDir =
   FsDir(isRelative: false, absDir: absDir)
 
+converter toFsEntry*(path: AnyPath): FsEntry =
+  when path is FsEntry:
+    path
+  elif path is FsDir:
+    FsEntry(kind: os.pcDir, dir: path)
+  elif path is FsFile:
+    FsEntry(kind: os.pcFile, file: path)
+  elif path is AbsFile or path is RelFile:
+    path.toFile().toFsEntry()
+  elif path is RelDir or path is AbsDir:
+    path.toDir().toFsEntry()
+
 converter toAbsDir*(str: string): AbsDir =
   assert os.isAbsolute(str),
           "Path '" & str & "' is not an absolute directory"
@@ -182,6 +222,9 @@ proc joinPath*(head: AbsDir, tail: RelFile): AbsFile =
 
 proc joinPath*(head: AbsDir, tail: RelDir): AbsDir =
   AbsDir(os.joinPath(head.string, tail.string))
+
+proc joinPath*(head: RelDir, tail: RelFile): RelFile =
+  RelFile(os.joinPath(head.string, tail.string))
 
 template `/`*(head, tail: AnyPath | string): untyped =
   joinPath(head, RelDir(tail))
@@ -248,17 +291,21 @@ func hasExt*(file: AnyFile, exts: openarray[string] = @[]): bool =
     return ext in exts
 
 proc assertValid*(path: AnyPath): void =
-  assert path.getStr().len > 0, "Empty path string"
+  if path.getStr().len < 1:
+    raise newPathError(path, pekInvalidEntry, "Empty path string")
+
   when path is RelPath:
     if os.isAbsolute(path.getStr()):
-      assertionFail:
-        "Input path {path} has type {$typeof(path)}, but contains"
-        "invalid string - expected absolute path"
+      raise newPathError(path, pekExpectedRel): fmtJoin:
+        "Input path '{path.getStr()}' has type {$typeof(path)}, but"
+        "contains invalid string - expected relative path"
   elif path is AbsPath:
     if not os.isAbsolute(path.getStr()):
-      assertionFail:
-        "Input path {path} has type {$typeof(path)}, but contains"
-        "invalid string - expected absolute path"
+      raise newPathError(path, pekExpectedAbs): fmtJoin:
+        "Input path '{path.getStr()}' has type {$typeof(path)}, but"
+        "contains invalid string - expected absolute path"
+  else:
+    static: raiseAssert("#[ IMPLEMENT ]#")
 
 proc extractFilename*(path: AnyFile): string =
   os.extractFilename(path.string)
@@ -312,8 +359,17 @@ when cbackend:
 
   proc toAbsFile*(file: AnyFile | string,
                   checkExists: bool = false,
+                  normalize: bool = true,
                   root: AbsDir = getCurrentDir()): AbsFile =
     # assert file.getStr().isAbsolute()
+    when file is string:
+      if os.isAbsolute(file):
+        assertValid(AbsFile(file))
+      else:
+        assertValid(RelFile(file))
+    else:
+      assertValid(file)
+
     result = AbsFile(os.absolutePath(file.getStr(), root.getStr()))
     if checkExists:
       result.assertExists()
@@ -330,12 +386,12 @@ when cbackend:
     elif file is AbsPath:
       return false
 
-  # proc realpath*(path: string): string =
-  #   var resolved: cstring
-  #   let res = realpath(path.cstring, resolved)
-  #   result = $res
+  proc realpath*(path: string): string =
+    var resolved: cstring
+    let res = realpath(path.cstring, resolved)
+    result = $res
 
-  # proc realpath*()
+  proc realpath*(path: AbsFile): AbsFile = AbsFile(realpath(path.getStr()))
 
   proc normalize*(path: AbsDir): AbsDir =
     AbsDir(normalizePath(path.string))
@@ -566,12 +622,10 @@ proc existsDir*(dir: AnyDir): bool =
   osAndNims(existsDir(dir.string))
 
 proc assertExists*(file: AnyFile): void =
-  var path: AbsFile
-  if file.isRelative:
-    path = file.toAbsFile()
+  let path: AbsFile = file.toAbsFile()
 
   if existsDir(AbsDir file.getStr()):
-    if path.isRelative and file.getStr().len == 0:
+    if file.isRelative and file.getStr().len == 0:
       raise newException(
         OSError,
         &"Attempt to assert empty file name in directory {cwd()}")
@@ -582,12 +636,11 @@ proc assertExists*(file: AnyFile): void =
       if file.isRelative:
         msg &= &". Input file {file}, relative to {cwd()}"
 
-      raise newException(OSError, msg)
+      raise newPathError(file, pekExpectedFile, msg)
 
   if not file.existsFile():
-    raise newException(
-      OSError,
-      &"No such file {path.string}")
+    raise newPathError(
+      file, pekNoSuchEntry, &"No such file '{path.string}'")
 
 
 
