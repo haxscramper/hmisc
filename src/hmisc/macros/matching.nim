@@ -1,6 +1,17 @@
 import sequtils, macros, tables, options, strformat, strutils,
        parseutils, algorithm, hashes
 
+# TODO support
+# StmtList
+#   Asgn
+#     Ident "result"
+#     Call
+#       Ident "TomlParser"
+#       Call
+#         Ident "ts_parser_new"
+# As alternative syntax for writing nodes
+
+
 const
   nnkStrKinds* = { nnkStrLit .. nnkTripleStrLit }
   nnkIntKinds* = { nnkCharLit .. nnkUInt64Lit }
@@ -401,12 +412,21 @@ func parseKVTuple(n: NimNode): Match =
     if not (n.len <= 2):
       error("Expected `Some(@varBind)`", n)
 
+    if not (n[1].kind == nnkPrefix and n[1][0].eqIdent("@")):
+      # debugecho n[1].lispRepr()
+      error(
+        "Some(@var) pattern expected, but found " &
+          n[1].toStrLit().strVal(), n[1])
+
     n[1].assertKind({nnkPrefix})
     n[1][0].assertKind({nnkIdent})
 
     return Match(kind: kObject, declNode: n, fldElems: @{
       "isSome": Match(kind: kItem, itemMatch: imkInfixEq, declNode: n[0],
                       rhsNode: newLit(true), infix: "=="),
+      # TODO generate compile assertions for 'get' imports? E.g. it is
+      # not really clear where error has originated if it is just
+      # regular shit-tier error like `no get identifier`
       "get": Match(kind: kItem, itemMatch: imkInfixEq,
                    declNode: n[1], isPlaceholder: true,
                    bindVar: some(n[1][1])),
@@ -426,7 +446,7 @@ func parseKVTuple(n: NimNode): Match =
         result.fldElems.add((
           elem[0].strVal(),
           elem[1].parseMatchExpr()))
-      of nnkBracket:
+      of nnkBracket, nnkStmtList:
         result.listMatches = some(elem.parseMatchExpr())
       of nnkTableConstr:
         result.kvMatches = some(elem.parseMatchExpr())
@@ -616,7 +636,9 @@ func parseMatchExpr*(n: NimNode): Match =
           rhsNode: n[1], declNode: n
         )
 
-    of nnkBracket: # `[1,2,3]` - list pattern
+    of nnkBracket, nnkStmtList:
+      # `[1,2,3]` - list pattern in inline form or as list of elements
+      # (stmt list)
       result = Match(
         kind: kList, listElems: parseListMatch(n), declNode: n)
     of nnkTableConstr: # `{"key": "val"}` - key-value matches
@@ -715,6 +737,8 @@ func classifyPath(path: Path): VarKind =
     vkRegular
 
 func addvar(tbl: var VarTable, vsym: NimNode, path: Path): void =
+  # TODO disallow setting variable again if it has already
+  # participated in speculative match.
   let vs = vsym.strVal()
   # echov path
   if vs notin tbl:
@@ -1248,11 +1272,16 @@ func buildTreeMaker(
 
       res.add quote do:
         var `tmp`: `resType`
+        when `tmp` is ref:
+          new `tmp`
 
       if match.kindCall.getSome(call):
         let kind = ident call.strVal().addPrefix(prefix)
         res.add quote do:
+          {.push warning[CaseTransition]: off.}
           `tmp`.kind = `kind`
+          {.pop.}
+
       else:
         error("Named tuple construction is not supported", match.declNode)
 
@@ -1289,14 +1318,16 @@ func `str=`*(node: var NimNode, val: string) =
     node.strVal = val
 
 macro makeTreeImpl*(node, kind: typed, patt: untyped): untyped =
-  # echo node.lispRepr()
-  # echo kind.lispRepr()
+  var inpatt = patt
+  if patt.kind in {nnkStmtList}:
+    if patt.len > 1:
+      raiseAssert("#[ IMPLEMENT wrap in stmt list ]#")
+    else:
+      inpatt = patt[0]
 
   let (pref, _) = kind.getKindNames()
-  # echo pref
-  # echo node.getType()
 
-  let match = patt.parseMatchExpr()
+  let match = inpatt.parseMatchExpr()
 
   result = buildTreeMaker(pref, node.getType(), match)
 
