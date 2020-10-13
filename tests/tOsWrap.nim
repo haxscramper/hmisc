@@ -15,7 +15,7 @@ suite "Pathwrap":
   test "A":
     echo getNewTempDir()
 
-    for path in "/tmp".walkDir():
+    for path in toAbsDir("/tmp").walkDir():
       case path.kind:
         of pcDir:
           echo path

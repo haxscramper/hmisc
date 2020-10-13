@@ -41,6 +41,7 @@ type
     cmd*: string ## Command that returned non-zero exit code
     cwd*: AbsDir ## Absolute path of initial command execution directory
     retcode*: int ## Exit code
+    # TODO REFACTOR rename to `stdout` and `stderr`
     errstr*: string ## Stderr for command
     outstr*: string ## Stdout for command
 
@@ -135,6 +136,10 @@ func subCmd*(cmd: var Cmd, sub: string) =
   ## Add subcommand
   cmd.opts.add CmdPart(kind: cpkSubCommand, subcommand: sub)
 
+func cmd*(cmd: var Cmd, sub: string) =
+  ## Add subcommand
+  cmd.opts.add CmdPart(kind: cpkSubCommand, subcommand: sub)
+
 func raw*(cmd: var Cmd, str: string) =
   ## Add raw string for command (for things like `+2` that are not
   ## covered by default options)
@@ -148,9 +153,14 @@ func `-`*(cmd: var Cmd, fl: string) =
   ## Add flag for command
   cmd.flag fl
 
-func `--`*(cmd: var Cmd, kv: (string, string)) =
+func `-`*(cmd: var Cmd, kv: (string, string)) =
   ## Add key-value pair for command
   cmd.opt(kv[0], kv[1])
+
+func `-`*(cmd: var Cmd, kv: tuple[key, sep, val: string]) =
+  cmd.opts.add CmdPart(
+    kind: cpkOption, key: kv.key, value: kv.val, overrideKv: true,
+    kvSep: kv.sep)
 
 func makeNimCmd*(bin: string): Cmd =
   result.conf = NimCmdConf
@@ -267,7 +277,7 @@ when cbackend:
       )
 
 proc runShell*(
-  command: Cmd,
+  cmd: Cmd,
   doRaise: bool = true,
   stdin: string = "",
   options: set[ProcessOption] = {poEvalCommand},
@@ -287,23 +297,35 @@ proc runShell*(
   ## ## Arguments
   ## :maxErrorLines: max number of stderr lines that would be appended to
   ##   exception. Any stderr beyond this range will be truncated
-
   let
-    env = command.envVals
-    command = command.toStr()
+    env = cmd.envVals
+    command = cmd.toStr()
 
   if not discardOut and (poParentStreams in options):
+    # TODO add support for showing output *and* piping results. This
+    # will certainly involve some fuckery with filtering out ansi
+    # codes (because colored output is basically /the/ reason to have
+    # piping to parent shell).
     raiseAssert(
       "Stream access not allowed when you use poParentStreams. " &
         "Either set `discardOut` to true or remove `poParentStream` from options"
     )
 
   when not defined(NimScript):
-    let pid = startProcess(
-      command,
-      options = options,
-      env = if env.len > 0: newStringTable(env) else: nil
-    )
+    let pid =
+      if poEvalCommand in options:
+        startProcess(
+          command,
+          options = options,
+          env = if env.len > 0: newStringTable(env) else: nil
+        )
+      else:
+        startProcess(
+          cmd.bin,
+          options = options,
+          args = cmd.opts.mapIt(it.toStr(cmd.conf)),
+          env = if env.len > 0: newStringTable(env) else: nil
+        )
 
     if not discardOut:
       let ins = pid.inputStream()
@@ -325,12 +347,12 @@ proc runShell*(
           echo "process died" # NOTE possible place to raise exception
 
       result.stdout &= outStream.readAll()
-      result.code = pid.peekExitCode()
       result.stderr = pid.errorStream.readAll()
     else:
       while pid.running():
         discard
 
+    result.code = pid.peekExitCode()
     close(pid)
 
   else:
@@ -382,19 +404,20 @@ proc execShell*(cmd: string): void =
   ## pitfalls. It is recommended to use `shExec(cmd: Cmd)` overload -
   ## this version exists only for quick prototyping.
   discard runShell(cmd, discardOut = true, options = {
-    poEvalCommand, poParentStreams})
+    poEvalCommand, poParentStreams, poUsePath})
 
 
 proc evalShell*(cmd: string): auto =
-  var opts = {poEvalCommand}
+  var opts = {poEvalCommand, poUsePath}
   runShell(cmd, options = opts)
 
 proc evalShellStdout*(cmd: string): string =
-  let res = runShell(cmd, options = {poEvalCommand})
+  let res = runShell(cmd, options = {poEvalCommand, poUsePath})
   return res.stdout
 
 
 proc execShell*(cmd: Cmd): void =
   ## Execute shell command with stdout/stderr redirection into parent
   ## streams. To capture output use `runShell`
-  discard runShell(cmd, discardOut = true, options = {poParentStreams})
+  discard runShell(cmd, doRaise = true, discardOut = true, options = {
+    poParentStreams, poUsePath})

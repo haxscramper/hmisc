@@ -66,5 +66,5 @@ method log*(logger: ColorLogger, level: Level, args: varargs[string, `$`]) =
     echo ident, " ".repeat(prefix.termLen()), " ", line
 
 proc startColorLogger*(): void =
-  var logger = ColorLogger(ident: 2)
+  var logger = ColorLogger(ident: 0)
   addHandler logger

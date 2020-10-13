@@ -594,35 +594,3 @@ suite "Matching":
     let res = @[12,3,3].withItCall do:
       it = it.filterIt(it < 4)
       it.add 99
-
-  test "optparse":
-    proc splitOpts(
-      cmdline: seq[TaintedString],
-      shortNoVal: set[char] = {},
-      longNoVal: seq[string] = @[],
-      allowWhitespaceAfterColon = true
-    ): tuple[args: seq[string], opts: Table[string, string]] =
-
-      var p = initOptParser(
-        cmdline, shortNoVal, longNoVal, allowWhitespaceAfterColon)
-
-      while true:
-        p.next()
-        case p.kind
-        of cmdEnd: break
-        of cmdShortOption, cmdLongOption:
-          result.opts[p.key] = p.val
-        of cmdArgument:
-          result.args.add p.key
-
-    let (args, opts) = splitOpts(@["hell", "--ni:12", "-e"])
-
-    # startHaxComp()
-    opts.assertMatch({
-      "ni" : @niVal or "<-->",
-      "e" : @eVal or "22"
-    })
-
-    echo eVal
-    assert eVal == ""
-    assert niVal == "12"

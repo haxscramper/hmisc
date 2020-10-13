@@ -7,7 +7,9 @@ export htemplates
 import hseq_distance
 import hstring_algo
 export hstring_algo
+
 import ../types/hprimitives
+import ../hdebug_misc
 
 import hmath
 export hmath
@@ -269,15 +271,33 @@ func splitTokenize*(str: string, seps: set[char]): seq[string] =
       inc curr
 
 
-func splitCamel*(str: string, dropUnderscore: bool = true): seq[string] =
+func splitCamel*(
+  str: string,
+  dropUnderscore: bool = true,
+  splitUnderscores: bool = true
+     ): seq[string] =
   ## Split abbreviation as **camelCase** identifier
   # TODO handle `kebab-style-identifiers`
   # TODO Split things like `ABBRName` into either `ABBR, Name` or
   #      `A, B, B ...`
   var pos = 0
+
+
+  var dropSet: set[char]
+  if splitUnderscores:
+    dropset.incl '_'
+
+  var splitset = {'A' .. 'Z'} + dropset
+
   while pos < str.len:
-    let start = pos
-    let next = start + str.skipUntil({'A'..'Z', '_'}, start + 1)
+    var start = pos
+    let next = start + str.skipUntil(splitset, start + 1)
+    if str[start] == '_' and dropUnderscore:
+      inc start
+
+    # echov str.enumerate()
+    # echov str[start..next]
+    # echov (start, next)
 
     if str[start..next].allOfIt(it in {'_'}) and dropUnderscore:
       discard
@@ -349,6 +369,12 @@ func mismatchStart*(str1, str2: string): int =
   else:
     # No mismatch found
     return -1
+
+func joinCamel*(ins: openarray[string]): string =
+  for elem in ins:
+    result.add elem.capitalizeAscii()
+
+  result[0] = result[0].toLowerAscii()
 
 func joinl*(inseq: openarray[string]): string =
   ## Join items using newlines

@@ -11,6 +11,9 @@ import sequtils, macros, tables, options, strformat, strutils,
 #         Ident "ts_parser_new"
 # As alternative syntax for writing nodes
 
+# TODO handle malformed input pattern with `@var or "default"` in
+# sequences/kv-pairs. Should be written as `opt @var or "default"`
+
 
 const
   nnkStrKinds* = { nnkStrLit .. nnkTripleStrLit }

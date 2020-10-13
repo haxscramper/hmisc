@@ -5,7 +5,11 @@ import sugar, json, sequtils, tables, strformat, options, terminal
 
 import hmisc/types/[hvariant, colorstring]
 import hmisc/[helpers, hexceptions]
-import hmisc/algo/[halgorithm, htree_mapping, hseq_distance]
+import hmisc/algo/[halgorithm, htree_mapping, hseq_distance, clformat]
+import hmisc/hdebug_misc
+
+startHax()
+
 
 type
   InTest = object
@@ -733,6 +737,13 @@ suite "Misc algorithms":
     # echo err.toColorString()
 
 suite "String helper functions":
+  test "toLatin*Char":
+    for ch in "[({<>|!@#$%^&*})]":
+      echo &"{ch} : {ch.toLatinAbbrChar()}"
+
+    echo "((()))".toNamedMultichar()
+
+
   test "{[^]}":
     assert "hello"[^"lo"]
     assert "hello"["he"]
@@ -762,6 +773,11 @@ suite "String helper functions":
     assertEq "clang_Hello".splitCamel, @["clang", "Hello"]
     assertEq "clang_HeeH".splitCamel(false), @[
       "clang", "_", "Hee", "H"]
+
+    assertEq "hello___nice".splitCamel(), @["hello", "nice"]
+    assertEq "hello_nice".splitCamel(), @["hello", "nice"]
+
+  if true: quit 0
 
   test "{abbrevCamel}":
     assertEq abbrevCamel(

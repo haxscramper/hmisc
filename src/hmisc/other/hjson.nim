@@ -30,6 +30,10 @@ template jsonConversion(target, conversionProc: untyped): untyped =
         "cannot be converted to" & $targetKind
     )
 
+func asBool*(node: JsonNode): bool =
+  ## Convert node to bool and throw exception if node kind does not match
+  jsonConversion(JBool, getBool)
+
 func asStr*(node: JsonNode): string =
   ## Convert node to string and throw exception if node kind does not match
   jsonConversion(JString, getStr)

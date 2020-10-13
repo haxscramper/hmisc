@@ -1,9 +1,13 @@
 ## `os` module function wrappers than can work with both nimscript and
 ## regular target.
 
-import strutils, macros, random, hashes
+
+# TODO add support for error messages on missing files. etc
+
+import strutils, macros, random, hashes, strformat
 import ../algo/hstring_algo
 from os import nil
+
 
 export os.PathComponent
 export os.FileInfo
@@ -21,7 +25,23 @@ export os.quoteShell
 const cbackend* = not (defined(nimscript) or defined(js))
 
 when cbackend:
-  import times, pathnorm, posix
+  import times, pathnorm, posix, parseopt
+
+when cbackend:
+  import logging
+else:
+  type
+    Level = enum
+      lvlAll
+      lvlDebug
+      lvlInfo
+      lvlNotice
+      lvlWarn
+      lvlError
+      lvlFatal
+      lvlNone
+
+
 
 ## `os` wrapper with more typesafe paths. Mostly taken from compiler
 ## pathutils and stdlib.
@@ -140,7 +160,7 @@ const
   PathSep* = os.PathSep
   ExeExts* = os.ExeExts
 
-func parseFile*(file: string): FsFile =
+func parseFsFile*(file: string): FsFile =
   # TODO check if path is not directory-only
   if os.isAbsolute(file):
     FsFile(isRelative: false, absFile: AbsFile(file))
@@ -198,11 +218,11 @@ converter toFsEntry*(path: AnyPath): FsEntry =
   elif path is RelDir or path is AbsDir:
     path.toDir().toFsEntry()
 
-converter toAbsDir*(str: string): AbsDir =
-  assert os.isAbsolute(str),
-          "Path '" & str & "' is not an absolute directory"
+# converter toAbsDir*(str: string): AbsDir =
+#   assert os.isAbsolute(str),
+#           "Path '" & str & "' is not an absolute directory"
 
-  AbsDir(str)
+#   AbsDir(str)
 
 proc getCurrentDir*(): AbsDir =
   ## Retrieves the current working directory.
@@ -247,10 +267,10 @@ proc relativePath*(path: AbsDir, base: AbsDir): RelDir =
   RelDir(os.relativePath(path.string, base.string))
 
 proc parentDir*(path: AbsPath): AbsDir =
-  AbsPath(os.parentDir(path.string))
+  AbsDir(os.parentDir(path.getStr()))
 
 proc parentDir*(path: RelPath): RelDir =
-  RelDir(os.parentDir(path.string))
+  RelDir(os.parentDir(path.getStr()))
 
 proc tailDir*(path: AnyDir): string = os.tailDir(path.string)
 
@@ -261,10 +281,10 @@ proc tailDir*(path: AnyDir): string = os.tailDir(path.string)
 iterator parentDirs*(
   path: AnyPath,
   fromRoot: bool = false,
-  inclusive: bool = true): AbsPath =
+  inclusive: bool = true): AbsDir =
 
   for p in os.parentDirs(path.string, fromRoot, inclusive):
-    yield AbsPath(p)
+    yield AbsDir(p)
 
 proc `/../`*(head: AbsDir, repeat: int): AbsDir =
   result = head
@@ -371,6 +391,22 @@ when cbackend:
       assertValid(file)
 
     result = AbsFile(os.absolutePath(file.getStr(), root.getStr()))
+    if checkExists:
+      result.assertExists()
+
+  proc toAbsDir*(dir: AnyDir | string,
+                 checkExists: bool = false,
+                 normalize: bool = true,
+                 root: AbsDir = getCurrentDir()): AbsDir =
+    when dir is string:
+      if os.isAbsolute(dir):
+        assertValid(AbsDir(dir))
+      else:
+        assertValid(RelDir(dir))
+    else:
+      assertValid(dir)
+
+    result = AbsDir(os.absolutePath(dir.getStr(), root.getStr()))
     if checkExists:
       result.assertExists()
 
@@ -643,6 +679,28 @@ proc assertExists*(file: AnyFile): void =
       file, pekNoSuchEntry, &"No such file '{path.string}'")
 
 
+proc assertExists*(dir: AnyDir): void =
+  let path: AbsDir = dir.toAbsDir()
+
+  if existsFile(AbsFile dir.getStr()):
+    if dir.isRelative and dir.getStr().len == 0:
+      raise newException(
+        OSError,
+        &"Attempt to assert empty dir name in directory {cwd()}")
+    else:
+      var msg =
+          &"{path.string} is expected to be a directory but file was found"
+
+      if dir.isRelative:
+        msg &= &". Input dir {dir}, relative to {cwd()}"
+
+      raise newPathError(dir, pekExpectedDir, msg)
+
+  if not dir.existsDir():
+    raise newPathError(
+      dir, pekNoSuchEntry, &"No such directory '{path.string}'")
+
+
 
 
 proc toExe*(filename: string): string =
@@ -679,7 +737,7 @@ template readFile*(file: AnyFile): untyped =
 template writeFile*(file: AnyFile, text: string): untyped =
   writeFile(file.getStr(), text)
 
-proc rmDir*(dir: AnyDir; checkDir = false) =
+proc rmDir*(dir: AnyDir | string; checkDir = false) =
   ## Removes the directory dir.
   osOrNims(
     os.removeDir(dir.getStr(), checkDir),
@@ -693,7 +751,7 @@ proc rmFile*(file: AnyFile) =
     system.rmFile(file.getStr())
   )
 
-proc mkDir*(dir: AnyDir) =
+proc mkDir*(dir: AnyDir | string) =
   ## Creates the directory dir including all necessary subdirectories.
   ## If the directory already exists, no error is raised.
   osOrNims(
@@ -715,12 +773,19 @@ proc mvDir*(source, dest: AnyDir) =
     system.mvDir(source.string, dest.string)
   )
 
-proc cpFile*(source, dest: string | AnyFile) =
+proc cpFile*(
+  source, dest: string | AnyFile,
+  logLevel: Level = lvlNone) =
   ## Copies the file from to to.
   osOrNims(
     os.copyFile(source.string, dest.string),
     system.cpFile(source.string, dest.string)
   )
+
+  when cbackend:
+    if logLevel < lvlNone:
+      log logLevel, "Copied '" & source.getStr() &
+        "' to '" & dest.getStr() & "'"
 
 proc cpDir*(source, dest: AnyDir) =
   ## Copies the dir from to to.
@@ -729,7 +794,7 @@ proc cpDir*(source, dest: AnyDir) =
     system.cpDir(source.string, dest.string)
   )
 
-proc cd*(dir: AnyDir) =
+proc cd*(dir: AnyDir | string) =
   ## Changes the current directory.
   osOrNims(
     os.setCurrentDir(dir.string),
@@ -785,6 +850,7 @@ template withDir*(dir: AnyDir, body: untyped): untyped =
 template withTempDir*(clean: bool, body: untyped): untyped =
   ## Create temporary directory (not don't cd into it!), execute
   ## `body` and remove it afterwards if `clean` is true
+  let curDir = cwd()
   let tmpDir {.inject.} = getNewTempDir()
   mkDir(tmpDir)
 
@@ -794,10 +860,18 @@ template withTempDir*(clean: bool, body: untyped): untyped =
     if clean:
       rmDir(tmpDir)
 
-template withinTempDir*(clean: bool, body: untyped): untyped =
-  withTempDir(clean):
-    cd(tmpDir)
+    cd(curDir)
+
+
+template withCleanDir*(dirname, body: untyped): untyped =
+  let curDir = cwd()
+  rmDir(dirname)
+  mkDir(dirname)
+  try:
+    cd(dirname)
     body
+  finally:
+    cd(curDir)
 
 
 
@@ -821,3 +895,24 @@ template withEnv*(envs: openarray[(string, string)], body: untyped): untyped =
   for varn in noValues:
     oswrap.delEnv(varn)
 
+
+when cbackend:
+  import tables
+  proc splitCmdLine*(
+    cmdline: seq[string],
+    shortNoVal: set[char] = {},
+    longNoVal: seq[string] = @[],
+    allowWhitespaceAfterColon = true
+  ): tuple[args: seq[string], opts: Table[string, string]] =
+
+    var p = initOptParser(
+      cmdline, shortNoVal, longNoVal, allowWhitespaceAfterColon)
+
+    while true:
+      p.next()
+      case p.kind
+      of cmdEnd: break
+      of cmdShortOption, cmdLongOption:
+        result.opts[p.key] = p.val
+      of cmdArgument:
+        result.args.add p.key

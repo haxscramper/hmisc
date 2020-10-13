@@ -2,6 +2,9 @@
 
 import strformat, strutils, sugar, sequtils
 import hshell, oswrap
+
+export AbsDir, RelDir, AbsFile, RelFile
+
 import ../algo/htemplates
 
 ## Helper utilities for running nimble tasks
@@ -15,8 +18,11 @@ proc notice*(msg: string): void = echo makeSeparator(msg, "32")
 proc err*(msg: string): void = echo makeSeparator(msg, "31")
 proc debug*(msg: string): void = echo makeSeparator(msg, "39")
 
+proc thisAbsDir*(): AbsDir = AbsDir thisDir()
+
 proc runDockerTest*(
-  projDir, tmpDir, cmd: string, runCb: proc() = (proc() = discard)): void =
+  projDir, tmpDir: AbsDir, cmd: string,
+  runCb: proc() = (proc() = discard)): void =
   ## Copy project directory `projDir` into temporary `tmpDir` and
   ## execute command `cmd` inside new docker container based on
   ## `nim-base` image.
@@ -34,15 +40,17 @@ proc runDockerTest*(
     runCb()
 
   let dockerCmd = makeGnuCmd("docker").withIt do:
-    it.subCmd "run"
+    it.cmd "run"
     it - "i"
-    it - "i"
+    it - "t"
     it - "rm"
-    it -- ("v", $tmpDir & ":/project")
+    it - ("v", "", $tmpDir & ":/project")
     it.arg "nim-base"
     it.arg "sh"
     it - "c"
     it.raw &"'cd /project/main && {cmd}'"
+
+  # echo dockerCmd.toStr()
 
   execShell(dockerCmd)
 
@@ -67,7 +75,7 @@ proc pkgVersion*(pkg: string): string =
       return line["version: \"".len() .. ^2]
 
 
-proc makeLocalDevel*(testDir: string, pkgs: seq[string]): string =
+proc makeLocalDevel*(testDir: AbsDir, pkgs: seq[string]): string =
   info "Copying local development versions"
   let home = getHomeDir()
   let dirs = collect(newSeq):
@@ -86,6 +94,7 @@ proc makeLocalDevel*(testDir: string, pkgs: seq[string]): string =
       RelFile(pkg & ".nimble-link")
 
     for nimble in meta.readFile().split("\n"):
+      let nimble = AbsDir nimble
       if nimble.endsWith(&"{pkg}.nimble"): # XXX
         let dir = parentDir(nimble)
         cpDir dir, (testDir / pkg)
@@ -120,7 +129,7 @@ proc testAllImpl*(): void =
     err "Installation on stable failed"
 
 proc runDockerTestDevel*(
-  startDir, testDir: string, localDevel: seq[string],
+  startDir, testDir: AbsDir, localDevel: seq[string],
   cmd: string, cb: proc()) =
   let develCmd = makeLocalDevel(testDir, localDevel)
   let cmd = develCmd && ("cd " & "/project/main") && cmd
@@ -129,5 +138,5 @@ proc runDockerTestDevel*(
   debug "command is"
   echo cmd
 
-  runDockerTest(thisDir(), testDir, cmd) do:
+  runDockerTest(thisAbsDir(), testDir, cmd) do:
     cb()

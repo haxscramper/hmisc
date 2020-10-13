@@ -103,6 +103,20 @@ func len*(part: StrPart): int =
         raiseAssert(
           "Cannot get length for string part with more that one substring")
 
+
+func contains*(str: string, parts: varargs[StrPart, toStrPart]): bool =
+  for part in parts:
+    case part.kind:
+      of spkSet:
+        for c in str:
+          if c in part.chars:
+            return true
+      of spkSubstr:
+        for sub in part.strs:
+          if sub in str:
+            return true
+
+
 func dropPrefix*(str: string, part: StrPart): string =
   for alt in part:
     if str.startsWith(alt):
@@ -171,7 +185,6 @@ func filterPrefix*(str: seq[string], pref: StrPart): seq[string] =
   for s in str:
     if s.startsWith(pref):
       result.add s
-
 
 func msgjoinImpl*(args: seq[string]): string =
   var openwrap: bool = false

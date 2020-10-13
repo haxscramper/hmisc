@@ -21,13 +21,16 @@ else:
   import hmisc/other/nimbleutils
 
 task dockertest, "Run test suite in new docker container":
-  runDockerTest(thisDir(), "/tmp/docker-hmisc", "nimble test")
+  runDockerTest(thisAbsDir(),
+                AbsDir "/tmp/docker-hmisc", "nimble test")
 
 task installtest, "Test installation from cloned repo":
-  runDockerTest(thisDir(), "/tmp/docker-hmisc", "nimble install")
+  runDockerTest(thisAbsDir(),
+                AbsDir "/tmp/docker-hmisc", "nimble install")
 
 task testall, "Run full test suite in all variations":
-  runDockerTest(thisDir(), "/tmp/docker-hmisc/", "nimble testallTask")
+  runDockerTest(thisAbsDir(),
+                AbsDir "/tmp/docker-hmisc/", "nimble testallTask")
 
 task testallTask, "~~~ testall implementation ~~~":
   testAllImpl()
