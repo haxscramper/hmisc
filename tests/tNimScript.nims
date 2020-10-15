@@ -1,12 +1,13 @@
 #!/usr/bin/env nim
 
-import hmisc/other/nimbleutils
-import hmisc/other/hshell
+import hmisc/other/[hshell, oswrap, nimbleutils]
 
 echo pkgVersion("hmisc")
 
-echo listDirs("/tmp")
+# echo listDirs(AbsDir "/tmp")
 
+echo buildFsTree(allowExts = @["cfg", "cpp"])
+echo buildFsTree(AbsDir "/tmp", allowExts = @["nim"])
 
 if false:
   discard runShell("nice")

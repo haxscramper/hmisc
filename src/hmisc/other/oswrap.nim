@@ -3,6 +3,8 @@
 
 
 # TODO add support for error messages on missing files. etc
+# TODO add `MaybeFile` and `MaybeDir` typeclasses for things that
+#      might represent anything at runtime
 
 import strutils, macros, random, hashes, strformat
 import ../algo/hstring_algo
@@ -63,19 +65,30 @@ type
       of false:
         absFile*: AbsFile
 
-  FsDir = object
+  FsDir* = object
     case isRelative*: bool
       of true:
         relDir*: RelDir
       of false:
         absDir*: AbsDir
 
-  FsEntry = object
+  FsEntry* = object
     case kind*: os.PathComponent
       of os.pcFile, os.pcLinkToFile:
         file*: FsFile
       of os.pcDir, os.pcLinkToDir:
         dir*: FsDir
+
+
+  FsTree* = object
+    basename*: string
+    parent*: seq[string]
+    isAbsolute*: bool
+    case isDir*: bool
+      of true:
+        sub*: seq[FsTree]
+      of false:
+        ext*: string
 
 type
   PathErrorKind* = enum
@@ -91,7 +104,9 @@ type
     kind*: PathErrorKind
 
 type
-  AnyPath* = AbsFile | AbsDir | RelFile | RelDir | FsFile | FsDir | FsEntry
+  AnyPath* = AbsFile | AbsDir | RelFile | RelDir |
+             FsFile | FsDir | FsEntry | FsTree
+
   AnyDir* = AbsDir | RelDir | FsDir
   AnyFile* = AbsFile | RelFile | FsFile
 
@@ -133,6 +148,13 @@ func getStr*(path: AnyPath | string): string =
         path.file.getStr()
       else:
         path.dir.getStr()
+  elif path is FsTree:
+    let tmp = os.joinpath(path.parent & @[path.basename])
+    # debugecho path.ext
+    if not path.isDir and path.ext.len > 0:
+      tmp & ("." & path.ext)
+    else:
+      tmp
   else:
     path.string
 
@@ -716,11 +738,12 @@ proc listDirs*(dir: AnyDir): seq[AbsDir] =
   ## Lists all absolute paths for all subdirectories (non-recursively)
   ## in the directory dir.
   when defined(NimScript):
-    return system.listDirs()
+    for d in system.listDirs(dir.getStr()):
+      result.add AbsDir(d)
   else:
-    for (kind, path) in os.walkDir(dir):
+    for (kind, path) in os.walkDir(dir.getStr()):
       if kind == pcDir:
-        result.add path
+        result.add AbsDir(path)
 
 proc listFiles*(dir: AnyDir): seq[AbsFile] =
   ## Lists all the files (non-recursively) in the directory dir.
@@ -730,6 +753,93 @@ proc listFiles*(dir: AnyDir): seq[AbsFile] =
     for (kind, path) in os.walkDir(dir):
       if kind == pcFile:
         result.add path
+
+func flatFiles*(tree: FsTree): seq[AbsFile] =
+  if tree.isDir:
+    for sub in tree.sub:
+      result.add sub.flatFiles()
+  else:
+    result = @[AbsFile(tree.getStr())]
+
+
+func withExt*(f: FsTree, ext: string): FsTree =
+  assert not f.isDir
+  result = f
+  result.ext = ext
+
+func withBase*(f: FsTree, base: string): FsTree =
+  result = f
+  result.basename = base
+
+func withoutBasePrefix*(f: FsTree, pref: string): FsTree =
+  result = f
+  if f.basename.startsWith(pref):
+    result.basename = f.basename[pref.len .. ^1]
+
+func withParent*(
+  f: FsTree, parent: seq[string], isAbs: bool = true): FsTree =
+  result = f
+  result.parent = parent
+  result.isAbsolute = isAbs
+
+func withoutParent*(f: FsTree): FsTree =
+  result = f
+  result.parent = @[]
+  result.isAbsolute = false
+
+func withoutParent*(f: FsTree, pref: seq[string]): FsTree =
+  result = f
+  var cut = 0
+  for idx, dir in f.parent:
+    if idx < pref.len and dir == pref[idx]:
+      inc cut
+    else:
+      break
+
+  result.parent = f.parent[cut .. ^1]
+
+func withoutNParents*(f: FsTree, cut: int): FsTree =
+  result = f
+  result.parent = f.parent[cut .. ^1]
+
+
+proc buildFsTree*(
+  start: AnyDir = getCurrentDir(),
+  allowExts: seq[string] = @[],
+  blockExts: seq[string] = @[]): seq[FsTree] =
+  proc aux(parent: seq[string]): seq[FsTree] =
+    # TODO support links
+    # echo "Listing in", parent
+    for kind, path in os.walkDir(join(parent, "/")):
+      case kind:
+        of os.pcFile:
+          let (_, name, ext) = os.splitFile(path)
+          template allow(ext: string): bool =
+            # Either blocked
+            (ext notin blockExts) and
+            # Or in explicitly allowed list
+            (allowExts.len == 0 or ext in allowExts)
+
+          if (ext.len > 0 and allow(ext[1..^1])) or
+             (ext.len == 0 and allow("")):
+            # echo path, " -- ", ext
+            result.add FsTree(
+              isDir: false, parent: parent,
+              ext: (if ext.len > 0: ext[1..^1] else: ""),
+              basename: name
+            )
+        of os.pcDir:
+          let (_, name) = os.splitPath(path)
+          result.add FsTree(
+            isDir: true,
+            parent: parent,
+            sub: aux(parent & @[name]),
+            basename: name
+          )
+        else:
+          discard
+
+  return aux(start.getStr().split(DirSep))
 
 template readFile*(file: AnyFile): untyped =
   readFile(file.getStr())

@@ -3,11 +3,86 @@
 import strformat, strutils, sugar, sequtils
 import hshell, oswrap
 
+func format*(str: string, kvalues: openarray[(string, string)]): string =
+  str % kvalues.mapIt(@[it[0], it[1]]).concat()
+
 export AbsDir, RelDir, AbsFile, RelFile
 
 import ../algo/htemplates
 
 ## Helper utilities for running nimble tasks
+
+type
+  DocBuildConfig = object
+    hrefPref: string
+    outDir: AbsDir
+    nimdocCss: AbsFile
+    dryRun: bool
+
+func getBodyToc*(linkList: string): string =
+  """
+  <div class="row">
+    <div class="three columns">
+    <div class="theme-switch-wrapper">
+      <label class="theme-switch" for="checkbox">
+        <input type="checkbox" id="checkbox" />
+        <div class="slider round"></div>
+      </label>
+     &nbsp;&nbsp;&nbsp; <em>Dark Mode</em>
+    </div>
+    <div id="global-links">
+  """ &
+    linklist &
+  """
+    </div>
+    <div id="searchInputDiv">
+      Search: <input type="text" id="searchInput"
+        onkeyup="search()" />
+    </div>
+    $tableofcontents
+    </div>
+    <div class="nine columns" id="content">
+    <div id="tocRoot"></div>
+    $deprecationMsg
+    <p class="module-desc">$moduledesc</p>
+    $content
+    </div>
+  </div>
+  """
+
+func wrap3QuoteNL*(str: string): string =
+  "\"\"\"" & str & "\"\"\"\n\n"
+
+
+proc docgenBuild*(conf: DocBuildConfig) =
+  var rstfiles: seq[FsTree]
+  let
+    files = buildFsTree(allowExts = @["nim", "rst"])
+    tree = $(files & rstfiles.toTrees()).mapIt(it.toHtmlList(
+      dropnref = curr.len(),
+      dropnames = @["tests"],
+      hrefPref = hrefPref
+    )).filterIt(it != nil).newTree("ol")
+    tbl = {"linkList" : tree}.newStringTable()
+
+  for file in files.mapIt(it.flatFiles()).concat():
+    let dir = joinpath @[ outdir ] & file.parent[curr.len() .. ^1]
+    mkDir dir
+    let outfile = joinpath(dir, $file.noParent().withExt("html"))
+    if file.ext in @["nim", "rst"]:
+      echo &"{file.noParent():<20} -> {outfile}"
+      if build:
+        case file.ext:
+          of "rst":
+            discard shellVerbose:
+              nim rst2html "-o:"($outfile) ($file)
+          of "nim":
+            discard shellVerbose:
+              nim doc "--cc:tcc" "--hints:off" "-o:"($outfile) ($file)
+
+        cpFile(conf.nimdocCss, dir / "nimdoc.out.css")
+        # joinpath(outdir, ".nojekyll").writeFile("")
+
 
 func makeSeparator*(msg: string, col: string): string =
   "\e[" & col & "m" & (
@@ -18,7 +93,11 @@ proc notice*(msg: string): void = echo makeSeparator(msg, "32")
 proc err*(msg: string): void = echo makeSeparator(msg, "31")
 proc debug*(msg: string): void = echo makeSeparator(msg, "39")
 
-proc thisAbsDir*(): AbsDir = AbsDir thisDir()
+proc thisAbsDir*(): AbsDir =
+  when compiles(thisDir()):
+    AbsDir thisDir()
+  else:
+    cwd()
 
 proc runDockerTest*(
   projDir, tmpDir: AbsDir, cmd: string,

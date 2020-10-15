@@ -45,6 +45,15 @@ type
     errstr*: string ## Stderr for command
     outstr*: string ## Stdout for command
 
+  ShellExecResult* = tuple[stdout, stderr: string, code: int]
+  ShellResult* = object
+    execResult*: ShellExecResult
+    case resultOk*: bool
+      of true:
+        nil
+      of false:
+        exception*: ShellError
+
   CmdFlagConf* = enum
     ccRegularFlags ## `-f` or `--flag`
     ccOneDashFlags ## `-f` or `-flag`
@@ -276,27 +285,18 @@ when cbackend:
         cmd: cmd.toStr()
       )
 
-proc runShell*(
+proc getShellResult*(
   cmd: Cmd,
-  doRaise: bool = true,
   stdin: string = "",
   options: set[ProcessOption] = {poEvalCommand},
   maxErrorLines: int = 12,
-  discardOut: bool = false
-             ): tuple[
-  stdout, stderr: string, code: int] {.tags: [
+  discardOut: bool = false): ShellResult {.tags: [
     ShellExecEffect,
     ExecIOEffect,
     ReadEnvEffect,
     RootEffect
-    ].} =
-  ## Execute shell command and return it's output. `stdin` - optional
-  ## parameter, will be piped into process. `doRaise` - raise
-  ## exception (default) if command finished with non-zero code.
-  ## `command` - text of the command.
-  ## ## Arguments
-  ## :maxErrorLines: max number of stderr lines that would be appended to
-  ##   exception. Any stderr beyond this range will be truncated
+  ].} =
+
   let
     env = cmd.envVals
     command = cmd.toStr()
@@ -346,8 +346,8 @@ proc runShell*(
           assert outStream.isNil
           echo "process died" # NOTE possible place to raise exception
 
-      result.stdout &= outStream.readAll()
-      result.stderr = pid.errorStream.readAll()
+      result.execResult.stdout &= outStream.readAll()
+      result.execResult.stderr = pid.errorStream.readAll()
     else:
       while pid.running():
         discard
@@ -363,11 +363,11 @@ proc runShell*(
       let (res, code) = gorgeEx(nscmd, "", "")
 
       if not discardOut:
-        result.stdout = res
-        result.code = code
+        result.execResult.stdout = res
+        result.execResult.code = code
 
 
-  if doRaise and result.code != 0:
+  if result.execResult.code != 0:
     let envAdd =
       if env.len > 0:
         "With env variables " &
@@ -380,21 +380,44 @@ proc runShell*(
 
     let split =
       when cbackend:
-        result.stderr.split("\n")
+        result.execResult.stderr.split("\n")
       else:
-        result.stdout.split("\n")
+        result.execResult.stdout.split("\n")
 
     msg.add split[0 ..< min(split.len(), maxErrorLines)].join("\n")
 
-    raise ShellError(
+    result.exception = ShellError(
       msg: msg,
-      retcode: result.code,
-      errorCode: int32(result.code),
-      errstr: result.stderr,
-      outstr: result.stdout,
+      retcode: result.execResult.code,
+      errorCode: int32(result.execResult.code),
+      errstr: result.execResult.stderr,
+      outstr: result.execResult.stdout,
       cwd: cwd(),
       cmd: command
     )
+
+
+
+proc runShell*(
+  cmd: Cmd,
+  doRaise: bool = true,
+  stdin: string = "",
+  options: set[ProcessOption] = {poEvalCommand},
+  maxErrorLines: int = 12,
+  discardOut: bool = false): tuple[stdout, stderr: string, code: int] =
+  ## Execute shell command and return it's output. `stdin` - optional
+  ## parameter, will be piped into process. `doRaise` - raise
+  ## exception (default) if command finished with non-zero code.
+  ## `command` - text of the command.
+  ## ## Arguments
+  ## :maxErrorLines: max number of stderr lines that would be appended to
+  ##   exception. Any stderr beyond this range will be truncated
+  let output = getShellResult(
+    cmd, stdin, options, maxErrorLines, discardOut)
+  result = output.execResult
+
+  if (not output.resultOk) and doRaise:
+    raise output.exception
 
 
 proc execShell*(cmd: string): void =
