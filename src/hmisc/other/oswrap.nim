@@ -268,8 +268,14 @@ proc joinPath*(head: AbsDir, tail: RelDir): AbsDir =
 proc joinPath*(head: RelDir, tail: RelFile): RelFile =
   RelFile(os.joinPath(head.string, tail.string))
 
+proc joinPath*(head: AbsDir, tail: seq[string]): AbsDir =
+  AbsDir(os.joinPath(head.string & tail))
+
 template `/`*(head, tail: AnyPath | string): untyped =
   joinPath(head, RelDir(tail))
+
+template `/`*(head: AbsDir, tail: seq[string]): untyped =
+  joinPath(head, tail)
 
 template `/`*(head: AnyDir, tail: RelFile): untyped =
   joinPath(head, tail)
@@ -754,12 +760,12 @@ proc listFiles*(dir: AnyDir): seq[AbsFile] =
       if kind == pcFile:
         result.add path
 
-func flatFiles*(tree: FsTree): seq[AbsFile] =
+func flatFiles*(tree: FsTree): seq[FsTree] =
   if tree.isDir:
     for sub in tree.sub:
       result.add sub.flatFiles()
   else:
-    result = @[AbsFile(tree.getStr())]
+    result = @[tree]
 
 
 func withExt*(f: FsTree, ext: string): FsTree =
@@ -802,6 +808,17 @@ func withoutNParents*(f: FsTree, cut: int): FsTree =
   result = f
   result.parent = f.parent[cut .. ^1]
 
+
+func toFsTree*(str: AbsDir): FsTree =
+  let (parent, sub) = os.splitPath(str.string)
+  FsTree(
+    isDir: true,
+    parent: parent.split(DirSep),
+    basename: sub
+  )
+
+
+func pathLen*(fst: FsTree): int = fst.parent.len + 1
 
 proc buildFsTree*(
   start: AnyDir = getCurrentDir(),

@@ -48,6 +48,7 @@ type
   ShellExecResult* = tuple[stdout, stderr: string, code: int]
   ShellResult* = object
     execResult*: ShellExecResult
+    hasBeenSet*: bool
     case resultOk*: bool
       of true:
         nil
@@ -154,13 +155,20 @@ func raw*(cmd: var Cmd, str: string) =
   ## covered by default options)
   cmd.opts.add Cmdpart(kind: cpkRaw, rawstring: str)
 
-func arg*(cmd: var Cmd, arg: string) =
+func arg*(cmd: var Cmd, arg: string | AnyPath) =
   ## Add argument for command
-  cmd.opts.add CmdPart(kind: cpkArgument, argument: arg)
+  cmd.opts.add CmdPart(
+    kind: cpkArgument, argument: arg.getStr())
 
 func `-`*(cmd: var Cmd, fl: string) =
   ## Add flag for command
   cmd.flag fl
+
+func `-`*(cmd: var Cmd, path: AnyPath) =
+  cmd - path.getStr()
+
+func `-`*[Path: AnyPath](cmd: var Cmd, kv: (string, Path)) =
+  cmd.opt(kv[0], kv[1].getStr())
 
 func `-`*(cmd: var Cmd, kv: (string, string)) =
   ## Add key-value pair for command

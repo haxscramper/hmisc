@@ -1,6 +1,6 @@
 #!/usr/bin/env nim
 
-import strformat, strutils, sugar, sequtils
+import strformat, strutils, sugar, sequtils, xmltree
 import hshell, oswrap
 
 func format*(str: string, kvalues: openarray[(string, string)]): string =
@@ -53,35 +53,86 @@ func getBodyToc*(linkList: string): string =
 func wrap3QuoteNL*(str: string): string =
   "\"\"\"" & str & "\"\"\"\n\n"
 
+func newTree*(tag: string,
+             subitems: openarray[XmlNode],
+             attrs: openarray[(string, string)] = @[]): XmlNode =
+
+  result = newElement(tag)
+  for it in subitems:
+    result.add it
+
+  # for attr in attrs:
+  result.attrs = attrs.toXmlAttributes()
+
+
+
+func newTree*(subitems: seq[XmlNode], tag: string): XmlNode =
+  newTree(tag, subitems)
+
+func toHtmlList*(tree: FsTree,
+                 hrefPref: string,
+                 dropnref: int = 0,
+                 dropnames: seq[string] = @[]): XmlNode =
+  if tree.isDir:
+    if tree.basename notin dropnames:
+      let sub = tree.sub.mapIt(it.toHtmlList(
+        hrefPref = hrefPref,
+        dropnref = dropnref,
+        dropnames = dropnames
+      )).filterIt(it != nil)
+      if sub.len > 0:
+        return newTree("li", @[newText(tree.basename), newTree("ol", sub)])
+  else:
+    let url = hrefPref & "/" &
+      tree.parent[min(tree.parent.len, dropnref) .. ^1].join("/") & "/" &
+        &"{tree.basename}.html"
+    # debugecho url
+
+    return newTree(
+      "li",
+      @[ newTree("a", @[newText(tree.basename)], {"href" : url}) ]
+    )
+
 
 proc docgenBuild*(conf: DocBuildConfig) =
+  let curr = cwd().toFsTree()
   var rstfiles: seq[FsTree]
   let
     files = buildFsTree(allowExts = @["nim", "rst"])
-    tree = $(files & rstfiles.toTrees()).mapIt(it.toHtmlList(
-      dropnref = curr.len(),
+    tree = $files.mapIt(it.toHtmlList(
+      dropnref = curr.pathLen(),
       dropnames = @["tests"],
-      hrefPref = hrefPref
+      hrefPref = conf.hrefPref
     )).filterIt(it != nil).newTree("ol")
-    tbl = {"linkList" : tree}.newStringTable()
 
   for file in files.mapIt(it.flatFiles()).concat():
-    let dir = joinpath @[ outdir ] & file.parent[curr.len() .. ^1]
+    let dir = conf.outdir / file.parent[curr.len() .. ^1]
     mkDir dir
-    let outfile = joinpath(dir, $file.noParent().withExt("html"))
+    let outfile = dir /. $file.withoutParent().withExt("html")
     if file.ext in @["nim", "rst"]:
-      echo &"{file.noParent():<20} -> {outfile}"
-      if build:
+      echo &"{file.withoutParent():<20} -> {outfile}"
+      if not conf.dryRun:
+        var res: ShellResult
         case file.ext:
           of "rst":
-            discard shellVerbose:
-              nim rst2html "-o:"($outfile) ($file)
-          of "nim":
-            discard shellVerbose:
-              nim doc "--cc:tcc" "--hints:off" "-o:"($outfile) ($file)
+            res = getShellResult makeNimCmd("nim").withIt do:
+              it.cmd "rst2html"
+              it - ("o", outfile)
+              it.arg file
 
-        cpFile(conf.nimdocCss, dir / "nimdoc.out.css")
-        # joinpath(outdir, ".nojekyll").writeFile("")
+          of "nim":
+            res = getShellResult makeNimCmd("nim").withIt do:
+              it.cmd "doc"
+              # it - ("cc", "tcc")
+              it - ("o", outfile)
+              it - ("hints", "off")
+              it.arg file
+
+        if res.hasBeenSet:
+          if res.resultOk:
+            cpFile(conf.nimdocCss, dir /. "nimdoc.out.css")
+          else:
+            echo res.exception.msg
 
 
 func makeSeparator*(msg: string, col: string): string =
