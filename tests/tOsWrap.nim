@@ -45,6 +45,6 @@ suite "Shell":
       discard runShell("hello")
 
   test "Options":
-    var cmd = makeGnuCmd("cat")
+    var cmd = makeGnuShellCmd("cat")
     # cmd["hello"] = "world"
     # cmd["nice"]

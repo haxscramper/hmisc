@@ -533,23 +533,26 @@ proc getRandomBase64*(length: int): string =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".
     sample()).join("")
 
-func dedent*(multiline: string): string =
-  ## Uniformly deindent multiline string
-  let seplines = multiline.split('\n')
-  var indent = 0
-  for c in seplines[0]:
-    if c == ' ': inc indent
-    else: break
+when (NimMajor, NimMinor, NimPatch) <= (1, 2, 6):
+  func dedent*(multiline: string): string =
+    ## Uniformly deindent multiline string
+    let seplines = multiline.split('\n')
+    var indent = 0
+    for c in seplines[0]:
+      if c == ' ': inc indent
+      else: break
 
-  seplines.mapIt(
-    if it.len == 0:
-      it
-    else:
-      assert it[0..<indent].allOfIt(it == ' '),
-        "Cannot unindent non-whitespace character"
+    seplines.mapIt(
+      if it.len == 0:
+        it
+      else:
+        assert it[0..<indent].allOfIt(it == ' '),
+          "Cannot unindent non-whitespace character"
 
-      it[indent..^1]
-  ).join("\n")
+        it[indent..^1]
+    ).join("\n")
+else:
+  export dedent
 
 #===============================  options  ===============================#
 proc `==`*[T](opt: Option[T],val: T): bool =

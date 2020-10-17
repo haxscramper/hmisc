@@ -20,3 +20,5 @@ nimdoc.cfg
 /scripts/.circuit
 /scripts/.latex
 callgrind.out.*
+
+public/*

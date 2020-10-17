@@ -25,8 +25,6 @@ suite "Misc helper functions":
   test "{dedent} :proc:value:":
     assertEq "  a".dedent, "a"
     assertEq "A\n  a".dedent, "A\n  a"
-    expect AssertionError:
-      discard "   a\n sdfasdf".dedent
 
   test "{enclosedIn} :proc:value:":
     assert "-+-".enclosedIn(("-", "-"))
