@@ -1,4 +1,4 @@
-import hmisc/algo/hseqdistance
+import hmisc/algo/hseq_distance
 import math, sequtils, strutils
 export math, sequtils, strutils, hseqdistance
 

@@ -235,7 +235,7 @@ func toCompilesAssert*(
     addBody = addBody)
 
 
-when isMainModule:
+when isMainModule and not defined(nimdoc):
   when false:
     macro randomDSL(body: untyped): untyped =
       let
@@ -403,40 +403,40 @@ template pprintErr*(): untyped =
 template optFmt(arg: string{lit}): untyped = &arg
 proc optFmt(arg: string): string = arg
 
-template longValueCheck*(expression: untyped, body: untyped): untyped =
-  ## Raise `ValueError` if `expression` evaluates as false. Body is a
-  ## string literal which will be passed as a message. It will be
-  ## passed to `&` macro - i.e. variable interpolation is supported.
-  runnableExamples:
-    var test = false
-    try:
-      let variable = 2
-      longValueCheck(variable == 3):
-        """
-        Failed to break math while comparing {variable} to `3`
-        """
-    except ValueError:
-      test = true
+# template longValueCheck*(expression: untyped, body: untyped): untyped =
+#   ## Raise `ValueError` if `expression` evaluates as false. Body is a
+#   ## string literal which will be passed as a message. It will be
+#   ## passed to `&` macro - i.e. variable interpolation is supported.
+#   runnableExamples:
+#     var test = false
+#     try:
+#       let variable = 2
+#       longValueCheck(variable == 3):
+#         """
+#         Failed to break math while comparing {variable} to `3`
+#         """
+#     except ValueError:
+#       test = true
 
-    assert test
+#     assert test
 
-  if not (expression):
-    raise newException(ValueError, joinLiteral(&body))
+#   if not (expression):
+#     raise newException(ValueError, joinLiteral(&body))
 
 
-template longValueFail*(body: untyped): untyped =
-  ## Raise `ValueError`. Body is a string literal which will be
-  ## passed as a message. It will be passed to `&` macro - i.e.
-  ## variable interpolation is supported.
-  runnableExamples:
-    var test = false
-    try:
-      longValueFail:
-        "Assertion failed"
-    except ValueError:
-      test = true
+# template longValueFail*(body: untyped): untyped =
+#   ## Raise `ValueError`. Body is a string literal which will be
+#   ## passed as a message. It will be passed to `&` macro - i.e.
+#   ## variable interpolation is supported.
+#   runnableExamples:
+#     var test = false
+#     try:
+#       longValueFail:
+#         "Assertion failed"
+#     except ValueError:
+#       test = true
 
-    assert test
+#     assert test
 
-  static: assert body is string
-  raise newException(ValueError, joinLiteral(&body))
+#   static: assert body is string
+#   raise newException(ValueError, joinLiteral(&body))

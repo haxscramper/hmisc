@@ -20,6 +20,8 @@ type
     nimdocCss*: AbsFile
     testRun*: bool
 
+    logFile*: AbsFile
+
     projectDir*: AbsDir
 
     packageName*: string
@@ -109,6 +111,7 @@ func toHtmlList*(tree: FsTree,
 proc docgenBuild(conf: TaskRunConfig) =
   let curr = conf.projectDir.toFsTree()
   var rstfiles: seq[FsTree]
+  var errMsg: seq[string]
   let
     files = buildFsTree(allowExts = @["nim", "rst"])
     tree = $files.mapIt(it.toHtmlList(
@@ -119,9 +122,13 @@ proc docgenBuild(conf: TaskRunConfig) =
 
   for file in files.mapIt(it.flatFiles()).concat():
     let dir = conf.outdir / file.parent[curr.pathLen() .. ^1]
-    logcall mkDir(dir), conf.testRun
+    if conf.testRun:
+      logcall mkDir(dir), true
+    else:
+      mkDir(dir)
+
     let outfile = dir /. $file.withoutParent().withExt("html")
-    if file.ext in @["nim", "rst"]:
+    if (file.ext in @["nim", "rst"]) and ("tests" notin $file):
       var cmd: ShellCmd
       case file.ext:
         of "rst":
@@ -144,9 +151,23 @@ proc docgenBuild(conf: TaskRunConfig) =
         else:
           let res = shellResult(cmd)
           if res.resultOk:
-            logcall cpFile(conf.nimdocCss, dir /. "nimdoc.out.css"), conf.testRun
+            info file
+          #   debug "ok:", cmd.toLogStr()
+          #   notice cmd.toLogStr()
           else:
-            echo res.exception.msg
+            warn file
+            errMsg.add @["-".repeat(80)].repeat(3).concat()
+            errMsg.add cmd.toLogStr()
+            errMsg.add res.exception.outstr
+
+  if (errMsg.len > 0) and (conf.logFile.len > 0):
+    warn "Errors during documentation compilation"
+    conf.logFile.writeFile(errMsg.join("\n"))
+    notice &"Log file saved to {conf.logFile}"
+  else:
+    notice "Documentation buid ok, no errors detected"
+    info &"Saved documentation at path {conf.outdir}"
+    # logcall cpFile(conf.nimdocCss, dir /. "nimdoc.out.css"), conf.testRun
 
 macro initBuildConf*(testRun: bool = false): TaskRunConfig  =
   quote do:

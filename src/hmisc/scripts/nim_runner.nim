@@ -11,15 +11,15 @@ let instr = paramStr(1)
 
 let file = instr & ".bin"
 
-var cmd = makeNimCmd("nim").withIt do:
+var cmd = makeNimShellCmd("nim").withIt do:
   it.cmd "c"
   it.opt "hints", "off"
   it.opt "verbosity", "0"
   it.opt "warnings", "off"
   it.opt "o", file
-  it.strArg instr
+  it.arg instr
 
-var fileCmd = makeFileCmd(file)
+var fileCmd = makeFileShellCmd(file)
 
 let (compArgs, fileArgs) = paramStrs().splitOnIt(it == "--")
 
@@ -28,7 +28,7 @@ fileArgs.eachIt(fileCmd.raw it)
 
 var buf: string
 
-withinTempDir true:
+withTempDir true:
   let res = runShell(cmd, false)
   buf.add res.stdout.strip() & "\n" & res.stderr.strip()
   if res.code == 0:

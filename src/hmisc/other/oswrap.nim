@@ -369,6 +369,16 @@ proc getConfigDir*(): AbsDir = AbsDir os.getConfigDir()
 proc getTempDir*(): AbsDir =
   AbsDir(os.getTempDir())
 
+proc isRelative*(file: AnyPath): bool =
+  assertValid file
+  when file is FsFile:
+    return file.isRelative
+  elif file is RelPath:
+    return true
+  elif file is AbsPath:
+    return false
+
+
 
 when cbackend:
   proc symlinkExists*(link: AnyPath): bool = os.symlinkExists(link.string)
@@ -391,50 +401,8 @@ when cbackend:
   proc isAbsolute*(path: AnyPath): bool =
     os.isAbsolute(path.getStr())
 
-  proc toAbsFile*(file: AnyFile | string,
-                  checkExists: bool = false,
-                  normalize: bool = true,
-                  root: AbsDir = getCurrentDir()): AbsFile =
-    # assert file.getStr().isAbsolute()
-    when file is string:
-      if os.isAbsolute(file):
-        assertValid(AbsFile(file))
-      else:
-        assertValid(RelFile(file))
-    else:
-      assertValid(file)
-
-    result = AbsFile(os.absolutePath(file.getStr(), root.getStr()))
-    if checkExists:
-      result.assertExists()
-
-  proc toAbsDir*(dir: AnyDir | string,
-                 checkExists: bool = false,
-                 normalize: bool = true,
-                 root: AbsDir = getCurrentDir()): AbsDir =
-    when dir is string:
-      if os.isAbsolute(dir):
-        assertValid(AbsDir(dir))
-      else:
-        assertValid(RelDir(dir))
-    else:
-      assertValid(dir)
-
-    result = AbsDir(os.absolutePath(dir.getStr(), root.getStr()))
-    if checkExists:
-      result.assertExists()
-
   proc absolute*(file: RelFile, root: AbsDir = getCurrentDir()): AbsFile =
     AbsFile(os.absolutePath(file.string, root.string))
-
-  proc isRelative*(file: AnyPath): bool =
-    assertValid file
-    when file is FsFile:
-      return file.isRelative
-    elif file is RelPath:
-      return true
-    elif file is AbsPath:
-      return false
 
   proc realpath*(path: string): string =
     var resolved: cstring
@@ -462,6 +430,39 @@ when cbackend:
   proc setFilePermissions*(
     filename: AnyFile, permissions: set[os.FilePermission]) =
     os.setFilePermissions(filename.string, permissions)
+
+proc toAbsFile*(file: AnyFile | string,
+                checkExists: bool = false,
+                normalize: bool = true,
+                root: AbsDir = getCurrentDir()): AbsFile =
+  # assert file.getStr().isAbsolute()
+  when file is string:
+    if os.isAbsolute(file):
+      assertValid(AbsFile(file))
+    else:
+      assertValid(RelFile(file))
+  else:
+    assertValid(file)
+
+  result = AbsFile(os.absolutePath(file.getStr(), root.getStr()))
+  if checkExists:
+    result.assertExists()
+
+proc toAbsDir*(dir: AnyDir | string,
+               checkExists: bool = false,
+               normalize: bool = true,
+               root: AbsDir = getCurrentDir()): AbsDir =
+  when dir is string:
+    if os.isAbsolute(dir):
+      assertValid(AbsDir(dir))
+    else:
+      assertValid(RelDir(dir))
+  else:
+    assertValid(dir)
+
+  result = AbsDir(os.absolutePath(dir.getStr(), root.getStr()))
+  if checkExists:
+    result.assertExists()
 
 
 
@@ -888,6 +889,7 @@ proc mvDir*(source, dest: AnyDir) =
 
 proc cpFile*(source, dest: string | AnyFile) =
   ## Copies the file from to to.
+  assertExists source
   osOrNims(
     os.copyFile(source.string, dest.string),
     system.cpFile(source.string, dest.string)

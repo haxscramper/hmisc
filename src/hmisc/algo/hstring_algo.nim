@@ -216,11 +216,6 @@ func msgjoin*(args: varargs[string, `$`]): string =
   ## Whitespace is omitted when strings *ends with* any of `[('#@` +
   ## wrapper characters or next one *starts with* `, .` + wrapper
   ## characters. Wrapper characters are: `_' "`
-  runnableExamples:
-    assert msgjoin("_", "nice", "_") == "_nice_"
-    assert msgjoin("hello,", "nice", "weather") == "hello, nice weather"
-
-
   msgjoinImpl(toSeq(args))
 
 template raisejoin*(text: seq[string]): untyped =
@@ -244,19 +239,6 @@ template assertionCheck*(expression: untyped, body: untyped): untyped =
   ## Raise `AssertionError` if `expression` evaluates as false. Body
   ## is a string literal which will be passed as a message. It will be
   ## passed to `&` macro - i.e. variable interpolation is supported.
-  runnableExamples:
-    var test = false
-    try:
-      let variable = 2
-      longAssertionCheck(variable == 3):
-        """
-        Failed to break math while comparing {variable} to `3`
-        """
-    except AssertionError:
-      test = true
-
-    assert test
-
   static: assert body is string
   assert expression, joinLiteral(optFmt body)
 
@@ -265,15 +247,4 @@ template assertionFail*(body: untyped): untyped =
   ## Raise `AssertionError`. Body is a string literal which will be
   ## passed as a message. It will be passed to `&` macro - i.e.
   ## variable interpolation is supported.
-  runnableExamples:
-    var test = false
-    try:
-      longAssertionFail:
-        "Assertion failed"
-    except AssertionError:
-      test = true
-
-    assert test
-
   raise newException(AssertionError, fmt(joinLiteral(body)))
-
