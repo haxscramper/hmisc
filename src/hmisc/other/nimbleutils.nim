@@ -1,7 +1,8 @@
 #!/usr/bin/env nim
 
-import strformat, strutils, sugar, sequtils, xmltree
+import strformat, strutils, sugar, sequtils, xmltree, macros
 import hshell, oswrap
+import colorlogger
 
 func format*(str: string, kvalues: openarray[(string, string)]): string =
   str % kvalues.mapIt(@[it[0], it[1]]).concat()
@@ -13,11 +14,22 @@ import ../algo/htemplates
 ## Helper utilities for running nimble tasks
 
 type
-  DocBuildConfig = object
-    hrefPref: string
-    outDir: AbsDir
-    nimdocCss: AbsFile
-    dryRun: bool
+  TaskRunConfig* = object
+    hrefPref*: string
+    outDir*: AbsDir
+    nimdocCss*: AbsFile
+    testRun*: bool
+
+    projectDir*: AbsDir
+
+    packageName*: string
+    version*: string
+    author*: string
+    description*: string
+    license*: string
+    srcDir*: string
+    binDir*: string
+
 
 func getBodyToc*(linkList: string): string =
   """
@@ -94,8 +106,8 @@ func toHtmlList*(tree: FsTree,
     )
 
 
-proc docgenBuild*(conf: DocBuildConfig) =
-  let curr = cwd().toFsTree()
+proc docgenBuild(conf: TaskRunConfig) =
+  let curr = conf.projectDir.toFsTree()
   var rstfiles: seq[FsTree]
   let
     files = buildFsTree(allowExts = @["nim", "rst"])
@@ -106,22 +118,23 @@ proc docgenBuild*(conf: DocBuildConfig) =
     )).filterIt(it != nil).newTree("ol")
 
   for file in files.mapIt(it.flatFiles()).concat():
-    let dir = conf.outdir / file.parent[curr.len() .. ^1]
-    mkDir dir
+    let dir = conf.outdir / file.parent[curr.pathLen() .. ^1]
+    mkDir(dir, lvlNotice, conf.testRun)
     let outfile = dir /. $file.withoutParent().withExt("html")
     if file.ext in @["nim", "rst"]:
-      echo &"{file.withoutParent():<20} -> {outfile}"
-      if not conf.dryRun:
+      if not conf.testRun:
         var res: ShellResult
         case file.ext:
           of "rst":
             res = getShellResult makeNimCmd("nim").withIt do:
+              it.testRun = conf.testRun
               it.cmd "rst2html"
               it - ("o", outfile)
               it.arg file
 
           of "nim":
             res = getShellResult makeNimCmd("nim").withIt do:
+              it.testRun = conf.testRun
               it.cmd "doc"
               # it - ("cc", "tcc")
               it - ("o", outfile)
@@ -130,19 +143,35 @@ proc docgenBuild*(conf: DocBuildConfig) =
 
         if res.hasBeenSet:
           if res.resultOk:
-            cpFile(conf.nimdocCss, dir /. "nimdoc.out.css")
+            cpFile(
+              conf.nimdocCss, dir /. "nimdoc.out.css",
+              lvlDebug, conf.testRun)
           else:
             echo res.exception.msg
+
+macro initBuildConf*(testRun: bool = false): TaskRunConfig  =
+  quote do:
+    TaskRunConfig(
+      packageName: packageName,
+      version: version,
+      author: author,
+      description: description,
+      license: license,
+      srcDir: srcDir,
+      binDir: binDir,
+      projectDir: AbsDir thisDir(),
+      testRun: `testRun`
+    )
+
+proc runDocGen*(conf: TaskRunConfig): void =
+  logIdented:
+    docgenBuild(conf)
+
 
 
 func makeSeparator*(msg: string, col: string): string =
   "\e[" & col & "m" & (
     "  " & msg.alignLeft(46, ' ') & "  ").center(80, '~') & "\e[39m"
-
-proc info*(msg: string): void = echo makeSeparator(msg, "34")
-proc notice*(msg: string): void = echo makeSeparator(msg, "32")
-proc err*(msg: string): void = echo makeSeparator(msg, "31")
-proc debug*(msg: string): void = echo makeSeparator(msg, "39")
 
 proc thisAbsDir*(): AbsDir =
   when compiles(thisDir()):

@@ -4,7 +4,7 @@ import hmisc/other/[hshell, oswrap, nimbleutils]
 
 echo pkgVersion("hmisc")
 
-# echo listDirs(AbsDir "/tmp")
+echo listDirs(AbsDir "/tmp")
 
 echo buildFsTree(allowExts = @["cfg", "cpp"])
 echo buildFsTree(AbsDir "/tmp", allowExts = @["nim"])
@@ -14,3 +14,6 @@ if false:
 
   for line in iterstdout("hello"):
     discard line
+
+withDir(AbsDir "/mnt/workspace/github/hmisc"):
+  execShell("nimble docgen")

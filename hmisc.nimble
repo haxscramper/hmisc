@@ -34,3 +34,8 @@ task testall, "Run full test suite in all variations":
 
 task testallTask, "~~~ testall implementation ~~~":
   testAllImpl()
+
+task docgen, "Generate documentation":
+  var conf = initBuildConf()
+  conf.testRun = true
+  runDocgen(conf)

@@ -29,20 +29,7 @@ const cbackend* = not (defined(nimscript) or defined(js))
 when cbackend:
   import times, pathnorm, posix, parseopt
 
-when cbackend:
-  import logging
-else:
-  type
-    Level = enum
-      lvlAll
-      lvlDebug
-      lvlInfo
-      lvlNotice
-      lvlWarn
-      lvlError
-      lvlFatal
-      lvlNone
-
+import colorlogger
 
 
 ## `os` wrapper with more typesafe paths. Mostly taken from compiler
@@ -878,13 +865,17 @@ proc rmFile*(file: AnyFile) =
     system.rmFile(file.getStr())
   )
 
-proc mkDir*(dir: AnyDir | string) =
+proc mkDir*(
+  dir: AnyDir | string,
+  logLevel: Level = lvlNone,
+  testRun: bool = false) =
   ## Creates the directory dir including all necessary subdirectories.
   ## If the directory already exists, no error is raised.
-  osOrNims(
-    os.createDir(dir.string),
-    system.mkDir(dir.string)
-  )
+  if not testRun:
+    osOrNims(os.createDir(dir.string), system.mkDir(dir.string))
+
+  if logLevel < lvlNone:
+    log logLevel, "Created directory '" & dir.getStr() & "'"
 
 proc mvFile*(source, dest: AnyFile) =
   ## Moves the file from to to.
@@ -902,17 +893,18 @@ proc mvDir*(source, dest: AnyDir) =
 
 proc cpFile*(
   source, dest: string | AnyFile,
-  logLevel: Level = lvlNone) =
+  logLevel: Level = lvlNone,
+  testRun: bool = false) =
   ## Copies the file from to to.
-  osOrNims(
-    os.copyFile(source.string, dest.string),
-    system.cpFile(source.string, dest.string)
-  )
+  if not testRun:
+    osOrNims(
+      os.copyFile(source.string, dest.string),
+      system.cpFile(source.string, dest.string)
+    )
 
-  when cbackend:
-    if logLevel < lvlNone:
-      log logLevel, "Copied '" & source.getStr() &
-        "' to '" & dest.getStr() & "'"
+  if logLevel < lvlNone:
+    log logLevel, "Copied '" & source.getStr() &
+      "' to '" & dest.getStr() & "'"
 
 proc cpDir*(source, dest: AnyDir) =
   ## Copies the dir from to to.

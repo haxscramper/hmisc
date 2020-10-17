@@ -1,11 +1,39 @@
-import logging, macros, strutils
+const cbackend = not (defined(nimscript) or defined(js))
+
 import ../types/colorstring
-import ../algo/halgorithm
+import ../algo/hstring_algo
+import macros, strutils
 
-export info, debug, notice, warn
+when cbackend:
+  import logging
+  export info, debug, notice, warn
+  export Level
 
-proc logError*(args: varargs[string, `$`]): void =
-  logging.error(args)
+  type
+    ColorLogger = ref object of Logger
+      ident: int
+      prevBuf: seq[string]
+
+else:
+  type
+    ColorLogger = object
+      ident: int
+      prevBuf: seq[string]
+
+    Level* = enum
+      lvlAll
+      lvlDebug
+      lvlInfo
+      lvlNotice
+      lvlWarn
+      lvlError
+      lvlFatal
+      lvlNone
+
+
+
+when not cbackend:
+  var globalLog = ColorLogger()
 
 macro err*(args: varargs[untyped]): untyped =
   result = newCall("logError")
@@ -13,25 +41,29 @@ macro err*(args: varargs[untyped]): untyped =
     result.add arg
 
 
-
-type
-  ColorLogger = ref object of Logger
-    ident: int
-
 proc identLog* =
-  for handler in getHandlers():
-    if ColorLogger(handler) != nil:
-      inc ColorLogger(handler).ident
+  when cbackend:
+    for handler in getHandlers():
+      if ColorLogger(handler) != nil:
+        inc ColorLogger(handler).ident
+  else:
+    inc globalLog.ident
 
 proc dedentLog* =
-  for handler in getHandlers():
-    if ColorLogger(handler) != nil:
-      dec ColorLogger(handler).ident
+  when cbackend:
+    for handler in getHandlers():
+      if ColorLogger(handler) != nil:
+        dec ColorLogger(handler).ident
+  else:
+    dec globalLog.ident
 
 proc getIdent*(): int =
-  for handler in getHandlers():
-    if ColorLogger(handler) != nil:
-      return ColorLogger(handler).ident
+  when cbackend:
+    for handler in getHandlers():
+      if ColorLogger(handler) != nil:
+        return ColorLogger(handler).ident
+  else:
+    globalLog.ident
 
 template logIdented*(body: untyped): untyped =
   try:
@@ -45,9 +77,15 @@ template logDefer*(logCmd, before: untyped): untyped =
   identLog()
   defer: dedentLog()
 
+proc startColorLogger*(): void =
+  when cbackend:
+    var logger = ColorLogger(ident: 0)
+    addHandler logger
+  else:
+    discard
 
-method log*(logger: ColorLogger, level: Level, args: varargs[string, `$`]) =
-  let ident = "  ".repeat(logger.ident)
+proc makeLogString(level: Level, args: varargs[string]): string =
+  let ident = "  ".repeat(getIdent())
   let prefix =
     case level:
       of lvlDebug: "DEBUG"
@@ -60,11 +98,61 @@ method log*(logger: ColorLogger, level: Level, args: varargs[string, `$`]) =
       of lvlNone: ""
 
   let mlines = args.msgjoin().split("\n")
-  echo ident, prefix, " ", mlines[0]
+  result &= ident & prefix & " " & mlines[0] & "\n"
 
   for line in mlines[1 .. ^1]:
-    echo ident, " ".repeat(prefix.termLen()), " ", line
+    result &= ident & " ".repeat(prefix.termLen()) & " " & line & "\n"
 
-proc startColorLogger*(): void =
-  var logger = ColorLogger(ident: 0)
-  addHandler logger
+  result = result[0..^2]
+
+proc logImpl(
+  logger: var ColorLogger, level: Level, args: varargs[string, `$`]) =
+  let args = args.join()
+  if logger.prevBuf.len > 0 and logger.prevBuf[^1] != args:
+    echo makeLogString(level, args)
+    logger.prevBuf = @[]
+  else:
+    discard
+    # echo logger.prevBuf.len, " times"
+
+  logger.prevBuf.add args
+
+
+when cbackend:
+  method log(
+    logger: var ColorLogger, level: Level, args: varargs[string, `$`]) =
+    logger.logImpl(level, args)
+else:
+  proc log(
+    logger: var ColorLogger, level: Level, args: varargs[string, `$`]) =
+    logger.logImpl(level, args)
+
+when not cbackend:
+  proc log*(level: Level, args: varargs[string, `$`]) =
+    globalLog.log(level, args)
+
+  template debug*(args: varargs[string, `$`]) =
+    log(lvlDebug, args)
+
+  template info*(args: varargs[string, `$`]) =
+    log(lvlInfo, args)
+
+  template notice*(args: varargs[string, `$`]) =
+    log(lvlNotice, args)
+
+  template warn*(args: varargs[string, `$`]) =
+    log(lvlWarn, args)
+
+  template err*(args: varargs[string, `$`]) =
+    log(lvlError, args)
+
+  template fatal*(args: varargs[string, `$`]) =
+    log(lvlFatal, args)
+else:
+  export log
+
+proc logError*(args: varargs[string, `$`]): void =
+  when cbackend:
+    logging.error(args)
+  else:
+    globalLog.log(lvlError, args)

@@ -94,6 +94,7 @@ type
         rawstring*: string
 
   Cmd* = object
+    testRun*: bool
     bin: string
     opts: seq[CmdPart]
     conf: CmdConf
@@ -319,6 +320,10 @@ proc getShellResult*(
         "Either set `discardOut` to true or remove `poParentStream` from options"
     )
 
+  if cmd.testRun:
+    echo command
+    return
+
   when not defined(NimScript):
     let pid =
       if poEvalCommand in options:
@@ -348,7 +353,7 @@ proc getShellResult*(
         try:
           let streamRes = outStream.readLine(line)
           if streamRes:
-            result.stdout &= line & "\n" # WARNING remove trailing newline
+            result.execResult.stdout &= line & "\n" # WARNING remove trailing newline
                                          # on the stdout
         except IOError, OSError:
           assert outStream.isNil
@@ -360,7 +365,7 @@ proc getShellResult*(
       while pid.running():
         discard
 
-    result.code = pid.peekExitCode()
+    result.execResult.code = pid.peekExitCode()
     close(pid)
 
   else:
@@ -402,6 +407,11 @@ proc getShellResult*(
       outstr: result.execResult.stdout,
       cwd: cwd(),
       cmd: command
+    )
+  else:
+    result = ShellResult(
+      resultOk: true,
+      execResult: result.execResult
     )
 
 
