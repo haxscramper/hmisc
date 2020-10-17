@@ -39,6 +39,7 @@ task docgen, "Generate documentation":
   var conf = initBuildConf()
   conf.testRun = false
   conf.logFile = AbsFile("/tmp/log.txt")
+  conf.switch("GITHUB_REPOSITORY", )
   conf.outdir = AbsDir(thisDir() & "/public")
   runDocgen(conf)
 

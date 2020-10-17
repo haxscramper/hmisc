@@ -34,6 +34,9 @@ when cbackend:
 ## pathutils and stdlib.
 
 type
+  ShellVar* = distinct string
+  ShellExpr* = distinct string
+
   AbsFile* = distinct string
   AbsDir* = distinct string
   AbsPath* = AbsFile | AbsDir
@@ -635,25 +638,25 @@ proc paramStrs*(addBin: bool = false): seq[string] =
       result.add paramStr(i)
 
 
-proc getEnv*(key: string; default = ""): string =
+proc getEnv*(key: string | ShellVar; default = ""): string =
   ## Retrieves the environment variable of name key.
-  osAndNims(getEnv(key, default))
+  osAndNims(getEnv(key.string, default))
 
-proc existsEnv*(key: string): bool =
+proc existsEnv*(key: string | ShellVar): bool =
   ## Checks for the existence of an environment variable named key.
-  osAndNims(existsEnv(key))
+  osAndNims(existsEnv(key.string))
 
-proc putEnv*(key, val: string): void =
+proc putEnv*(key: string | ShellVar, val: string): void =
   ## Sets the value of the environment variable named key to val.
-  osAndNims(putEnv(key, val))
+  osAndNims(putEnv(key.string, val))
 
-proc setEnv*(key, val: string): void =
+proc setEnv*(key: string | ShellVar, val: string): void =
   ## Sets the value of the environment variable named key to val.
-  putEnv(key, val)
+  putEnv(key.string, val)
 
-proc delEnv*(key: string) =
+proc delEnv*(key: string | ShellVar) =
   ## Deletes the environment variable named key.
-  osAndNims(delEnv(key))
+  osAndNims(delEnv(key.string))
 
 proc fileExists*(filename: AnyFile): bool =
   ## Checks if the file exists.

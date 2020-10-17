@@ -31,6 +31,26 @@ type
     license*: string
     srcDir*: string
     binDir*: string
+    cmdOptions*: seq[ShellCmdPart]
+
+func switch*(conf: var TaskRunConfig, val: string) =
+  conf.cmdOptions.add initCmdFlag(val)
+
+func switch*(conf: var TaskRunConfig, key, val: string) =
+  conf.cmdOptions.add initCmdOption(key, val)
+
+proc envOrSwitch*(
+  conf: var TaskRunConfig, env: ShellVar, key, val: string,
+  allowEmpty: bool = false) =
+  conf.cmdOptions.add initCmdEnvOrOption(env, key, val, allowEmpty)
+
+proc envInterpOrSwitch*(
+  conf: var TaskRunConfig, interpol, key, val: string,
+  allowEmpty: bool = false) =
+  conf.cmdOptions.add initCmdInterpOrOption(
+    interpol, key, val, allowEmpty)
+
+
 
 
 func getBodyToc*(linkList: string): string =

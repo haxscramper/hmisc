@@ -1,3 +1,5 @@
+import parseutils
+
 when not defined(NimScript):
   import osproc, streams
 else:
@@ -34,6 +36,8 @@ when hasStrtabs: # https://github.com/nim-lang/Nim/pull/15172
 #      `fileArg` procedure), if binary itself is available and so on.
 # TODO Support command chaining using `&&`, `||` (`and`, `or`) and pipes
 #      `|` for redirecting output streams.
+
+export ShellVar, ShellExpr
 
 type
   ShellExecEffect = object of IOEffect
@@ -80,7 +84,7 @@ type
         flag*: string
       of cpkOption:
         key*: string
-        value*: string
+        val*: string
 
         case overrideKv*: bool ## Override key-value separator for
           ## configuration. Used in cases like `-I` flag in C
@@ -125,6 +129,55 @@ converter toShellCmd*(a: string): ShellCmd =
   result.conf = GnuShellCmdConf
   result.bin = a
 
+func initCmdOption*(key, val: string): ShellCmdPart =
+  ShellCmdPart(kind: cpkOption, key: key, val: val)
+
+func initCmdFlag*(fl: string): ShellCmdPart =
+  ShellCmdPart(kind: cpkFlag, flag: fl)
+
+func initCmdEnvOrOption*(
+  env: ShellVar,
+  key, val: string, allowEmpty: bool = false): ShellCmdPart =
+
+  result = ShellCmdPart(kind: cpkOption, key: key)
+  if existsEnv(env) and (getEnv(env).len > 0 or allowEmpty):
+    result.val = getEnv(env)
+  else:
+    result.val = val
+
+func initCmdInterpOrOption*(
+  interpol, key, val: string, allowEmpty: bool = false): ShellCmdPart =
+
+  result = ShellCmdPart(kind: cpkOption, key: key)
+  var
+    buf: string
+    allOk = false
+
+  block:
+    for (kind, val) in interpolatedFragments(interpol):
+      case kind:
+        of ikStr: buf.add val
+        of ikDollar: buf.add "$"
+        of ikVar:
+          if not existsEnv(ShellVar val):
+            break
+          else:
+            let envVal = getEnv(ShellVar val)
+            if envVal.len == 0 and not allowEmpty:
+              break
+            else:
+              buf.add envVal
+        else:
+          raiseAssert("#[ IMPLEMENT for kind ikExpr ]#")
+
+    allOk = true
+
+  if allOk:
+    result.val = buf
+  else:
+    result.val = val
+
+
 func isEmpty*(cmd: ShellCmd): bool =
   (cmd.bin.len == 0) and (cmd.opts.len == 0)
 
@@ -134,7 +187,7 @@ func flag*(cmd: var ShellCmd, fl: string) =
 
 func opt*(cmd: var ShellCmd, inKey, val: string) =
   ## Add option (key-value pairs) for command
-  cmd.opts.add ShellCmdPart(kind: cpkOption, key: inKey, value: val)
+  cmd.opts.add ShellCmdPart(kind: cpkOption, key: inKey, val: val)
 
 func env*(cmd: var ShellCmd, key, val: string): void =
   ## Add environment variable configuration for command
@@ -175,7 +228,7 @@ func `-`*(cmd: var ShellCmd, kv: (string, string)) =
 
 func `-`*(cmd: var ShellCmd, kv: tuple[key, sep, val: string]) =
   cmd.opts.add ShellCmdPart(
-    kind: cpkOption, key: kv.key, value: kv.val, overrideKv: true,
+    kind: cpkOption, key: kv.key, val: kv.val, overrideKv: true,
     kvSep: kv.sep)
 
 func makeNimShellCmd*(bin: string): ShellCmd =
@@ -222,9 +275,9 @@ func toStr*(part: ShellCmdPart, conf: ShellCmdConf): string =
     of cpkOption:
       let kv = if part.overrideKv: part.kvSep else: conf.kvSep
       if part.key.len > 1:
-        return longPrefix & part.key & kv & part.value.quoteShell()
+        return longPrefix & part.key & kv & part.val.quoteShell()
       else:
-        return "-" & part.key & kv & part.value.quoteShell()
+        return "-" & part.key & kv & part.val.quoteShell()
     of cpkArgument:
       return part.argument.quoteShell()
 
