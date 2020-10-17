@@ -122,32 +122,33 @@ proc docgenBuild(conf: TaskRunConfig) =
     mkDir(dir, lvlNotice, conf.testRun)
     let outfile = dir /. $file.withoutParent().withExt("html")
     if file.ext in @["nim", "rst"]:
-      if not conf.testRun:
-        var res: ShellResult
-        case file.ext:
-          of "rst":
-            res = getShellResult makeNimCmd("nim").withIt do:
-              it.testRun = conf.testRun
-              it.cmd "rst2html"
-              it - ("o", outfile)
-              it.arg file
+      var cmd: ShellCmd
+      case file.ext:
+        of "rst":
+          cmd = makeNimShellCmd("nim").withIt do:
+            it.cmd "rst2html"
+            it - ("o", outfile)
+            it.arg file
 
-          of "nim":
-            res = getShellResult makeNimCmd("nim").withIt do:
-              it.testRun = conf.testRun
-              it.cmd "doc"
-              # it - ("cc", "tcc")
-              it - ("o", outfile)
-              it - ("hints", "off")
-              it.arg file
+        of "nim":
+          cmd = makeNimShellCmd("nim").withIt do:
+            it.cmd "doc"
+            # it - ("cc", "tcc")
+            it - ("o", outfile)
+            it - ("hints", "off")
+            it.arg file
 
-        if res.hasBeenSet:
-          if res.resultOk:
-            cpFile(
-              conf.nimdocCss, dir /. "nimdoc.out.css",
-              lvlDebug, conf.testRun)
-          else:
-            echo res.exception.msg
+      cmd.conf.testRun = conf.testRun
+      cmd.conf.logLevel = lvlInfo
+
+      if cmd.bin.len > 0:
+        let res = shellResult(cmd)
+        if res.resultOk:
+          cpFile(
+            conf.nimdocCss, dir /. "nimdoc.out.css",
+            lvlDebug, conf.testRun)
+        else:
+          echo res.exception.msg
 
 macro initBuildConf*(testRun: bool = false): TaskRunConfig  =
   quote do:
@@ -198,7 +199,7 @@ proc runDockerTest*(
   withDir tmpDir / "main":
     runCb()
 
-  let dockerCmd = makeGnuCmd("docker").withIt do:
+  let dockerCmd = makeGnuShellCmd("docker").withIt do:
     it.cmd "run"
     it - "i"
     it - "t"

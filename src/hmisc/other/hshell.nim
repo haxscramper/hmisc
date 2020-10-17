@@ -13,6 +13,7 @@ else:
 
 import oswrap
 import strutils, strformat, sequtils
+import colorlogger
 
 const hasStrtabs = cbackend or (NimMajor, NimMinor, NimPatch) > (1, 2, 6)
 
@@ -55,23 +56,25 @@ type
       of false:
         exception*: ShellError
 
-  CmdFlagConf* = enum
+  ShellCmdFlagConf* = enum
     ccRegularFlags ## `-f` or `--flag`
     ccOneDashFlags ## `-f` or `-flag`
 
-  CmdConf = object
-    flagConf*: CmdFlagConf
+  ShellCmdConf = object
+    flagConf*: ShellCmdFlagConf
     kvSep*: string
+    logLevel*: Level
+    testRun*: bool
 
-  CmdPartKind* = enum
+  ShellCmdPartKind* = enum
     cpkSubCommand
     cpkArgument
     cpkOption
     cpkFlag
     cpkRaw
 
-  CmdPart* = object
-    case kind*: CmdPartKind
+  ShellCmdPart* = object
+    case kind*: ShellCmdPartKind
       of cpkSubCommand:
         subcommand*: string
       of cpkArgument:
@@ -93,110 +96,105 @@ type
       of cpkRaw:
         rawstring*: string
 
-  Cmd* = object
-    testRun*: bool
-    bin: string
-    opts: seq[CmdPart]
-    conf: CmdConf
-    envVals: seq[tuple[key, val: string]]
+  ShellCmd* = object
+    bin*: string
+    opts: seq[ShellCmdPart]
+    conf*: ShellCmdConf
+    envVals*: seq[tuple[key, val: string]]
 
 const
-  GnuCmdConf* = CmdConf(
+  GnuShellCmdConf* = ShellCmdConf(
     flagConf: ccRegularFlags,
     kvSep: "="
   )
 
-  NimCmdConf* = CmdConf(
+  NimShellCmdConf* = ShellCmdConf(
     flagConf: ccRegularFlags,
     kvSep: ":"
   )
 
-  X11CmdConf* = CmdConf(
+  X11ShellCmdConf* = ShellCmdConf(
     flagConf: ccOneDashFlags,
     kvSep: " "
   )
 
-converter toCmd*(a: string): Cmd =
+converter toShellCmd*(a: string): ShellCmd =
   ## Implicit conversion of string to command
   ##
   ## WARNING: `cmd` will be treated as `bin` and if `poEvalCommand` is
   ## used, execution of command will most likely fail at runtime.
   ##
-  ## NOTE: `GnuCmdConf` is used
-  result.conf = GnuCmdConf
+  ## NOTE: `GnuShellCmdConf` is used
+  result.conf = GnuShellCmdConf
   result.bin = a
 
-func flag*(cmd: var Cmd, fl: string) =
+func flag*(cmd: var ShellCmd, fl: string) =
   ## Add flag for command
-  cmd.opts.add CmdPart(kind: cpkFlag, flag: fl)
+  cmd.opts.add ShellCmdPart(kind: cpkFlag, flag: fl)
 
-func opt*(cmd: var Cmd, inKey, val: string) =
+func opt*(cmd: var ShellCmd, inKey, val: string) =
   ## Add option (key-value pairs) for command
-  cmd.opts.add CmdPart(kind: cpkOption, key: inKey, value: val)
+  cmd.opts.add ShellCmdPart(kind: cpkOption, key: inKey, value: val)
 
-func env*(cmd: var Cmd, key, val: string): void =
+func env*(cmd: var ShellCmd, key, val: string): void =
   ## Add environment variable configuration for command
   cmd.envVals.add (key, val)
 
-func opt*(cmd: var Cmd, opts: openarray[tuple[key, val: string]]) =
+func opt*(cmd: var ShellCmd, opts: openarray[tuple[key, val: string]]) =
   ## Add sequence of key-value pairs
   for (key, val) in opts:
     cmd.opt(key, val)
 
-func subCmd*(cmd: var Cmd, sub: string) =
+func cmd*(cmd: var ShellCmd, sub: string) =
   ## Add subcommand
-  cmd.opts.add CmdPart(kind: cpkSubCommand, subcommand: sub)
+  cmd.opts.add ShellCmdPart(kind: cpkSubCommand, subcommand: sub)
 
-func cmd*(cmd: var Cmd, sub: string) =
-  ## Add subcommand
-  cmd.opts.add CmdPart(kind: cpkSubCommand, subcommand: sub)
-
-func raw*(cmd: var Cmd, str: string) =
+func raw*(cmd: var ShellCmd, str: string) =
   ## Add raw string for command (for things like `+2` that are not
   ## covered by default options)
-  cmd.opts.add Cmdpart(kind: cpkRaw, rawstring: str)
+  cmd.opts.add ShellCmdpart(kind: cpkRaw, rawstring: str)
 
-func arg*(cmd: var Cmd, arg: string | AnyPath) =
+func arg*(cmd: var ShellCmd, arg: string | AnyPath) =
   ## Add argument for command
-  cmd.opts.add CmdPart(
+  cmd.opts.add ShellCmdPart(
     kind: cpkArgument, argument: arg.getStr())
 
-func `-`*(cmd: var Cmd, fl: string) =
+func `-`*(cmd: var ShellCmd, fl: string) =
   ## Add flag for command
   cmd.flag fl
 
-func `-`*(cmd: var Cmd, path: AnyPath) =
+func `-`*(cmd: var ShellCmd, path: AnyPath) =
   cmd - path.getStr()
 
-func `-`*[Path: AnyPath](cmd: var Cmd, kv: (string, Path)) =
+func `-`*[Path: AnyPath](cmd: var ShellCmd, kv: (string, Path)) =
   cmd.opt(kv[0], kv[1].getStr())
 
-func `-`*(cmd: var Cmd, kv: (string, string)) =
+func `-`*(cmd: var ShellCmd, kv: (string, string)) =
   ## Add key-value pair for command
   cmd.opt(kv[0], kv[1])
 
-func `-`*(cmd: var Cmd, kv: tuple[key, sep, val: string]) =
-  cmd.opts.add CmdPart(
+func `-`*(cmd: var ShellCmd, kv: tuple[key, sep, val: string]) =
+  cmd.opts.add ShellCmdPart(
     kind: cpkOption, key: kv.key, value: kv.val, overrideKv: true,
     kvSep: kv.sep)
 
-func makeNimCmd*(bin: string): Cmd =
-  result.conf = NimCmdConf
+func makeNimShellCmd*(bin: string): ShellCmd =
+  result.conf = NimShellCmdConf
   result.bin = bin
 
-func makeX11Cmd*(bin: string): Cmd =
+func makeX11ShellCmd*(bin: string): ShellCmd =
   ## Create command for `X11` cli tools (single dash)
-  result.conf = X11CmdConf
+  result.conf = X11ShellCmdConf
   result.bin = bin
 
-func makeGnuCmd*(bin: string): Cmd =
+func makeGnuShellCmd*(bin: string): ShellCmd =
   ## Create command for CLI applications that conform to GNU standard
   ## for command line interface `link
   ## <https://www.gnu.org/prep/standards/html_node/Command_002dLine-Interfaces.html>`_
-  result.conf = GnuCmdConf
+  result.conf = GnuShellCmdConf
   result.bin = bin
 
-func makeFileCmd*(file: string, conf: CmdConf = GnuCmdConf): Cmd =
+func makeFileShellCmd*(file: string, conf: ShellCmdConf = GnuShellCmdConf): ShellCmd =
   result.conf = conf
   if file.startsWith("/"):
     result.bin = file
@@ -205,7 +203,7 @@ func makeFileCmd*(file: string, conf: CmdConf = GnuCmdConf): Cmd =
 
 # func quoteShell*(str: string): string = str
 
-func toStr*(part: CmdPart, conf: CmdConf): string =
+func toStr*(part: ShellCmdPart, conf: ShellCmdConf): string =
   let longPrefix =
     case conf.flagConf:
       of ccRegularFlags: "--"
@@ -231,8 +229,20 @@ func toStr*(part: CmdPart, conf: CmdConf): string =
       return part.argument.quoteShell()
 
 
-func toStr*(cmd: Cmd): string =
-  (@[ cmd.bin ] & cmd.opts.mapIt(it.toStr(cmd.conf))).join(" ")
+func toStrSeq*(cmd: ShellCmd): seq[string] =
+  @[ cmd.bin ] & cmd.opts.mapIt(it.toStr(cmd.conf))
+
+func toStr*(cmd: ShellCmd): string = cmd.toStrSeq().join(" ")
+
+func toLogStr*(cmd: ShellCmd): string =
+  for str in cmd.toStrSeq():
+    if result.len + str.len + 1 > 80:
+      result &= "\n"
+    elif result.len > 0:
+      result &= " "
+
+    result &= str
+
 
 when not defined(NimScript):
   proc printShellError*() =
@@ -271,7 +281,7 @@ iterator iterstdout*(command: string): string =
 
 when cbackend:
   proc startShell*(
-    cmd: Cmd, options: set[ProcessOption] = {
+    cmd: ShellCmd, options: set[ProcessOption] = {
       poEvalCommand, poParentStreams}): Process =
 
     when hasStrtabs:
@@ -294,8 +304,8 @@ when cbackend:
         cmd: cmd.toStr()
       )
 
-proc getShellResult*(
-  cmd: Cmd,
+proc shellResult*(
+  cmd: ShellCmd,
   stdin: string = "",
   options: set[ProcessOption] = {poEvalCommand},
   maxErrorLines: int = 12,
@@ -320,8 +330,11 @@ proc getShellResult*(
         "Either set `discardOut` to true or remove `poParentStream` from options"
     )
 
-  if cmd.testRun:
-    echo command
+  if cmd.conf.logLevel < lvlNone:
+    log cmd.conf.logLevel, cmd.toLogStr()
+
+  if cmd.conf.testRun:
+    result.resultOk = true
     return
 
   when not defined(NimScript):
@@ -408,7 +421,9 @@ proc getShellResult*(
       cwd: cwd(),
       cmd: command
     )
+    # echo "Exception"
   else:
+    # echo "ALl ok"
     result = ShellResult(
       resultOk: true,
       execResult: result.execResult
@@ -417,7 +432,7 @@ proc getShellResult*(
 
 
 proc runShell*(
-  cmd: Cmd,
+  cmd: ShellCmd,
   doRaise: bool = true,
   stdin: string = "",
   options: set[ProcessOption] = {poEvalCommand},
@@ -430,7 +445,7 @@ proc runShell*(
   ## ## Arguments
   ## :maxErrorLines: max number of stderr lines that would be appended to
   ##   exception. Any stderr beyond this range will be truncated
-  let output = getShellResult(
+  let output = shellResult(
     cmd, stdin, options, maxErrorLines, discardOut)
   result = output.execResult
 
@@ -441,8 +456,8 @@ proc runShell*(
 proc execShell*(cmd: string): void =
   ## `shExec` overload for regular string.
   ##
-  ## WARNING see implicit `toCmd` documentation for potential
-  ## pitfalls. It is recommended to use `shExec(cmd: Cmd)` overload -
+  ## WARNING see implicit `toShellCmd` documentation for potential
+  ## pitfalls. It is recommended to use `shExec(cmd: ShellCmd)` overload -
   ## this version exists only for quick prototyping.
   discard runShell(cmd, discardOut = true, options = {
     poEvalCommand, poParentStreams, poUsePath})
@@ -457,7 +472,7 @@ proc evalShellStdout*(cmd: string): string =
   return res.stdout
 
 
-proc execShell*(cmd: Cmd): void =
+proc execShell*(cmd: ShellCmd): void =
   ## Execute shell command with stdout/stderr redirection into parent
   ## streams. To capture output use `runShell`
   discard runShell(cmd, doRaise = true, discardOut = true, options = {

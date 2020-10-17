@@ -88,13 +88,13 @@ proc makeLogString(level: Level, args: varargs[string]): string =
   let ident = "  ".repeat(getIdent())
   let prefix =
     case level:
-      of lvlDebug: "DEBUG"
-      of lvlInfo: "\e[94mINFO\e[39m"
+      of lvlDebug: " DEBUG"
+      of lvlInfo:   "\e[94m  INFO\e[39m"
       of lvlNotice: "\e[32mNOTICE\e[39m"
-      of lvlWarn: "\e[33mWARN\e[39m"
-      of lvlError: "\e[31mERROR\e[39m"
-      of lvlFatal: "\e[1m\e[35mFATAL\e[39m\e[21m"
-      of lvlAll: "ALL"
+      of lvlWarn:   "\e[33m  WARN\e[39m"
+      of lvlError:  "\e[31m ERROR\e[39m"
+      of lvlFatal:  "\e[1m\e[35m FATAL\e[39m\e[21m"
+      of lvlAll:    "ALL"
       of lvlNone: ""
 
   let mlines = args.msgjoin().split("\n")
@@ -113,6 +113,7 @@ proc logImpl(
     logger.prevBuf = @[]
   else:
     discard
+    # echo "  ".repeat(getIdent()), " ... "
     # echo logger.prevBuf.len, " times"
 
   logger.prevBuf.add args
