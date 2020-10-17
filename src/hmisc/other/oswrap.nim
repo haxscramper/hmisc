@@ -29,8 +29,6 @@ const cbackend* = not (defined(nimscript) or defined(js))
 when cbackend:
   import times, pathnorm, posix, parseopt
 
-import colorlogger
-
 
 ## `os` wrapper with more typesafe paths. Mostly taken from compiler
 ## pathutils and stdlib.
@@ -138,10 +136,11 @@ func getStr*(path: AnyPath | string): string =
   elif path is FsTree:
     let tmp = os.joinpath(path.parent & @[path.basename])
     # debugecho path.ext
+    let pref = if path.isAbsolute: "/" else: ""
     if not path.isDir and path.ext.len > 0:
-      tmp & ("." & path.ext)
+      pref & tmp & ("." & path.ext)
     else:
-      tmp
+      pref & tmp
   else:
     path.string
 
@@ -828,7 +827,9 @@ proc buildFsTree*(
              (ext.len == 0 and allow("")):
             # echo path, " -- ", ext
             result.add FsTree(
-              isDir: false, parent: parent,
+              isDir: false,
+              parent: parent,
+              isAbsolute: true, # HACK
               ext: (if ext.len > 0: ext[1..^1] else: ""),
               basename: name
             )
@@ -836,6 +837,7 @@ proc buildFsTree*(
           let (_, name) = os.splitPath(path)
           result.add FsTree(
             isDir: true,
+            isAbsolute: true, # HACK
             parent: parent,
             sub: aux(parent & @[name]),
             basename: name
@@ -865,17 +867,10 @@ proc rmFile*(file: AnyFile) =
     system.rmFile(file.getStr())
   )
 
-proc mkDir*(
-  dir: AnyDir | string,
-  logLevel: Level = lvlNone,
-  testRun: bool = false) =
+proc mkDir*(dir: AnyDir | string) =
   ## Creates the directory dir including all necessary subdirectories.
   ## If the directory already exists, no error is raised.
-  if not testRun:
-    osOrNims(os.createDir(dir.string), system.mkDir(dir.string))
-
-  if logLevel < lvlNone:
-    log logLevel, "Created directory '" & dir.getStr() & "'"
+  osOrNims(os.createDir(dir.string), system.mkDir(dir.string))
 
 proc mvFile*(source, dest: AnyFile) =
   ## Moves the file from to to.
@@ -891,20 +886,12 @@ proc mvDir*(source, dest: AnyDir) =
     system.mvDir(source.string, dest.string)
   )
 
-proc cpFile*(
-  source, dest: string | AnyFile,
-  logLevel: Level = lvlNone,
-  testRun: bool = false) =
+proc cpFile*(source, dest: string | AnyFile) =
   ## Copies the file from to to.
-  if not testRun:
-    osOrNims(
-      os.copyFile(source.string, dest.string),
-      system.cpFile(source.string, dest.string)
-    )
-
-  if logLevel < lvlNone:
-    log logLevel, "Copied '" & source.getStr() &
-      "' to '" & dest.getStr() & "'"
+  osOrNims(
+    os.copyFile(source.string, dest.string),
+    system.cpFile(source.string, dest.string)
+  )
 
 proc cpDir*(source, dest: AnyDir) =
   ## Copies the dir from to to.

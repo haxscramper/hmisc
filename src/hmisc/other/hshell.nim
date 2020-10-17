@@ -13,7 +13,6 @@ else:
 
 import oswrap
 import strutils, strformat, sequtils
-import colorlogger
 
 const hasStrtabs = cbackend or (NimMajor, NimMinor, NimPatch) > (1, 2, 6)
 
@@ -63,8 +62,6 @@ type
   ShellCmdConf = object
     flagConf*: ShellCmdFlagConf
     kvSep*: string
-    logLevel*: Level
-    testRun*: bool
 
   ShellCmdPartKind* = enum
     cpkSubCommand
@@ -97,10 +94,10 @@ type
         rawstring*: string
 
   ShellCmd* = object
-    bin*: string
+    bin: string
     opts: seq[ShellCmdPart]
-    conf*: ShellCmdConf
-    envVals*: seq[tuple[key, val: string]]
+    conf: ShellCmdConf
+    envVals: seq[tuple[key, val: string]]
 
 const
   GnuShellCmdConf* = ShellCmdConf(
@@ -127,6 +124,9 @@ converter toShellCmd*(a: string): ShellCmd =
   ## NOTE: `GnuShellCmdConf` is used
   result.conf = GnuShellCmdConf
   result.bin = a
+
+func isEmpty*(cmd: ShellCmd): bool =
+  (cmd.bin.len == 0) and (cmd.opts.len == 0)
 
 func flag*(cmd: var ShellCmd, fl: string) =
   ## Add flag for command
@@ -330,13 +330,6 @@ proc shellResult*(
         "Either set `discardOut` to true or remove `poParentStream` from options"
     )
 
-  if cmd.conf.logLevel < lvlNone:
-    log cmd.conf.logLevel, cmd.toLogStr()
-
-  if cmd.conf.testRun:
-    result.resultOk = true
-    return
-
   when not defined(NimScript):
     let pid =
       if poEvalCommand in options:
@@ -470,7 +463,6 @@ proc evalShell*(cmd: string): auto =
 proc evalShellStdout*(cmd: string): string =
   let res = runShell(cmd, options = {poEvalCommand, poUsePath})
   return res.stdout
-
 
 proc execShell*(cmd: ShellCmd): void =
   ## Execute shell command with stdout/stderr redirection into parent

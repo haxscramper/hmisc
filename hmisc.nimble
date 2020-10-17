@@ -37,6 +37,9 @@ task testallTask, "~~~ testall implementation ~~~":
 
 task docgen, "Generate documentation":
   var conf = initBuildConf()
-  conf.testRun = true
+  conf.testRun = false
   conf.outdir = AbsDir(thisDir() & "/public")
   runDocgen(conf)
+
+task testRun, "test things":
+  echo commandLineParams

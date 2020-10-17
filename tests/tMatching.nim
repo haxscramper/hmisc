@@ -3,7 +3,7 @@ import json, parseopt
 
 import hmisc/macros/matching
 {.experimental: "caseStmtMacros".}
-import hmisc/hdebug_misc
+# import hmisc/hdebug_misc
 
 #===========================  implementation  ============================#
 

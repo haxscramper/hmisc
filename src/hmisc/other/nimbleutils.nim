@@ -119,7 +119,7 @@ proc docgenBuild(conf: TaskRunConfig) =
 
   for file in files.mapIt(it.flatFiles()).concat():
     let dir = conf.outdir / file.parent[curr.pathLen() .. ^1]
-    mkDir(dir, lvlNotice, conf.testRun)
+    logcall mkDir(dir), conf.testRun
     let outfile = dir /. $file.withoutParent().withExt("html")
     if file.ext in @["nim", "rst"]:
       var cmd: ShellCmd
@@ -138,17 +138,15 @@ proc docgenBuild(conf: TaskRunConfig) =
             it - ("hints", "off")
             it.arg file
 
-      cmd.conf.testRun = conf.testRun
-      cmd.conf.logLevel = lvlInfo
-
-      if cmd.bin.len > 0:
-        let res = shellResult(cmd)
-        if res.resultOk:
-          cpFile(
-            conf.nimdocCss, dir /. "nimdoc.out.css",
-            lvlDebug, conf.testRun)
+      if not cmd.isEmpty():
+        if conf.testRun:
+          notice cmd.toLogStr()
         else:
-          echo res.exception.msg
+          let res = shellResult(cmd)
+          if res.resultOk:
+            logcall cpFile(conf.nimdocCss, dir /. "nimdoc.out.css"), conf.testRun
+          else:
+            echo res.exception.msg
 
 macro initBuildConf*(testRun: bool = false): TaskRunConfig  =
   quote do:

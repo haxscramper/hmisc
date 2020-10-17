@@ -2,7 +2,7 @@ const cbackend = not (defined(nimscript) or defined(js))
 
 import ../types/colorstring
 import ../algo/hstring_algo
-import macros, strutils
+import macros, strutils, strformat
 
 when cbackend:
   import logging
@@ -157,3 +157,45 @@ proc logError*(args: varargs[string, `$`]): void =
     logging.error(args)
   else:
     globalLog.log(lvlError, args)
+
+func typedArgs*(call: NimNode): seq[NimNode] =
+  for arg in call[1..^1]:
+    case arg.kind:
+      of nnkHiddenStdConv:
+        case arg[1].kind:
+          of nnkBracket:
+            for elem in arg[1]:
+              case elem.kind:
+                of nnkHiddenCallConv:
+                  result.add elem[1]
+                else:
+                  result.add elem
+          else:
+            raiseAssert(&"#[ IMPLEMENT for kind {arg[1].kind} ]#")
+      else:
+        result.add arg
+
+macro logcall*(
+  inCall: typed, testRun: bool = false,
+  lvl: static[Level] = lvlInfo): untyped =
+  var args = newCall("log")
+  args.add newCall(ident "Level", ident $lvl)
+  args.add inCall[0].toStrLit()
+  args.add newLit("(")
+
+  for arg in inCall.typedArgs():
+    if args.len > 4:
+      args.add newLit(", ")
+
+    case arg.kind:
+      of nnkIdent, nnkSym:
+        args.add newLit(arg.toStrLit().strVal() & " = ")
+        args.add nnkPrefix.newTree(ident "$", arg)
+      else:
+        args.add arg
+
+  args.add newLit(")")
+
+  result = quote do:
+    `args`
+    `inCall`
