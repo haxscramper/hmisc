@@ -26,6 +26,15 @@ jobs:
     - name: Run tests
       run: |
         export PATH=$HOME/.nimble/bin:$PATH
-        echo $PATH
         nimble -y test
         nimble install -y
+    - name: Build docs
+      run: |
+        export PATH=$HOME/.nimble/bin:$PATH
+        nimble docgen
+    - name: Publish docs
+      uses: crazy-max/ghaction-github-pages@v1
+      with:
+        build_dir: docs
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

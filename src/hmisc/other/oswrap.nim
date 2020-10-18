@@ -1051,6 +1051,10 @@ func initOptParser*(
   shortNoVal: set[char] = {},
   longNoVal: seq[string] = @[];
   allowWhitespaceAfterColon = true): OptParser =
+  # TODO implement splitting based on different hshell configuration
+  # options.
+
+  # REVIEW move to hshell
 
   result.shortNoVal = shortNoVal
   result.longNoVal = longNoVal

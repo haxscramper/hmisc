@@ -48,7 +48,7 @@ task docgen, "Generate documentation":
     conf.envOrParam("git.commit", ShellExpr "$GITHUB_SHA")
     conf.switch("git.devel", ShellVar("GITHUB_REF").get().split("/")[^1])
 
-  conf.outdir = AbsDir(thisDir() & "/public")
+  conf.outdir = AbsDir(thisDir() & "/docs")
   runDocgen(conf)
 
 task testRun, "test things":
