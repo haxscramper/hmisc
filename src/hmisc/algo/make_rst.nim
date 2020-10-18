@@ -32,5 +32,10 @@ proc rst2html*(str: string, file: string): void =
   let tmpfile = "/tmp/rstwrite.rst" # TODO use actual temporary file
                                     # generato
   tmpfile.writeFile(str)
-  let cmd = &"nim rst2html -o:{file} {tmpfile}"
+
+  var cmd = makeNimShellCmd("nim")
+  cmd.cmd "rst2html"
+  cmd - ("o", file)
+  cmd.arg tmpfile
+
   discard runShell(cmd)

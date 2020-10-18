@@ -495,14 +495,14 @@ proc execShell*(cmd: ShellCmd): void =
 proc eval*(expr: ShellExpr): string =
   shellResult(expr).execResult.stdout
 
-export get
+export get, isSome, isNone
 
 proc interpolateShell*(
-  expr: string,
+  expr: ShellExpr,
   allowEmpty: bool = false,
   doRaise: bool = false): Option[string] =
   var buf: string
-  for (kind, val) in interpolatedFragments(expr):
+  for (kind, val) in interpolatedFragments(expr.string):
     case kind:
       of ikStr: buf &= val
       of ikDollar: buf &= "$"
@@ -529,7 +529,8 @@ proc interpolateShell*(
 
 
 proc initCmdInterpOrOption*(
-  interpol, key, val: string, allowEmpty: bool = false): ShellCmdPart =
+  interpol: ShellExpr,
+  key, val: string, allowEmpty: bool = false): ShellCmdPart =
   result = ShellCmdPart(kind: cpkOption, key: key)
 
   let res = interpolateShell(interpol, allowEmpty = allowEmpty)

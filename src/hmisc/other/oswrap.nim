@@ -670,19 +670,19 @@ proc dirExists*(dir: AnyDir): bool =
   ## Checks if the directory dir exists.
   osAndNims(dirExists(dir.getStr()))
 
-proc existsFile*(filename: AnyFile): bool =
-  ## An alias for fileExists.
-  osAndNims(existsFile(filename.getStr()))
+# proc fileExists*(filename: AnyFile): bool =
+#   ## An alias for fileExists.
+#   osAndNims(file(filename.getStr()))
 
 
-proc existsDir*(dir: AnyDir): bool =
-  ## An alias for dirExists.
-  osAndNims(existsDir(dir.string))
+# proc existsDir*(dir: AnyDir): bool =
+#   ## An alias for dirExists.
+#   osAndNims(existsDir(dir.string))
 
 proc assertExists*(file: AnyFile): void =
   let path: AbsFile = file.toAbsFile()
 
-  if existsDir(AbsDir file.getStr()):
+  if dirExists(AbsDir file.getStr()):
     if file.isRelative and file.getStr().len == 0:
       raise newException(
         OSError,
@@ -696,7 +696,7 @@ proc assertExists*(file: AnyFile): void =
 
       raise newPathError(file, pekExpectedFile, msg)
 
-  if not file.existsFile():
+  if not file.fileExists():
     raise newPathError(
       file, pekNoSuchEntry, &"No such file '{path.string}'")
 
@@ -704,7 +704,7 @@ proc assertExists*(file: AnyFile): void =
 proc assertExists*(dir: AnyDir): void =
   let path: AbsDir = dir.toAbsDir()
 
-  if existsFile(AbsFile dir.getStr()):
+  if fileExists(AbsFile dir.getStr()):
     if dir.isRelative and dir.getStr().len == 0:
       raise newException(
         OSError,
@@ -718,7 +718,7 @@ proc assertExists*(dir: AnyDir): void =
 
       raise newPathError(dir, pekExpectedDir, msg)
 
-  if not dir.existsDir():
+  if not dir.dirExists():
     raise newPathError(
       dir, pekNoSuchEntry, &"No such directory '{path.string}'")
 
@@ -1010,24 +1010,193 @@ template withEnv*(envs: openarray[(string, string)], body: untyped): untyped =
   for varn in noValues:
     oswrap.delEnv(varn)
 
+type
+  CmdLineKind* = enum
+    cmdEnd,
+    cmdArgument,
+    cmdLongOption,
+    cmdShortOption
 
-when cbackend:
-  import tables
-  proc splitCmdLine*(
-    cmdline: seq[string],
-    shortNoVal: set[char] = {},
-    longNoVal: seq[string] = @[],
-    allowWhitespaceAfterColon = true
-  ): tuple[args: seq[string], opts: Table[string, string]] =
+  OptParser* = object of RootObj
+    pos*: int
+    inShortState: bool
+    allowWhitespaceAfterColon: bool
+    shortNoVal: set[char]
+    longNoVal: seq[string]
+    cmds: seq[string]
+    idx: int
+    kind*: CmdLineKind
+    key*, val*: TaintedString
 
-    var p = initOptParser(
-      cmdline, shortNoVal, longNoVal, allowWhitespaceAfterColon)
 
-    while true:
-      p.next()
-      case p.kind
-      of cmdEnd: break
-      of cmdShortOption, cmdLongOption:
-        result.opts[p.key] = p.val
-      of cmdArgument:
-        result.args.add p.key
+
+func parseWord(s: string, i: int, w: var string,
+               delim: set[char] = {'\t', ' '}): int =
+  result = i
+  if result < s.len and s[result] == '\"':
+    inc(result)
+    while result < s.len:
+      if s[result] == '"':
+        inc result
+        break
+      add(w, s[result])
+      inc(result)
+  else:
+    while result < s.len and s[result] notin delim:
+      add(w, s[result])
+      inc(result)
+
+func initOptParser*(
+  cmdline: seq[TaintedString],
+  shortNoVal: set[char] = {},
+  longNoVal: seq[string] = @[];
+  allowWhitespaceAfterColon = true): OptParser =
+
+  result.shortNoVal = shortNoVal
+  result.longNoVal = longNoVal
+  result.allowWhitespaceAfterColon = allowWhitespaceAfterColon
+
+  result.cmds = newSeq[string](cmdline.len)
+  for i in 0..<cmdline.len:
+    result.cmds[i] = cmdline[i].string
+
+func handleShortOption(p: var OptParser; cmd: string) =
+  var i = p.pos
+  p.kind = cmdShortOption
+  if i < cmd.len:
+    add(p.key.string, cmd[i])
+    inc(i)
+  p.inShortState = true
+  while i < cmd.len and cmd[i] in {'\t', ' '}:
+    inc(i)
+    p.inShortState = false
+  if i < cmd.len and (cmd[i] in {':', '='} or
+      card(p.shortNoVal) > 0 and p.key.string[0] notin p.shortNoVal):
+    if i < cmd.len and cmd[i] in {':', '='}:
+      inc(i)
+    p.inShortState = false
+    while i < cmd.len and cmd[i] in {'\t', ' '}: inc(i)
+    p.val = TaintedString substr(cmd, i)
+    p.pos = 0
+    inc p.idx
+  else:
+    p.pos = i
+  if i >= cmd.len:
+    p.inShortState = false
+    p.pos = 0
+    inc p.idx
+
+func next*(p: var OptParser) =
+  if p.idx >= p.cmds.len:
+    p.kind = cmdEnd
+    return
+
+  var i = p.pos
+  while i < p.cmds[p.idx].len and p.cmds[p.idx][i] in {'\t', ' '}: inc(i)
+  p.pos = i
+  setLen(p.key.string, 0)
+  setLen(p.val.string, 0)
+  if p.inShortState:
+    p.inShortState = false
+    if i >= p.cmds[p.idx].len:
+      inc(p.idx)
+      p.pos = 0
+      if p.idx >= p.cmds.len:
+        p.kind = cmdEnd
+        return
+    else:
+      handleShortOption(p, p.cmds[p.idx])
+      return
+
+  if i < p.cmds[p.idx].len and p.cmds[p.idx][i] == '-':
+    inc(i)
+    if i < p.cmds[p.idx].len and p.cmds[p.idx][i] == '-':
+      p.kind = cmdLongOption
+      inc(i)
+      i = parseWord(p.cmds[p.idx], i, p.key.string, {' ', '\t', ':', '='})
+      while i < p.cmds[p.idx].len and p.cmds[p.idx][i] in {'\t', ' '}: inc(i)
+      if i < p.cmds[p.idx].len and p.cmds[p.idx][i] in {':', '='}:
+        inc(i)
+        while i < p.cmds[p.idx].len and p.cmds[p.idx][i] in {'\t', ' '}: inc(i)
+        # if we're at the end, use the next command line option:
+        if i >= p.cmds[p.idx].len and p.idx < p.cmds.len and
+            p.allowWhitespaceAfterColon:
+          inc p.idx
+          i = 0
+        if p.idx < p.cmds.len:
+          p.val = TaintedString p.cmds[p.idx].substr(i)
+      elif len(p.longNoVal) > 0 and p.key.string notin p.longNoVal and p.idx+1 < p.cmds.len:
+        p.val = TaintedString p.cmds[p.idx+1]
+        inc p.idx
+      else:
+        p.val = TaintedString""
+      inc p.idx
+      p.pos = 0
+    else:
+      p.pos = i
+      handleShortOption(p, p.cmds[p.idx])
+  else:
+    p.kind = cmdArgument
+    p.key = TaintedString p.cmds[p.idx]
+    inc p.idx
+    p.pos = 0
+
+func cmdLineRest*(p: OptParser): TaintedString =
+  result = os.quoteShellCommand(p.cmds[p.idx .. ^1]).TaintedString
+
+func remainingArgs*(p: OptParser): seq[TaintedString] =
+  result = @[]
+  for i in p.idx..<p.cmds.len: result.add TaintedString(p.cmds[i])
+
+iterator getopt*(p: var OptParser): tuple[kind: CmdLineKind, key,
+    val: TaintedString] =
+  p.pos = 0
+  p.idx = 0
+  while true:
+    next(p)
+    if p.kind == cmdEnd: break
+    yield (p.kind, p.key, p.val)
+
+iterator getopt*(
+  cmdline: seq[TaintedString] = paramStrs(),
+  shortNoVal: set[char] = {},
+  longNoVal: seq[string] = @[]
+         ): tuple[kind: CmdLineKind, key, val: TaintedString] =
+  var p = initOptParser(cmdline, shortNoVal = shortNoVal,
+      longNoVal = longNoVal)
+  while true:
+    next(p)
+    if p.kind == cmdEnd: break
+    yield (p.kind, p.key, p.val)
+
+import tables
+
+proc splitCmdLine*(
+  cmdline: seq[string],
+  shortNoVal: set[char] = {},
+  longNoVal: seq[string] = @[],
+  allowWhitespaceAfterColon = true
+): tuple[args: seq[string], opts: Table[string, seq[string]]] =
+
+  var p = initOptParser(
+    cmdline, shortNoVal, longNoVal, allowWhitespaceAfterColon)
+
+  while true:
+    p.next()
+    case p.kind
+    of cmdEnd: break
+    of cmdShortOption, cmdLongOption:
+      if p.key in result.opts:
+        result.opts[p.key].add p.val
+      else:
+        result.opts[p.key] = @[p.val]
+    of cmdArgument:
+      result.args.add p.key
+
+proc paramVal*(param: string): seq[string] =
+  let (_, table) = splitCmdLine(paramStrs())
+  table[param]
+
+proc paramVal*(param: string, default: seq[string]): seq[string] =
+  let (_, table) = splitCmdLine(paramStrs())
+  table.getOrDefault(param, default)

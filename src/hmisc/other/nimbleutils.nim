@@ -7,7 +7,8 @@ import colorlogger
 func format*(str: string, kvalues: openarray[(string, string)]): string =
   str % kvalues.mapIt(@[it[0], it[1]]).concat()
 
-export AbsDir, RelDir, AbsFile, RelFile
+export AbsDir, RelDir, AbsFile, RelFile, ShellExpr, ShellVar
+export get, set, del, exists
 
 import ../algo/htemplates
 
@@ -39,19 +40,22 @@ func switch*(conf: var TaskRunConfig, val: string) =
 func switch*(conf: var TaskRunConfig, key, val: string) =
   conf.cmdOptions.add initCmdOption(key, val)
 
-proc envOrSwitch*(
-  conf: var TaskRunConfig, env: ShellVar, key, val: string,
+proc envOrParm*(
+  conf: var TaskRunConfig, key: string, env: ShellVar,
   allowEmpty: bool = false) =
-  conf.cmdOptions.add initCmdEnvOrOption(env, key, val, allowEmpty)
+  if env.exists and (env.get.len > 0 or allowEmpty):
+    conf.cmdOptions.add initCmdOption(key, env.get)
+  else:
+    conf.cmdOptions.add initCmdOption(key, paramVal(key)[0])
 
-proc envInterpOrSwitch*(
-  conf: var TaskRunConfig, interpol, key, val: string,
+proc envOrParam*(
+  conf: var TaskRunConfig, key: string, interpol: ShellExpr,
   allowEmpty: bool = false) =
-  conf.cmdOptions.add initCmdInterpOrOption(
-    interpol, key, val, allowEmpty)
-
-
-
+  let interp = interpolateShell(interpol)
+  if interp.isSome():
+    conf.cmdOptions.add initCmdOption(key, interp.get())
+  else:
+    conf.cmdOptions.add initCmdOption(key, paramVal(key)[0])
 
 func getBodyToc*(linkList: string): string =
   """
@@ -176,6 +180,7 @@ proc docgenBuild(conf: TaskRunConfig) =
           #   notice cmd.toLogStr()
           else:
             warn file
+            debug res.exception.outstr
             errMsg.add @["-".repeat(80)].repeat(3).concat()
             errMsg.add cmd.toLogStr()
             errMsg.add res.exception.outstr
@@ -281,7 +286,7 @@ proc makeLocalDevel*(testDir: AbsDir, pkgs: seq[string]): string =
     for pkg in pkgs:
       let dir = home / ".nimble/pkgs" / (pkg & "-#head")
 
-      assert existsDir(dir),
+      assert dirExists(dir),
           &"Could not find {dir} - run " &
             "`nimble develop` to make it available"
 

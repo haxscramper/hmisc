@@ -14,6 +14,7 @@ requires "nim >= 1.2.4", "with"
 requires "macroutils"
 
 from os import `/`
+import strutils
 
 when fileExists(thisDir() / "src/hmisc/other/nimbleutils.nim"):
   import src/hmisc/other/nimbleutils
@@ -39,7 +40,15 @@ task docgen, "Generate documentation":
   var conf = initBuildConf()
   conf.testRun = false
   conf.logFile = AbsFile("/tmp/log.txt")
-  conf.switch("GITHUB_REPOSITORY", )
+
+  if ShellVar("CI").exists():
+    conf.envOrParam(
+      "git.url",
+      ShellExpr "https://github.com/${GITHUB_REPOSITORY}")
+
+    conf.envOrParam("git.commit", ShellExpr "$GITHUB_SHA")
+    conf.switch("git.devel", ShellVar("GITHUB_REF").get().split("/")[^1])
+
   conf.outdir = AbsDir(thisDir() & "/public")
   runDocgen(conf)
 
