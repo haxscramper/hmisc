@@ -40,7 +40,9 @@ when hasStrtabs: # https://github.com/nim-lang/Nim/pull/15172
 export ShellVar
 
 type
-  ShellExpr* = distinct string
+  ShellExpr* = distinct string ## Shell expression
+  ## Can be evaluated by external shell invokation (bash, zsh etc).
+  ## Supported syntax on shell being used
   ShellExecEffect = object of IOEffect
   ShellError* = ref object of OSError
     cmd*: string ## Command that returned non-zero exit code
@@ -50,17 +52,20 @@ type
     errstr*: string ## Stderr for command
     outstr*: string ## Stdout for command
 
-  ShellExecResult* = tuple[stdout, stderr: string, code: int]
+  ShellExecResult* = tuple[stdout, stderr: string, code: int] ## Shell command
+  ## execution result - standard error, output and return code.
   ShellResult* = object
-    execResult*: ShellExecResult
-    hasBeenSet*: bool
-    case resultOk*: bool
+    execResult*: ShellExecResult ## Result of command execution
+    hasBeenSet*: bool ## Whether or not result been set
+    case resultOk*: bool ## No failures (return code == 0)
       of true:
         nil
       of false:
-        exception*: ShellError
+        exception*: ShellError ## Addiional information in case of failure. Can
+                               ## be raised or immediately inspected on return.
 
   ShellCmdFlagConf* = enum
+    ## Shell command flags syntax
     ccRegularFlags ## `-f` or `--flag`
     ccOneDashFlags ## `-f` or `-flag`
 
@@ -69,11 +74,11 @@ type
     kvSep*: string
 
   ShellCmdPartKind* = enum
-    cpkSubCommand
-    cpkArgument
-    cpkOption
-    cpkFlag
-    cpkRaw
+    cpkSubCommand ## Subcommand string
+    cpkArgument ## String argument to command
+    cpkOption ## Key-value pair
+    cpkFlag ## Boolean flag (on/off)
+    cpkRaw ## Raw parameter
 
   ShellCmdPart* = object
     case kind*: ShellCmdPartKind
@@ -131,14 +136,19 @@ converter toShellCmd*(a: ShellExpr): ShellCmd =
   result.bin = a.string
 
 func initCmdOption*(key, val: string): ShellCmdPart =
+  ## Create shell command option
   ShellCmdPart(kind: cpkOption, key: key, val: val)
 
 func initCmdFlag*(fl: string): ShellCmdPart =
+  ## Create shell command flag
   ShellCmdPart(kind: cpkFlag, flag: fl)
 
 proc initCmdEnvOrOption*(
   env: ShellVar,
   key, val: string, allowEmpty: bool = false): ShellCmdPart =
+  ## Init shell command value for key `key` either from environment variable
+  ## `env` or using provided fallback value `val`. `allowEmpty` - whether or not
+  ## to use value if environment variable is empty (but exists).
 
   result = ShellCmdPart(kind: cpkOption, key: key)
   if existsEnv(env) and (getEnv(env).len > 0 or allowEmpty):
@@ -186,6 +196,7 @@ func `-`*(cmd: var ShellCmd, fl: string) =
   cmd.flag fl
 
 func `-`*(cmd: var ShellCmd, path: AnyPath) =
+  ## Overload to add filesystem entry as command argument
   cmd - path.getStr()
 
 func `-`*[Path: AnyPath](cmd: var ShellCmd, kv: (string, Path)) =
@@ -201,6 +212,7 @@ func `-`*(cmd: var ShellCmd, kv: tuple[key, sep, val: string]) =
     kvSep: kv.sep)
 
 func makeNimShellCmd*(bin: string): ShellCmd =
+  ## Create command for nim core tooling (":" for key-value separator)
   result.conf = NimShellCmdConf
   result.bin = bin
 
@@ -226,6 +238,7 @@ func makeFileShellCmd*(file: string, conf: ShellCmdConf = GnuShellCmdConf): Shel
 # func quoteShell*(str: string): string = str
 
 func toStr*(part: ShellCmdPart, conf: ShellCmdConf): string =
+  ## Convret shell command part to string representation
   let longPrefix =
     case conf.flagConf:
       of ccRegularFlags: "--"
@@ -257,6 +270,7 @@ func toStrSeq*(cmd: ShellCmd): seq[string] =
 func toStr*(cmd: ShellCmd): string = cmd.toStrSeq().join(" ")
 
 func toLogStr*(cmd: ShellCmd): string =
+  ## Convert shell command to pretty-printed shell representation
   # TODO add newline escapes `\` at the end of the string
   for str in cmd.toStrSeq():
     if result.len + str.len + 1 > 80:
@@ -278,6 +292,7 @@ when not defined(NimScript):
       echo err.outstr
 
 iterator iterstdout*(command: ShellExpr): string =
+  ## Iterate every line of shell expression output
   # TODO raise exception on failed command
   # REVIEW how cleanup is performed when iterator finishes main loop?
   when defined(NimScript):
@@ -305,7 +320,8 @@ iterator iterstdout*(command: ShellExpr): string =
 when cbackend:
   proc startShell*(
     cmd: ShellCmd, options: set[ProcessOption] = {
-      poEvalCommand, poParentStreams}): Process =
+      poEvalCommand, poParentStreams, poUsePath}): Process =
+    ## Launch process using shell command
 
     when hasStrtabs:
       result = startProcess(

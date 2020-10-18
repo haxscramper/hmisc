@@ -1276,7 +1276,7 @@ func buildTreeMaker(
       res.add quote do:
         var `tmp`: `resType`
         when `tmp` is ref:
-          new `tmp`
+          new(`tmp`)
 
       if match.kindCall.getSome(call):
         let kind = ident call.strVal().addPrefix(prefix)
@@ -1303,6 +1303,20 @@ func buildTreeMaker(
       res.add tmp
 
       result = newBlockStmt(res)
+    of kList:
+      var res = newStmtList()
+      let tmp = genSym(nskVar, "res")
+      res.add quote do:
+        var `tmp`: seq[`resType`]
+
+      for sub in match.listElems:
+        res.add newCall("add", tmp, buildTreeMaker(
+          prefix, resType, sub.patt))
+
+      res.add quote do:
+        `tmp`
+
+      result = newBlockStmt(res)
     else:
       error(
         &"Pattern of kind {match.kind} is " &
@@ -1320,6 +1334,13 @@ func `str=`*(node: var NimNode, val: string) =
   else:
     node.strVal = val
 
+func getTypeIdent(node: NimNode): NimNode =
+  case node.getType().kind:
+    of nnkObjectTy:
+      newCall("typeof", node)
+    else:
+      node.getType()
+
 macro makeTreeImpl*(node, kind: typed, patt: untyped): untyped =
   var inpatt = patt
   if patt.kind in {nnkStmtList}:
@@ -1330,14 +1351,23 @@ macro makeTreeImpl*(node, kind: typed, patt: untyped): untyped =
 
   let (pref, _) = kind.getKindNames()
 
-  let match = inpatt.parseMatchExpr()
+  var match = inpatt.parseMatchExpr()
+  # echo match[]
 
-  result = buildTreeMaker(pref, node.getType(), match)
+  result = buildTreeMaker(pref, node.getTypeIdent(), match)
 
-  # echo result
+  # echo patt
+  # echo patt.len
+  # echo patt.kind
 
+  if patt.kind in {nnkStmtList} and
+     patt[0].len == 1 and
+     match.kind == kList and
+     patt[0].kind notin {nnkBracket}
+    :
+    result = nnkBracketExpr.newTree(result, newLit(0))
 
-template makeTree*[T](patt: untyped): untyped =
+template makeTree*(T: typed, patt: untyped): untyped =
   block:
     var tmp: T
     makeTreeImpl(tmp, tmp.kind, patt)

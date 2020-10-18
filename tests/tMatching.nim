@@ -549,12 +549,12 @@ suite "Matching":
 
   test "Tree construction":
     macro testImpl(): untyped =
-      let node = makeTree[NimNode](
+      let node = makeTree(NimNode):
         IfStmt[
           ElifBranch[== ident("true"),
             Call[
               == ident("echo"),
-              == newLit("12")]]])
+              == newLit("12")]]]
 
 
       IfStmt[ElifBranch[@head, Call[@call, @arg]]] := node
@@ -565,11 +565,63 @@ suite "Matching":
       block:
         let input = "hello"
         # expandMacros:
-        Ident(str: @output) := makeTree[NimNode] Ident(str: input)
+        Ident(str: @output) := makeTree(NimNode, Ident(str: input))
         assertEq output, input
 
 
     testImpl()
+
+  test "Tree builder custom type":
+    type
+      HtmlNodeKind = enum
+        htmlBase = "base"
+        htmlHead = "head"
+        htmlLink = "link"
+
+      HtmlNode = object
+        kind*: HtmlNodeKind
+        text*: string
+        subn*: seq[HtmlNode]
+
+    func add(n: var HtmlNode, s: HtmlNode) = n.subn.add s
+    discard makeTree(HtmlNode, Base())
+    discard makeTree(HtmlNode, base())
+    discard makeTree(HtmlNode, base([link()]))
+    discard makeTree(HtmlNode):
+      base:
+        link()
+
+    template wrapper1(body: untyped): untyped =
+      makeTree(HtmlNode):
+        body
+
+    template wrapper2(body: untyped): untyped =
+      makeTree(HtmlNode, body)
+
+    let tmp1 = wrapper1:
+      base: link()
+      base: link()
+
+    assert tmp1 is seq[HtmlNode]
+
+
+    let tmp3 = wrapper1:
+      base:
+        base: link()
+        base: link()
+
+    assert tmp3 is HtmlNode
+
+    let tmp2 = wrapper1:
+      base:
+        link()
+
+    assert tmp2 is HtmlNode
+
+    discard wrapper2:
+      base:
+        link()
+
 
   test "withItCall":
     macro withItCall(head: typed, body: untyped): untyped =
