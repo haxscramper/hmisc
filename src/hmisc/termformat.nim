@@ -1,5 +1,7 @@
 import terminal, sequtils, strutils, helpers, unicode
 
+{.deprecated: "Scheduled for removal".}
+
 proc justifyFitTerminal*(
   str: string,
   padding: tuple[left: int, right: int] = (0,0),

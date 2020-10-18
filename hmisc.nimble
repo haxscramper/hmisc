@@ -10,8 +10,7 @@ packageName   = "hmisc"
 
 # Dependencies
 
-requires "nim >= 1.2.4", "with"
-requires "macroutils"
+requires "nim >= 1.4.0", "sorta"
 
 from os import `/`
 import strutils
@@ -22,7 +21,7 @@ else:
   import hmisc/other/nimbleutils
 
 task dockertest, "Run test suite in new docker container":
-  runDockerTest(thisAbsDir(),
+  runDockerTest(AbsDir thisDir(),
                 AbsDir "/tmp/docker-hmisc", "nimble test")
 
 task installtest, "Test installation from cloned repo":
@@ -30,8 +29,9 @@ task installtest, "Test installation from cloned repo":
                 AbsDir "/tmp/docker-hmisc", "nimble install")
 
 task testall, "Run full test suite in all variations":
-  runDockerTest(thisAbsDir(),
-                AbsDir "/tmp/docker-hmisc/", "nimble testallTask")
+  runDockerTest(AbsDir thisDir(),
+                AbsDir "/tmp/docker-hmisc/",
+                "nimble testallTask && nimble docgen")
 
 task testallTask, "~~~ testall implementation ~~~":
   testAllImpl()
@@ -39,16 +39,7 @@ task testallTask, "~~~ testall implementation ~~~":
 task docgen, "Generate documentation":
   var conf = initBuildConf()
   conf.testRun = false
-
-  if ShellVar("CI").exists():
-    conf.envOrParam(
-      "git.url",
-      ShellExpr "https://github.com/${GITHUB_REPOSITORY}")
-
-    conf.envOrParam("git.commit", ShellExpr "$GITHUB_SHA")
-    conf.switch("git.devel", ShellVar("GITHUB_REF").get().split("/")[^1])
-
-  conf.outdir = AbsDir(thisDir() & "/docs")
+  conf.configureCI()
   runDocgen(conf)
 
 task testRun, "test things":

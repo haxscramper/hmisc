@@ -57,6 +57,21 @@ proc envOrParam*(
   else:
     conf.cmdOptions.add initCmdOption(key, paramVal(key)[0])
 
+proc configureCI*(conf: var TaskRunConfig) =
+  if ShellVar("CI").exists():
+    conf.envOrParam(
+      "git.url",
+      ShellExpr "https://github.com/${GITHUB_REPOSITORY}")
+
+    conf.envOrParam("git.commit", ShellExpr "$GITHUB_SHA")
+    conf.switch("git.devel", ShellVar("GITHUB_REF").get().split("/")[^1])
+  else:
+    conf.hrefPref = "file://" & $(conf.projectDir / "docs")
+
+
+
+
+
 func makeBodyToc*(linkList: string): string =
   """
   <div class="row">
@@ -227,6 +242,8 @@ template initBuildConf*(): TaskRunConfig {.dirty.} =
     )
 
     tmp.hrefPref = ("https://" & author & ".github.io/" & packageName)
+    tmp.outdir = AbsDir(thisDir() / "docs")
+
     tmp
 
 proc runDocGen*(conf: TaskRunConfig): void =
