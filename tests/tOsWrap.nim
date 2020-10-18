@@ -42,7 +42,7 @@ suite "Pathwrap":
 suite "Shell":
   test "shell":
     expect ShellError:
-      discard runShell("hello")
+      discard runShell(ShellExpr "hello")
 
   test "Options":
     var cmd = makeGnuShellCmd("cat")

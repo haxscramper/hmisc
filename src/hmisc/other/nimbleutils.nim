@@ -268,7 +268,7 @@ func `&&`*(lhs, rhs: string): string =
       lhs & " && " & rhs
 
 proc pkgVersion*(pkg: string): string =
-  let (stdout, stderr, code) = runShell("nimble dump " & pkg)
+  let (stdout, stderr, code) = runShell(ShellExpr "nimble dump " & pkg)
   for line in stdout.split("\n"):
     if line.startsWith("version: "):
       return line["version: \"".len() .. ^2]
@@ -306,23 +306,23 @@ proc writeTestConfig*(str: string): void =
 
 proc testAllImpl*(): void =
   try:
-    execShell("choosenim stable")
-    execShell("nimble test")
+    execShell(ShellExpr "choosenim stable")
+    execShell(ShellExpr "nimble test")
     info "Stable test passed"
   except:
     err "Stable test failed"
 
   try:
-    execShell("choosenim devel")
-    execShell("nimble test")
+    execShell(ShellExpr "choosenim devel")
+    execShell(ShellExpr "nimble test")
     info "Devel test passed"
   except:
     err "Devel test failed"
   finally:
-    execShell("choosenim stable")
+    execShell(ShellExpr "choosenim stable")
 
   try:
-    execShell("nimble install")
+    execShell(ShellExpr "nimble install")
     info "Installation on stable OK"
   except:
     err "Installation on stable failed"

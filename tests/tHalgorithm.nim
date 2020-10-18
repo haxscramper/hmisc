@@ -921,4 +921,4 @@ import hmisc/other/hshell
 suite "Hshell":
   test "can compile":
     if false:
-      discard runShell("nice")
+      discard runShell(ShellExpr "nice")

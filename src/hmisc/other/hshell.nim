@@ -14,7 +14,7 @@ else:
       poDaemon
 
 import oswrap
-import strutils, strformat, sequtils
+import strutils, strformat, sequtils, options
 
 const hasStrtabs = cbackend or (NimMajor, NimMinor, NimPatch) > (1, 2, 6)
 
@@ -37,9 +37,10 @@ when hasStrtabs: # https://github.com/nim-lang/Nim/pull/15172
 # TODO Support command chaining using `&&`, `||` (`and`, `or`) and pipes
 #      `|` for redirecting output streams.
 
-export ShellVar, ShellExpr
+export ShellVar
 
 type
+  ShellExpr* = distinct string
   ShellExecEffect = object of IOEffect
   ShellError* = ref object of OSError
     cmd*: string ## Command that returned non-zero exit code
@@ -119,7 +120,7 @@ const
     kvSep: " "
   )
 
-converter toShellCmd*(a: string): ShellCmd =
+converter toShellCmd*(a: ShellExpr): ShellCmd =
   ## Implicit conversion of string to command
   ##
   ## WARNING: `cmd` will be treated as `bin` and if `poEvalCommand` is
@@ -127,7 +128,7 @@ converter toShellCmd*(a: string): ShellCmd =
   ##
   ## NOTE: `GnuShellCmdConf` is used
   result.conf = GnuShellCmdConf
-  result.bin = a
+  result.bin = a.string
 
 func initCmdOption*(key, val: string): ShellCmdPart =
   ShellCmdPart(kind: cpkOption, key: key, val: val)
@@ -135,45 +136,13 @@ func initCmdOption*(key, val: string): ShellCmdPart =
 func initCmdFlag*(fl: string): ShellCmdPart =
   ShellCmdPart(kind: cpkFlag, flag: fl)
 
-func initCmdEnvOrOption*(
+proc initCmdEnvOrOption*(
   env: ShellVar,
   key, val: string, allowEmpty: bool = false): ShellCmdPart =
 
   result = ShellCmdPart(kind: cpkOption, key: key)
   if existsEnv(env) and (getEnv(env).len > 0 or allowEmpty):
     result.val = getEnv(env)
-  else:
-    result.val = val
-
-func initCmdInterpOrOption*(
-  interpol, key, val: string, allowEmpty: bool = false): ShellCmdPart =
-
-  result = ShellCmdPart(kind: cpkOption, key: key)
-  var
-    buf: string
-    allOk = false
-
-  block:
-    for (kind, val) in interpolatedFragments(interpol):
-      case kind:
-        of ikStr: buf.add val
-        of ikDollar: buf.add "$"
-        of ikVar:
-          if not existsEnv(ShellVar val):
-            break
-          else:
-            let envVal = getEnv(ShellVar val)
-            if envVal.len == 0 and not allowEmpty:
-              break
-            else:
-              buf.add envVal
-        else:
-          raiseAssert("#[ IMPLEMENT for kind ikExpr ]#")
-
-    allOk = true
-
-  if allOk:
-    result.val = buf
   else:
     result.val = val
 
@@ -307,15 +276,15 @@ when not defined(NimScript):
 
       echo err.outstr
 
-iterator iterstdout*(command: string): string =
+iterator iterstdout*(command: ShellExpr): string =
   # TODO raise exception on failed command
   # REVIEW how cleanup is performed when iterator finishes main loop?
   when defined(NimScript):
-    let (res, code) = gorgeEx(command, "", "")
+    let (res, code) = gorgeEx(command.string, "", "")
     for line in res.split("\n"):
       yield line
   else:
-    let pid = startProcess(command, options = {poEvalCommand})
+    let pid = startProcess(command.string, options = {poEvalCommand})
 
     let outStream = pid.outputStream
     var line = ""
@@ -499,7 +468,7 @@ proc runShell*(
     raise output.exception
 
 
-proc execShell*(cmd: string): void =
+proc execShell*(cmd: ShellExpr): void =
   ## `shExec` overload for regular string.
   ##
   ## WARNING see implicit `toShellCmd` documentation for potential
@@ -509,11 +478,11 @@ proc execShell*(cmd: string): void =
     poEvalCommand, poParentStreams, poUsePath})
 
 
-proc evalShell*(cmd: string): auto =
+proc evalShell*(cmd: ShellExpr): auto =
   var opts = {poEvalCommand, poUsePath}
   runShell(cmd, options = opts)
 
-proc evalShellStdout*(cmd: string): string =
+proc evalShellStdout*(cmd: ShellExpr): string =
   let res = runShell(cmd, options = {poEvalCommand, poUsePath})
   return res.stdout
 
@@ -522,3 +491,50 @@ proc execShell*(cmd: ShellCmd): void =
   ## streams. To capture output use `runShell`
   discard runShell(cmd, doRaise = true, discardOut = true, options = {
     poParentStreams, poUsePath})
+
+proc eval*(expr: ShellExpr): string =
+  shellResult(expr).execResult.stdout
+
+export get
+
+proc interpolateShell*(
+  expr: string,
+  allowEmpty: bool = false,
+  doRaise: bool = false): Option[string] =
+  var buf: string
+  for (kind, val) in interpolatedFragments(expr):
+    case kind:
+      of ikStr: buf &= val
+      of ikDollar: buf &= "$"
+      of ikVar:
+        if not (existsEnv(ShellVar val) or allowEmpty):
+          return none(string)
+        else:
+          let envVal = getEnv(ShellVar val)
+          if envVal.len == 0 and not allowEmpty:
+            return none(string)
+          else:
+            buf &= envVal
+      of ikExpr:
+        let res = shellResult(ShellExpr val)
+        if not res.resultOk and doRaise:
+          raise res.exception
+        elif res.execResult.stdout.len == 0 and not allowEmpty:
+          return none(string)
+        else:
+          buf &= res.execResult.stdout
+
+
+  return some(buf)
+
+
+proc initCmdInterpOrOption*(
+  interpol, key, val: string, allowEmpty: bool = false): ShellCmdPart =
+  result = ShellCmdPart(kind: cpkOption, key: key)
+
+  let res = interpolateShell(interpol, allowEmpty = allowEmpty)
+
+  if res.isSome():
+    result.val = res.get()
+  else:
+    result.val = val

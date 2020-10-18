@@ -121,8 +121,8 @@ proc logImpl(
 
 when cbackend:
   method log(
-    logger: var ColorLogger, level: Level, args: varargs[string, `$`]) =
-    logger.logImpl(level, args)
+    logger: ColorLogger, level: Level, args: varargs[string, `$`]) =
+    (cast[var ColorLogger](logger)).logImpl(level, args)
 else:
   proc log(
     logger: var ColorLogger, level: Level, args: varargs[string, `$`]) =

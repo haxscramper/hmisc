@@ -35,8 +35,6 @@ when cbackend:
 
 type
   ShellVar* = distinct string
-  ShellExpr* = distinct string
-
   AbsFile* = distinct string
   AbsDir* = distinct string
   AbsPath* = AbsFile | AbsDir
@@ -638,25 +636,31 @@ proc paramStrs*(addBin: bool = false): seq[string] =
       result.add paramStr(i)
 
 
-proc getEnv*(key: string | ShellVar; default = ""): string =
+proc getEnv*(key: ShellVar; default = ""): string =
   ## Retrieves the environment variable of name key.
   osAndNims(getEnv(key.string, default))
 
-proc existsEnv*(key: string | ShellVar): bool =
+proc existsEnv*(key: ShellVar): bool =
   ## Checks for the existence of an environment variable named key.
   osAndNims(existsEnv(key.string))
 
-proc putEnv*(key: string | ShellVar, val: string): void =
+proc putEnv*(key: ShellVar, val: string): void =
   ## Sets the value of the environment variable named key to val.
   osAndNims(putEnv(key.string, val))
 
-proc setEnv*(key: string | ShellVar, val: string): void =
+proc setEnv*(key: ShellVar, val: string): void =
   ## Sets the value of the environment variable named key to val.
-  putEnv(key.string, val)
+  putEnv(key, val)
 
-proc delEnv*(key: string | ShellVar) =
+proc delEnv*(key: ShellVar) =
   ## Deletes the environment variable named key.
   osAndNims(delEnv(key.string))
+
+proc get*(v: ShellVar): string = v.getEnv()
+proc del*(v: ShellVar) = v.delEnv
+proc set*(v: ShellVar, val: string) = v.setEnv(val)
+proc put*(v: ShellVar, val: string) = v.setEnv(val)
+proc exists*(v: ShellVar): bool = v.existsEnv()
 
 proc fileExists*(filename: AnyFile): bool =
   ## Checks if the file exists.

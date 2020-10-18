@@ -7,17 +7,21 @@ let parser = parseJson("""{"aas": 12}""")
 echo parser
 
 echo pkgVersion("hmisc")
+echo getEnv(ShellVar "HOME")
 
 # echo listDirs(AbsDir "/tmp")
 
 # echo buildFsTree(allowExts = @["cfg", "cpp"])
 # echo buildFsTree(AbsDir "/tmp", allowExts = @["nim"])
 
-if false:
-  discard runShell("nice")
+echo interpolateShell("Hello${pwd}", doRaise = true).get()
 
-  for line in iterstdout("hello"):
+if false:
+  discard runShell(ShellExpr "nice")
+
+  for line in iterstdout(ShellExpr "hello"):
     discard line
 
-withDir(AbsDir "/mnt/workspace/github/hmisc"):
-  execShell("nimble docgen")
+
+# withDir(AbsDir "/mnt/workspace/github/hmisc"):
+#   execShell("nimble docgen")
