@@ -5,7 +5,7 @@ author        = "haxscramper"
 description   = "Collection of helper utilities"
 license       = "Apache-2.0"
 srcDir        = "src"
-
+packageName   = "hmisc"
 
 
 # Dependencies
@@ -39,7 +39,6 @@ task testallTask, "~~~ testall implementation ~~~":
 task docgen, "Generate documentation":
   var conf = initBuildConf()
   conf.testRun = false
-  conf.logFile = AbsFile("/tmp/log.txt")
 
   if ShellVar("CI").exists():
     conf.envOrParam(

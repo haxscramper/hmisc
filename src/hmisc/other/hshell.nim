@@ -257,6 +257,7 @@ func toStrSeq*(cmd: ShellCmd): seq[string] =
 func toStr*(cmd: ShellCmd): string = cmd.toStrSeq().join(" ")
 
 func toLogStr*(cmd: ShellCmd): string =
+  # TODO add newline escapes `\` at the end of the string
   for str in cmd.toStrSeq():
     if result.len + str.len + 1 > 80:
       result &= "\n"

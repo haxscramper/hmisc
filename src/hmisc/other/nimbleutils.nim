@@ -57,7 +57,7 @@ proc envOrParam*(
   else:
     conf.cmdOptions.add initCmdOption(key, paramVal(key)[0])
 
-func getBodyToc*(linkList: string): string =
+func makeBodyToc*(linkList: string): string =
   """
   <div class="row">
     <div class="three columns">
@@ -124,25 +124,42 @@ func toHtmlList*(tree: FsTree,
     let url = hrefPref & "/" &
       tree.parent[min(tree.parent.len, dropnref) .. ^1].join("/") & "/" &
         &"{tree.basename}.html"
-    # debugecho url
 
     return newTree(
       "li",
-      @[ newTree("a", @[newText(tree.basename)], {"href" : url}) ]
-    )
+      @[ newTree("a", @[newText(tree.basename)], {"href" : url}) ])
+
+
+proc makeDocConf*(linklist: string): string =
+  &"""
+--hints:off
+--verbosity:0
+doc.body_toc = {makeBodyToc(linklist).wrap3QuoteNL()}
+doc.body_toc_group = {makeBodyToc(linkList).wrap3QuoteNL()}
+"""
 
 
 proc docgenBuild(conf: TaskRunConfig) =
   let curr = conf.projectDir.toFsTree()
   var rstfiles: seq[FsTree]
   var errMsg: seq[string]
+
+
   let
     files = buildFsTree(allowExts = @["nim", "rst"])
+    docConf = cwd() /. "nimdoc.cfg"
     tree = $files.mapIt(it.toHtmlList(
       dropnref = curr.pathLen(),
       dropnames = @["tests"],
       hrefPref = conf.hrefPref
     )).filterIt(it != nil).newTree("ol")
+
+  if not conf.testRun:
+    docConf.writeFile makeDocConf(tree)
+
+  # debug makeDocConf(tree)
+
+  notice "Wrote nimdoc configuration to", docConf
 
   for file in files.mapIt(it.flatFiles()).concat():
     let dir = conf.outdir / file.parent[curr.pathLen() .. ^1]
@@ -175,7 +192,7 @@ proc docgenBuild(conf: TaskRunConfig) =
         else:
           let res = shellResult(cmd)
           if res.resultOk:
-            info file
+            info $file & "\n" & $outfile
           #   debug "ok:", cmd.toLogStr()
           #   notice cmd.toLogStr()
           else:
@@ -194,9 +211,11 @@ proc docgenBuild(conf: TaskRunConfig) =
     info &"Saved documentation at path {conf.outdir}"
     # logcall cpFile(conf.nimdocCss, dir /. "nimdoc.out.css"), conf.testRun
 
-macro initBuildConf*(testRun: bool = false): TaskRunConfig  =
-  quote do:
-    TaskRunConfig(
+  # rmFile docConf
+
+template initBuildConf*(): TaskRunConfig {.dirty.} =
+  block:
+    var tmp = TaskRunConfig(
       packageName: packageName,
       version: version,
       author: author,
@@ -205,8 +224,10 @@ macro initBuildConf*(testRun: bool = false): TaskRunConfig  =
       srcDir: srcDir,
       binDir: binDir,
       projectDir: AbsDir thisDir(),
-      testRun: `testRun`
     )
+
+    tmp.hrefPref = ("https://" & author & ".github.io/" & packageName)
+    tmp
 
 proc runDocGen*(conf: TaskRunConfig): void =
   logIdented:

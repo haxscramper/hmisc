@@ -111,8 +111,8 @@ proc logImpl(
   if logger.prevBuf.len > 0 and logger.prevBuf[^1] != args:
     echo makeLogString(level, args)
     logger.prevBuf = @[]
-  else:
-    discard
+  elif logger.prevBuf.len == 0:
+    echo makeLogString(level, args)
     # echo "  ".repeat(getIdent()), " ... "
     # echo logger.prevBuf.len, " times"
 
