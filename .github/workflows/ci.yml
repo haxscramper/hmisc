@@ -27,4 +27,5 @@ jobs:
       run: |
         export PATH=$HOME/.nimble/bin:$PATH
         echo $PATH
-        nimble test
+        nimble -y test
+        nimble install -y
