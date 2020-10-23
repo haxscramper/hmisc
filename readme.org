@@ -11,14 +11,14 @@ nimble install hmisc
 ** Links
 
 - [[https://nimble.directory/pkg/hmisc][nimble package]]
-- [[https://haxscramper.github.io/hmisc-doc/src/hmisc.html][documentation]]
+- [[https://haxscramper.github.io/hmisc/src/hmisc.html][documentation]]
 - [[https://github.com/haxscramper/hmisc][github]]
 - [[https://discord.gg/hjfYJCU][discord server]]
 
 
 * Toplevel
 
-** ~hmisc/hexceptions~ [[https://haxscramper.github.io/hmisc-doc/src/hmisc/hexceptions.html][documentation]]
+** ~hmisc/hexceptions~ [[https://haxscramper.github.io/hmisc/src/hmisc/hexceptions.html][documentation]]
 
 One of features of this library - easily generate annotations for
 source code. Show exact line in the source code and provide custom
@@ -71,10 +71,10 @@ Raised in :0
 
 * Macros
 
-** ~hmisc/macros/obj_field_macros~ [[https://haxscramper.github.io/hmisc-doc/src/hmisc/macros/obj_field_macros.html][documentation]]
+** ~hmisc/macros/obj_field_macros~ [[https://haxscramper.github.io/hmisc/src/hmisc/macros/obj_field_macros.html][documentation]]
 
 - ~parallelFieldPairs~ - iterate case object fields in parallel
-- ~getFields~ - construct sequence of [[https://haxscramper.github.io/hmisc-doc/src/hmisc/types/hnim_ast.html#Field][Field]] types from node.
+- ~getFields~ - construct sequence of [[https://haxscramper.github.io/hmisc/src/hmisc/types/hnim_ast.html#Field][Field]] types from node.
 
 ** ~hmisc/macros/iflet~
 
@@ -103,7 +103,7 @@ else:
   :header-args:nim:+ :import hmisc/algo/halgorithm
   :END:
 
-** ~hmisc/algo/halgorithm~ [[https://haxscramper.github.io/hmisc-doc/src/hmisc/algo/halgorithm.html][documentation]]
+** ~hmisc/algo/halgorithm~ [[https://haxscramper.github.io/hmisc/src/hmisc/algo/halgorithm.html][documentation]]
 
 - predicates
   - ~allOfIt~
@@ -179,7 +179,7 @@ else:
 : -- abbrevCamel --
 : @["ABA"]
 
-** ~hmisc/algo/hseqdistance~ [[https://haxscramper.github.io/hmisc-doc/src/hmisc/algo/hseqdistance.html][documentation]]
+** ~hmisc/algo/hseqdistance~ [[https://haxscramper.github.io/hmisc/src/hmisc/algo/hseqdistance.html][documentation]]
 
 Fuzzy string matching and generic longest common subsequece
 implementation
