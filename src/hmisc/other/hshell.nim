@@ -36,6 +36,9 @@ when hasStrtabs: # https://github.com/nim-lang/Nim/pull/15172
 #      `fileArg` procedure), if binary itself is available and so on.
 # TODO Support command chaining using `&&`, `||` (`and`, `or`) and pipes
 #      `|` for redirecting output streams.
+# TODO move command-line flags collections into separate type to use for
+#      working with external libraries that accept list of command-line
+#      flags (like libclang for example)
 
 export ShellVar
 

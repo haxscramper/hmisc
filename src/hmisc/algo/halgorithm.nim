@@ -575,6 +575,15 @@ template getSomeIt*[T](opt: Option[T], value, default: untyped): untyped =
   else:
     default
 
+template getSome*[T](opt: Option[T], injected: untyped): bool =
+  let expr = opt
+
+  expr.isSome() and (
+    let injected {.inject.} = expr.get();
+    mixin injected;
+    true
+  )
+
 #================================  tests  ================================#
 
 import unittest

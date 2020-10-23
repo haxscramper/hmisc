@@ -1,5 +1,4 @@
 import sequtils, strformat, strutils, parseutils, macros
-import ../macros/matching
 
 type
   StrBackIndex* = distinct string
@@ -187,27 +186,67 @@ func filterPrefix*(str: seq[string], pref: StrPart): seq[string] =
       result.add s
 
 func msgjoinImpl*(args: seq[string]): string =
+  # FIXME `text __next`
+  # FIXME `text /dir/file.tmp`
   var openwrap: bool = false
-  for idx in 0 ..< args.len:
-    if idx == args.len - 1:
-      result &= args[idx]
-    else:
-      const wraps: set[char] = {'_', '`', '\'', '\"', ' '}
-      if args[idx].len >= 3 and args[idx].enclosedIn(wraps):
-        result &= " " & args[idx] & " "
-      elif args[idx].endsWith({'[', '(', '\'', '#', '@'} + wraps):
-        if (args[idx].endsWith wraps) and openwrap:
-          openwrap = false
-
+  let max = args.len - 1
+  var idx = 0
+  const wraps: set[char] = {'_', '`', '\'', '\"', ' '}
+  # debugecho "\e[41m*==========\e[49m  d  \e[41m===========*\e[49m"
+  while idx < args.len:
+    # debugecho args[idx .. ^1]
+    if args[idx].startsWith(wraps):
+      if args[idx].allIt(it in wraps):
         result &= args[idx]
-      elif args[idx + 1].startsWith({',', ' ', '.'} + wraps):
-        # if openwrap:
-        #   result &= args[idx]
-        # else:
-        #   openwrap = true
+        inc idx
+
+      while idx < args.len:
+        result &= args[idx]
+        inc idx
+
+        if not idx < args.len: break
+        if args[idx].endsWith(wraps):
+          if idx < args.len - 1: result &= " "
+          break
+
+    else:
+      if args[idx].endsWith({'[', '(', '\'', '#', '@'} + wraps):
+        # Most likely a `"some text[", var, "] else"`
+        # debugecho "22_"
+        result &= args[idx]
+      elif idx < max and args[idx + 1].startsWith({',', ' ', '.'}):
+        # Next argument is `".field"`, `" space"` etc.
+        # debugecho "122 _as"
         result &= args[idx]
       else:
-        result &= args[idx] & " "
+        # debugecho "else"
+        result &= args[idx]
+        if idx < max: result &= " "
+
+      inc idx
+      # debugecho "==", result, "=="
+  # for idx in 0 ..< args.len:
+  #   # if idx == args.len - 1:
+  #   #   result &= args[idx]
+  #   # else:
+  #   const wraps: set[char] = {'_', '`', '\'', '\"', ' '}
+  #   if args[idx].len >= 3 and args[idx].enclosedIn(wraps):
+  #     result &= " " & args[idx] & " "
+  #   elif args[idx].endsWith({'[', '(', '\'', '#', '@'} + wraps):
+  #     if (args[idx].endsWith wraps) and openwrap:
+  #       openwrap = false
+
+  #     result &= args[idx]
+  #   elif idx < max and args[idx + 1].startsWith({',', ' ', '.'} + wraps):
+  #     # if openwrap:
+  #     #   result &= args[idx]
+  #     # else:
+  #     #   openwrap = true
+  #     result &= args[idx]
+  #   else:
+  #     result &= args[idx]
+
+  #     if idx < max: result &= " "
 
 func msgjoin*(args: varargs[string, `$`]): string =
   ## Concatenate arguments by adding whitespaces when necessary. When
@@ -222,12 +261,15 @@ template raisejoin*(text: seq[string]): untyped =
   raiseAssert(msgjoinImpl(text))
 
 macro joinLiteral*(body: untyped): untyped =
-  if body.matches StmtList(
-    [all (kind: in nnkStrKinds, strVal: @msgLines)]):
-    result = newLit(msgjoin msgLines)
-    # echo result.treeRepr()
-  elif body.matches (kind: in nnkStrKinds, strVal: @msgText):
-    return body
+  if body.kind == nnkStmtList:
+    result = newLit(msgjoin body.mapIt(it.strVal())):
+  elif body.kind in {nnkStrLit, nnkTripleStrLit}:
+    result = body
+  # if body.matches StmtList(
+  #   [all (kind: in nnkStrKinds, strVal: @msgLines)]):
+  #   # echo result.treeRepr()
+  # elif body.matches (kind: in nnkStrKinds, strVal: @msgText):
+  #   return body
   else:
     error(
       "Expected either list of string literals or single literal", body)

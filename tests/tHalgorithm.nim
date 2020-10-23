@@ -754,15 +754,29 @@ suite "String helper functions":
 
   test "{msgjoin}":
     assertEq msgjoin("_", "nice", "_"), "_nice_"
-    assertEq msgjoin("hello,", "nice", "weather"), "hello, nice weather"
-    if false:
-      assertEq msgjoin("_a_"), "_a_"
-      assertEq msgjoin("_a", "_"), "_a_"
-      assertEq msgjoin("_", "a", "_"), "_a_"
-      assertEq msgjoin("hello", "_", "a", "_"), "hello _a_"
-      assertEq msgjoin("hello", "_", "a", "_", "world"), "hello _a_ world"
-      assertEq msgjoin("hello", "_", "a", "2", "_", "world"),
-       "hello _a 2_ world"
+    # echo msgjoin("[a", "b]")
+    # echo "-", msgjoin("a", "b"), "-"
+
+    assert msgjoin("a", "b") == "a b"
+    assertEq msgjoin("[hello,", "nice", "weather]"),
+            "[hello, nice weather]"
+
+    assertEq msgjoin("e", "/e"), "e /e"
+    assertEq msgjoin("e", "__e"), "e __e"
+    assertEq msgjoin("_a_"), "_a_"
+    assertEq msgjoin("_a", "_"), "_a_"
+    assertEq msgjoin("_", "a", "_"), "_a_"
+    assertEq msgjoin("file", "//ee"), "file //ee"
+    assertEq msgjoin("eee", "___eee"), "eee ___eee"
+    assertEq msgjoin("22", "22"), "22 22"
+    assertEq msgjoin("Found include", "cursor"), "Found include cursor"
+    assertEq msgjoin("1", "->", "2"), "1 -> 2"
+    assertEq msgjoin("/tt", "->", "/ee"), "/tt -> /ee"
+    # assertEq msgjoin("_", "333", "3", "_"), "_3333_"
+    # assertEq msgjoin("hello", "_", "a", "_"), "hello _a_"
+    # assertEq msgjoin("hello", "_", "a", "_", "world"), "hello _a_ world"
+    # assertEq msgjoin("hello", "_", "a", "2", "_", "world"),
+    #  "hello _a 2_ world"
 
   test "{splitCamel}":
     assertEq "HelloWorld".splitCamel, @["Hello", "World"]

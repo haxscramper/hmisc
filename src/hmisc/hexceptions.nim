@@ -2,7 +2,6 @@ import strformat, strutils, algorithm, sequtils, macros, os
 # TODO use `oswrap` instead of `os`
 import types/colorstring
 import algo/[hseq_mapping, hmath, halgorithm]
-import macros/matching
 
 type
   ErrorAnnotation* = object

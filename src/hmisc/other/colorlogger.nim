@@ -6,7 +6,7 @@ import macros, strutils, strformat
 
 when cbackend:
   import logging
-  export info, debug, notice, warn
+  export info, debug, notice, warn, fatal
   export Level
 
   type
@@ -16,7 +16,7 @@ when cbackend:
 
 else:
   type
-    ColorLogger = object
+    ColorLogger = ref object
       ident: int
       prevBuf: seq[string]
 
@@ -77,10 +77,11 @@ template logDefer*(logCmd, before: untyped): untyped =
   identLog()
   defer: dedentLog()
 
-proc startColorLogger*(): void =
+proc startColorLogger*(level: Level = lvlAll): void =
   when cbackend:
     var logger = ColorLogger(ident: 0)
     addHandler logger
+    # setLogFilter(level)
   else:
     discard
 
@@ -105,28 +106,34 @@ proc makeLogString(level: Level, args: varargs[string]): string =
 
   result = result[0..^2]
 
-proc logImpl(
-  logger: var ColorLogger, level: Level, args: varargs[string, `$`]) =
-  let args = args.join()
-  if logger.prevBuf.len > 0 and logger.prevBuf[^1] != args:
-    echo makeLogString(level, args)
-    logger.prevBuf = @[]
-  elif logger.prevBuf.len == 0:
-    echo makeLogString(level, args)
-    # echo "  ".repeat(getIdent()), " ... "
-    # echo logger.prevBuf.len, " times"
+template impl(): untyped {.dirty.} =
+  if (logger != nil) and args.len > 0:
+    let args = args.join()
+    if logger.prevBuf.len > 0 and logger.prevBuf[^1] != args:
+      echo makeLogString(level, args)
+      logger.prevBuf = @[]
+    elif logger.prevBuf.len == 0:
+      echo makeLogString(level, args)
+      # echo "  ".repeat(getIdent()), " ... "
+      # echo logger.prevBuf.len, " times"
 
-  logger.prevBuf.add args
+    logger.prevBuf.add args
 
+
+# proc logImpl(
+#   logger: var ColorLogger, level: Level, args: varargs[string, `$`]) =
+#   impl()
 
 when cbackend:
   method log(
     logger: ColorLogger, level: Level, args: varargs[string, `$`]) =
-    (cast[var ColorLogger](logger)).logImpl(level, args)
+    impl()
+    # (cast[var ColorLogger](logger)).logImpl(level, args)
 else:
   proc log(
     logger: var ColorLogger, level: Level, args: varargs[string, `$`]) =
-    logger.logImpl(level, args)
+    impl()
+    # logger.logImpl(level, args)
 
 when not cbackend:
   proc log*(level: Level, args: varargs[string, `$`]) =
