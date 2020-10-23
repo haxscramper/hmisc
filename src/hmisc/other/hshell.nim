@@ -14,12 +14,12 @@ else:
       poDaemon
 
 import oswrap
-import strutils, strformat, sequtils, options
+import std/[strutils, strformat, sequtils, options, deques, json]
 
 const hasStrtabs = cbackend or (NimMajor, NimMinor, NimPatch) > (1, 2, 6)
 
 when hasStrtabs: # https://github.com/nim-lang/Nim/pull/15172
-  import strtabs
+  import std/strtabs
 
 # import ../algo/halgorithm
 
@@ -231,7 +231,8 @@ func makeGnuShellCmd*(bin: string): ShellCmd =
   result.conf = GnuShellCmdConf
   result.bin = bin
 
-func makeFileShellCmd*(file: string, conf: ShellCmdConf = GnuShellCmdConf): ShellCmd =
+func makeFileShellCmd*(
+  file: string, conf: ShellCmdConf = GnuShellCmdConf): ShellCmd =
   result.conf = conf
   if file.startsWith("/"):
     result.bin = file
@@ -322,58 +323,15 @@ iterator iterstdout*(command: ShellExpr): string =
 
 when cbackend:
   proc startShell*(
-    cmd: ShellCmd, options: set[ProcessOption] = {
-      poEvalCommand, poParentStreams, poUsePath}): Process =
+    cmd: ShellCmd,
+    options: set[ProcessOption] = {poUsePath}): Process =
     ## Launch process using shell command
 
-    when hasStrtabs:
-      result = startProcess(
-        cmd.toStr(),
-        options = options,
-        env = if cmd.envVals.len > 0: newStringTable(cmd.envVals) else: nil
-      )
-    else:
-      if cmd.envVals.len > 0:
-        raiseAssert(
-          "Env variable passing is not supported for nimscript <= 1.2.6")
-      else:
-        result = startProcess(cmd.toStr(), options = options)
+    let
+      env = cmd.envVals
+      command = cmd.toStr()
 
-    if result.isNil:
-      raise ShellError(
-        msg: "Command '" & cmd.toStr() & "' failed to start",
-        cwd: getCurrentDir(),
-        cmd: cmd.toStr()
-      )
-
-proc shellResult*(
-  cmd: ShellCmd,
-  stdin: string = "",
-  options: set[ProcessOption] = {poEvalCommand},
-  maxErrorLines: int = 12,
-  discardOut: bool = false): ShellResult {.tags: [
-    ShellExecEffect,
-    ExecIOEffect,
-    ReadEnvEffect,
-    RootEffect
-  ].} =
-
-  let
-    env = cmd.envVals
-    command = cmd.toStr()
-
-  if not discardOut and (poParentStreams in options):
-    # TODO add support for showing output *and* piping results. This
-    # will certainly involve some fuckery with filtering out ansi
-    # codes (because colored output is basically /the/ reason to have
-    # piping to parent shell).
-    raiseAssert(
-      "Stream access not allowed when you use poParentStreams. " &
-        "Either set `discardOut` to true or remove `poParentStream` from options"
-    )
-
-  when not defined(NimScript):
-    let pid =
+    result =
       if poEvalCommand in options:
         startProcess(
           command,
@@ -388,6 +346,134 @@ proc shellResult*(
           env = if env.len > 0: newStringTable(env) else: nil
         )
 
+    if result.isNil:
+      raise ShellError(
+        msg: "Command '" & cmd.toStr() & "' failed to start",
+        cwd: getCurrentDir(),
+        cmd: cmd.toStr()
+      )
+
+proc updateException(
+  res: var ShellResult, cmd: ShellCmd, maxErrorLines: int) =
+  let
+    env = cmd.envVals
+    command = cmd.toStr()
+
+  if res.execResult.code != 0:
+    let envAdd =
+      if env.len > 0:
+        "With env variables " &
+          env.mapIt(&"{it.key}={it.val}").join(" ") & "\n"
+      else:
+        ""
+
+    var msg = &"Command '{command}'\nExecuted in directory " &
+      $cwd() & &"\n{envAdd}Exited with non-zero code:\n"
+
+    let split =
+      when cbackend:
+        res.execResult.stderr.split("\n")
+      else:
+        res.execResult.stdout.split("\n")
+
+    msg.add split[0 ..< min(split.len(), maxErrorLines)].join("\n")
+
+    res.exception = ShellError(
+      msg: msg,
+      retcode: res.execResult.code,
+      errorCode: int32(res.execResult.code),
+      errstr: res.execResult.stderr,
+      outstr: res.execResult.stdout,
+      cwd: cwd(),
+      cmd: command
+    )
+    # echo "Exception"
+  else:
+    # echo "ALl ok"
+    res = ShellResult(
+      resultOk: true,
+      execResult: res.execResult
+    )
+
+type
+  StrQue* = Deque[string]
+  StreamConverter* = proc(
+    que: var StrQue, cmd: ShellCmd): Option[JsonNode] {.noSideEffect.}
+
+proc makeShellJsonIter*(
+  cmd: ShellCmd,
+  outConvert: StreamConverter,
+  errConvert: StreamConverter,
+  options: set[ProcessOption] = {poEvalCommand, poUsePath},
+  maxErrorLines: int = 12,
+  doRaise: bool = true
+     ): iterator(): JsonNode =
+  ## Iterate over output of the shell command converted to json
+  return iterator(): JsonNode =
+    let
+      process = startShell(cmd, options)
+      stdoutStream = process.outputStream()
+      stderrStream = process.errorStream()
+
+    var
+      stdoutQue: StrQue
+      stderrQue: StrQue
+
+    template yieldStream(strm: untyped) =
+      `strm Que`.addLast line
+      let `strm Res` = outConvert(`strm Que`, cmd)
+      if `strm Res`.isSome():
+        yield `strm Res`.get()
+
+    block:
+      var line = ""
+      while process.running:
+        discard stdoutStream.readLine(line)
+        yieldStream(stdout)
+
+        discard stderrStream.readLine(line)
+        yieldStream(stderr)
+
+    block:
+      for line in stdoutStream.readAll().split("\n"):
+        yieldStream(stdout)
+
+      for line in stderrStream.readAll().split("\n"):
+        yieldStream(stderr)
+
+    var res = ShellResult()
+    res.execResult.code = process.peekExitCode()
+    updateException(res, cmd, maxErrorLines)
+
+    if not res.resultOk and doRaise:
+      raise res.exception
+
+
+
+proc shellResult*(
+  cmd: ShellCmd,
+  stdin: string = "",
+  options: set[ProcessOption] = {poEvalCommand},
+  maxErrorLines: int = 12,
+  discardOut: bool = false): ShellResult {.tags: [
+    ShellExecEffect,
+    ExecIOEffect,
+    ReadEnvEffect,
+    RootEffect
+  ].} =
+
+  if not discardOut and (poParentStreams in options):
+    # TODO add support for showing output *and* piping results. This
+    # will certainly involve some fuckery with filtering out ansi
+    # codes (because colored output is basically /the/ reason to have
+    # piping to parent shell).
+    raiseAssert(
+      "Stream access not allowed when you use poParentStreams. " &
+        "Either set `discardOut` to true or remove `poParentStream` from options"
+    )
+
+  when not defined(NimScript):
+    let pid = startShell(cmd, options)
     if not discardOut:
       let ins = pid.inputStream()
       ins.write(stdin)
@@ -428,41 +514,7 @@ proc shellResult*(
         result.execResult.code = code
 
 
-  if result.execResult.code != 0:
-    let envAdd =
-      if env.len > 0:
-        "With env variables " &
-          env.mapIt(&"{it.key}={it.val}").join(" ") & "\n"
-      else:
-        ""
-
-    var msg = &"Command '{command}'\nExecuted in directory " &
-      $cwd() & &"\n{envAdd}Exited with non-zero code:\n"
-
-    let split =
-      when cbackend:
-        result.execResult.stderr.split("\n")
-      else:
-        result.execResult.stdout.split("\n")
-
-    msg.add split[0 ..< min(split.len(), maxErrorLines)].join("\n")
-
-    result.exception = ShellError(
-      msg: msg,
-      retcode: result.execResult.code,
-      errorCode: int32(result.execResult.code),
-      errstr: result.execResult.stderr,
-      outstr: result.execResult.stdout,
-      cwd: cwd(),
-      cmd: command
-    )
-    # echo "Exception"
-  else:
-    # echo "ALl ok"
-    result = ShellResult(
-      resultOk: true,
-      execResult: result.execResult
-    )
+  updateException(result, cmd, maxErrorLines)
 
 
 
