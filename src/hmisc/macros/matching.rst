@@ -7,6 +7,12 @@ This module implements pattern matching DSL.
 
 ## Use example
 
+
+.. code:: nim
+    case [(1, 3), (3, 4)]:
+      of [(1, _), _]: 1
+      else: 999
+
 ## Supported match elements
 
 - *seqs* - matched using ``[Patt1(), Patt2(), ..]``. Must have

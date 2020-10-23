@@ -1,18 +1,10 @@
 import sequtils, macros, tables, options, strformat, strutils,
        parseutils, algorithm, hashes
 
-# TODO support
-# StmtList
-#   Asgn
-#     Ident "result"
-#     Call
-#       Ident "TomlParser"
-#       Call
-#         Ident "ts_parser_new"
-# As alternative syntax for writing nodes
-
 # TODO handle malformed input pattern with `@var or "default"` in
 # sequences/kv-pairs. Should be written as `opt @var or "default"`
+
+## .. include:: matching.rst
 
 
 const
@@ -1352,13 +1344,7 @@ macro makeTreeImpl*(node, kind: typed, patt: untyped): untyped =
   let (pref, _) = kind.getKindNames()
 
   var match = inpatt.parseMatchExpr()
-  # echo match[]
-
   result = buildTreeMaker(pref, node.getTypeIdent(), match)
-
-  # echo patt
-  # echo patt.len
-  # echo patt.kind
 
   if patt.kind in {nnkStmtList} and
      patt[0].len == 1 and
