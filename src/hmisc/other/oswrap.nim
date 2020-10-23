@@ -968,6 +968,7 @@ template withTempDir*(clean: bool, body: untyped): untyped =
   let curDir = cwd()
   let tmpDir {.inject.} = getNewTempDir()
   mkDir(tmpDir)
+  cd tmpDir
 
   try:
     body

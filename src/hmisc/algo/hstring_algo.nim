@@ -71,6 +71,9 @@ func `[]`*(ins: string, back: StrBackIndex): bool =
 func `[]`*(ins: string, forward: string): bool =
   ins.startsWith(forward.string)
 
+func `[]`*(ins: string, strs: openarray[string]): bool =
+  ins.startsWith(strs)
+
 func `[]`*(ins: string, beg: StrPart, final: StrPartConv): bool =
   ins.startsWith(beg) and ins.endsWith(toStrPart(final))
 

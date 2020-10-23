@@ -1,9 +1,10 @@
-import std/[strutils, sequtils, strformat, deques, options, json]
+import std/[strutils, sequtils, strformat,
+            deques, options, json, parseutils]
 
 import hmisc/helpers
 
 import unittest
-import hmisc/other/hshell
+import hmisc/other/[hshell, hshell_convert, oswrap]
 
 suite "Hshell":
   test "Echo":
@@ -28,3 +29,28 @@ suite "Hshell":
     for res in iter:
       if res[0].getStr() == "stdout":
         assert res[1].getStr() == "file"
+
+  test "Nim compiler output":
+    withTempDir(true):
+      let file = "test.nim"
+      file.writeFile("""
+echo 1 * '2'
+""")
+
+
+
+      var cmd = makeNimShellCmd("nim")
+      cmd.cmd "c"
+      cmd - "r"
+      cmd.arg file
+
+      # execShell(cmd, doRaise = false)
+      let iter = makeShellJsonIter(
+        cmd,
+        nimCmdOutConverter,
+        nimCmdErrConverter,
+        doRaise = false
+      )
+
+      for msg in iter:
+        echo msg.pretty

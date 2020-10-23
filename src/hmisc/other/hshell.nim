@@ -558,10 +558,10 @@ proc evalShellStdout*(cmd: ShellExpr): string =
   let res = runShell(cmd, options = {poEvalCommand, poUsePath})
   return res.stdout
 
-proc execShell*(cmd: ShellCmd): void =
+proc execShell*(cmd: ShellCmd, doRaise: bool = true): void =
   ## Execute shell command with stdout/stderr redirection into parent
   ## streams. To capture output use `runShell`
-  discard runShell(cmd, doRaise = true, discardOut = true, options = {
+  discard runShell(cmd, doRaise = doRaise, discardOut = true, options = {
     poParentStreams, poUsePath})
 
 proc eval*(expr: ShellExpr): string =
