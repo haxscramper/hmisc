@@ -400,53 +400,54 @@ type
   StreamConverter* = proc(
     que: var StrQue, cmd: ShellCmd): Option[JsonNode] {.noSideEffect.}
 
-proc makeShellJsonIter*(
-  cmd: ShellCmd,
-  outConvert: StreamConverter,
-  errConvert: StreamConverter,
-  options: set[ProcessOption] = {poEvalCommand, poUsePath},
-  maxErrorLines: int = 12,
-  doRaise: bool = true
-     ): iterator(): JsonNode =
-  ## Iterate over output of the shell command converted to json
-  return iterator(): JsonNode =
-    let
-      process = startShell(cmd, options)
-      stdoutStream = process.outputStream()
-      stderrStream = process.errorStream()
+when cbackend:
+  proc makeShellJsonIter*(
+    cmd: ShellCmd,
+    outConvert: StreamConverter,
+    errConvert: StreamConverter,
+    options: set[ProcessOption] = {poEvalCommand, poUsePath},
+    maxErrorLines: int = 12,
+    doRaise: bool = true
+       ): iterator(): JsonNode =
+    ## Iterate over output of the shell command converted to json
+    return iterator(): JsonNode =
+      let
+        process = startShell(cmd, options)
+        stdoutStream = process.outputStream()
+        stderrStream = process.errorStream()
 
-    var
-      stdoutQue: StrQue
-      stderrQue: StrQue
+      var
+        stdoutQue: StrQue
+        stderrQue: StrQue
 
-    template yieldStream(strm: untyped) =
-      `strm Que`.addLast line
-      let `strm Res` = outConvert(`strm Que`, cmd)
-      if `strm Res`.isSome():
-        yield `strm Res`.get()
+      template yieldStream(strm: untyped) =
+        `strm Que`.addLast line
+        let `strm Res` = outConvert(`strm Que`, cmd)
+        if `strm Res`.isSome():
+          yield `strm Res`.get()
 
-    block:
-      var line = ""
-      while process.running:
-        discard stdoutStream.readLine(line)
-        yieldStream(stdout)
+      block:
+        var line = ""
+        while process.running:
+          discard stdoutStream.readLine(line)
+          yieldStream(stdout)
 
-        discard stderrStream.readLine(line)
-        yieldStream(stderr)
+          discard stderrStream.readLine(line)
+          yieldStream(stderr)
 
-    block:
-      for line in stdoutStream.readAll().split("\n"):
-        yieldStream(stdout)
+      block:
+        for line in stdoutStream.readAll().split("\n"):
+          yieldStream(stdout)
 
-      for line in stderrStream.readAll().split("\n"):
-        yieldStream(stderr)
+        for line in stderrStream.readAll().split("\n"):
+          yieldStream(stderr)
 
-    var res = ShellResult()
-    res.execResult.code = process.peekExitCode()
-    updateException(res, cmd, maxErrorLines)
+      var res = ShellResult()
+      res.execResult.code = process.peekExitCode()
+      updateException(res, cmd, maxErrorLines)
 
-    if not res.resultOk and doRaise:
-      raise res.exception
+      if not res.resultOk and doRaise:
+        raise res.exception
 
 
 
@@ -503,7 +504,7 @@ proc shellResult*(
     close(pid)
 
   else:
-    let nscmd = &"cd {cwd()} && " & command
+    let nscmd = &"cd {cwd()} && " & cmd.toStr()
     if poParentStreams in options:
       exec(nscmd)
     else:
