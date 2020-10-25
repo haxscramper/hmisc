@@ -508,6 +508,9 @@ func wrap*(
   ## Check if string starts and ends with strings.
   return delim.left & str & delim.right
 
+func wrap*(str, left, right: string): string =
+  wrap(str, (left, right))
+
 
 func wrap*(str: string, delim: string): string =
   ## Split `delim` in two, use wrap `str` in left and right halves.

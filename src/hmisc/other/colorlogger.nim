@@ -108,7 +108,7 @@ proc makeLogString(level: Level, args: varargs[string]): string =
 
 template impl(): untyped {.dirty.} =
   if (logger != nil) and args.len > 0:
-    let args = args.join()
+    let args = args.msgjoin()
     if logger.prevBuf.len > 0 and logger.prevBuf[^1] != args:
       echo makeLogString(level, args)
       logger.prevBuf = @[]

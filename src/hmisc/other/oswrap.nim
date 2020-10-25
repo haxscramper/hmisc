@@ -6,7 +6,7 @@
 # TODO add `MaybeFile` and `MaybeDir` typeclasses for things that
 #      might represent anything at runtime
 
-import strutils, macros, random, hashes, strformat
+import std/[strutils, macros, random, hashes, strformat, sequtils]
 import ../algo/hstring_algo
 from os import nil
 
@@ -275,6 +275,9 @@ proc splitPath*(path: AbsFile): tuple[head: AbsDir, tail: RelFile] =
   result.head = AbsDir(head)
   result.tail = RelFile(head)
 
+proc getAbsDir*(path: string): AbsDir =
+  AbsDir(os.splitPath(path).head)
+
 proc startsWith*(path: AnyPath, str: string): bool =
   path.getStr().startsWith(str)
 
@@ -316,7 +319,7 @@ proc splitFile*(path: AnyFile): tuple[
   let (dir, name, ext) = os.splitFile(path.getStr())
   result.dir = AbsDir(dir)
   result.name = name
-  result.ext = ext
+  result.ext = ext.dropPrefix(".")
 
 func hasExt*(file: AnyFile, exts: openarray[string] = @[]): bool =
   let (_, _, ext) = file.splitFile()
@@ -324,6 +327,8 @@ func hasExt*(file: AnyFile, exts: openarray[string] = @[]): bool =
     return ext.len > 0
   else:
     return ext in exts
+
+func ext*(file: AnyFile): string = file.splitFile().ext
 
 proc assertValid*(path: AnyPath): void =
   if path.getStr().len < 1:
@@ -942,16 +947,21 @@ proc getNewTempDir*(
   dir: string | AbsDir = getTempDir(),
   dirPatt: string = "XXXXXXXX"): AbsDir =
   ## Get name for new temporary directory
-  while true:
-    var next: string
-    for ch in dirPatt:
-      if ch == 'X':
-        next.add sample({'a' .. 'z', 'A' .. 'Z'})
-      else:
-        next.add ch
+  if not anyIt(dirPatt, it == 'X'):
+    # To avoid infinite search for non-existent directory in case
+    # pattern does not contain necessary placeholders
+    return AbsDir(dir / RelDir(dirPatt))
+  else:
+    while true:
+      var next: string
+      for ch in dirPatt:
+        if ch == 'X':
+          next.add sample({'a' .. 'z', 'A' .. 'Z'})
+        else:
+          next.add ch
 
-    if not dirExists(dir / RelDir(next)):
-      return AbsDir(dir / RelDir(next))
+      if not dirExists(dir / RelDir(next)):
+        return AbsDir(dir / RelDir(next))
 
 template withDir*(dir: AnyDir, body: untyped): untyped =
   ## Changes the current directory temporarily.
@@ -962,21 +972,31 @@ template withDir*(dir: AnyDir, body: untyped): untyped =
   finally:
     cd(curDir)
 
-template withTempDir*(clean: bool, body: untyped): untyped =
+template withTempDir*(clean: bool, setup, body: untyped): untyped =
   ## Create temporary directory (not don't cd into it!), execute
   ## `body` and remove it afterwards if `clean` is true
   let curDir = cwd()
-  let tmpDir {.inject.} = getNewTempDir()
-  mkDir(tmpDir)
-  cd tmpDir
+  var tempRoot {.inject.} = getTempDir()
+  var tempPatt {.inject.} = "XXXXXXXXX"
+  setup
+  let tempDir {.inject.} = getNewTempDir(tempRoot, tempPatt)
+
+  if dirExists(tempDir):
+    rmDir(tempDir)
+
+  mkDir(tempDir)
+  cd tempDir
 
   try:
     body
   finally:
     if clean:
-      rmDir(tmpDir)
+      rmDir(tempDir)
 
     cd(curDir)
+
+template withTempDir*(clean: bool, body: untyped): untyped =
+  withTempDir(clean, (discard nil), body)
 
 
 template withCleanDir*(dirname, body: untyped): untyped =
