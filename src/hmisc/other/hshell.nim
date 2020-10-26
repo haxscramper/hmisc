@@ -39,6 +39,8 @@ when hasStrtabs: # https://github.com/nim-lang/Nim/pull/15172
 # TODO move command-line flags collections into separate type to use for
 #      working with external libraries that accept list of command-line
 #      flags (like libclang for example)
+# TODO Add 'subshell' command type - for passing strings that are shell
+#      expression themselves. Correct quoting etc.
 
 export ShellVar
 

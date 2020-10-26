@@ -148,7 +148,7 @@ template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
   {.noSideEffect.}:
     block:
       let iinfo = instantiationInfo()
-      var line = ($iinfo.line).alignLeft(4) & " | "
+      var line = strutils.alignLeft($iinfo.line, 4) & " | "
           # & " ".repeat(max(iinfo.column - 6, 0))
 
       var vart =

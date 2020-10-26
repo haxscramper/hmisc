@@ -9,6 +9,7 @@ func format*(str: string, kvalues: openarray[(string, string)]): string =
 
 export AbsDir, RelDir, AbsFile, RelFile, ShellExpr, ShellVar
 export get, set, del, exists
+export info, warn, fatal, error, notice, startColorLogger
 
 import ../algo/htemplates
 

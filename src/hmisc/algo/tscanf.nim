@@ -104,8 +104,14 @@ macro tscanf*(input, pattNode: string): untyped =
       )
     else:
       let node = parseExpr str[1].replace("\\'", "'")
-      tupleType.add newCall("typeof",
-                            newCall("matcherTypeGetter_Impl", node[0]))
+
+      tupleType.add newCall(
+        "typeof", newCall("matcherTypeGetter_Impl",
+                          if node.kind == nnkIdent:
+                            node
+                          else:
+                            node[0]
+      ))
 
   tupleType.add ident("int")
       # echo getType(Call("matcherTypeGetter_Impl", ident str[1]))
