@@ -40,8 +40,8 @@ when defined(nimscript):
       bgDefault             ## default terminal background color
 
 else:
-  import hmisc/algo/halgorithm
-  import hmisc/hdebug_misc
+  import ../algo/halgorithm
+  import ../hdebug_misc
   import terminal
   export terminal
 

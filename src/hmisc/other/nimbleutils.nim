@@ -8,7 +8,7 @@ func format*(str: string, kvalues: openarray[(string, string)]): string =
   str % kvalues.mapIt(@[it[0], it[1]]).concat()
 
 export AbsDir, RelDir, AbsFile, RelFile, ShellExpr, ShellVar
-export get, set, del, exists
+export get, set, del, exists, `&&`
 export info, warn, fatal, error, notice, startColorLogger
 
 import ../algo/htemplates
@@ -229,21 +229,50 @@ proc docgenBuild(conf: TaskRunConfig) =
 
   # rmFile docConf
 
-template initBuildConf*(): TaskRunConfig {.dirty.} =
-  block:
-    var tmp = TaskRunConfig(
-      packageName: packageName,
-      version: version,
-      author: author,
-      description: description,
-      license: license,
-      srcDir: srcDir,
-      binDir: binDir,
-      projectDir: AbsDir thisDir(),
+when cbackend:
+  import parsecfg, streams, tables
+
+  func `[]`*(conf: Config, section, key: string): string =
+    conf.getSectionValue(section, key)
+
+  proc parseConfig*(str: string, filename: string): Config =
+    var s = newStringStream(str)
+    loadConfig(s, filename)
+
+  proc parsePackageConf*(): TaskRunConfig =
+    let stats = runShell(ShellExpr "nimble dump").stdout
+    let conf = parseConfig(stats, "XXX.nimble")
+    echo "conf: ", conf
+    return TaskRunConfig(
+      author:      conf["", "author"],
+      license:     conf["", "license"],
+      description: conf["", "desc"],
+      packageName: conf["", "name"],
+      version:     conf["", "version"],
+      srcDir:      conf["", "srcDir"],
+      binDir:      conf["", "binDir"],
+      projectDir:  cwd()
     )
 
-    tmp.hrefPref = ("https://" & author & ".github.io/" & packageName)
-    tmp.outdir = AbsDir(thisDir() / "docs")
+
+template initBuildConf*(): TaskRunConfig {.dirty.} =
+  block:
+    when compiles(thisDir()):
+      var tmp = TaskRunConfig(
+        packageName: packageName,
+        version: version,
+        author: author,
+        description: description,
+        license: license,
+        srcDir: srcDir,
+        binDir: binDir,
+        projectDir: AbsDir thisDir(),
+      )
+    else:
+      var tmp = parsePackageConf()
+
+    tmp.hrefPref = ("https://" & tmp.author & ".github.io/" & tmp.packageName)
+    tmp.outdir = AbsDir(tmp.projectDir / "docs")
 
     tmp
 
@@ -264,7 +293,7 @@ proc thisAbsDir*(): AbsDir =
     cwd()
 
 proc runDockerTest*(
-  projDir, tmpDir: AbsDir, cmd: string,
+  projDir, tmpDir: AbsDir, cmd: ShellExpr,
   runCb: proc() = (proc() = discard)): void =
   ## Copy project directory `projDir` into temporary `tmpDir` and
   ## execute command `cmd` inside new docker container based on
@@ -291,25 +320,11 @@ proc runDockerTest*(
     it.arg "nim-base"
     it.arg "sh"
     it - "c"
-    it.raw &"'cd /project/main && {cmd}'"
+    it.raw &"'cd /project/main && {cmd.string}'"
 
   # echo dockerCmd.toStr()
 
   execShell(dockerCmd)
-
-
-func `&&`*(lhs, rhs: string): string =
-  if lhs.len == 0:
-    rhs
-  elif rhs.len == 0:
-    lhs
-  else:
-    # TODO check for `||` ending to prevent incorrect string construction
-    if lhs.strip().endsWith("&&") or rhs.strip.startsWith("&&"):
-      # if rhs.strip().startsWith("&&"): # IMPLEMENT
-      lhs & " " & rhs
-    else:
-      lhs & " && " & rhs
 
 proc pkgVersion*(pkg: string): string =
   let (stdout, stderr, code) = runShell(ShellExpr "nimble dump " & pkg)
@@ -318,7 +333,7 @@ proc pkgVersion*(pkg: string): string =
       return line["version: \"".len() .. ^2]
 
 
-proc makeLocalDevel*(testDir: AbsDir, pkgs: seq[string]): string =
+proc makeLocalDevel*(testDir: AbsDir, pkgs: seq[string]): ShellExpr =
   info "Copying local development versions"
   let home = getHomeDir()
   let dirs = collect(newSeq):
@@ -373,9 +388,9 @@ proc testAllImpl*(): void =
 
 proc runDockerTestDevel*(
   startDir, testDir: AbsDir, localDevel: seq[string],
-  cmd: string, cb: proc()) =
+  cmd: ShellExpr, cb: proc()) =
   let develCmd = makeLocalDevel(testDir, localDevel)
-  let cmd = develCmd && ("cd " & "/project/main") && cmd
+  let cmd = develCmd && ShellExpr("cd " & " /project/main") && cmd
 
   info "executing docker container"
   debug "command is"

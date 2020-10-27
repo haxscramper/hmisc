@@ -45,9 +45,6 @@ when hasStrtabs: # https://github.com/nim-lang/Nim/pull/15172
 export ShellVar
 
 type
-  ShellExpr* = distinct string ## Shell expression
-  ## Can be evaluated by external shell invokation (bash, zsh etc).
-  ## Supported syntax on shell being used
   ShellExecEffect = object of IOEffect
   ShellError* = ref object of OSError
     cmd*: string ## Command that returned non-zero exit code
@@ -362,6 +359,7 @@ proc updateException(
     command = cmd.toStr()
 
   if res.execResult.code != 0:
+    # echo res
     let envAdd =
       if env.len > 0:
         "With env variables " &
@@ -372,11 +370,8 @@ proc updateException(
     var msg = &"Command '{command}'\nExecuted in directory " &
       $cwd() & &"\n{envAdd}Exited with non-zero code:\n"
 
-    let split =
-      when cbackend:
-        res.execResult.stderr.split("\n")
-      else:
-        res.execResult.stdout.split("\n")
+    let split = res.execResult.stderr.split("\n") &
+      res.execResult.stdout.split("\n")
 
     msg.add split[0 ..< min(split.len(), maxErrorLines)].join("\n")
 

@@ -35,6 +35,9 @@ when cbackend:
 
 type
   ShellVar* = distinct string
+  ShellExpr* = distinct string ## Shell expression
+  ## Can be evaluated by external shell invokation (bash, zsh etc).
+  ## Supported syntax on shell being used
   AbsFile* = distinct string
   AbsDir* = distinct string
   AbsPath* = AbsFile | AbsDir
@@ -274,6 +277,11 @@ proc splitPath*(path: AbsFile): tuple[head: AbsDir, tail: RelFile] =
   let (head, tail) = os.splitPath(path.string)
   result.head = AbsDir(head)
   result.tail = RelFile(head)
+
+proc splitDir*(dir: AbsDir): tuple[head: AbsDir, tail: RelDir] =
+  let (head, tail) = os.splitPath(dir.getStr())
+  result.head = AbsDir(head)
+  result.tail = RelDir(tail)
 
 proc getAbsDir*(path: string): AbsDir =
   AbsDir(os.splitPath(path).head)
@@ -940,6 +948,14 @@ func `&&`*(lhs, rhs: string): string =
       lhs & " " & rhs
     else:
       lhs & " && " & rhs
+
+
+func `&&`*(ex1, ex2: ShellExpr): ShellExpr =
+  ShellExpr(ex1.string && ex2.string)
+
+func `&&`*(ex1: ShellExpr, ex2: string): ShellExpr =
+  ShellExpr(ex1.string && ex2)
+
 
 proc `~`*(path: string | RelDir): AbsDir = getHomeDir() / path
 
