@@ -956,6 +956,9 @@ func `&&`*(ex1, ex2: ShellExpr): ShellExpr =
 func `&&`*(ex1: ShellExpr, ex2: string): ShellExpr =
   ShellExpr(ex1.string && ex2)
 
+func `&&=`*(ex: var ShellExpr, ex2: ShellExpr) =
+  ex = ex && ex2
+
 
 proc `~`*(path: string | RelDir): AbsDir = getHomeDir() / path
 

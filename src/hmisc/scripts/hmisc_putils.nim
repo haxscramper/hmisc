@@ -23,14 +23,21 @@ proc dockertest*(projectDir: AbsDir) =
     ShellExpr "nimble test"
   )
 
-proc installtest*(projectDir: AbsDir) =
+proc installtest*(
+  projectDir: AbsDir, localDeps: seq[string] = @[]) =
   ## Test installation in docker container
-  runDockerTest(
-    projectDir,
-    tempDirPath(projectDir),
-    ShellExpr("nimble install -y") &&
-      "PATH=$PATH:$HOME/.nimble/bin"
-  )
+  let tmpd = tempDirPath(projectDir)
+  let develCmd =
+    if localDeps.len > 0:
+      makeLocalDevel(tmpd, localDeps)
+    else:
+      ShellExpr("true")
+
+  let cmd = develCmd &&
+    "nimble install -y" &&
+    "PATH=$PATH:$HOME/.nimble/bin"
+
+  runDockerTest(projectDir, tmpd, cmd)
 
 proc docgen*() =
   ## Generate documentation for current project
@@ -49,12 +56,11 @@ proc dockerDocGen*(projectDir: AbsDir) =
     ShellExpr(
       "nimble install -y" &&
       "PATH=$PATH:$HOME/.nimble/bin" &&
-      "hmisc-docgen docgen"
+      "hmisc-putils docgen"
   ))
 
 
 when isMainModule:
-  # cd "../../.."
   dispatchMulti(
     [dockertest],
     [installtest],

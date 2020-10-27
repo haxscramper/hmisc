@@ -6,11 +6,11 @@ description   = "Collection of helper utilities"
 license       = "Apache-2.0"
 srcDir        = "src"
 packageName   = "hmisc"
-bin           = @["hmisc/scripts/hmisc_docgen"]
+bin           = @["hmisc/scripts/hmisc_putils"]
 installExt    = @["nim"]
 binDir        = "bin"
 namedBin      = {
-  "hmisc/scripts/hmisc_docgen" : "hmisc-docgen"
+  "hmisc/scripts/hmisc_putils" : "hmisc-putils"
 }.toTable()
 
 
@@ -26,7 +26,7 @@ else:
   import hmisc/other/nimbleutils
 
 task docgen, "Generate documentation":
-  if not fileExists("bin/hmisc-docgen"):
+  if not fileExists("bin/hmisc-putils"):
     execShell(ShellExpr "nimble build")
 
-  execShell(ShellExpr "bin/hmisc-docgen")
+  execShell(ShellExpr "bin/hmisc-putils")

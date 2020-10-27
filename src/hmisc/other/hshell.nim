@@ -300,6 +300,24 @@ func toLogStr*(cmd: ShellCmd): string =
 
     result &= str
 
+func splitShell*(str: string): seq[string] =
+  # IMPLEMENT
+  str.split(" ")
+
+func wrapShell*(str: string, maxw: int = 80): string =
+  var buf: seq[string] = @[""]
+  for str in str.splitShell():
+    if buf[^1].len + str.len + 1 > maxw - 2:
+      buf[^1] = buf[^1].alignLeft(maxw - 2) & " \\\n"
+      buf.add ""
+    elif buf[^1].len > 0:
+      buf[^1] &= " "
+
+    buf[^1] &= str
+
+  return buf.join("")
+
+
 
 when not defined(NimScript):
   proc printShellError*() =

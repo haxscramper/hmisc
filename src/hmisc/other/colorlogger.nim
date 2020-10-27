@@ -78,6 +78,8 @@ template logDefer*(logCmd, before: untyped): untyped =
   defer: dedentLog()
 
 proc startColorLogger*(level: Level = lvlAll): void =
+  # TODO read environment variable for logging indentation/filter etc.
+  # Make these things composable across execution of differen programs.
   when cbackend:
     var logger = ColorLogger(ident: 0)
     addHandler logger
@@ -87,7 +89,7 @@ proc startColorLogger*(level: Level = lvlAll): void =
 
 proc makeLogString(level: Level, args: varargs[string]): string =
   let ident = "  ".repeat(getIdent())
-  let prefix =
+  var prefix =
     case level:
       of lvlDebug: " DEBUG"
       of lvlInfo:   "\e[94m  INFO\e[39m"
@@ -97,6 +99,8 @@ proc makeLogString(level: Level, args: varargs[string]): string =
       of lvlFatal:  "\e[1m\e[35m FATAL\e[39m\e[21m"
       of lvlAll:    "ALL"
       of lvlNone: ""
+
+  prefix &= "\e[0m"
 
   let mlines = args.msgjoin().split("\n")
   result &= ident & prefix & " " & mlines[0] & "\n"

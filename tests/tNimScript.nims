@@ -21,7 +21,3 @@ if false:
 
   for line in iterstdout(ShellExpr "hello"):
     discard line
-
-
-# withDir(AbsDir "/mnt/workspace/github/hmisc"):
-#   execShell("nimble docgen")

@@ -256,6 +256,7 @@ when cbackend:
     )
 
 
+
 template initBuildConf*(): TaskRunConfig {.dirty.} =
   block:
     when compiles(thisDir()):
@@ -293,6 +294,8 @@ proc thisAbsDir*(): AbsDir =
   else:
     cwd()
 
+const cdMainProject* = ShellExpr("cd /project/main")
+
 proc runDockerTest*(
   projDir, tmpDir: AbsDir, cmd: ShellExpr,
   runCb: proc() = (proc() = discard)): void =
@@ -309,7 +312,6 @@ proc runDockerTest*(
   withDir tmpDir / "main":
     runCb()
 
-  info "Execute inside docker:", cmd.string
   let dockerCmd = makeGnuShellCmd("docker").withIt do:
     it.cmd "run"
     it - "i"
@@ -319,11 +321,19 @@ proc runDockerTest*(
     it.arg "nim-base"
     it.arg "sh"
     it - "c"
-    it.expr ShellExpr("cd /project/main") && cmd
+    it.expr cmd
 
-  echo dockerCmd.toStr()
 
-  execShell(dockerCmd)
+  info "Command for docker container"
+  debug dockerCmd.toStr().wrapShell()
+  notice "Started docker container"
+  try:
+    execShell(dockerCmd)
+  except:
+    fatal "Docker container run failed"
+    raise
+
+  notice "Docker container finished run"
 
 proc pkgVersion*(pkg: string): string =
   let (stdout, stderr, code) = runShell(ShellExpr "nimble dump " & pkg)
@@ -332,32 +342,71 @@ proc pkgVersion*(pkg: string): string =
       return line["version: \"".len() .. ^2]
 
 
-proc makeLocalDevel*(testDir: AbsDir, pkgs: seq[string]): ShellExpr =
-  info "Copying local development versions"
-  let home = getHomeDir()
-  let dirs = collect(newSeq):
+when cbackend:
+  proc getNimbleDump*(pkg: string): Config =
+    let stats = runShell(ShellExpr "nimble dump " & pkg).stdout
+    return parseConfig(stats, pkg & ".nimble")
+
+
+  proc makeLocalDevel*(testDir: AbsDir, pkgs: seq[string]): ShellExpr =
+    ## Copy local packages from host to docker container. Useful if you
+    ## want to avoid redownloading all packages each time or want to
+    ## test something with local version of the package *before* pushing
+    ## it to github.
+    ##
+    ## # Parameters
+    ## :testDir: Path to temporary directory, mounted in docker container
+    ## :pkgs: List of packages (by name) that will be copied to docker
+    info "Copying local development versions"
+    identLog()
+    let home = getHomeDir()
+    let dirs = collect(newSeq):
+      for pkg in pkgs:
+        let version = getNimbleDump(pkg)["", "version"]
+        let dir = home / &".nimble/pkgs/{pkg}-{version}"
+        info "Using", version, "for", pkg
+
+        assert dirExists(dir),
+            &"Could not find {dir} - run " &
+              "`nimble develop` to make it available"
+
+        dir
+
+    mkDir testDir
     for pkg in pkgs:
-      let dir = home / ".nimble/pkgs" / (pkg & "-#head")
+      let version = getNimbleDump(pkg)["", "version"]
+      let pkgDir = home / &".nimble/pkgs/{pkg}-{version}"
+      let meta =  pkgDir / RelFile(pkg & ".nimble-link")
 
-      assert dirExists(dir),
-          &"Could not find {dir} - run " &
-            "`nimble develop` to make it available"
+      if meta.fileExists():
+        for nimble in meta.readFile().split("\n"):
+          let nimble = AbsDir nimble
+          if nimble.endsWith(&"{pkg}.nimble"): # XXX
+            let dir = parentDir(nimble)
+            info pkg, "is developed locally, copying from", dir
+            cpDir dir, (testDir / pkg)
+      else:
+        info pkg, "is installed locally, copying from", pkgDir
+        cpDir pkgDir, (testDir / pkg)
 
-      dir
+      result = result && &"cd /project/{pkg}" && "nimble develop"
 
-  mkDir testDir
-  for pkg in pkgs:
-    let meta = home / &".nimble/pkgs/{pkg}-#head" /
-      RelFile(pkg & ".nimble-link")
+    result &&= cdMainProject
+    dedentLog()
 
-    for nimble in meta.readFile().split("\n"):
-      let nimble = AbsDir nimble
-      if nimble.endsWith(&"{pkg}.nimble"): # XXX
-        let dir = parentDir(nimble)
-        cpDir dir, (testDir / pkg)
+  proc runDockerTestDevel*(
+    startDir, testDir: AbsDir, localDevel: seq[string],
+    cmd: ShellExpr, cb: proc()) =
+    let develCmd = makeLocalDevel(testDir, localDevel)
+    let cmd = develCmd && ShellExpr("cd " & " /project/main") && cmd
 
-  for pkg in pkgs:
-    result = result && &"cd /project/{pkg}" && "nimble develop"
+    info "executing docker container"
+    debug "command is"
+    echo cmd
+
+    runDockerTest(thisAbsDir(), testDir, cmd) do:
+      cb()
+
 
 proc writeTestConfig*(str: string): void =
   "tests/nim.cfg".writeFile(str.unindent())
@@ -384,16 +433,3 @@ proc testAllImpl*(): void =
     info "Installation on stable OK"
   except:
     err "Installation on stable failed"
-
-proc runDockerTestDevel*(
-  startDir, testDir: AbsDir, localDevel: seq[string],
-  cmd: ShellExpr, cb: proc()) =
-  let develCmd = makeLocalDevel(testDir, localDevel)
-  let cmd = develCmd && ShellExpr("cd " & " /project/main") && cmd
-
-  info "executing docker container"
-  debug "command is"
-  echo cmd
-
-  runDockerTest(thisAbsDir(), testDir, cmd) do:
-    cb()
