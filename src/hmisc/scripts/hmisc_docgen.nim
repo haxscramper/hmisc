@@ -1,3 +1,4 @@
+#!/usr/bin/env nim r
 import cligen
 import ../other/[nimbleutils, oswrap]
 
@@ -8,31 +9,43 @@ proc argParse*(
   dst: var AbsDir, dfl: AbsDir, a: var ArgcvtParams): bool =
   dst = toAbsDir(a.val)
 
-proc dockertest*(projectDir: AbsDir = cwd()) =
+proc tempDirPath(proj: AbsDir): AbsDir =
+  AbsDir("/tmp") / proj.splitDir().tail
+
+proc dockertest*(projectDir: AbsDir) =
   ## Run unti tests in new docker container
-  let tempDir: AbsDir = AbsDir("/tmp") / projectDir.splitDir().tail
   runDockerTest(
     projectDir,
-    tempDir,
+    tempDirPath(projectDir),
     ShellExpr "nimble test"
   )
 
-proc installtest*(projectDir: AbsDir = cwd()) =
+proc installtest*(projectDir: AbsDir) =
   ## Test installation in docker container
-  let tempDir: AbsDir = AbsDir("/tmp") / projectDir.splitDir().tail
   runDockerTest(
     projectDir,
-    tempDir,
+    tempDirPath(projectDir),
     ShellExpr "nimble install"
   )
 
 proc docgen*() =
-  ## Generate documentation
+  ## Generate documentation for current project
   var conf = initBuildConf()
   conf.testRun = false
   conf.configureCI()
   runDocgen(conf)
 
+proc dockerDocGen*(projectDir: AbsDir) =
+  runDockerTest(
+    projectDir,
+    tempDirPath(projectDir),
+    ShellExpr(
+      "nimble install -y" &&
+      "PATH=$PATH:$HOME/.nimble/bin" &&
+      "hmisc-docgen docgen"
+  ))
+
+
 when isMainModule:
-  cd "../../.."
-  dispatchMulti([dockertest], [installtest])
+  # cd "../../.."
+  dispatchMulti([dockertest], [installtest], [docgen])

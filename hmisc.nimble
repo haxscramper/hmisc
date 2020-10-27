@@ -16,8 +16,9 @@ namedBin      = {
 
 requires "nim >= 1.4.0", "sorta", "cligen"
 
+
 from os import `/`
-import strutils
+import std/[strutils]
 
 when fileExists(thisDir() / "src/hmisc/other/nimbleutils.nim"):
   import src/hmisc/other/nimbleutils
@@ -38,12 +39,13 @@ task installtest, "Test installation from cloned repo":
       "hmisc-docgen --help")
 
 task docgen, "Generate documentation":
-  runDockerTest(
-    AbsDir thisDir(),
-    AbsDir "/tmp/docker-hmisc",
-    ShellExpr "nimble install -y" &&
-      "PATH=$PATH:$HOME/.nimble/bin" &&
-      "hmisc-docgen")
+  if not fileExists("bin/hmisc-docgen"):
+    execShell(ShellExpr "nimble build")
+
+  execShell(ShellExpr "bin/hmisc-docgen")
+
+task dockerDocGen, "Run documentation generator test in docker":
+
 
 task testRun, "test things":
   echo commandLineParams

@@ -7,9 +7,10 @@ import colorlogger
 func format*(str: string, kvalues: openarray[(string, string)]): string =
   str % kvalues.mapIt(@[it[0], it[1]]).concat()
 
-export AbsDir, RelDir, AbsFile, RelFile, ShellExpr, ShellVar
-export get, set, del, exists, `&&`
-export info, warn, fatal, error, notice, startColorLogger
+# export AbsDir, RelDir, AbsFile, RelFile, ShellExpr, ShellVar
+# export get, set, del, exists, `&&`
+# export info, warn, fatal, error, notice, startColorLogger
+export oswrap, colorlogger, hshell
 
 import ../algo/htemplates
 
