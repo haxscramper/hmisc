@@ -81,6 +81,8 @@ type
     cpkOption ## Key-value pair
     cpkFlag ## Boolean flag (on/off)
     cpkRaw ## Raw parameter
+    cpkSubExpr ## Another shell subexpression,
+    ## for things like `sh -c "some code"`
 
   ShellCmdPart* = object
     case kind*: ShellCmdPartKind
@@ -104,6 +106,8 @@ type
 
       of cpkRaw:
         rawstring*: string
+      of cpkSubExpr:
+        expr*: ShellExpr
 
   ShellCmd* = object
     bin: string
@@ -188,6 +192,9 @@ func raw*(cmd: var ShellCmd, str: string) =
   ## covered by default options)
   cmd.opts.add ShellCmdpart(kind: cpkRaw, rawstring: str)
 
+func expr*(cmd: var ShellCmd, subexpr: ShellExpr) =
+  cmd.opts.add ShellCmdPart(kind: cpkSubExpr, expr: subexpr)
+
 func arg*(cmd: var ShellCmd, arg: string | AnyPath) =
   ## Add argument for command
   cmd.opts.add ShellCmdPart(
@@ -265,10 +272,20 @@ func toStr*(part: ShellCmdPart, conf: ShellCmdConf): string =
         return "-" & part.key & kv & part.val.quoteShell()
     of cpkArgument:
       return part.argument.quoteShell()
+    of cpkSubExpr:
+      return part.expr.string
 
 
 func toStrSeq*(cmd: ShellCmd): seq[string] =
-  @[ cmd.bin ] & cmd.opts.mapIt(it.toStr(cmd.conf))
+  result = @[ cmd.bin ]
+  for op in cmd.opts:
+    if op.kind == cpkSubExpr:
+      # WARNING escaping of the subshell commands needs to be
+      # configured separately.
+      result &= "'" & op.toStr(cmd.conf) & "'"
+    else:
+      result &= op.toStr(cmd.conf)
+  # @[ cmd.bin ] & cmd.opts.mapIt(it.toStr(cmd.conf))
 
 func toStr*(cmd: ShellCmd): string = cmd.toStrSeq().join(" ")
 
@@ -485,8 +502,8 @@ proc shellResult*(
         try:
           let streamRes = outStream.readLine(line)
           if streamRes:
-            result.execResult.stdout &= line & "\n" # WARNING remove trailing newline
-                                         # on the stdout
+            result.execResult.stdout &= line & "\n"
+            # WARNING remove trailing newline on the stdout
         except IOError, OSError:
           assert outStream.isNil
           echo "process died" # NOTE possible place to raise exception

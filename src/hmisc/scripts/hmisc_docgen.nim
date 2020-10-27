@@ -1,13 +1,16 @@
-#!/usr/bin/env nim r
+#!/usr/bin/env -S nim r
 import cligen
 import ../other/[nimbleutils, oswrap]
 
+startColorLogger()
+
 proc argHelp*(dfl: AbsDir, a: var ArgcvtParams): seq[string] =
-  @["hello"]
+  @["--" & a.parNm, "AbsDir", ""]
 
 proc argParse*(
   dst: var AbsDir, dfl: AbsDir, a: var ArgcvtParams): bool =
   dst = toAbsDir(a.val)
+  result = true
 
 proc tempDirPath(proj: AbsDir): AbsDir =
   AbsDir("/tmp") / proj.splitDir().tail
@@ -25,7 +28,8 @@ proc installtest*(projectDir: AbsDir) =
   runDockerTest(
     projectDir,
     tempDirPath(projectDir),
-    ShellExpr "nimble install"
+    ShellExpr("nimble install -y") &&
+      "PATH=$PATH:$HOME/.nimble/bin"
   )
 
 proc docgen*() =
@@ -36,6 +40,9 @@ proc docgen*() =
   runDocgen(conf)
 
 proc dockerDocGen*(projectDir: AbsDir) =
+  ## Test documentation generation in new docker container
+  info "Creating new docker container"
+  debug "Input directory is", projectDir
   runDockerTest(
     projectDir,
     tempDirPath(projectDir),
@@ -48,4 +55,9 @@ proc dockerDocGen*(projectDir: AbsDir) =
 
 when isMainModule:
   # cd "../../.."
-  dispatchMulti([dockertest], [installtest], [docgen])
+  dispatchMulti(
+    [dockertest],
+    [installtest],
+    [docgen],
+    [dockerDocGen]
+  )

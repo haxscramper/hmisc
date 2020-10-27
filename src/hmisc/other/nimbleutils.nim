@@ -300,18 +300,16 @@ proc runDockerTest*(
   ## execute command `cmd` inside new docker container based on
   ## `nim-base` image.
   mkDir tmpDir
-
   let mainDir = (tmpDir / "main")
   if mainDir.dirExists:
     rmDir (tmpDir / "main")
 
   cpDir projDir, (tmpDir / "main")
-
-  echo "copied ", projDir, " to ", mainDir
-
+  notice "copied", projDir, "to", mainDir
   withDir tmpDir / "main":
     runCb()
 
+  info "Execute inside docker:", cmd.string
   let dockerCmd = makeGnuShellCmd("docker").withIt do:
     it.cmd "run"
     it - "i"
@@ -321,9 +319,9 @@ proc runDockerTest*(
     it.arg "nim-base"
     it.arg "sh"
     it - "c"
-    it.raw &"'cd /project/main && {cmd.string}'"
+    it.expr ShellExpr("cd /project/main") && cmd
 
-  # echo dockerCmd.toStr()
+  echo dockerCmd.toStr()
 
   execShell(dockerCmd)
 

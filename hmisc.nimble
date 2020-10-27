@@ -25,27 +25,8 @@ when fileExists(thisDir() / "src/hmisc/other/nimbleutils.nim"):
 else:
   import hmisc/other/nimbleutils
 
-task dockertest, "Run test suite in new docker container":
-  runDockerTest(AbsDir thisDir(),
-                AbsDir "/tmp/docker-hmisc",
-                ShellExpr "nimble test")
-
-task installtest, "Test installation from cloned repo":
-  runDockerTest(
-    AbsDir thisDir(),
-    AbsDir "/tmp/docker-hmisc",
-    ShellExpr "nimble install -y" &&
-      "PATH=$PATH:$HOME/.nimble/bin" &&
-      "hmisc-docgen --help")
-
 task docgen, "Generate documentation":
   if not fileExists("bin/hmisc-docgen"):
     execShell(ShellExpr "nimble build")
 
   execShell(ShellExpr "bin/hmisc-docgen")
-
-task dockerDocGen, "Run documentation generator test in docker":
-
-
-task testRun, "test things":
-  echo commandLineParams
