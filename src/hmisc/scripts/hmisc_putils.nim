@@ -27,13 +27,7 @@ proc installtest*(
   projectDir: AbsDir, localDeps: seq[string] = @[]) =
   ## Test installation in docker container
   let tmpd = tempDirPath(projectDir)
-  let develCmd =
-    if localDeps.len > 0:
-      makeLocalDevel(tmpd, localDeps)
-    else:
-      ShellExpr("true")
-
-  let cmd = develCmd &&
+  let cmd = makeLocalDevel(tmpd, localDeps) &&
     "nimble install -y" &&
     "PATH=$PATH:$HOME/.nimble/bin"
 
@@ -46,18 +40,17 @@ proc docgen*() =
   conf.configureCI()
   runDocgen(conf)
 
-proc dockerDocGen*(projectDir: AbsDir) =
+proc dockerDocGen*(projectDir: AbsDir, localDeps: seq[string] = @[]) =
   ## Test documentation generation in new docker container
   info "Creating new docker container"
   debug "Input directory is", projectDir
-  runDockerTest(
-    projectDir,
-    tempDirPath(projectDir),
-    ShellExpr(
-      "nimble install -y" &&
-      "PATH=$PATH:$HOME/.nimble/bin" &&
-      "hmisc-putils docgen"
-  ))
+  let tmpd = tempDirPath(projectDir)
+  let cmd = makeLocalDevel(tmpd, localDeps) &&
+    "nimble install -y" &&
+    "PATH=$PATH:$HOME/.nimble/bin" &&
+    "hmisc-putils docgen"
+
+  runDockerTest(projectDir, tmpd, cmd)
 
 
 when isMainModule:

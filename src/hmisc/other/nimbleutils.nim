@@ -357,6 +357,10 @@ when cbackend:
     ## # Parameters
     ## :testDir: Path to temporary directory, mounted in docker container
     ## :pkgs: List of packages (by name) that will be copied to docker
+    if pkgs.len == 0:
+      debug "Empy list of local development packages; no setup"
+      return ShellExpr("true")
+
     info "Copying local development versions"
     identLog()
     let home = getHomeDir()
