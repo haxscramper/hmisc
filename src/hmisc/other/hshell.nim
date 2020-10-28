@@ -598,7 +598,7 @@ proc execShell*(cmd: ShellCmd, doRaise: bool = true): void =
     poParentStreams, poUsePath})
 
 proc eval*(expr: ShellExpr): string =
-  shellResult(expr).execResult.stdout
+  shellResult(expr).execResult.stdout.strip()
 
 export get, isSome, isNone
 

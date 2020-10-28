@@ -1,6 +1,7 @@
 #!/usr/bin/env -S nim r
 import cligen
 import ../other/[nimbleutils, oswrap]
+import std/strformat
 
 startColorLogger()
 
@@ -40,7 +41,10 @@ proc docgen*() =
   conf.configureCI()
   runDocgen(conf)
 
-proc dockerDocGen*(projectDir: AbsDir, localDeps: seq[string] = @[]) =
+proc dockerDocGen*(
+  projectDir: AbsDir,
+  localDeps: seq[string] = @[],
+  simulateCI: bool = true) =
   ## Test documentation generation in new docker container
   info "Creating new docker container"
   debug "Input directory is", projectDir
@@ -50,7 +54,19 @@ proc dockerDocGen*(projectDir: AbsDir, localDeps: seq[string] = @[]) =
     "PATH=$PATH:$HOME/.nimble/bin" &&
     "hmisc-putils docgen"
 
-  runDockerTest(projectDir, tmpd, cmd)
+  var conf: TaskRunConfig
+  withDir projectDir:
+    conf = initBuildConf()
+
+
+  runDockerTest(projectDir, tmpd, cmd, envpass = {
+    ShellVar("CI") : "true",
+    ShellVar("GITHUB_REPOSITORY") : &"{conf.author}/{conf.packageName}",
+    ShellVar("GITHUB_SHA") : ShellExpr(
+      "git rev-parse HEAD").eval(),
+    ShellVar("GITHUB_REF") : ShellExpr(
+      "git rev-parse --abbrev-ref HEAD").eval()
+  })
 
 
 when isMainModule:

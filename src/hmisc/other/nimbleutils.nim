@@ -48,7 +48,12 @@ proc envOrParm*(
   if env.exists and (env.get.len > 0 or allowEmpty):
     conf.cmdOptions.add initCmdOption(key, env.get)
   else:
-    conf.cmdOptions.add initCmdOption(key, paramVal(key)[0])
+    try:
+      conf.cmdOptions.add initCmdOption(key, paramVal(key)[0])
+    except KeyError:
+      raise newException(
+        KeyError, &"No variable '${env.string}' is defined " &
+        &"and CLI parameter '{key}' was not supplied.")
 
 proc envOrParam*(
   conf: var TaskRunConfig, key: string, interpol: ShellExpr,
@@ -57,17 +62,24 @@ proc envOrParam*(
   if interp.isSome():
     conf.cmdOptions.add initCmdOption(key, interp.get())
   else:
-    conf.cmdOptions.add initCmdOption(key, paramVal(key)[0])
+    try:
+      conf.cmdOptions.add initCmdOption(key, paramVal(key)[0])
+    except KeyError:
+      raise newException(
+        KeyError, &"Interpolation for '{interpol.string}' has failed " &
+        &"and CLI parameter '{key}' was not supplied.")
 
 proc configureCI*(conf: var TaskRunConfig) =
   if ShellVar("CI").exists():
+    info "Using CI configuration"
     conf.envOrParam(
       "git.url",
-      ShellExpr "https://github.com/${GITHUB_REPOSITORY}")
+      ShellExpr "https://github.com/$GITHUB_REPOSITORY")
 
     conf.envOrParam("git.commit", ShellExpr "$GITHUB_SHA")
     conf.switch("git.devel", ShellVar("GITHUB_REF").get().split("/")[^1])
   else:
+    info "Using local file configuration"
     conf.hrefPref = "file://" & $(conf.projectDir / "docs")
 
 
@@ -243,7 +255,7 @@ when cbackend:
   proc parsePackageConf*(): TaskRunConfig =
     let stats = runShell(ShellExpr "nimble dump").stdout
     let conf = parseConfig(stats, "XXX.nimble")
-    echo "conf: ", conf
+    # echo "conf: ", conf
     return TaskRunConfig(
       author:      conf["", "author"],
       license:     conf["", "license"],
@@ -298,11 +310,18 @@ const cdMainProject* = ShellExpr("cd /project/main")
 
 proc runDockerTest*(
   projDir, tmpDir: AbsDir, cmd: ShellExpr,
-  runCb: proc() = (proc() = discard)): void =
+  runCb: proc() = (proc() = discard),
+  envpass: openarray[tuple[key: ShellVar, val: string]] = @[]): void =
   ## Copy project directory `projDir` into temporary `tmpDir` and
   ## execute command `cmd` inside new docker container based on
   ## `nim-base` image.
+  var cmd = cmd
   mkDir tmpDir
+
+  for (v, val) in envpass:
+    notice &"Passing shell varaible {v.string}={val}"
+    cmd = ShellExpr(&"export {v.string}={val}") && cmd
+
   let mainDir = (tmpDir / "main")
   if mainDir.dirExists:
     rmDir (tmpDir / "main")
