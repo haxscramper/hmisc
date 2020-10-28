@@ -322,6 +322,8 @@ proc runDockerTest*(
     notice &"Passing shell varaible {v.string}={val}"
     cmd = ShellExpr(&"export {v.string}={val}") && cmd
 
+  # cmd &&= cdMainProject
+
   let mainDir = (tmpDir / "main")
   if mainDir.dirExists:
     rmDir (tmpDir / "main")
@@ -376,6 +378,8 @@ when cbackend:
     ## # Parameters
     ## :testDir: Path to temporary directory, mounted in docker container
     ## :pkgs: List of packages (by name) that will be copied to docker
+    # TODO support nimble package syntax to explicitly specify version
+    # to be copied to docker.
     if pkgs.len == 0:
       debug "Empy list of local development packages; no setup"
       return ShellExpr("true")
@@ -399,10 +403,11 @@ when cbackend:
     for pkg in pkgs:
       let version = getNimbleDump(pkg)["", "version"]
       let pkgDir = home / &".nimble/pkgs/{pkg}-{version}"
-      let meta =  pkgDir / RelFile(pkg & ".nimble-link")
+      let head = home / RelFile(
+        &".nimble/pkgs/{pkg}-#head/{pkg}.nimble-link")
 
-      if meta.fileExists():
-        for nimble in meta.readFile().split("\n"):
+      if head.fileExists():
+        for nimble in head.readFile().split("\n"):
           let nimble = AbsDir nimble
           if nimble.endsWith(&"{pkg}.nimble"): # XXX
             let dir = parentDir(nimble)
@@ -412,7 +417,7 @@ when cbackend:
         info pkg, "is installed locally, copying from", pkgDir
         cpDir pkgDir, (testDir / pkg)
 
-      result = result && &"cd /project/{pkg}" && "nimble develop"
+      result = result && &"cd /project/{pkg}" && "nimble install"
 
     result &&= cdMainProject
     dedentLog()

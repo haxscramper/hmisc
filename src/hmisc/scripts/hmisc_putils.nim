@@ -16,12 +16,14 @@ proc argParse*(
 proc tempDirPath(proj: AbsDir): AbsDir =
   AbsDir("/tmp") / proj.splitDir().tail
 
-proc dockertest*(projectDir: AbsDir) =
+proc dockertest*(projectDir: AbsDir = cwd(),
+                 localDeps: seq[string] = @[]) =
   ## Run unti tests in new docker container
-  runDockerTest(
-    projectDir,
-    tempDirPath(projectDir),
-    ShellExpr "nimble test"
+  let tmpd = tempDirPath(projectDir)
+  runDockerTest(projectDir, tmpd,
+                makeLocalDevel(tmpd, localDeps) &&
+                  cdMainProject &&
+                  "nimble test"
   )
 
 proc installtest*(
@@ -29,6 +31,7 @@ proc installtest*(
   ## Test installation in docker container
   let tmpd = tempDirPath(projectDir)
   let cmd = makeLocalDevel(tmpd, localDeps) &&
+    cdMainProject &&
     "nimble install -y" &&
     "PATH=$PATH:$HOME/.nimble/bin"
 
@@ -42,7 +45,7 @@ proc docgen*() =
   runDocgen(conf)
 
 proc dockerDocGen*(
-  projectDir: AbsDir,
+  projectDir: AbsDir = cwd(),
   localDeps: seq[string] = @[],
   simulateCI: bool = true) =
   ## Test documentation generation in new docker container
@@ -50,9 +53,10 @@ proc dockerDocGen*(
   debug "Input directory is", projectDir
   let tmpd = tempDirPath(projectDir)
   let cmd = makeLocalDevel(tmpd, localDeps) &&
+    cdMainProject &&
     "nimble install -y" &&
     "PATH=$PATH:$HOME/.nimble/bin" &&
-    "hmisc-putils docgen"
+    "nimble docgen"
 
   var conf: TaskRunConfig
   withDir projectDir:

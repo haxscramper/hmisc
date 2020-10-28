@@ -17,16 +17,9 @@ namedBin      = {
 requires "nim >= 1.4.0", "sorta", "cligen"
 
 
-from os import `/`
-import std/[strutils]
-
-when fileExists(thisDir() / "src/hmisc/other/nimbleutils.nim"):
-  import src/hmisc/other/nimbleutils
-else:
-  import hmisc/other/nimbleutils
-
+import os
 task docgen, "Generate documentation":
   if not fileExists("bin/hmisc-putils"):
-    execShell(ShellExpr "nimble build")
+    exec("nimble build")
 
-  execShell(ShellExpr "bin/hmisc-putils")
+  exec("hmisc-putils docgen")

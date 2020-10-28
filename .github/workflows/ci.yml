@@ -1,5 +1,7 @@
-name: Build
-on: [push]
+name:
+  build
+on:
+  push
 jobs:
   build:
     if: |
@@ -11,17 +13,9 @@ jobs:
         with:
           path: '../nim'
           version: 'version-1-4'
-      - name: Run tests
-        run: |
-          export PATH=$HOME/.nimble/bin:$PATH
-          nimble -y test
-          nimble install -y
-      - name: Build docs
-        run: |
-          export PATH=$HOME/.nimble/bin:$PATH
-          hmisc-putils docgen
-      - name: Publish docs
-        uses: crazy-max/ghaction-github-pages@v1
+      - run: "nimble -y test && nimble install -y"
+      - run: "hmisc-putils docgen"
+      - uses: crazy-max/ghaction-github-pages@v1
         with:
           build_dir: docs
         env:
