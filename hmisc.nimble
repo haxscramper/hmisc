@@ -23,3 +23,6 @@ task docgen, "Generate documentation":
     exec("nimble build")
 
   exec("hmisc-putils docgen")
+
+task dockertest, "Run tests in docker container":
+  exec("hmisc-putils dockertest --projectDir:" & thisDir())

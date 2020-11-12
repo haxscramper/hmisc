@@ -154,6 +154,7 @@ func getStr*(path: AnyPath | string): string =
 
 func hash*(path: AnyPath): Hash = hash(path.getStr())
 func len*(path: AnyPath): int = path.getStr().len()
+func `<`*(a, b: AnyPath): bool = a.getStr() < b.getStr()
 func contains*(path: AnyPath, substr: string): bool =
   path.getStr().contains substr
 
@@ -779,6 +780,9 @@ func withExt*(f: FsTree, ext: string): FsTree =
   assert not f.isDir
   result = f
   result.ext = ext
+
+func withExt*(f: AbsFile, ext: string): AbsFile =
+  AbsFile(f.getStr() & ext.addPrefix("."))
 
 func withBase*(f: FsTree, base: string): FsTree =
   result = f

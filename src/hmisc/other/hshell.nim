@@ -42,7 +42,7 @@ when hasStrtabs: # https://github.com/nim-lang/Nim/pull/15172
 # TODO Add 'subshell' command type - for passing strings that are shell
 #      expression themselves. Correct quoting etc.
 
-export ShellVar
+export ShellVar, ShellExpr
 
 type
   ShellExecEffect = object of IOEffect
@@ -244,6 +244,10 @@ func makeFileShellCmd*(
     result.bin = file
   else:
     result.bin = "./" & file
+
+func makeFileShellCmd*(
+  file: AnyFile, conf: ShellCmdConf = GnuShellCmdConf): ShellCmd =
+  makeFileShellCmd(file.getStr(), conf)
 
 # func quoteShell*(str: string): string = str
 
@@ -590,6 +594,10 @@ proc evalShell*(cmd: ShellExpr): auto =
 proc evalShellStdout*(cmd: ShellExpr): string =
   let res = runShell(cmd, options = {poEvalCommand, poUsePath})
   return res.stdout
+
+
+proc evalShellStdout*(cmd: ShellCmd): string =
+  return runShell(cmd, options = {poEvalCommand, poUsePath}).stdout
 
 proc execShell*(cmd: ShellCmd, doRaise: bool = true): void =
   ## Execute shell command with stdout/stderr redirection into parent

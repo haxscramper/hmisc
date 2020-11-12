@@ -1,7 +1,12 @@
-import sequtils, sugar, math, algorithm, strutils
+import sequtils, sugar, math, algorithm, strutils, unicode
 import ../types/colorstring
 
+
 ## https://xxyxyz.org/line-breaking/
+
+
+# TODO add support for inserting more than once whitespace between
+# lines.
 
 type
   WordKind = enum
@@ -17,7 +22,8 @@ type
     kind: WordKind
 
   TermWord = Word[string, PrintStyling]
-  TextWord = Word[string, void]
+  TextWord[T] = Word[string, T]
+  UnicodeWord[T] = Word[seq[Rune], T]
 
   MarkStyling = object
     wrap: char
@@ -165,6 +171,116 @@ func wrapMarkLines*(str: string, width: int): seq[string] =
   let buf = str.splitMark().wrapText(width)
   for line in buf:
     result.add line.mapIt($it).join(" ")
+
+include hyphenation_patterns
+import tables
+
+type
+  PattTree = object
+    case isFinal: bool
+      of false:
+        sub: TableRef[char, PattTree]
+      of true:
+        points: seq[int]
+
+func insertPattern(tree: var PattTree, patt: string) =
+  var final: ptr PattTree = addr tree
+  for ch in patt.filterIt(it notin {'0' .. '9'}):
+    if ch notin final[].sub:
+      final[].sub[ch] = PattTree(
+        isFinal: false, sub: newTable[char, PattTree]())
+
+    final = addr final[].sub[ch]
+    # tree.sub = tree.sub[ch]
+
+  final[].sub['\0'] = PattTree(
+    isFinal: true,
+    points: patt.split({'.', 'a' .. 'z', 'A' .. 'Z'}).mapIt(
+        if it.len == 0: 0 else: parseInt(it)
+    ))
+
+let defaultHyphenPattTree*: PattTree =
+  block:
+    var res = PattTree(isFinal: false, sub: newTable[char, PattTree]())
+
+    for patt in patternList:
+      res.insertPattern(patt)
+
+    res
+
+let defaultHyphenExceptionList*: Table[string, seq[int]] =
+  block:
+    var res: Table[string, seq[int]]
+
+    for exc in hyphenationExceptions:
+      var points = @[0]
+      for spl in exc.split({'a' .. 'z', 'A' .. 'Z'}):
+        if spl == "-":
+          points.add 1
+        else:
+          points.add 0
+
+      res[exc.replace("-", "")] = points
+
+    res
+
+
+func hyphenate*[A](
+  word: TextWord[A],
+  tree: PattTree = defaultHyphenPattTree,
+  exceptions: Table[string, seq[int]] = defaultHyphenExceptionList,
+                 ): seq[TextWord[A]] =
+  if len(word) <= 4:
+    return @[word]
+
+  var points: seq[int]
+  # If the word is an exception, get the stored points.
+  if word.text.toLowerAscii() in exceptions:
+    points = exceptions[word.text.toLowerAscii()]
+  else:
+    let work = "." & word.text.toLowerAscii() & "."
+    points = 0.repeat(work.len + 1)
+    for i in 0 ..< work.len:
+      var t = tree
+      for c in work[i .. ^1]:
+        if c in t.sub:
+          t = t.sub[c]
+          if '\0' in t.sub:
+            let p = t.sub['\0'].points
+            for j in 0 ..< p.len:
+              points[i + j] = max(points[i + j], p[j])
+        else:
+          break
+
+    # No hyphens in the first two chars or the last two.
+    points[1] = 0
+    points[2] = 0
+    points[^2] = 0
+    points[^3] = 0
+
+
+  when A is void:
+    result.add(TextWord[A](text: ""))
+  else:
+    result.add(TextWord[A](text: "", attr: word.attr))
+
+  # Examine the points to build the pieces list.
+  for (c, p) in zip(word.text, points[2 .. ^1]):
+    result[^1].text &= c
+    if p mod 2 != 0:
+      when A is void:
+        result.add(TextWord[A](text: ""))
+      else:
+        result.add(TextWord[A](text: "", attr: word.attr))
+
+func hyphenate*(str: string): seq[string] =
+  {.cast(noSideEffect).}:
+    for t in TextWord[void](text: str).hyphenate():
+      result.add t.text
+
+func hyphenate*(strs: openarray[string]): seq[seq[string]] =
+  for str in strs:
+    result.add str.hyphenate
 
 when isMainModule:
   let text = "*hello* `world`".splitMark().wrapTextImpl(10)

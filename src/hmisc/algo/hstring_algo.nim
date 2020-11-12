@@ -1,4 +1,5 @@
-import sequtils, strformat, strutils, parseutils, macros
+import std/[sequtils, strformat, strutils,
+            parseutils, macros, algorithm]
 
 type
   StrBackIndex* = distinct string
@@ -137,6 +138,42 @@ func dropSuffix*(str: string, part: StrPart): string =
       return str[0 ..^ (alt.len + 1)]
 
   return str
+
+func addSuffix*(str, suff: string): string =
+  ## Add suffix `suff` if not already present
+  if str.endsWith(suff):
+    return str
+  else:
+    return str & suff
+
+func addPrefix*(str: var string, pref: string): void =
+  ## Add prefix to string if it not starts with `pref`
+  if not str.startsWith(pref):
+    str = pref & str
+
+func addPrefix*(str, pref: string): string =
+  ## Add prefix to string if it not starts with `pref`
+  if not str.startsWith(pref):
+    pref & str
+  else:
+    str
+
+func addPrefix*(str: seq[string], pref: string): seq[string] =
+  for s in str:
+    result.add s.addPrefix(pref)
+
+func commonPrefix*(strs: seq[string]): string =
+  ## Find common prefix for list of strings
+  # TODO implement without sorting
+  if strs.len == 0:
+    return ""
+  else:
+    let strs = strs.sorted()
+    for i in 0 ..< min(strs[0].len, strs[^1].len):
+      if strs[0][i] == strs[^1][i]:
+        result.add strs[0][i]
+      else:
+        return
 
 
 

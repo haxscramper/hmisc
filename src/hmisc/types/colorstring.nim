@@ -68,6 +68,26 @@ func initPrintStyling*(fg: ForegroundColor = fgDefault,
                        style: set[Style] = {}): PrintStyling =
   PrintStyling(fg: fg, bg: bg, style: style)
 
+macro initStyle*(args: varargs[typed]): PrintStyling =
+  let tmp = genSym(nskVar, "tmp")
+  result = newStmtList()
+  result.add quote do:
+    var `tmp` = initPrintStyling()
+
+  for fld in args:
+    result.add quote do:
+      when `fld` is ForegroundColor:
+        `tmp`.fg = `fld`
+      elif `fld` is BackgroundColor:
+        `tmp`.bg = `fld`
+      elif `fld` is Style:
+        `tmp`.style.incl `fld`
+      elif `fld` is set[Style]:
+        `tmp`.style = `fld`
+
+  result.add quote do:
+    `tmp`
+
 
 func uc*(s: static[string]): Rune = runeAt(s, 0)
 const coloredWhitespaceRune*: ColoredRune = ColoredRune(
