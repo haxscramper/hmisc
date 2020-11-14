@@ -85,9 +85,50 @@ suite "Tree mapping":
         discard it.tok
 
   test "{iterateItDFS}":
-    astInval.iterateItDFS(it.subnodes, not it.isToken):
+    astInval.iterateItDFS(it.subnodes, not it.isToken, dfsPreorder):
       if it.isToken:
         discard it.tok
+
+  test "{iterateItDFS} ordering schemes":
+    type
+      Tr = object
+        sub: seq[Tr]
+        ino: int
+        pos: int
+        pre: int
+
+    let ast = Tr(
+               ino: 3, pre: 0, pos: 4,
+      sub: @[
+        Tr(
+               ino: 1, pre: 1, pos: 2,
+          sub: @[
+            Tr(ino: 0, pre: 2, pos: 0),
+            Tr(ino: 2, pre: 3, pos: 1)
+          ]
+        ),
+        Tr(    ino: 4, pre: 4, pos: 3)
+      ]
+    )
+
+    block:
+      var postordCnt = 0
+      ast.iterateItDfs(it.sub, true, dfsPostorder):
+        assertEq it.pos, postordCnt
+        inc postordCnt
+
+    block:
+      var preordCnt = 0
+      ast.iterateItDFS(it.sub, true, dfsPreorder):
+        assertEq it.pre, preordCnt
+        inc preordCnt
+
+    block:
+      var inordCnt = 0
+      ast.iterateItDFS(it.sub, true, dfsInorder):
+        assertEq it.ino, inordCnt
+        inc inordCnt
+
 
   test "{mapDFSpost} value assetions :proc:generic:value:example:":
     assert inval.mapDFSpost(

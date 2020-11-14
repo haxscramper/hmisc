@@ -4,6 +4,7 @@ import sugar, strutils, sequtils, strformat, heapqueue, tables,
 import halgorithm
 import hpprint
 import hseq_distance
+import htree_mapping
 
 import ../hdebug_misc
 
@@ -169,8 +170,7 @@ proc idx(n: NodeId): int =
 proc candidate(n: NodeId, m: Mapping): NodeId =
   discard
 
-proc partner(n: NodeId, m: Mapping): NodeId =
-  discard
+proc partner(n: NodeId, m: Mapping): NodeId = m.table[n]
 
 proc siblings(n: NodeId): tuple[left, right: seq[NodeId]] =
   ## return sibling nodes to the left and right of node
@@ -196,20 +196,15 @@ proc sort(m: var Mapping, cmp: proc(a, b: NodeId): bool) =
 
 proc LCS(lhs, rhs: seq[NodeId],
          eq: proc(a, b: NodeId): bool): seq[(NodeId, NodeId)] =
-  discard
+  let (_, lhsIdx, rhsIdx) = longestCommonSubsequence(lhs, rhs, eq)[0]
+
+  for (lIdx, rIdx) in zip(lhsIdx, rhsIdx):
+    result.add((lhs[lIdx], rhs[rIdx]))
 
 func add(m: var Mapping, t: (NodeId, NodeId)) =
   ## Add mapping to mapping
   assert t[0] notin m.table
   m.table[t[0]] = t[1]
-
-iterator bfsIterate(tree: NodeId, index: TreeIndex): NodeId =
-  ## Yield each node id in tree in BFS order
-  discard
-
-iterator dfsIteratePost(tree: NodeId, index: TreeIndex): NodeId =
-  ## Yield each node in tree in post-order DFS traversal
-  discard
 
 proc applyLast(script: EditScript, tree: var TreeIndex): void =
   ## Apply last added script element to tree `tree`
@@ -303,7 +298,7 @@ func s(t: NodeId): seq[NodeId] =
 
 func parent(t: NodeId): NodeId =
   ## Get parent node for node
-  discard
+  t.index.parentTable[t]
 
 func size(a: Mapping): int =
   ## get number of items in mapping
@@ -323,6 +318,15 @@ template delItIf(a: var Mapping, expr: untyped): untyped =
 
 proc children(node: NodeId): seq[NodeId] =
   ## Get list of children for node `node`
+  discard
+
+iterator bfsIterate(tree: NodeId): NodeId =
+  ## Yield each node id in tree in BFS order
+  iterateItBFS(tree, toSeq(it), true):
+    yield it
+
+iterator dfsIteratePost(tree: NodeId, index: TreeIndex): NodeId =
+  ## Yield each node in tree in post-order DFS traversal
   discard
 
 proc peekMax(que: NodeQue): int =
@@ -565,7 +569,7 @@ proc editScript(
         srcIndex.setInOrder(a, true)
         targetIndex.setInOrder(b, true)
 
-  for curr in targetTree.bfsIterate(targetIndex):
+  for curr in targetTree.bfsIterate():
     ## iderate all nodes in tree in BFS order
     var tmp = curr.index
     let

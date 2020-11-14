@@ -8,7 +8,7 @@ import ../hdebug_misc
 
 # TODO add custom `cmp` proc for fuzzy matching instead of using `==`
 
-type EqCmpProc[T] = proc(x, y: T): bool {.noSideEffect.}
+type EqCmpProc[T] = proc(x, y: T): bool
 
 func longestCommonSubsequence*[T](
   x, y: seq[T],

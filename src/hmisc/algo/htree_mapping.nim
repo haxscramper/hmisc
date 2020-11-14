@@ -257,13 +257,65 @@ type
     inSubt: seq[T]
     path: seq[int]
     subt: seq[R]
+    inordVisited: set[int8]
 
   DfsStack[T, R] = seq[DfsFrame[T, R]]
 
+  DfsTraversalOrder* = enum
+    ## Order of traversal for DFS iteration. Nodes are ordered from
+    ## left to right. This enum controls order in which elements will
+    ## be 'acessed' (`body` callback evaluated)
+    dfsPreorder ## Preorder DFS traversal - first visit root node, and
+                ## then all it's descendants.
+    dfsPostorder ## First visit all child nodes and then root node
+    dfsInorder ## Visit 'left' nodes, root and then 'right'.
 func makeDfsFrame[T, R](elems: seq[T], path: seq[int]): DfsFrame[T, R] =
   DfsFrame[T, R](idx: 0, inSubt: elems, path: path, subt: @[])
 
-template iterateItDFS*(inTree, subnodes, hasSubnodes, body: untyped): untyped =
+template iterateItDFS*(
+  inTree, getSubnodes, hasSubnodes: untyped,
+  order: DfsTraversalOrder, body: untyped): untyped =
+  ##[
+
+Perform DFS iteration of the `inTree` using `getSubnodes` to get list of
+subnodes and `hasSubnodes` to determine if particular node has
+subnodes.
+
+## Parameters
+
+:inTree: First node in tree
+:hasSubnodes: Expression to check if current node has list of subnodes
+:getSubnodes: Expression to get list of subnodes
+:order: Order of traversal
+:body: Body to evaluate for each node
+
+## Injected variables
+
+:it: Current node
+:path: Path to current node starting from the tree root
+:subt: List of subnodes for current node
+:childIndex: Index of child node. Can be used for inorder traversal to
+  determine correct split on 'right' and 'left' nodes. For postorder
+  traversal (and 'child' part of inorder) is equal to child count.
+  For preorder - equal to 0.
+
+## Notes
+
+NOTE - inorder traversal is only well-defined for binary trees (e.g.
+when partitioning on 'left' and 'right' can be performed easyly). For
+all other cases `childIndex` is injected - so you can determine when
+'middle' if the child list is reached and execute callback yourself.
+So most likely, for inorder traversal body should have form of
+
+.. code-block:: nim
+  if childIndex == it.len div 2:
+    # execute actual callback
+
+or something similar (when last/first child is reached). Otherwise
+body will be executed each time traversal triggers 'between child
+nodes'.
+
+  ]##
   type InTree = typeof(inTree)
   var stack: seq[DfsFrame[InTree, bool]]
   stack.add makeDfsFrame[InTree, bool](@[inTree], @[])
@@ -271,30 +323,54 @@ template iterateItDFS*(inTree, subnodes, hasSubnodes, body: untyped): untyped =
     while true:
       if stack.last.idx == stack.last.inSubt.len:
         let top = stack.pop
-        block:
+        if order == dfsPostorder or
+           (order == dfsInorder and
+            stack.last.idx.int8 notin stack.last.inordVisited
+            # Node has not been visited during inorder traversal.
+           )
+          :
           let
             it {.inject.} = stack.last.inSubt[stack.last.idx]
             path {.inject.} = top.path
             subt {.inject.} = top.subt
+            childIndex {.inject.} = stack.last.inSubt.len - 1
 
-          block:
-            body
+          body
+
+        if order == dfsInorder and
+           stack.len > 1 and
+           stack.last.idx == 0:
+          let
+            it {.inject.} = stack[^2].inSubt[stack[^2].idx]
+            path {.inject.} = stack[^2].path
+            subt {.inject.} = stack[^2].path
+            childIndex {.inject.} = stack.last.idx
+
+          stack[^2].inordVisited.incl int8(stack[^2].idx)
+
+          body
 
         if stack.len == 1:
           break dfsLoop
         else:
           inc stack.last.idx
       else:
+        var elems: seq[InTree]
+        block:
+          let it {.inject.} = stack.last.inSubt[stack.last.idx]
+          if order == dfsPreorder:
+            let
+              path {.inject.} = stack.last.path
+              subt {.inject.} = stack.last.subt
+              childIndex {.inject.} = 0
+
+            body
+
+          if hasSubnodes:
+            elems = getSubnodes
+
         stack.add makeDfsFrame[InTree, bool](
-          block:
-            let it {.inject.} = stack.last.inSubt[stack.last.idx]
-            if hasSubnodes:
-              subnodes
-            else:
-              var tmp: seq[InTree]
-              tmp
-          ,
-          stack.last.path & @[stack.last.idx]
+          elems, stack.last.path & @[stack.last.idx]
         )
 
 
