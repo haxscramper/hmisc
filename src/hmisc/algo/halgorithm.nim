@@ -289,7 +289,7 @@ func abbrevCamel*(
     )
 
     if lcs.len > 0:
-      if lcs[0].len == abbrSplit.len:
+      if lcs[0].matches.len == abbrSplit.len:
         let word = word.join("")
         if getExact and word == abbr:
           return @[word]
@@ -615,6 +615,7 @@ template assertEq*(lhs, rhs: untyped): untyped =
   testEq(lhsVal, rhsVal)
   let lInfo = instantiationInfo()
   if not (lhsVal == rhsVal):
+    echo lhs.astToStr(), " == ", rhs.astToStr()
     raiseAssert("Comparison failed on line " & $lInfo.line)
 
 #=========================  functional helpers  ==========================#

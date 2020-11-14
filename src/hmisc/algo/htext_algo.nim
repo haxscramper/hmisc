@@ -8,6 +8,11 @@ import ../types/colorstring
 # TODO add support for inserting more than once whitespace between
 # lines.
 
+# TODO support 'unwrappable' words - things like code, that cannot be
+# wrapped or hyphenated in any way.
+
+# TODO wrap sequence of words using hyphenation.
+
 type
   WordKind = enum
     wkText

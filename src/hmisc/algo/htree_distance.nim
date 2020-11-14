@@ -3,6 +3,7 @@ import sugar, strutils, sequtils, strformat, heapqueue, tables,
 
 import halgorithm
 import hpprint
+import hseq_distance
 
 import ../hdebug_misc
 
@@ -199,7 +200,8 @@ proc LCS(lhs, rhs: seq[NodeId],
 
 func add(m: var Mapping, t: (NodeId, NodeId)) =
   ## Add mapping to mapping
-  discard
+  assert t[0] notin m.table
+  m.table[t[0]] = t[1]
 
 iterator bfsIterate(tree: NodeId, index: TreeIndex): NodeId =
   ## Yield each node id in tree in BFS order
@@ -325,11 +327,18 @@ proc children(node: NodeId): seq[NodeId] =
 
 proc peekMax(que: NodeQue): int =
   ## Return greatest height of node in the list
-  que[que.len - 1].level
+  if que.len > 0:
+    que[que.len - 1].level
+  else:
+    -1
 
 proc pop(que: var NodeQue): seq[NodeId] =
   ## Pop all nodes having height of `peekMax`
-  discard
+  if que.len > 0:
+    let maxH = que[que.len - 1].level
+    while que.len > 0 and que[que.len - 1].level == maxH:
+      result.add que[que.len - 1]
+      que.del(que.len - 1)
 
 proc push(node: NodeId, que: var NodeQue) =
   ## Insert node `node` in que
@@ -390,10 +399,9 @@ proc topDown(
   var
     srcQue: NodeQue
     targetQue: NodeQue
-    A, map: Mapping
+    A, resMap: Mapping
 
   push(root(srcTree), srcQue) ## store root node
-  echov root(srcTree)
   push(root(targetTree), targetQue) ## for each input
 
   ## until subtree of necessary height hasn't been reached
@@ -430,7 +438,7 @@ proc topDown(
             for (is1, is2) in carthesian(s(src), s(target)):
               ## and determine they are isomorphic
               if isomorphic(is1, is2):
-                add(map, (is1, is2))
+                add(resMap, (is1, is2))
 
       ## so we basically determine if there is any isomorphic mapping
       ## between either (1) roots two highest subforests or (2) root
@@ -438,23 +446,29 @@ proc topDown(
 
       for src in srcTops:
         ## if there is unmatched forest root in first forest
-        if (src, _) notin (A, map):
+        if (src, _) notin (A, resMap):
           ## insert it's subnodes
           open(src, srcQue)
 
       for target in targetTops:
         ## do the same for other forest
-        if (_, target) notin (A, map):
+        if (_, target) notin (A, resMap):
           open(target, targetQue)
 
   A.sort() do(src, target: NodeId) -> bool:
-    dice(parent(src), parent(target), map) > minDice
+    dice(parent(src), parent(target), resMap) > minDice
 
   while size(A) > 0:
-    let (src, target)  = remove(A, 0)
-    ## TODO Add all pairs of isomprhic nodes of `s(src)` and `s(target)` to m
-    A.delItIf(it[0] == src)
-    A.delItIf(it[1] == target)
+    let (srcId, targetId)  = remove(A, 0)
+    ## Add all pairs of isomprhic nodes of `s(src)` and `s(target)` to
+    ## resulting mapping
+    if isomorphic(srcId, targetId):
+      add(resMap, (srcId, targetId))
+
+    A.delItIf(it[0] == srcId)
+    A.delItIf(it[1] == targetId)
+
+  return resMap
 
 proc bottomUp(
   srcTree: NodeId,
@@ -607,6 +621,7 @@ proc editScript(
   return script
 
 when isMainModule:
+  startHax()
   let tree1 = Tree(value: "TREE-1-HEAD", label: 12, subn: @[
     Tree(value: "LEAF-1", label: 222),
     Tree(value: "LEAF-2", label: 333),
@@ -618,7 +633,6 @@ when isMainModule:
     Tree(value: "LEAF-3"),
   ])
 
-  startHax()
 
   let srcIndex = makeIndex(tree1, true)
 
@@ -629,7 +643,7 @@ when isMainModule:
 
   echov root1
 
-  let mapping1 = topDown(root1, root2, minHeight = 2, minDice = 0.7)
+  let mapping1 = topDown(root1, root2, minHeight = 0, minDice = 0.7)
 
   let mapping2 = bottomUp(
     root1, root2, map = mapping1, minDice = 0.7, maxSize = 100)
@@ -643,6 +657,3 @@ when isMainModule:
   pprint script
 
   echo "done"
-
-
-

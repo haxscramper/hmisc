@@ -1,4 +1,4 @@
-import sequtils, tables, strformat
+import sequtils, tables, strformat, strutils
 import ../hdebug_misc
 
 ## Sequence distance metrics
@@ -12,9 +12,16 @@ type EqCmpProc[T] = proc(x, y: T): bool {.noSideEffect.}
 
 func longestCommonSubsequence*[T](
   x, y: seq[T],
-  itemCmp: EqCmpProc[T] = (proc(x, y: T): bool = x == y)): seq[seq[T]] =
-  # TODO Weighted subsequences
-  # TODO return indices of matched elements
+  itemCmp: EqCmpProc[T] = (proc(x, y: T): bool = x == y)
+    ): seq[tuple[matches: seq[T], xIndex, yIndex: seq[int]]] =
+  ## Find longest common subsequence for `x` and `y`. Use `itemCmp` to
+  ## compare for item equality. In case if there is more than one
+  ## common subsequence of equal lenght return all. In most cases you
+  ## can just call `longetstCommonSubsequece(@[...], @[...])[0].matches` -
+  ## unless you need all subsequences.
+  # TODO make all returned elements optional - e.g. if you only need
+  # matches in first array, or in second, there is no need to copy all
+  # elements over.
   var mem: CountTable[(int, int)]
   proc lcs(i, j: int): int =
     if (i, j) notin mem:
@@ -35,31 +42,81 @@ func longestCommonSubsequence*[T](
     m = x.len - 1
     n = y.len - 1
 
-  proc backtrack(i, j: int): seq[seq[T]] =
-    result =
-      if lcs(i, j) == 0:
-        @[]
-      elif i == 0:
-        @[ @[x[i]] ]
-      elif j == 0:
-        @[ @[y[j]] ]
-      elif itemCmp(x[i], y[j]):
-        backtrack(i - 1, j - 1).mapIt(it & @[x[i]])
-      elif lcs(i, j - 1) > lcs(i - 1, j):
-        backtrack(i, j - 1)
-      elif lcs(i, j - 1) < lcs(i - 1, j):
-        backtrack(i - 1, j)
-      else: # both paths has valid subsequences. Can return all of them
-        backtrack(i - 1, j) & backtrack(i - 1, j)
+  # echov "_-----_"
+
+  proc backtrack(i, j: int): seq[
+    tuple[matches: seq[T], xIndex, yIndex: seq[int]]
+  ] =
+    if lcs(i, j) == 0:
+      result = @[]
+    elif i == 0:
+      var jRes = j
+      while true:
+        if (i, jRes - 1) in mem and
+           mem[(i, jRes - 1)] == mem[(i, j)]:
+          dec jRes
+        else:
+          break
+
+      result = @[ (
+        matches: @[x[i]],
+        xIndex: @[i],
+        yIndex: @[jRes]
+      ) ]
+      # echov result
+    elif j == 0:
+      var iRes = i
+      while true:
+        if (iRes, j) in mem and
+           mem[(iRes - 1, j)] == mem[(i, j)]:
+          dec iRes
+        else:
+          break
+
+      result = @[ (
+        matches: @[y[j]],
+        xIndex: @[iRes],
+        yIndex: @[j]
+      ) ]
+      # echov result
+    elif itemCmp(x[i], y[j]):
+      for (match, xIdx, yIdx) in backtrack(i - 1, j - 1):
+        result.add((
+          matches: match & @[x[i]],
+          xIndex: xIdx & @[i],
+          yIndex: yIdx & @[j]
+        ))
+
+      # echov result
+    elif lcs(i, j - 1) > lcs(i - 1, j):
+      result = backtrack(i, j - 1)
+      # echov result
+    elif lcs(i, j - 1) < lcs(i - 1, j):
+      result = backtrack(i - 1, j)
+      # echov result
+    else: # both paths has valid subsequences. Can return all of them
+      result = backtrack(i - 1, j) & backtrack(i - 1, j)
+
+  result = backtrack(m, n)
+
+  when false: # Print grid
+    var grid = newSeqWith(x.len, "  ".repeat(y.len))
+    for xId in 0 ..< x.len:
+      for yId in 0 ..< y.len:
+        if (xId, yId) in mem:
+          grid[xId][yId] = ($mem[(xId, yId)])[0]
+
+    debugecho "  | ", toSeq(0 .. y.len()).join("")
+    for idx, line in grid:
+      debugecho &"{idx:>2}| {line}"
 
 
-  let tmp = backtrack(m, n)
-  result = tmp
 
 
-proc longestCommonSubsequence*[T](
+func longestCommonSubsequence*[T](
   x, y: openarray[T],
-  itemCmp: EqCmpProc[T] = (proc(x, y: T): bool = x == y)): seq[seq[T]] =
+  itemCmp: EqCmpProc[T] = (proc(x, y: T): bool = x == y)
+    ): seq[tuple[matches: seq[T], xIndex, yIndex: seq[int]]] =
   longestCommonSubsequence(toSeq(x), toSeq(y), itemCmp)
 
 

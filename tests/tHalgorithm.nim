@@ -529,7 +529,7 @@ import math
 suite "Misc algorithms":
   test "{longestCommonSubsequence} :generic:value:":
     template tmp(s1, s2, s3: untyped): untyped =
-      assertEq longestCommonSubsequence(s1, s2)[0], s3
+      assertEq longestCommonSubsequence(s1, s2)[0].matches, s3
 
     assert longestCommonSubsequence(@[1], @[2, 3]).len == 0
     assert longestCommonSubsequence(@["Cond"], @["Int", "Lit"]).len == 0
@@ -541,6 +541,29 @@ suite "Misc algorithms":
     tmp("AABC", "BC", "BC")
     tmp("AC", "ABC", "AC")
     tmp("AB", "A", "A")
+
+
+  test "{longestCommonSubsequence} :generic:value:":
+    template lcs(s1, s2, matches, xIdx, yIdx): untyped =
+      let (lcsMatch, lcsXIdx, lcsYIdx) = longestCommonSubsequence(
+        s1, s2)[0]
+
+      try:
+        assertEq lcsMatch, matches
+        assertEq lcsXIdx, xIdx
+        assertEq lcsYIdx, yIdx
+      except:
+        echo s1, ", ", s2
+        raise
+
+    lcs("GAC", "AGCAT", "GA", @[0, 1], @[1, 3])
+    lcs(@[1, 2], @[1, 2], @[1, 2], @[0, 1], @[0, 1])
+    lcs("AABC", "BC", "BC", @[2, 3], @[0, 1])
+    lcs("AC", "ABC", "AC", @[0, 1], @[0, 2])
+    lcs("-AB", "A", "A", @[1], @[0])
+    lcs("AB", "A", "A", @[0], @[0])
+
+
 
 
   # if true: quit 0

@@ -42,6 +42,20 @@ when hasStrtabs: # https://github.com/nim-lang/Nim/pull/15172
 # TODO Add 'subshell' command type - for passing strings that are shell
 #      expression themselves. Correct quoting etc.
 
+# TODO write wrapper for a subset posix-compilant shell - this is
+#      useful in cases where you only have very limited access to
+#      different installation - like in docker container, over ssh or
+#      similar. Second use case: `git rev-list`, `sh -c` and the like.
+#      Command that accepts another shell command. You can only send a
+#      single string that should contain all necessary commands. In
+#      that case it would be very convinient to have builder for such
+#      strings - for example in expression like `if [[ (pwd) == "/"
+#      ]]` - I'm not even sure I got it right in the first place, and
+#      I don't want to remember all details about how shell `if [[ ]]`
+#      works too. And I can also analyze all shell expression on the
+#      application side - detect missing commands, infer needed
+#      dependencies, side effects (writes to file etc.)
+
 export ShellVar, ShellExpr
 
 type
