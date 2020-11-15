@@ -14,7 +14,6 @@ type
     id {.requiresinit.}: int
     isSrc {.requiresinit.}: bool
     index {.requiresinit.}: TreeIndex
-    level {.requiresinit.}: int
 
   Mapping = object
     table: Table[NodeId, NodeId]
@@ -40,6 +39,7 @@ type
 
     idVals: Table[NodeId, Value]
     idLabel: Table[NodeId, Label]
+    idLevels: Table[NodeId, int]
     inordNodes: HashSet[NodeId]
     maxId: int
 
@@ -71,6 +71,12 @@ type
 func hash(id: NodeId): Hash =
   !$(hash(id.id) !& hash(id.isSrc))
 
+func level(id: NodeId): int =
+  if id.id == -1:
+    int(10e9)
+  else:
+    id.index.idLevels[id]
+
 func `$`(id: NodeID): string =
   var val: string
   if id in id.index.idVals:
@@ -89,10 +95,9 @@ proc makeIndex(tree: Tree, isSrc: bool): TreeIndex =
   var index = TreeIndex()
   proc fillIndex(
     tree: Tree, isSrc: bool, parentId: NodeId
-       ): tuple[id: NodeId, hash: Hash] {.discardable.} =
+       ): tuple[id: NodeId, hash: Hash, level: int] {.discardable.} =
     ## Fill tree index with nodes from `tree`
-    result.id = NodeId(
-      id: index.maxId, isSrc: isSrc, index: index, level: 0)
+    result.id = NodeId(id: index.maxId, isSrc: isSrc, index: index)
     # index.parentTable[result.id] = parentId
     inc index.maxId
 
@@ -102,19 +107,20 @@ proc makeIndex(tree: Tree, isSrc: bool): TreeIndex =
       depths: seq[int]
 
     for sub in tree.subn:
-      let (nId, hash) = fillIndex(sub, isSrc, result.id)
+      let (nId, hash, level) = fillIndex(sub, isSrc, result.id)
       id.add nId
       hashes.add hash
-      depths.add nId.level
+      depths.add level
 
-    result.id.level = depths.max(0) + 1
     for node in id:
       index.parentTable[node] = result.id
 
+    result.level = depths.max(0) + 1
     index.idVals[result.id] = tree.value
     index.idLabel[result.id] = tree.label
-
+    index.idLevels[result.id] = result.level
     index.subnodes[result.id] = id
+
     var h: Hash = 0
     h = h !& hash(tree.label) !& hash(tree.value)
     for subh in hashes:
@@ -123,11 +129,10 @@ proc makeIndex(tree: Tree, isSrc: bool): TreeIndex =
     index.hashes[result.id] = !$h
 
 
-  let parent = NodeId(
-    index: index, id: index.maxId, isSrc: isSrc, level: 0)
-  let (id, hash) = fillIndex(tree, isSrc, parent)
-  echov parent
-  echov id
+  let parent = NodeId(index: index, id: index.maxId, isSrc: isSrc)
+  let (id, hash, level) = fillIndex(tree, isSrc, parent)
+  echov level
+
   index.parentTable[parent] = parent
   return index
 
@@ -162,9 +167,9 @@ proc matched(n: NodeId): bool =
 proc getInOrder(index: TreeIndex, b: NodeId): bool =
   b in index.inordNodes
 
-proc setInOrder(index: var TreeIndex, b: NodeId, val: bool) =
+proc setInOrder(b: NodeId, val: bool) =
   ## mark node as "in order"
-  index.inordNodes.incl b
+  b.index.inordNodes.incl b
 
 proc idx(n: NodeId): int =
   ## get node index in sequence of parent's subnodes
@@ -173,7 +178,11 @@ proc idx(n: NodeId): int =
 proc candidate(n: NodeId, m: Mapping): NodeId =
   discard
 
-proc partner(n: NodeId, m: Mapping): NodeId = m.table[n]
+proc partner(n: NodeId, m: Mapping): NodeId =
+  if n notin m.table:
+    NodeId(id: -2, isSrc: false, index: nil)
+  else:
+    m.table[n]
 
 proc siblings(n: NodeId): tuple[left, right: seq[NodeId]] =
   ## return sibling nodes to the left and right of node
@@ -184,7 +193,7 @@ proc leftmostInOrder(n: NodeId): NodeId =
   discard
 
 proc `==`(n: NodeId, other: typeof(nil)): bool =
-  discard
+  n.id >= 0
 
 proc opt(t1, t2: NodeId): Mapping =
   ## ? Wtf is this shit
@@ -409,6 +418,8 @@ proc topDown(
 
   push(root(srcTree), srcQue) ## store root node
   push(root(targetTree), targetQue) ## for each input
+  echov srcQue
+  echov targetQue
 
   ## until subtree of necessary height hasn't been reached
   while min(peekMax(srcQue), peekMax(targetQue)) > minHeight:
@@ -546,6 +557,61 @@ proc findPos(index: TreeIndex, curr: NodeId, map: Mapping): int =
     if index.getInOrder(node):
       return node.partner(map).idx + 1
 
+proc alignChildren(
+  other, curr: NodeId,
+  index: var TreeIndex,
+  map: Mapping,
+  script: var EditScript) =
+  ## generate optimal sequence of moves that will align
+  ## child nodes of w and x
+
+  ## map all subnodes for both indices as out-of-order
+  for ch in other:
+    setInOrder(ch, false)
+
+  for ch in curr:
+    setInOrder(ch, false)
+
+  let
+    srcSubn: seq[NodeId] = collect(newSeq):
+      for ch in other:
+        if (curr, ch.partner(map)) in index:
+          ch
+
+    targetSubn: seq[NodeId] = collect(newSeq):
+      for ch in curr:
+        if (other, ch.partner(map)) in index:
+          ch
+
+    matches: seq[(NodeId, NodeId)] =
+              LCS(srcSubn, targetSubn) do(a, b: NodeId) -> bool:
+      ## left and right subnodes are considered equal if
+      ## this is a pair which already exists in mapping.
+      (a, b) in map
+
+  for (a, b) in carthesian(srcSubn, targetSubn):
+    ## For every pair of notes in carthesian produc of two lists
+    ## (for source and target parent nodes)
+    if ((a, b) in map) and ((a, b) notin matches):
+      ## If `a-b` mapping exists, but is not in LCS mapirings for
+      ## subnode lists - move this node to target index
+      # QUESTION - might not be correct. Why do we check for pairing
+      # inside `matches` in the first place?
+      script.add makeMove(a, other, b.index.findPos(b, map))
+      ## And apply movement to the source index
+      var idx = a.index
+      script.applyLast(idx)
+
+      ## Mark both nodes as 'in order'. Changes not need to be
+      ## propagated into callsite (?) since 'on order' propery
+      ## exists only for subnode alignment.
+      # REFACTOR maybe just get from `inOrder` property altogether
+      # and keep hashset of on/out-of order nodes on callsite?
+      setInOrder(a, true)
+      setInOrder(b, true)
+
+
+
 proc editScript(
   map: Mapping,
   srcTree: NodeId,
@@ -555,55 +621,6 @@ proc editScript(
   var script: EditScript
   var srcIndex = srcTree.index
   var targetIndex = targetTree.index
-
-  proc alignChildren(
-    other, curr: NodeId, index: var TreeIndex) =
-    ## generate optimal sequence of moves that will align
-    ## child nodes of w and x
-
-    ## map all subnodes for both indices as out-of-order
-    for ch in other:
-      targetIndex.setInOrder(ch, false)
-
-    for ch in curr:
-      srcIndex.setInOrder(ch, false)
-
-    let
-      srcSubn: seq[NodeId] = collect(newSeq):
-        for ch in other:
-          if (curr, ch.partner(map)) in index:
-            ch
-
-      targetSubn: seq[NodeId] = collect(newSeq):
-        for ch in curr:
-          if (other, ch.partner(map)) in index:
-            ch
-
-      matches: seq[(NodeId, NodeId)] =
-                LCS(srcSubn, targetSubn) do(a, b: NodeId) -> bool:
-        ## left and right subnodes are considered equal if
-        ## this is a pair which already exists in mapping.
-        (a, b) in map
-
-    for (a, b) in carthesian(srcSubn, targetSubn):
-      ## For every pair of notes in carthesian produc of two lists
-      ## (for source and target parent nodes)
-      if ((a, b) in map) and ((a, b) notin matches):
-        ## If `a-b` mapping exists, but is not in LCS mapirings for
-        ## subnode lists - move this node to target index
-        # QUESTION - might not be correct. Why do we check for pairing
-        # inside `matches` in the first place?
-        script.add makeMove(a, other, targetIndex.findPos(b, map))
-        ## And apply movement to the source index
-        script.applyLast(srcIndex)
-
-        ## Mark both nodes as 'in order'. Changes not need to be
-        ## propagated into callsite (?) since 'on order' propery
-        ## exists only for subnode alignment.
-        # REFACTOR maybe just get from `inOrder` property altogether
-        # and keep hashset of on/out-of order nodes on callsite?
-        srcIndex.setInOrder(a, true)
-        targetIndex.setInOrder(b, true)
 
   for curr in targetTree.bfsIterate():
     ## iderate all nodes in tree in BFS order
@@ -622,7 +639,7 @@ proc editScript(
         otherPar, currPos)
 
       script.applyLast(tmp)
-    elif not isRoot(curr):
+    elif not isRoot(curr) and otherPar != nil:
       ## if node parent has partner and the node itself
       ## is not root
       let
@@ -648,7 +665,7 @@ proc editScript(
 
 
     ## align subnodes for current node and it's counterpart
-    alignChildren(curr.partner(map), curr, srcIndex)
+    alignChildren(curr.partner(map), curr, srcIndex, map, script)
 
   for curr in dfsIteratePost(srcTree):
     ## for each node in post order traversal of left tree
@@ -674,17 +691,16 @@ when isMainModule:
   ])
 
 
-  let srcIndex = makeIndex(tree1, true)
-
-  let targetIndex = makeIndex(tree2, false)
-
-  let root1 = srcIndex.root()
-  let root2 = targetIndex.root()
+  let
+    srcIndex    = makeIndex(tree1, true)
+    targetIndex = makeIndex(tree2, false)
+    root1       = srcIndex.root()
+    root2       = targetIndex.root()
 
   echov root1
+  echov root2
 
   let mapping1 = topDown(root1, root2, minHeight = 0, minDice = 0.7)
-
   let mapping2 = bottomUp(
     root1, root2, map = mapping1, minDice = 0.7, maxSize = 100)
 
