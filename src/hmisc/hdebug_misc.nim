@@ -16,6 +16,8 @@ template startHaxComp*() =
 template startHax*() =
   doLogRuntime = true
 
+template haxRunning*(): bool = doLogRuntime
+
 template stopHax*() =
   doLogRuntime = false
 

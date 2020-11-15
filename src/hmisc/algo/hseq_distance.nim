@@ -1,4 +1,4 @@
-import sequtils, tables, strformat, strutils
+import sequtils, tables, strformat, strutils, math, algorithm
 import ../hdebug_misc
 
 ## Sequence distance metrics
@@ -279,3 +279,154 @@ proc fuzzyMatch*(
   ## Fuzzy match overload for strings
   fuzzyMatchImpl[string, char](
     patt, other, matchScore, (proc(a, b: char): bool = a == b))
+
+type
+  LevEditKind = enum
+    lekInsert
+    lekReplace
+    lekDelete
+
+  LevEdit = object
+    case kind: LevEditKind
+      of lekInsert:
+        insertPos: int
+        insertItem: char
+      of lekDelete:
+        deletePos: int
+      of lekReplace:
+        replacePos: int
+        replaceItem: char
+
+func apply(str: var string, op: LevEdit) =
+  case op.kind:
+    of lekDelete:
+      str.delete(op.deletePos, op.deletePos + 1)
+    of lekReplace:
+      str[op.replacePos] = op.replaceItem
+    of lekInsert:
+      str.insert($op.insertItem, op.insertPos)
+
+
+
+
+proc levenshteinDistance(src, target: string): tuple[
+  distance: int, operations: seq[LevEdit]] =
+  var
+    src = src
+    target = target
+
+  var matrix: seq[seq[int]] = newSeqWith(
+    target.len + 1, newSeqWith(src.len + 1, 0))
+
+  for col in 0 .. src.len:
+    matrix[0][col] = col
+
+  for row in 0 .. target.len:
+    matrix[row][0] = row
+
+  for row in 1 .. target.len:
+    for col in 1 .. src.len:
+      matrix[row][col] = min([
+        matrix[row - 1][col] + 1,
+        matrix[row][col - 1] + 1,
+        matrix[row - 1][col - 1] + (
+          if src[col - 1] == target[row - 1]: 0 else: 1)
+      ])
+
+  if haxRunning():
+    echo "@[   ", src.toSeq().join(", ")
+    echo matrix.join("\n")
+
+  result.distance = matrix[^1][^1]
+
+  var row = 0
+  var col = 0
+  while (row < matrix.len) and (col < matrix.len):
+    let
+      diagonal = matrix[row + 1][col + 1]
+      vertical = matrix[row + 1][col]
+      horizontal = matrix[row][col + 1]
+      current = matrix[row][col]
+
+    var res = LevEdit(kind: lekDelete, deletePos: -420)
+    if diagonal >= vertical and
+       diagonal >= horizontal and
+       diagonal >= current
+      :
+      inc row
+      inc col
+      if diagonal == current + 1:
+        res = LevEdit(
+          kind: lekReplace, replacePos: col, replaceItem: target[row]
+        )
+        echov "rep", &"Replace '{src[col]}'({col}) with '{target[row]}'({row})"
+      elif horizontal >= vertical and
+           horizontal >= current
+        :
+        inc col
+        res = LevEdit(
+          kind: lekInsert, insertPos: col, insertItem: src[col])
+        echov "ins", &"Insert '{src[col]}' at {col}"
+      elif vertical >= horizontal and
+           vertical >= current
+        :
+        inc row
+        res = LevEdit(kind: lekDelete, deletePos: row)
+        echov "del", &"Delete at pos {res.deletePos} ({target[row]})"
+    elif horizontal >= vertical and
+         horizontal >= current
+      :
+      inc col
+      res = LevEdit(kind: lekInsert, insertPos: col,
+                    insertItem: src[col])
+      echov "ins", &"Insert '{src[col]}' at {col}"
+    elif vertical >= horizontal and
+         vertical >= current
+      :
+      inc row
+      res = LevEdit(kind: lekDelete, deletePos: row)
+      echov "del", &"Delete at pos {res.deletePos} ({target[row]})"
+    else:
+      raiseAssert("#[ IMPLEMENT ]#")
+
+    echov (row, col), &" - ({target}), ({src})"
+    if not (res.kind == lekDelete and res.deletePos == -420):
+      result.operations.add res
+    else:
+      echov "skip"
+
+  reverse(result.operations)
+
+when isMainModule:
+  let tests = {
+    "interest" : "industry",
+    "ros" : "horse",
+    "horse" : "ros"
+  }
+
+  for (src, target) in tests:
+    var ins = src
+    let (dist, ops) = levenshteinDistance(src, target)
+
+    var ok = false
+    try:
+      for op in ops:
+        ins.apply(op)
+
+      ok = true
+    except:
+      echo getCurrentExceptionMsg()
+
+
+    if ins != target or (not ok):
+      startHax()
+      let (dist, ops) = levenshteinDistance(src, target)
+      ins = src
+      for op in ops:
+        echo ins
+        ins.apply(op)
+
+      echo ins
+
+      stopHax()
+      quit 1

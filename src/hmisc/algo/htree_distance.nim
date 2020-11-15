@@ -125,7 +125,10 @@ proc makeIndex(tree: Tree, isSrc: bool): TreeIndex =
 
   let parent = NodeId(
     index: index, id: index.maxId, isSrc: isSrc, level: 0)
-  discard fillIndex(tree, isSrc, parent)
+  let (id, hash) = fillIndex(tree, isSrc, parent)
+  echov parent
+  echov id
+  index.parentTable[parent] = parent
   return index
 
 
@@ -189,10 +192,12 @@ proc opt(t1, t2: NodeId): Mapping =
 
 iterator items(m: Mapping): (NodeId, NodeId) =
   ## iterate over all pairs in mapping
-  discard
+  for key, val in m.table:
+    yield (key, val)
 
-proc sort(m: var Mapping, cmp: proc(a, b: NodeId): bool) =
-  discard
+
+# proc sort(m: var Mapping, cmp: proc(a, b: NodeId): bool) =
+#   discard
 
 proc LCS(lhs, rhs: seq[NodeId],
          eq: proc(a, b: NodeId): bool): seq[(NodeId, NodeId)] =
@@ -279,30 +284,30 @@ proc value(n: NodeId): Value =
 
 proc isRoot(n: NodeId): bool =
   ## Return true if node is a root node
-  n in n.index.parentTable and n.index.parentTable[n] != n
+  result = n in n.index.parentTable and n.index.parentTable[n] == n
+  echov n
+  echov n in n.index.parentTable
 
 func `==`(a, b: NodeId): bool =
   (a.id == b.id) and (a.isSrc == b.isSrc)
 
 iterator items(id: NodeId): NodeId =
   ## Iterate over subnodes for node pointed to by `id`
-  discard
+  for node in id.index.subnodes[id]:
+    yield node
 
-iterator items(tr: Tree): NodeId =
-  ## iterate over all subnodes of tree root node
-  discard
-
-func s(t: NodeId): seq[NodeId] =
-  ## Return list of subnodes
-  discard
-
-func parent(t: NodeId): NodeId =
+proc parent(t: NodeId): NodeId =
   ## Get parent node for node
-  t.index.parentTable[t]
+  if t.isRoot():
+    ## For root node create dummy 'supper root'
+    result = t
+    result.id = -1
+  else:
+    result = t.index.parentTable[t]
 
 func size(a: Mapping): int =
   ## get number of items in mapping
-  discard
+  a.table.len
 
 proc len(id: NodeId): int =
   ## Get number of subnodes for node `id`
@@ -312,22 +317,19 @@ func remove(a: var Mapping, `?`: int): (NodeId, NodeId) =
   ## remove something from mapping. Now idea what ? Should actually be.
   discard
 
-template delItIf(a: var Mapping, expr: untyped): untyped =
-  ## delete all mapping pairs that satisfy predicate expression
-  discard
-
-proc children(node: NodeId): seq[NodeId] =
+proc subn(node: NodeId): seq[NodeId] =
   ## Get list of children for node `node`
-  discard
+  node.index.subnodes[node]
 
 iterator bfsIterate(tree: NodeId): NodeId =
   ## Yield each node id in tree in BFS order
   iterateItBFS(tree, toSeq(it), true):
     yield it
 
-iterator dfsIteratePost(tree: NodeId, index: TreeIndex): NodeId =
+iterator dfsIteratePost(tree: NodeId): NodeId =
   ## Yield each node in tree in post-order DFS traversal
-  discard
+  iterateItDFS(tree, toSeq(it), true, dfsPostorder):
+    yield it
 
 proc peekMax(que: NodeQue): int =
   ## Return greatest height of node in the list
@@ -403,7 +405,7 @@ proc topDown(
   var
     srcQue: NodeQue
     targetQue: NodeQue
-    A, resMap: Mapping
+    tmpMap, resMap: Mapping
 
   push(root(srcTree), srcQue) ## store root node
   push(root(targetTree), targetQue) ## for each input
@@ -430,19 +432,44 @@ proc topDown(
       for (src, target) in carthesian(srcTops, targetTops):
         ## if pair of trees is isomorphic
         if isomorphic(src, target):
-          ## if any of the child nodes for target is isomorphic to src
-          ## itself (and vice-versa)
-          if target.anyOfIt(isomorphic(src, it) and it != target) or
-             src.anyOfIt(isomorphic(it, target) and it != src):
-            ## add both src and target to mapping
-            add(A, (src, target))
+          ## If `src` node has more than one isomorphic pair in target
+          ## index (or `target` has pair in source index)
+          if true:
+            # target.anyOfIt(isomorphic(src, it) and it != target) or
+            # src.anyOfIt(isomorphic(it, target) and it != src)
+            raiseAssert("#[ IMPLEMENT ]#")
+            ## add both src and target to candidate list that will be
+            ## processed later
+            add(tmpMap, (src, target))
 
           else:
-            ## otherwise iterate over all pairs of child nodes
-            for (is1, is2) in carthesian(s(src), s(target)):
-              ## and determine they are isomorphic
+            ## otherwise (only single mapping from `src` to `target`)
+            ## iterate over all pairs of child nodes,
+            for (is1, is2) in carthesian(subn(src), subn(target)):
+              ## determine if they are isomorphic
               if isomorphic(is1, is2):
+                ## and add matching ones to resulting tree
                 add(resMap, (is1, is2))
+
+                block footnote_1:
+                  ## QUESTION for cases when we compare nodes like
+                  when false: # hash 111
+                    if expr: discard # hash - 01
+                    if expr: discard # hash - 01
+                    while expr: discard # hash - 10
+
+                  when false: # hash 111
+                    while expr: discard # hash - 01
+                    if expr: discard # hash - 10
+                    if expr: discard # hash - 10
+
+                  ## which both have the same hash - (for `when false:`).
+                  ## But there might be more than one pair of nodes for
+                  ## carthesian produc. E.g. there is two pairs of
+                  ## `if expr:`, which means that totatlly, there are
+                  ## four pairs of nodes that can match to each other.
+
+
 
       ## so we basically determine if there is any isomorphic mapping
       ## between either (1) roots two highest subforests or (2) root
@@ -450,27 +477,36 @@ proc topDown(
 
       for src in srcTops:
         ## if there is unmatched forest root in first forest
-        if (src, _) notin (A, resMap):
+        if (src, _) notin (tmpMap, resMap):
           ## insert it's subnodes
           open(src, srcQue)
 
       for target in targetTops:
         ## do the same for other forest
-        if (_, target) notin (A, resMap):
+        if (_, target) notin (tmpMap, resMap):
           open(target, targetQue)
 
-  A.sort() do(src, target: NodeId) -> bool:
-    dice(parent(src), parent(target), resMap) > minDice
+  ## Order list of candicate mappings using `dice` function. Potential
+  ## mappings are sorted using ration of similarity between their parent
+  ## nodes. For two mappings, one with higher `dice` is located in tree are
+  ## where surrounding nodes have better 'overall mapping'
+  let orderedMap = sorted(toSeq(tmpMap)) do(
+    it1, it2: (NodeId, NodeId)) -> int:
+    # Paper says 'sort (t₁, t₂) ∈ A using dice(parent(t₁), parent(t₂),
+    # M)' which is not a lot
+    raiseAssert("#[ IMPLEMENT ]#")
 
-  while size(A) > 0:
-    let (srcId, targetId)  = remove(A, 0)
+  while size(tmpMap) > 0:
+    let (srcId, targetId)  = remove(tmpMap, 0)
     ## Add all pairs of isomprhic nodes of `s(src)` and `s(target)` to
     ## resulting mapping
     if isomorphic(srcId, targetId):
       add(resMap, (srcId, targetId))
 
-    A.delItIf(it[0] == srcId)
-    A.delItIf(it[1] == targetId)
+    ## Remove mappings from temporary list `A`
+    for src, tar in tmpMap.table:
+      if src == srcId or tar == targetId:
+        tmpMap.table.del(src)
 
   return resMap
 
@@ -482,7 +518,7 @@ proc bottomUp(
   for src in srcTree:
     ## for all nodes in left, if node itself is not matched, but
     ## has any children matched
-    if not src.matched() and src.children.anyOfIt(it.matched()):
+    if not src.matched() and src.subn.anyOfIt(it.matched()):
       # get candidate node
       let target = candidate(src, map)
       ## if it is a valid candidate and matches criteria for
@@ -491,7 +527,7 @@ proc bottomUp(
         ## add node to mapping
         add(map, (src, target))
         ## if max of number of subnodes does not exceed threshold
-        if max(s(src).len, s(target).len) < maxSize:
+        if max(subn(src).len, subn(target).len) < maxSize:
           let R = opt(src, target)
           for (ta, tb) in R:
             if ((ta, tb) notin map) and (label(ta) == label(tb)):
@@ -614,7 +650,7 @@ proc editScript(
     ## align subnodes for current node and it's counterpart
     alignChildren(curr.partner(map), curr, srcIndex)
 
-  for curr in srcTree.dfsIteratePost(srcIndex):
+  for curr in dfsIteratePost(srcTree):
     ## for each node in post order traversal of left tree
     if curr.partner(map) == nil:
       ## if current node does not have a parent, remove it

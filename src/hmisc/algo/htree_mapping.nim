@@ -303,7 +303,7 @@ subnodes.
 
 NOTE - inorder traversal is only well-defined for binary trees (e.g.
 when partitioning on 'left' and 'right' can be performed easyly). For
-all other cases `childIndex` is injected - so you can determine when
+all other cases you can use injected `childIndex` - determine when
 'middle' if the child list is reached and execute callback yourself.
 So most likely, for inorder traversal body should have form of
 
