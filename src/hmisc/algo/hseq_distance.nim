@@ -281,12 +281,12 @@ proc fuzzyMatch*(
     patt, other, matchScore, (proc(a, b: char): bool = a == b))
 
 type
-  LevEditKind = enum
+  LevEditKind* = enum
     lekInsert
     lekReplace
     lekDelete
 
-  LevEdit = object
+  LevEdit* = object
     case kind: LevEditKind
       of lekInsert:
         insertPos: int
@@ -297,10 +297,11 @@ type
         replacePos: int
         replaceItem: char
 
-func apply(str: var string, op: LevEdit) =
+func apply*(str: var seq[char], op: LevEdit) =
   case op.kind:
     of lekDelete:
-      str.delete(op.deletePos, op.deletePos + 1)
+      let start = min(str.high, op.deletePos)
+      str.delete(start, start)
     of lekReplace:
       str[op.replacePos] = op.replaceItem
     of lekInsert:
@@ -309,124 +310,95 @@ func apply(str: var string, op: LevEdit) =
 
 
 
-proc levenshteinDistance(src, target: string): tuple[
+proc levenshteinDistance*(str1, str2: seq[char]): tuple[
   distance: int, operations: seq[LevEdit]] =
+  # Adapted from https://phiresky.github.io/levenshtein-demo/
   var
-    src = src
-    target = target
+    l1 = str1.len
+    l2 = str2.len
 
-  var matrix: seq[seq[int]] = newSeqWith(
-    target.len + 1, newSeqWith(src.len + 1, 0))
+    m: seq[seq[int]] = newSeqWith(l1 + 1, newSeqWith(l2 + 1, 0))
+    paths: seq[seq[(int, int)]] = newSeqWith(l1 + 1,
+                                             newSeqWith(l2 + 1, (0, 0)))
 
-  for col in 0 .. src.len:
-    matrix[0][col] = col
+  # m = @[toSeq(0 .. l1)]
+  for i in 0 .. l1:
+    m[i][0] = i
+    paths[i][0] = (i - 1, 0)
 
-  for row in 0 .. target.len:
-    matrix[row][0] = row
+  for j in 0 .. l2:
+    m[0][j] = j
+    paths[0][j] = (0, j - 1)
 
-  for row in 1 .. target.len:
-    for col in 1 .. src.len:
-      matrix[row][col] = min([
-        matrix[row - 1][col] + 1,
-        matrix[row][col - 1] + 1,
-        matrix[row - 1][col - 1] + (
-          if src[col - 1] == target[row - 1]: 0 else: 1)
-      ])
+  for i in 1 .. l1:
+    for j in 1 .. l2:
+      if (str1[i - 1] == str2[j - 1]):
+        m[i][j] = m[i - 1][j - 1]
+        paths[i][j] = (i - 1, j - 1)
+      else:
+        let min = min([m[i - 1][j], m[i][j - 1], m[i - 1][j - 1]])
+        m[i][j] = min + 1;
+        if (m[i - 1][j] == min):
+          paths[i][j] = (i - 1, j)
 
-  if haxRunning():
-    echo "@[   ", src.toSeq().join(", ")
-    echo matrix.join("\n")
+        elif (m[i][j - 1] == min):
+          paths[i][j] = (i, j - 1)
 
-  result.distance = matrix[^1][^1]
+        elif (m[i - 1][j - 1] == min):
+          paths[i][j] = (i - 1, j - 1)
 
-  var row = 0
-  var col = 0
-  while (row < matrix.len) and (col < matrix.len):
-    let
-      diagonal = matrix[row + 1][col + 1]
-      vertical = matrix[row + 1][col]
-      horizontal = matrix[row][col + 1]
-      current = matrix[row][col]
+  var levenpath: seq[tuple[i, j: int, t: string]]
 
-    var res = LevEdit(kind: lekDelete, deletePos: -420)
-    if diagonal >= vertical and
-       diagonal >= horizontal and
-       diagonal >= current
-      :
-      inc row
-      inc col
-      if diagonal == current + 1:
-        res = LevEdit(
-          kind: lekReplace, replacePos: col, replaceItem: target[row]
+  var j = l2
+  var i = l1
+  while i >= 0 and j >= 0:
+    j = l2
+    while i >= 0 and j >= 0:
+      levenpath.add((i, j, ""))
+      let t = i
+      i = paths[i][j][0]
+      j = paths[t][j][1]
+
+  reverse(levenpath)
+
+  echov levenpath
+  for i in 1 ..< levenpath.len:
+    var
+      last = levenpath[i - 1]
+      cur = levenpath[i]
+
+    if i != 0:
+      if (
+        cur.i == last.i + 1 and
+        cur.j == last.j + 1 and
+        m[cur.i][cur.j] != m[last.i][last.j]
+      ):
+        result.operations.add LevEdit(
+          kind: lekReplace,
+          replacePos: cur.j - 1,
+          replaceItem: str2[cur.j - 1]
         )
-        echov "rep", &"Replace '{src[col]}'({col}) with '{target[row]}'({row})"
-      elif horizontal >= vertical and
-           horizontal >= current
-        :
-        inc col
-        res = LevEdit(
-          kind: lekInsert, insertPos: col, insertItem: src[col])
-        echov "ins", &"Insert '{src[col]}' at {col}"
-      elif vertical >= horizontal and
-           vertical >= current
-        :
-        inc row
-        res = LevEdit(kind: lekDelete, deletePos: row)
-        echov "del", &"Delete at pos {res.deletePos} ({target[row]})"
-    elif horizontal >= vertical and
-         horizontal >= current
-      :
-      inc col
-      res = LevEdit(kind: lekInsert, insertPos: col,
-                    insertItem: src[col])
-      echov "ins", &"Insert '{src[col]}' at {col}"
-    elif vertical >= horizontal and
-         vertical >= current
-      :
-      inc row
-      res = LevEdit(kind: lekDelete, deletePos: row)
-      echov "del", &"Delete at pos {res.deletePos} ({target[row]})"
-    else:
-      raiseAssert("#[ IMPLEMENT ]#")
+        cur.t = "replace"
+      elif (cur.i == last.i and cur.j == last.j + 1):
+        result.operations.add LevEdit(
+          kind: lekInsert,
+          insertPos: cur.i,
+          insertItem: str2[cur.j - 1]
+        )
+        cur.t = "insert"
+      elif (cur.i == last.i + 1 and cur.j == last.j):
+        result.operations.add LevEdit(
+          kind: lekDelete,
+          deletePos: cur.i - 1,
+        )
+        cur.t = "delete"
 
-    echov (row, col), &" - ({target}), ({src})"
-    if not (res.kind == lekDelete and res.deletePos == -420):
-      result.operations.add res
-    else:
-      echov "skip"
-
-  reverse(result.operations)
-
-when isMainModule:
-  let tests = {
-    "interest" : "industry",
-    "ros" : "horse",
-    "horse" : "ros"
-  }
-
-  for (src, target) in tests:
-    var ins = src
-    let (dist, ops) = levenshteinDistance(src, target)
-
-    var ok = false
-    try:
-      for op in ops:
-        ins.apply(op)
-
-      ok = true
-    except:
-      echo getCurrentExceptionMsg()
+    # echov m.join("\n")
+    echov last
+    echov cur
+    # levenpath[i] = cur
 
 
-    if ins != target or (not ok):
-      startHax()
-      let (dist, ops) = levenshteinDistance(src, target)
-      ins = src
-      for op in ops:
-        echo ins
-        ins.apply(op)
-
-      echo ins
-
-      stopHax()
-      quit 1
+  echov m.join("\n")
+  echov levenpath
+  # return { matrix: m, levenpath: levenpath };

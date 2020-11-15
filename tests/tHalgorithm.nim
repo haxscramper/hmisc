@@ -655,6 +655,60 @@ suite "Misc algorithms":
 
     test("123", "1123", m.sum(), @[1, 2, 3])
 
+  test "{levenshteinDistance}":
+    stopHax()
+    let tests = {
+      "a" : "b",
+      "a" : "aa",
+      "aa" : "a",
+      "aaaa" : "a",
+      "123" : "345",
+      "horse" : "ros",
+      # "interest" : "industry",
+      "" : "",
+      "A_A" : "_",
+      "" : "1",
+      "aa" : "bb",
+      "ros" : "rose",
+      "a" : "bc",
+      "hros" : "ros",
+      "A__A" : "A_B_A",
+    }
+
+    # startHax()
+    for (src, target) in tests:
+      let (src, target) = (toseq src, toseq target)
+      var ins = src
+      var ok = false
+      try:
+        let (dist, ops) = levenshteinDistance(src, target)
+        for op in ops:
+          # echo op
+          ins.apply(op)
+
+        ok = true
+      except:
+        discard
+
+      if ins != target or (not ok):
+        startHax()
+        echov &"{src} -> {target}"
+        echov &"{src} -> {ins}"
+
+        let (dist, ops) = levenshteinDistance(src, target)
+        ins = src
+        for op in ops:
+          echov ins
+          ins.apply(op)
+
+        echo ins
+
+        stopHax()
+        echo "fail"
+        quit 1
+      # else:
+
+
   test "Colored string wrapping":
     assertEq "999".toRed(), "\e[31m999\e[39m"
     assertEq "999".toDefault(), "999"
