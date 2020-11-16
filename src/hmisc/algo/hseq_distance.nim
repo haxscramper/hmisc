@@ -162,7 +162,7 @@ proc fuzzyMatchRecursive[Seq, Item](
         scoreFunc
       )
 
-      # echo &"Recursive test score: {recRes.score}, current: {bestRecursiveScore}"
+      # echo &"Recursive test score: {recRes.score}, curr: {bestRecursiveScore}"
       if (not hadRecursiveMatch) or (recRes.score > bestRecursiveScore):
         # echo &"Updated best recursive score, sub buf: {succMatchBuf}"
         bestRecursiveScore = recRes.score
@@ -180,15 +180,15 @@ proc fuzzyMatchRecursive[Seq, Item](
 
 
   let fullMatch: bool = (pattIdx == patt.len)
-  let currentScore = scoreFunc(patt, other, matches.mapIt(it.int))
-  # echo &"Score: {currentScore}, matches: {matches}, best rec: {bestRecursiveScore} {bestRecursiveMatches}"
+  let currScore = scoreFunc(patt, other, matches.mapIt(it.int))
+  # echo &"Score: {currScore}, matches: {matches}, best rec: {bestRecursiveScore} {bestRecursiveMatches}"
 
   # echo &"Full match: {fullMatch}, {pattIdx} == {patt.len}"
   if fullMatch:
-    result.score = currentScore
+    result.score = currScore
 
-  if hadRecursiveMatch and (not fullMatch or (bestRecursiveScore > currentScore)):
-    # echo &"Recursive had better results: {bestRecursiveScore} > {currentScore}"
+  if hadRecursiveMatch and (not fullMatch or (bestRecursiveScore > currScore)):
+    # echo &"Recursive had better results: {bestRecursiveScore} > {currScore}"
     result.score = bestRecursiveScore
     result.ok = true
     matches = bestRecursiveMatches
@@ -402,3 +402,108 @@ proc levenshteinDistance*(str1, str2: seq[char]): tuple[
   echov m.join("\n")
   echov levenpath
   # return { matrix: m, levenpath: levenpath };
+
+type
+  AlignElem[T] = object
+    case isGap: bool
+      of true:
+        discard
+      of false:
+        idx: int
+        item: T
+
+
+proc needlemanWunschAlign*[T](
+  seq1, seq2: seq[T],
+  gapPenalty: int,
+  matchScore: proc(a, b: T): int,
+     ): tuple[seq1Align, seq2Align: seq[AlignElem[T]]] =
+  var score = newSeqWith(seq2.len + 1, newSeqWith(seq1.len + 1, 0))
+
+  for i in 0 .. seq2.len:
+    score[i][0] = gapPenalty * i
+
+  for j in 0 .. seq1.len:
+    score[0][j] = gapPenalty * j
+
+  # Fill out all other values in the score matrix
+  for i in 1 .. seq2.len:
+    for j in 1 .. seq1.len:
+      # Record the maximum score from the three possible scores calculated above
+      score[i][j] = max([
+        score[i - 1][j - 1] + match_score(seq1[j - 1], seq2[i - 1]),
+        score[i - 1][j] + gapPenalty,
+        score[i][j - 1] + gapPenalty
+      ])
+
+  var
+    align1: seq[AlignElem[T]]
+    align2: seq[AlignElem[T]]
+
+  var (i, j) = (seq2.len, seq1.len)
+  while i > 0 and j > 0:
+    let
+      curr = score[i][j]
+      diag = score[i - 1][j - 1]
+      vert = score[i][j - 1]
+      horiz = score[i - 1][j]
+
+    if curr == diag + match_score(seq1[j - 1], seq2[i - 1]):
+      align1 &= AlignElem[T](isGap: false, item: seq1[j - 1], idx: j - 1)
+      align2 &= AlignElem[T](isGap: false, item: seq2[i - 1], idx: i - 1)
+
+      dec i
+      dec j
+
+    elif curr == vert + gapPenalty:
+      align1 &= AlignElem[T](isGap: false, item: seq1[j - 1], idx: j - 1)
+      align2 &= AlignElem[T](isGap: true)
+
+      dec j
+
+    elif curr == horiz + gapPenalty:
+      align1 &= AlignElem[T](isGap: true)
+      align2 &= AlignElem[T](
+        isGap: false, item: seq2[i - 1], idx: i - 1)
+
+      dec i
+
+  while j > 0:
+    align1 &= AlignElem[T](isGap: false, item: seq1[j - 1], idx: j - 1)
+    align2 &= AlignElem[T](isGap: true)
+
+    dec j
+
+  while i > 0:
+    align1 &= AlignElem[T](isGap: true)
+    align2 &= AlignElem[T](isGap: false, item: seq2[i - 1], idx: i - 1)
+
+    dec i
+
+  reverse(align1)
+  reverse(align2)
+
+  result.seq1Align = align1
+  result.seq2Align = align2
+
+
+when isMainModule:
+  const
+    gapPenalty = -1
+    match_award = 1
+    mismatchPenalty = -1
+
+  let (a, b) = needlemanWunschAlign(
+    "ATGTAGTGTATAGTACATGCA".toSeq(),
+    "ATGTAGTACATGCA".toSeq(),
+    gapPenalty
+  ) do(alpha, beta: char) -> int:
+    if alpha == beta:
+      match_award
+    elif alpha == '-' or beta == '-':
+      gapPenalty
+    else:
+      mismatchPenalty
+
+  echo a.mapIt(if it.isGap: '-' else: it.item).join("")
+  echo b.mapIt(if it.isGap: '-' else: it.item).join("")
