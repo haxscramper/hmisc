@@ -6,6 +6,9 @@ import ../hdebug_misc
 # TODO performance benchmars for fuzzy string matching - no copying
 #      should occur
 
+# TODO Implement all dynamic programming algorithms using two separate
+#      procs - for building matrix and backtracking.
+
 # TODO add custom `cmp` proc for fuzzy matching instead of using `==`
 
 type EqCmpProc[T] = proc(x, y: T): bool
@@ -404,6 +407,8 @@ proc levenshteinDistance*(str1, str2: seq[char]): tuple[
   # return { matrix: m, levenpath: levenpath };
 
 type
+  Align[T] = seq[AlignElem[T]]
+  AlignSeq[T] = tuple[align1, align2: Align[T]]
   AlignElem[T] = object
     case isGap: bool
       of true:
@@ -417,7 +422,7 @@ proc needlemanWunschAlign*[T](
   seq1, seq2: seq[T],
   gapPenalty: int,
   matchScore: proc(a, b: T): int,
-     ): tuple[seq1Align, seq2Align: seq[AlignElem[T]]] =
+     ): AlignSeq[T] =
   var score = newSeqWith(seq2.len + 1, newSeqWith(seq1.len + 1, 0))
 
   for i in 0 .. seq2.len:
@@ -436,9 +441,9 @@ proc needlemanWunschAlign*[T](
         score[i][j - 1] + gapPenalty
       ])
 
-  var
-    align1: seq[AlignElem[T]]
-    align2: seq[AlignElem[T]]
+  # var
+  #   align1: seq[AlignElem[T]]
+  #   align2: seq[AlignElem[T]]
 
   var (i, j) = (seq2.len, seq1.len)
   while i > 0 and j > 0:
@@ -449,61 +454,319 @@ proc needlemanWunschAlign*[T](
       horiz = score[i - 1][j]
 
     if curr == diag + match_score(seq1[j - 1], seq2[i - 1]):
-      align1 &= AlignElem[T](isGap: false, item: seq1[j - 1], idx: j - 1)
-      align2 &= AlignElem[T](isGap: false, item: seq2[i - 1], idx: i - 1)
+      result.align1 &= AlignElem[T](isGap: false, item: seq1[j - 1], idx: j - 1)
+      result.align2 &= AlignElem[T](isGap: false, item: seq2[i - 1], idx: i - 1)
 
       dec i
       dec j
 
     elif curr == vert + gapPenalty:
-      align1 &= AlignElem[T](isGap: false, item: seq1[j - 1], idx: j - 1)
-      align2 &= AlignElem[T](isGap: true)
+      result.align1 &= AlignElem[T](isGap: false, item: seq1[j - 1], idx: j - 1)
+      result.align2 &= AlignElem[T](isGap: true)
 
       dec j
 
     elif curr == horiz + gapPenalty:
-      align1 &= AlignElem[T](isGap: true)
-      align2 &= AlignElem[T](
+      result.align1 &= AlignElem[T](isGap: true)
+      result.align2 &= AlignElem[T](
         isGap: false, item: seq2[i - 1], idx: i - 1)
 
       dec i
 
   while j > 0:
-    align1 &= AlignElem[T](isGap: false, item: seq1[j - 1], idx: j - 1)
-    align2 &= AlignElem[T](isGap: true)
+    result.align1 &= AlignElem[T](
+      isGap: false, item: seq1[j - 1], idx: j - 1)
+
+    result.align2 &= AlignElem[T](isGap: true)
 
     dec j
 
   while i > 0:
-    align1 &= AlignElem[T](isGap: true)
-    align2 &= AlignElem[T](isGap: false, item: seq2[i - 1], idx: i - 1)
+    result.align1 &= AlignElem[T](isGap: true)
+    result.align2 &= AlignElem[T](
+      isGap: false, item: seq2[i - 1], idx: i - 1)
 
     dec i
 
-  reverse(align1)
-  reverse(align2)
+  reverse(result.align1)
+  reverse(result.align2)
 
-  result.seq1Align = align1
-  result.seq2Align = align2
+
+type
+  Node = object
+    i: int
+    j: int
+
+func empty[T](s: seq[T]): bool = s.len == 0
+
+template newGridWith(rows, cols: int, elem: untyped): untyped =
+  newSeqWith(rows, newSeqWith(cols, elem))
+
+proc makeAlignment[T](row, col: seq[T], path: seq[Node]): AlignSeq[T] =
+
+  var nm: int = 0
+  for ii in 0 ..< path.len - 1:
+    let
+      cur = path[ii]
+      next = path[ii + 1]
+
+    if (cur.i == next.i + 1 and cur.j == next.j + 1):
+      result.align1 &= AlignElem[T](
+        isGap: false, item: row[next.i], idx: next.i)
+
+      result.align2 &= AlignElem[T](
+        isGap: false, item: col[next.j], idx: next.j)
+
+      if (row[next.i] != col[next.j]):
+        inc nm
+
+    elif (cur.i == next.i and cur.j == next.j + 1):
+      inc nm
+      result.align1 &= AlignElem[T](isGap: true)
+      result.align2 &= AlignElem[T](
+        isGap: false, item: col[next.j], idx: next.j)
+
+    elif (cur.i == next.i + 1 and cur.j == next.j):
+      inc nm
+      result.align2 &= AlignElem[T](isGap: true)
+      result.align1 &= AlignElem[T](
+        isGap: false, item: row[next.j], idx: next.j)
+
+  reverse(result.align2)
+  reverse(result.align1)
+
+
+
+# func `!`(b: bool): bool = not b
+# func `&&`(a, b: bool): bool = a and b
+# func `||`(a, b: bool): bool = a or b
+# func `$`[T](grid: seq[seq[T]]): string =
+#   for row in grid:
+#     for cell in row:
+#       when cell is bool:
+#         if cell:
+#           result &= "\e[32mtrue\e[39m"
+#         else:
+#           result &= "\e[31mfalse\e[39m"
+
+#       else:
+#         result &= $cell
+
+#       result &= "\t"
+#     result &= "\n"
+
+
+proc affineGapAlign*[T](
+    seq1, seq2: seq[T],
+    gapOpenPenalty: int = -2,
+    gapExtPenalty: int = -1,
+    matchScore: proc(a, b: T): int = proc(a, b: T): int = (if a == b: 0 else: -1)
+  ): seq[seq[Node]] =
+  # Implementation adapted from https://github.com/ruolin/affine-gap-gotoh/blob/master/main.cpp
+
+  let
+    nseq1: int = seq1.len + 1
+    nseq2: int = seq2.len + 1
+
+  var
+    alignPath: seq[Node]
+    paths: seq[seq[Node]]
+    rMatrix: seq[seq[int]]    = newGridWith(nseq1, nseq2, 0)
+    pMatrix                   = newGridWith(nseq1, nseq2, 0)
+    qMatrix                   = newGridWith(nseq1, nseq2, 0)
+    vertWhole: seq[seq[bool]] = newGridWith(nseq1 + 1, nseq2 + 1, false)
+    horiWhole                 = newGridWith(nseq1 + 1, nseq2 + 1, false)
+    diagWhole                 = newGridWith(nseq1 + 1, nseq2 + 1, false)
+    vertTopHalf               = newGridWith(nseq1 + 1, nseq2 + 1, false)
+    vertBottomHalf            = newGridWith(nseq1 + 1, nseq2 + 1, false)
+    horiLeftHalf              = newGridWith(nseq1 + 1, nseq2 + 1, false)
+    horiRightHalf             = newGridWith(nseq1 + 1, nseq2 + 1, false)
+
+  proc DFS(cn: Node, must_go_dir: int) =
+    let prev: Node = if align_path.empty(): Node(i: 0, j: 0) else: align_path[^1]
+    align_path.add(cn);
+    if (cn.i == 0 and cn.j == 0):
+      paths.add(align_path);
+
+    else:
+      if (must_go_dir == 1):
+        let next_must_go = if (
+          hori_whole[cn.i][cn.j] and hori_left_half[cn.i][cn.j]): 1 else: 0
+        DFS(Node(i: cn.i, j: cn.j - 1), next_must_go);
+
+      elif (must_go_dir == 2):
+        let next_must_go = if (
+          vert_whole[cn.i][cn.j] and vert_top_half[cn.i][cn.j]): 2 else: 0
+        DFS(Node(i: cn.i - 1, j: cn.j), next_must_go);
+
+      else:
+        if (diag_whole[cn.i][cn.j]):
+          DFS(Node(i: cn.i - 1, j: cn.j - 1), 0);
+
+        if (vert_whole[cn.i][cn.j]):
+          if (vert_bottom_half[cn.i][cn.j]):
+            if (cn.i + 1 != prev.i or cn.j != prev.j):
+              return
+
+          let next_must_go = if(vert_top_half[cn.i][cn.j]):  2 else: 0
+          DFS(Node(i: cn.i - 1, j: cn.j), next_must_go)
+
+        if (hori_whole[cn.i][cn.j]):
+          if (hori_right_half[cn.i][cn.j]):
+            if (cn.i != prev.i or cn.j + 1 != prev.j):
+              return
+
+          let next_must_go = if(hori_left_half[cn.i][cn.j]): 1 else: 0
+          DFS(Node(i: cn.i, j: cn.j - 1), next_must_go)
+
+    discard align_path.pop()
+
+
+
+  proc impl() =
+    for j in 0 ..< nseq2:
+      pMatrix[0][j] = 2 * gapOpenPenalty + max(nseq2, nseq1) * gapExtPenalty - 1;
+      rMatrix[0][j] = gapOpenPenalty + j * gapExtPenalty;
+
+
+    for i in 0 ..< nseq1:
+      qMatrix[i][0] = 2 * gapOpenPenalty + max(nseq2, nseq1) * gapExtPenalty - 1; 
+      rMatrix[i][0] = gapOpenPenalty + i * gapExtPenalty;
+
+    rMatrix[0][0] = 0;
+    diag_whole[nseq1][nseq2] = true;
+
+    for i in 0 ..< nseq1:
+      for j in 0 ..< nseq2:
+        if i != 0:
+          pMatrix[i][j] = gapExtPenalty + max(pMatrix[i - 1][j], rMatrix[i - 1][j] + gapOpenPenalty);
+          if (pMatrix[i][j] == gapExtPenalty + pMatrix[i - 1][j]):
+            vert_top_half[i - 1][j] = true
+
+          if (pMatrix[i][j] == gapExtPenalty + gapOpenPenalty + rMatrix[i - 1][j]):
+            vert_bottom_half[i - 1][j] = true
+
+        if j != 0:
+          qMatrix[i][j] = gapExtPenalty + max(qMatrix[i][j - 1], rMatrix[i][j - 1] + gapOpenPenalty);
+          if qMatrix[i][j] == gapExtPenalty + qMatrix[i][j - 1]:
+            hori_left_half[i][j - 1] = true
+
+          if qMatrix[i][j] == gapExtPenalty + gapOpenPenalty + rMatrix[i][j - 1]:
+            hori_right_half[i][j - 1] = true
+
+        if i != 0 and j != 0:
+          rMatrix[i][j] = max(
+            rMatrix[i - 1][j - 1] + matchScore(
+              seq2[j - 1], seq1[i - 1]
+            ),
+            max(qMatrix[i][j], pMatrix[i][j]))
+
+          if rMatrix[i][j] == rMatrix[i - 1][j - 1] + matchScore(seq2[j - 1], seq1[i - 1]):
+            diag_whole[i][j] = true
+
+        if rMatrix[i][j]  == pMatrix[i][j]:
+          vert_whole[i][j] = true
+
+        if rMatrix[i][j]  == qMatrix[i][j]:
+          hori_whole[i][j] = true
+
+
+    for i in countdown(nseq1 - 1,  0):
+      for j in countdown(nseq2 - 1, 0):
+        if ((not vert_whole[i+1][j] or not vert_bottom_half[i][j]) and
+            (not hori_whole[i][j+1] or not hori_right_half[i][j]) and
+            not diag_whole[i+1][j+1]):
+          vert_whole[i][j] = false
+          hori_whole[i][j] = false
+          diag_whole[i][j] = false
+
+        if (not vert_whole[i+1][j] and
+            not hori_whole[i][j+1] and
+            not diag_whole[i+1][j+1]):
+          continue
+
+        else:
+          if (vert_whole[i+1][j] and vert_top_half[i][j]):
+            vert_top_half[i + 1][j] = not vert_bottom_half[i][j]
+            vert_bottom_half[i][j] = not vert_whole[i][j]
+            vert_whole[i][j] = true
+          else:
+            vert_top_half[i + 1][j] = false
+            vert_bottom_half[i][j] = false
+
+          if (hori_whole[i][j + 1] and hori_left_half[i][j]):
+            hori_left_half[i][j + 1] = not hori_right_half[i][j]
+            hori_right_half[i][j] = not hori_whole[i][j]
+            hori_whole[i][j] = true
+          else:
+            hori_left_half[i][j + 1] = false
+            hori_right_half[i][j] = false
+
+    DFS(Node(i: nseq1 - 1, j: nseq2 - 1), 0)
+
+  impl()
+
+  let res = makeAlignment(seq1, seq2, paths[^1])
+  return paths
+
+proc sortAlignments*[T](
+  seq1, seq2: seq[T],
+  paths: seq[seq[Node]],
+  scoreFunc: proc(align: AlignSeq[T]): int): seq[AlignSeq[T]] =
+  for path in paths:
+    result.add makeAlignment(seq1, seq2, path)
+
+  result.sort(proc(sa1, sa2: AlignSeq[T]): int =
+      if scoreFunc(sa1) > scoreFunc(sa2): 1 else: -1
+  )
 
 
 when isMainModule:
-  const
-    gapPenalty = -1
-    match_award = 1
-    mismatchPenalty = -1
+  if true:
+    const
+      gapPenalty = -1
+      match_award = 1
+      mismatchPenalty = -1
 
-  let (a, b) = needlemanWunschAlign(
-    "ATGTAGTGTATAGTACATGCA".toSeq(),
-    "ATGTAGTACATGCA".toSeq(),
-    gapPenalty
-  ) do(alpha, beta: char) -> int:
-    if alpha == beta:
-      match_award
-    elif alpha == '-' or beta == '-':
+    let (a, b) = needlemanWunschAlign(
+      "ATGTAGTGTATAGTACATGCA".toSeq(),
+      "ATGTAGTACATGCA".toSeq(),
       gapPenalty
-    else:
-      mismatchPenalty
+    ) do(alpha, beta: char) -> int:
+      if alpha == beta:
+        match_award
+      elif alpha == '-' or beta == '-':
+        gapPenalty
+      else:
+        mismatchPenalty
 
-  echo a.mapIt(if it.isGap: '-' else: it.item).join("")
-  echo b.mapIt(if it.isGap: '-' else: it.item).join("")
+    echo a.mapIt(if it.isGap: '-' else: it.item).join("")
+    echo b.mapIt(if it.isGap: '-' else: it.item).join("")
+
+
+  block:
+    let
+      seq1 = "int a = 12".toSeq()
+      seq2 = "int hello = 12".toSeq()
+    let paths = affineGapAlign(
+      seq1, seq2,
+      matchScore = proc(a, b: char): int =
+                       if a == '=' and b == '=':
+                         4
+                       elif a == b:
+                         0
+                       else:
+                         -1
+
+    )
+
+    let aligns = sortAlignments(
+      seq1, seq2, paths,
+      scoreFunc = proc(align1: AlignSeq[char]): int =
+                    1
+    )
+
+    for (a, b) in aligns:
+      echo a.mapIt(if it.isGap: ' ' else: it.item).join("")
+      echo b.mapIt(if it.isGap: ' ' else: it.item).join("")
+      echo "---"
