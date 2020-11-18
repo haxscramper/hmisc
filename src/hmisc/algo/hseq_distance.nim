@@ -11,7 +11,12 @@ import ../hdebug_misc
 
 # TODO add custom `cmp` proc for fuzzy matching instead of using `==`
 
-type EqCmpProc[T] = proc(x, y: T): bool
+type
+  EqCmpProc[T] = proc(x, y: T): bool
+  ScoreProc[T] = proc(x: T): int
+  ScoreCmpProc[T] = proc(x, y: T): int
+
+func zeroEqualCmp*[T](x, y: T): int = (if x == y: 0 else: -1)
 
 func longestCommonSubsequence*[T](
   x, y: seq[T],
@@ -408,7 +413,8 @@ proc levenshteinDistance*(str1, str2: seq[char]): tuple[
 
 type
   Align[T] = seq[AlignElem[T]]
-  AlignSeq[T] = tuple[align1, align2: Align[T]]
+  AlignSeq[T] = tuple[align1, align2: Align[T], score: int]
+  AlignGroup[T] = seq[tuple[idx: int8, align: Align[T]]]
   AlignElem[T] = object
     case isGap: bool
       of true:
@@ -417,12 +423,29 @@ type
         idx: int
         item: T
 
+func initAlignElem[T](idx: int, item: T): AlignElem[T] =
+  AlignElem[T](idx: idx, isGap: false, item: item)
 
+proc toString*[T](align: Align[T], gapSize: int = 1): string =
+  for elem in align:
+    if elem.isGap:
+      result &= strutils.repeat(" ", gapSize)
+    else:
+      result &= alignLeft($elem.item, gapSize)
+
+proc toString*[T](align: Align[AlignElem[T]], gapSize: int = 1): string =
+  for elem in align:
+    if elem.isGap or elem.item.isGap:
+      result &= strutils.repeat(" ", gapSize)
+    else:
+      result &= alignLeft($elem.item.item, gapSize)
+
+
+# TODO make separate penalties on start/end of the sequence
 proc needlemanWunschAlign*[T](
   seq1, seq2: seq[T],
   gapPenalty: int,
-  matchScore: proc(a, b: T): int,
-     ): AlignSeq[T] =
+  matchScore: proc(a, b: T): int,): AlignSeq[T] =
   var score = newSeqWith(seq2.len + 1, newSeqWith(seq1.len + 1, 0))
 
   for i in 0 .. seq2.len:
@@ -454,42 +477,41 @@ proc needlemanWunschAlign*[T](
       horiz = score[i - 1][j]
 
     if curr == diag + match_score(seq1[j - 1], seq2[i - 1]):
-      result.align1 &= AlignElem[T](isGap: false, item: seq1[j - 1], idx: j - 1)
-      result.align2 &= AlignElem[T](isGap: false, item: seq2[i - 1], idx: i - 1)
+      result.align1 &= initAlignElem(j - 1, seq1[j - 1])
+      result.align2 &= initAlignElem(i - 1, seq2[i - 1])
 
       dec i
       dec j
 
     elif curr == vert + gapPenalty:
-      result.align1 &= AlignElem[T](isGap: false, item: seq1[j - 1], idx: j - 1)
+      result.align1 &= initAlignElem(j - 1, seq1[j - 1])
       result.align2 &= AlignElem[T](isGap: true)
 
       dec j
 
     elif curr == horiz + gapPenalty:
       result.align1 &= AlignElem[T](isGap: true)
-      result.align2 &= AlignElem[T](
-        isGap: false, item: seq2[i - 1], idx: i - 1)
+      result.align2 &= initAlignElem(i - 1, seq2[i - 1])
 
       dec i
 
   while j > 0:
-    result.align1 &= AlignElem[T](
-      isGap: false, item: seq1[j - 1], idx: j - 1)
-
+    result.align1 &= initAlignElem(j - 1, seq1[j - 1])
     result.align2 &= AlignElem[T](isGap: true)
 
     dec j
 
   while i > 0:
     result.align1 &= AlignElem[T](isGap: true)
-    result.align2 &= AlignElem[T](
-      isGap: false, item: seq2[i - 1], idx: i - 1)
+    result.align2 &= initAlignElem(i - 1, seq2[i - 1])
 
     dec i
 
   reverse(result.align1)
   reverse(result.align2)
+  result.score = score[^1][^1]
+
+
 
 
 type
@@ -502,9 +524,8 @@ func empty[T](s: seq[T]): bool = s.len == 0
 template newGridWith(rows, cols: int, elem: untyped): untyped =
   newSeqWith(rows, newSeqWith(cols, elem))
 
-proc makeAlignment[T](row, col: seq[T], path: seq[Node]): AlignSeq[T] =
-
-  var nm: int = 0
+proc makeAlign[T](
+  seq1, seq2: seq[T], path: seq[Node]): AlignSeq[T] =
   for ii in 0 ..< path.len - 1:
     let
       cur = path[ii]
@@ -512,55 +533,52 @@ proc makeAlignment[T](row, col: seq[T], path: seq[Node]): AlignSeq[T] =
 
     if (cur.i == next.i + 1 and cur.j == next.j + 1):
       result.align1 &= AlignElem[T](
-        isGap: false, item: row[next.i], idx: next.i)
+        isGap: false, item: seq1[next.i], idx: next.i)
 
       result.align2 &= AlignElem[T](
-        isGap: false, item: col[next.j], idx: next.j)
+        isGap: false, item: seq2[next.j], idx: next.j)
 
-      if (row[next.i] != col[next.j]):
-        inc nm
 
     elif (cur.i == next.i and cur.j == next.j + 1):
-      inc nm
       result.align1 &= AlignElem[T](isGap: true)
       result.align2 &= AlignElem[T](
-        isGap: false, item: col[next.j], idx: next.j)
+        isGap: false, item: seq2[next.j], idx: next.j)
 
     elif (cur.i == next.i + 1 and cur.j == next.j):
-      inc nm
       result.align2 &= AlignElem[T](isGap: true)
       result.align1 &= AlignElem[T](
-        isGap: false, item: row[next.j], idx: next.j)
+        isGap: false, item: seq1[next.i], idx: next.j)
 
   reverse(result.align2)
   reverse(result.align1)
+  # FIXME set score for resulting alignment (`result.score`)
 
 
 
 # func `!`(b: bool): bool = not b
 # func `&&`(a, b: bool): bool = a and b
 # func `||`(a, b: bool): bool = a or b
-# func `$`[T](grid: seq[seq[T]]): string =
-#   for row in grid:
-#     for cell in row:
-#       when cell is bool:
-#         if cell:
-#           result &= "\e[32mtrue\e[39m"
-#         else:
-#           result &= "\e[31mfalse\e[39m"
+func `$`[T](grid: seq[seq[T]]): string =
+  for row in grid:
+    for cell in row:
+      when cell is bool:
+        if cell:
+          result &= "\e[32mtrue\e[39m"
+        else:
+          result &= "\e[31mfalse\e[39m"
 
-#       else:
-#         result &= $cell
+      else:
+        result &= $cell
 
-#       result &= "\t"
-#     result &= "\n"
+      result &= "\t"
+    result &= "\n"
 
 
 proc affineGapAlign*[T](
     seq1, seq2: seq[T],
     gapOpenPenalty: int = -2,
     gapExtPenalty: int = -1,
-    matchScore: proc(a, b: T): int = proc(a, b: T): int = (if a == b: 0 else: -1)
+    matchScore: proc(a, b: T): int
   ): seq[seq[Node]] =
   # Implementation adapted from https://github.com/ruolin/affine-gap-gotoh/blob/master/main.cpp
 
@@ -630,7 +648,7 @@ proc affineGapAlign*[T](
 
 
     for i in 0 ..< nseq1:
-      qMatrix[i][0] = 2 * gapOpenPenalty + max(nseq2, nseq1) * gapExtPenalty - 1; 
+      qMatrix[i][0] = 2 * gapOpenPenalty + max(nseq2, nseq1) * gapExtPenalty - 1;
       rMatrix[i][0] = gapOpenPenalty + i * gapExtPenalty;
 
     rMatrix[0][0] = 0;
@@ -639,7 +657,8 @@ proc affineGapAlign*[T](
     for i in 0 ..< nseq1:
       for j in 0 ..< nseq2:
         if i != 0:
-          pMatrix[i][j] = gapExtPenalty + max(pMatrix[i - 1][j], rMatrix[i - 1][j] + gapOpenPenalty);
+          pMatrix[i][j] = gapExtPenalty + max(
+            pMatrix[i - 1][j], rMatrix[i - 1][j] + gapOpenPenalty);
           if (pMatrix[i][j] == gapExtPenalty + pMatrix[i - 1][j]):
             vert_top_half[i - 1][j] = true
 
@@ -647,7 +666,8 @@ proc affineGapAlign*[T](
             vert_bottom_half[i - 1][j] = true
 
         if j != 0:
-          qMatrix[i][j] = gapExtPenalty + max(qMatrix[i][j - 1], rMatrix[i][j - 1] + gapOpenPenalty);
+          qMatrix[i][j] = gapExtPenalty + max(
+            qMatrix[i][j - 1], rMatrix[i][j - 1] + gapOpenPenalty);
           if qMatrix[i][j] == gapExtPenalty + qMatrix[i][j - 1]:
             hori_left_half[i][j - 1] = true
 
@@ -661,7 +681,8 @@ proc affineGapAlign*[T](
             ),
             max(qMatrix[i][j], pMatrix[i][j]))
 
-          if rMatrix[i][j] == rMatrix[i - 1][j - 1] + matchScore(seq2[j - 1], seq1[i - 1]):
+          if rMatrix[i][j] == rMatrix[i - 1][j - 1] + matchScore(
+            seq2[j - 1], seq1[i - 1]):
             diag_whole[i][j] = true
 
         if rMatrix[i][j]  == pMatrix[i][j]:
@@ -706,7 +727,6 @@ proc affineGapAlign*[T](
 
   impl()
 
-  let res = makeAlignment(seq1, seq2, paths[^1])
   return paths
 
 proc sortAlignments*[T](
@@ -714,12 +734,203 @@ proc sortAlignments*[T](
   paths: seq[seq[Node]],
   scoreFunc: proc(align: AlignSeq[T]): int): seq[AlignSeq[T]] =
   for path in paths:
-    result.add makeAlignment(seq1, seq2, path)
+    result.add makeAlign(seq1, seq2, path)
 
   result.sort(proc(sa1, sa2: AlignSeq[T]): int =
       if scoreFunc(sa1) > scoreFunc(sa2): 1 else: -1
   )
 
+iterator allAlign*[T](
+  seq1, seq2: seq[T],
+  gapOpenPenalty: int = -2,
+  gapExtPenalty: int = -1,
+  matchScore: ScoreCmpProc[T]): AlignSeq[T] =
+
+  let paths = affineGapAlign(
+    seq1, seq2,
+    gapOpenPenalty = gapOpenPenalty,
+    gapExtPenalty = gapExtPenalty,
+    matchScore = matchScore
+  )
+
+  for path in paths:
+    yield makeAlign(seq1, seq2, path)
+
+proc bestAlign*[T](
+    seq1, seq2: seq[T],
+    alignQualityScore: ScoreProc[AlignSeq[T]],
+    gapOpenPenalty: int = -2,
+    gapExtPenalty: int = -1,
+    matchScore: ScoreCmpProc[T] = (
+      proc(a, b: T): int = (if a == b: 0 else: -1)
+    )
+  ): AlignSeq[T] =
+  var
+    bestScore = 0
+    idx = 0
+
+  for align in allAlign(
+    seq1, seq1,
+    gapOpenPenalty = gapOpenPenalty,
+    gapExtPenalty = gapExtPenalty,
+    matchScore = matchScore
+  ):
+    if idx == 0:
+      bestScore = alignQualityScore(align)
+      result = align
+    else:
+      if alignQualityScore(align) > bestScore:
+        result = align
+
+    inc idx
+
+
+
+proc firstAlign*[T](
+    seq1, seq2: seq[T],
+    gapOpenPenalty: int = -2,
+    gapExtPenalty: int = -1,
+    matchScore: ScoreCmpProc[T]
+  ): AlignSeq[T] =
+  for align in allAlign(
+    seq1, seq2,
+    gapOpenPenalty = gapOpenPenalty,
+    gapExtPenalty = gapExtPenalty,
+    matchScore = matchScore
+  ):
+    return align
+
+proc toAlignSeq*[T](inSeq: openarray[T]): Align[T] =
+  for idx, item in inSeq:
+    result.add initAlignElem(idx, item)
+
+proc flatten[T](align: Align[AlignElem[T]]): Align[T] =
+  for al in align:
+    if al.isGap or al.item.isGap:
+      result.add AlignElem[T](isGap: true)
+    else:
+      result.add al.item
+
+proc alignToGroup*[T](
+  group: AlignGroup[T], seqN: seq[T] | Align[T],
+  matchScore: ScoreCmpProc[T],
+  gapToGapPenalty: int  = -1,
+  gapOpenPenalty: int   = -2,
+  gapExtPenalty: int    = -1,
+  gapToItemPenalty: int = -2): Align[T] =
+  when seqN is seq[T]:
+    let seqN = toAlignSeq(seqN)
+
+  defer:
+    echo &"\n<- {seqN.toString()}"
+    for (_, elem) in group:
+      echo &"-- {elem.toString()}"
+
+    echo &"-> {result.toString()}"
+
+  var bestScore: int = 0
+  for idx, align in group:
+    let tmp = firstAlign(
+      align.align, seqN,
+      matchScore = proc(el1, el2: AlignElem[T]): int =
+                     if el1.isGap and el2.isGap:
+                       0
+                     elif el1.isGap or el2.isGap:
+                       gapToItemPenalty
+                     else:
+                       matchScore(el1.item, el2.item)
+
+    )
+    if idx == 0:
+      # Get alignment from second sequence - `align` from `group` is
+      # assumed to be fixed
+      result = tmp.align2.flatten
+      bestScore = tmp.score
+    else:
+      if tmp.score > bestScore:
+        result = tmp.align2.flatten
+        bestScore = tmp.score
+
+
+
+proc bartonSternbergAlign*(
+  seqs: seq[seq[char]],
+  matchScore: ScoreCmpProc[char],
+  gapOpenPenalty: int = -2,
+  gapToGapPenalty: int = -2,
+  gapToItemPenalty: int = gapOpenPenalty,
+  realignIterations: int = 2): seq[Align[char]] =
+
+  let
+    maxLen = seqs.mapIt(it.len).max()
+    allIndices: set[int8] = { 0.int8 .. seqs.high.int8 }
+
+  var
+    alignGroup: AlignGroup[char]
+    maxPos: tuple[i, j, score: int]
+    bestPair: tuple[al1, al2: Align[char]]
+
+  var isFirst: bool = true
+  for i in 0 .. seqs.high:
+    for j in 0 .. seqs.high:
+      let (al1, al2, score) = needlemanWunschAlign(
+        seqs[i], seqs[j], gapOpenPenalty, matchScore)
+
+      if (score > maxPos.score or isFirst) and i != j:
+        isFirst = false
+        bestPair = (al1, al2)
+        maxPos = (i, j, score)
+
+  echo &"Best pair is {maxPos.i} and {maxPos.j} with score {maxPos.score}"
+  var addedSeqs: set[int8] = { maxPos.i.int8, maxPos.j.int8 }
+
+  alignGroup.add([
+    (maxPos.i.int8, bestPair.al1),
+    (maxPos.j.int8, bestPair.al2)
+  ])
+
+  while (allIndices - addedSeqs).len > 0:
+    let index = min(toSeq(allIndices - addedSeqs)) # NOTE sampling scheme
+    # might use more advances heuristics, for now I just do what works
+    let align = alignToGroup(
+      alignGroup, seqs[index],
+      gapToItemPenalty = gapToItemPenalty,
+      gapToGapPenalty = gapToGapPenalty,
+      matchScore = matchScore
+    )
+
+    alignGroup.add (index, align)
+    addedSeqs.incl index
+
+  for _ in 0 ..< realignIterations:
+    for i in 0 .. seqs.high:
+      # echo &"Realigning {i}: '{alignGroup[i].align.toString()}'"
+      let align = alignToGroup(
+        alignGroup[0 ..< i] & alignGroup[i + 1 .. ^1],
+        alignGroup[i].align,
+        gapToItemPenalty = gapToItemPenalty,
+        matchScore = matchScore
+      )
+
+      alignGroup[i] = (idx: alignGroup[i].idx, align: align)
+
+  for entry in alignGroup:
+    result.add entry.align
+
+
+
+
+proc align*[T](
+  seq1, seq2: openarray[T],
+  gapOpenPenalty: int = -2,
+  gapExtPenalty: int = -1,
+  matchScore: ScoreCmpProc[T] = zeroEqualCmp[T]): AlignSeq[T] =
+  firstAlign(
+    toSeq(seq1), toSeq(seq2),
+    gapOpenPenalty = gapOpenPenalty,
+    gapExtPenalty = gapExtPenalty,
+    matchScore = matchScore
+  )
 
 when isMainModule:
   if true:
@@ -728,7 +939,7 @@ when isMainModule:
       match_award = 1
       mismatchPenalty = -1
 
-    let (a, b) = needlemanWunschAlign(
+    let (a, b, _) = needlemanWunschAlign(
       "ATGTAGTGTATAGTACATGCA".toSeq(),
       "ATGTAGTACATGCA".toSeq(),
       gapPenalty
@@ -744,17 +955,18 @@ when isMainModule:
     echo b.mapIt(if it.isGap: '-' else: it.item).join("")
 
 
-  block:
+  if true:
     let
-      seq1 = "int a = 12".toSeq()
-      seq2 = "int hello = 12".toSeq()
+      seq1 = "ATGTAGTGTATAGTACATGCA".toSeq()
+      seq2 = "ATGTAGTACATGCA".toSeq()
     let paths = affineGapAlign(
       seq1, seq2,
       matchScore = proc(a, b: char): int =
-                       if a == '=' and b == '=':
-                         4
-                       elif a == b:
-                         0
+                       if a == b:
+                         if a in {'(', ')', ':', '='}:
+                           4
+                         else:
+                           0
                        else:
                          -1
 
@@ -766,7 +978,41 @@ when isMainModule:
                     1
     )
 
-    for (a, b) in aligns:
+    for (a, b, _) in aligns:
       echo a.mapIt(if it.isGap: ' ' else: it.item).join("")
       echo b.mapIt(if it.isGap: ' ' else: it.item).join("")
       echo "---"
+
+  block:
+    let cmp = proc(a, b: char): int =
+      if a == b:
+        if a in {'(', '=', ':', ')'}:
+          10
+        else:
+          0
+      else:
+        -2
+
+    block:
+      let (al1, al2, _) = align(
+        "let a = 12", "let nice = 90", matchScore = cmp)
+
+      echo al1.toString()
+      echo al2.toString()
+      echo "---"
+
+    block:
+      let group = AlignGroup[char](@[
+          (idx: 0'i8, align: "let   a = 12".toAlignSeq()),
+          (idx: 0'i8, align: "let qwe =  2".toAlignSeq())
+        ])
+
+      let seqN = "let nice = 90".toAlignSeq()
+      let align = alignToGroup(group, seqN, matchScore = cmp)
+
+
+
+    let seqs = @["let a = 12", "let nice = 90", "let qwe = 2"]
+    for al in bartonSternbergAlign(
+      seqs.mapIt(it.toSeq()), cmp, gapToItemPenalty = -10):
+      echo al.toString()
