@@ -400,9 +400,8 @@ suite "Simple sequence templates":
     ) == @[3, 7]
 
   test "{mapPairs} map table values :template:example:":
-    assert {1: 3, 4: 5}.toTable().mapPairs(
-      max(lhs, rhs)
-    ) ==  @[3, 5]
+    let val = {1: 3, 4: 5}.toTable().mapPairs(max(lhs, rhs))
+    assertEq(val.sorted(), @[3, 5])
 
   test "{mapPairs} iterate indexed :template:example:":
     let res = @["a", "b"].mapPairs(

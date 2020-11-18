@@ -426,17 +426,27 @@ type
 func initAlignElem[T](idx: int, item: T): AlignElem[T] =
   AlignElem[T](idx: idx, isGap: false, item: item)
 
-proc toString*[T](align: Align[T], gapSize: int = 1): string =
+proc toString*[T](
+    align: Align[T],
+    gapSize: int = 1,
+    gapString: string = "∅"
+  ): string =
+
   for elem in align:
     if elem.isGap:
-      result &= strutils.repeat(" ", gapSize)
+      result &= strutils.repeat(gapString, gapSize)
     else:
       result &= alignLeft($elem.item, gapSize)
 
-proc toString*[T](align: Align[AlignElem[T]], gapSize: int = 1): string =
+proc toString*[T](
+    align: Align[AlignElem[T]],
+    gapSize: int = 1,
+    gapString: string = "∅"
+  ): string =
+
   for elem in align:
     if elem.isGap or elem.item.isGap:
-      result &= strutils.repeat(" ", gapSize)
+      result &= strutils.repeat(gapString, gapSize)
     else:
       result &= alignLeft($elem.item.item, gapSize)
 
@@ -817,7 +827,7 @@ proc alignToGroup*[T](
   gapToGapPenalty: int  = -1,
   gapOpenPenalty: int   = -2,
   gapExtPenalty: int    = -1,
-  gapToItemPenalty: int = -2): Align[T] =
+  gapToItemPenalty: ScoreProc[T]): Align[T] =
   when seqN is seq[T]:
     let seqN = toAlignSeq(seqN)
 
@@ -834,9 +844,11 @@ proc alignToGroup*[T](
       align.align, seqN,
       matchScore = proc(el1, el2: AlignElem[T]): int =
                      if el1.isGap and el2.isGap:
-                       0
-                     elif el1.isGap or el2.isGap:
-                       gapToItemPenalty
+                       gapToGapPenalty
+                     elif not el1.isGap:
+                       gapToItemPenalty(el1.item)
+                     elif not el2.isGap:
+                       gapToItemPenalty(el2.item)
                      else:
                        matchScore(el1.item, el2.item)
 
@@ -856,9 +868,9 @@ proc alignToGroup*[T](
 proc bartonSternbergAlign*(
   seqs: seq[seq[char]],
   matchScore: ScoreCmpProc[char],
+  gapToItemPenalty: ScoreProc[char],
   gapOpenPenalty: int = -2,
   gapToGapPenalty: int = -2,
-  gapToItemPenalty: int = gapOpenPenalty,
   realignIterations: int = 2): seq[Align[char]] =
 
   let
@@ -866,55 +878,54 @@ proc bartonSternbergAlign*(
     allIndices: set[int8] = { 0.int8 .. seqs.high.int8 }
 
   var
-    alignGroup: AlignGroup[char]
+    group: AlignGroup[char]
     maxPos: tuple[i, j, score: int]
     bestPair: tuple[al1, al2: Align[char]]
 
-  var isFirst: bool = true
-  for i in 0 .. seqs.high:
-    for j in 0 .. seqs.high:
-      let (al1, al2, score) = needlemanWunschAlign(
-        seqs[i], seqs[j], gapOpenPenalty, matchScore)
+  block:
+    var isFirst: bool = true
+    for i in 0 .. seqs.high:
+      for j in 0 .. seqs.high:
+        let (al1, al2, score) = needlemanWunschAlign(
+          seqs[i], seqs[j], gapOpenPenalty, matchScore)
 
-      if (score > maxPos.score or isFirst) and i != j:
-        isFirst = false
-        bestPair = (al1, al2)
-        maxPos = (i, j, score)
+        if (score > maxPos.score or isFirst) and i != j:
+          isFirst = false
+          bestPair = (al1, al2)
+          maxPos = (i, j, score)
 
-  echo &"Best pair is {maxPos.i} and {maxPos.j} with score {maxPos.score}"
-  var addedSeqs: set[int8] = { maxPos.i.int8, maxPos.j.int8 }
+    var addedSeqs: set[int8] = { maxPos.i.int8, maxPos.j.int8 }
 
-  alignGroup.add([
-    (maxPos.i.int8, bestPair.al1),
-    (maxPos.j.int8, bestPair.al2)
-  ])
+    group.add([
+      (maxPos.i.int8, bestPair.al1),
+      (maxPos.j.int8, bestPair.al2)
+    ])
 
-  while (allIndices - addedSeqs).len > 0:
-    let index = min(toSeq(allIndices - addedSeqs)) # NOTE sampling scheme
-    # might use more advances heuristics, for now I just do what works
-    let align = alignToGroup(
-      alignGroup, seqs[index],
-      gapToItemPenalty = gapToItemPenalty,
-      gapToGapPenalty = gapToGapPenalty,
-      matchScore = matchScore
-    )
+    while (allIndices - addedSeqs).len > 0:
+      let index = min(toSeq(allIndices - addedSeqs)) # NOTE sampling scheme
+      # might use more advances heuristics, for now I just do what works
+      let align = alignToGroup(
+        group, seqs[index],
+        gapToItemPenalty = gapToItemPenalty,
+        gapToGapPenalty = gapToGapPenalty,
+        matchScore = matchScore,
+      )
 
-    alignGroup.add (index, align)
-    addedSeqs.incl index
+      group.add (index, align)
+      addedSeqs.incl index
 
   for _ in 0 ..< realignIterations:
-    for i in 0 .. seqs.high:
-      # echo &"Realigning {i}: '{alignGroup[i].align.toString()}'"
+    for i in 0 .. group.high:
       let align = alignToGroup(
-        alignGroup[0 ..< i] & alignGroup[i + 1 .. ^1],
-        alignGroup[i].align,
+        group[0 ..< i] & group[i + 1 .. ^1],
+        group[i].align,
         gapToItemPenalty = gapToItemPenalty,
         matchScore = matchScore
       )
 
-      alignGroup[i] = (idx: alignGroup[i].idx, align: align)
+      group[i] = (idx: group[i].idx, align: align)
 
-  for entry in alignGroup:
+  for entry in group:
     result.add entry.align
 
 
@@ -984,14 +995,25 @@ when isMainModule:
       echo "---"
 
   block:
+    let gapCost = proc(a: char): int =
+      if a == '=':
+        -2
+      else:
+        -1
+
     let cmp = proc(a, b: char): int =
       if a == b:
         if a in {'(', '=', ':', ')'}:
           10
+        elif a in {'0' .. '9'}:
+          8
         else:
           0
       else:
-        -2
+        if a == '=' or b == '=':
+          -6
+        else:
+          -2
 
     block:
       let (al1, al2, _) = align(
@@ -1001,18 +1023,31 @@ when isMainModule:
       echo al2.toString()
       echo "---"
 
-    block:
-      let group = AlignGroup[char](@[
+    if true:
+      var group: AlignGroup[char] = AlignGroup[char](@[
+          (idx: 2'i8, align: "let nice = 12".toAlignSeq()),
           (idx: 0'i8, align: "let   a = 12".toAlignSeq()),
-          (idx: 0'i8, align: "let qwe =  2".toAlignSeq())
+          (idx: 1'i8, align: "let qwe = 12".toAlignSeq()),
         ])
 
-      let seqN = "let nice = 90".toAlignSeq()
-      let align = alignToGroup(group, seqN, matchScore = cmp)
+      for _ in 0 ..< 1:
+        for i in 0 .. group.high:
+          let align = alignToGroup(
+            group[0 ..< i] & group[i + 1 .. ^1],
+            group[i].align,
+            gapToItemPenalty = gapCost,
+            matchScore = cmp
+          )
+
+          group[i] = (idx: group[i].idx, align: align)
 
 
 
-    let seqs = @["let a = 12", "let nice = 90", "let qwe = 2"]
-    for al in bartonSternbergAlign(
-      seqs.mapIt(it.toSeq()), cmp, gapToItemPenalty = -10):
-      echo al.toString()
+    echo "\e[31m-------------------------------------\e[39m"
+    if true:
+      let seqs = @["let a = 12", "let nice = 90", "let qwe = 2"]
+      discard bartonSternbergAlign(
+        seqs.mapIt(it.toSeq()), cmp,
+        gapToItemPenalty = gapCost,
+        realignIterations = 1
+      )
