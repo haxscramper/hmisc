@@ -284,6 +284,11 @@ proc splitDir*(dir: AbsDir): tuple[head: AbsDir, tail: RelDir] =
   result.head = AbsDir(head)
   result.tail = RelDir(tail)
 
+
+template currentSourceDir*(): AbsDir {.dirty.} =
+  splitPath(AbsFile(instantiationInfo(fullPaths = true).filename)).head
+
+
 proc getAbsDir*(path: string): AbsDir =
   AbsDir(os.splitPath(path).head)
 
