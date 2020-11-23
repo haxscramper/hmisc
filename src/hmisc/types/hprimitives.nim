@@ -225,9 +225,19 @@ func colRange*(pos: ArrPos, size: ArrSize): ArrRange =
 #*************************************************************************#
 
 type
-  TreePath* = seq[int]
+  TreePath* = seq[int] ## Path into heterogenous, int-indexed tree. First
+  ## element if the path is index of *current node*, everything else refers
+  ## to position. So `[0]` points is a root node, `[0, 1]` is a second
+  ## subnode and so on.
 
 const rootTreePath*: TreePath = @[0]
 
 func `&`(path: TreePath, newIdx: int): TreePath =
   path & @[newIdx]
+
+template followPath*[T](node: T, path: TreePath): T =
+  var res: T = node
+  for step in path[1..^1]:
+    res = node[step]
+
+  res

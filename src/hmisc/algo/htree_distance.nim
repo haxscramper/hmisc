@@ -43,6 +43,7 @@ type
     idLabel: Table[NodeId, Label]
     idLevels: Table[NodeId, int]
     inordNodes: HashSet[NodeId]
+    deletedNodes: HashSet[NodeId]
     maxId: int
 
   EditCmdKind = enum
@@ -265,38 +266,12 @@ func add(m: var Mapping, t: (NodeId, NodeId)) =
   assert t[0] notin m.table
   m.table[t[0]] = t[1]
 
-proc applyLast(script: EditScript, index: var TreeIndex): Option[NodeId] =
-  ## Apply last added script element to tree `tree`. Return `NodeId` if any
-  ## created
-  let cmd = script.cmds[^1]
-  echov cmd
-  case cmd.kind:
-    of ekIns:
-      let node = NodeId(
-        id: index.maxId,
-        path: cmd.insertPath,
-        index: index,
-        isSource: true
-      )
-
-      index.idVals[node] = cmd.value
-      index.idLabel[node] = cmd.label
-      index.subnodes[node] = @[]
-
-      inc index.maxId
-      echo "Inserted node ", node
-      return some(node)
-    of ekDel:
-      discard
-    of ekMov:
-      discard
-    of ekUpd:
-      discard
-
-
 iterator items(id: NodeId): NodeId =
   ## Iterate over subnodes for node pointed to by `id`
   assert not id.index.isNil, $id
+  if id in id.index.deletedNodes:
+    raiseAssert("Attempt to iterate over deleted node subnodes")
+
   for node in id.index.subnodes[id]:
     yield node
 
@@ -398,6 +373,7 @@ proc leftmostInOrder(n: NodeId): NodeId =
   discard
 
 
+
 func size(a: Mapping): int =
   ## get number of items in mapping
   a.table.len
@@ -413,6 +389,9 @@ func remove(a: var Mapping, `?`: int): (NodeId, NodeId) =
 proc subnodes(node: NodeId): seq[NodeId] =
   ## Get list of children for node `node`
   node.index.subnodes[node]
+
+proc `[]`(node: NodeId, idx: int): NodeId =
+  node.index.subnodes[node][idx]
 
 iterator bfsIterate(tree: NodeId): NodeId =
   ## Yield each node id in tree in BFS order
@@ -648,6 +627,52 @@ proc findPos(curr: NodeId): int =
   #     return node.sourcePartner(#[ WARNING - potentially incorrect
   #                               *Partner` used ]# map).idx + 1
 
+
+proc applyLast(script: EditScript, index: var TreeIndex): Option[NodeId] =
+  ## Apply last added script element to tree `tree`. Return `NodeId` if any
+  ## created
+  let cmd = script.cmds[^1]
+  echov cmd
+  case cmd.kind:
+    of ekIns:
+      let node = NodeId(
+        id: index.maxId,
+        path: cmd.insertPath,
+        index: index,
+        isSource: true
+      )
+
+      index.idVals[node] = cmd.value
+      index.idLabel[node] = cmd.label
+      index.subnodes[node] = @[]
+
+      inc index.maxId
+      echo "Inserted node ", node
+      return some(node)
+    of ekDel:
+      var node = index.root().followPath(cmd.delPath)
+      index.subnodes[node.parent].del(cmd.delPath[^1])
+      # TEST checl for repeated deletion - might need to swap iteration
+      # order (although it is DFS-post now, so this is probably fine)
+      echov index.subnodes[node.parent]
+
+      index.idVals.del(node)
+      index.idLabel.del(node)
+      index.parentTable.del(node)
+      index.subnodes.del(node)
+      index.inordNodes.excl(node)
+      index.idLevels.del(node)
+      index.hashes.del(node)
+
+      # index.deletedNodes.incl(node)
+    of ekMov:
+      discard
+    of ekUpd:
+      discard
+
+
+
+
 proc alignSubn(
   sourceNode, targetNode: NodeId,
   index: var TreeIndex,
@@ -714,7 +739,7 @@ proc editScript(
   map: Mapping,
   sourceTree: NodeId,
   targetTree: NodeId,
-     ): EditScript =
+     ): tuple[script: EditScript, mapping: Mapping, updatedSource: TreeIndex] =
   var script: EditScript
 
   var sourceTree  = sourceTree
@@ -809,7 +834,7 @@ proc editScript(
       script.add makeDel(sourceNode.path)
       discard script.applyLast(sourceIndex)
 
-  return script
+  return (script, map, sourceIndex)
 
 proc simpleMatch*(sourceNode, targetNode: NodeId): Mapping =
   if sourceNode.path != targetNode.path:
@@ -843,12 +868,12 @@ when isMainModule:
   let tree1 = Tree(value: "TREE-HEAD", label: 12, subn: @[
     Tree(value: "LEAF-1", label: 222),
     Tree(value: "LEAF-2", label: 333),
+    Tree(value: "LEAF-3"),
   ])
 
   let tree2 = Tree(value: "TREE-HEAD", label: 12, subn: @[
     Tree(value: "LEAF-1"),
     Tree(value: "LEAF-2"),
-    Tree(value: "LEAF-3"),
   ])
 
 
@@ -858,17 +883,14 @@ when isMainModule:
     root1       = sourceIndex.root()
     root2       = targetIndex.root()
 
-  # let mapping1 = topDown(root1, root2, minHeight = 0, minDice = 0.7)
-  # let mapping2 = bottomUp(
-  #   root1, root2, map = mapping1, minDice = 0.7, maxSize = 100)
-
-
   let mapping2 = simpleMatch(root1, root2)
   for k, v in mapping2.table:
     echov (k, v)
 
   let script = mapping2.editScript(root1, root2)
 
-  pprint script
+  pprint script.script
+  pprint script.updatedSource
+  pprint script.mapping
 
   echo "done"
