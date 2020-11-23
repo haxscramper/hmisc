@@ -241,3 +241,12 @@ template followPath*[T](node: T, path: TreePath): T =
     res = node[step]
 
   res
+
+#*************************************************************************#
+#*************************  Callback typedefs  ***************************#
+#*************************************************************************#
+
+type
+  EqCmpProc*[T] = proc(x, y: T): bool
+  ScoreProc*[T] = proc(x: T): int
+  ScoreCmpProc*[T] = proc(x, y: T): int

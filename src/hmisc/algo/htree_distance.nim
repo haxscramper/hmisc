@@ -253,9 +253,6 @@ iterator items(m: Mapping): (NodeId, NodeId) =
 proc lcs(lhs, rhs: seq[NodeId],
          eq: proc(a, b: NodeId): bool): seq[(NodeId, NodeId)] =
   let lcsres = longestCommonSubsequence(lhs, rhs, eq)
-  echov lhs
-  echov rhs
-  echov lcsres
   let (_, lhsIdx, rhsIdx) = lcsres[0]
 
   for (lIdx, rIdx) in zip(lhsIdx, rhsIdx):
@@ -647,14 +644,12 @@ proc applyLast(script: EditScript, index: var TreeIndex): Option[NodeId] =
       index.subnodes[node] = @[]
 
       inc index.maxId
-      echo "Inserted node ", node
       return some(node)
     of ekDel:
       var node = index.root().followPath(cmd.delPath)
       index.subnodes[node.parent].del(cmd.delPath[^1])
       # TEST checl for repeated deletion - might need to swap iteration
       # order (although it is DFS-post now, so this is probably fine)
-      echov index.subnodes[node.parent]
 
       index.idVals.del(node)
       index.idLabel.del(node)
@@ -705,11 +700,8 @@ proc alignSubn(
 
     matches: seq[(NodeId, NodeId)] =
               lcs(sourceSubnodes, targetSubnodes) do(a, b: NodeId) -> bool:
-      ## left and right subnodes are considered equal if
-      ## this is a pair which already exists in mapping.
-      # echov (a, b)
-      echov (a, b) in map
-      echov (a, b)
+      ## left and right subnodes are considered equal if this is a pair
+      ## which already exists in mapping.
       (a, b) in map
 
   ## For each `a ∈ S₁, b ∈ S₂` such that `(a, b) ∈ M` but `(a, b) ∉ S`
@@ -755,6 +747,7 @@ proc editScript(
       ## to determine if `targetSubn` has matching.
 
     if sourceSubn == nil:
+      echov sourceSubn, targetSubn
       ## if current node does not have a corresponding partner in mapping
       ## insert it (add `ins` action to edit script)
 
@@ -823,7 +816,6 @@ proc editScript(
 
 
     ## align subnodes for current node and it's counterpart
-    echo &"Aligning childred for {targetSubn.sourcePartner(map)} and {targetSubn}"
     alignSubn(targetSubn.sourcePartner(map), targetSubn, sourceIndex, map, script)
 
   for sourceNode in dfsIteratePost(sourceTree):
@@ -836,7 +828,10 @@ proc editScript(
 
   return (script, map, sourceIndex)
 
-proc simpleMatch*(sourceNode, targetNode: NodeId): Mapping =
+proc simpleMatch*(
+  sourceNode, targetNode: NodeId,
+  valueScore: ScoreCmpProc[Value],
+  similarityTreshold: int = 60): Mapping =
   if sourceNode.path != targetNode.path:
     return
 
@@ -845,11 +840,18 @@ proc simpleMatch*(sourceNode, targetNode: NodeId): Mapping =
     targetNodes = @[targetNode]
 
   while sourceNodes.len > 0 and targetNodes.len > 0:
+    var bestPairs: OrderedTable[NodeId, tuple[node: NodeId, score: int]]
+
     for sourceNode in sourceNodes:
       for targetNode in targetNodes:
-        if sourceNode.value == targetNode.value:
-          echov (sourceNode.value, targetNode.value)
-          result.add((sourceNode, targetNode))
+        let score = valueScore(sourceNode.value, targetNode.value)
+        if score > similarityTreshold:
+          if sourceNode notin bestPairs or
+             score > bestPairs[sourceNode].score:
+            bestPairs[sourceNode] = (targetNode, score)
+
+    for source, target in bestPairs:
+      result.add (source, target.node)
 
     sourceNodes = concat: collect(newSeq):
       for node in sourceNodes:
@@ -868,12 +870,13 @@ when isMainModule:
   let tree1 = Tree(value: "TREE-HEAD", label: 12, subn: @[
     Tree(value: "LEAF-1", label: 222),
     Tree(value: "LEAF-2", label: 333),
-    Tree(value: "LEAF-3"),
+    Tree(value: "LEAF-OLD-VAL"),
   ])
 
   let tree2 = Tree(value: "TREE-HEAD", label: 12, subn: @[
     Tree(value: "LEAF-1"),
     Tree(value: "LEAF-2"),
+    Tree(value: "LEAF-NEW-VAL"),
   ])
 
 
@@ -883,14 +886,23 @@ when isMainModule:
     root1       = sourceIndex.root()
     root2       = targetIndex.root()
 
-  let mapping2 = simpleMatch(root1, root2)
+  let mapping2 = simpleMatch(root1, root2) do(a, b: string) -> int:
+    let res = int(100 * (
+      longestCommonSubsequence(a, b)[0].matches.len /
+      max(a.len, b.len)
+    ))
+
+    # echo &"'{a}' and '{b}' have similarity score {res}%"
+
+    res
+
   for k, v in mapping2.table:
     echov (k, v)
 
   let script = mapping2.editScript(root1, root2)
 
-  pprint script.script
-  pprint script.updatedSource
-  pprint script.mapping
+  # pprint script.script
+  # pprint script.updatedSource
+  # pprint script.mapping
 
   echo "done"

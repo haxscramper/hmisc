@@ -1,6 +1,7 @@
 import sequtils, tables, strformat, strutils, math, algorithm
 import ../hdebug_misc
 import ../macros/traceif
+import ../types/hprimitives
 
 ## Sequence distance metrics
 
@@ -11,11 +12,6 @@ import ../macros/traceif
 #      procs - for building matrix and backtracking.
 
 # TODO add custom `cmp` proc for fuzzy matching instead of using `==`
-
-type
-  EqCmpProc[T] = proc(x, y: T): bool
-  ScoreProc[T] = proc(x: T): int
-  ScoreCmpProc[T] = proc(x, y: T): int
 
 func zeroEqualCmp*[T](x, y: T): int = (if x == y: 0 else: -1)
 
