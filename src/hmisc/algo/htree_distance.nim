@@ -868,8 +868,8 @@ proc simpleMatch*(
 when isMainModule:
   startHax()
   let tree1 = Tree(value: "TREE-HEAD", label: 12, subn: @[
-    Tree(value: "LEAF-1", label: 222),
-    Tree(value: "LEAF-2", label: 333),
+    Tree(value: "LEAF-2"),
+    Tree(value: "LEAF-1"),
     Tree(value: "LEAF-OLD-VAL"),
   ])
 
@@ -891,8 +891,6 @@ when isMainModule:
       longestCommonSubsequence(a, b)[0].matches.len /
       max(a.len, b.len)
     ))
-
-    # echo &"'{a}' and '{b}' have similarity score {res}%"
 
     res
 
