@@ -1,5 +1,6 @@
 import sequtils, tables, strformat, strutils, math, algorithm
 import ../hdebug_misc
+import ../macros/traceif
 
 ## Sequence distance metrics
 
@@ -30,19 +31,22 @@ func longestCommonSubsequence*[T](
   # TODO make all returned elements optional - e.g. if you only need
   # matches in first array, or in second, there is no need to copy all
   # elements over.
+  if x.len == 0 or y.len == 0:
+    return @[(matches: newSeq[T](),
+              xIndex: newSeq[int](),
+              yIndex: newSeq[int]())]
+
   var mem: CountTable[(int, int)]
   proc lcs(i, j: int): int =
     if (i, j) notin mem:
       mem[(i, j)] =
-        if i == -1 or j == -1:
-          0
-        elif itemCmp(x[i], y[j]):
-          lcs(i - 1, j - 1) + 1
-        else:
-          max(
-            lcs(i, j - 1),
-            lcs(i - 1, j)
-          )
+        traceIf false:
+          if i == -1 or j == -1:
+            0
+          elif itemCmp(x[i], y[j]):
+            lcs(i - 1, j - 1) + 1
+          else:
+            max(lcs(i, j - 1), lcs(i - 1, j))
 
     mem[(i, j)]
 
@@ -55,55 +59,56 @@ func longestCommonSubsequence*[T](
   proc backtrack(i, j: int): seq[
     tuple[matches: seq[T], xIndex, yIndex: seq[int]]
   ] =
-    if lcs(i, j) == 0:
-      result = @[]
-    elif i == 0:
-      var jRes = j
-      while true:
-        if (i, jRes - 1) in mem and
-           mem[(i, jRes - 1)] == mem[(i, j)]:
-          dec jRes
-        else:
-          break
+    traceIf false:
+      if lcs(i, j) == 0:
+        result = @[]
+      elif i == 0:
+        var jRes = j
+        while true:
+          if (i, jRes - 1) in mem and
+             mem[(i, jRes - 1)] == mem[(i, j)]:
+            dec jRes
+          else:
+            break
 
-      result = @[ (
-        matches: @[x[i]],
-        xIndex: @[i],
-        yIndex: @[jRes]
-      ) ]
-      # echov result
-    elif j == 0:
-      var iRes = i
-      while true:
-        if (iRes, j) in mem and
-           mem[(iRes - 1, j)] == mem[(i, j)]:
-          dec iRes
-        else:
-          break
+        result = @[ (
+          matches: @[x[i]],
+          xIndex: @[i],
+          yIndex: @[jRes]
+        ) ]
+        # echov result
+      elif j == 0:
+        var iRes = i
+        while true:
+          if (iRes, j) in mem and
+             mem[(iRes - 1, j)] == mem[(i, j)]:
+            dec iRes
+          else:
+            break
 
-      result = @[ (
-        matches: @[y[j]],
-        xIndex: @[iRes],
-        yIndex: @[j]
-      ) ]
-      # echov result
-    elif itemCmp(x[i], y[j]):
-      for (match, xIdx, yIdx) in backtrack(i - 1, j - 1):
-        result.add((
-          matches: match & @[x[i]],
-          xIndex: xIdx & @[i],
-          yIndex: yIdx & @[j]
-        ))
+        result = @[ (
+          matches: @[y[j]],
+          xIndex: @[iRes],
+          yIndex: @[j]
+        ) ]
+        # echov result
+      elif itemCmp(x[i], y[j]):
+        for (match, xIdx, yIdx) in backtrack(i - 1, j - 1):
+          result.add((
+            matches: match & @[x[i]],
+            xIndex: xIdx & @[i],
+            yIndex: yIdx & @[j]
+          ))
 
-      # echov result
-    elif lcs(i, j - 1) > lcs(i - 1, j):
-      result = backtrack(i, j - 1)
-      # echov result
-    elif lcs(i, j - 1) < lcs(i - 1, j):
-      result = backtrack(i - 1, j)
-      # echov result
-    else: # both paths has valid subsequences. Can return all of them
-      result = backtrack(i - 1, j) & backtrack(i - 1, j)
+        # echov result
+      elif lcs(i, j - 1) > lcs(i - 1, j):
+        result = backtrack(i, j - 1)
+        # echov result
+      elif lcs(i, j - 1) < lcs(i - 1, j):
+        result = backtrack(i - 1, j)
+        # echov result
+      else: # both paths has valid subsequences. Can return all of them
+        result = backtrack(i - 1, j) & backtrack(i - 1, j)
 
   result = backtrack(m, n)
 

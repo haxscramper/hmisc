@@ -2,8 +2,7 @@ import macros, strutils, strformat
 
 func traceIfImpl(head, body: NimNode): NimNode =
   # TODO also trigger `case`
-  # TODO use `when` for `head`
-  # TODO add indentation for echo output
+  # TODO `while` blocks
   case body.kind:
     of nnkIfExpr, nnkIfStmt:
       result = nnkIfExpr.newTree()
@@ -17,7 +16,7 @@ func traceIfImpl(head, body: NimNode): NimNode =
               cond = subn[0]
               expr = traceIfImpl(head, subn[1])
               condpos = cond.lineInfoObj().line
-              condstr = (&"\e[33m{condpos}\e[39m {cond.toStrLit().strVal()}").newLit
+              condstr = (&"\e[33m{condpos:<4}\e[39m | {cond.toStrLit().strVal()}").newLit
 
             result.add nnkElifExpr.newTree(
               cond,
@@ -31,7 +30,7 @@ func traceIfImpl(head, body: NimNode): NimNode =
             let
               expr = traceIfImpl(head, subn[0])
               condpos = expr.lineInfoObj().line
-              condstr = (&"\e[33m{condpos}\e[39m else").newLit
+              condstr = (&"\e[33m{condpos:<4}\e[39m | else").newLit
 
             result.add nnkElseExpr.newTree(
               quote do:
@@ -55,4 +54,7 @@ func traceIfImpl(head, body: NimNode): NimNode =
       return body
 
 macro traceIf*(head, body: untyped): untyped =
+  ## Printf-debugging for if/elif/else blocks. Rewrite conditional block
+  ## (recursively - nested /should/ be supported too) and print each
+  ## triggered condition during execution.
   result = traceIfImpl(head, body)
