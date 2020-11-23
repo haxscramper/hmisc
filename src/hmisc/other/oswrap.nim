@@ -5,6 +5,9 @@
 # TODO add support for error messages on missing files. etc
 # TODO add `MaybeFile` and `MaybeDir` typeclasses for things that
 #      might represent anything at runtime
+# TODO unit test with taint mode on
+# TODO parse file paths from URI (`file:///`)
+
 
 import std/[strutils, macros, random, hashes, strformat, sequtils]
 import ../algo/hstring_algo

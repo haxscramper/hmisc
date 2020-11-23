@@ -40,7 +40,8 @@ Do BFS iteration on recursive data type and map results into sequence
   # TODO assert correct types for `topNode...` and `subNodes...`
   type OutType = type((
     block:
-      var it {.inject.}: type(topNode)
+      var tmp: ref type(topNode)
+      var it {.inject.}: type(topNode) = tmp[]
       var lv {.inject.}: int
       op))
 
