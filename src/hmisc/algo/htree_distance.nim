@@ -2,7 +2,6 @@ import sugar, strutils, sequtils, strformat, heapqueue, tables,
        macros, algorithm, hashes, deques, sets, std/[enumerate, options]
 
 import halgorithm
-import hpprint
 import hseq_distance
 import htree_mapping
 
@@ -23,7 +22,7 @@ type
 
   NodeQue[L, V] = HeapQueue[NodeId[L, V]]
 
-  TreeIndex[L, V] = ref object
+  TreeIndex*[L, V] = ref object
     hashes: Table[NodeId[L, V], Hash]
     ## Hash for each node - used for efficient O(1) tree isomprhism test
 
@@ -63,12 +62,16 @@ type
   EditScript[L, V] = object
     cmds: seq[EditCmd[L, V]]
 
-func `$`[L, V](cmd: EditCmd[L, V]): string =
+func `$`*[L, V](cmd: EditCmd[L, V]): string =
   case cmd.kind:
     of ekIns: &"INS(({cmd.label}, {cmd.value}), {cmd.insertPath})"
     of ekDel: &"DEL({cmd.delPath})"
     of ekUpd: &"UPD({cmd.newVal}, {cmd.updPath})"
     of ekMov: &"MOV({cmd.oldMovPath}, {cmd.newMovPath})"
+
+iterator items*[L, V](script: EditScript[L, V]): EditCmd[L, V] =
+  for cmd in script.cmds:
+    yield cmd
 
 iterator pairs*[L, V](matching: Mapping[L, V]): tuple[source, target: NodeId[L, V]] =
   for k, v in pairs(matching.table):
@@ -148,7 +151,7 @@ proc makeIndex*[T, L, V](
     index.subnodes[result.id] = id
 
     var h: Hash = 0
-    h = h !& hash(tree.label) !& hash(tree.value)
+    h = h !& hash(getLabel(tree)) !& hash(getValue(tree))
     for subh in hashes:
       h = h !& subh
 
@@ -635,7 +638,6 @@ proc applyLast[L, V](
   ## Apply last added script element to tree `tree`. Return `NodeId[L, V]` if any
   ## created
   let cmd = script.cmds[^1]
-  echov cmd
   case cmd.kind:
     of ekIns:
       let node = NodeId[L, V](

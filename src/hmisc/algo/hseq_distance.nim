@@ -128,7 +128,19 @@ func longestCommonSubsequence*[T](
     ): seq[tuple[matches: seq[T], xIndex, yIndex: seq[int]]] =
   longestCommonSubsequence(toSeq(x), toSeq(y), itemCmp)
 
+func byCharSimilarityScore*(x, y: string): range[0.0 .. 100.0] =
+  100 * (
+    longestCommonSubsequence(x, y)[0].matches.len /
+    max(x.len, y.len)
+  )
 
+func byWordSimilarityScore*(x, y: string): range[0.0 .. 100.0] =
+  let split1 = x.split(" ")
+  let split2 = y.split(" ")
+  100 * (
+    longestCommonSubsequence(split1, split2)[0].matches.len /
+    max(split1.len, split2.len)
+  )
 
 
 
