@@ -270,6 +270,7 @@ type
                 ## then all it's descendants.
     dfsPostorder ## First visit all child nodes and then root node
     dfsInorder ## Visit 'left' nodes, root and then 'right'.
+
 func makeDfsFrame[T, R](elems: seq[T], path: seq[int]): DfsFrame[T, R] =
   DfsFrame[T, R](idx: 0, inSubt: elems, path: path, subt: @[])
 
@@ -322,30 +323,30 @@ nodes'.
   stack.add makeDfsFrame[InTree, bool](@[inTree], @[])
   block dfsLoop:
     while true:
-      if stack.last.idx == stack.last.inSubt.len:
+      if stack[^1].idx == stack[^1].inSubt.len:
         let top = stack.pop
         if order == dfsPostorder or
            (order == dfsInorder and
-            stack.last.idx.int8 notin stack.last.inordVisited
+            stack[^1].idx.int8 notin stack[^1].inordVisited
             # Node has not been visited during inorder traversal.
            )
           :
           let
-            it {.inject.} = stack.last.inSubt[stack.last.idx]
+            it {.inject.} = stack[^1].inSubt[stack[^1].idx]
             path {.inject.} = top.path
             subt {.inject.} = top.subt
-            childIndex {.inject.} = stack.last.inSubt.len - 1
+            childIndex {.inject.} = stack[^1].inSubt.len - 1
 
           body
 
         if order == dfsInorder and
            stack.len > 1 and
-           stack.last.idx == 0:
+           stack[^1].idx == 0:
           let
             it {.inject.} = stack[^2].inSubt[stack[^2].idx]
             path {.inject.} = stack[^2].path
             subt {.inject.} = stack[^2].path
-            childIndex {.inject.} = stack.last.idx
+            childIndex {.inject.} = stack[^1].idx
 
           stack[^2].inordVisited.incl int8(stack[^2].idx)
 
@@ -354,15 +355,15 @@ nodes'.
         if stack.len == 1:
           break dfsLoop
         else:
-          inc stack.last.idx
+          inc stack[^1].idx
       else:
         var elems: seq[InTree]
         block:
-          let it {.inject.} = stack.last.inSubt[stack.last.idx]
+          let it {.inject.} = stack[^1].inSubt[stack[^1].idx]
           if order == dfsPreorder:
             let
-              path {.inject.} = stack.last.path
-              subt {.inject.} = stack.last.subt
+              path {.inject.} = stack[^1].path
+              subt {.inject.} = stack[^1].subt
               childIndex {.inject.} = 0
 
             body
@@ -371,7 +372,7 @@ nodes'.
             elems = getSubnodes
 
         stack.add makeDfsFrame[InTree, bool](
-          elems, stack.last.path & @[stack.last.idx]
+          elems, stack[^1].path & @[stack[^1].idx]
         )
 
 
@@ -413,13 +414,13 @@ template mapItDFSImpl*[InTree, OutTree](
 
   block dfsLoop:
     while true:
-      if stack.last.idx == stack.last.inSubt.len:
+      if stack[^1].idx == stack[^1].inSubt.len:
         # Current toplevel frame reached the end
         let top = stack.pop
         let foldRes = (
           block:
             let
-              it {.inject.} = stack.last.inSubt[stack.last.idx]
+              it {.inject.} = stack[^1].inSubt[stack[^1].idx]
               path {.inject.} = top.path
               subt {.inject.} = top.subt
               inSubt {.inject.} = top.inSubt
@@ -444,24 +445,24 @@ template mapItDFSImpl*[InTree, OutTree](
 
           break dfsLoop
         else:
-          inc stack.last.idx
+          inc stack[^1].idx
           when foldRes is Option[OutTree]:
             if foldRes.isSome():
-              stack.last.subt.add foldRes.get()
+              stack[^1].subt.add foldRes.get()
           else:
-            stack.last.subt.add foldRes
+            stack[^1].subt.add foldRes
 
       else:
         stack.add makeDfsFrame[InTree, OutTree](
           block:
-            let it {.inject.} = stack.last.inSubt[stack.last.idx]
+            let it {.inject.} = stack[^1].inSubt[stack[^1].idx]
             if hasSubnodes:
               subnodeCall
             else:
               var tmp: seq[InTree]
               tmp
           ,
-          stack.last.path & @[stack.last.idx]
+          stack[^1].path & @[stack[^1].idx]
         )
 
   res
