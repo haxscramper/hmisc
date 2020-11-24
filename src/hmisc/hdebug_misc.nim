@@ -13,13 +13,11 @@ template startHaxComp*() =
   static:
     doLog = true
 
-template startHax*() =
-  doLogRuntime = true
+proc startHax*() = doLogRuntime = true
+proc stopHax*() = doLogRuntime = false
 
 template haxRunning*(): bool = doLogRuntime
 
-template stopHax*() =
-  doLogRuntime = false
 
 template stopHaxComp*() =
   static:
@@ -188,9 +186,9 @@ template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
         if doLog:
           debugecho text
       else:
-
         if doLogRuntime:
           debugecho text
+
 
 
 

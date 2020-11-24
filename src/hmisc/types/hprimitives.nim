@@ -237,7 +237,7 @@ func pathTail*(path: TreePath): TreePath = path[1..^1]
 func `&`*(path: TreePath, newIdx: int): TreePath =
   path & @[newIdx]
 
-template followPath*[T](node: T, path: TreePath): T =
+func followPath*[T](node: T, path: TreePath): T =
   var res: T = node
   for step in path.pathTail():
     res = node[step]

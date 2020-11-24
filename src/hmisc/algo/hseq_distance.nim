@@ -108,6 +108,11 @@ func longestCommonSubsequence*[T](
 
   result = backtrack(m, n)
 
+  if result.len == 0:
+    result = @[(matches: newSeq[T](),
+                xIndex: newSeq[int](),
+                yIndex: newSeq[int]())]
+
   when false: # Print grid
     var grid = newSeqWith(x.len, "  ".repeat(y.len))
     for xId in 0 ..< x.len:
@@ -128,19 +133,27 @@ func longestCommonSubsequence*[T](
     ): seq[tuple[matches: seq[T], xIndex, yIndex: seq[int]]] =
   longestCommonSubsequence(toSeq(x), toSeq(y), itemCmp)
 
-func byCharSimilarityScore*(x, y: string): range[0.0 .. 100.0] =
-  100 * (
-    longestCommonSubsequence(x, y)[0].matches.len /
-    max(x.len, y.len)
-  )
+func byCharSimilarityScore*(
+  x, y: string, emptyScore: range[0.0 .. 100.0] = 100.0): range[0.0 .. 100.0] =
+  if x.len == 0 and y.len == 0:
+    emptyScore
+  else:
+    100 * (
+      longestCommonSubsequence(x, y)[0].matches.len /
+      max(x.len, y.len)
+    )
 
-func byWordSimilarityScore*(x, y: string): range[0.0 .. 100.0] =
+func byWordSimilarityScore*(
+  x, y: string, emptyScore: range[0.0 .. 100.0] = 100.0): range[0.0 .. 100.0] =
   let split1 = x.split(" ")
   let split2 = y.split(" ")
-  100 * (
-    longestCommonSubsequence(split1, split2)[0].matches.len /
-    max(split1.len, split2.len)
-  )
+  if x.len == 0 and y.len == 0:
+    emptyScore
+  else:
+    100 * (
+      longestCommonSubsequence(split1, split2)[0].matches.len /
+      max(split1.len, split2.len)
+    )
 
 
 

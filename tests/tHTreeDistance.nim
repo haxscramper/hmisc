@@ -1,6 +1,6 @@
 import std/[xmlparser, xmltree]
 import unittest
-import hmisc/algo/[htree_distance, hseq_distance]
+import hmisc/algo/[htree_distance, hseq_distance, halgorithm]
 import hmisc/hdebug_misc
 
 
@@ -12,6 +12,16 @@ type
 
 func len(t: Tree): int = t.subn.len
 func `[]`(t: Tree, idx: int): Tree = t.subn[idx]
+
+proc `==`(x1, x2: XmlNode): bool =
+  result = (x1.kind == x2.kind) and (x1.len == x2.len)
+  if result:
+    for i in 0 ..< x1.len:
+      result = x1[i] == x2[i]
+      if not result:
+        return false
+
+
 
 
 suite "Tree diff":
@@ -54,28 +64,26 @@ suite "Tree diff":
 
       res
 
-    for k, v in mapping2:
-      echov (k, v)
-
     let script = mapping2.editScript(root1, root2)
 
+
+  proc makeIndex(xml: XmlNode, isSource: bool): TreeIndex[string, string] =
+    makeIndex[XmlNode, string, string](
+      xml, isSource,
+      getLabel = (
+        proc(x: XmlNode): string =
+          if x.kind == xnElement: x.tag else: ""
+      ),
+      getValue = (
+        proc(x: XmlNode): string = x.innerText
+      )
+    )
+
+
+
   test "XML diff":
-    startHax()
     let source = parseXML("<a>at least some part of words sould match</a>")
     let target = parseXML("<a>at least one word should match</a>")
-
-    proc makeIndex(xml: XmlNode, isSource: bool): TreeIndex[string, string] =
-      makeIndex[XmlNode, string, string](
-        xml, isSource,
-        getLabel = (
-          proc(x: XmlNode): string =
-            if x.kind == xnElement: x.tag else: ""
-        ),
-        getValue = (
-          proc(x: XmlNode): string = x.innerText
-        )
-      )
-
     let
       sourceIndex = makeIndex(source, true)
       targetIndex = makeIndex(target, false)
@@ -89,7 +97,89 @@ suite "Tree diff":
         score
     )
 
-
     let res = editScript(mapping, sourceIndex.root, targetIndex.root)
-    for cmd in res.script:
-      echov cmd
+    assert res.script.len == 1
+    assert res.script[0].kind == ekUpd
+
+  test "Simple tree diff xml":
+
+    proc diff(x1, x2: string): EditScript[string, string] =
+      simpleTreeDiff(
+        parseXml(x1), parseXml(x2),
+        similarityTreshold = 30,
+        getLabel = (
+          proc(x: XmlNode): string =
+            if x.kind == xnElement: x.tag else: ""
+        ),
+        getValue = (
+          proc(x: XmlNode): string =
+            if x.kind == xnText: x.text else: ""
+        ),
+        valueScore = (
+          proc(text1, text2: string): int =
+            byCharSimilarityScore(text1, text2).int
+        )
+      )
+
+    proc apply(x: var XmlNode, cmd: EditCmd[string, string]) =
+      apply(
+        x,
+        cmd,
+        setValue = (
+          proc(x: var XmlNode, v: string) =
+            x.text = v
+        ),
+        newTree = (
+          proc(l: string, v: string): XmlNode =
+            if l.len == 0:
+              newText(v)
+            else:
+              newElement(l)
+        ),
+        setSubnode = (
+          proc(x: var XmlNode, idx: int, node: XmlNode) =
+            if idx == x.len:
+              x.add node
+            elif idx < x.len:
+              # There is no `[]=` overload, so poitner magic it is
+              (addr x[idx])[] = node
+            else:
+              raiseAssert("Cannot set node to index")
+        )
+      )
+
+
+    block:
+      let res = diff("<a>hello</a>", "<a>hallo</a>")
+
+      assertEq res.len, 1
+      assertEq res[0].kind, ekUpd
+      assertEq res[0].updValue, "hallo"
+
+    block:
+      startHax()
+      let res = diff(
+        "<root></root>",
+        "<root><first>Some text more</first></root>"
+      )
+
+      assertEq res.len, 2
+      assertEq res[0].kind, ekIns
+      assertEq res[0].insLabel, "first"
+      assertEq res[1].insLabel, ""
+      assertEq res[1].insValue, "Some text more"
+
+      var tree = parseXml("<root></root>")
+
+      tree.apply(res[0])
+      assertEq tree, parseXml("<root><first></first></root>")
+
+
+      tree.apply(res[1])
+      let target = parseXml("<root><first>Some text more</first></root>")
+      assertEq target.tag, tree.tag
+      assertEq target.kind, tree.kind
+      assertEq target[0].kind, tree[0].kind
+      assertEq target[0][0].kind, tree[0][0].kind
+
+      assertEq tree, target

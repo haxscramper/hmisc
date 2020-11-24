@@ -38,40 +38,48 @@ type
     deletedNodes: HashSet[NodeId[L, V]]
     maxId: int
 
-  EditCmdKind = enum
+  EditCmdKind* = enum
     ekIns
     ekDel
     ekMov
     ekUpd
 
-  EditCmd[L, V] = object
+  EditCmd*[L, V] = object
     newIdx: int
-    case kind: EditCmdKind
+    case kind*: EditCmdKind
       of ekIns:
-        insertPath: TreePath
-        label: L
-        value: V
+        insPath*: TreePath
+        insLabel*: L
+        insValue*: V
       of ekDel:
-        delPath: TreePath
+        delPath*: TreePath
       of ekMov:
-        oldMovPath, newMovPath: TreePath
+        oldMovPath*, newMovPath*: TreePath
       of ekUpd:
-        updPath: TreePath
-        newVal: V
+        updPath*: TreePath
+        updValue*: V
 
-  EditScript[L, V] = object
+  EditScript*[L, V] = object
     cmds: seq[EditCmd[L, V]]
+
+proc makeInvalidNode[L, V](isSource: bool): NodeId[L, V] =
+  NodeId[L, V](id: -1, index: nil, path: @[], isSource: isSource)
+
 
 func `$`*[L, V](cmd: EditCmd[L, V]): string =
   case cmd.kind:
-    of ekIns: &"INS(({cmd.label}, {cmd.value}), {cmd.insertPath})"
+    of ekIns: &"INS(('{cmd.insLabel}', '{cmd.insValue}'), {cmd.insPath})"
     of ekDel: &"DEL({cmd.delPath})"
-    of ekUpd: &"UPD({cmd.newVal}, {cmd.updPath})"
+    of ekUpd: &"UPD({cmd.updValue}, {cmd.updPath})"
     of ekMov: &"MOV({cmd.oldMovPath}, {cmd.newMovPath})"
 
 iterator items*[L, V](script: EditScript[L, V]): EditCmd[L, V] =
   for cmd in script.cmds:
     yield cmd
+
+func len*[L, V](script: EditScript[L, V]): int = script.cmds.len
+func `[]`*[L, V](script: EditScript[L, V], idx: int): EditCmd[L, V] =
+  script.cmds[idx]
 
 iterator pairs*[L, V](matching: Mapping[L, V]): tuple[source, target: NodeId[L, V]] =
   for k, v in pairs(matching.table):
@@ -91,17 +99,23 @@ func level[L, V](id: NodeId[L, V]): int =
 
 func `$`*[L, V](id: NodeId[L, V]): string =
   var val: string
-  if id.index.isNil:
-    result = (if id.isSource: "s" else: "t") & "@" & $id.id & " # \e[91mNIL-INDEX\e[39m"
-  else:
-    if id in id.index.idVals:
-      val = id.index.idVals[id]
+  if id == makeInvalidNode[L, V](id.isSource):
+    if id.isSource:
+      result = "\e[33mINVALID-SOURCE\e[39m"
     else:
-      val = "NO-VALUE"
+      result = "\e[33mINVALID-TARGET\e[39m"
+  else:
+    if id.index.isNil:
+      result = (if id.isSource: "s" else: "t") & "@" & $id.id & " # \e[91mNIL-INDEX\e[39m"
+    else:
+      if id in id.index.idVals:
+        val = id.index.idVals[id]
+      else:
+        val = "NO-VALUE"
 
 
-    result = (if id.isSource: "s" else: "t") & "@" & $id.id &
-      " (" & $(id.level) & ") - " & val & " # " & $id.path
+      result = (if id.isSource: "s" else: "t") & "@" & $id.id &
+        " (" & $(id.level) & ") - " & val & " # " & $id.path
 
   result = &"'{result}'"
 
@@ -186,13 +200,14 @@ proc makeIns[L, V](
   ): EditCmd[L, V] =
 
   EditCmd[L, V](kind: ekIns,
-          label: newnode.label,
-          value: newnode.value,
-          insertPath: insertPath)
+          insLabel: newnode.label,
+          insValue: newnode.value,
+          insPath: insertPath)
 
 
 proc makeUpd[L, V](path: TreePath, val: V): EditCmd[L, V] =
-  EditCmd[L, V](kind: ekUpd, updPath: path, newVal: val)
+  EditCmd[L, V](kind: ekUpd, updPath: path, updValue: val)
+
 
 proc makeDel[L, V](path: TreePath): EditCmd[L, V] =
   EditCmd[L, V](kind: ekDel, delPath: path)
@@ -219,7 +234,7 @@ proc sourcePartner[L, V](n: NodeId[L, V], m: Mapping): NodeId[L, V] =
   ## Get **node in source tree**. Node partner in source tree. `n` is a
   ## target tree node, result will be in source tree
   assert not n.isSource
-  result = NodeId[L, V](id: -2, isSource: true, index: nil, path: @[])
+  result = makeInvalidNode[L, V](isSource = true)
   for key, val in pairs(m.table):
     if val == n:
       result = key
@@ -232,7 +247,7 @@ proc targetPartner[L, V](n: NodeId[L, V], m: Mapping): NodeId[L, V] =
   ## source tree node, result will be in target tree
   assert n.isSource
   if n notin m.table:
-    result = NodeId[L, V](id: -2, isSource: false, index: nil, path: @[])
+    result = makeInvalidNode[L, V](isSource = false)
   else:
     result = m.table[n]
 
@@ -354,8 +369,7 @@ proc parent[L, V](t: NodeId[L, V]): NodeId[L, V] =
   assert t.index != nil
   if t.isRoot():
     ## For root node create dummy 'supper root'
-    result = t
-    result.id = -1
+    result = makeInvalidNode[L, V](t.isSource)
   else:
     result = t.index.parentTable[t]
 
@@ -638,17 +652,18 @@ proc applyLast[L, V](
   ## Apply last added script element to tree `tree`. Return `NodeId[L, V]` if any
   ## created
   let cmd = script.cmds[^1]
+  echov cmd
   case cmd.kind:
     of ekIns:
       let node = NodeId[L, V](
         id: index.maxId,
-        path: cmd.insertPath,
+        path: cmd.insPath,
         index: index,
         isSource: true
       )
 
-      index.idVals[node] = cmd.value
-      index.idLabel[node] = cmd.label
+      index.idVals[node] = cmd.insValue
+      index.idLabel[node] = cmd.insLabel
       index.subnodes[node] = @[]
 
       inc index.maxId
@@ -673,8 +688,31 @@ proc applyLast[L, V](
       discard
       # raiseAssert("#[ IMPLEMENT ]#")
     of ekUpd:
-      discard
+      var node = index.root().followPath(cmd.updPath)
+      index.idVals[node] = cmd.updValue
       # raiseAssert("#[ IMPLEMENT ]#")
+
+proc apply*[T, L, V](
+  tree: var T,
+  cmd: EditCmd[L, V],
+  setValue: proc(t: var T, value: V),
+  newTree: proc(label: L, value: V): T,
+  setSubnode: proc(t: var T, index: int, subnode: T)): void =
+  echov "Applying", cmd
+  case cmd.kind:
+    of ekIns:
+      let nodePtr = tree.followPathPtr(cmd.insPath[0 .. ^2])
+      echov nodePtr[]
+      setSubnode(
+        nodePtr[],
+        cmd.insPath[^1],
+        newTree(
+          label = cmd.insLabel,
+          value = cmd.insValue
+        )
+      )
+    else:
+      raiseAssert("#[ IMPLEMENT ]#")
 
 
 
@@ -758,37 +796,51 @@ proc editScript*[L, V](
 
   for targetSubn in targetTree.bfsIterate():
     ## Iterate all nodes in tree in BFS order
+    echov targetSubn
     let
       targetParent = targetSubn.parent ## parent node in right tree
       sourceSubn = targetSubn.sourcePartner(map) ## Partner of the target subnode
       ## to determine if `targetSubn` has matching.
 
     if sourceSubn == nil:
-      echov sourceSubn, targetSubn
-      ## if current node does not have a corresponding partner in mapping
-      ## insert it (add `ins` action to edit script)
+      if targetSubn.isRoot():
+        ## Paper says that it is possible to assume that two root nodes are
+        ## matched without loss of generality, by inserting dummy roots,
+        ## but I find it easier to just edge-case this and create new root
+        ## directly, if there is no match for `targetRoot`
+        script.add makeIns(
+          (
+            label(targetSubn),
+            value(targetSubn),
+          ),
+          @[0], ## Directly insert as root node for source tree
+        )
 
-      ## Find the parent's partner, if there is one.
-      let sourceParent = targetParent.sourcePartner(map)
+      else:
+        echov sourceSubn
+        ## if current node does not have a corresponding partner in mapping
+        ## insert it (add `ins` action to edit script)
 
-      ## We are visiting nodes from the root down in BFS order, and parent
-      ## should exist. If not, something unexpected happened earlier (and
-      ## this is a bug).
-      assert not(sourceParent == nil), &"No pair mapping for {targetParent}"
+        ## Find the parent's partner, if there is one.
+        let sourceParent = targetParent.sourcePartner(map)
 
-      # NOTE should work the same as python's xml index
-      let sourcePos = findPos(targetSubn)
+        ## We are visiting nodes from the root down in BFS order, and parent
+        ## should exist. If not, something unexpected happened earlier (and
+        ## this is a bug).
+        assert not(sourceParent == nil), &"No pair mapping for {targetParent}"
 
-      script.add makeIns( ## Create insert action
-        (
-          label(targetSubn), ## Label of new inserted node
-          value(targetSubn), ## and it's value
-        ),
-        targetParent.path & sourcePos, ## Position of the node to insert
-        ## under + Index of newly inserted node. It is assumed that
-        ## `sourceTree` has been transformed to have the same structure as
-        ## `targetTree`.
-      )
+        let sourcePos = findPos(targetSubn)
+
+        script.add makeIns( ## Create insert action
+          (
+            label(targetSubn), ## Label of new inserted node
+            value(targetSubn), ## and it's value
+          ),
+          targetParent.path & sourcePos, ## Position of the node to insert
+          ## under + Index of newly inserted node. It is assumed that
+          ## `sourceTree` has been transformed to have the same structure as
+          ## `targetTree`.
+        )
 
       let newNode = script.applyLast(sourceIndex).get()
       map.add((newNode, targetSubn))
@@ -879,3 +931,27 @@ proc simpleMatch*[L, V](
     targetNodes = concat: collect(newSeq):
       for node in targetNodes:
         node.subnodes
+
+proc simpleTreeDiff*[T, L, V](
+    source, target: T,
+    getValue: proc(t: T): V,
+    getLabel: proc(t: T): L,
+    valueScore: ScoreCmpProc[V],
+    similarityTreshold: int = 60
+  ): EditScript[L, V] =
+  let
+    sourceIndex = makeIndex(source, true, getValue, getLabel)
+    targetIndex = makeIndex(target, false, getValue, getLabel)
+
+  let mapping = simpleMatch(
+    sourceIndex.root,
+    targetIndex.root,
+    similarityTreshold = similarityTreshold,
+    valueScore = valueScore
+  )
+
+  for k, v in mapping:
+    echov (k, v)
+
+  let res = editScript(mapping, sourceIndex.root, targetIndex.root)
+  return res.script

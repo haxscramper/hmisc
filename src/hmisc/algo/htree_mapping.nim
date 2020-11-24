@@ -10,13 +10,18 @@ import options, macros, deques
 # TODO iterate over *mutable* tree nodes in BFS/DFS order
 
 template toSeqImpl(op: untyped): untyped =
-  when compiles((discard toSeq(op))):
-    toSeq(op)
+  when compiles((for item in items(op): discard)):
+    var res: seq[typeof(items(op))]
+    for i in items(op):
+      res.add i
+    res
+
   elif compiles((discard op.len; discard op[0])):
     var res: seq[typeof(op[0])]
     for i in 0 ..< op.len:
       res.add op[0]
     res
+
   else:
     static:
       error "Neither `items` nor `len`, `[]` are implemented for " &
