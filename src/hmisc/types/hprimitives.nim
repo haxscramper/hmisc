@@ -232,15 +232,28 @@ type
 
 const rootTreePath*: TreePath = @[0]
 
-func `&`(path: TreePath, newIdx: int): TreePath =
+func pathTail*(path: TreePath): TreePath = path[1..^1]
+
+func `&`*(path: TreePath, newIdx: int): TreePath =
   path & @[newIdx]
 
 template followPath*[T](node: T, path: TreePath): T =
   var res: T = node
-  for step in path[1..^1]:
+  for step in path.pathTail():
     res = node[step]
 
   res
+
+func followPathPtr*[T](node: T, path: TreePath): ptr T =
+  result = node.unsafeAddr
+  for step in path.pathTail():
+    result = unsafeAddr result[][step]
+
+func followPathPtr*[T](node: var T, path: TreePath): ptr T =
+  result = addr node
+  for step in path.pathTail():
+    result = addr result[][step]
+
 
 #*************************************************************************#
 #*************************  Callback typedefs  ***************************#

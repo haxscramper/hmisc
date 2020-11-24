@@ -27,3 +27,15 @@ suite "{Seq2D}":
     )
 
     assert mapped[0, 0] == @["Hello", "world"]
+
+import std/[xmltree, xmlparser]
+
+suite "Type primitives":
+  test "{TreePath}":
+    var tree1 = parseXML("<a>hello</a>")
+    var node = tree1.followPathPtr(@[0, 0])
+    assert node[].innerText() == "hello"
+
+    node[].text = "world"
+
+    assert $tree1 == "<a>world</a>"
