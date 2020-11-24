@@ -157,7 +157,6 @@ suite "Tree diff":
       assertEq res[0].updValue, "hallo"
 
     block:
-      startHax()
       let res = diff(
         "<root></root>",
         "<root><first>Some text more</first></root>"
