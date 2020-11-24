@@ -84,8 +84,51 @@ suite "Tree mapping":
       if it.isToken:
         discard it.tok
 
+  test "{iterateItBFS} int-indexed":
+    func len(tr: Ast): int =
+      if not tr.isToken:
+        result = tr.subnodes.len
+
+    func `[]`(tr: Ast, idx: int): Ast = tr.subnodes[idx]
+
+    astInval.iterateItBFS:
+      if it.isToken:
+        discard it.tok
+
+  test "{iterateItBFS} using `items` iterator":
+    iterator items(tr: Ast): Ast =
+      if not tr.isToken:
+        for it in tr.subnodes:
+          yield it
+
+    astInval.iterateItBFS():
+      if it.isToken:
+        discard it.tok
+
   test "{iterateItDFS}":
     astInval.iterateItDFS(it.subnodes, not it.isToken, dfsPreorder):
+      if it.isToken:
+        discard it.tok
+
+  test "{iterateItDFS} int-indexed":
+    func len(tr: Ast): int =
+      if not tr.isToken:
+        result = tr.subnodes.len
+
+    func `[]`(tr: Ast, idx: int): Ast = tr.subnodes[idx]
+
+    astInval.iterateItDFS(dfsPreorder):
+      if it.isToken:
+        discard it.tok
+
+
+  test "{itearteItDFS} using `items` iterator":
+    iterator items(tr: Ast): Ast =
+      if not tr.isToken:
+        for it in tr.subnodes:
+          yield it
+
+    astInval.iterateItDFS(dfsPreorder):
       if it.isToken:
         discard it.tok
 

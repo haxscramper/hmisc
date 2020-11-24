@@ -9,6 +9,20 @@ import options, macros, deques
 # TODO Use `iterateItBFS` for `mapItBFStoSeq` implementation
 # TODO iterate over *mutable* tree nodes in BFS/DFS order
 
+template toSeqImpl(op: untyped): untyped =
+  when compiles((discard toSeq(op))):
+    toSeq(op)
+  elif compiles((discard op.len; discard op[0])):
+    var res: seq[typeof(op[0])]
+    for i in 0 ..< op.len:
+      res.add op[0]
+    res
+  else:
+    static:
+      error "Neither `items` nor `len`, `[]` are implemented for " &
+        $typeof(op) & " and this type cannot be user for tree iteration."
+
+
 template mapItBFStoSeq*(
   topNode: typed,
   subNode: untyped,
@@ -70,7 +84,7 @@ Do BFS iteration on recursive data type and map results into sequence
       result.add(op)
 
     if hasSubnodes:
-      for sub in subNode:
+      for sub in toSeqImpl(subNode):
         static:
           assert sub is VertType,
             "Mismatch between type of the subnodes and root tree - subnode is " &
@@ -101,7 +115,7 @@ Loop over tree nodes in BFS order
     let it {.inject.} = q.popFirst()
     let subt {.inject.} =
       if hasSubnodes:
-        subNode
+        toSeqImpl(subNode)
       else:
         @[]
 
@@ -109,7 +123,7 @@ Loop over tree nodes in BFS order
       body
 
     if hasSubnodes:
-       for sub in subt:
+       for sub in toSeqImpl(subt):
         static:
           assert sub is VertType,
             "Mismatch between type of the subnodes and root tree" &
@@ -117,6 +131,10 @@ Loop over tree nodes in BFS order
             $typeof(topNode)
 
         q.addLast(sub)
+
+
+template iterateItBFS*(tree, body: untyped): untyped =
+  iterateItBFS(tree, it, true, body)
 
 
 #*************************************************************************#
@@ -369,11 +387,15 @@ nodes'.
             body
 
           if hasSubnodes:
-            elems = getSubnodes
+            elems = toSeqImpl(getSubnodes)
 
         stack.add makeDfsFrame[InTree, bool](
           elems, stack[^1].path & @[stack[^1].idx]
         )
+
+template iterateItDFS*(tree, order, body: untyped): untyped =
+  static: assert order is DfsTraversalOrder
+  iterateItDFS(tree, it, true, order, body)
 
 
 template mapItDFSImpl*[InTree, OutTree](
@@ -457,7 +479,7 @@ template mapItDFSImpl*[InTree, OutTree](
           block:
             let it {.inject.} = stack[^1].inSubt[stack[^1].idx]
             if hasSubnodes:
-              subnodeCall
+              toSeq(subnodeCall)
             else:
               var tmp: seq[InTree]
               tmp
