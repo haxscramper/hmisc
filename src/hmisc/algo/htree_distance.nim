@@ -1,12 +1,9 @@
 import sugar, strutils, sequtils, strformat, heapqueue, tables,
        macros, algorithm, hashes, deques, sets, std/[enumerate, options]
 
-import halgorithm
-import hseq_distance
-import htree_mapping
-
-import ../hdebug_misc
-import ../types/hprimitives
+import hmisc/algo/[halgorithm, hseq_distance, htree_mapping]
+import hmisc/hdebug_misc
+import hmisc/types/hprimitives
 
 export hash, Hash
 
@@ -26,8 +23,6 @@ type
     hashes: Table[NodeId[L, V], Hash]
     ## Hash for each node - used for efficient O(1) tree isomprhism test
 
-    subnodes: Table[NodeId[L, V], seq[NodeId[L, V]]]
-    ## Table of subnodes for each node
 
     parentTable: Table[NodeId[L, V], NodeId[L, V]] ## node-parent
 
@@ -36,6 +31,9 @@ type
     idLevels: Table[NodeId[L, V], int]
     inordNodes: HashSet[NodeId[L, V]]
     deletedNodes: HashSet[NodeId[L, V]]
+    subnodes: Table[NodeId[L, V], seq[NodeId[L, V]]]
+    ## Table of subnodes for each node
+
     maxId: int
 
   EditCmdKind* = enum
@@ -126,7 +124,8 @@ proc makeIndex*[T, L, V](
   getLabel: proc(t: T): L,
                       ): TreeIndex[L, V] =
   var index = TreeIndex[L, V]()
-  var m: Mapping[L, V]
+  var m: Table[NodeId[L, V], seq[NodeId[L, V]]]
+  if false: echo m.len
   proc fillIndex(
     tree: T, isSource: bool, parentId: NodeId[L, V], subnIdx: int
        ): tuple[id: NodeId[L, V], hash: Hash, level: int] {.discardable.} =
@@ -160,6 +159,11 @@ proc makeIndex*[T, L, V](
     index.idValues[result.id] = getValue(tree)
     index.idLabels[result.id] = getLabel(tree)
     index.idLevels[result.id] = result.level
+    static:
+      echo typeof(index.subnodes)
+      echo typeof(result.id)
+      echo typeof(id)
+
     index.subnodes[result.id] = id
 
     var h: Hash = 0
@@ -952,12 +956,14 @@ proc simpleTreeDiff*[T, L, V](
     similarityTreshold: int = 60,
     initialMapping: bool = true
   ): auto =
+  # static:
+  #   echo "\e[41m*===\e[49m  ===============  \e[41m====*\e[49m"
 
-  # var tmp: Table[NodeId[L, V], NodeId[L, V]]
+  discard makeIndex[T, L, V](target, false, getValue, getLabel)
+  var m: Mapping[L, V]
   let
     sourceIndex: TreeIndex[L, V] = makeIndex[T, L, V](
       source, true, getValue, getLabel)
-
 
   let
     targetIndex: TreeIndex[L, V] = makeIndex[T, L, V](

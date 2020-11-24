@@ -31,6 +31,7 @@ proc `==`(x1, x2: XmlNode): bool =
         return false
 
 
+# var tmp: Mapping[string, string]
 
 proc diff(x1, x2: string): auto =
   return simpleTreeDiff(
