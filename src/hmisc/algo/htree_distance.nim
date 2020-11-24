@@ -697,7 +697,8 @@ proc apply*[T, L, V](
   cmd: EditCmd[L, V],
   setValue: proc(t: var T, value: V),
   newTree: proc(label: L, value: V): T,
-  setSubnode: proc(t: var T, index: int, subnode: T)): void =
+  setSubnode: proc(t: var T, index: int, subnode: T),
+  delSubnode: proc(t: var T, index: int)): void =
   echov "Applying", cmd
   case cmd.kind:
     of ekIns:
@@ -711,6 +712,9 @@ proc apply*[T, L, V](
           value = cmd.insValue
         )
       )
+    of ekDel:
+      var nodePtr = tree.followPathPtr(cmd.delPath[0 ..^ 2])
+      delSubnode(nodePtr[], cmd.delPath[^1])
     else:
       raiseAssert("#[ IMPLEMENT ]#")
 

@@ -23,6 +23,65 @@ proc `==`(x1, x2: XmlNode): bool =
 
 
 
+proc diff(x1, x2: string): EditScript[string, string] =
+  simpleTreeDiff(
+    parseXml(x1), parseXml(x2),
+    similarityTreshold = 30,
+    getLabel = (
+      proc(x: XmlNode): string =
+        if x.kind == xnElement: x.tag else: ""
+    ),
+    getValue = (
+      proc(x: XmlNode): string =
+        if x.kind == xnText: x.text else: ""
+    ),
+    valueScore = (
+      proc(text1, text2: string): int =
+        byCharSimilarityScore(text1, text2).int
+    )
+  )
+
+proc apply(x: var XmlNode, cmd: EditCmd[string, string]) =
+  apply(
+    x,
+    cmd,
+    setValue = (
+      proc(x: var XmlNode, v: string) =
+        x.text = v
+    ),
+    newTree = (
+      proc(l: string, v: string): XmlNode =
+        if l.len == 0:
+          newText(v)
+        else:
+          newElement(l)
+    ),
+    setSubnode = (
+      proc(x: var XmlNode, idx: int, node: XmlNode) =
+        if idx == x.len:
+          x.add node
+        elif idx < x.len:
+          # There is no `[]=` overload, so poitner magic it is
+          (addr x[idx])[] = node
+        else:
+          raiseAssert("Cannot set node to index")
+    ),
+    delSubnode = (
+      proc(x: var XmlNode, idx: int) =
+        x.delete(idx)
+    )
+  )
+
+
+
+proc diffApply(str1, str2: string): XmlNode =
+  var source = str1.parseXml()
+  let script = diff(str1, str2)
+  for cmd in script:
+    source.apply(cmd)
+
+  return source
+
 
 suite "Tree diff":
   test "Custom type":
@@ -102,53 +161,6 @@ suite "Tree diff":
     assert res.script[0].kind == ekUpd
 
   test "Simple tree diff xml":
-
-    proc diff(x1, x2: string): EditScript[string, string] =
-      simpleTreeDiff(
-        parseXml(x1), parseXml(x2),
-        similarityTreshold = 30,
-        getLabel = (
-          proc(x: XmlNode): string =
-            if x.kind == xnElement: x.tag else: ""
-        ),
-        getValue = (
-          proc(x: XmlNode): string =
-            if x.kind == xnText: x.text else: ""
-        ),
-        valueScore = (
-          proc(text1, text2: string): int =
-            byCharSimilarityScore(text1, text2).int
-        )
-      )
-
-    proc apply(x: var XmlNode, cmd: EditCmd[string, string]) =
-      apply(
-        x,
-        cmd,
-        setValue = (
-          proc(x: var XmlNode, v: string) =
-            x.text = v
-        ),
-        newTree = (
-          proc(l: string, v: string): XmlNode =
-            if l.len == 0:
-              newText(v)
-            else:
-              newElement(l)
-        ),
-        setSubnode = (
-          proc(x: var XmlNode, idx: int, node: XmlNode) =
-            if idx == x.len:
-              x.add node
-            elif idx < x.len:
-              # There is no `[]=` overload, so poitner magic it is
-              (addr x[idx])[] = node
-            else:
-              raiseAssert("Cannot set node to index")
-        )
-      )
-
-
     block:
       let res = diff("<a>hello</a>", "<a>hallo</a>")
 
@@ -182,3 +194,9 @@ suite "Tree diff":
       assertEq target[0][0].kind, tree[0][0].kind
 
       assertEq tree, target
+
+    block:
+      let res = diffApply("<root><first /></root>", "<root />")
+      assertEq res.tag, "root"
+      assertEq res.len, 0
+      # assertEq res.len
