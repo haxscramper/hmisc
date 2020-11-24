@@ -160,43 +160,47 @@ suite "Tree diff":
     assert res.script.len == 1
     assert res.script[0].kind == ekUpd
 
-  test "Simple tree diff xml":
-    block:
-      let res = diff("<a>hello</a>", "<a>hallo</a>")
+  test "Value update":
+    let res = diff("<a>hello</a>", "<a>hallo</a>")
 
-      assertEq res.len, 1
-      assertEq res[0].kind, ekUpd
-      assertEq res[0].updValue, "hallo"
+    assertEq res.len, 1
+    assertEq res[0].kind, ekUpd
+    assertEq res[0].updValue, "hallo"
 
-    block:
-      let res = diff(
-        "<root></root>",
-        "<root><first>Some text more</first></root>"
-      )
+  test "Subnode insert":
+    let res = diff(
+      "<root></root>",
+      "<root><first>Some text more</first></root>"
+    )
 
-      assertEq res.len, 2
-      assertEq res[0].kind, ekIns
-      assertEq res[0].insLabel, "first"
-      assertEq res[1].insLabel, ""
-      assertEq res[1].insValue, "Some text more"
+    assertEq res.len, 2
+    assertEq res[0].kind, ekIns
+    assertEq res[0].insLabel, "first"
+    assertEq res[1].insLabel, ""
+    assertEq res[1].insValue, "Some text more"
 
-      var tree = parseXml("<root></root>")
+    var tree = parseXml("<root></root>")
 
-      tree.apply(res[0])
-      assertEq tree, parseXml("<root><first></first></root>")
+    tree.apply(res[0])
+    assertEq tree, parseXml("<root><first></first></root>")
 
 
-      tree.apply(res[1])
-      let target = parseXml("<root><first>Some text more</first></root>")
-      assertEq target.tag, tree.tag
-      assertEq target.kind, tree.kind
-      assertEq target[0].kind, tree[0].kind
-      assertEq target[0][0].kind, tree[0][0].kind
+    tree.apply(res[1])
+    let target = parseXml("<root><first>Some text more</first></root>")
+    assertEq target.tag, tree.tag
+    assertEq target.kind, tree.kind
+    assertEq target[0].kind, tree[0].kind
+    assertEq target[0][0].kind, tree[0][0].kind
 
-      assertEq tree, target
+    assertEq tree, target
 
-    block:
-      let res = diffApply("<root><first /></root>", "<root />")
-      assertEq res.tag, "root"
-      assertEq res.len, 0
-      # assertEq res.len
+  test "Subnode deletion":
+    let res = diffApply("<root><first /></root>", "<root />")
+    assertEq res.tag, "root"
+    assertEq res.len, 0
+
+  test "Subnode move":
+    let res = diffApply("<a><b/><c/></a>", "<a><c/><b/></a>")
+    assertEq res.tag, "a"
+    assertEq res[0].tag, "c"
+    assertEq res[1].tag, "b"

@@ -716,7 +716,17 @@ proc apply*[T, L, V](
       var nodePtr = tree.followPathPtr(cmd.delPath[0 ..^ 2])
       delSubnode(nodePtr[], cmd.delPath[^1])
     else:
-      raiseAssert("#[ IMPLEMENT ]#")
+      var
+        sourceParent: ptr T = tree.followPathPtr(cmd.oldMovPath[0 ..^ 2])
+        targetParent: ptr T = tree.followPathPtr(cmd.newMovPath[0 ..^ 2])
+
+      # if cmd.oldMovPath[0..^2] == cmd.newMovPath[0..^2]:
+      #   swap(sourceParent[cmd.oldMovPath[^1]], targetParent)
+
+      let node = sourceParent[][cmd.oldMovPath[^1]]
+      delSubnode(sourceParent[], cmd.oldMovPath[^1])
+      setSubnode(targetParent[], cmd.newMovPath[^1], node)
+
 
 
 
@@ -770,7 +780,7 @@ proc alignSubn[L, V](
       # inside `matches` in the first place?
       script.add makeMove[L, V](
         sourceNode.path,
-        targetNode.path & targetNode.findPos()
+        targetNode.path[0..^2] & targetNode.findPos()
       )
 
       ## And apply movement to the source index
@@ -920,12 +930,23 @@ proc simpleMatch*[L, V](
     for sourceNode in sourceNodes:
       for targetNode in targetNodes:
         let score = valueScore(sourceNode.value, targetNode.value)
-        if score > similarityTreshold:
-          if not contains(bestPairs, sourceNode) or
-             score > bestPairs[sourceNode].score:
+        if (sourceNode.label == targetNode.label) and
+           (score > similarityTreshold)
+          :
+          if (not contains(bestPairs, sourceNode) or
+             score > bestPairs[sourceNode].score):
+            # var hasVal = false
+            # for k, v in pairs(bestPairs):
+            #   if v.node == targetNode:
+            #     hasVal = true
+
+            # if not hasVal:
+            #   # Avoid matching nodes with identical labels and values.
+            #   # Otherwise.
             bestPairs[sourceNode] = (targetNode, score)
 
     for source, target in pairs(bestPairs):
+      echov (source, target.node)
       result.add (source, target.node)
 
     sourceNodes = concat: collect(newSeq):
