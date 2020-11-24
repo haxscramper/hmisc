@@ -1,8 +1,17 @@
-import std/[xmlparser, xmltree]
+import std/[xmlparser, xmltree, strformat]
 import unittest
 import hmisc/algo/[htree_distance, hseq_distance, halgorithm]
 import hmisc/hdebug_misc
 
+template canImport(x: untyped): untyped =
+  compiles:
+    import x
+
+when canImport(hasts/graphviz_ast):
+  import hasts/graphviz_ast
+  const hasGraphviz = true
+else:
+  const hasGraphviz = false
 
 type
   Tree = object
@@ -23,9 +32,10 @@ proc `==`(x1, x2: XmlNode): bool =
 
 
 
-proc diff(x1, x2: string): EditScript[string, string] =
-  simpleTreeDiff(
-    parseXml(x1), parseXml(x2),
+proc diff(x1, x2: string): auto =
+  return simpleTreeDiff(
+    parseXml(x1),
+    parseXml(x2),
     similarityTreshold = 30,
     getLabel = (
       proc(x: XmlNode): string =
@@ -64,7 +74,9 @@ proc apply(x: var XmlNode, cmd: EditCmd[string, string]) =
           # There is no `[]=` overload, so poitner magic it is
           (addr x[idx])[] = node
         else:
-          raiseAssert("Cannot set node to index")
+          raiseAssert(
+            &"Cannot set subnode '{node}' to index {idx} - " &
+            &"'{x}' only has {x.len} subnodes")
     ),
     delSubnode = (
       proc(x: var XmlNode, idx: int) =
@@ -77,7 +89,10 @@ proc apply(x: var XmlNode, cmd: EditCmd[string, string]) =
 proc diffApply(str1, str2: string): XmlNode =
   var source = str1.parseXml()
   let script = diff(str1, str2)
-  for cmd in script:
+  for cmd in script[0]:
+    echov cmd
+
+  for cmd in script[0]:
     source.apply(cmd)
 
   return source
@@ -161,7 +176,7 @@ suite "Tree diff":
     assert res.script[0].kind == ekUpd
 
   test "Value update":
-    let res = diff("<a>hello</a>", "<a>hallo</a>")
+    let res = diff("<a>hello</a>", "<a>hallo</a>")[0]
 
     assertEq res.len, 1
     assertEq res[0].kind, ekUpd
@@ -171,7 +186,7 @@ suite "Tree diff":
     let res = diff(
       "<root></root>",
       "<root><first>Some text more</first></root>"
-    )
+    )[0]
 
     assertEq res.len, 2
     assertEq res[0].kind, ekIns
@@ -200,7 +215,15 @@ suite "Tree diff":
     assertEq res.len, 0
 
   test "Subnode move":
-    let res = diffApply("<a><b/><c/></a>", "<a><c/><b/></a>")
-    assertEq res.tag, "a"
-    assertEq res[0].tag, "c"
-    assertEq res[1].tag, "b"
+    block:
+      let res = diffApply("<a><b/><c/></a>", "<a><c/><b/></a>")
+      assertEq res.tag, "a"
+      assertEq res[0].tag, "c"
+      assertEq res[1].tag, "b"
+
+    block:
+      startHax()
+      let res = diff(
+        "<root><foo>bar</foo><foo>first</foo></root>",
+        "<root><foo>first</foo><foo>bar</foo></root>"
+      )

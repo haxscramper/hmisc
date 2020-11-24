@@ -17,7 +17,7 @@ type
     index {.requiresinit.}: TreeIndex[L, V]
     path {.requiresinit.}: TreePath
 
-  Mapping[L, V] = object
+  Mapping*[L, V] = object
     table: Table[NodeId[L, V], NodeId[L, V]]
 
   NodeQue[L, V] = HeapQueue[NodeId[L, V]]
@@ -31,8 +31,8 @@ type
 
     parentTable: Table[NodeId[L, V], NodeId[L, V]] ## node-parent
 
-    idVals: Table[NodeId[L, V], V]
-    idLabel: Table[NodeId[L, V], L]
+    idValues: Table[NodeId[L, V], V]
+    idLabels: Table[NodeId[L, V], L]
     idLevels: Table[NodeId[L, V], int]
     inordNodes: HashSet[NodeId[L, V]]
     deletedNodes: HashSet[NodeId[L, V]]
@@ -98,7 +98,6 @@ func level[L, V](id: NodeId[L, V]): int =
       id.index.idLevels[id]
 
 func `$`*[L, V](id: NodeId[L, V]): string =
-  var val: string
   if id == makeInvalidNode[L, V](id.isSource):
     if id.isSource:
       result = "\e[33mINVALID-SOURCE\e[39m"
@@ -108,14 +107,12 @@ func `$`*[L, V](id: NodeId[L, V]): string =
     if id.index.isNil:
       result = (if id.isSource: "s" else: "t") & "@" & $id.id & " # \e[91mNIL-INDEX\e[39m"
     else:
-      if id in id.index.idVals:
-        val = id.index.idVals[id]
-      else:
-        val = "NO-VALUE"
+      let value = if id in id.index.idValues: $id.index.idValues[id] else: "NO-VALUE"
+      let label = if id in id.index.idLabels: $id.index.idLabels[id] else: "NO-LABEL"
 
 
       result = (if id.isSource: "s" else: "t") & "@" & $id.id &
-        " (" & $(id.level) & ") - " & val & " # " & $id.path
+        " [" & label & "/" & value & "] " & $id.path
 
   result = &"'{result}'"
 
@@ -129,6 +126,7 @@ proc makeIndex*[T, L, V](
   getLabel: proc(t: T): L,
                       ): TreeIndex[L, V] =
   var index = TreeIndex[L, V]()
+  var m: Mapping[L, V]
   proc fillIndex(
     tree: T, isSource: bool, parentId: NodeId[L, V], subnIdx: int
        ): tuple[id: NodeId[L, V], hash: Hash, level: int] {.discardable.} =
@@ -159,8 +157,8 @@ proc makeIndex*[T, L, V](
       index.parentTable[node] = result.id
 
     result.level = depths.max(0) + 1
-    index.idVals[result.id] = getValue(tree)
-    index.idLabel[result.id] = getLabel(tree)
+    index.idValues[result.id] = getValue(tree)
+    index.idLabels[result.id] = getLabel(tree)
     index.idLevels[result.id] = result.level
     index.subnodes[result.id] = id
 
@@ -349,11 +347,11 @@ macro `notin`[L, V](lhs: untyped, rhs: Mapping[L, V]): untyped =
 
 proc label[L, V](n: NodeId[L, V]): L =
   ## Get label associated with node
-  n.index.idLabel[n]
+  n.index.idLabels[n]
 
 proc value[L, V](n: NodeId[L, V]): V =
   ## Get value associated with node
-  n.index.idVals[n]
+  n.index.idValues[n]
 
 proc isRoot[L, V](n: NodeId[L, V]): bool =
   ## Return true if node is a root node
@@ -652,7 +650,6 @@ proc applyLast[L, V](
   ## Apply last added script element to tree `tree`. Return `NodeId[L, V]` if any
   ## created
   let cmd = script.cmds[^1]
-  echov cmd
   case cmd.kind:
     of ekIns:
       let node = NodeId[L, V](
@@ -662,8 +659,8 @@ proc applyLast[L, V](
         isSource: true
       )
 
-      index.idVals[node] = cmd.insValue
-      index.idLabel[node] = cmd.insLabel
+      index.idValues[node] = cmd.insValue
+      index.idLabels[node] = cmd.insLabel
       index.subnodes[node] = @[]
 
       inc index.maxId
@@ -675,8 +672,8 @@ proc applyLast[L, V](
       # TEST checl for repeated deletion - might need to swap iteration
       # order (although it is DFS-post now, so this is probably fine)
 
-      index.idVals.del(node)
-      index.idLabel.del(node)
+      index.idValues.del(node)
+      index.idLabels.del(node)
       index.parentTable.del(node)
       index.subnodes.del(node)
       index.inordNodes.excl(node)
@@ -689,7 +686,7 @@ proc applyLast[L, V](
       # raiseAssert("#[ IMPLEMENT ]#")
     of ekUpd:
       var node = index.root().followPath(cmd.updPath)
-      index.idVals[node] = cmd.updValue
+      index.idValues[node] = cmd.updValue
       # raiseAssert("#[ IMPLEMENT ]#")
 
 proc apply*[T, L, V](
@@ -699,11 +696,9 @@ proc apply*[T, L, V](
   newTree: proc(label: L, value: V): T,
   setSubnode: proc(t: var T, index: int, subnode: T),
   delSubnode: proc(t: var T, index: int)): void =
-  echov "Applying", cmd
   case cmd.kind:
     of ekIns:
       let nodePtr = tree.followPathPtr(cmd.insPath[0 .. ^2])
-      echov nodePtr[]
       setSubnode(
         nodePtr[],
         cmd.insPath[^1],
@@ -810,7 +805,6 @@ proc editScript*[L, V](
 
   for targetSubn in targetTree.bfsIterate():
     ## Iterate all nodes in tree in BFS order
-    echov targetSubn
     let
       targetParent = targetSubn.parent ## parent node in right tree
       sourceSubn = targetSubn.sourcePartner(map) ## Partner of the target subnode
@@ -831,7 +825,6 @@ proc editScript*[L, V](
         )
 
       else:
-        echov sourceSubn
         ## if current node does not have a corresponding partner in mapping
         ## insert it (add `ins` action to edit script)
 
@@ -884,10 +877,6 @@ proc editScript*[L, V](
       ## if mapping current node and it's partner are not in mapping
       if (sourceParent, targetParent) notin map:
         let matchingTargetParent = sourceParent.targetPartner(map)
-        echov sourceParent
-        echov targetParent
-        echov matchingTargetParent
-          # k = sourceIndex.findPos(targetSubn, map)
 
         script.add makeMove[L, V](
           # Move subnode from start index
@@ -935,18 +924,16 @@ proc simpleMatch*[L, V](
           :
           if (not contains(bestPairs, sourceNode) or
              score > bestPairs[sourceNode].score):
-            # var hasVal = false
-            # for k, v in pairs(bestPairs):
-            #   if v.node == targetNode:
-            #     hasVal = true
+            var hasVal = false
+            for k, v in pairs(bestPairs):
+              if v.node == targetNode:
+                hasVal = true
 
-            # if not hasVal:
-            #   # Avoid matching nodes with identical labels and values.
-            #   # Otherwise.
-            bestPairs[sourceNode] = (targetNode, score)
+            if not hasVal:
+              # Avoid matching nodes with identical labels and values.
+              bestPairs[sourceNode] = (targetNode, score)
 
     for source, target in pairs(bestPairs):
-      echov (source, target.node)
       result.add (source, target.node)
 
     sourceNodes = concat: collect(newSeq):
@@ -959,24 +946,36 @@ proc simpleMatch*[L, V](
 
 proc simpleTreeDiff*[T, L, V](
     source, target: T,
-    getValue: proc(t: T): V,
     getLabel: proc(t: T): L,
+    getValue: proc(t: T): V,
     valueScore: ScoreCmpProc[V],
-    similarityTreshold: int = 60
-  ): EditScript[L, V] =
-  let
-    sourceIndex = makeIndex(source, true, getValue, getLabel)
-    targetIndex = makeIndex(target, false, getValue, getLabel)
+    similarityTreshold: int = 60,
+    initialMapping: bool = true
+  ): auto =
 
-  let mapping = simpleMatch(
-    sourceIndex.root,
-    targetIndex.root,
-    similarityTreshold = similarityTreshold,
-    valueScore = valueScore
-  )
+  # var tmp: Table[NodeId[L, V], NodeId[L, V]]
+  let
+    sourceIndex: TreeIndex[L, V] = makeIndex[T, L, V](
+      source, true, getValue, getLabel)
+
+
+  let
+    targetIndex: TreeIndex[L, V] = makeIndex[T, L, V](
+      target, false, getValue, getLabel)
+
+  let
+    mapping: Mapping[L, V] = simpleMatch[L, V](
+      sourceIndex.root,
+      targetIndex.root,
+      similarityTreshold = similarityTreshold,
+      valueScore = valueScore
+    )
 
   for k, v in mapping:
     echov (k, v)
 
   let res = editScript(mapping, sourceIndex.root, targetIndex.root)
-  return res.script
+  if initialMapping:
+    return (res.script, mapping)
+  else:
+    return (res.script, res.mapping)
