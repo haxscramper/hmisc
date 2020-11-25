@@ -614,9 +614,9 @@ suite "Misc algorithms":
     template tmp(s1, s2, s3: untyped): untyped =
       assertEq longestCommonSubsequence(s1, s2)[0].matches, s3
 
-    assert longestCommonSubsequence(@[1], @[2, 3]).len == 0
-    assert longestCommonSubsequence(@["Cond"], @["Int", "Lit"]).len == 0
-    assert longestCommonSubsequence(@[1], @[2]).len == 0
+    assert longestCommonSubsequence(@[1], @[2, 3])[0].matches.len == 0
+    assert longestCommonSubsequence(@["Cond"], @["Int", "Lit"])[0].matches.len == 0
+    assert longestCommonSubsequence(@[1], @[2])[0].matches.len == 0
     tmp("GAC", "AGCAT", "GA")
     tmp(@[1, 2], @[1, 2], @[1, 2])
     tmp(@[1, 2, 3], @[1, 2], @[1, 2])
