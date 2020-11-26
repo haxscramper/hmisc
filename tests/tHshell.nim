@@ -1,10 +1,10 @@
 import std/[strutils, sequtils, strformat,
-            deques, options, json, parseutils]
+            deques, options, parseutils, enumerate]
 
 import hmisc/helpers
 
 import unittest
-import hmisc/other/[hshell, hshell_convert, oswrap]
+import hmisc/other/[hshell, hshell_convert, oswrap, hjson]
 
 suite "Hshell":
   test "Echo":
@@ -30,27 +30,65 @@ suite "Hshell":
       if res[0].getStr() == "stdout":
         assert res[1].getStr() == "file"
 
-  test "Nim compiler output":
-    withTempDir(true):
-      let file = "test.nim"
-      file.writeFile("""
-echo 1 * '2'
-""")
+  test "json parser":
+    var cmd = makeGnuShellCmd("ls")
+    cmd - "l"
+    cmd.arg "/tmp"
+
+    let iter = makeShellJsonIter(
+      cmd,
+      lslOutConverter,
+      lslErrConverter,
+      doRaise = false
+    )
+
+    for idx, msg in enumerate(iter):
+      if idx > 10:
+        break
+      else:
+        echo msg["permissions"]
+
+
+  test "Shell ast generation":
+    assertEq shAnd(shCmd ls, shCmd ls).toStr(), "ls && ls"
+    assertEq shOr(shCmd ls, shCmd ls, shAnd(shCmd ls, shCmd ls)).toStr(),
+      "ls || ls || (ls && ls)"
+
+    assertEq shCmd(echo, -n, "hello").toStr(), "echo -n \"hello\""
+
+  test "Shell ast execution":
+    execShell shAnd(shCmd "true", shCmd "true")
+    execShell shOr(shCmd "false", shCmd "true")
+
+    expect ShellError:
+      execShell shAnd(shCmd "false")
+
+    assertEq evalShellStdout(shCmd(echo, -n, "hello")), "hello"
+
+
+  test "Shell ast & makeShellCmd":
+    let doCleanup = true
+    let tmpDir = "/tmp/docker"
+    let cmd = makeGnuShellCmd("docker").withIt do:
+      it.cmd "run" # Add subcommand
+      it - "i"
+      it - "i"
+      if doCleanup:
+        it - "rm" # Remove container after test execution
+      it - ("v", $tmpDir & ":/project") ## Key-value pair
+      it.arg "nim-base"
+      it.arg "sh"
+      it - "c"
+      it.expr:
+        shAnd:
+          shCmd cd, "/project"
+          shCmd cd, "/project"
+          shOr:
+            shCmd ls, a
+            shCmd ls, a
+            shCmd ls, a
 
 
 
-      var cmd = makeNimShellCmd("nim")
-      cmd.cmd "c"
-      cmd - "r"
-      cmd.arg file
 
-      # execShell(cmd, doRaise = false)
-      let iter = makeShellJsonIter(
-        cmd,
-        nimCmdOutConverter,
-        nimCmdErrConverter,
-        doRaise = false
-      )
 
-      for msg in iter:
-        echo msg.pretty

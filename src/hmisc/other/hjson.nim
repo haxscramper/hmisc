@@ -74,3 +74,5 @@ func asStrSeq*(node: JsonNode): seq[string] =
   ## Convert node to sequence of strings and join them. Throw
   ## exception if kind does not match.
   node.asSeq().map(asStr)
+
+func `%`*(c: char): JsonNode = %($c)

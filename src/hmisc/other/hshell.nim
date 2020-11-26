@@ -14,7 +14,7 @@ else:
       poDaemon
 
 import oswrap
-import std/[strutils, strformat, sequtils, options, deques, json]
+import std/[strutils, strformat, sequtils, options, deques, json, macros]
 
 const hasStrtabs = cbackend or (NimMajor, NimMinor, NimPatch) > (1, 2, 6)
 
@@ -121,13 +121,60 @@ type
       of cpkRaw:
         rawstring*: string
       of cpkSubExpr:
-        expr*: ShellExpr
+        expr*: ShellAst
 
   ShellCmd* = object
     bin: string
     opts: seq[ShellCmdPart]
     conf: ShellCmdConf
     envVals: seq[tuple[key, val: string]]
+
+
+  ShellGlob = distinct string
+  ShellAstKind = enum
+    sakCommand
+    sakVariable
+    sakGlob
+    sakWord
+    sakArithmExpr
+    sakRawExpr
+
+
+    sakWhile
+    sakIf
+    sakCase
+    sakAssgn
+    sakFor
+
+    sakOrList ## ||
+    sakAndList ## &&
+    sakSequentialList ## ;
+    sakAsyncList ## &
+    sakPipeList ## |
+
+    sakCompoundList
+    sakSubcommand
+
+    sakStdoutOverwrite ## >
+    sakStdoutAppend ## >>
+    sakStdin ## <
+
+  ShellAst* = object
+    case kind*: ShellAstKind
+      of sakRawExpr:
+        rawExpr*: ShellExpr
+      of sakCommand:
+        cmd*: ShellCmd
+      of sakVariable:
+        variable*: ShellVar
+      of sakGlob:
+        pattern*: ShellGlob
+      of sakWord:
+        shellWord*: string
+      else:
+        subnodes*: seq[ShellAst]
+
+  ShellSomething = ShellAst | ShellCmd | ShellExpr | ShellVar
 
 const
   GnuShellCmdConf* = ShellCmdConf(
@@ -144,6 +191,9 @@ const
     flagConf: ccOneDashFlags,
     kvSep: " "
   )
+
+  sakListKinds* = {sakAndList, sakOrList}
+
 
 converter toShellCmd*(a: ShellExpr): ShellCmd =
   ## Implicit conversion of string to command
@@ -207,7 +257,12 @@ func raw*(cmd: var ShellCmd, str: string) =
   cmd.opts.add ShellCmdpart(kind: cpkRaw, rawstring: str)
 
 func expr*(cmd: var ShellCmd, subexpr: ShellExpr) =
-  cmd.opts.add ShellCmdPart(kind: cpkSubExpr, expr: subexpr)
+  cmd.opts.add ShellCmdPart(
+    kind: cpkSubExpr, expr: ShellAst(kind: sakRawExpr, rawExpr: subexpr)
+  )
+
+func expr*(cmd: var ShellCmd, expr: ShellAst) =
+  cmd.opts.add ShellCmdPart(kind: cpkSubExpr, expr: expr)
 
 func arg*(cmd: var ShellCmd, arg: string | AnyPath) =
   ## Add argument for command
@@ -217,6 +272,8 @@ func arg*(cmd: var ShellCmd, arg: string | AnyPath) =
 func `-`*(cmd: var ShellCmd, fl: string) =
   ## Add flag for command
   cmd.flag fl
+
+func `-`*(cmd: var ShellCmd, fl: char) = cmd.flag($fl)
 
 func `-`*(cmd: var ShellCmd, path: AnyPath) =
   ## Overload to add filesystem entry as command argument
@@ -233,6 +290,30 @@ func `-`*(cmd: var ShellCmd, kv: tuple[key, sep, val: string]) =
   cmd.opts.add ShellCmdPart(
     kind: cpkOption, key: kv.key, val: kv.val, overrideKv: true,
     kvSep: kv.sep)
+
+func makeShellCmd*(conf: ShellCmdConf, bin: string): ShellCmd =
+  result.conf = conf
+  result.bin = bin
+
+const
+  gnuShellCommandsList* = ["ls"]
+  nimShellCommandsList* = ["nimble"]
+  x11ShellCommandsList* = ["xclip"]
+
+func makeShellCmd*(bin: string): ShellCmd =
+  if bin in gnuShellCommandsList:
+    result.conf = GnuShellCmdConf
+  elif bin in nimShellCommandsList:
+    result.conf = NimShellCmdConf
+  elif bin in x11ShellCommandsList:
+    result.conf = X11ShellCmdConf
+  else:
+    if bin.startsWith("x"):
+      result.conf = X11ShellCmdConf
+    else:
+      result.conf = NimShellCmdConf
+
+  result.bin = bin
 
 func makeNimShellCmd*(bin: string): ShellCmd =
   ## Create command for nim core tooling (":" for key-value separator)
@@ -265,6 +346,9 @@ func makeFileShellCmd*(
 
 # func quoteShell*(str: string): string = str
 
+
+func toStr*(ast: ShellAst, level: int = 0): string
+
 func toStr*(part: ShellCmdPart, conf: ShellCmdConf): string =
   ## Convret shell command part to string representation
   let longPrefix =
@@ -291,7 +375,7 @@ func toStr*(part: ShellCmdPart, conf: ShellCmdConf): string =
     of cpkArgument:
       return part.argument.quoteShell()
     of cpkSubExpr:
-      return part.expr.string
+      return part.expr.toStr()
 
 
 func toStrSeq*(cmd: ShellCmd): seq[string] =
@@ -306,6 +390,32 @@ func toStrSeq*(cmd: ShellCmd): seq[string] =
   # @[ cmd.bin ] & cmd.opts.mapIt(it.toStr(cmd.conf))
 
 func toStr*(cmd: ShellCmd): string = cmd.toStrSeq().join(" ")
+
+func toStr*(ast: ShellAst, level: int = 0): string =
+  case ast.kind:
+    of sakListKinds:
+      var buf: seq[string]
+      for sn in ast.subnodes:
+        if sn.kind in sakListKinds:
+          buf.add &"({sn.toStr()})"
+        else:
+          buf.add sn.toStr()
+
+      let sep =
+        case ast.kind:
+          of sakAndList: "&&"
+          of sakOrList: "||"
+          else: raiseAssert(&"#[ IMPLEMENT for kind {ast.kind} ]#")
+
+      result = buf.join(" " & sep & " ")
+
+    of sakCommand:
+      result = ast.cmd.toStr()
+    else:
+      raiseAssert(&"#[ IMPLEMENT for kind {ast.kind} ]#")
+
+
+
 
 func toLogStr*(cmd: ShellCmd): string =
   ## Convert shell command to pretty-printed shell representation
@@ -334,6 +444,89 @@ func wrapShell*(str: string, maxw: int = 80): string =
     buf[^1] &= str
 
   return buf.join("")
+
+func listToInfix(infix: string, list: seq[NimNode]): NimNode =
+  var cmds: seq[NimNode]
+  if list.len == 1 and list[0].kind == nnkStmtList:
+    for stmt in list[0]:
+      cmds.add stmt
+  else:
+    for arg in list:
+      cmds.add arg
+
+  result = cmds.foldl(nnkInfix.newTree(ident infix, a, b))
+
+
+func extendList(kind: ShellAstKind, e1, e2: ShellAst): ShellAst =
+  if e1.kind == kind:
+    result = e1
+    result.subnodes.add e2
+  else:
+    result = ShellAst(kind: kind)
+    result.subnodes.add @[e1, e2]
+
+func toShellAst*(cmd: ShellCmd): ShellAst =
+  ShellAst(kind: sakCommand, cmd: cmd)
+
+func toShellAst*(ast: ShellAst): ShellAst = ast
+
+
+func `&&`*[T1, T2: ShellSomething](e1: T1, e2: T2): ShellAst =
+  extendList(sakAndList, toShellAst(e1), toShellAst(e2))
+
+func `||`*[T1, T2: ShellSomething](e1: T1, e2: T2): ShellAst =
+  extendList(sakOrList, toShellAst(e1), toShellAst(e2))
+
+func `|`*[T1, T2: ShellSomething](e1: T1, e2: T2): ShellAst =
+  extendList(sakPipeList, toShellAst(e1), toShellAst(e2))
+
+func `&`*[T1, T2: ShellSomething](e1: T1, e2: T2): ShellAst =
+  extendList(sakAsyncList, toShellAst(e1), toShellAst(e2))
+
+
+macro shAnd*(arg: varargs[untyped]): untyped = listToInfix("&&", toSeq(arg))
+macro shOr*(arg: varargs[untyped]): untyped = listToInfix("||", toSeq(arg))
+macro shPipe*(arg: varargs[untyped]): untyped = listToInfix("|", toSeq(arg))
+macro shAsync*(arg: varargs[untyped]): untyped = listToInfix("&", toSeq(arg))
+
+macro shCmd*(cmd: untyped, args: varargs[untyped]): untyped =
+  let shCmd = if cmd.kind == nnkIdent:
+                cmd.toStrLit()
+              elif cmd.kind == nnkStrLit:
+                cmd
+              else:
+                raiseAssert("#[ IMPLEMENT ]#")
+
+  let resId = genSym(nskVar, "res")
+  result = newStmtList()
+  result.add quote do:
+    var `resId` = makeShellCmd(`shCmd`)
+
+  for arg in args:
+    case arg.kind:
+      of nnkPrefix:
+        result.add nnkInfix.newTree(arg[0], resId)
+        case arg[1].kind:
+          of nnkIdent:
+            result.add arg[0]
+          else:
+            raiseAssert(&"#[ IMPLEMENT for kind {arg[1].kind} ]#")
+            discard
+
+      of nnkStrLit:
+        result.add newCall("arg", resId, arg)
+      else:
+        raiseAssert(&"#[ IMPLEMENT for kind {arg.kind} ]#")
+        discard
+
+  result.add quote do:
+    `resId`
+
+  result = quote do:
+    block:
+      `result`
+
+
 
 
 
@@ -600,14 +793,25 @@ proc execShell*(cmd: ShellExpr): void =
   discard runShell(cmd, discardOut = true, options = {
     poEvalCommand, poParentStreams, poUsePath})
 
+proc execShell*(cmd: ShellAst): void =
+  discard runShell(ShellCmd(bin: cmd.toStr()), discardOut =  true, options = {
+    poEvalCommand, poParentStreams, poUsePath})
 
 proc evalShell*(cmd: ShellExpr): auto =
   var opts = {poEvalCommand, poUsePath}
   runShell(cmd, options = opts)
 
+
 proc evalShellStdout*(cmd: ShellExpr): string =
   let res = runShell(cmd, options = {poEvalCommand, poUsePath})
   return res.stdout
+
+
+proc evalShellStdout*(cmd: ShellAst): string =
+  let res = runShell(ShellCmd(bin: cmd.toStr()),
+                     options = {poEvalCommand, poUsePath})
+  return res.stdout
+
 
 
 proc evalShellStdout*(cmd: ShellCmd): string =

@@ -3,7 +3,8 @@
 
 import hshell
 import ../algo/[tscanf, hstring_algo]
-import std/[json, strscans, strutils, sequtils, deques, options]
+import hjson
+import std/[strscans, strutils, sequtils, deques, options]
 
 func withIdent(strs: seq[string], ident: int): seq[string] =
   for str in strs:
@@ -68,4 +69,28 @@ func nimCmdOutConverter*(
 
 func nimCmdErrConverter*(
   que: var StrQue, cmd: ShellCmd): Option[JsonNode] =
+  discard
+
+func lslOutConverter*(que: var StrQue, cmd: ShellCmd): Option[JsonNode] =
+  let line = que.popFirst().split(" ").filterIt(it.len != 0)
+  if line.len == 0 or line[0] == "total":
+    return
+  else:
+    return some(
+      %*{
+        "entry-type" : line[0][0],
+        "permissions" : {
+          "root" : line[0][1..3],
+          "group" : line[0][4..6],
+          "user" : line[0][7..9],
+         },
+        "owner" : line[2],
+        "group" : line[3],
+        "size" : line[4],
+        "created" : line[5..7].join(" "),
+        "filename" : line[8..^1].join(" ")
+      }
+    )
+
+func lslErrConverter*(que: var StrQue, cmd: ShellCmd): Option[JsonNode] =
   discard
