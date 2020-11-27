@@ -4,7 +4,7 @@
 import hshell
 import ../algo/[tscanf, hstring_algo]
 import hjson
-import std/[strscans, strutils, sequtils, deques, options]
+import std/[strscans, strutils, sequtils, deques, options, segfaults]
 
 func withIdent(strs: seq[string], ident: int): seq[string] =
   for str in strs:

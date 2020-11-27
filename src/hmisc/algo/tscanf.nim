@@ -131,5 +131,4 @@ macro tscanf*(input, pattNode: string): untyped =
     `ml`
     `call`
 
-  echo result.toStrLit()
-
+  # echo result.toStrLit()

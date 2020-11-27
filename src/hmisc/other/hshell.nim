@@ -16,6 +16,8 @@ else:
 import oswrap
 import std/[strutils, strformat, sequtils, options, deques, json, macros]
 
+from std/os import quoteShell
+
 const hasStrtabs = cbackend or (NimMajor, NimMinor, NimPatch) > (1, 2, 6)
 
 when hasStrtabs: # https://github.com/nim-lang/Nim/pull/15172
@@ -90,7 +92,7 @@ type
     kvSep*: string
 
   ShellCmdPartKind* = enum
-    cpkSubCommand ## Subcommand string
+    cpkSubCmd ## Subcommand string
     cpkArgument ## String argument to command
     cpkOption ## Key-value pair
     cpkFlag ## Boolean flag (on/off)
@@ -100,7 +102,7 @@ type
 
   ShellCmdPart* = object
     case kind*: ShellCmdPartKind
-      of cpkSubCommand:
+      of cpkSubCmd:
         subcommand*: string
       of cpkArgument:
         argument*: string
@@ -132,19 +134,21 @@ type
 
   ShellGlob = distinct string
   ShellAstKind = enum
-    sakCommand
-    sakVariable
+    sakCmd
+    sakVar
     sakGlob
     sakWord
     sakArithmExpr
     sakRawExpr
+    sakStrLit
 
 
     sakWhile
     sakIf
     sakCase
-    sakAssgn
+    sakAsgn
     sakFor
+    sakMath
 
     sakOrList ## ||
     sakAndList ## &&
@@ -152,7 +156,7 @@ type
     sakAsyncList ## &
     sakPipeList ## |
 
-    sakCompoundList
+    sakStmtList
     sakSubcommand
 
     sakStdoutOverwrite ## >
@@ -163,18 +167,22 @@ type
     case kind*: ShellAstKind
       of sakRawExpr:
         rawExpr*: ShellExpr
-      of sakCommand:
+      of sakCmd:
         cmd*: ShellCmd
-      of sakVariable:
-        variable*: ShellVar
+      of sakVar:
+        shVar*: ShellVar
       of sakGlob:
         pattern*: ShellGlob
-      of sakWord:
-        shellWord*: string
+      of sakWord, sakStrLit:
+        strVal*: string
+      of sakMath:
+        mathOp*: string
+        mathArgs*: seq[ShellAst]
       else:
         subnodes*: seq[ShellAst]
 
   ShellSomething = ShellAst | ShellCmd | ShellExpr | ShellVar
+  ShellMathExpr = ShellAst | ShellVar | int
 
 const
   GnuShellCmdConf* = ShellCmdConf(
@@ -193,6 +201,8 @@ const
   )
 
   sakListKinds* = {sakAndList, sakOrList}
+
+func `[]`(sa: ShellAst, idx: int): ShellAst = sa.subnodes[idx]
 
 
 converter toShellCmd*(a: ShellExpr): ShellCmd =
@@ -249,7 +259,7 @@ func opt*(cmd: var ShellCmd, opts: openarray[tuple[key, val: string]]) =
 
 func cmd*(cmd: var ShellCmd, sub: string) =
   ## Add subcommand
-  cmd.opts.add ShellCmdPart(kind: cpkSubCommand, subcommand: sub)
+  cmd.opts.add ShellCmdPart(kind: cpkSubCmd, subcommand: sub)
 
 func raw*(cmd: var ShellCmd, str: string) =
   ## Add raw string for command (for things like `+2` that are not
@@ -296,16 +306,19 @@ func makeShellCmd*(conf: ShellCmdConf, bin: string): ShellCmd =
   result.bin = bin
 
 const
-  gnuShellCommandsList* = ["ls"]
-  nimShellCommandsList* = ["nimble"]
-  x11ShellCommandsList* = ["xclip"]
+  gnuShellCmdsList* = ["ls"]
+  nimShellCmdsList* = ["nimble"]
+  x11ShellCmdsList* = [
+    "xclip",
+    "pdflatex"
+  ]
 
 func makeShellCmd*(bin: string): ShellCmd =
-  if bin in gnuShellCommandsList:
+  if bin in gnuShellCmdsList:
     result.conf = GnuShellCmdConf
-  elif bin in nimShellCommandsList:
+  elif bin in nimShellCmdsList:
     result.conf = NimShellCmdConf
-  elif bin in x11ShellCommandsList:
+  elif bin in x11ShellCmdsList:
     result.conf = X11ShellCmdConf
   else:
     if bin.startsWith("x"):
@@ -344,10 +357,12 @@ func makeFileShellCmd*(
   file: AnyFile, conf: ShellCmdConf = GnuShellCmdConf): ShellCmd =
   makeFileShellCmd(file.getStr(), conf)
 
-# func quoteShell*(str: string): string = str
+func quoteShell*(str: string): string =
+  if str == "]": "]" else: os.quoteShell(str)
 
 
-func toStr*(ast: ShellAst, level: int = 0): string
+
+func toStr*(ast: ShellAst, level: int = 0, inExpr: bool = false): string
 
 func toStr*(part: ShellCmdPart, conf: ShellCmdConf): string =
   ## Convret shell command part to string representation
@@ -359,7 +374,7 @@ func toStr*(part: ShellCmdPart, conf: ShellCmdConf): string =
   case part.kind:
     of cpkRaw:
       return part.rawstring
-    of cpkSubCommand:
+    of cpkSubCmd:
       return part.subcommand
     of cpkFlag:
       if part.flag.len > 1:
@@ -381,17 +396,48 @@ func toStr*(part: ShellCmdPart, conf: ShellCmdConf): string =
 func toStrSeq*(cmd: ShellCmd): seq[string] =
   result = @[ cmd.bin ]
   for op in cmd.opts:
-    if op.kind == cpkSubExpr:
-      # WARNING escaping of the subshell commands needs to be
-      # configured separately.
-      result &= "'" & op.toStr(cmd.conf) & "'"
-    else:
-      result &= op.toStr(cmd.conf)
-  # @[ cmd.bin ] & cmd.opts.mapIt(it.toStr(cmd.conf))
+    result &= op.toStr(cmd.conf)
 
 func toStr*(cmd: ShellCmd): string = cmd.toStrSeq().join(" ")
 
-func toStr*(ast: ShellAst, level: int = 0): string =
+macro precompute(expr, varn: untyped, args: static[openarray[int]]): untyped =
+  let inVarn = copyNimNode(varn)
+  func aux(nnode: NimNode, newExpr: NimNode): NimNode =
+    # debugecho nnode.lispRepr(), nnode.repr, varn.repr
+    if nnode.kind in {nnkIdent, nnkSym} and
+       eqIdent(nnode.repr, inVarn.repr):
+      result = newExpr
+    elif nnode.kind in {
+      # Boring stuff, just list all nodes that cannot have subnodes
+      nnkStrLit..nnkTripleStrLit, nnkFloatLit..nnkFloat64Lit, nnkCharLit..nnkUInt64Lit,
+      nnkCommentStmt, nnkIdent, nnkSym, nnkNone, nnkEmpty, nnkNilLit
+    }:
+      result = nnode
+    elif nnode.kind in {nnkHiddenStdConv}:
+      result = aux(nnode[1], newExpr)
+    else:
+      result = newTree(nnode.kind)
+      for elem in nnode:
+        result.add aux(elem, newExpr)
+
+  result = nnkCaseStmt.newTree(varn)
+  for arg in args:
+    let subs = aux(expr, newLit(arg))
+    result.add nnkOfBranch.newTree(
+      newLit(arg),
+      nnkStmtList.newTree(
+        nnkConstSection.newTree(
+          nnkConstDef.newTree(ident("res"), newEmptyNode(), subs)
+        ),
+        ident("res")
+      )
+    )
+
+  result.add nnkElse.newTree(expr)
+
+func toStr*(
+  ast: ShellAst, level: int = 0, inExpr: bool = false): string =
+  let pref = repeat("  ", level).precompute(level, [0, 1, 2, 3, 4, 5, 6])
   case ast.kind:
     of sakListKinds:
       var buf: seq[string]
@@ -409,10 +455,31 @@ func toStr*(ast: ShellAst, level: int = 0): string =
 
       result = buf.join(" " & sep & " ")
 
-    of sakCommand:
-      result = ast.cmd.toStr()
+    of sakCmd:
+      if inExpr:
+        result = ast.cmd.toStr()
+      else:
+        result = pref & ast.cmd.toStr()
+    of sakVar:
+      result = pref & "$" & ast.shVar.string
+    of sakStrLit:
+      result = ast.strVal.quoteShell()
+    of sakStmtList:
+      for idx, stmt in ast.subnodes:
+        if idx > 0:
+          result &= "\n"
+        result &= pref & toStr(stmt, level + 1)
+    of sakAsgn:
+      result &= &"{pref}{ast[0].shVar.string}={ast[1].toStr(level + 1)}"
+    of sakWhile:
+      result = &"""
+{pref}while {ast[0].toStr(level + 1, true)}
+{pref}do
+{ast[1].toStr(level + 1)}
+{pref}done
+"""
     else:
-      raiseAssert(&"#[ IMPLEMENT for kind {ast.kind} ]#")
+      raiseAssert(&"#[ IMPLEMENT for kind {ast.kind} {instantiationInfo()} ]#")
 
 
 
@@ -465,11 +532,11 @@ func extendList(kind: ShellAstKind, e1, e2: ShellAst): ShellAst =
     result = ShellAst(kind: kind)
     result.subnodes.add @[e1, e2]
 
-func toShellAst*(cmd: ShellCmd): ShellAst =
-  ShellAst(kind: sakCommand, cmd: cmd)
-
+func toShellAst*(cmd: ShellCmd): ShellAst = ShellAst(kind: sakCmd, cmd: cmd)
 func toShellAst*(ast: ShellAst): ShellAst = ast
-
+func toShellAst*(str: string): ShellAst = ShellAst(kind: sakStrLit, strVal: str)
+func toShellAst*(v: ShellVar): ShellAst = ShellAst(kind: sakVar, shVar: v)
+func toShellAst*(i: int): ShellAst = ShellAst(kind: sakStrLit, strVal: $i)
 
 func `&&`*[T1, T2: ShellSomething](e1: T1, e2: T2): ShellAst =
   extendList(sakAndList, toShellAst(e1), toShellAst(e2))
@@ -488,14 +555,56 @@ macro shAnd*(arg: varargs[untyped]): untyped = listToInfix("&&", toSeq(arg))
 macro shOr*(arg: varargs[untyped]): untyped = listToInfix("||", toSeq(arg))
 macro shPipe*(arg: varargs[untyped]): untyped = listToInfix("|", toSeq(arg))
 macro shAsync*(arg: varargs[untyped]): untyped = listToInfix("&", toSeq(arg))
+func shStmtList*(args: varargs[ShellAst]): ShellAst =
+  ShellAst(kind: sakStmtList, subnodes: toSeq(args))
+
+func shAsgn*(v: ShellVar, expr: ShellSomething | string): ShellAst =
+  ShellAst(kind: sakAsgn, subnodes: @[toShellAst(v), toShellAst(expr)])
+
+func shWhile*(expr: ShellAst, body: varargs[ShellAst, toShellAst]): ShellAst =
+  ShellAst(kind: sakWhile, subnodes: @[expr] & toSeq(body))
+
+func makeTestBracketCmd*(
+  e1, e2: ShellAst, op: string): ShellAst =
+  var cmd = makeShellCmd(X11ShellCmdConf, "[")
+  cmd.expr e1
+  cmd - op
+  cmd.expr e2
+  cmd.arg "]"
+  ShellAst(kind: sakCmd, cmd: cmd)
+
+
+func `<`*[T1, T2: ShellMathExpr](lhs: T1, rhs: T2): ShellAst =
+  makeTestBracketCmd(toShellAst(lhs), toShellAst(rhs), "lt")
+
+func `+`*[T1, T2: ShellMathExpr](lhs: T1, rhs: T2): ShellAst =
+  ShellAst(kind: sakMath, mathOp: "+", mathArgs: @[
+    toShellAst(lhs), toShellAst(rhs)
+  ])
+
+template `$$`*(v: untyped): untyped = ShellVar(astToStr(v))
+
+
+func toShellArgument(arg: NimNode): NimNode =
+  case arg.kind:
+    of nnkExprEqExpr:
+      nnkPar.newTree(arg[0].toShellArgument(), arg[1].toShellArgument())
+    of nnkIdent:
+      arg.toStrLit()
+    else:
+      raiseAssert(&"#[ IMPLEMENT for kind {arg.kind} ]#")
+
+
 
 macro shCmd*(cmd: untyped, args: varargs[untyped]): untyped =
   let shCmd = if cmd.kind == nnkIdent:
                 cmd.toStrLit()
               elif cmd.kind == nnkStrLit:
                 cmd
+              elif cmd.kind == nnkAccQuoted:
+                cmd.mapIt(it.toStrLit().strVal()).join("").newLit()
               else:
-                raiseAssert("#[ IMPLEMENT ]#")
+                raiseAssert(&"#[ IMPLEMENT for kind {cmd.kind} ]#")
 
   let resId = genSym(nskVar, "res")
   result = newStmtList()
@@ -505,16 +614,21 @@ macro shCmd*(cmd: untyped, args: varargs[untyped]): untyped =
   for arg in args:
     case arg.kind:
       of nnkPrefix:
-        result.add nnkInfix.newTree(arg[0], resId)
+        var infix: NimNode
         case arg[1].kind:
           of nnkIdent:
-            result.add arg[0]
+            infix = arg[1].toStrLit()
           else:
             raiseAssert(&"#[ IMPLEMENT for kind {arg[1].kind} ]#")
             discard
 
+        result.add nnkInfix.newTree(arg[0], resId, infix)
       of nnkStrLit:
         result.add newCall("arg", resId, arg)
+      of nnkIdent:
+        result.add newCall("arg", resId, arg.toStrLit())
+      of nnkExprEqExpr:
+        result.add newCall("-", resId, toShellArgument(arg))
       else:
         raiseAssert(&"#[ IMPLEMENT for kind {arg.kind} ]#")
         discard
@@ -803,23 +917,22 @@ proc evalShell*(cmd: ShellExpr): auto =
 
 
 proc evalShellStdout*(cmd: ShellExpr): string =
-  let res = runShell(cmd, options = {poEvalCommand, poUsePath})
-  return res.stdout
+  runShell(cmd, options = {poEvalCommand, poUsePath}).stdout.strip()
 
 
 proc evalShellStdout*(cmd: ShellAst): string =
-  let res = runShell(ShellCmd(bin: cmd.toStr()),
-                     options = {poEvalCommand, poUsePath})
-  return res.stdout
+  runShell(ShellCmd(bin: cmd.toStr()), options = {
+    poEvalCommand, poUsePath
+  }).stdout.strip()
 
 
 
 proc evalShellStdout*(cmd: ShellCmd): string =
-  return runShell(cmd, options = {poEvalCommand, poUsePath}).stdout
+  runShell(cmd, options = {poEvalCommand, poUsePath}).stdout.strip()
 
 proc execShell*(cmd: ShellCmd, doRaise: bool = true): void =
   ## Execute shell command with stdout/stderr redirection into parent
-  ## streams. To capture output use `runShell`
+  ## streams. To capture output use `runShell`, `eval` or `evalShellStdout`
   discard runShell(cmd, doRaise = doRaise, discardOut = true, options = {
     poParentStreams, poUsePath})
 

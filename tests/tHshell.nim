@@ -1,4 +1,4 @@
-import std/[strutils, sequtils, strformat,
+import std/[strutils, sequtils, strformat, segfaults,
             deques, options, parseutils, enumerate]
 
 import hmisc/helpers
@@ -46,7 +46,7 @@ suite "Hshell":
       if idx > 10:
         break
       else:
-        echo msg["permissions"]
+        discard msg["permissions"]
 
 
   test "Shell ast generation":
@@ -54,7 +54,11 @@ suite "Hshell":
     assertEq shOr(shCmd ls, shCmd ls, shAnd(shCmd ls, shCmd ls)).toStr(),
       "ls || ls || (ls && ls)"
 
-    assertEq shCmd(echo, -n, "hello").toStr(), "echo -n \"hello\""
+    assertEq shCmd(echo, -n, "hello").toStr(), "echo -n hello"
+    assertEq shCmd(echo, -n, "\"he llo\"").toStr(), "echo -n '\"he llo\"'"
+    assertEq shCmd(`dashed-name`).toStr(), "dashed-name"
+    assertEq shCmd("string-name").toStr(), "string-name"
+    assertEq toStr($$hello < 12), "[ $hello -lt 12 ]"
 
   test "Shell ast execution":
     execShell shAnd(shCmd "true", shCmd "true")
@@ -65,6 +69,19 @@ suite "Hshell":
 
     assertEq evalShellStdout(shCmd(echo, -n, "hello")), "hello"
 
+  test "Shell code execution":
+    let cmd = shStmtList(
+      shAsgn($$i, "0"),
+      shWhile(
+        ($$i < 4),
+        shCmd(echo, "[hello]"),
+        shAsgn($$i, $$i + 1)
+      )
+    )
+
+    echo cmd.toStr()
+
+    assertEq evalShellStdout(cmd), "[hello]\n[hello]\n[hello]\n[hello]"
 
   test "Shell ast & makeShellCmd":
     let doCleanup = true
@@ -87,8 +104,3 @@ suite "Hshell":
             shCmd ls, a
             shCmd ls, a
             shCmd ls, a
-
-
-
-
-
