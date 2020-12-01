@@ -26,8 +26,8 @@ template jsonConversion(target, conversionProc: untyped): untyped =
   else:
     raise newException(
       ValueError,
-      "Json node of kind" & $node.kind &
-        "cannot be converted to" & $targetKind
+      "Json node of kind " & $node.kind &
+        " cannot be converted to " & $targetKind
     )
 
 func asBool*(node: JsonNode): bool =

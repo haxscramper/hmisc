@@ -33,30 +33,36 @@ when hasStrtabs: # https://github.com/nim-lang/Nim/pull/15172
 #      and left-align commands. Highlight `--flags`, `commands` and
 #      arguments.
 # TODO option to force colored output when shell runner
+#
 # TODO implement functions for callsite checks in program execution
 #      Determine if all file parameters are present (create separate
 #      `fileArg` procedure), if binary itself is available and so on.
+#
 # TODO Support command chaining using `&&`, `||` (`and`, `or`) and pipes
 #      `|` for redirecting output streams.
+#
 # TODO move command-line flags collections into separate type to use for
 #      working with external libraries that accept list of command-line
 #      flags (like libclang for example)
+#
 # TODO Add 'subshell' command type - for passing strings that are shell
 #      expression themselves. Correct quoting etc.
 
-# TODO write wrapper for a subset posix-compilant shell - this is
-#      useful in cases where you only have very limited access to
-#      different installation - like in docker container, over ssh or
-#      similar. Second use case: `git rev-list`, `sh -c` and the like.
-#      Command that accepts another shell command. You can only send a
-#      single string that should contain all necessary commands. In
-#      that case it would be very convinient to have builder for such
-#      strings - for example in expression like `if [[ (pwd) == "/"
-#      ]]` - I'm not even sure I got it right in the first place, and
-#      I don't want to remember all details about how shell `if [[ ]]`
-#      works too. And I can also analyze all shell expression on the
-#      application side - detect missing commands, infer needed
-#      dependencies, side effects (writes to file etc.)
+# TODO write wrapper for a subset posix-compilant shell - this is useful in
+#      cases where you only have very limited access to different
+#      installation - like in docker container, over ssh or similar. Second
+#      use case: `git rev-list`, `sh -c` and the like. Command that accepts
+#      another shell command. You can only send a single string that should
+#      contain all necessary commands. In that case it would be very
+#      convinient to have builder for such strings - for example in
+#      expression like `if [[ (pwd) == "/" ]]` - I'm not even sure I got it
+#      right in the first place, and I don't want to remember all details
+#      about how shell `if [[ ]]` works too. And I can also analyze all
+#      shell expression on the application side - detect missing commands,
+#      infer needed dependencies, side effects (writes to file etc.)
+#
+# TODO Interacting with running process via stdin/stdout. REPL-like
+#      processes. Can test on `/bin/sh`
 
 export ShellVar, ShellExpr
 
@@ -437,7 +443,11 @@ macro precompute(expr, varn: untyped, args: static[openarray[int]]): untyped =
 
 func toStr*(
   ast: ShellAst, level: int = 0, inExpr: bool = false): string =
-  let pref = repeat("  ", level).precompute(level, [0, 1, 2, 3, 4, 5, 6])
+  let pref = if inExpr:
+               ""
+             else:
+               repeat("  ", level).precompute(level, [0, 1, 2, 3, 4, 5, 6])
+
   case ast.kind:
     of sakListKinds:
       var buf: seq[string]
@@ -471,11 +481,19 @@ func toStr*(
         result &= pref & toStr(stmt, level + 1)
     of sakAsgn:
       result &= &"{pref}{ast[0].shVar.string}={ast[1].toStr(level + 1)}"
+    of sakMath:
+      let lhs = ast.mathArgs[0].toStr(level + 1, inExpr = true)
+      let rhs = ast.mathArgs[1].toStr(level + 1, inExpr = true)
+
+      result = &"({lhs}){ast.mathOp}({rhs})"
+
+      if not inExpr:
+        result = &"$(({result}))"
     of sakWhile:
       result = &"""
 {pref}while {ast[0].toStr(level + 1, true)}
 {pref}do
-{ast[1].toStr(level + 1)}
+{ast[1].toStr(level)}
 {pref}done
 """
     else:
@@ -562,7 +580,7 @@ func shAsgn*(v: ShellVar, expr: ShellSomething | string): ShellAst =
   ShellAst(kind: sakAsgn, subnodes: @[toShellAst(v), toShellAst(expr)])
 
 func shWhile*(expr: ShellAst, body: varargs[ShellAst, toShellAst]): ShellAst =
-  ShellAst(kind: sakWhile, subnodes: @[expr] & toSeq(body))
+  ShellAst(kind: sakWhile, subnodes: @[expr] & shStmtList(body))
 
 func makeTestBracketCmd*(
   e1, e2: ShellAst, op: string): ShellAst =
