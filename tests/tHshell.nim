@@ -70,18 +70,20 @@ suite "Hshell":
     assertEq evalShellStdout(shCmd(echo, -n, "hello")), "hello"
 
   test "Shell code execution":
-    let cmd = shStmtList(
-      shAsgn($$i, "0"),
-      shWhile(
-        ($$i < 4),
-        shCmd(echo, "[hello]"),
-        shAsgn($$i, $$i + 1)
+    for oneline in [true, false]:
+      let cmd = shStmtList(
+        shAsgn($$i, "0"),
+        shWhile(
+          ($$i < 4),
+          shCmd(echo, "[hello]"),
+          shAsgn($$i, $$i + 1)
+        )
       )
-    )
 
-    echo cmd.toStr()
+      let expr = cmd.toStr(oneline = oneline)
 
-    assertEq evalShellStdout(cmd), "[hello]\n[hello]\n[hello]\n[hello]"
+      assertEq evalShellStdout(ShellExpr(expr)),
+        "[hello]\n[hello]\n[hello]\n[hello]"
 
   test "Shell ast & makeShellCmd":
     let doCleanup = true

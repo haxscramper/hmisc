@@ -368,7 +368,7 @@ func quoteShell*(str: string): string =
 
 
 
-func toStr*(ast: ShellAst, level: int = 0, inExpr: bool = false): string
+func toStr*(inAst: ShellAst, oneline: bool = false): string
 
 func toStr*(part: ShellCmdPart, conf: ShellCmdConf): string =
   ## Convret shell command part to string representation
@@ -441,64 +441,73 @@ macro precompute(expr, varn: untyped, args: static[openarray[int]]): untyped =
 
   result.add nnkElse.newTree(expr)
 
-func toStr*(
-  ast: ShellAst, level: int = 0, inExpr: bool = false): string =
-  let pref = if inExpr:
-               ""
-             else:
-               repeat("  ", level).precompute(level, [0, 1, 2, 3, 4, 5, 6])
+func toStr*(inAst: ShellAst, oneline: bool = false): string =
+  func aux(ast: ShellAst, level: int, inExpr: bool): string =
+    let pref = if inExpr or oneline:
+                 ""
+               else:
+                 repeat("  ", level).precompute(level, [0, 1, 2, 3, 4, 5, 6])
 
-  case ast.kind:
-    of sakListKinds:
-      var buf: seq[string]
-      for sn in ast.subnodes:
-        if sn.kind in sakListKinds:
-          buf.add &"({sn.toStr()})"
+    case ast.kind:
+      of sakListKinds:
+        var buf: seq[string]
+        for sn in ast.subnodes:
+          if sn.kind in sakListKinds:
+            buf.add &"({sn.toStr()})"
+          else:
+            buf.add sn.toStr()
+
+        let sep =
+          case ast.kind:
+            of sakAndList: "&&"
+            of sakOrList: "||"
+            else: raiseAssert(&"#[ IMPLEMENT for kind {ast.kind} ]#")
+
+        result = buf.join(" " & sep & " ")
+
+      of sakCmd:
+        if inExpr:
+          result = ast.cmd.toStr()
         else:
-          buf.add sn.toStr()
+          result = pref & ast.cmd.toStr()
+      of sakVar:
+        result = pref & "$" & ast.shVar.string
+      of sakStrLit:
+        result = ast.strVal.quoteShell()
+      of sakStmtList:
+        for idx, stmt in ast.subnodes:
+          if idx > 0:
+            result &= (if oneline: "; " else: "\n")
 
-      let sep =
-        case ast.kind:
-          of sakAndList: "&&"
-          of sakOrList: "||"
-          else: raiseAssert(&"#[ IMPLEMENT for kind {ast.kind} ]#")
+          result &= pref & aux(stmt, level + 1, inExpr)
+      of sakAsgn:
+        result = pref & ast[0].shVar.string & "=" &
+          ast[1].aux(level + 1, inExpr)
 
-      result = buf.join(" " & sep & " ")
+      of sakMath:
+        let lhs = ast.mathArgs[0].aux(level + 1, inExpr = true)
+        let rhs = ast.mathArgs[1].aux(level + 1, inExpr = true)
 
-    of sakCmd:
-      if inExpr:
-        result = ast.cmd.toStr()
-      else:
-        result = pref & ast.cmd.toStr()
-    of sakVar:
-      result = pref & "$" & ast.shVar.string
-    of sakStrLit:
-      result = ast.strVal.quoteShell()
-    of sakStmtList:
-      for idx, stmt in ast.subnodes:
-        if idx > 0:
-          result &= "\n"
-        result &= pref & toStr(stmt, level + 1)
-    of sakAsgn:
-      result &= &"{pref}{ast[0].shVar.string}={ast[1].toStr(level + 1)}"
-    of sakMath:
-      let lhs = ast.mathArgs[0].toStr(level + 1, inExpr = true)
-      let rhs = ast.mathArgs[1].toStr(level + 1, inExpr = true)
+        result = &"({lhs}){ast.mathOp}({rhs})"
 
-      result = &"({lhs}){ast.mathOp}({rhs})"
+        if not inExpr:
+          result = &"$(({result}))"
+      of sakWhile:
+        if oneline:
+          result = "while " & ast[0].aux(level + 1, true) & "; do " &
+            ast[1].aux(level, inExpr) & "; done"
 
-      if not inExpr:
-        result = &"$(({result}))"
-    of sakWhile:
-      result = &"""
-{pref}while {ast[0].toStr(level + 1, true)}
+        else:
+          result = &"""
+{pref}while {ast[0].aux(level + 1, true)}
 {pref}do
-{ast[1].toStr(level)}
+{ast[1].aux(level, inExpr)}
 {pref}done
 """
-    else:
-      raiseAssert(&"#[ IMPLEMENT for kind {ast.kind} {instantiationInfo()} ]#")
+      else:
+        raiseAssert(&"#[ IMPLEMENT for kind {ast.kind} {instantiationInfo()} ]#")
 
+  return aux(inAst, 0, false)
 
 
 
@@ -540,7 +549,6 @@ func listToInfix(infix: string, list: seq[NimNode]): NimNode =
       cmds.add arg
 
   result = cmds.foldl(nnkInfix.newTree(ident infix, a, b))
-
 
 func extendList(kind: ShellAstKind, e1, e2: ShellAst): ShellAst =
   if e1.kind == kind:
