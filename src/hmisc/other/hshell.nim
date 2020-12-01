@@ -16,6 +16,8 @@ else:
 import oswrap
 import std/[strutils, strformat, sequtils, options, deques, json, macros]
 
+import ../hexceptions
+
 from std/os import quoteShell
 
 const hasStrtabs = cbackend or (NimMajor, NimMinor, NimPatch) > (1, 2, 6)
@@ -140,6 +142,14 @@ type
 
   ShellGlob = distinct string
   ShellAstKind = enum
+    # I don't want to use `{.requiresinit.}` on the shell ast, so 'empty'
+    # kind has been added only to have somewhat meaningful default value.
+    # It is not really used anywhere and most procs just ignore it. For
+    # example concatenating `Empty() && StrLit()` should result in just
+    # `StrLit()`. And `sakEmpty` is considered invalid for `AST->string`
+    # conversion because it should've been removed in earlier operations.
+    sakEmpty
+
     sakCmd
     sakVar
     sakGlob
@@ -185,6 +195,7 @@ type
         mathOp*: string
         mathArgs*: seq[ShellAst]
       else:
+        exportVar*: bool
         subnodes*: seq[ShellAst]
 
   ShellSomething = ShellAst | ShellCmd | ShellExpr | ShellVar
@@ -277,6 +288,11 @@ func expr*(cmd: var ShellCmd, subexpr: ShellExpr) =
     kind: cpkSubExpr, expr: ShellAst(kind: sakRawExpr, rawExpr: subexpr)
   )
 
+func expr*(cmd: var ShellCmd, subexpr: ShellCmd) =
+  cmd.opts.add ShellCmdPart(
+    kind: cpkSubExpr, expr: ShellAst(kind: sakCmd, cmd: subexpr)
+  )
+
 func expr*(cmd: var ShellCmd, expr: ShellAst) =
   cmd.opts.add ShellCmdPart(kind: cpkSubExpr, expr: expr)
 
@@ -284,6 +300,8 @@ func arg*(cmd: var ShellCmd, arg: string | AnyPath) =
   ## Add argument for command
   cmd.opts.add ShellCmdPart(
     kind: cpkArgument, argument: arg.getStr())
+
+func arg*(cmd: var ShellCmd, arg: int) = cmd.arg($arg)
 
 func `-`*(cmd: var ShellCmd, fl: string) =
   ## Add flag for command
@@ -396,7 +414,10 @@ func toStr*(part: ShellCmdPart, conf: ShellCmdConf): string =
     of cpkArgument:
       return part.argument.quoteShell()
     of cpkSubExpr:
-      return part.expr.toStr()
+      if part.expr.kind != sakVar:
+        return part.expr.toStr().quoteShell()
+      else:
+        return part.expr.toStr()
 
 
 func toStrSeq*(cmd: ShellCmd): seq[string] =
@@ -449,6 +470,10 @@ func toStr*(inAst: ShellAst, oneline: bool = false): string =
                  repeat("  ", level).precompute(level, [0, 1, 2, 3, 4, 5, 6])
 
     case ast.kind:
+      of sakEmpty:
+        raiseAssert("'sakEmpty' cannot be converted to string and " &
+          "should exist withing final AST.")
+
       of sakListKinds:
         var buf: seq[string]
         for sn in ast.subnodes:
@@ -539,16 +564,36 @@ func wrapShell*(str: string, maxw: int = 80): string =
 
   return buf.join("")
 
-func listToInfix(infix: string, list: seq[NimNode]): NimNode =
+func listToInfix(infix: string, list: seq[NimNode], name: string): NimNode =
   var cmds: seq[NimNode]
   if list.len == 1 and list[0].kind == nnkStmtList:
-    for stmt in list[0]:
-      cmds.add stmt
+    for arg in list[0]:
+      cmds.add arg
   else:
     for arg in list:
       cmds.add arg
 
+
+
   result = cmds.foldl(nnkInfix.newTree(ident infix, a, b))
+
+func extendList(
+  kind: ShellAstKind, e1: var ShellAst, e2: ShellAst) =
+  if e1.kind == sakEmpty:
+    e1 = e2
+  elif e1.kind != kind:
+    raiseAssert(
+      "Cannot extend shell list of kind " & $e1.kind &
+      " as " & $kind & ". Use " & (
+        case kind:
+          of sakAndList: "&&="
+          else:
+            raiseAssert(
+              &"#[ IMPLEMENT for kind {kind} {instantiationInfo()} ]#")
+      ) & " instead."
+    )
+  else:
+    e1.subnodes.add e2
 
 func extendList(kind: ShellAstKind, e1, e2: ShellAst): ShellAst =
   if e1.kind == kind:
@@ -556,7 +601,10 @@ func extendList(kind: ShellAstKind, e1, e2: ShellAst): ShellAst =
     result.subnodes.add e2
   else:
     result = ShellAst(kind: kind)
-    result.subnodes.add @[e1, e2]
+    if e1.kind != sakEmpty:
+      result.subnodes.add e1
+
+    result.subnodes.add e2
 
 func toShellAst*(cmd: ShellCmd): ShellAst = ShellAst(kind: sakCmd, cmd: cmd)
 func toShellAst*(ast: ShellAst): ShellAst = ast
@@ -576,16 +624,40 @@ func `|`*[T1, T2: ShellSomething](e1: T1, e2: T2): ShellAst =
 func `&`*[T1, T2: ShellSomething](e1: T1, e2: T2): ShellAst =
   extendList(sakAsyncList, toShellAst(e1), toShellAst(e2))
 
+func `&&=`*(e1: var ShellAst, e2: ShellSomething) =
+  extendList(sakAndList, e1, toShellAst(e2))
 
-macro shAnd*(arg: varargs[untyped]): untyped = listToInfix("&&", toSeq(arg))
-macro shOr*(arg: varargs[untyped]): untyped = listToInfix("||", toSeq(arg))
-macro shPipe*(arg: varargs[untyped]): untyped = listToInfix("|", toSeq(arg))
-macro shAsync*(arg: varargs[untyped]): untyped = listToInfix("&", toSeq(arg))
+func `||=`*(e1: var ShellAst, e2: ShellSomething) =
+  extendList(sakOrList, e1, toShellAst(e2))
+
+func `&=`*(e1: var ShellAst, e2: ShellSomething) =
+  extendList(sakAsyncList, e1, toShellAst(e2))
+
+func `|=`*(e1: var ShellAst, e2: ShellSomething) =
+  extendList(sakPipeList, e1, toShellAst(e2))
+
+macro shAnd*(arg: varargs[untyped]): untyped =
+  listToInfix("&&", toSeq(arg), "shAnd")
+
+macro shOr*(arg: varargs[untyped]): untyped =
+  listToInfix("||", toSeq(arg), "shOr")
+
+macro shPipe*(arg: varargs[untyped]): untyped =
+  listToInfix("|", toSeq(arg), "shPipe")
+
+macro shAsync*(arg: varargs[untyped]): untyped =
+  listToInfix("&", toSeq(arg), "shAsync")
+
 func shStmtList*(args: varargs[ShellAst]): ShellAst =
   ShellAst(kind: sakStmtList, subnodes: toSeq(args))
 
-func shAsgn*(v: ShellVar, expr: ShellSomething | string): ShellAst =
-  ShellAst(kind: sakAsgn, subnodes: @[toShellAst(v), toShellAst(expr)])
+func shAsgn*(
+  v: ShellVar, expr: ShellSomething | string,
+  exportVar: bool = false): ShellAst =
+  ShellAst(
+    kind: sakAsgn, subnodes: @[toShellAst(v), toShellAst(expr)],
+    exportVar: exportVar
+  )
 
 func shWhile*(expr: ShellAst, body: varargs[ShellAst, toShellAst]): ShellAst =
   ShellAst(kind: sakWhile, subnodes: @[expr] & shStmtList(body))
@@ -640,21 +712,27 @@ macro shCmd*(cmd: untyped, args: varargs[untyped]): untyped =
   for arg in args:
     case arg.kind:
       of nnkPrefix:
-        var infix: NimNode
-        case arg[1].kind:
-          of nnkIdent:
-            infix = arg[1].toStrLit()
-          else:
-            raiseAssert(&"#[ IMPLEMENT for kind {arg[1].kind} ]#")
-            discard
+        if arg[0].eqIdent("--") or
+           arg[0].eqIdent("-"):
+          result.add nnkInfix.newTree(
+            ident("-"), resId, toShellArgument(arg[1]))
 
-        result.add nnkInfix.newTree(arg[0], resId, infix)
-      of nnkStrLit:
+        else:
+          result.add newCall("arg", resId, arg)
+
+      of nnkStrLit, nnkIntLit:
         result.add newCall("arg", resId, arg)
       of nnkIdent:
         result.add newCall("arg", resId, arg.toStrLit())
       of nnkExprEqExpr:
         result.add newCall("-", resId, toShellArgument(arg))
+      of nnkCall, nnkCommand:
+        raise arg.toCodeError(
+          "shCmd does not support call arguments due to " &
+            "possible ambiguous interpretation",
+          "Can be interpreted as both value of\n" &
+            "the expression $() or subcommand ''"
+        )
       else:
         raiseAssert(&"#[ IMPLEMENT for kind {arg.kind} ]#")
         discard
@@ -712,14 +790,11 @@ when cbackend:
     options: set[ProcessOption] = {poUsePath}): Process =
     ## Launch process using shell command
 
-    let
-      env = cmd.envVals
-      command = cmd.toStr()
-
+    let env = cmd.envVals
     result =
       if poEvalCommand in options:
         startProcess(
-          command,
+          cmd.toStr(),
           options = options,
           env = if env.len > 0: newStringTable(env) else: nil
         )
@@ -960,7 +1035,7 @@ proc execShell*(cmd: ShellCmd, doRaise: bool = true): void =
   ## Execute shell command with stdout/stderr redirection into parent
   ## streams. To capture output use `runShell`, `eval` or `evalShellStdout`
   discard runShell(cmd, doRaise = doRaise, discardOut = true, options = {
-    poParentStreams, poUsePath})
+    poParentStreams, poUsePath, poEvalCommand})
 
 proc eval*(expr: ShellExpr): string =
   shellResult(expr).execResult.stdout.strip()

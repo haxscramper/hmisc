@@ -23,17 +23,18 @@ proc dockertest*(projectDir: AbsDir = cwd(),
   runDockerTest(projectDir, tmpd,
                 makeLocalDevel(tmpd, localDeps) &&
                   cdMainProject &&
-                  "nimble test"
+                  shCmd("nimble", "test")
   )
 
 proc installtest*(
   projectDir: AbsDir, localDeps: seq[string] = @[]) =
   ## Test installation in docker container
   let tmpd = tempDirPath(projectDir)
-  let cmd = makeLocalDevel(tmpd, localDeps) &&
-    cdMainProject &&
-    "nimble install -y" &&
-    "PATH=$PATH:$HOME/.nimble/bin"
+  let cmd = shAnd:
+    makeLocalDevel(tmpd, localDeps)
+    cdMainProject
+    shCmd("nimble", install, -y)
+    shAsgn($$PATH, "$PATH:$HOME/.nimble/bin")
 
   runDockerTest(projectDir, tmpd, cmd)
 
@@ -52,11 +53,12 @@ proc dockerDocGen*(
   info "Creating new docker container"
   debug "Input directory is", projectDir
   let tmpd = tempDirPath(projectDir)
-  let cmd = makeLocalDevel(tmpd, localDeps) &&
-    cdMainProject &&
-    "nimble install -y" &&
-    "PATH=$PATH:$HOME/.nimble/bin" &&
-    "nimble docgen"
+  let cmd = shAnd:
+    makeLocalDevel(tmpd, localDeps)
+    cdMainProject
+    shCmd(nimble, install, -y)
+    shAsgn($$PATH, "$PATH:$HOME/.nimble/bin")
+    shCmd(nimble, docgen)
 
   var conf: TaskRunConfig
   withDir projectDir:
@@ -73,10 +75,16 @@ proc dockerDocGen*(
   })
 
 
+import ../hexceptions
+
 when isMainModule:
-  dispatchMulti(
-    [dockertest],
-    [installtest],
-    [docgen],
-    [dockerDocGen]
-  )
+  try:
+    dispatchMulti(
+      [dockertest],
+      [installtest],
+      [docgen],
+      [dockerDocGen]
+    )
+  except:
+    pprintErr()
+    quit 1

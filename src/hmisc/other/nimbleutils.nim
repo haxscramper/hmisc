@@ -309,7 +309,7 @@ proc thisAbsDir*(): AbsDir =
 const cdMainProject* = ShellExpr("cd /project/main")
 
 proc runDockerTest*(
-  projDir, tmpDir: AbsDir, cmd: ShellExpr,
+  projDir, tmpDir: AbsDir, cmd: ShellAst,
   runCb: proc() = (proc() = discard),
   envpass: openarray[tuple[key: ShellVar, val: string]] = @[]): void =
   ## Copy project directory `projDir` into temporary `tmpDir` and
@@ -369,7 +369,7 @@ when cbackend:
     return parseConfig(stats, pkg & ".nimble")
 
 
-  proc makeLocalDevel*(testDir: AbsDir, pkgs: seq[string]): ShellExpr =
+  proc makeLocalDevel*(testDir: AbsDir, pkgs: seq[string]): ShellAst =
     ## Copy local packages from host to docker container. Useful if you
     ## want to avoid redownloading all packages each time or want to
     ## test something with local version of the package *before* pushing
@@ -382,7 +382,7 @@ when cbackend:
     # to be copied to docker.
     if pkgs.len == 0:
       debug "Empy list of local development packages; no setup"
-      return ShellExpr("true")
+      return makeGnuShellCmd("true").toShellAst
 
     info "Copying local development versions"
     identLog()
@@ -417,14 +417,18 @@ when cbackend:
         info pkg, "is installed locally, copying from", pkgDir
         cpDir pkgDir, (testDir / pkg)
 
-      result = result && &"cd /project/{pkg}" && "nimble install"
+      result = shAnd(
+        result,
+        shCmd("cd", &"/project/{pkg}"),
+        shCmd("nimble", "install")
+      )
 
     result &&= cdMainProject
     dedentLog()
 
   proc runDockerTestDevel*(
     startDir, testDir: AbsDir, localDevel: seq[string],
-    cmd: ShellExpr, cb: proc()) =
+    cmd: ShellAst, cb: proc()) =
     let develCmd = makeLocalDevel(testDir, localDevel)
     let cmd = develCmd && ShellExpr("cd " & " /project/main") && cmd
 

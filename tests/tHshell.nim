@@ -1,10 +1,10 @@
 import std/[strutils, sequtils, strformat, segfaults,
-            deques, options, parseutils, enumerate]
+            deques, options, parseutils, enumerate, unittest]
 
 import hmisc/helpers
+import hmisc/other/[hshell, hshell_convert, oswrap, hjson, nimbleutils]
 
-import unittest
-import hmisc/other/[hshell, hshell_convert, oswrap, hjson]
+import hmisc/scripts/hmisc_putils
 
 suite "Hshell":
   test "Echo":
@@ -61,6 +61,11 @@ suite "Hshell":
     assertEq toStr($$hello < 12), "[ $hello -lt 12 ]"
 
   test "Shell ast execution":
+    var cmd: ShellAst
+    cmd &&= ShellExpr("echo '12'")
+
+    assertEq evalShellStdout(cmd), "12"
+
     execShell shAnd(shCmd "true", shCmd "true")
     execShell shOr(shCmd "false", shCmd "true")
 
@@ -68,6 +73,15 @@ suite "Hshell":
       execShell shAnd(shCmd "false")
 
     assertEq evalShellStdout(shCmd(echo, -n, "hello")), "hello"
+
+    let cmd1: ShellCmd = shCmd("sh").withIt do:
+      it - "c"
+      it.expr shCmd("sh").withIt do:
+        it - "c"
+        it.expr shAnd(shCmd(echo, 2), shCmd(echo, 1))
+
+    assertEq cmd1.evalShellStdout(), "2\n1"
+    execShell(cmd1)
 
   test "Shell code execution":
     for oneline in [true, false]:

@@ -1,7 +1,8 @@
-import strformat, strutils, algorithm, sequtils, macros, os
+import std/[strformat, strutils, algorithm, sequtils, macros, os]
 # TODO use `oswrap` instead of `os`
 import types/colorstring
 import algo/[hseq_mapping, hmath, halgorithm]
+export alignLeft
 
 type
   ErrorAnnotation* = object
@@ -36,7 +37,7 @@ func toLineInfo*(arg: tuple[
 func startpos*(node: NimNode): LineInfo =
   case node.kind:
     of nnkBracketExpr, nnkDotExpr, nnkAsgn, nnkCall,
-       nnkExprColonExpr, nnkObjConstr:
+       nnkExprColonExpr, nnkObjConstr, nnkCommand:
       node[0].lineInfoObj()
     of nnkInfix:
       node[1].lineInfoObj()
@@ -80,9 +81,11 @@ proc toColorString*(err: CodeError): string =
             position.len - lineidx.len - 1) & line & "\n"
 
         result &= position & filelines[^1] & "\n"
+
       block:
         var spacing = 1
         var buf: seq[seq[ColoredRune]]
+        let lastline = position & filelines[^1]
         for annot in lineannots:
           let start = (position.len + annot.errpos.column)
           for line in 1 ..+ (spacing + 1):
@@ -96,10 +99,18 @@ proc toColorString*(err: CodeError): string =
             fg = fgRed
           ), colorize = docolor)
 
-          for col in (start + 1) ..+ (annot.expr.len() - 1):
-            buf[0, col] = toColored('~', initPrintStyling(
-              fg = fgRed
-            ), colorize = docolor)
+          var foundEnd = false
+          for col in countdown(
+            start + 1 + min(60, annot.expr.len() - 1),
+            (start + 1)
+          ):
+            if col < lastline.len and lastline[col] != ' ':
+              foundEnd = true
+
+            if foundEnd:
+              buf[0, col] = toColored('~', initPrintStyling(
+                fg = fgRed
+              ), colorize = docolor)
 
           if annot.annotation.len > 0:
             inc spacing

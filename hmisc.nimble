@@ -14,7 +14,7 @@ namedBin      = {
 }.toTable()
 
 
-requires "nim >= 1.4.0", "sorta", "cligen"
+requires "nim >= 1.4.0", "cligen"
 
 
 import os
@@ -26,3 +26,6 @@ task docgen, "Generate documentation":
 
 task dockertest, "Run tests in docker container":
   exec("hmisc-putils dockertest --projectDir:" & thisDir())
+
+after test:
+  exec("nim c --hints:off --verbosity:0 src/hmisc/scripts/hmisc_putils.nim")
