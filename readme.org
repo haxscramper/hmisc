@@ -275,17 +275,6 @@ implementation
 : input: /nice/we/hell.txt nicehell.txt :113
 : match:  nic   e hell.txt
 
-
-
-
-todo:
-
-- [ ] levenstein distance
-- [ ] Damerau–Levenshtein distance
-- [ ] generate diffs for two sequences
-
-
-
 ** ~hmisc/algo/hseq_mapping~
 
 - ~deduplicateIt~
@@ -304,7 +293,6 @@ todo:
 - ~mapItDFS~ :: ~mapIt~ for converting trees in DFS order
 
 * Types
-
 
 ** ~hmisc/types/hprimitives~
 
@@ -398,47 +386,6 @@ echo "oh no!"~. This can be turned off, but works by default, so when
 writing ~let (output, err, _) = runShell("someCommand")~ you will be
 sure that failures won't be silently ignored.
 
-** ~hmisc/other/hshell~
-
-Helper functions for running shell commands - reduce need for string
-concatenation for shell - ~Cmd~ object supports adding
-commands/flags/options/subcommands/arguments while deferring
-conversion to string as long as possible and taking care of correct
-syntax (correct dashes for ~X11~ CLI tools (always single prefix
-dash), key-value separators (nim tooling uses ~:~, GNU is most likely
-to expect ~=~ or spaces)).
-
-#+begin_src nim
-  # Nice addional effect - you can now comment on different flags and
-  # use checks/loops without worrying about correct
-  # spacing/concatnation/prefixes etc.
-  let dockerCmd = makeGnuCmd("docker").withIt do:
-    it.subCmd "run" # Add subcommand
-    it - "i"
-    it - "i"
-    if doCleanup:
-      it - "rm" # Remove container after test execution
-    it -- ("v", $tmpDir & ":/project") ## Key-value pair
-    it.arg "nim-base"
-    it.arg "sh"
-    it - "c"
-    it.raw &"'cd /project/main && {cmd}'"
-
-  shExec(dockerCmd)
-#+end_src
-
-NOTE: no special DSL syntax is introduced, just couple of overlads for
-common use cases (~-~ proc for flags/options)
-
-- ~runShell~ Raise exception when command has exited with non-zero
-  code (because you will be checking return code anyway), get stderr
-  and stdout separately. Uses fallback ~exec~ and ~gorgeEx~ on
-  nimscript targets and tries to emulate compiled behaviour as close
-  as possible (respect execution flags).
-- ~iterstdout~ - iterate each line for executed program's stdout
-- ~shExec~ - execute shell command, redirect output into parent
-  streams.
-
 ** ~hmisc/other/oswrap~
 
 Wrapper on top of ~os~ and ~nimscsrip~ that allows to use the same
@@ -460,6 +407,75 @@ expected.
 - ~&&~ join shell command strings with correct spacing
 - ~withDir~ - temporarily set directory for body
 - ~withEnv~ - temporarily set environment variables for body
+
+
+** ~hmisc/other/hshell~ [[https://haxscramper.github.io/hmisc/src/hmisc/other/hshell.html][documentation]]
+
+Helper functions for running shell commands - reduce need for string
+concatenation for shell - ~Cmd~ object supports adding
+commands/flags/options/subcommands/arguments while deferring
+conversion to string as long as possible and taking care of correct
+syntax (correct dashes for ~X11~ CLI tools (always single prefix
+dash), key-value separators (nim tooling uses ~:~, GNU is most likely
+to expect ~=~ or spaces)).
+
+Possible use case: Imagine you need to write a script that launches new
+docker container, mounts some folders, copy files over, and perform some
+nontrivial commands inside container (and command is not predetermined - it
+is also has to be built in advance).
+
+Regular approach would be to cobble together one giant string that will
+then be executed via ~startProcess~. You need to then check for return
+code, and hope that you haven't messed up quoting, argument syntax for
+particular command and so on (nim tooling uses ~:~, GNU - ~=~ and so on).
+
+~hshell~ hopefully provides solution to most of the usability of command
+line programs - you no longer need to worry about correct spacing, quoting
+and other stuff like that. Instead, you just build AST for command to be
+executed, using set of convenient operators and functions.
+
+#+begin_src nim
+  let cmd = shCmd("nimble", "install")
+  # Nice side effect - you can now comment on different flags and use
+  # checks/loops without worrying about correct
+  # spacing/concatnation/prefixes etc.
+  let doCleanup = true
+  let dockerCmd = shCmd("docker").withIt do:
+    it.cmd "run" # Add subcommand
+    it - "i"
+    it - "t"
+    if doCleanup:
+      it - "rm" # Remove container after test execution
+    it - ("v", "/tmp/tmp-mount:/project") # Key-value pair
+    it.arg "nim-base"
+    it.arg "sh"
+    it - "c"
+    it.expr:
+      shAnd:
+        shCmd(cd, "/project/main")
+        cmd # Can easily build complicated commands from variables
+#+end_src
+
+NOTE: no special DSL syntax is introduced, just couple of overlads for
+common use cases (~-~ proc for flags/options)
+
+- ~runShell~ Raise exception when command has exited with non-zero
+  code (because you will be checking return code anyway), get stderr
+  and stdout separately. Uses fallback ~exec~ and ~gorgeEx~ on
+  nimscript targets and tries to emulate compiled behaviour as close
+  as possible (respect execution flags).
+- ~iterstdout~ - iterate each line for executed program's stdout
+- ~execShell~ - execute shell command, redirect output into parent streams.
+
+NOTE: You might consider this module a 'shell program wrapper'. It was
+created to make using external processes from your code easier and safer.
+No need to check return codes all the time, think about quoting, correct
+arguments and so on. Thus said - it is quite difficult to wrap all
+complixity of the command line interfaces, even with quite sophisticated
+logic. Several escape hatches are present, to still pass almost arbitrary
+strings for shell execution. First: ~ShellExpr~ - thin wrapper, ~distinct
+string~. Second is ~raw()~ function for setting command line arguments.
+
 
 ** ~hmisc/other/blockfmt~
 

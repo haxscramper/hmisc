@@ -100,23 +100,49 @@ suite "Hshell":
         "[hello]\n[hello]\n[hello]\n[hello]"
 
   test "Shell ast & makeShellCmd":
-    let doCleanup = true
-    let tmpDir = "/tmp/docker"
-    let cmd = makeGnuShellCmd("docker").withIt do:
-      it.cmd "run" # Add subcommand
-      it - "i"
-      it - "i"
-      if doCleanup:
-        it - "rm" # Remove container after test execution
-      it - ("v", $tmpDir & ":/project") ## Key-value pair
-      it.arg "nim-base"
-      it.arg "sh"
-      it - "c"
-      it.expr:
-        shAnd:
-          shCmd cd, "/project"
-          shCmd cd, "/project"
-          shOr:
-            shCmd ls, a
-            shCmd ls, a
-            shCmd ls, a
+    block:
+      let cmd = shCmd("nimble", "install")
+      # Nice side effect - you can now comment on different flags and use
+      # checks/loops without worrying about correct
+      # spacing/concatnation/prefixes etc.
+      let doCleanup = true
+      let dockerCmd = shCmd("docker").withIt do:
+        it.cmd "run" # Add subcommand
+        it - "i"
+        it - "t"
+        if doCleanup:
+          it - "rm" # Remove container after test execution
+        it - ("v", "/tmp/tmp-mount:/project") # Key-value pair
+        it.arg "nim-base"
+        it.arg "sh"
+        it - "c"
+        it.expr:
+          shAnd:
+            shCmd(cd, "/project/main")
+            cmd # Can easily build complicated commands from variables
+
+
+      if false:
+        execShell(dockerCmd)
+
+    block:
+      let doCleanup = true
+      let tmpDir = "/tmp/docker"
+      let cmd = makeGnuShellCmd("docker").withIt do:
+        it.cmd "run" # Add subcommand
+        it - "i"
+        it - "i"
+        if doCleanup:
+          it - "rm" # Remove container after test execution
+        it - ("v", $tmpDir & ":/project") ## Key-value pair
+        it.arg "nim-base"
+        it.arg "sh"
+        it - "c"
+        it.expr:
+          shAnd:
+            shCmd cd, "/project"
+            shCmd cd, "/project"
+            shOr:
+              shCmd ls, a
+              shCmd ls, a
+              shCmd ls, a
