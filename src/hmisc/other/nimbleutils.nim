@@ -430,8 +430,8 @@ when cbackend:
 
       result = shAnd(
         result,
-        shCmd("cd", &"/project/{pkg}"),
-        shCmd("nimble", "install")
+        shCmd(cd, &"/project/{pkg}"),
+        shCmd(nimble, install, -y)
       )
 
     result &&= cdMainProject

@@ -507,7 +507,7 @@ func toStr*(inAst: ShellAst, oneline: bool = false): string =
           result &= pref & aux(stmt, level + 1, inExpr)
       of sakAsgn:
         result = pref & ast[0].shVar.string & "=" &
-          ast[1].aux(level + 1, inExpr)
+          ast[1].aux(level + 1, inExpr = true)
 
       of sakMath:
         let lhs = ast.mathArgs[0].aux(level + 1, inExpr = true)
@@ -652,7 +652,16 @@ func shStmtList*(args: varargs[ShellAst]): ShellAst =
   ShellAst(kind: sakStmtList, subnodes: toSeq(args))
 
 func shAsgn*(
-  v: ShellVar, expr: ShellSomething | string,
+  v: ShellVar, expr: string, exportVar: bool = false): ShellAst =
+  ShellAst(
+    kind: sakAsgn,
+    subnodes: @[toShellAst(v), toShellAst(ShellExpr(expr))],
+    exportVar: exportVar
+  )
+
+
+func shAsgn*(
+  v: ShellVar, expr: ShellSomething,
   exportVar: bool = false): ShellAst =
   ShellAst(
     kind: sakAsgn, subnodes: @[toShellAst(v), toShellAst(expr)],
