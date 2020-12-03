@@ -7,7 +7,7 @@
 #      might represent anything at runtime
 # TODO unit test with taint mode on
 # TODO parse file paths from URI (`file:///`)
-
+# TEST that compiles without errors.
 
 import std/[strutils, macros, random, hashes, strformat, sequtils]
 import ../algo/hstring_algo
@@ -177,11 +177,17 @@ const
   ExeExts* = os.ExeExts
 
 func parseFsFile*(file: string): FsFile =
-  # TODO check if path is not directory-only
+  # TODO check if path is not directory-only (optionally)
   if os.isAbsolute(file):
     FsFile(isRelative: false, absFile: AbsFile(file))
   else:
     FsFile(isRelative: true, relFile: RelFile(file))
+
+func parseFsDir*(dir: string): FsDir =
+  if os.isAbsolute(dir):
+    FsDir(isRelative: true, relDir: RelDir(dir))
+  else:
+    FsDir(isRelative: false, absDir: AbsDir(dir))
 
 func `$`*(path: AnyPath): string = path.getStr()
 func `$`*(entry: FsEntry): string = entry.getStr()
@@ -280,7 +286,7 @@ template `/.`*(head: AnyPath, file: RelFile | string): untyped =
 proc splitPath*(path: AbsFile): tuple[head: AbsDir, tail: RelFile] =
   let (head, tail) = os.splitPath(path.string)
   result.head = AbsDir(head)
-  result.tail = RelFile(head)
+  result.tail = RelFile(tail)
 
 proc splitDir*(dir: AbsDir): tuple[head: AbsDir, tail: RelDir] =
   let (head, tail) = os.splitPath(dir.getStr())
@@ -331,12 +337,18 @@ proc `/../`*(head: AbsDir, tail: RelDir): AbsDir =
 
 proc searchExtPos*(path: AnyFile): int = os.searchExtPos(path.string)
 
-proc splitFile*(path: AnyFile): tuple[
+proc splitFile*(path: AnyFile, multidot: bool = true): tuple[
   dir: AbsDir, name, ext: string] =
   let (dir, name, ext) = os.splitFile(path.getStr())
   result.dir = AbsDir(dir)
-  result.name = name
-  result.ext = ext.dropPrefix(".")
+
+  if multidot:
+    let tmp = (name & ext).split(".")
+    result.name = tmp[0]
+    result.ext = tmp[1..^1].join(".")
+  else:
+    result.name = name
+    result.ext = ext.dropPrefix(".")
 
 func hasExt*(file: AnyFile, exts: openarray[string] = @[]): bool =
   let (_, _, ext) = file.splitFile()
@@ -609,7 +621,14 @@ when cbackend:
   proc expandSymlink*(path: AbsFile): AbsFile =
     AbsFile os.expandSymlink(path.string)
 
-  proc getAppFilename*(): string = os.getAppFilename()
+  proc getAppFilename*(): AbsFile = AbsFile(os.getAppFilename())
+  proc getAppBasename*(
+    withoutExt: bool = true, multidot: bool = true): string =
+    if withoutExt:
+      getAppFilename().splitFile(multidot = multidot).name
+    else:
+      getAppFilename().splitPath().tail.getStr()
+
 
   proc getAppDir*(): AbsDir = AbsDir os.getAppDir()
 
@@ -657,7 +676,7 @@ proc paramStrs*(addBin: bool = false): seq[string] =
     if i > 0 or addBin:
       result.add paramStr(i)
 
-
+template `$$`*(v: untyped): untyped = ShellVar(astToStr(v))
 proc getEnv*(key: ShellVar; default = ""): string =
   ## Retrieves the environment variable of name key.
   osAndNims(getEnv(key.string, default))
@@ -683,6 +702,72 @@ proc del*(v: ShellVar) = v.delEnv
 proc set*(v: ShellVar, val: string) = v.setEnv(val)
 proc put*(v: ShellVar, val: string) = v.setEnv(val)
 proc exists*(v: ShellVar): bool = v.existsEnv()
+
+proc `~`*(path: string | RelDir): AbsDir = getHomeDir() / path
+
+template existsEnvTo*(env: ShellVar, varname: untyped): untyped =
+  var varname {.inject.}: string = ""
+  if exists(env):
+    varname = get(env)
+    true
+  else:
+    false
+
+template existsEnvOrDefault*(varname: ShellVar, ifExists, default: untyped): untyped =
+  if existsEnvTo(varname, env):
+    ifExists
+  else:
+    default
+
+
+proc getUserRuntimeDir*(): AbsDir =
+  ## Defines the base directory relative to which user-specific
+  ## non-essential runtime files and other file objects (such as sockets,
+  ## named pipes, ...) should be stored.
+  ##
+  ## XDG specification *does not* provide default value for this variable.
+  ## For systemd systems it is assumed to be equal to
+  ## `/run/user/<user-id>`. Right now dummy implementation only accounts
+  ## for systemd, but this should be fixed later.
+  existsEnvOrDefault(
+    $$XDG_RUNTIME_DIR, AbsDir(env), ~RelDir($getUID()))
+
+proc getUserCacheDir*(): AbsDir =
+  ## The base directory relative to which user specific non-essential data
+  ## files should be stored.
+  existsEnvOrDefault(
+    $$XDG_CACHE_DIR, AbsDir(env), ~RelDir(".cache"))
+
+proc getUserConfigDir*(): AbsDir =
+  ## The base directory relative to which user specific configuration files
+  ## should be stored
+  existsEnvOrDefault(
+    $$XDG_CONFIG_HOME, AbsDir(env), ~RelDir(".config"))
+
+proc getUserDataDir*(): AbsDir =
+  ## The base directory relative to which user specific data files should
+  ## be stored.
+  existsEnvOrDefault(
+    $$XDG_DATA_HOME, AbsDir(env), ~RelDir(".local/share"))
+
+when cbackend:
+  proc getAppCacheDir*(): AbsDir =
+    ## user cache dir + application file basename
+    getUserCacheDir() / RelDir(getAppBasename())
+
+  proc getAppConfigDir*(): AbsDir =
+    ## user config dir + application file basename
+    getUserConfigDir() / RelDir(getAppBasename())
+
+  proc getAppDataDir*(): AbsDir =
+    ## user data dir + application file basename
+    getUserDataDir() / RelDir(getAppBasename())
+
+  proc getAppRuntimeDir*(): AbsDir =
+    ## user runtime dir + application file basename
+    getUserRuntimeDir() / RelDir(getAppBasename())
+
+
 
 proc fileExists*(filename: AnyFile): bool =
   ## Checks if the file exists.
@@ -903,42 +988,42 @@ proc rmFile*(file: AnyFile) =
 proc mkDir*(dir: AnyDir | string) =
   ## Creates the directory dir including all necessary subdirectories.
   ## If the directory already exists, no error is raised.
-  osOrNims(os.createDir(dir.string), system.mkDir(dir.string))
+  osOrNims(os.createDir(dir.getStr()), system.mkDir(dir.getStr()))
 
 proc mvFile*(source, dest: AnyFile) =
   ## Moves the file from to to.
   osOrNims(
-    os.moveFile(source.string, dest.string),
-    system.mvFile(source.string, dest.string)
+    os.moveFile(source.getStr(), dest.getStr()),
+    system.mvFile(source.getStr(), dest.getStr())
   )
 
 proc mvDir*(source, dest: AnyDir) =
   ## Moves the dir from to to.
   osOrNims(
-    os.moveDir(source.string, dest.string),
-    system.mvDir(source.string, dest.string)
+    os.moveDir(source.getStr(), dest.getStr()),
+    system.mvDir(source.getStr(), dest.getStr())
   )
 
-proc cpFile*(source, dest: string | AnyFile) =
+proc cpFile*[F1, F2: AnyFile](source: F1, dest: F2) =
   ## Copies the file from to to.
   assertExists source
   osOrNims(
-    os.copyFile(source.string, dest.string),
-    system.cpFile(source.string, dest.string)
+    os.copyFile(source.getStr(), dest.getStr()),
+    system.cpFile(source.getStr(), dest.getStr())
   )
 
 proc cpDir*(source, dest: AnyDir) =
   ## Copies the dir from to to.
   osOrNims(
-    os.copyDir(source.string, dest.string),
-    system.cpDir(source.string, dest.string)
+    os.copyDir(source.getStr(), dest.getStr()),
+    system.cpDir(source.getStr(), dest.getStr())
   )
 
 proc cd*(dir: AnyDir | string) =
   ## Changes the current directory.
   osOrNims(
-    os.setCurrentDir(dir.string),
-    system.cd(dir.string)
+    os.setCurrentDir(dir.getStr()),
+    system.cd(dir.getStr())
   )
 
 proc findExe*(bin: string): AbsFile =
@@ -972,7 +1057,6 @@ func `&&=`*(ex: var ShellExpr, ex2: ShellExpr) =
   ex = ex && ex2
 
 
-proc `~`*(path: string | RelDir): AbsDir = getHomeDir() / path
 
 proc getNewTempDir*(
   dir: string | AbsDir = getTempDir(),

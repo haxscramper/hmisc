@@ -48,3 +48,17 @@ suite "Shell":
     var cmd = makeGnuShellCmd("cat")
     # cmd["hello"] = "world"
     # cmd["nice"]
+
+suite "User directories":
+  test "xdg":
+    echo getUserConfigDir()
+    echo getAppConfigDir()
+
+    echo getUserCacheDir()
+    echo getAppCacheDir()
+
+    echo getUserDataDir()
+    echo getAppDataDir()
+
+    echo getUserRuntimeDir()
+    echo getAppRuntimeDir()
