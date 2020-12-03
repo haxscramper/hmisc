@@ -33,8 +33,26 @@ when cbackend:
   import times, pathnorm, posix, parseopt
 
 
-## `os` wrapper with more typesafe paths. Mostly taken from compiler
-## pathutils and stdlib.
+## Os wrapper with more typesafe operations for envrionment variables,
+## paths etc. Provides many convenience utilities on top of `oswrap`.
+## Tested to work on both nimscript and compiled backend. Proc names were
+## taken from `std/nimscript` - `cpFile` instead of `copyFile` and so on.
+##
+## Main focus of this module is to provide drop-in replacement for `std/os`
+## and elmination of the unchecked raw strings when working with OS -
+## executing shell code, working with environment variables and filesystem
+## paths.
+##
+## Even though `std/os` is OS-agnostic and designed to work on both
+## UNIX-like operating systems and windows, this module provides some
+## extensions that are not fully portable (yet), and might rely on
+## `std/posix` module.
+##
+## Wrappers XDG directory `specification
+## <https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html>`_
+## are provided in form of `getUserConfigDir()` and `getAppConfigDir()` -
+## as well as all other directories specified in the standard.
+
 
 type
   ShellVar* = distinct string
@@ -704,6 +722,8 @@ proc put*(v: ShellVar, val: string) = v.setEnv(val)
 proc exists*(v: ShellVar): bool = v.existsEnv()
 
 proc `~`*(path: string | RelDir): AbsDir = getHomeDir() / path
+template `~&`*(path: string): AbsDir =
+  getHomeDir() / fmt(path)
 
 template existsEnvTo*(env: ShellVar, varname: untyped): untyped =
   var varname {.inject.}: string = ""

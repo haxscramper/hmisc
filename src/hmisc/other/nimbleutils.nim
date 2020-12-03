@@ -12,7 +12,7 @@ func format*(str: string, kvalues: openarray[(string, string)]): string =
 # export info, warn, fatal, error, notice, startColorLogger
 export oswrap, colorlogger, hshell
 
-import ../algo/htemplates
+import ../algo/[htemplates, hstring_algo]
 
 ## Helper utilities for running nimble tasks
 
@@ -387,35 +387,46 @@ when cbackend:
     info "Copying local development versions"
     identLog()
     let home = getHomeDir()
-    let dirs = collect(newSeq):
-      for pkg in pkgs:
-        let version = getNimbleDump(pkg)["", "version"]
-        let dir = home / &".nimble/pkgs/{pkg}-{version}"
+    for pkg in pkgs:
+      let version = getNimbleDump(pkg)["", "version"]
+
+      if dirExists(~&".nimble/pkgs/{pkg}-#head"):
+        info "Using #head version for", pkg
+
+      elif dirExists(~&".nimble/pkgs/{pkg}-{version}"):
         info "Using", version, "for", pkg
 
-        assert dirExists(dir),
-            &"Could not find {dir} - run " &
-              "`nimble develop` to make it available"
-
-        dir
+      else:
+        raiseAssert(&"Could not find {pkg} in local installations " &
+          "- either run " &
+          "`nimble develop` to make it available or install " &
+          &"via `nimble install {pkg}`"
+        )
 
     mkDir testDir
     for pkg in pkgs:
-      let version = getNimbleDump(pkg)["", "version"]
-      let pkgDir = home / &".nimble/pkgs/{pkg}-{version}"
-      let head = home / RelFile(
-        &".nimble/pkgs/{pkg}-#head/{pkg}.nimble-link")
+      let
+        version = getNimbleDump(pkg)["", "version"]
+        versionedInstall = home / &".nimble/pkgs/{pkg}-{version}"
+        headInstall = home / RelFile(
+          &".nimble/pkgs/{pkg}-#head/{pkg}.nimble-link")
 
-      if head.fileExists():
-        for nimble in head.readFile().split("\n"):
+      if headInstall.fileExists():
+        for nimble in headInstall.readFile().split("\n"):
           let nimble = AbsDir nimble
           if nimble.endsWith(&"{pkg}.nimble"): # XXX
             let dir = parentDir(nimble)
             info pkg, "is developed locally, copying from", dir
             cpDir dir, (testDir / pkg)
+      elif versionedInstall.dirExists():
+        info pkg, "is installed locally, copying from", versionedInstall
+        cpDir versionedInstall, (testDir / pkg)
       else:
-        info pkg, "is installed locally, copying from", pkgDir
-        cpDir pkgDir, (testDir / pkg)
+        assertionFail:
+          "Neither versioned installation nor #head point to"
+          "existing file. Please make sure that package can is properly"
+          "installed and can be globally imported. Git submodules and"
+          "local installations are not currently supported."
 
       result = shAnd(
         result,

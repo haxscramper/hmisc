@@ -618,6 +618,8 @@ template assertEq*(lhs, rhs: untyped): untyped =
     echo lhs.astToStr(), " == ", rhs.astToStr()
     raiseAssert("Comparison failed on line " & $lInfo.line)
 
+# func `&`*[T](s: seq[T], v: T): seq[T] = s & @[v]
+
 #=========================  functional helpers  ==========================#
 
 func curry1*[A, B, C](arg: proc(a: A, b: B): C, a: A): proc(b: B): C =

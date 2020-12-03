@@ -1,17 +1,9 @@
 #!/usr/bin/env -S nim r
-import cligen
-import ../other/[nimbleutils, oswrap]
+import ../other/[nimbleutils, oswrap, hcligen]
 import std/strformat
 
 startColorLogger()
 
-proc argHelp*(dfl: AbsDir, a: var ArgcvtParams): seq[string] =
-  @["--" & a.parNm, "AbsDir", ""]
-
-proc argParse*(
-  dst: var AbsDir, dfl: AbsDir, a: var ArgcvtParams): bool =
-  dst = toAbsDir(a.val)
-  result = true
 
 proc tempDirPath(proj: AbsDir): AbsDir =
   AbsDir("/tmp") / proj.splitDir().tail

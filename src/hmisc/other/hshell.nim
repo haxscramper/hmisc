@@ -680,7 +680,6 @@ func `+`*[T1, T2: ShellMathExpr](lhs: T1, rhs: T2): ShellAst =
     toShellAst(lhs), toShellAst(rhs)
   ])
 
-template `$$`*(v: untyped): untyped = ShellVar(astToStr(v))
 
 
 func toShellArgument(arg: NimNode): NimNode =
