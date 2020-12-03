@@ -506,8 +506,11 @@ func toStr*(inAst: ShellAst, oneline: bool = false): string =
 
           result &= pref & aux(stmt, level + 1, inExpr)
       of sakAsgn:
-        result = pref & ast[0].shVar.string & "=" &
-          ast[1].aux(level + 1, inExpr = true)
+        var rhs = ast[1].aux(level + 1, inExpr = true)
+        if ast[1].kind == sakMath:
+          rhs = &"$(({rhs}))"
+
+        result = pref & ast[0].shVar.string & "=" & rhs
 
       of sakMath:
         let lhs = ast.mathArgs[0].aux(level + 1, inExpr = true)
