@@ -1,6 +1,6 @@
-import sequtils, sugar, math, algorithm, strutils, unicode
+import std/[sequtils, sugar, math, algorithm, strutils, unicode, options]
 import ../types/colorstring
-
+import halgorithm
 
 ## https://xxyxyz.org/line-breaking/
 
@@ -14,26 +14,30 @@ import ../types/colorstring
 # TODO wrap sequence of words using hyphenation.
 
 type
-  WordKind = enum
+  WordKind* = enum
     wkText
     wkNewline
+    wkPunctuation
     wkSpace
+    wkMarkup
 
-  Word[Text, Attr] = object
-    text: Text
-    attr: Attr
+  Word*[Text, Attr] = object
+    text*: Text
+    attr*: Attr
     forceNl: bool
     isBreaking: bool
-    kind: WordKind
+    kind*: WordKind
 
-  TermWord = Word[string, PrintStyling]
-  TextWord[T] = Word[string, T]
-  UnicodeWord[T] = Word[seq[Rune], T]
+  TermWord* = Word[string, PrintStyling]
+  TextWord*[T] = Word[string, T]
+  UnicodeWord*[T] = Word[seq[Rune], T]
 
   MarkStyling = object
     wrap: char
 
   MarkWord = Word[string, MarkStyling]
+
+func isMarkup*[T, A](w: Word[T, A]): bool = w.kind == wkMarkup
 
 func splitMark*(str: string): seq[MarkWord] =
   @[
@@ -41,8 +45,16 @@ func splitMark*(str: string): seq[MarkWord] =
     MarkWord(text: "world", attr: MarkStyling(wrap: '`'))
   ]
 
-func splitText*(str: string): seq[TextWord] =
-  str.split(" ").mapIt(TextWord(text: it))
+func splitText*[T](str: string): seq[TextWord[T]] =
+  for text in str.splitTokenize({',', '.', ' ', '?', '!'}):
+    case text:
+      of ",", ".", "?", "!":
+        result.add TextWord[T](text: text, kind: wkPunctuation)
+      of " ":
+        result.add TextWord[T](text: text, kind: wkSpace)
+      else:
+        result.add TextWord[T](text: text, kind: wkText)
+  # str.split(" ").mapIt(TextWord[T](text: it))
 
 func len*[T, A](w: Word[T, A]): int = len(w.text)
 func `**`(a, b: SomeNumber): SomeNumber = a ^ b
@@ -154,6 +166,24 @@ func wrapTextImpl[T, A](
 
 func `$`*(mw: MarkWord): string = mw.text
 func `$`*(mw: TextWord): string = mw.text
+
+func prevTextWordIdx*[T, A](
+  words: seq[Word[T, A]], idx: int): int =
+  var idx = idx
+  dec idx
+  while idx > 0:
+    if words[idx].kind == wkText:
+      return idx
+    dec idx
+
+
+func prevTextWord*[T, A](
+  words: seq[Word[T, A]], idx: int): Option[Word[T, A]] =
+  let idx = prevTextWordIdx(words, idx)
+  if idx >= 0:
+    return some(words[idx])
+
+
 
 
 func wrapText*[T, A](

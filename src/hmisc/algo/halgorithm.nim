@@ -533,7 +533,11 @@ proc `==`*[A, B](tpl: (Option[A], Option[B]), tpl1: (A, B)): bool =
   tpl[0] == tpl1[0] and tpl[1] == tpl1[1]
 
 template ifSomeIt*[T](opt: Option[T], predicate: untyped): bool =
-  opt.isSome() and ((let it {.inject.} = opt.get(); predicate))
+  when not compiles(opt.isSome()):
+    static: error "ifSomeIt denends on options module. " &
+      "Add `import std/options` to fix this error"
+  else:
+    opt.isSome() and ((let it {.inject.} = opt.get(); predicate))
 
 
 template getSomeIt*[T](opt: Option[T], value, default: untyped): untyped =

@@ -65,6 +65,14 @@ when hasStrtabs: # https://github.com/nim-lang/Nim/pull/15172
 #
 # TODO Interacting with running process via stdin/stdout. REPL-like
 #      processes. Can test on `/bin/sh`
+#
+# TODO Make it possible to implement own asciinema based on `hshell`. When
+#      starting program all necessary controls for process should be
+#      exposed, and your application must be able to pretend it is a
+#      full-blown terminal emulator.
+#
+# IDEA Provide `strace`-to-`json` converter.
+
 
 export ShellVar, ShellExpr
 

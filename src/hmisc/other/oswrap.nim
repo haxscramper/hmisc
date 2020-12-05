@@ -68,7 +68,7 @@ type
   RelPath* = RelFile | RelDir
 
 type
-  FsFile = object
+  FsFile* = object
     case isRelative*: bool
       of true:
         relFile*: RelFile
@@ -1360,3 +1360,8 @@ proc paramVal*(param: string): seq[string] =
 proc paramVal*(param: string, default: seq[string]): seq[string] =
   let (_, table) = splitCmdLine(paramStrs())
   table.getOrDefault(param, default)
+
+import std/distros
+
+proc detectOs*(): Distribution =
+  discard
