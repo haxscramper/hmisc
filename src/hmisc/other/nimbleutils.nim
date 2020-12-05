@@ -324,6 +324,8 @@ proc runDockerTest*(
 
   # cmd &&= cdMainProject
 
+  echo cmd.toStr()
+  echo tmpDir
   let mainDir = (tmpDir / "main")
   if mainDir.dirExists:
     rmDir (tmpDir / "main")

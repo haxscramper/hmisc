@@ -83,6 +83,25 @@ suite "Hshell":
     assertEq cmd1.evalShellStdout(), "2\n1"
     execShell(cmd1)
 
+  test "Operators":
+    var cmd = &&[
+      shCmd(echo, -n, 0)
+    ] && shCmd(echo, -n, 2) && &&[
+      shCmd(echo, -n, 3),
+      shCmd(echo, -n, 4)
+    ]
+
+    var more: seq[ShellExpr]
+
+    cmd &&= &&more
+
+    assertEq evalShellStdout(cmd), "0234"
+
+    more &= ShellExpr("echo -n 5")
+    cmd &&= &&more
+
+    assertEq evalShellStdout(cmd), "02345"
+
   test "Shell code execution":
     for oneline in [true, false]:
       let cmd = shStmtList(

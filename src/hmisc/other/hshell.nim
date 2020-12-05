@@ -72,7 +72,11 @@ when hasStrtabs: # https://github.com/nim-lang/Nim/pull/15172
 #      full-blown terminal emulator.
 #
 # IDEA Provide `strace`-to-`json` converter.
-
+#
+# IDEA raw shell string validation. While it is certainly not simple to
+#      parse arbitrary bash code, `80%` of things that are passed to
+#      command execution are just `cmd1 && cmd2` and so on. Quite easy to
+#      parse.
 
 export ShellVar, ShellExpr
 
@@ -209,6 +213,8 @@ type
   ShellSomething = ShellAst | ShellCmd | ShellExpr | ShellVar
   ShellMathExpr = ShellAst | ShellVar | int
 
+
+
 const
   GnuShellCmdConf* = ShellCmdConf(
     flagConf: ccRegularFlags,
@@ -227,8 +233,8 @@ const
 
   sakListKinds* = {sakAndList, sakOrList}
 
-func `[]`(sa: ShellAst, idx: int): ShellAst = sa.subnodes[idx]
-
+func `[]`*(sa: ShellAst, idx: int): ShellAst = sa.subnodes[idx]
+func len*(sa: ShellAst): int = sa.subnodes.len
 
 converter toShellCmd*(a: ShellExpr): ShellCmd =
   ## Implicit conversion of string to command
@@ -486,7 +492,10 @@ func toStr*(inAst: ShellAst, oneline: bool = false): string =
         var buf: seq[string]
         for sn in ast.subnodes:
           if sn.kind in sakListKinds:
-            buf.add &"({sn.toStr()})"
+            if sn.len == 0:
+              discard
+            else:
+              buf.add &"({sn.toStr()})"
           else:
             buf.add sn.toStr()
 
@@ -623,14 +632,26 @@ func toShellAst*(str: string): ShellAst = ShellAst(kind: sakStrLit, strVal: str)
 func toShellAst*(v: ShellVar): ShellAst = ShellAst(kind: sakVar, shVar: v)
 func toShellAst*(i: int): ShellAst = ShellAst(kind: sakStrLit, strVal: $i)
 
+func `&&`*(exprs: openarray[ShellSomething]): ShellAst =
+  ShellAst(kind: sakAndList, subnodes: exprs.mapIt(it.toShellAst()))
+
 func `&&`*[T1, T2: ShellSomething](e1: T1, e2: T2): ShellAst =
   extendList(sakAndList, toShellAst(e1), toShellAst(e2))
+
+func `||`*(exprs: openarray[ShellSomething]): ShellAst =
+  ShellAst(kind: sakOrList, subnodes: exprs.mapIt(it.toShellAst()))
 
 func `||`*[T1, T2: ShellSomething](e1: T1, e2: T2): ShellAst =
   extendList(sakOrList, toShellAst(e1), toShellAst(e2))
 
+func `|`*(exprs: openarray[ShellSomething]): ShellAst =
+  ShellAst(kind: sakPipeList, subnodes: exprs.mapIt(it.toShellAst()))
+
 func `|`*[T1, T2: ShellSomething](e1: T1, e2: T2): ShellAst =
   extendList(sakPipeList, toShellAst(e1), toShellAst(e2))
+
+func `&`*(exprs: openarray[ShellSomething]): ShellAst =
+  ShellAst(kind: sakAsyncList, subnodes: exprs.mapIt(it.toShellAst()))
 
 func `&`*[T1, T2: ShellSomething](e1: T1, e2: T2): ShellAst =
   extendList(sakAsyncList, toShellAst(e1), toShellAst(e2))

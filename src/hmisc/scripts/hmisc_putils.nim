@@ -1,5 +1,5 @@
 #!/usr/bin/env -S nim r
-import ../other/[nimbleutils, oswrap, hcligen]
+import ../other/[nimbleutils, oswrap, hcligen, hshell]
 import std/strformat
 
 startColorLogger()
@@ -9,12 +9,14 @@ proc tempDirPath(proj: AbsDir): AbsDir =
   AbsDir("/tmp") / proj.splitDir().tail
 
 proc dockertest*(projectDir: AbsDir = cwd(),
-                 localDeps: seq[string] = @[]) =
+                 localDeps: seq[string] = @[],
+                 preTestCmds: seq[ShellExpr] = @[]
+                ) =
   ## Run unti tests in new docker container
   let tmpd = tempDirPath(projectDir)
   runDockerTest(projectDir, tmpd,
                 makeLocalDevel(tmpd, localDeps) &&
-                  cdMainProject &&
+                  cdMainProject && &&preTestCmds &&
                   shCmd("nimble", "test")
   )
 

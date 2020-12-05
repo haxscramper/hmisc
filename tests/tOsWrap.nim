@@ -49,6 +49,23 @@ suite "Shell":
     # cmd["hello"] = "world"
     # cmd["nice"]
 
+  test "OS":
+    echo getCurrentOs()
+    static:
+      echo getCurrentOs()
+
+    when not isPackageInstalled("hunspell"):
+      echo "Install hunspell using ", getInstallCmd("hunspell")
+
+    static:
+      let missing = getMissingDependencies({
+        { Distribution.ArchLinux } : @["hunspell-12"]
+      })
+
+      for (pkg, cmd) in missing:
+        echo "Missing ", pkg, ", install it using ", cmd
+
+
 suite "User directories":
   test "xdg":
     echo getUserConfigDir()
@@ -62,3 +79,4 @@ suite "User directories":
 
     echo getUserRuntimeDir()
     echo getAppRuntimeDir()
+

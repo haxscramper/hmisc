@@ -46,6 +46,17 @@ proc argParse*(
   dst = parseFsDir(a.val)
   result = true
 
+# ~~~~ ShellExpr ~~~~ #
+
+proc argHelp*(dfl: ShellExpr, a: var ArgcvtParams): seq[string] =
+  @["--" & a.parNm, "ShellExpr", ""]
+
+proc argParse*(
+  dst: var ShellExpr, dfl: ShellExpr, a: var ArgcvtParams): bool =
+  # NOTE potential place for input sanitization
+  dst = ShellExpr(a.val)
+  result = true
+
 # ~~~~ Option[T] ~~~~ #
 
 

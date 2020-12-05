@@ -137,6 +137,7 @@ template ignorePathErrors*(
     if err.kind notin kinds:
       raise err
 
+func `==`*(se1, se2: ShellExpr): bool = se1.string == se2.string
 
 func getStr*(path: AnyPath | string): string =
   # `get` prefix is specifically used to indicate that this is an
@@ -1166,6 +1167,7 @@ template withEnv*(envs: openarray[(string, string)], body: untyped): untyped =
   for varn in noValues:
     oswrap.delEnv(varn)
 
+
 type
   CmdLineKind* = enum
     cmdEnd,
@@ -1361,7 +1363,268 @@ proc paramVal*(param: string, default: seq[string]): seq[string] =
   let (_, table) = splitCmdLine(paramStrs())
   table.getOrDefault(param, default)
 
-import std/distros
 
-proc detectOs*(): Distribution =
-  discard
+import std/distros except detectOs
+export distros
+import osproc
+
+const
+  DistributionGenericOsNames* = {Windows, Posix, Linux}
+  DistributionDebianDerivatives* = {
+    Ubuntu, Elementary, SteamOs, Knoppix, Debian}
+
+
+proc cmdRelease(cmd: string, cache: var string): string =
+  if cache.len == 0:
+    when nimvm:
+      cache = gorge(cmd)
+    else:
+      cache = execProcess(cmd)
+
+  result = cache
+
+proc uname(cache: var string): string =
+  cmdRelease("uname -a", cache)
+
+proc osReleaseID(cache: var string): string =
+  cmdRelease("cat /etc/os-release | grep ^ID=", cache)
+
+proc release(cache: var string): string =
+  cmdRelease("lsb_release -d", cache)
+
+proc hostnamectl(cache: var string): string =
+  cmdRelease("hostnamectl", cache)
+
+
+proc detectOsWithAllCmd(d: Distribution, cache: var array[4, string]): bool =
+  let dd = toLowerAscii($d)
+  result = dd in toLowerAscii(osReleaseID(cache[0])) or
+           dd in toLowerAscii(release(cache[1])) or
+           dd in toLowerAscii(uname(cache[2])) or
+           ("operating system: " & dd) in toLowerAscii(hostnamectl(cache[3]))
+
+
+proc detectOs(d: Distribution, cache: var array[4, string]): bool =
+  case d
+    of Distribution.Windows: result = defined(windows)
+    of Distribution.Posix: result = defined(posix)
+    of Distribution.MacOSX: result = defined(macosx)
+    of Distribution.Linux: result = defined(linux)
+    of Distribution.BSD: result = defined(bsd)
+    else:
+      when defined(bsd):
+        case d:
+          of Distribution.FreeBSD, Distribution.OpenBSD:
+            result = $d in uname(cache[2])
+          else:
+            result = false
+      elif defined(linux):
+        case d:
+          of Distribution.Gentoo:
+            result = ("-" & $d & " ") in uname(cache[2])
+          of Distribution.Elementary,
+             Distribution.Ubuntu,
+             Distribution.Debian,
+             Distribution.Fedora,
+             Distribution.OpenMandriva,
+             Distribution.CentOS,
+             Distribution.Alpine,
+             Distribution.Mageia,
+             Distribution.Zorin:
+            result = toLowerAscii($d) in osReleaseID(cache[0])
+          of Distribution.RedHat:
+            result = "rhel" in osReleaseID(cache[0])
+          of Distribution.ArchLinux:
+            result = "arch" in osReleaseID(cache[0])
+          of Distribution.NixOS:
+            result = existsEnv($$NIX_BUILD_TOP) or
+            existsEnv(ShellVar "__NIXOS_SET_ENVIRONMENT_DONE")
+          of Distribution.OpenSUSE:
+            result =
+              "suse" in toLowerAscii(uname(cache[2])) or
+              "suse" in toLowerAscii(release(cache[1]))
+          of Distribution.GoboLinux:
+            result = "-Gobo " in uname(cache[2])
+          of Distribution.Solaris:
+            let uname = toLowerAscii(uname(cache[2]))
+            result =
+              ("sun" in uname and false #[ FIXME ]#) or
+              ("solaris" in uname)
+          of Distribution.Haiku:
+            result = defined(haiku)
+          else:
+            result = detectOsWithAllCmd(d, cache)
+      else:
+        result = false
+
+proc getCurrentOs*(): set[Distribution] =
+  var res {.global.}: set[Distribution]
+
+  if res.len > 0:
+    return res
+
+  var cache: array[4, string]
+  if detectOs(Windows, cache):      result.incl Windows
+  if detectOs(Posix, cache):        result.incl Posix
+  if detectOs(MacOSX, cache):       result.incl MacOSX
+  if detectOs(Linux, cache):        result.incl Linux
+  if detectOs(Ubuntu, cache):       result.incl Ubuntu
+  if detectOs(Debian, cache):       result.incl Debian
+  if detectOs(Gentoo, cache):       result.incl Gentoo
+  if detectOs(Fedora, cache):       result.incl Fedora
+  if detectOs(RedHat, cache):       result.incl RedHat
+  if detectOs(OpenSUSE, cache):     result.incl OpenSUSE
+  if detectOs(Manjaro, cache):      result.incl Manjaro
+  if detectOs(Elementary, cache):   result.incl Elementary
+  if detectOs(Zorin, cache):        result.incl Zorin
+  if detectOs(CentOS, cache):       result.incl CentOS
+  if detectOs(Deepin, cache):       result.incl Deepin
+  if detectOs(ArchLinux, cache):    result.incl ArchLinux
+  if detectOs(Antergos, cache):     result.incl Antergos
+  if detectOs(PCLinuxOS, cache):    result.incl PCLinuxOS
+  if detectOs(Mageia, cache):       result.incl Mageia
+  if detectos(Lxle, cache):         result.incl Lxle
+  if detectOs(Solus, cache):        result.incl Solus
+  if detectOs(Lite, cache):         result.incl Lite
+  if detectOs(Slackware, cache):    result.incl Slackware
+  if detectOs(Androidx86, cache):   result.incl Androidx86
+  if detectOs(Puppy, cache):        result.incl Puppy
+  if detectOs(Peppermint, cache):   result.incl Peppermint
+  if detectOs(Tails, cache):        result.incl Tails
+  if detectOs(AntiX, cache):        result.incl AntiX
+  if detectOs(Kali, cache):         result.incl Kali
+  if detectOs(SparkyLinux, cache):  result.incl SparkyLinux
+  if detectOs(Apricity, cache):     result.incl Apricity
+  if detectOs(BlackLab, cache):     result.incl BlackLab
+  if detectOs(Bodhi, cache):        result.incl Bodhi
+  if detectOs(TrueOS, cache):       result.incl TrueOS
+  if detectOs(ArchBang, cache):     result.incl ArchBang
+  if detectOs(KaOS, cache):         result.incl KaOS
+  if detectOs(WattOS, cache):       result.incl WattOS
+  if detectOs(Korora, cache):       result.incl Korora
+  if detectOs(Simplicity, cache):   result.incl Simplicity
+  if detectOs(RemixOS, cache):      result.incl RemixOS
+  if detectOs(OpenMandriva, cache): result.incl OpenMandriva
+  if detectOs(Netrunner, cache):    result.incl Netrunner
+  if detectOs(Alpine, cache):       result.incl Alpine
+  if detectOs(BlackArch, cache):    result.incl BlackArch
+  if detectOs(Ultimate, cache):     result.incl Ultimate
+  if detectOs(Gecko, cache):        result.incl Gecko
+  if detectOs(Parrot, cache):       result.incl Parrot
+  if detectos(Knoppix, cache):      result.incl Knoppix
+  if detectOs(GhostBSD, cache):     result.incl GhostBSD
+  if detectOs(Sabayon, cache):      result.incl Sabayon
+  if detectOs(Salix, cache):        result.incl Salix
+  if detectos(Q4os, cache):         result.incl Q4os
+  if detectOs(ClearOS, cache):      result.incl ClearOS
+  if detectOs(Container, cache):    result.incl Container
+  if detectos(Rosa, cache):         result.incl Rosa
+  if detectOs(Zenwalk, cache):      result.incl Zenwalk
+  if detectOs(Parabola, cache):     result.incl Parabola
+  if detectOs(ChaletOS, cache):     result.incl ChaletOS
+  if detectOs(BackBox, cache):      result.incl BackBox
+  if detectOs(MXLinux, cache):      result.incl MXLinux
+  if detectOs(Vector, cache):       result.incl Vector
+  if detectOs(Maui, cache):         result.incl Maui
+  if detectOs(Qubes, cache):        result.incl Qubes
+  if detectOs(RancherOS, cache):    result.incl RancherOS
+  if detectOs(Oracle, cache):       result.incl Oracle
+  if detectOs(TinyCore, cache):     result.incl TinyCore
+  if detectOs(Robolinux, cache):    result.incl Robolinux
+  if detectOs(Trisquel, cache):     result.incl Trisquel
+  if detectOs(Voyager, cache):      result.incl Voyager
+  if detectOs(Clonezilla, cache):   result.incl Clonezilla
+  if detectOs(SteamOS, cache):      result.incl SteamOS
+  if detectOs(Absolute, cache):     result.incl Absolute
+  if detectOs(NixOS, cache):        result.incl NixOS
+  if detectos(Austrumi, cache):     result.incl Austrumi
+  if detectOs(Arya, cache):         result.incl Arya
+  if detectOs(Porteus, cache):      result.incl Porteus
+  if detectOs(AVLinux, cache):      result.incl AVLinux
+  if detectOs(Elive, cache):        result.incl Elive
+  if detectOs(Bluestar, cache):     result.incl Bluestar
+  if detectOs(SliTaz, cache):       result.incl SliTaz
+  if detectOs(Solaris, cache):      result.incl Solaris
+  if detectOs(Chakra, cache):       result.incl Chakra
+  if detectOs(Wifislax, cache):     result.incl Wifislax
+  if detectOs(Scientific, cache):   result.incl Scientific
+  if detectOs(ExTiX, cache):        result.incl ExTiX
+  if detectOs(Rockstor, cache):     result.incl Rockstor
+  if detectOs(GoboLinux, cache):    result.incl GoboLinux
+  if detectos(BSD, cache):          result.incl BSD
+  if detectOs(FreeBSD, cache):      result.incl FreeBSD
+  if detectOs(OpenBSD, cache):      result.incl OpenBSD
+  if detectOs(DragonFlyBSD, cache): result.incl DragonFlyBSD
+  if detectOs(Haiku, cache):        result.incl Haiku
+
+  res = result
+
+proc getOsPackageManagerCmd*(): (string, bool) =
+  ## Returns the distro's native command line to install 'foreignPackageName'
+  ## and whether it requires root/admin rights.
+  let d = getCurrentOs()
+  if Windows in d:
+    ("Chocolatey install", false)
+  elif BSD in d:
+    ("ports install", true)
+  elif Linux in d:
+    if len(d * {Ubuntu, Elementary, SteamOs, Knoppix, Debian}) > 0:
+      ("apt-get install", true)
+    elif Gentoo in d:                       ("emerge install", true)
+    elif Fedora in d:                       ("yum install", true)
+    elif RedHat in d:                       ("rpm install", true)
+    elif OpenSuse in d:                     ("yast -i", true)
+    elif Slackware in d:                    ("installpkg", true)
+    elif OpenMandriva in d:                 ("urpmi", true)
+    elif ZenWalk in d:                      ("netpkg install", true)
+    elif NixOS in d:                        ("nix-env -i", false)
+    elif len(d * {Solaris, FreeBSD}) > 0:   ("pkg install", true)
+    elif OpenBSD in d:                      ("pkg_add", true)
+    elif PCLinuxOS in d:                    ("rpm -ivh", true)
+    elif len(d * {ArchLinux, Manjaro}) > 0: ("pacman -S", true)
+    else:
+      ("<your package manager here> install", true)
+  elif Haiku in d:
+    ("pkgman install", true)
+  else:
+    ("brew install", false)
+
+proc getInstallCmd*(package: string): string =
+  let (cmd, sudo) = getOsPackageManagerCmd()
+  result = cmd & " " & package
+  if sudo:
+    result = "sudo " & result
+
+
+proc getInstalledPackagesCmd*(): string =
+  let d = getCurrentOs()
+  if len(d * {ArchLinux, Manjaro}) > 0:
+    result = "pacman -Qq"
+  elif len(d * DistributionDebianDerivatives) > 0:
+    result =  "dpkg-query -f '${binary:Package}\n' -W"
+
+proc isPackageInstalled*(pack: string): bool =
+  let cmd = getInstalledPackagesCmd()
+  if cmd.len == 0: raiseAssert("#[ IMPLEMENT ]#")
+  var cache: string
+  # echo cmd
+  let release = cmdRelease(cmd & " | grep ^" & pack & "$ ", cache)
+  # echo "release ", release
+  return release.len > 0
+
+proc getMissingDependencies*(deplist: openarray[tuple[
+    distros: set[Distribution],
+    packgs: seq[string]
+  ]]): seq[tuple[package, installCmd: string]] =
+
+  let currOs = getCurrentOs()
+  # echo currOs
+  for (distros, packages) in deplist:
+    # echo distros, packages
+    if len(distros * currOs) > 0:
+      for pack in packages:
+        # echo pack
+        if not isPackageInstalled(pack):
+          result.add (pack, getInstallCmd(pack))
+
+
