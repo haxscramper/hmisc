@@ -28,16 +28,25 @@ func get[T](inseq: seq[Option[T]]): seq[T] =
 #===========================  Type definition  ===========================#
 
 type
-  Console = object
-    text: string
+  Console* = ref object of RootObj
+    text*: string
     margins: seq[int]
 
-proc printString(c: var Console, str: string): void =
+method printString(c: var Console, str: string): void =
   c.text &= str
 
-proc printSpace(c: var Console, n: int): void =
+method printSpace(c: var Console, n: int): void =
   ## Write a string of `n` spaces on the console.
   c.text &= " ".repeat(n)
+
+type
+  DConsole = ref object of Console
+
+method printString(c: var DConsole, str: string) = c.text &= str
+method printSpace(c: var DConsole, n: int) = c.text &= &"<spc({n})>"
+method printNewline(c: var DConsole, ident: bool = true) =
+  c.text &= "<NL" & (if ident: "i" else: "") & ">"
+
 
 #*************************************************************************#
 #****************************  Format policy  ****************************#
@@ -61,13 +70,13 @@ type
     ## An object containing a sequence of directives to the console.
     elements: seq[LayoutElement]
 
-  Solution = ref object
+  Solution* = ref object
     knots: seq[int]
     spans: seq[int]
     intercepts: seq[float]
     gradients: seq[float]
-    layouts: seq[Layout]
-    index: int 
+    layouts*: seq[Layout]
+    index: int
 
   BlockKind* = enum
     bkText ## Single line text block
@@ -132,23 +141,44 @@ type
 
     # formats: Table[string, ]
 
-proc printOn(self: Layout, console: var Console): void =
+
+
+proc printOn*(self: Layout, console: var Console): void =
   for elem in self.elements:
     elem.impl(console)
 
 proc printLayout(self: var Console, layout: Layout): void =
   layout.printOn(self)
 
-proc `$`(le: LayoutElement): string = le.text
+proc `$`*(le: LayoutElement): string = le.text
 
-proc `$`(sln: Solution): string =
-  sln.layouts.mapIt($it).join(" ")
 
-proc `$`(sln: Option[Solution]): string =
+proc `$`*(lt: Layout): string =
+  var c = DConsole()
+  lt.printOn(Console(c))
+  return c.text
+  # lt.elements.mapIt($it).join(" ")
+
+
+proc `$`*(sln: Solution): string =
+  result &= "<"
+  var idx: int = 0
+  for s in zip(
+    sln.knots, sln.spans, sln.intercepts, sln.gradients, sln.layouts
+  ):
+    if idx > 0:
+      result &= ", "
+
+    result &= &"{s[0]}/({s[1]}, {s[2]:.2}, {s[3]}, \"{s[4]}\")"
+    inc idx
+
+  result &= ">"
+  # for idx, sln in sln.layouts:
+  #   if idx.
+  # sln.layouts.mapIt($it).join(" ")
+
+proc `$`*(sln: Option[Solution]): string =
   if sln.isSome(): return $sln.get()
-
-proc `$`(lt: Layout): string =
-  lt.elements.mapIt($it).join(" ")
 
 proc `$`*(blc: Block): string =
   case blc.kind:
@@ -157,7 +187,7 @@ proc `$`*(blc: Block): string =
     of bkLine: blc.elements.mapIt($it).join(" ↔ ").wrap("()")
     of bkChoice: blc.elements.mapIt($it).join(" ? ").wrap("()")
     of bkWrap: blc.wrapElements.mapIt($it).join(" ").wrap("[]")
-    of bkVerb: &">>{blc.text}<<"
+    of bkVerb: &""">>{blc.textLines.join("⮒")}<<"""
 
 
 
@@ -170,26 +200,33 @@ type
     subn: seq[StrTree]
 
 type
-  Options = object
-    m0: int ## position of the first right margin. Expected `0`
-    m1: int ## position of the second right margin. Set for `80` to
+  Options* = object
+    m0*: int ## position of the first right margin. Expected `0`
+    m1*: int ## position of the second right margin. Set for `80` to
             ## wrap on default column limit.
-    c0: float ## cost (per character) beyond margin 0. Expected value
+    c0*: float ## cost (per character) beyond margin 0. Expected value
               ## `~0.05`
-    c1: float ## cost (per character) beyond margin 1. Should be much
+    c1*: float ## cost (per character) beyond margin 1. Should be much
               ## higher than `c0`. Expected value `~100`
-    cb: int ## cost per line-break
-    ind: int ## spaces per indent
+    cb*: int ## cost per line-break
+    ind*: int ## spaces per indent
     # adj_comment: int
     # adj_flow: int #
     # adj_call: int
     # adj_arg: int
-    cpack: float ## cost (per element) for packing justified layouts.
+    cpack*: float ## cost (per element) for packing justified layouts.
                  ## Expected value `~0.001`
-    format_policy: FormatPolicy[StrTree]
+    format_policy*: FormatPolicy[StrTree]
 
 const defaultFormatOpts* = Options(
-  m0: 0, m1: 40, c0: 0.05, c1: 100, cb: 2, ind: 2, cpack: 0.001)
+  m0: 0, m1: 40, c0: 0.05, c1: 100,
+  cb: 2, ind: 2, cpack: 0.001,
+  formatPolicy: FormatPolicy[StrTree](
+    breakElementLines: (
+      proc(blc: seq[seq[Block]]): seq[seq[Block]] = blc
+    )
+  )
+)
 
 func hash(elem: LayoutElement): Hash = hash(elem.impl)
 func hash(lyt: Layout): Hash = hash(lyt.elements)
@@ -214,13 +251,14 @@ func hash(sln: Option[Solution]): Hash =
 #*************************************************************************#
 func lytString(s: string): LayoutElement =
   result.text = s
-  result.impl = proc(c: var Console) = c.printString(s)
+  result.impl = proc(c: var Console) =
+    c.printString(s)
 
 func lytNewline(indent: bool = true): LayoutElement =
   result.text = "\\n"
   result.impl = proc(c: var Console) = c.printString("\n")
 
-func lytPrint(lyt: Layout): LayoutElement =
+proc lytPrint(lyt: Layout): LayoutElement =
   result.text = &"[{lyt}]"
   result.impl = proc(c: var Console) = c.printLayout(lyt)
 
@@ -447,6 +485,9 @@ proc vSumSolution(solutions: seq[Solution]): Solution =
   ##   A Solution object that lays out the solutions vertically, separated by
   ##   newlines, with the same left margin.
 
+  echo "vSumSolutions"
+  for s in solutions:
+    echo s
 
   assert solutions.len > 0
   # debug "Vertical stack #", solutions.len, "solution"
@@ -624,25 +665,26 @@ func len*(blc: Block): int =
 func makeTextBlock*(text: string): Block =
   Block(kind: bkText, text: text)
 
-proc makeTextBlocks*(text: seq[string]): seq[Block] =
+proc makeTextBlocks*(text: varargs[string]): seq[Block] =
   text.mapIt(makeTextBlock(it))
 
+func makeLineBlock*(elems: varargs[Block]): Block =
+  Block(kind: bkLine, elements: toSeq(elems))
+
 func makeIndentBlock*(blc: Block, indent: int): Block =
-  Block(kind: bkLine, elements: @[makeTextBlock(" ".repeat(indent)), blc])
+  makeLineBlock(@[makeTextBlock(" ".repeat(indent)), blc])
+  # Block(kind: bkLine, elements:  )
 
-func makeChoiceBlock*(elems: seq[Block]): Block =
-  Block(kind: bkChoice, elements: elems)
+func makeChoiceBlock*(elems: varargs[Block]): Block =
+  assert elems.len > 0
+  Block(kind: bkChoice, elements: toSeq(elems))
 
-func makeStackBlock*(elems: seq[Block]): Block =
-  Block(kind: bkStack, elements: elems)
+func makeStackBlock*(elems: varargs[Block]): Block =
+  Block(kind: bkStack, elements: toSeq(elems))
 
-func makeLineBlock*(elems: seq[Block]): Block =
-  # NOTE HACK I don't know why/where things are reversed in the first
-  # place, so I had to use this counter-hack to fix it.
-  Block(kind: bkLine, elements: elems.reversed())
 
-func makeWrapBlock*(elems: seq[Block]): Block =
-  Block(kind: bkWrap, wrapElements: elems)
+func makeWrapBlock*(elems: varargs[Block]): Block =
+  Block(kind: bkWrap, wrapElements: toSeq(elems))
 
 func makeVerbBlock*(
   textLines: seq[string], breaking: bool = true,
@@ -650,21 +692,28 @@ func makeVerbBlock*(
   Block(kind: bkVerb, textLines: textLines,
         isBreaking: breaking, firstNl: firstNl)
 
-func makeIndentBlock*(element: Block, indent: int = 0): Block =
-  ## Create line block with `indent` leading whitespaces
-  makeLineBlock(@[
-    makeTextBlock(" ".repeat(indent)),
-    element
-  ])
+func makeForceLinebreak*(text: string = ""): Block =
+  makeVerbBlock(@[text], true, false)
+
+# func makeIndentBlock*(element: Block, indent: int = 0): Block =
+#   ## Create line block with `indent` leading whitespaces
+#   makeLineBlock(@[
+#     makeTextBlock(" ".repeat(indent)),
+#     element
+#   ])
 
 func makeLineCommentBlock*(
   text: string, prefix: string = "# "): Block =
   makeVerbBlock(@[prefix & text])
 
+func add*(target: var Block, other: varargs[Block]) =
+  for bl in other:
+    target.elements.add bl
+
 
 #============================  Layout logic  =============================#
 
-proc doOptLayout(
+proc doOptLayout*(
   self: var Block,
   rest_of_line: var Option[Solution], opts: Options): Option[Solution]
 
@@ -732,7 +781,8 @@ proc doOptTextLayout(
 proc doOptLineLayout(
   self: var Block,
   rest_of_line: var Option[Solution], opts: Options): Option[Solution] =
-  # logDefer debug, "Line layout"
+  assert self != nil
+  echo self
   if self.elements.len == 0:
     return rest_of_line
 
@@ -746,21 +796,20 @@ proc doOptLineLayout(
       element_lines.add @[]
 
   if len(element_lines) > 1:
+    assert opts.format_policy.breakElementLines != nil
     element_lines = opts.format_policy.breakElementLines(element_lines)
 
   var line_solns: seq[Option[Solution]]
 
-  for i, ln in mpairs(element_lines):
+  for i, ln in rmpairs(element_lines):
     var ln_layout: Option[Solution] =
       if i < len(element_lines) - 1:
         none(Solution)
       else:
         rest_of_line
 
-    for idx, elt in mpairs(ln):
-      if idx < ln.len:
-        ln_layout = elt.optLayout(ln_layout, opts)
-        # debug "Line layout", ln_layout
+    for idx, elt in rmpairs(ln):
+      ln_layout = elt.optLayout(ln_layout, opts)
 
     line_solns.add ln_layout
 
@@ -793,17 +842,21 @@ proc doOptStackLayout(
 
   let soln = vSumSolution: get: collect(newSeq):
     for idx, elem in mpairs(self.elements):
-      if idx == self.elements.len - 1:
-        elem.optLayout(restOfLine, opts)
+      if idx < self.elements.high:
+        none(Solution).withResIt do:
+          optLayout(elem, it, opts)
       else:
-        none(Solution).withResIt do: elem.optLayout(it, opts)
+      # if idx == self.elements.len - 1:
+        elem.optLayout(restOfLine, opts)
+      # else:
 
 
   # Under some odd circumstances involving comments, we may have a
   # degenerate solution.
   # WARNING
+  if soln.layouts.len == 0:
+    return rest_of_line
   # if soln.isNone():
-  #   return rest_of_line
 
 
   # Add the cost of the line breaks between the elements.
@@ -919,7 +972,7 @@ proc doOptVerbLayout(
 
   return some sf.makeSolution()
 
-proc doOptLayout(
+proc doOptLayout*(
   self: var Block,
   rest_of_line: var Option[Solution], opts: Options): Option[Solution] =
 
@@ -987,4 +1040,3 @@ when isMainModule:
     var c = Console()
     sln.layouts[0].printOn(c)
     echo c.text
-

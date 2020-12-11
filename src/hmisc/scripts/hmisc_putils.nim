@@ -16,7 +16,9 @@ proc dockertest*(projectDir: AbsDir = cwd(),
   let tmpd = tempDirPath(projectDir)
   runDockerTest(projectDir, tmpd,
                 makeLocalDevel(tmpd, localDeps) &&
-                  cdMainProject && &&preTestCmds &&
+                  cdMainProject &&
+                  &&preTestCmds &&
+                  cdMainProject &&
                   shCmd("nimble", "test")
   )
 

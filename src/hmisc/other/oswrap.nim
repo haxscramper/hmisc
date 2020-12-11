@@ -9,7 +9,9 @@
 # TODO parse file paths from URI (`file:///`)
 # TEST that compiles without errors.
 
-import std/[strutils, macros, random, hashes, strformat, sequtils]
+import std/[strutils, macros, random, hashes,
+            strformat, sequtils, options]
+
 import ../algo/hstring_algo
 from os import nil
 
@@ -235,17 +237,25 @@ macro osOrNims(osCode, nimsCode: untyped): untyped =
     result = nimsCode
 
 
-converter toFile*(absFile: AbsFile): FsFile =
+converter toFsFile*(absFile: AbsFile): FsFile =
   FsFile(isRelative: false, absFile: absFile)
 
-converter toFile*(relFile: RelFile): FsFile =
+converter toFsFile*(relFile: RelFile): FsFile =
   FsFile(isRelative: true, relFile: relFile)
 
-converter toDir*(relDir: RelDir): FsDir =
+converter toFsFile*(optFile: Option[AnyFile]): Option[FsFile] =
+  if optFile.isSome():
+    return some(toFsFile(optFile.get()))
+
+converter toFsDir*(relDir: RelDir): FsDir =
   FsDir(isRelative: true, relDir: relDir)
 
-converter toDir*(absDir: AbsDir): FsDir =
+converter toFsDir*(absDir: AbsDir): FsDir =
   FsDir(isRelative: false, absDir: absDir)
+
+converter toFsDirSeq*(drs: seq[AbsDir]): seq[FsDir] =
+  for d in drs:
+    result.add d.toFsDir()
 
 converter toFsEntry*(path: AnyPath): FsEntry =
   when path is FsEntry:
@@ -255,9 +265,10 @@ converter toFsEntry*(path: AnyPath): FsEntry =
   elif path is FsFile:
     FsEntry(kind: os.pcFile, file: path)
   elif path is AbsFile or path is RelFile:
-    path.toFile().toFsEntry()
+    path.toFsFile().toFsEntry()
   elif path is RelDir or path is AbsDir:
-    path.toDir().toFsEntry()
+    path.toFsDir().toFsEntry()
+
 
 # converter toAbsDir*(str: string): AbsDir =
 #   assert os.isAbsolute(str),
@@ -315,6 +326,7 @@ proc splitDir*(dir: AbsDir): tuple[head: AbsDir, tail: RelDir] =
 
 template currentSourceDir*(): AbsDir {.dirty.} =
   splitPath(AbsFile(instantiationInfo(fullPaths = true).filename)).head
+
 
 
 proc getAbsDir*(path: string): AbsDir =
@@ -385,15 +397,20 @@ proc assertValid*(path: AnyPath): void =
   when path is RelPath:
     if os.isAbsolute(path.getStr()):
       raise newPathError(path, pekExpectedRel): fmtJoin:
-        "Input path '{path.getStr()}' has type {$typeof(path)}, but"
+        "Path '{path.getStr()}' has type {$typeof(path)}, but"
         "contains invalid string - expected relative path"
   elif path is AbsPath:
     if not os.isAbsolute(path.getStr()):
       raise newPathError(path, pekExpectedAbs): fmtJoin:
-        "Input path '{path.getStr()}' has type {$typeof(path)}, but"
+        "Path '{path.getStr()}' has type {$typeof(path)}, but"
         "contains invalid string - expected absolute path"
+  elif path is FsFile:
+    if path.isRelative:
+      assertValid(path.relFile)
+    else:
+      assertValid(path.absFile)
   else:
-    static: raiseAssert("#[ IMPLEMENT ]#")
+    static: raiseAssert("#[ IMPLEMENT validation for ]# " & $typeof(path))
 
 proc extractFilename*(path: AnyFile): string =
   os.extractFilename(path.string)
@@ -750,8 +767,11 @@ proc getUserRuntimeDir*(): AbsDir =
   ## For systemd systems it is assumed to be equal to
   ## `/run/user/<user-id>`. Right now dummy implementation only accounts
   ## for systemd, but this should be fixed later.
-  existsEnvOrDefault(
-    $$XDG_RUNTIME_DIR, AbsDir(env), ~RelDir($getUID()))
+  when cbackend:
+    existsEnvOrDefault(
+      $$XDG_RUNTIME_DIR, AbsDir(env), ~RelDir($getUID()))
+  else:
+    raiseAssert("#[ IMPLEMENT ]#")
 
 proc getUserCacheDir*(): AbsDir =
   ## The base directory relative to which user specific non-essential data
@@ -788,11 +808,14 @@ when cbackend:
     ## user runtime dir + application file basename
     getUserRuntimeDir() / RelDir(getAppBasename())
 
+  proc getAppConfRc*(ext: string, hidden: bool = false): AbsFile =
+    ## Get application configuration file
+    raiseAssert("#[ IMPLEMENT ]#")
 
 
 proc fileExists*(filename: AnyFile): bool =
   ## Checks if the file exists.
-  osAndNims(fileExists(filename.string))
+  osAndNims(fileExists(filename.getStr()))
 
 proc dirExists*(dir: AnyDir): bool =
   ## Checks if the directory dir exists.
@@ -1046,6 +1069,10 @@ proc cd*(dir: AnyDir | string) =
     os.setCurrentDir(dir.getStr()),
     system.cd(dir.getStr())
   )
+
+proc cmkd*(dir: AnyDir) =
+  mkDir(dir)
+  cd(dir)
 
 proc findExe*(bin: string): AbsFile =
   ## Searches for bin in the current working directory and then in
@@ -1366,22 +1393,31 @@ proc paramVal*(param: string, default: seq[string]): seq[string] =
 
 import std/distros except detectOs
 export distros
-import osproc
 
 const
   DistributionGenericOsNames* = {Windows, Posix, Linux}
   DistributionDebianDerivatives* = {
     Ubuntu, Elementary, SteamOs, Knoppix, Debian}
 
+when cbackend:
+  import osproc
 
-proc cmdRelease(cmd: string, cache: var string): string =
-  if cache.len == 0:
-    when nimvm:
+  proc cmdRelease(cmd: string, cache: var string): string =
+    if cache.len == 0:
+      when nimvm:
+        cache = gorge(cmd)
+      else:
+        cache = execProcess(cmd)
+
+    result = cache
+
+else:
+  proc cmdRelease(cmd: string, cache: var string): string =
+    if cache.len == 0:
       cache = gorge(cmd)
-    else:
-      cache = execProcess(cmd)
 
-  result = cache
+
+    result = cache
 
 proc uname(cache: var string): string =
   cmdRelease("uname -a", cache)
@@ -1626,5 +1662,3 @@ proc getMissingDependencies*(deplist: openarray[tuple[
         # echo pack
         if not isPackageInstalled(pack):
           result.add (pack, getInstallCmd(pack))
-
-

@@ -351,18 +351,28 @@ proc getFileName*(f: string): string =
   let (_, name, ext) = f.splitFile()
   return name & ext
 
-template pprintErr*(): untyped =
+template pprintStackTrace*(): untyped =
   mixin toGreen, toDefault, toYellow, getFileName, splitFile
   block:
     let e = getCurrentException()
-    let choosenim = getHomeDir() & ".choosenim"
+    let stackEntries =
+      if e != nil:
+        e.getStackTraceEntries()
+      else:
+        getStackTraceEntries()
 
-    let stackEntries = e.getStackTraceEntries()
+
+
+    let choosenim = getHomeDir() & ".choosenim"
     when nimvm:
       discard
     else:
       echo ""
-      printSeparator("Exception")
+      if e != nil:
+        printSeparator("Exception")
+      else:
+        printSeparator("Stacktrace")
+
       echo ""
 
     var fileW = 0
@@ -403,7 +413,13 @@ template pprintErr*(): untyped =
 
     # let idx = e.msg.find('(')
     echo ""
-    echo e.msg
+    if e != nil:
+      echo e.msg
+
+
+template pprintErr*(): untyped =
+  pprintStackTrace()
+
     # echo(
     #   (idx > 0).tern(e.msg[0 ..< idx].getFileName() & " ", "") &
     #   e.msg[(if idx > 0: idx else: 0)..^1])

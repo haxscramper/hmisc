@@ -6,7 +6,7 @@ import macros, strutils, strformat
 
 when cbackend:
   import logging
-  export info, debug, notice, warn, fatal
+  # export info, debug, notice, warn, fatal
   export Level
 
   type
@@ -142,26 +142,34 @@ else:
 when not cbackend:
   proc log*(level: Level, args: varargs[string, `$`]) =
     globalLog.log(level, args)
-
-  template debug*(args: varargs[string, `$`]) =
-    log(lvlDebug, args)
-
-  template info*(args: varargs[string, `$`]) =
-    log(lvlInfo, args)
-
-  template notice*(args: varargs[string, `$`]) =
-    log(lvlNotice, args)
-
-  template warn*(args: varargs[string, `$`]) =
-    log(lvlWarn, args)
-
-  template err*(args: varargs[string, `$`]) =
-    log(lvlError, args)
-
-  template fatal*(args: varargs[string, `$`]) =
-    log(lvlFatal, args)
 else:
   export log
+
+
+template toSeqFix(args: varargs[string]): seq[string] =
+  var res: seq[string]
+  for arg in args:
+    res.add arg
+  res
+
+template debug*(args: varargs[string, `$`]) =
+  log(lvlDebug, @[$instantiationInfo().line] & toSeqFix(args))
+
+template info*(args: varargs[string, `$`]) =
+  log(lvlInfo, @[$instantiationInfo().line] & toSeqFix(args))
+
+template notice*(args: varargs[string, `$`]) =
+  log(lvlNotice, @[$instantiationInfo().line] & toSeqFix(args))
+
+template warn*(args: varargs[string, `$`]) =
+  log(lvlWarn, @[$instantiationInfo().line] & toSeqFix(args))
+
+template err*(args: varargs[string, `$`]) =
+  log(lvlError, @[$instantiationInfo().line] & toSeqFix(args))
+
+template fatal*(args: varargs[string, `$`]) =
+  log(lvlFatal, @[$instantiationInfo().line] & toSeqFix(args))
+
 
 proc logError*(args: varargs[string, `$`]): void =
   when cbackend:

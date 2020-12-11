@@ -39,6 +39,48 @@ macro disjointIter*(x: typed): untyped =
 
 #========================  sequence operations  ==========================#
 
+type
+  LenIndexable*[T] = concept x
+    x.len is int
+    x[0] is T
+
+iterator rmpairs*[T](s: var LenIndexable[T]): (int, var T) =
+  ## Iterate over mutable sequence starting from the right
+  for idx in countdown(s.len - 1, 0):
+    yield (idx, s[idx])
+
+iterator ritems*[T](s: var LenIndexable[T]): var T =
+  ## Iterate over mutable sequence starting from the right
+  for idx in countdown(s.len - 1, 0):
+    yield s[idx]
+
+iterator rpairs*[T](s: LenIndexable[T]): (int, T) =
+  ## Iterate over sequence starting from the rightk
+  for idx in countdown(s.len - 1, 0):
+    yield (idx, s[idx])
+
+iterator ritems*[T](s: LenIndexable[T]): T =
+  ## Iterate over sequence starting from the right
+  for idx in countdown(s.len - 1, 0):
+    yield s[idx]
+
+iterator itemsIsLast*[T](s: LenIndexable[T]): tuple[isLast: bool, val: T] =
+  let sLen = s.len - 1
+  for idx in 0 ..< sLen:
+    yield (idx == sLen, s[idx])
+
+iterator zip*[T1, T2, T3, T4, T5](
+    s1: LenIndexable[T1],
+    s2: LenIndexable[T2],
+    s3: LenIndexable[T3],
+    s4: LenIndexable[T4],
+    s5: LenIndexable[T5]
+  ): tuple[v1: T1, v2: T2, v3: T3, v4: T4, v5: T5] =
+
+  for idx in 0 ..< min([s1.len, s2.len, s3.len, s4.len, s5.len]):
+    yield (s1[idx], s2[idx], s3[idx], s4[idx], s5[idx])
+
+
 func emptySeq*[T](): seq[T] = discard
 proc enumerate*[T](s: openArray[T]): seq[(int, T)] =
   ## Return enumerated sequence of items
@@ -583,11 +625,17 @@ proc testEq*[A, B](lhs: A, rhs: B) =
         linesA = lhsStr.split('\n')
         linesB = rhsStr.split('\n')
 
+      var hadAny = false
       for idx, line in zip(linesA, linesB):
         if line[0] != line[1]:
           echo fmt("LHS #{idx}: '{line[0]}'")
           echo fmt("RHS #{idx}: '{line[1]}'")
           break
+          hadAny = true
+
+      if not hadAny:
+        echo fmt("LHS: '{lhsStr}'")
+        echo fmt("RHS: '{rhsStr}'")
         # else:
         #   echo &"#{idx}: '{line[0]}' == '{line[1]}'"
 

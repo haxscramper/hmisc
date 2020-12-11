@@ -1083,9 +1083,3 @@ suite "Strparser":
     assertEq(
       toTuple[string]("~||(test.tmp.pl||test1.sh)"),
       ("test.tmp.pl", "test1.sh"))
-
-import hmisc/other/blockfmt
-
-suite "Block formatting":
-  test "Wrap blocks":
-    assertEq makeTextBlocks(@["1", "2", "3"]).wrapBlocks(margin = 2), "12\n3"

@@ -1,5 +1,5 @@
 import oswrap, cligen
-import std/options
+import std/[options, uri]
 
 export cligen
 
@@ -46,6 +46,16 @@ proc argParse*(
   dst = parseFsDir(a.val)
   result = true
 
+# ~~~~ FsFile ~~~~ #
+
+proc argHelp*(dfl: FsFile, a: var ArgcvtParams): seq[string] =
+  @["--" & a.parNm, "FsFile", ""]
+
+proc argParse*(
+  dst: var FsFile, dfl: FsFile, a: var ArgcvtParams): bool =
+  dst = parseFsFile(a.val)
+  result = true
+
 # ~~~~ ShellExpr ~~~~ #
 
 proc argHelp*(dfl: ShellExpr, a: var ArgcvtParams): seq[string] =
@@ -61,10 +71,11 @@ proc argParse*(
 
 
 proc argHelp*[T](dfl: Option[T], a: var ArgcvtParams): seq[string] =
-  @["--" & a.parNm, $typeof(dfl), ""]
+  @["--" & a.parNm, $typeof(T), ""]
 
 proc argParse*[T](
   dst: var Option[T], dfl: Option[T], a: var ArgcvtParams): bool =
+  mixin argParse
   var res: T
   if dfl.isSome():
     result = argParse(res, dfl.get(), a)
@@ -74,3 +85,49 @@ proc argParse*[T](
 
   if result:
     dst = some(res)
+
+# ~~~~ Url ~~~~ #
+
+proc argHelp*(dfl: Url, a: var ArgcvtParams): seq[string] =
+  @["--" & a.parNm, "Url", ""]
+
+proc argParse*(
+  dst: var Url, dfl: Url, a: var ArgcvtParams): bool =
+  # NOTE potential place for input sanitization
+  dst = Url(a.val)
+  result = true
+
+
+# # ~~~~ Key-value-pair ~~~~ #
+# type
+#   CliKeyVal*[K, V, sep: static[string]] = object
+#     key*: K
+#     val*: V
+
+# func initCliKeyVal*[K, V, sep: static[string]](
+#   k: K, v: V, sep: string = ":", required: bool = true): CliKeyVal =
+#   CliKeyVal[K, V](key: k, val: v, sep: sep, required: required)
+
+# proc argHelp*[K, V](dfl: CliKeyVal[K, V], a: var ArgcvtParams): seq[string] =
+#   @[
+#     "--" & a.parNm, $typeof(K) & dfl.sep & $typeof(V),
+#     if dfl.required: "REQUIRED" else: ""
+#   ]
+
+# proc argParse*[K, V](
+#   dst: var CliKeyVal[K, V],
+#   dfl: CliKeyVal[K, V], a: var ArgcvtParams): bool =
+
+#   let spl = a.val.split(dfl.sep)
+
+#   result = spl.len == 2
+
+#   mixin argParse
+
+#   if result:
+#     a.val = spl[0]
+#     result = argParse(dst.key, dfl.key, a)
+
+#   if result:
+#     a.val = spl[1]
+#     result = argParse(dst.val, dfl.val, a)

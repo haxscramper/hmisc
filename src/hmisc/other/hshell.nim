@@ -348,7 +348,8 @@ const
   nimShellCmdsList* = ["nimble"]
   x11ShellCmdsList* = [
     "xclip",
-    "pdflatex"
+    "pdflatex",
+    "java"
   ]
 
 func makeShellCmd*(bin: string): ShellCmd =

@@ -54,16 +54,16 @@ suite "Shell":
     static:
       echo getCurrentOs()
 
-    when not isPackageInstalled("hunspell"):
-      echo "Install hunspell using ", getInstallCmd("hunspell")
+    # when not isPackageInstalled("hunspell"):
+    #   echo "Install hunspell using ", getInstallCmd("hunspell")
 
-    static:
-      let missing = getMissingDependencies({
-        { Distribution.ArchLinux } : @["hunspell-12"]
-      })
+    # static:
+    #   let missing = getMissingDependencies({
+    #     { Distribution.ArchLinux } : @["hunspell-12"]
+    #   })
 
-      for (pkg, cmd) in missing:
-        echo "Missing ", pkg, ", install it using ", cmd
+    #   for (pkg, cmd) in missing:
+    #     echo "Missing ", pkg, ", install it using ", cmd
 
 
 suite "User directories":
@@ -79,4 +79,3 @@ suite "User directories":
 
     echo getUserRuntimeDir()
     echo getAppRuntimeDir()
-

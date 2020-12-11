@@ -66,7 +66,11 @@ type
 
 import hashes
 func makeArrRange*(a, b: int): ArrRange = ArrRange(a: a, b: b)
-func toRange*(a, b: int): ArrRange = ArrRange(a: a, b: b)
+
+func toRange*(a, b: int): ArrRange {.deprecated.} =
+  ArrRange(a: a, b: b)
+
+func toArrRange*(a, b: int): ArrRange = ArrRange(a: a, b: b)
 func hash*(r: ArrRange): Hash = hash(r.a) !& hash(r.b)
 func decRight*(r: ArrRange, diff: int = 1): ArrRange =
   ## Shift right side of range by one.
@@ -106,8 +110,36 @@ func sumjoin*(a: openarray[int], r: ArrRange, sep: int): int =
 func isValid*(r: ArrRange): bool = r.b >= r.a
 func overlap*(r1, r2: ArrRange): ArrRange =
   result = makeArrRange(max(r1.a, r2.a), min(r1.b, r2.b))
+
 func `$`*(r: ArrRange): string = &"[{r.a}, {r.b}]"
 func len*(r: ArrRange): int = r.b - r.a + 1
+
+func contains*(sl: Slice[int], arr: ArrRange): bool =
+  sl.a <= arr.a and arr.b <= sl.b
+
+func hasOverlap*(a, b: ArrRange): bool =
+  overlap(a, b).len > 0
+
+func geCmpPositions*(lhs, rhs: ArrRange): bool {.inline.} =
+  assert not hasOverlap(lhs, rhs),
+     &"Cannot compare overlapping ranges: {lhs} > {rhs}"
+  return lhs.b > rhs.a
+
+func geqCmpPositions*(lhs, rhs: ArrRange): bool {.inline.} =
+  assert not hasOverlap(lhs, rhs),
+     &"Cannot compare overlapping ranges: {lhs} >= {rhs}"
+  return lhs.b >= rhs.a
+
+func leCmpPositions*(lhs, rhs: ArrRange): bool {.inline.} =
+  assert not hasOverlap(lhs, rhs),
+     &"Cannot compare overlapping ranges: {lhs} < {rhs}"
+  return lhs.b < rhs.a
+
+func leqCmpPositions*(lhs, rhs: ArrRange): bool {.inline.} =
+  assert not hasOverlap(lhs, rhs),
+     &"Cannot compare overlapping ranges: {lhs} <= {rhs}"
+  return lhs.b <= rhs.a
+
 
 iterator items*(r: ArrRange): int =
   for it in r.a .. r.b:
@@ -127,6 +159,7 @@ iterator inrange*(s: seq[int], r: ArrRange, lDiff, rDiff: int = 0): int =
   ## left/right edge of the range by `l/rDiff` respectively.
   for v in (s[r.a] + lDiff) .. (s[r.b] + rDiff):
     yield v
+
 
 #==============================  Position  ===============================#
 # TODO is it possible to define custom unpacker for object? to write
