@@ -1005,6 +1005,7 @@ const defaultFormatOpts* = Options(
   formatPolicy: FormatPolicy[StrTree](
     breakElementLines: (
       proc(blc: seq[seq[Block]]): seq[seq[Block]] =
+        echov blc
         let spaceText = makeTextBlock(" ")
         func strippedLine(line: seq[Block]): Block =
           var leftSpaces, rightSpaces: int

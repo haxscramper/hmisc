@@ -15,6 +15,7 @@ suite "Block formatting":
     vsb = makeStackBlock
     hsb = makeLineBlock
     ind = makeIndentBlock
+    wrap = makeWrapBlock
     choice = makeChoiceBlock
     nl = makeForceLinebreak
 
@@ -41,31 +42,40 @@ suite "Block formatting":
 
   let str = lyt
 
-  # test "Vertical layouts":
-  #   assertEq @["a".txb, "b".txb].vsb().lyt(), "a\nb"
-  #   assertEq @["-".txb, "-".txb, "-".txb].vsb().lyt(), "-\n-\n-"
+  test "Vertical layouts":
+    assertEq @["a".txb, "b".txb].vsb().lyt(), "a\nb"
+    assertEq @["-".txb, "-".txb, "-".txb].vsb().lyt(), "-\n-\n-"
 
-  #   assertEq @[
-  #     "*".txb, @["a".txb, "b".txb].choice()
-  #   ].vsb().lyt(), "*\na"
+    assertEq @[
+      "*".txb, @["a".txb, "b".txb].choice()
+    ].vsb().lyt(), "*\na"
 
-  # test "Choice":
-  #   assertEq @["0000".txb, "00".txb].choice().lyt(3), "00"
+  test "Choice":
+    assertEq @["0000".txb, "00".txb].choice().lyt(3), "00"
 
-  #   let bl = @[
-  #     @["hello".txb, " ".txb, "world".txb].vsb,
-  #     @["hello".txb, " ".txb, "world".txb].hsb
-  #   ]
+    let bl = @[
+      @["hello".txb, " ".txb, "world".txb].vsb,
+      @["hello".txb, " ".txb, "world".txb].hsb
+    ]
 
-  #   assertEq choice(bl).lyt(), "hello world"
+    assertEq choice(bl).lyt(), "hello world"
 
-  # test "Wrap blocks":
-  #   assertEq makeTextBlocks(@["1", "2", "3"]).wrapBlocks(margin = 2), "12\n3"
+  test "Wrap blocks":
+    assertEq makeTextBlocks(@["1", "2", "3"]).wrapBlocks(margin = 2), "12\n3"
 
   test "Python implementation conmparison":
-    startHax()
-    if false:
-      assertEq(str(txb("hello")), "hello")
-      assertEq(str(vsb([txb("he"), txb("llo")])), "he\nllo")
+    assertEq(str(txb("hello")), "hello")
+    assertEq(str(vsb([txb("he"), txb("llo")])), "he\nllo")
 
     echo str(hsb([txb("proc"), txb("hello*"), nl(), txb("world")]))
+
+    echo str(hsb([
+      txb("proc"),
+      txb("nice*"),
+      txb("("),
+      ind(wrap([
+        hsb([txb("arg:"), txb("Type"), txb(", ")]),
+        hsb([txb("arg:"), txb("Type")]),
+      ]), 4),
+      txb(")")
+    ]))
