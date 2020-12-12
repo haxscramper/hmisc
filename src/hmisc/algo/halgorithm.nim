@@ -66,8 +66,17 @@ iterator ritems*[T](s: LenIndexable[T]): T =
 
 iterator itemsIsLast*[T](s: LenIndexable[T]): tuple[isLast: bool, val: T] =
   let sLen = s.len - 1
-  for idx in 0 ..< sLen:
+  mixin `[]`
+  for idx in 0 .. sLen:
     yield (idx == sLen, s[idx])
+
+
+iterator itemsIsFirstLast*[T](
+  s: LenIndexable[T]): tuple[isFirst, isLast: bool, val: T] =
+  let sLen = s.len - 1
+  mixin `[]`
+  for idx in 0 .. sLen:
+    yield (idx == 0, idx == sLen, s[idx])
 
 iterator zip*[T1, T2, T3, T4, T5](
     s1: LenIndexable[T1],

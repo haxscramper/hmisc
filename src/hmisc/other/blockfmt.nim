@@ -214,15 +214,15 @@ type
 
 type
   Options* = object
-    m0*: int ## position of the first right margin. Expected `0`
-    m1*: int ## position of the second right margin. Set for `80` to
+    leftMargin*: int ## position of the first right margin. Expected `0`
+    rightMargin*: int ## position of the second right margin. Set for `80` to
             ## wrap on default column limit.
-    c0*: float ## cost (per character) beyond margin 0. Expected value
+    leftMarginCost*: float ## cost (per character) beyond margin 0. Expected value
               ## `~0.05`
-    c1*: float ## cost (per character) beyond margin 1. Should be much
+    rightMarginCost*: float ## cost (per character) beyond margin 1. Should be much
               ## higher than `c0`. Expected value `~100`
-    cb*: int ## cost per line-break
-    ind*: int ## spaces per indent
+    linebreakCost*: int ## cost per line-break
+    indentSpaces*: int ## spaces per indent
     # adj_comment: int
     # adj_flow: int #
     # adj_call: int
@@ -569,14 +569,14 @@ proc hPlusSolution(s1, s2: var Solution, opts: Options): Solution =
     let
       g1 = s1.curGradient()
       g2 = s2.curGradient()
-      overhang0 = s2_margin - opts.m0  # s2_margin = m1 + span of s1
-      overhang1 = s2_margin - opts.m1  # s2_margin = m1 + span of s1
+      overhang0 = s2_margin - opts.leftMargin  # s2_margin = rightMargin + span of s1
+      overhang1 = s2_margin - opts.rightMargin  # s2_margin = rightMargin + span of s1
       g_cur = (g1 + g2 -
-               opts.c0 * (overhang0 >= 0) -
-               opts.c1 * (overhang1 >= 0))
+               opts.leftMarginCost * (overhang0 >= 0) -
+               opts.rightMarginCost * (overhang1 >= 0))
       i_cur = (s1.curValueAt(s1_margin) + s2.curValueAt(s2_margin) -
-               opts.c0 * max(overhang0, 0) -
-               opts.c1 * max(overhang1, 0))
+               opts.leftMarginCost * max(overhang0, 0) -
+               opts.rightMarginCost * max(overhang1, 0))
 
     # The Layout computed by the following implicitly sets the margin
     # for s2 at the end of the last line printed for s1.
@@ -673,28 +673,28 @@ proc makeTextBlocks*(text: varargs[string]): seq[Block] =
 
 func makeLineBlock*(elems: varargs[Block]): Block =
   result = Block(kind: bkLine, elements: toSeq(elems))
-  echov 1, "Created line block with elements", result.elements
+  # echov 1, "Created line block with elements", result.elements
 
 func makeIndentBlock*(blc: Block, indent: int): Block =
   makeLineBlock(@[makeTextBlock(" ".repeat(indent)), blc])
   # Block(kind: bkLine, elements:  )
 
 func makeChoiceBlock*(elems: varargs[Block]): Block =
-  assert elems.len > 0
+  # assert elems.len > 0
   Block(kind: bkChoice, elements: toSeq(elems))
 
 func makeStackBlock*(elems: varargs[Block]): Block =
   result = Block(kind: bkStack, elements: toSeq(elems))
-  echov 1, "Created stack block with elements", result.elements
+  # echov 1, "Created stack block with elements", result.elements
 
 
 func makeWrapBlock*(elems: varargs[Block]): Block =
   Block(kind: bkWrap, wrapElements: toSeq(elems))
 
 func makeVerbBlock*(
-  textLines: seq[string], breaking: bool = true,
+  textLines: openarray[string], breaking: bool = true,
   firstNl: bool = false): Block =
-  Block(kind: bkVerb, textLines: textLines,
+  Block(kind: bkVerb, textLines: toSeq(textLines),
         isBreaking: breaking, firstNl: firstNl)
 
 func makeForceLinebreak*(text: string = ""): Block =
@@ -751,32 +751,32 @@ proc doOptTextLayout(
     layout = initLayout([lytString(self.text)])
   # The costs associated with the layout of this block may require 1, 2 or 3
   # knots, depending on how the length of the text compares with the two
-  # margins (m0 and m1) in opts. Note that we assume
-  # opts.m1 >= opts.m0 >= 0, as asserted in base.Options.Check().
-  if span >= opts.m1:
+  # margins (leftMargin and rightMargin) in opts. Note that we assume
+  # opts.rightMargin >= opts.leftMargin >= 0, as asserted in base.Options.Check().
+  if span >= opts.rightMargin:
     result = some initSolution(
       @[0],
       @[span],
-      @[float((span - opts.m0) * opts.c0 + (span - opts.m1) * opts.m1)],
-      @[float(opts.c0 + opts.c1)],
+      @[float((span - opts.leftMargin) * opts.leftMarginCost + (span - opts.rightMargin) * opts.rightMargin)],
+      @[float(opts.leftMarginCost + opts.rightMarginCost)],
       @[layout]
     )
 
-  elif span >= opts.m0:
+  elif span >= opts.leftMargin:
     result = some initSolution(
-      @[0, opts.m1 - span],
+      @[0, opts.rightMargin - span],
       @[span, span], # XXXX
-      @[float((span - opts.m0) * opts.c0),
-        float((opts.m1 - opts.m0) * opts.c0)],
-      @[float(opts.c0), float(opts.c0 + opts.c1)],
+      @[float((span - opts.leftMargin) * opts.leftMarginCost),
+        float((opts.rightMargin - opts.leftMargin) * opts.leftMarginCost)],
+      @[float(opts.leftMarginCost), float(opts.leftMarginCost + opts.rightMarginCost)],
       @[layout, layout] # XXXX
     )
   else:
     result = some initSolution(
-      @[0, opts.m0 - span, opts.m1 - span],
+      @[0, opts.leftMargin - span, opts.rightMargin - span],
       @[span, span, span], # XXXX
-      @[float(0), float(0), float((opts.m1 - opts.m0) * opts.c0)],
-      @[float(0), float(opts.c0), float(opts.c0 + opts.c1)],
+      @[float(0), float(0), float((opts.rightMargin - opts.leftMargin) * opts.leftMarginCost)],
+      @[float(0), float(opts.leftMarginCost), float(opts.leftMarginCost + opts.rightMarginCost)],
       @[layout, layout, layout] # XXXX
     )
 
@@ -807,7 +807,7 @@ proc doOptLineLayout(
 
   var line_solns: seq[Option[Solution]]
 
-  echov element_lines
+  # echov element_lines
   # pprintStackTrace()
   for i, ln in rmpairs(element_lines):
     var ln_layout = none(Solution)
@@ -827,7 +827,7 @@ proc doOptLineLayout(
 
   let soln = vSumSolution(line_solns.filterIt(it.isSome()).mapIt(it.get()))
 
-  return some soln.plusConst(float(opts.cb * (len(line_solns) - 1)))
+  return some soln.plusConst(float(opts.linebreakCost * (len(line_solns) - 1)))
 
 
 proc doOptChoiceLayout(
@@ -873,7 +873,7 @@ proc doOptStackLayout(
 
   # Add the cost of the line breaks between the elements.
   return some soln.plusConst float(
-    opts.cb * self.break_mult *
+    opts.linebreakCost * self.break_mult *
     max(len(self.elements) - 1, 0))
 
 
@@ -937,7 +937,7 @@ proc doOptWrapLayout(
       # (_options.cpack) to favor (ceteris paribus) layouts with
       # elements packed into earlier lines.
       solutions_i.add(full_soln.plusConst float(
-        opts.cb * self.break_mult + opts.cpack * (self.len - j)))
+        opts.linebreakCost * self.break_mult + opts.cpack * (self.len - j)))
       # If the element at the end of the line mandates a following
       # line break, we're done.
       if last_breaking:
@@ -974,13 +974,14 @@ proc doOptVerbLayout(
   let layout = initLayout(l_elts)
   let span = 0
   var sf: SolutionFactory
-  if opts.m0 > 0:  # Prevent incoherent solutions
+  if opts.leftMargin > 0:  # Prevent incoherent solutions
     sf.add(0, span, 0, 0, layout)
-  # opts.m1 == 0 is absurd
-  sf.add(opts.m0 - span, span, 0, opts.c0, layout)
+  # opts.rightMargin == 0 is absurd
+  sf.add(opts.leftMargin - span, span, 0, opts.leftMarginCost, layout)
   sf.add(
-    opts.m1 - span, span,
-    (opts.m1 - opts.m0) * opts.c0, opts.c0 + opts.c1, layout)
+    opts.rightMargin - span, span,
+    (opts.rightMargin - opts.leftMargin) * opts.leftMarginCost,
+    opts.leftMarginCost + opts.rightMarginCost, layout)
 
   return some sf.makeSolution()
 
@@ -1000,8 +1001,13 @@ proc doOptLayout*(
     of bkVerb: self.doOptVerbLayout(restOfLine, opts)
 
 const defaultFormatOpts* = Options(
-  m0: 0, m1: 40, c0: 0.05, c1: 100,
-  cb: 4, ind: 4, cpack: 0.001,
+  leftMargin: 0,
+  rightMargin: 80,
+  leftMarginCost: 0.05,
+  rightMarginCost: 100,
+  linebreakCost: 2,
+  indentSpaces: 2,
+  cpack: 0.001,
   formatPolicy: FormatPolicy[StrTree](
     breakElementLines: (
       proc(blc: seq[seq[Block]]): seq[seq[Block]] =
@@ -1052,11 +1058,11 @@ proc layoutBlock*(blc: Block, opts: Options = defaultFormatOpts): string =
 
 proc wrapBlocks*(blocks: seq[Block],
                  opts: Options = defaultFormatOpts,
-                 margin: int = opts.m1
+                 margin: int = opts.rightMargin
                 ): string =
   ## Create wrap block and return most optimal layout for it
   var opts = opts
-  opts.m1 = margin
+  opts.rightMargin = margin
   layoutBlock(makeWrapBlock(blocks), opts)
 
 proc stackBlocks*(
@@ -1066,6 +1072,108 @@ proc stackBlocks*(
   layoutBlock(makeStackBlock(blocks), opts)
 
 
+
+type
+  BuilderKind* = enum
+    blkLine
+    blkStack
+    blkText
+    blkIndent
+    blkSpace
+    blkChoice
+
+proc `[]`*(b: static[BuilderKind], s: seq[Block]): Block =
+  static: assert b in {blkLine, blkStack, blkChoice}
+
+  case b:
+    of blkLine: makeLineBlock(s)
+    of blkStack: makeStackBlock(s)
+    of blkChoice: makeChoiceBlock(s)
+    else:
+      raiseAssert("#[ IMPLEMENT ]#")
+
+
+proc `[]`*(b: static[BuilderKind], bl: Block, args: varargs[Block]): Block =
+  b[@[ bl ] & toSeq(args)]
+
+proc `[]`*(b: static[BuilderKind], a: string): Block =
+  static: assert b == blkText
+  return makeTextBlock(a)
+
+proc `[]`*(b: static[BuilderKind], tlen: int = 1): Block =
+  static: assert b == blkSpace
+  return makeTextBlock(" ".repeat(tlen))
+
+proc `[]`*(b: static[BuilderKind], i: int, bl: Block): Block =
+  static: assert b == blkIndent
+  return makeIndentBlock(bl, i)
+
+func `&?`*(bl: Block, added: tuple[condOk: bool, bl: Block]): Block =
+  result = bl
+  if added.condOk:
+    result.add added.bl
+
+
+func codegenRepr*(inBl: Block): string =
+  func aux(bl: Block, level: int): string =
+    let pref = repeat("  ", level)
+    let name =
+      case bl.kind:
+        of bkLine: "hsb"
+        of bkChoice: "choice"
+        of bkText: "txb"
+        of bkWrap: "wrap"
+        of bkStack: "vsb"
+        of bkVerb: "verb"
+
+    case bl.kind:
+      of bkLine, bkChoice, bkStack, bkWrap:
+        result = pref & name & "([\n"
+        for isLast, elem in itemsIsLast(bl.elements):
+          result &= elem.aux(level + 1) & (if isLast: "\n" else: ",\n")
+
+        result &= pref & "])"
+      of bkText:
+        result = &"{pref}txb({bl.text.escape()})"
+      of bkVerb:
+        result = pref & name & "([\n"
+        for isLast, line in itemsIsLast(bl.textLines):
+          result &= &"{pref}  \"{line}\"" & (if isLast: "\n" else: ",\n")
+
+        result &= pref & "])"
+
+  return "str(" & aux(inBl, 0) & ")"
+
+
+func ptreeRepr*(inBl: Block): string =
+  func aux(bl: Block, level: int): string =
+    let name =
+      case bl.kind:
+        of bkLine: "LB"
+        of bkChoice: "CB"
+        of bkText: "TB"
+        of bkWrap: "WB"
+        of bkStack: "SB"
+        of bkVerb: "VB"
+
+    let pref = (name & " ").align(level * 2)
+    let pref2 = repeat(" ", level * 2)
+
+    case bl.kind:
+      of bkLine, bkChoice, bkStack, bkWrap:
+        for isFirst, isLast, elem in itemsIsFirstLast(bl.elements):
+          result &=
+            (if isFirst: pref & "\n" & pref2 else: pref2) &
+            elem.aux(level + 1) &
+            (if isLast: "" else: "\n")
+
+      of bkText:
+        result = &"{pref}{bl.text.escape()}"
+      of bkVerb:
+        for isLast, line in itemsIsLast(bl.textLines):
+          result &= &"{pref}|  {line.escape()}" & (if isLast: "" else: "\n")
+
+  return aux(inBl, 0)
 
 
 when isMainModule:

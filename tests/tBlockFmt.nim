@@ -15,6 +15,7 @@ suite "Block formatting":
     vsb = makeStackBlock
     hsb = makeLineBlock
     ind = makeIndentBlock
+    verb = makeVerbBlock
     wrap = makeWrapBlock
     choice = makeChoiceBlock
     nl = makeForceLinebreak
@@ -23,7 +24,7 @@ suite "Block formatting":
   proc lyt(bl: Block, m1: int = 40): string =
     var bl = bl
     let ops = defaultFormatOpts.withIt do:
-      it.m1 = m1
+      it.rightMargin = m1
 
     let sln = none(Solution).withResIt do:
       bl.doOptLayout(it, ops).get()
@@ -78,4 +79,42 @@ suite "Block formatting":
         hsb([txb("arg:"), txb("Type")]),
       ]), 4),
       txb(")")
+    ]))
+
+  test "Function argument wrap":
+    echo str hsb([
+      txb("    "),
+      hsb([
+        txb("similarityTreshold"),
+        txb(": "),
+        txb("ScoreCmpProc"),
+        txb(",")
+      ])
+    ])
+
+    echo str(hsb([
+      txb("proc "),
+      txb("hello*"),
+      txb("("),
+      choice([
+        hsb([
+          hsb([
+            hsb([
+              txb("similarityTreshold"),
+              txb(": "),
+              txb("ScoreCmpProc"),
+              txb(",")
+            ])
+          ]),
+          hsb([
+            hsb([
+              txb("secondArgument"),
+              txb(": "),
+              txb("StdCxx11BasicStringSizeType"),
+              txb(",")
+            ])
+          ]),
+          txb(")")
+        ])
+      ])
     ]))

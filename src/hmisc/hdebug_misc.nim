@@ -178,8 +178,14 @@ template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
       if vart.split("\n").len > 1 and other.len > 0:
         vart = vart & "\n"
 
-      var text = line & "\e[32m" & astToStr(variable) & "\e[39m: " &
-        vart & " " & other.join(" ")
+      let pref =
+        when variable is static[string]:
+          "\e[33m" & vart & "\e[39m:"
+        else:
+          "\e[32m" & astToStr(variable) & "\e[39m: " & vart
+
+
+      var text = line & pref & " " & other.join(" ")
 
       when nimvm:
       # when compiles(doLogRuntime):
