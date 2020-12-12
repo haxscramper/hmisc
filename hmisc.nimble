@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.9.5"
+version       = "0.9.6"
 author        = "haxscramper"
 description   = "Collection of helper utilities"
 license       = "Apache-2.0"
