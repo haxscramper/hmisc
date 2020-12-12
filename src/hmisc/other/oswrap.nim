@@ -589,18 +589,18 @@ iterator walkDir*(
         yield FsEntry(kind: comp, file:
           block:
             if relative:
-              RelFile(path).toFile()
+              RelFile(path).toFsFile()
             else:
-              AbsFile(path).toFile()
+              AbsFile(path).toFsFile()
         )
 
       of os.pcDir, os.pcLinkToDir:
         yield FsEntry(kind: comp, dir:
           block:
             if relative:
-              RelDir(path).toDir()
+              RelDir(path).toFsDir()
             else:
-              AbsDir(path).toDir()
+              AbsDir(path).toFsDir()
         )
 
 iterator walkDirRec*(
