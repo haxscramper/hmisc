@@ -8,6 +8,7 @@ import strutils, sequtils, macros, tables, strformat, lenientops,
        options, hashes, math, sugar
 
 import ../algo/[hmath, halgorithm, hseq_mapping]
+import ../hdebug_misc, ../hexceptions
 import colorlogger
 
 startColorLogger()
@@ -182,12 +183,24 @@ proc `$`*(sln: Option[Solution]): string =
 
 proc `$`*(blc: Block): string =
   case blc.kind:
-    of bkText: &"\"{blc.text}\""
-    of bkStack: blc.elements.mapIt($it).join(" ↕ ").wrap("()")
-    of bkLine: blc.elements.mapIt($it).join(" ↔ ").wrap("()")
-    of bkChoice: blc.elements.mapIt($it).join(" ? ").wrap("()")
-    of bkWrap: blc.wrapElements.mapIt($it).join(" ").wrap("[]")
-    of bkVerb: &""">>{blc.textLines.join("⮒")}<<"""
+    of bkText:
+      (if blc.is_breaking: "*" else: "") & &"\"{blc.text}\""
+
+    of bkStack:
+      blc.elements.mapIt("SB[" & $it & "]").join(" ↕ ")
+
+    of bkLine:
+      blc.elements.mapIt("LB[" & $it & "]").join(" ↔ ")
+
+    of bkChoice:
+      blc.elements.mapIt($it).join(" ? ").wrap("()")
+
+    of bkWrap:
+      blc.wrapElements.mapIt($it).join(" ").wrap("[]")
+
+    of bkVerb:
+      blc.textLines[0] & "..."
+      # &""">>{blc.textLines.join("⮒")}<<"""
 
 
 
@@ -217,16 +230,6 @@ type
     cpack*: float ## cost (per element) for packing justified layouts.
                  ## Expected value `~0.001`
     format_policy*: FormatPolicy[StrTree]
-
-const defaultFormatOpts* = Options(
-  m0: 0, m1: 40, c0: 0.05, c1: 100,
-  cb: 2, ind: 2, cpack: 0.001,
-  formatPolicy: FormatPolicy[StrTree](
-    breakElementLines: (
-      proc(blc: seq[seq[Block]]): seq[seq[Block]] = blc
-    )
-  )
-)
 
 func hash(elem: LayoutElement): Hash = hash(elem.impl)
 func hash(lyt: Layout): Hash = hash(lyt.elements)
@@ -485,9 +488,9 @@ proc vSumSolution(solutions: seq[Solution]): Solution =
   ##   A Solution object that lays out the solutions vertically, separated by
   ##   newlines, with the same left margin.
 
-  echo "vSumSolutions"
-  for s in solutions:
-    echo s
+  # echov "vSumSolutions"
+  # for s in solutions:
+  #   echov s
 
   assert solutions.len > 0
   # debug "Vertical stack #", solutions.len, "solution"
@@ -669,7 +672,8 @@ proc makeTextBlocks*(text: varargs[string]): seq[Block] =
   text.mapIt(makeTextBlock(it))
 
 func makeLineBlock*(elems: varargs[Block]): Block =
-  Block(kind: bkLine, elements: toSeq(elems))
+  result = Block(kind: bkLine, elements: toSeq(elems))
+  echov 1, "Created line block with elements", result.elements
 
 func makeIndentBlock*(blc: Block, indent: int): Block =
   makeLineBlock(@[makeTextBlock(" ".repeat(indent)), blc])
@@ -680,7 +684,8 @@ func makeChoiceBlock*(elems: varargs[Block]): Block =
   Block(kind: bkChoice, elements: toSeq(elems))
 
 func makeStackBlock*(elems: varargs[Block]): Block =
-  Block(kind: bkStack, elements: toSeq(elems))
+  result = Block(kind: bkStack, elements: toSeq(elems))
+  echov 1, "Created stack block with elements", result.elements
 
 
 func makeWrapBlock*(elems: varargs[Block]): Block =
@@ -781,8 +786,9 @@ proc doOptTextLayout(
 proc doOptLineLayout(
   self: var Block,
   rest_of_line: var Option[Solution], opts: Options): Option[Solution] =
+  # echov "doOptLineLayout"
   assert self != nil
-  echo self
+  # echov self
   if self.elements.len == 0:
     return rest_of_line
 
@@ -801,14 +807,20 @@ proc doOptLineLayout(
 
   var line_solns: seq[Option[Solution]]
 
+  echov element_lines
+  # pprintStackTrace()
   for i, ln in rmpairs(element_lines):
-    var ln_layout: Option[Solution] =
-      if i < len(element_lines) - 1:
-        none(Solution)
-      else:
-        rest_of_line
+    var ln_layout = none(Solution)
+
+    if i == element_lines.high:
+      ln_layout = rest_of_line
+      # if i < len(element_lines) - 1:
+      #   none(Solution)
+      # else:
+      #   rest_of_line
 
     for idx, elt in rmpairs(ln):
+      # echov "--", elt
       ln_layout = elt.optLayout(ln_layout, opts)
 
     line_solns.add ln_layout
@@ -976,6 +988,7 @@ proc doOptLayout*(
   self: var Block,
   rest_of_line: var Option[Solution], opts: Options): Option[Solution] =
 
+  # echov self
   # info "Opt layout for ", self
   # logIdented:
   result = case self.kind:
@@ -985,6 +998,44 @@ proc doOptLayout*(
     of bkStack: self.doOptStackLayout(restOfLine, opts)
     of bkWrap: self.doOptWrapLayout(restOfLine, opts)
     of bkVerb: self.doOptVerbLayout(restOfLine, opts)
+
+const defaultFormatOpts* = Options(
+  m0: 0, m1: 40, c0: 0.05, c1: 100,
+  cb: 4, ind: 4, cpack: 0.001,
+  formatPolicy: FormatPolicy[StrTree](
+    breakElementLines: (
+      proc(blc: seq[seq[Block]]): seq[seq[Block]] =
+        let spaceText = makeTextBlock(" ")
+        func strippedLine(line: seq[Block]): Block =
+          var leftSpaces, rightSpaces: int
+
+          for idx, bl in pairs(line):
+            if bl == spaceText:
+              leftSpaces = idx
+            else:
+              break
+
+          for idx, bl in rpairs(line):
+            if bl == spaceText:
+              rightSpaces = idx
+            else:
+              break
+
+          return makeLineBlock(line[(leftSpaces)..(rightSpaces)])
+
+
+        if blc.len > 1:
+          result.add @[makeIndentBlock(
+            makeStackBlock(blc[1..^1].map(strippedLine)),
+            2 * 2 # FIXME use indentation from
+          )]
+
+        result.add @[blc[0]]
+    )
+  )
+)
+
+
 
 
 proc layoutBlock*(blc: Block, opts: Options = defaultFormatOpts): string =
@@ -1012,6 +1063,8 @@ proc stackBlocks*(
   ## Return string representation of the most optimal layout for
   ## vertically stacked blocks.
   layoutBlock(makeStackBlock(blocks), opts)
+
+
 
 
 when isMainModule:
