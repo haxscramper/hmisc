@@ -4,8 +4,10 @@
 # Thanks to nim being syntactically close to python this is mostly
 # just blatant copy-paste of python code with added type annotations.
 
-import strutils, sequtils, macros, tables, strformat, lenientops,
-       options, hashes, math, sugar
+import std/[
+  strutils, sequtils, macros, tables, strformat,
+  lenientops, options, hashes, math, sugar, streams
+]
 
 import ../algo/[hmath, halgorithm, hseq_mapping]
 import ../hdebug_misc, ../hexceptions
@@ -48,6 +50,23 @@ method printSpace(c: var DConsole, n: int) = c.text &= &"<spc({n})>"
 method printNewline(c: var DConsole, ident: bool = true) =
   c.text &= "<NL" & (if ident: "i" else: "") & ">"
 
+type
+  StreamConsole* = ref object of Console
+    stream: Stream
+
+
+func newStreamConsole*(stream: Stream): StreamConsole =
+  StreamConsole(stream: stream)
+
+method printString*(c: var StreamConsole, str: string) =
+  c.stream.write(str)
+
+method printSpace*(c: var StreamConsole, n: int) =
+  c.stream.write(" ".repeat(n))
+
+# method printNewline*(c: var StreamConsole, ident: bool = true) =
+
+
 
 #*************************************************************************#
 #****************************  Format policy  ****************************#
@@ -67,7 +86,7 @@ type
                  ## pretty-printing
     impl: proc(pr: var Console)
 
-  Layout = object
+  Layout* = object
     ## An object containing a sequence of directives to the console.
     elements: seq[LayoutElement]
 
@@ -147,6 +166,14 @@ type
 proc printOn*(self: Layout, console: var Console): void =
   for elem in self.elements:
     elem.impl(console)
+
+proc write*(stream: Stream | File, self: Layout) =
+  when stream is File:
+    var stream = newFileStream(stream)
+
+  var c = newStreamConsole(stream)
+  for elem in self.elements:
+    elem.impl(Console(c))
 
 proc printLayout(self: var Console, layout: Layout): void =
   layout.printOn(self)

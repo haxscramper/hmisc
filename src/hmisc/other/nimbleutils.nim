@@ -291,7 +291,7 @@ template initBuildConf*(): TaskRunConfig {.dirty.} =
     tmp
 
 proc runDocGen*(conf: TaskRunConfig): void =
-  logIdented:
+  logIndented:
     docgenBuild(conf)
 
 

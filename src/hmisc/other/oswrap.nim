@@ -10,7 +10,7 @@
 # TEST that compiles without errors.
 
 import std/[strutils, macros, random, hashes,
-            strformat, sequtils, options]
+            strformat, sequtils, options, streams]
 
 import ../algo/hstring_algo
 from os import nil
@@ -1014,6 +1014,15 @@ template readFile*(file: AnyFile): untyped =
 
 template writeFile*(file: AnyFile, text: string): untyped =
   writeFile(file.getStr(), text)
+
+template withStreamFile*(inFile: AnyFile, body: untyped) =
+  block:
+    var file {.inject.} = open(inFile.getStr(), fmReadWrite)
+    try:
+      body
+    finally:
+      file.close()
+
 
 proc rmDir*(dir: AnyDir | string; checkDir = false) =
   ## Removes the directory dir.

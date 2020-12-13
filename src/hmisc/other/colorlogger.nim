@@ -65,7 +65,7 @@ proc getIdent*(): int =
   else:
     globalLog.ident
 
-template logIdented*(body: untyped): untyped =
+template logIndented*(body: untyped): untyped =
   try:
     identLog()
     body
