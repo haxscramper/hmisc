@@ -132,6 +132,18 @@ proc matchWith*[K, V](
 
 #=========================  string operations  ===========================#
 
+func join*[T](obj: T, sep: string, wrap: (string, string)): string =
+  var first: bool = true
+  for elem in obj:
+    if not first:
+      result &= sep
+    else:
+      first = false
+
+    result &= wrap[0] & $elem & wrap[1]
+
+
+
 
 func dashedWords*(
   str: string,

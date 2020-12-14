@@ -13,8 +13,6 @@ import ../algo/[hmath, halgorithm, hseq_mapping]
 import ../hdebug_misc, ../hexceptions
 import colorlogger
 
-startColorLogger()
-
 const infty = 1024 * 1024 * 1024 * 1024
 
 func inf(a: int): bool = (infty - 4096 <= a) and (a <= infty + 4096)

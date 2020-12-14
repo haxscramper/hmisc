@@ -1062,15 +1062,21 @@ proc evalShellStdout*(cmd: ShellExpr): string =
   runShell(cmd, options = {poEvalCommand, poUsePath}).stdout.strip()
 
 
-proc evalShellStdout*(cmd: ShellAst): string =
-  runShell(ShellCmd(bin: cmd.toStr()), options = {
-    poEvalCommand, poUsePath
-  }).stdout.strip()
+proc evalShellStdout*(cmd: ShellAst, stdin: string = ""): string =
+  runShell(
+    ShellCmd(bin: cmd.toStr()),
+    options = {poEvalCommand, poUsePath},
+    stdin = stdin
+  ).stdout.strip()
 
 
 
-proc evalShellStdout*(cmd: ShellCmd): string =
-  runShell(cmd, options = {poEvalCommand, poUsePath}).stdout.strip()
+proc evalShellStdout*(cmd: ShellCmd, stdin: string = ""): string =
+  runShell(
+    cmd,
+    stdin = stdin,
+    options = {poEvalCommand, poUsePath},
+  ).stdout.strip()
 
 proc execShell*(cmd: ShellCmd, doRaise: bool = true): void =
   ## Execute shell command with stdout/stderr redirection into parent

@@ -323,6 +323,11 @@ proc splitDir*(dir: AbsDir): tuple[head: AbsDir, tail: RelDir] =
   result.head = AbsDir(head)
   result.tail = RelDir(tail)
 
+proc splitDir*(dir: RelDir): tuple[head: RelDir, tail: RelDir] =
+  let (head, tail) = os.splitPath(dir.getStr())
+  result.head = RelDir(head)
+  result.tail = RelDir(tail)
+
 
 template currentSourceDir*(): AbsDir {.dirty.} =
   splitPath(AbsFile(instantiationInfo(fullPaths = true).filename)).head
@@ -338,11 +343,24 @@ proc startsWith*(path: AnyPath, str: string): bool =
 proc relativePath*(path: AbsDir, base: AbsDir): RelDir =
   RelDir(os.relativePath(path.string, base.string))
 
+
 proc parentDir*(path: AbsPath): AbsDir =
   AbsDir(os.parentDir(path.getStr()))
 
 proc parentDir*(path: RelPath): RelDir =
   RelDir(os.parentDir(path.getStr()))
+
+proc parentDir*(path: FsFile): FsDir =
+  if path.isRelative:
+    parentDir(path.relFile).toFsDir()
+  else:
+    parentDir(path.absFile).toFsDir()
+
+proc parentDir*(path: FsDir): FsDir =
+  if path.isRelative:
+    parentDir(path.relDir).toFsDir()
+  else:
+    parentDir(path.absDir).toFsDir()
 
 proc tailDir*(path: AnyDir): string = os.tailDir(path.string)
 
@@ -368,11 +386,7 @@ proc `/../`*(head: AbsDir, tail: RelDir): AbsDir =
 
 proc searchExtPos*(path: AnyFile): int = os.searchExtPos(path.string)
 
-proc splitFile*(path: AnyFile, multidot: bool = true): tuple[
-  dir: AbsDir, name, ext: string] =
-  let (dir, name, ext) = os.splitFile(path.getStr())
-  result.dir = AbsDir(dir)
-
+template splitFileImpl(): untyped {.dirty.} =
   if multidot:
     let tmp = (name & ext).split(".")
     result.name = tmp[0]
@@ -381,6 +395,35 @@ proc splitFile*(path: AnyFile, multidot: bool = true): tuple[
     result.name = name
     result.ext = ext.dropPrefix(".")
 
+proc splitFile*(
+    path: AbsFile, multidot: bool = true
+  ): tuple[dir: AbsDir, name, ext: string] =
+
+  let (dir, name, ext) = os.splitFile(path.getStr())
+
+  result.dir = AbsDir(dir)
+
+  splitFileImpl()
+
+proc splitFile*(
+    path: RelFile, multidot: bool = true
+  ): tuple[dir: RelDir, name, ext: string] =
+
+  let (dir, name, ext) = os.splitFile(path.getStr())
+
+  result.dir = RelDir(dir)
+
+  splitFileImpl()
+
+proc splitFile2*(file: RelFile): tuple[dir: RelDir, file: string] =
+  ## Split file into two parts - directory and file itself (with extension)
+  let (dir, name, ext) = splitFile(file)
+  return (dir, name & (if ext.len > 0: "." & ext else: ""))
+
+proc splitFile2*(file: AbsFile): tuple[dir: AbsDir, file: string] =
+  let (dir, name, ext) = splitFile(file)
+  return (dir, name & (if ext.len > 0: "." & ext else: ""))
+
 func hasExt*(file: AnyFile, exts: openarray[string] = @[]): bool =
   let (_, _, ext) = file.splitFile()
   if exts.len == 0:
@@ -388,7 +431,13 @@ func hasExt*(file: AnyFile, exts: openarray[string] = @[]): bool =
   else:
     return ext in exts
 
+
+func hasExt*(file: AnyFile, ext: string): bool =
+  let (_, _, fileExt) = file.splitFile()
+  return ext == fileExt
+
 func ext*(file: AnyFile): string = file.splitFile().ext
+func name*(file: AnyFile): string = file.splitFile().name
 
 proc assertValid*(path: AnyPath): void =
   if path.getStr().len < 1:
@@ -580,45 +629,135 @@ proc `==`*(dir1, dir2: AnyDir): bool =
 # proc expandFilename*(filename: string): string {.rtl, extern: "nos$1",
 
 
-iterator walkDir*(
-  dir: AnyDir; relative: bool = false, checkDir: bool = false): FsEntry =
-  for (comp, path) in os.walkDir(dir.string):
-    let comp = comp
-    case comp:
-      of os.pcFile, os.pcLinkToFile:
-        yield FsEntry(kind: comp, file:
-          block:
-            if relative:
-              RelFile(path).toFsFile()
-            else:
-              AbsFile(path).toFsFile()
-        )
+template walkYieldImpl(): untyped {.dirty.} =
+  case comp:
+    of os.pcFile, os.pcLinkToFile:
+      yield FsEntry(kind: comp, file:
+        block:
+          if relative:
+            RelFile(path).toFsFile()
+          else:
+            AbsFile(path).toFsFile()
+      )
 
-      of os.pcDir, os.pcLinkToDir:
-        yield FsEntry(kind: comp, dir:
-          block:
-            if relative:
-              RelDir(path).toFsDir()
-            else:
-              AbsDir(path).toFsDir()
-        )
+    of os.pcDir, os.pcLinkToDir:
+      yield FsEntry(kind: comp, dir:
+        block:
+          if relative:
+            RelDir(path).toFsDir()
+          else:
+            AbsDir(path).toFsDir()
+      )
+
+
+iterator walkDir*(
+    dir: AnyDir;
+    relative: bool = false,
+    yieldFilter = {os.pcFile},
+  ): FsEntry =
+
+  for (comp, path) in os.walkDir(dir.getStr()):
+    let comp = comp
+    if comp in yieldFilter:
+      walkYieldImpl()
+
 
 iterator walkDirRec*(
-  dir: AnyDir,
-  yieldFilter = {os.pcFile},
-  followFilter = {os.pcDir},
-  relative = false,
-  checkDir = false
-         ): FsEntry =
+    dir: AnyDir,
+    yieldFilter = {os.pcFile},
+    followFilter = {os.pcDir},
+    relative = false,
+    checkDir = false
+  ): FsEntry =
 
-  for dir in os.walkDirRec(
-    dir.string,
-    yieldFilter,
-    followFilter,
-    relative,
-    checkDir,
+  for path in os.walkDirRec(
+    dir.getStr(),
+    yieldFilter = yieldFilter,
+    followFilter = followFilter,
+    relative = relative,
+    checkDir = checkDir,
   ):
-    discard
+    let comp = os.getFileInfo(
+      if relative:
+        os.joinPath(dir.getStr(), path)
+      else:
+        path
+    ).kind
+
+    walkYieldImpl()
+
+iterator walkDir*[T: AnyPath](
+    dir: AnyDir,
+    resType: typedesc[T],
+    recurse: bool = true,
+    yieldLinks: bool = true
+  ): T =
+
+  ## Iterate over entries in `dir`, yielding only those that match
+  ## `resType` (for example, `when resType is RelFile` you will only get
+  ## entries that represent file, and path will be relative). This is a
+  ## higher-level wrapper that takes advantage of distinct types for
+  ## files/directories and eliminates need to filter by entry kind in the
+  ## calling loop.
+  runnableExamples:
+    for dir in walkDir(~".config", RelDir):
+      assert dir is RelDir
+
+
+  template yieldImpl(): untyped {.dirty.} =
+    when resType is RelFile:
+      yield entry.file.relFile
+
+    elif resType is AbsFile:
+      yield entry.file.absFile
+
+    elif resType is RelDir:
+      yield entry.dir.relDir
+
+    elif resType is AbsDir:
+      yield entry.dir.absDir
+
+    elif resType is FsFile:
+      yield entry.file
+
+    elif resType is FsDir:
+      yield entry.dir
+
+    elif resType is FsEntry:
+      yield entry
+
+
+  let relative = (resType is RelDir) or (resType is RelFile)
+
+  var resSet: set[os.PathComponent]
+
+  when resType is AbsDir | RelDir | FsDir:
+    resSet.incl pcDir
+    if yieldLinks:
+      resSet.incl pcLinkToDir
+
+  elif resType is AbsFile | RelFile | FsFile:
+    resSet.incl pcFile
+    if yieldLinks:
+      resSet.incl pcLinkToFile
+
+  elif resType is FsEntry:
+    resSet.incl {pcFile, pcDir}
+    if yieldLinks:
+      resSet.incl {pcLinkToFile, pcLinkToDir}
+
+
+  if recurse:
+    for entry in walkDirRec(
+      dir, relative = relative, yieldFilter = resSet):
+
+      yieldImpl()
+  else:
+    for entry in walkDir(
+      dir, relative = relative, yieldFilter = resSet):
+
+      yieldImpl()
+
 
 when cbackend:
   proc existsOrCreateDir*(dir: AnyDir): bool =
@@ -821,6 +960,12 @@ proc dirExists*(dir: AnyDir): bool =
   ## Checks if the directory dir exists.
   osAndNims(dirExists(dir.getStr()))
 
+proc exists*(path: AnyPath): bool =
+  when path is AnyDir:
+    dirExists(path)
+  else:
+    fileExists(path)
+
 # proc fileExists*(filename: AnyFile): bool =
 #   ## An alias for fileExists.
 #   osAndNims(file(filename.getStr()))
@@ -918,8 +1063,24 @@ func withExt*(f: FsTree, ext: string): FsTree =
   result = f
   result.ext = ext
 
-func withExt*(f: AbsFile, ext: string): AbsFile =
-  AbsFile(f.getStr() & ext.addPrefix("."))
+func withExt*[F: AbsFile | RelFIle](
+    f: F, newExt: string, replace: bool = true
+  ): F =
+  ## Set file extension by either replacing it (default) or adding suffix
+  ## `.<extension-string>`
+
+  if replace:
+    let (parent, file, ext) = f.splitFile()
+    let exts = ext.split(".")
+
+    let resExt = join(exts[0..^2] & newExt.dropPrefix("."), ".")
+    parent /. (file & (if resExt.len > 0: "." & resExt else: ""))
+  else:
+    when F is AbsFile:
+      AbsFile(f.getStr() & newExt.addPrefix("."))
+    else:
+      RelFile(f.getStr() & newExt.addPrefix("."))
+
 
 func withBase*(f: FsTree, base: string): FsTree =
   result = f
@@ -955,6 +1116,8 @@ func withoutParent*(f: FsTree, pref: seq[string]): FsTree =
 func withoutNParents*(f: FsTree, cut: int): FsTree =
   result = f
   result.parent = f.parent[cut .. ^1]
+
+
 
 
 func toFsTree*(str: AbsDir): FsTree =
@@ -1014,14 +1177,6 @@ template readFile*(file: AnyFile): untyped =
 
 template writeFile*(file: AnyFile, text: string): untyped =
   writeFile(file.getStr(), text)
-
-template withStreamFile*(inFile: AnyFile, body: untyped) =
-  block:
-    var file {.inject.} = open(inFile.getStr(), fmReadWrite)
-    try:
-      body
-    finally:
-      file.close()
 
 
 proc rmDir*(dir: AnyDir | string; checkDir = false) =
@@ -1113,6 +1268,23 @@ func `&&`*(ex1: ShellExpr, ex2: string): ShellExpr =
 func `&&=`*(ex: var ShellExpr, ex2: ShellExpr) =
   ex = ex && ex2
 
+
+template withStreamFile*(inFile: AnyFile, body: untyped) =
+  block:
+    var file {.inject.} = open(inFile.getStr(), fmReadWrite)
+    try:
+      body
+    finally:
+      file.close()
+
+
+template withNewStreamFile*(inFile: AnyFile, body: untyped) =
+  block:
+    if not inFile.parentDir().exists():
+      mkDir(inFile.parentDir())
+
+    withStreamFile(inFile):
+      body
 
 
 proc getNewTempDir*(
