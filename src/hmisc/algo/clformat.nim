@@ -413,16 +413,26 @@ func namedNumTuple*(num: int): string =
     of 3: "triple"
     else: "TODO"
 
-func toNamedMultichar*(str: string): seq[(string, string)] =
+func toNamedMultichar*(str: string): seq[(string, string, int)] =
   for group in str.mergeUniqByIt(it):
-    result.add((group.len.namedNumTuple(), group[0].toLatinAbbrChar()))
+    result.add((
+      group.len.namedNumTuple(),
+      group[0].toLatinAbbrChar(),
+      group.len()
+    ))
 
-func toNamedMulticharJoin*(str: string, lowerStart: bool = true): string =
-  for (name, ch) in str.toNamedMultichar():
+func toNamedMulticharJoin*(
+    str: string, lowerStart: bool = true, singlename: bool = false
+  ): string =
+
+  for (name, ch, grLen) in str.toNamedMultichar():
     if ch.len == 1 and ch[0] in IdentChars:
       result.add ch
     else:
-      result.add name.capitalizeAscii() & ch
+      if grLen == 1 and not singlename:
+        result.add ch
+      else:
+        result.add name.capitalizeAscii() & ch
 
   if lowerStart:
     result[0] = result[0].toLowerAscii()

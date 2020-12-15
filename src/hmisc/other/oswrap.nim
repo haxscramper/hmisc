@@ -656,7 +656,7 @@ iterator walkDir*(
     yieldFilter = {os.pcFile},
   ): FsEntry =
 
-  for (comp, path) in os.walkDir(dir.getStr()):
+  for (comp, path) in os.walkDir(dir.getStr(), relative = relative):
     let comp = comp
     if comp in yieldFilter:
       walkYieldImpl()

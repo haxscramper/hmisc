@@ -51,13 +51,19 @@ method printNewline(c: var DConsole, ident: bool = true) =
 type
   StreamConsole* = ref object of Console
     stream: Stream
+    lineprefix: string
 
 
-func newStreamConsole*(stream: Stream): StreamConsole =
-  StreamConsole(stream: stream)
+func newStreamConsole*(
+  stream: Stream, prefix: string = ""): StreamConsole =
+  StreamConsole(stream: stream, lineprefix: prefix)
 
 method printString*(c: var StreamConsole, str: string) =
-  c.stream.write(str)
+  if c.lineprefix == "":
+    c.stream.write(str)
+  else:
+    for line in str.split('\n'):
+      c.stream.write("\n" & c.lineprefix & line)
 
 method printSpace*(c: var StreamConsole, n: int) =
   c.stream.write(" ".repeat(n))
@@ -165,11 +171,11 @@ proc printOn*(self: Layout, console: var Console): void =
   for elem in self.elements:
     elem.impl(console)
 
-proc write*(stream: Stream | File, self: Layout) =
+proc write*(stream: Stream | File, self: Layout, indent: int = 0) =
   when stream is File:
     var stream = newFileStream(stream)
 
-  var c = newStreamConsole(stream)
+  var c = newStreamConsole(stream, " ".repeat(indent))
   for elem in self.elements:
     elem.impl(Console(c))
 

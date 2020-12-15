@@ -903,6 +903,9 @@ suite "String helper functions":
 
     echo "((()))".toNamedMultichar()
 
+  test "Named multichar join":
+    assertEq toNamedMulticharJoin("."), "dot"
+    assertEq toNamedMulticharJoin(".."), "doubleDot"
 
   test "{[^]}":
     assert "hello"[^"lo"]
