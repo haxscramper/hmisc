@@ -707,7 +707,10 @@ func makeLineBlock*(elems: varargs[Block]): Block =
   # echov 1, "Created line block with elements", result.elements
 
 func makeIndentBlock*(blc: Block, indent: int): Block =
-  makeLineBlock(@[makeTextBlock(" ".repeat(indent)), blc])
+  if indent == 0:
+    blc
+  else:
+    makeLineBlock(@[makeTextBlock(" ".repeat(indent)), blc])
   # Block(kind: bkLine, elements:  )
 
 func makeChoiceBlock*(elems: varargs[Block]): Block =

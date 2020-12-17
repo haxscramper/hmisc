@@ -30,6 +30,7 @@ when false:
       assert hfmt("{nice}") == "88"
       assert hfmt("-{nice}-") == "-88-"
       assert hfmt("-{{nice}}-") == "-{nice}-"
+      ## `"9"` is a string literal with value `9`
       assert hfmt("""--{"9"}--""") == "--9--"
 
     test "Non-strings":
@@ -145,7 +146,9 @@ when false:
       let str = "Hello woRld"
       assert hfmt("{str:camel}") == "helloWorld"
       assert hfmt("{str:dashed}") == "hello-world"
+      assert hfmt("{str:snake}") == "hello_world"
       assert hfmt("{str:pascal}") == "HelloWorld"
+      assert hfmt("{str:camel}") == "helloWorld"
       assert hfmt("{str:upper}") == "HELLO WORLD"
       assert hfmt("{str:lower}") == "hello world"
       assert hftm("{str:joined}") == "HelloWoRld"
@@ -155,8 +158,8 @@ when false:
     test "Character formatting":
       assert hfmt("{']':named}") == "Right Square Brace"
       assert hfmt("{']':short-named}") == "RBrack"
-      assert hfmt("{\"---\":short-named}") == "triple RBrack"
-      assert hftm("{\"--\":short-named,joined}") == "tripleRBrack"
+      assert hfmt("{\"---\":short-named,lower,nojoin}") == "triple Dash"
+      assert hftm("{\"--\":short-named,camel,joined}") == "doubleDash"
 
     test "String wrapping":
       assert hfmt("{\"some string\":wrap=[]}") == "[some string]"

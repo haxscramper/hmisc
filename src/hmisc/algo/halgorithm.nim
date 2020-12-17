@@ -64,7 +64,13 @@ iterator ritems*[T](s: LenIndexable[T]): T =
   for idx in countdown(s.len - 1, 0):
     yield s[idx]
 
-iterator itemsIsLast*[T](s: LenIndexable[T]): tuple[isLast: bool, val: T] =
+
+iterator itemsIsFirst*[T](s: T): auto =
+  mixin `[]`
+  for idx in 0 .. s.len - 1:
+    yield (idx == 0, s[idx])
+
+iterator itemsIsLast*[T](s: T): auto =
   let sLen = s.len - 1
   mixin `[]`
   for idx in 0 .. sLen:
