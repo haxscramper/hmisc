@@ -888,6 +888,7 @@ suite "Misc algorithms":
           column: iinfo.column,
           filename: currentSourcePath()
         ),
+        fromString: false,
         annotation: "Hell \e[32masdfas\e[39md o",
         linerange: -2,
         expr: "errpos: currLineInf()"
