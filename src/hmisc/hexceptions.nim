@@ -3,10 +3,25 @@ import std/[strformat, strutils, algorithm, sequtils, macros, os]
 import types/colorstring
 import algo/[hseq_mapping, hmath, halgorithm]
 export alignLeft
+import std/enumerate
+import hdebug_misc
 
 type
+  GlobalSubstring = object
+    ## Part of main string (from file or user input)
+
+    str*: string ## Substring slice
+    line*: int ## Line number for substring in main file
+    column*: int ## Column number for substring in file
+    filename*: string ## Name of the file being parsed
+
   ErrorAnnotation* = object
-    errpos*: LineInfo
+    case fromString*: bool
+      of true:
+        offset*: int ## Offset from the start of main substring
+      of false:
+        errpos*: LineInfo
+
     expr*: string
     annotation*: string
     linerange*: int
@@ -14,7 +29,13 @@ type
 
   CodeError* = ref object of CatchableError
     raisepos*: LineInfo
-    errpos*: LineInfo ## Position of original error
+    case fromString*: bool
+      of true:
+        substr*: GlobalSubstring
+        offset*: int
+      of false:
+        errpos*: LineInfo ## Position of original error
+
     annots*: seq[ErrorAnnotation] ## Additional error annotations
     postannot*: string
 
@@ -49,10 +70,62 @@ proc nthLine(file: string, line: int): string =
   readLines(file, line)[line - 1]
 
 proc lineRange(file: string, linerange: (int, int)): seq[string] =
-  # echo file, linerange
   readLines(file, max(linerange[0], linerange[1]))[
     (linerange[0] - 1) .. (linerange[1] - 1)
   ]
+
+proc getLines(annot: ErrorAnnotation, baseStr: string): seq[string] =
+  if annot.fromString:
+    if annot.offset > baseStr.len:
+      return @[baseStr[max(baseStr.rfind('\n'), 0) .. ^1]]
+
+    else:
+      var lineStart = annot.offset
+      while baseStr[lineStart] != '\n' and lineStart > 0:
+        dec lineStart
+
+      for idx, line in enumerate(baseStr[lineStart .. ^1].split('\n')):
+        if idx > annot.linerange:
+          break
+
+        result.add line
+
+  else:
+    result = annot.errpos.filename.lineRange((
+      annot.errpos.line + annot.linerange,
+      annot.errpos.line
+    ))
+
+proc getColumn(annot: ErrorAnnotation, main: CodeError): int =
+  if annot.fromString:
+    result = main.substr.column
+    for i in 0 ..< annot.offset:
+      if main.substr.str.len - 1 < i:
+        inc result
+
+      else:
+        if main.substr.str[i] == '\n':
+          result = 0
+
+        else:
+          inc result
+
+  else:
+    result = annot.errpos.column
+
+
+
+proc getFile(err: CodeError): string =
+  if err.fromString:
+    err.substr.filename
+  else:
+    err.errpos.filename
+
+proc formatPos(annot: ErrorAnnotation, name, ext: string): string =
+  if annot.fromString:
+    &"{name}{ext} "
+  else:
+    &"{name}{ext} {annot.errpos.line}:{annot.errpos.column} "
 
 proc toColorString*(err: CodeError): string =
   let docolor = not defined(plainStdout)
@@ -60,19 +133,22 @@ proc toColorString*(err: CodeError): string =
   result &= "\n\n" & (if docolor: err.msg else: err.msg.stripSGR()) & "\n\n"
 
 
-  let (dir, name, ext) = err.errpos.filename.splitFile()
+  let (dir, name, ext) = err.getFile().splitFile()
 
   block:
-    let annSorted = err.annots.twoPassSortByIt(
-      it.errpos.line, -it.errpos.column)
+    let annSorted =
+      if err.fromString:
+        @[err.annots.sortedByIt(it.offset)]
+      else:
+        err.annots.twoPassSortByIt(it.errpos.line, -it.errpos.column)
 
     for lineAnnots in annSorted:
       let
         firstErr = lineAnnots[0]
-        position = &"{name}{ext} {firstErr.errpos.line}:{firstErr.errpos.column} "
-        filelines = firstErr.errpos.filename.lineRange((
-          firstErr.errpos.line + firstErr.linerange, firstErr.errpos.line
-        ))
+        position = firstErr.formatPos(name, ext)
+        filelines = firstErr.getLines(tern(err.fromString,
+                                           err.substr.str,
+                                           ""))
 
       block:
         for idx, line in filelines[0..^2]:
@@ -87,7 +163,7 @@ proc toColorString*(err: CodeError): string =
         var buf: seq[seq[ColoredRune]]
         let lastline = position & filelines[^1]
         for annot in lineannots:
-          let start = (position.len + annot.errpos.column)
+          let start = (position.len + annot.getColumn(err))
           for line in 1 ..+ (spacing + 1):
             buf[line, start] = toColored('|', initPrintStyling(
               fg = fgRed
@@ -130,7 +206,7 @@ proc toColorString*(err: CodeError): string =
     block:
       let firstErr = annSorted[0][0]
       let (dir, name, ext) = err.raisepos.filename.splitFile()
-      result &= $firstErr.errpos.filename.toDefault(
+      result &= $err.getFile().toDefault(
         {styleUnderscore}, colorize = docolor) & "\n"
 
 
@@ -148,15 +224,48 @@ func toCodeError*(node: NimNode, message: string,
     result.msg = toColorString(CodeError(
       msg: message,
       raisepos: iinfo,
+      fromString: false,
       annots: @[
         ErrorAnnotation(
           linerange: linerange,
+          fromString: false,
           errpos: node.startpos(),
           expr: $node.toStrLit,
           annotation: annotation
         )
       ]
     ))
+
+func toCodeError*(
+    str: string,
+    offset, exprLen: int,
+    message, annotation: string
+  ): CodeError =
+  result = CodeError(fromString: true)
+
+  echov offset
+
+  {.noSideEffect.}:
+    result.msg = toColorString(CodeError(
+      msg: message,
+      fromString: true,
+      substr: GlobalSubstring(
+        str: str
+      ),
+      annots: @[
+        ErrorAnnotation(
+          expr: tern(offset > str.len,
+                     "",
+                     str[offset ..< min(str.len, offset + exprLen)]),
+
+          fromString: true,
+          annotation: annotation,
+          linerange: 0,
+          offset: offset
+        )
+      ]
+    ))
+
 
 
 func toCodeError*(nodes: openarray[tuple[node: NimNode, annot: string]],
@@ -173,6 +282,7 @@ func toCodeError*(nodes: openarray[tuple[node: NimNode, annot: string]],
           nodes.mapIt:
             ErrorAnnotation(
               linerange: -1,
+              fromString: false,
               errpos: it.node.startpos(),
               expr: $it.node.toStrLit,
               annotation: it.annot))))
@@ -187,8 +297,10 @@ func toStaticMessage*(
     toColorString(CodeError(
         msg: message,
         raisepos: iinfo,
+        fromString: false,
         annots: @[
             ErrorAnnotation(
+              fromString: false,
               linerange: -1,
               errpos: errpos,
               expr: expr,

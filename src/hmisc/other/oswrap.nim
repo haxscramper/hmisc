@@ -253,6 +253,14 @@ converter toFsDir*(relDir: RelDir): FsDir =
 converter toFsDir*(absDir: AbsDir): FsDir =
   FsDir(isRelative: false, absDir: absDir)
 
+converter toFsDirOption*(absDir: Option[AbsDir]): Option[FsDir] =
+  if absDir.isSome():
+    return some FsDir(isRelative: false, absDir: absDir.get())
+
+converter toFsDirOption*(relDir: Option[RelDir]): Option[FsDir] =
+  if relDir.isSome():
+    return some FsDir(isRelative: true, relDir: relDir.get())
+
 converter toFsDirSeq*(drs: seq[AbsDir]): seq[FsDir] =
   for d in drs:
     result.add d.toFsDir()
@@ -300,6 +308,15 @@ proc joinPath*(head: RelDir, tail: RelFile): RelFile =
 
 proc joinPath*(head: AbsDir, tail: seq[string]): AbsDir =
   AbsDir(os.joinPath(head.string & tail))
+
+proc joinPath*(dir: FsDir, relFile: RelFile): FsFile =
+  let file = os.joinPath(dir.getStr(), relFile.string)
+
+  if dir.isRelative:
+    toFsFile RelFile(file)
+  else:
+    toFsFile AbsFile(file)
+
 
 template `/`*(head, tail: AnyPath | string): untyped =
   joinPath(head, RelDir(tail))

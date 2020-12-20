@@ -26,29 +26,30 @@ template mergeUniqByIt*(sequence, operation: untyped): untyped =
     assert @[(1,2), (1,2), (1,4), (2,3)].mergeUniqByIt(it[0]) ==
            @[@[(1, 2), (1, 2), (1, 4)], @[(2, 3)]]
 
-  let s = sequence
-  var prev =
-    block:
-      let it {.inject.} = s[0]
-      operation
+  {.line: instantiationInfo(fullPaths = true).}:
+    let s = sequence
+    var prev =
+      block:
+        let it {.inject.} = s[0]
+        operation
 
-  var equal: seq[type(s[0])] = @[s[0]]
-  var result: seq[type(equal)]
+    var equal: seq[type(s[0])] = @[s[0]]
+    var result: seq[type(equal)]
 
-  for i in 1..<s.len:
-    let it {.inject.} = s[i]
-    let new = operation
+    for i in 1..<s.len:
+      let it {.inject.} = s[i]
+      let new = operation
 
-    if new == prev:
-      equal.add it
-    else:
-      result.add equal
-      equal = @[it]
+      if new == prev:
+        equal.add it
+      else:
+        result.add equal
+        equal = @[it]
 
-    prev = new
+      prev = new
 
-  result.add equal
-  result
+    result.add equal
+    result
 
 template deduplicateIt*[T](
   inseq: seq[T], op: untyped, isSorted: bool = false): seq[T] =

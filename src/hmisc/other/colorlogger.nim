@@ -13,12 +13,14 @@ when cbackend:
     ColorLogger = ref object of Logger
       ident: int
       prevBuf: seq[string]
+      showfile: bool
 
 else:
   type
     ColorLogger = ref object
       ident: int
       prevBuf: seq[string]
+      showfile: bool
 
     Level* = enum
       lvlAll
@@ -77,11 +79,11 @@ template logDefer*(logCmd, before: untyped): untyped =
   identLog()
   defer: dedentLog()
 
-proc startColorLogger*(level: Level = lvlAll): void =
+proc startColorLogger*(level: Level = lvlAll, showfile: bool = false): void =
   # TODO read environment variable for logging indentation/filter etc.
   # Make these things composable across execution of differen programs.
   when cbackend:
-    var logger = ColorLogger(ident: 0)
+    var logger = ColorLogger(ident: 0, showfile: showfile)
     addHandler logger
     # setLogFilter(level)
   else:
@@ -111,8 +113,19 @@ proc makeLogString(level: Level, args: varargs[string]): string =
   result = result[0..^2]
 
 template impl(): untyped {.dirty.} =
+  let iinfo = args[0].split(", ")
+  let file = iinfo[0]["(filename: \"".len ..^ (".nim".len + 2)]
+  let linecol = (iinfo[1]["(line: ".len - 1 .. ^1],
+                 iinfo[2]["(column: ".len - 1 .. ^1])
+
+  let pos =
+    if logger.showfile:
+      &"{file}:{linecol[0]}"
+    else:
+      linecol[0]
+
   if (logger != nil) and args.len > 0:
-    let args = args.msgjoin()
+    let args = pos & " " & args[1..^1].msgjoin()
     if logger.prevBuf.len > 0 and logger.prevBuf[^1] != args:
       echo makeLogString(level, args)
       logger.prevBuf = @[]
@@ -123,10 +136,6 @@ template impl(): untyped {.dirty.} =
 
     logger.prevBuf.add args
 
-
-# proc logImpl(
-#   logger: var ColorLogger, level: Level, args: varargs[string, `$`]) =
-#   impl()
 
 when cbackend:
   method log(
@@ -153,22 +162,22 @@ template toSeqFix(args: varargs[string]): seq[string] =
   res
 
 template debug*(args: varargs[string, `$`]) =
-  log(lvlDebug, @[$instantiationInfo().line] & toSeqFix(args))
+  log(lvlDebug, @[$instantiationInfo()] & toSeqFix(args))
 
 template info*(args: varargs[string, `$`]) =
-  log(lvlInfo, @[$instantiationInfo().line] & toSeqFix(args))
+  log(lvlInfo, @[$instantiationInfo()] & toSeqFix(args))
 
 template notice*(args: varargs[string, `$`]) =
-  log(lvlNotice, @[$instantiationInfo().line] & toSeqFix(args))
+  log(lvlNotice, @[$instantiationInfo()] & toSeqFix(args))
 
 template warn*(args: varargs[string, `$`]) =
-  log(lvlWarn, @[$instantiationInfo().line] & toSeqFix(args))
+  log(lvlWarn, @[$instantiationInfo()] & toSeqFix(args))
 
 template err*(args: varargs[string, `$`]) =
-  log(lvlError, @[$instantiationInfo().line] & toSeqFix(args))
+  log(lvlError, @[$instantiationInfo()] & toSeqFix(args))
 
 template fatal*(args: varargs[string, `$`]) =
-  log(lvlFatal, @[$instantiationInfo().line] & toSeqFix(args))
+  log(lvlFatal, @[$instantiationInfo()] & toSeqFix(args))
 
 
 proc logError*(args: varargs[string, `$`]): void =
