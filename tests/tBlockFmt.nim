@@ -21,23 +21,23 @@ suite "Block formatting":
     nl = makeForceLinebreak
 
 
-  proc lyt(bl: Block, m1: int = 40): string =
+  proc lyt(bl: LytBlock, m1: int = 40): string =
     var bl = bl
     let ops = defaultFormatOpts.withIt do:
       it.rightMargin = m1
 
-    let sln = none(Solution).withResIt do:
+    let sln = none(LytSolution).withResIt do:
       bl.doOptLayout(it, ops).get()
 
     # echo "\e[41m*==========\e[49m  -  \e[41m===========*\e[49m"
     for l in sln.layouts:
       # echo "----"
-      var c = Console()
+      var c = LytConsole()
       l.printOn(c)
       # echo c.text
 
 
-    var c = Console()
+    var c = LytConsole()
     sln.layouts[0].printOn(c)
     return c.text
 
@@ -118,3 +118,25 @@ suite "Block formatting":
         ])
       ])
     ]))
+
+suite "Edge case layouts":
+  const
+    H = blkLine
+    V = blkStack
+    T = blkText
+    I = blkIndent
+    S = blkSpace
+    C = blkChoice
+
+  test "Stack of lines in braces":
+    echo toString(
+      H[
+        T["proc ("],
+        V[
+          T["line 1"],
+          I[6, T["line 2"]],
+          I[6, T["line 3"]],
+        ],
+        T[")"]
+      ]
+    )

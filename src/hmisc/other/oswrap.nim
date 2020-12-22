@@ -265,6 +265,10 @@ converter toFsDirSeq*(drs: seq[AbsDir]): seq[FsDir] =
   for d in drs:
     result.add d.toFsDir()
 
+converter toFsDirSeq*(drs: seq[RelDir]): seq[FsDir] =
+  for d in drs:
+    result.add d.toFsDir()
+
 converter toFsEntry*(path: AnyPath): FsEntry =
   when path is FsEntry:
     path
