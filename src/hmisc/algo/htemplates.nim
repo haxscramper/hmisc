@@ -90,6 +90,15 @@ template maxIt*(s: untyped, op: untyped): untyped =
       res = val
   res
 
+template sumIt*(s: untyped, op: untyped): untyped =
+  type OutType = getIterOpType(s, op)
+  var res: OutType
+  for it {.inject.} in s:
+    res = res + op
+
+  res
+
+
 template noneOfIt*(s: untyped, op: untyped): bool =
   ## True if for all items in `s` predicate `op` returns true.
   mixin anyOfIt

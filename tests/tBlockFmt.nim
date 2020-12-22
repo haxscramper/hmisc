@@ -134,8 +134,14 @@ suite "Edge case layouts":
         T["proc ("],
         V[
           T["line 1"],
-          I[6, T["line 2"]],
-          I[6, T["line 3"]],
+          T["line 2"],
+          T["line 3"],
+        ],
+        T[" = "],
+        V[
+          T["line 1"],
+          T["line 2"],
+          T["line 3"],
         ],
         T[")"]
       ]

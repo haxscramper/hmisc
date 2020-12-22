@@ -114,6 +114,9 @@ type
     layout_cache: Table[Option[LytSolution], Option[LytSolution]]
     isBreaking*: bool ## Whether or not this block should end the line
     breakMult*: int
+    width*: int ## Number of characters on the longest line in the block
+    height*: int ## Number of lines in block
+
     case kind*: LytBlockKind
       of bkVerb:
         textLines*: seq[string] ## Lines of text
@@ -654,16 +657,53 @@ func len*(blc: LytBlock): int =
 
 
 #============================  Constructors  =============================#
+# TODO support reassembling horizontal lines of stacks in different forms,
+# in any of tese forms
+#
+# ```
+#   proc (line 1
+#         line 2
+#         line 3 = line 1
+#                  line 2
+#                  line 3)
+# ```
+#
+# ```
+#   proc (line 1 = line 1)
+#         line 2   line 2
+#         line 3   line 3
+# ```
 
 func makeTextBlock*(text: string): LytBlock =
-  LytBlock(kind: bkText, text: text)
+  LytBlock(kind: bkText, text: text, width: text.len, height: 1)
 
-proc makeTextBlocks*(text: varargs[string]): seq[LytBlock] =
+proc makeTextBlocks*(text: openarray[string]): seq[LytBlock] =
   text.mapIt(makeTextBlock(it))
 
-func makeLineBlock*(elems: varargs[LytBlock]): LytBlock =
+
+func makeIndentBlock*(blc: LytBlock, indent: int): LytBlock
+
+func makeLineBlock*(
+    elems: openarray[LytBlock], fixLyt: bool = true
+  ): LytBlock =
+
   result = LytBlock(kind: bkLine, elements: toSeq(elems))
-  # echov 1, "Created line block with elements", result.elements
+
+  if fixLyt:
+    result.height = elems.maxIt(it.height)
+    result.width = elems.sumIt(it.width)
+
+    var indent = 0
+    for toplevel in mitems(result.elements):
+      if toplevel.height > 1:
+        if toplevel.kind == bkStack:
+          for idx in 1 .. toplevel.elements.high:
+            toplevel.elements[idx] = makeIndentBlock(
+              toplevel.elements[idx], indent
+            )
+
+      indent += toplevel.width
+
 
 func makeIndentBlock*(blc: LytBlock, indent: int): LytBlock =
   if indent == 0:
@@ -672,16 +712,21 @@ func makeIndentBlock*(blc: LytBlock, indent: int): LytBlock =
     makeLineBlock(@[makeTextBlock(" ".repeat(indent)), blc])
   # LytBlock(kind: bkLine, elements:  )
 
-func makeChoiceBlock*(elems: varargs[LytBlock]): LytBlock =
-  # assert elems.len > 0
+func makeChoiceBlock*(elems: openarray[LytBlock]): LytBlock =
   LytBlock(kind: bkChoice, elements: toSeq(elems))
 
-func makeStackBlock*(elems: varargs[LytBlock]): LytBlock =
+func makeStackBlock*(
+    elems: openarray[LytBlock], fixLyt: bool = true
+  ): LytBlock =
+
   result = LytBlock(kind: bkStack, elements: toSeq(elems))
-  # echov 1, "Created stack block with elements", result.elements
+
+  if fixLyt:
+    result.height = elems.sumIt(it.height)
+    result.width = elems.maxIt(it.width)
 
 
-func makeWrapBlock*(elems: varargs[LytBlock]): LytBlock =
+func makeWrapBlock*(elems: openarray[LytBlock]): LytBlock =
   LytBlock(kind: bkWrap, wrapElements: toSeq(elems))
 
 func makeVerbBlock*(
