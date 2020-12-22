@@ -23,3 +23,43 @@ macro typeCondIt*(head, body: untyped): untyped =
     block:
       let it {.inject.} = `head`
       `result`
+
+macro cond*(v: untyped, conds: varargs[untyped]): untyped =
+  ## Lisp-style condition checking. Simplifies use of if-expressions in
+  ## other expressions. Syntax - takes `<input-value>` and multiple
+  ## `(<value>, <expr>)` pairs and compares result of `<input-value>` with
+  ## each `<value>` in branches. Yields first matched result.
+  runnableExamples:
+    let vald = cond(12,
+                    (13, "hello"),
+                    (14, "world"))
+
+  var exprId = genSym(nskLet, "expr")
+
+  result = nnkIfExpr.newTree()
+
+  for cond in conds:
+    cond.assertNodeKind({nnkTupleConstr, nnkPar})
+
+    if cond.len == 1 or
+       cond[0].eqIdent("_"):
+      result.add nnkElseExpr.newTree(cond[^1])
+
+    else:
+      result.add nnkElifExpr.newTree(
+        nnkInfix.newTree(ident "==", exprId, cond[0]),
+        cond[1]
+      )
+
+  if result[^1].kind != nnkElseExpr:
+    raise conds[^1].toCodeError(
+      "No default branch for condition",
+      "Use (_, <expr>) or (<expr>) to create default"
+    )
+
+  result = quote do:
+    let `exprId` = `v`
+    `result`
+
+
+
