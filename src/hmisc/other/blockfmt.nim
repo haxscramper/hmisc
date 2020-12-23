@@ -4,7 +4,7 @@
 # Thanks to nim being syntactically close to python this is mostly
 # just blatant copy-paste of python code with added type annotations.
 
-## .. include:: blockfmt.rst
+## .. include:: blockfmt-doc.rst
 
 import std/[
   strutils, sequtils, macros, tables, strformat,
