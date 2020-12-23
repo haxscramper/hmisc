@@ -27,6 +27,7 @@ type
     linerange*: int
 
 
+  InstantiationInfo = tuple[filename: string, line: int, column: int]
   CodeError* = ref object of CatchableError
     raisepos*: LineInfo
     case fromString*: bool
@@ -46,8 +47,7 @@ type
 ## function call), support colored multiline annotations for
 ## exceptions, multiple annotations on the same line etc.
 
-func toLineInfo*(arg: tuple[
-  filename: string, line: int, column: int]): LineInfo =
+func toLineInfo*(arg: InstantiationInfo): LineInfo =
   LineInfo(
     filename: arg.filename,
     line: arg.line,
@@ -314,6 +314,41 @@ func toStaticMessage*(
   toStaticMessage(node.startpos(), node.toStrLit().strval(),
                   message, annot, iinfo)
 
+func toStaticMessage*(
+    errpos: InstantiationInfo,
+    expr: string,
+    message: string,
+    annot: string
+  ): string =
+
+  {.cast(noSideEffect).}:
+    toColorString(CodeError(
+      msg: message,
+      raisepos: errpos.toLineInfo(),
+      fromString: false,
+      annots: @[
+        ErrorAnnotation(
+          fromString: false,
+          linerange: -1,
+          errpos: errpos.toLineInfo(),
+          expr: expr,
+          annotation: annot)]))
+
+template hxInfo*(): untyped {.dirty.} =
+  instantiationInfo(fullpaths = true)
+
+template staticAssert*(
+    assrt: untyped, message, annotation: string,
+    iinfo: InstantiationInfo
+  ): untyped =
+
+  static:
+    assert assrt, toStaticMessage(
+      iinfo,
+      astToStr(assrt),
+      message,
+      annotation
+    )
 
 
 func toCompilesAssert*(

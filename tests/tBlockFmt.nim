@@ -119,15 +119,9 @@ suite "Block formatting":
       ])
     ]))
 
-suite "Edge case layouts":
-  const
-    H = blkLine
-    V = blkStack
-    T = blkText
-    I = blkIndent
-    S = blkSpace
-    C = blkChoice
+initBlockFmtDSL()
 
+suite "Edge case layouts":
   test "Stack of lines in braces":
     echo toString(
       H[
@@ -139,10 +133,60 @@ suite "Edge case layouts":
         ],
         T[" = "],
         V[
-          T["line 1"],
-          T["line 2"],
-          T["line 3"],
+          T["line 4"],
+          T["line 5"],
+          T["line 6"],
         ],
         T[")"]
       ]
     )
+
+  test "Choice stack vs line":
+
+    if true:
+      echo toString(
+        H[
+          T["proc ("],
+          V[T["arg1: int"], T["arg2: int"], T["arg3: int"]].join(T[", "]),
+          T[")"]
+        ]
+      )
+
+    if true:
+      echo toString(
+        H[
+          T["proc ("],
+          C[
+            V[@[T["arg1: int"], T["arg2: int"],]].join(T[", "])
+          ],
+          T[")"]
+        ]
+      )
+
+
+    if true:
+      echo toString(
+        H[
+          T["proc ("],
+          C[
+            H[@[T["arg1: int"], T["arg2: int"],]].join(T[", "]),
+            V[@[T["arg1: int"], T["arg2: int"],]].join(T[", "]),
+          ],
+          T[")"]
+        ],
+        40
+      )
+
+    if true:
+      for i in [1, 5, 10]:
+        var blocks = mapIt(0 .. i, T["arg: int" & $i])
+        echo toString(
+          H[
+            T["proc ("],
+            C[
+              H[blocks].join(T[", "]),
+              V[blocks].join(T[", "])
+            ],
+            T[")"]
+          ]
+        )

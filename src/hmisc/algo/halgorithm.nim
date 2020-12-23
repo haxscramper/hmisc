@@ -72,9 +72,12 @@ iterator itemsIsFirst*[T](s: T): auto =
 
 iterator itemsIsLast*[T](s: T): auto =
   let sLen = s.len - 1
-  mixin `[]`
-  for idx in 0 .. sLen:
-    yield (idx == sLen, s[idx])
+  var idx = 0
+
+  mixin items
+  for item in items(s):
+    yield (idx == sLen, item)
+    inc idx
 
 
 iterator itemsIsFirstLast*[T](
