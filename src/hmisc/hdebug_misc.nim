@@ -162,10 +162,23 @@ template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
           $variable
 
       when variable is string:
+        # vart = vart.multiReplace({"\n" : "⮒\n"})
         if vart.split("\n").len > 1:
           vart = "\n\"\"\"\n" & vart & "\n\"\"\"\n"
+
         else:
           vart = "\"" & vart & "\""
+
+      elif (variable is char):
+        vart =
+          case variable:
+            of '\n': "\\n"
+            of '\t': "\\t"
+            of '\r': "\\r"
+            else: vart
+
+        vart = "'" & vart & "'"
+
       else:
         if vart.split("\n").len > 1:
           if (variable is NimNode) and
@@ -206,3 +219,9 @@ template plog*(body: untyped): untyped =
   when defined(haxPrintLogging):
     {.noSideEffect.}:
       body
+
+template echove*(body: untyped): untyped =
+  let res = body
+  echov body.astToStr(), "=", res
+  echov "@", instantiationInfo().line
+  res

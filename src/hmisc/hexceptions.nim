@@ -243,8 +243,6 @@ func toCodeError*(
   ): CodeError =
   result = CodeError(fromString: true)
 
-  echov offset
-
   {.noSideEffect.}:
     result.msg = toColorString(CodeError(
       msg: message,

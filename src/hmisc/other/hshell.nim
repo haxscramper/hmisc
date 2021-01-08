@@ -93,6 +93,7 @@ type
   ShellExecResult* = tuple[stdout, stderr: string, code: int] ## Shell command
   ## execution result - standard error, output and return code.
   ShellResult* = object
+    # - REFACTOR :: move `execResult` into `true` branch for `resultOk`
     execResult*: ShellExecResult ## Result of command execution
     hasBeenSet*: bool ## Whether or not result been set
     case resultOk*: bool ## No failures (return code == 0)
@@ -355,15 +356,30 @@ const
 func makeShellCmd*(bin: string): ShellCmd =
   if bin in gnuShellCmdsList:
     result.conf = GnuShellCmdConf
+
   elif bin in nimShellCmdsList:
     result.conf = NimShellCmdConf
+
   elif bin in x11ShellCmdsList:
     result.conf = X11ShellCmdConf
+
   else:
     if bin.startsWith("x"):
       result.conf = X11ShellCmdConf
+
     else:
       result.conf = NimShellCmdConf
+
+  result.bin = bin
+
+func makeShellCmd*(
+  bin, prefix, sep: string): ShellCmd =
+  result.conf = ShellCmdConf(kvSep: sep)
+  if prefix == "--":
+    result.conf.flagConf = ccRegularFlags
+
+  else:
+    result.conf.flagConf = ccOneDashFlags
 
   result.bin = bin
 

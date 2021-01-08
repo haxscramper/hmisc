@@ -54,12 +54,12 @@ iterator ritems*[T](s: var LenIndexable[T]): var T =
   for idx in countdown(s.len - 1, 0):
     yield s[idx]
 
-iterator rpairs*[T](s: LenIndexable[T]): (int, T) =
+iterator rpairs*[T](s: T): auto =
   ## Iterate over sequence starting from the rightk
   for idx in countdown(s.len - 1, 0):
     yield (idx, s[idx])
 
-iterator ritems*[T](s: LenIndexable[T]): T =
+iterator ritems*[T](s: T): auto =
   ## Iterate over sequence starting from the right
   for idx in countdown(s.len - 1, 0):
     yield s[idx]
@@ -113,6 +113,10 @@ func splitList*[T](s: openarray[T]): (T, seq[T]) =
 
 template last*[T](stack: var seq[T]): var T = stack[^1]
 template last*[T](stack: seq[T]): T = stack[^1]
+
+template last2*[T](stack: var seq[seq[T]]): var T = stack[^1][^1]
+template last2*[T](stack: seq[seq[T]]): T = stack[^1][^1]
+
 # TODO use static hashtable instead of searching whole list each time.
 proc matchWith*[K, V](
   val: K,

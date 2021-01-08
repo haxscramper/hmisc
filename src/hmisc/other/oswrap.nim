@@ -8,6 +8,8 @@
 # TODO unit test with taint mode on
 # TODO parse file paths from URI (`file:///`)
 # TEST that compiles without errors.
+# IDEA optionally enable colored exception messages.
+# TODO convert exceptions to structured output
 
 import std/[strutils, macros, random, hashes,
             strformat, sequtils, options, streams]
@@ -269,6 +271,14 @@ converter toFsDirSeq*(drs: seq[RelDir]): seq[FsDir] =
   for d in drs:
     result.add d.toFsDir()
 
+converter toFsFileSeq*(fls: seq[AbsFile]): seq[FsFile] =
+  for f in fls:
+    result.add f.toFsFile()
+
+converter toFsFileSeq*(fls: seq[RelFile]): seq[FsFile] =
+  for f in fls:
+    result.add f.toFsFile()
+
 converter toFsEntry*(path: AnyPath): FsEntry =
   when path is FsEntry:
     path
@@ -382,6 +392,9 @@ proc parentDir*(path: FsDir): FsDir =
     parentDir(path.relDir).toFsDir()
   else:
     parentDir(path.absDir).toFsDir()
+
+proc dir*(file: AbsFile): AbsDir = parentDir(file)
+proc dir*(file: RelFile): RelDir = parentDir(file)
 
 proc tailDir*(path: AnyDir): string = os.tailDir(path.string)
 
@@ -589,10 +602,13 @@ proc toAbsFile*(file: AnyFile | string,
   if checkExists:
     result.assertExists()
 
-proc toAbsDir*(dir: AnyDir | string,
-               checkExists: bool = false,
-               normalize: bool = true,
-               root: AbsDir = getCurrentDir()): AbsDir =
+proc toAbsDir*(
+    dir: AnyDir | string,
+    checkExists: bool = false,
+    normalize: bool = true,
+    root: AbsDir = getCurrentDir()
+  ): AbsDir =
+
   when dir is string:
     if os.isAbsolute(dir):
       assertValid(AbsDir(dir))
@@ -603,7 +619,7 @@ proc toAbsDir*(dir: AnyDir | string,
 
   result = AbsDir(os.absolutePath(dir.getStr(), root.getStr()))
   if checkExists:
-    result.assertExists()
+    result.assertExists("")
 
 
 
@@ -996,7 +1012,7 @@ proc exists*(path: AnyPath): bool =
 #   ## An alias for dirExists.
 #   osAndNims(existsDir(dir.string))
 
-proc assertExists*(file: AnyFile): void =
+proc assertExists*(file: AnyFile, onMissing: string = ""): void =
   let path: AbsFile = file.toAbsFile()
 
   if dirExists(AbsDir file.getStr()):
@@ -1015,10 +1031,10 @@ proc assertExists*(file: AnyFile): void =
 
   if not file.fileExists():
     raise newPathError(
-      file, pekNoSuchEntry, &"No such file '{path.string}'")
+      file, pekNoSuchEntry, &"No such file '{path.string}'. {onMissing}")
 
 
-proc assertExists*(dir: AnyDir): void =
+proc assertExists*(dir: AnyDir, onMissing: string = ""): void =
   let path: AbsDir = dir.toAbsDir()
 
   if fileExists(AbsFile dir.getStr()):
@@ -1037,7 +1053,7 @@ proc assertExists*(dir: AnyDir): void =
 
   if not dir.dirExists():
     raise newPathError(
-      dir, pekNoSuchEntry, &"No such directory '{path.string}'")
+      dir, pekNoSuchEntry, &"No such directory '{path.string}'. {onMissing}")
 
 
 
@@ -1103,7 +1119,33 @@ func withExt*[F: AbsFile | RelFIle](
       RelFile(f.getStr() & newExt.addPrefix("."))
 
 
-func withBase*(f: FsTree, base: string): FsTree =
+func withBasePrefix*[F: AbsFile | RelFile | FsFile](
+  f: F, prefix: string): F =
+  ## Return copy of the file path `f` with new basename for a file. E.g.
+  ## `/tmp/hello.cpp + prefix_ -> /tmp/prefix_hello.cpp`
+  when f is FsFile:
+    if f.isRelative:
+      result = toFsFile(withBasePrefix(f.relFile, prefix))
+
+    else:
+      result = toFsFile(withBasePrefix(f.absFile, prefix))
+
+    # result = toFsFile(
+    #   withBasePrefix((
+    #     if f.isRelative: f.relFile else: f.absFile
+    #   ), prefix))
+
+  else:
+    let (parent, file, ext) = os.splitFile(f.getStr())
+    let res = os.joinpath(parent, prefix & file & ext)
+
+    when F is AbsFile:
+      result = AbsFile(res)
+
+    else:
+      result = RelFile(res)
+
+func withBase*(f: FsTree, base: string): FsTree {.inline.} =
   result = f
   result.basename = base
 
@@ -1113,7 +1155,7 @@ func withoutBasePrefix*(f: FsTree, pref: string): FsTree =
     result.basename = f.basename[pref.len .. ^1]
 
 func withParent*(
-  f: FsTree, parent: seq[string], isAbs: bool = true): FsTree =
+  f: FsTree, parent: seq[string], isAbs: bool = true): FsTree {.inline.} =
   result = f
   result.parent = parent
   result.isAbsolute = isAbs
@@ -1235,7 +1277,8 @@ proc mvDir*(source, dest: AnyDir) =
 
 proc cpFile*[F1, F2: AnyFile](source: F1, dest: F2) =
   ## Copies the file from to to.
-  assertExists source
+  assertExists source, "Source file is missing"
+  assertExists parentDir(dest), "File target directory does not exist."
   osOrNims(
     os.copyFile(source.getStr(), dest.getStr()),
     system.cpFile(source.getStr(), dest.getStr())
@@ -1307,26 +1350,55 @@ template withNewStreamFile*(inFile: AnyFile, body: untyped) =
     withStreamFile(inFile):
       body
 
+iterator xPatterns(pattern: string): string =
+  while true:
+    var next: string
+    for ch in pattern:
+      if ch == 'X':
+        next.add sample({'a' .. 'z', 'A' .. 'Z'})
+      else:
+        next.add ch
+
+    yield next
+
 
 proc getNewTempDir*(
-  dir: string | AbsDir = getTempDir(),
-  dirPatt: string = "XXXXXXXX"): AbsDir =
+    dir: string | AbsDir = getTempDir(),
+    dirPatt: string = "XXXXXXXX",
+    createDir: bool = true
+  ): AbsDir =
+
   ## Get name for new temporary directory
   if not anyIt(dirPatt, it == 'X'):
     # To avoid infinite search for non-existent directory in case
     # pattern does not contain necessary placeholders
     return AbsDir(dir / RelDir(dirPatt))
-  else:
-    while true:
-      var next: string
-      for ch in dirPatt:
-        if ch == 'X':
-          next.add sample({'a' .. 'z', 'A' .. 'Z'})
-        else:
-          next.add ch
 
+  else:
+    for next in xPatterns(dirPatt):
       if not dirExists(dir / RelDir(next)):
-        return AbsDir(dir / RelDir(next))
+        result = AbsDir(dir / RelDir(next))
+        break
+
+    if createDir:
+      mkDir result
+
+proc getTempFile*(
+    dir: AbsDir,
+    filePatt: string,
+    assertExists: bool = true
+  ): AbsFile =
+  ## Get path to new temporary file in directory `dir`. To set particular
+  ## extension just use `XXXXXXX.yourExt` as input `filePatt`.
+  ##
+  ## - @arg{assertExists} :: check if input directory exists
+
+
+  assertExists(dir)
+  for next in xPatterns(filePatt):
+    if not fileExists(dir / RelFile(next)):
+      return dir / RelFile(next)
+
 
 template withDir*(dir: AnyDir, body: untyped): untyped =
   ## Changes the current directory temporarily.
