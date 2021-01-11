@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.9.12"
+version       = "0.9.13"
 author        = "haxscramper"
 description   = "Collection of helper utilities"
 license       = "Apache-2.0"
@@ -16,8 +16,6 @@ namedBin      = {
 
 requires "nim >= 1.4.0", "cligen"
 
-
-import os
 task docgen, "Generate documentation":
   if not fileExists("bin/hmisc-putils"):
     exec("nimble build")
