@@ -33,6 +33,16 @@ template withIt*(val, body: untyped): untyped =
       body
     it
 
+template withDeepIt*(expr, body: untyped): untyped =
+  block:
+    var it {.inject.} = deepCopy(expr)
+    block:
+      body
+
+    it
+
+
+
 template withResIt*(val, body: untyped): untyped =
   block:
     var it {.inject.} = val
@@ -103,3 +113,13 @@ template noneOfIt*(s: untyped, op: untyped): bool =
   ## True if for all items in `s` predicate `op` returns true.
   mixin anyOfIt
   not s.anyOfIt(op)
+
+
+macro `//`*(arg: string): untyped =
+  ## Emit C comment in generated source code
+  ##
+  ## `// "C comment"` will yield `/* C comment */` emited.
+  let lit = newLit("/* " & arg.strVal() & " */")
+
+  quote do:
+    {.emit: `lit`.}

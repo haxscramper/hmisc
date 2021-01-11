@@ -347,6 +347,8 @@ func splitCamel*(
 
     pos = next + 1
 
+func toSnakeCase*(str: string): string =
+  str.splitCamel().mapIt(it.toLowerAscii()).join("_")
 
 func abbrevCamel*(
   abbrSplit: seq[string],

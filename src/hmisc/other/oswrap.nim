@@ -375,11 +375,8 @@ proc relativePath*(path: AbsDir, base: AbsDir): RelDir =
   RelDir(os.relativePath(path.string, base.string))
 
 
-proc parentDir*(path: AbsPath): AbsDir =
-  AbsDir(os.parentDir(path.getStr()))
-
-proc parentDir*(path: RelPath): RelDir =
-  RelDir(os.parentDir(path.getStr()))
+proc parentDir*(path: AbsPath): AbsDir = AbsDir(os.parentDir(path.getStr()))
+proc parentDir*(path: RelPath): RelDir = RelDir(os.parentDir(path.getStr()))
 
 proc parentDir*(path: FsFile): FsDir =
   if path.isRelative:
@@ -395,6 +392,8 @@ proc parentDir*(path: FsDir): FsDir =
 
 proc dir*(file: AbsFile): AbsDir = parentDir(file)
 proc dir*(file: RelFile): RelDir = parentDir(file)
+proc dir*(dir: AbsDir): AbsDir = parentDir(dir)
+proc dir*(dir: RelDir): RelDir = parentDir(dir)
 
 proc tailDir*(path: AnyDir): string = os.tailDir(path.string)
 
@@ -731,14 +730,18 @@ iterator walkDir*[T: AnyPath](
   ): T =
 
   ## Iterate over entries in `dir`, yielding only those that match
-  ## `resType` (for example, `when resType is RelFile` you will only get
-  ## entries that represent file, and path will be relative). This is a
-  ## higher-level wrapper that takes advantage of distinct types for
-  ## files/directories and eliminates need to filter by entry kind in the
-  ## calling loop.
+  ## `resType`.
+  ##
+  ## For example, `when resType is RelFile` you will only get entries that
+  ## represent file, and path will be relative. This is a higher-level
+  ## wrapper that takes advantage of distinct types for files/directories
+  ## and eliminates need to filter by entry kind in the calling loop.
   runnableExamples:
     for dir in walkDir(~".config", RelDir):
       assert dir is RelDir
+
+  when dir is RelDir and resType is AbsPath:
+    let dir = toAbsDir(dir)
 
 
   template yieldImpl(): untyped {.dirty.} =
@@ -1095,6 +1098,10 @@ func flatFiles*(tree: FsTree): seq[FsTree] =
     result = @[tree]
 
 
+func withoutPrefix*(file: AbsFile, pref: AbsDir): RelFile =
+  assert startsWith($file, addSuffix($pref, "/"))
+  RelFile(dropPrefix($file, addSuffix($pref, "/")))
+
 func withExt*(f: FsTree, ext: string): FsTree =
   assert not f.isDir
   result = f
@@ -1112,9 +1119,11 @@ func withExt*[F: AbsFile | RelFIle](
 
     let resExt = join(exts[0..^2] & newExt.dropPrefix("."), ".")
     parent /. (file & (if resExt.len > 0: "." & resExt else: ""))
+
   else:
     when F is AbsFile:
       AbsFile(f.getStr() & newExt.addPrefix("."))
+
     else:
       RelFile(f.getStr() & newExt.addPrefix("."))
 
