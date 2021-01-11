@@ -350,6 +350,10 @@ func splitCamel*(
 func toSnakeCase*(str: string): string =
   str.splitCamel().mapIt(it.toLowerAscii()).join("_")
 
+func toSnakeCamelCase*(str: string): string =
+  str.split("_").filterIt(it.len > 0).mapIt(
+    it.toLowerAscii().capitalizeAscii()).join("")
+
 func abbrevCamel*(
   abbrSplit: seq[string],
   splitWords: seq[seq[string]],
