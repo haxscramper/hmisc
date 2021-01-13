@@ -113,14 +113,6 @@ template printCpuTime*(body: untyped): untyped =
       " (line ", iinfo.line, ")"
 
 
-template templAssert*(
-  iinfo: tuple[filename: string, line: int, column: int],
-  condition: untyped,
-  message: string): untyped =
-  if not condition:
-    raiseAssert(
-      message & ". Exception from template instantiation on line " &
-        $iinfo.line & ", file: " & iinfo.filename)
 
 template expectType*(op, t: untyped): untyped =
   static: assert op is t

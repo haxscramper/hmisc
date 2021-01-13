@@ -2,6 +2,7 @@ import sequtils, options, hprimitives, strformat, strutils, sugar
 import ../hdebug_misc
 import ../algo/[halgorithm, hseq_mapping]
 import ../base_errors
+export base_errors
 import unicode
 
 #================================  TODO  =================================#
@@ -37,8 +38,9 @@ func colNum*[T](s: Seq2D[T]): int =
   ## that all rows have equal lentgth
   result = s.colWidth
   for idx, row in s.elems:
-    assert row.len == result,
-      &"Invariant invalidated: [{idx}].len: {row.len}, expected {result}"
+    if row.len != result:
+      raiseArgumentError(
+        &"Invariant invalidated: [{idx}].len: {row.len}, expected {result}")
 
 
 func size*[T](s: Seq2D[T]): ArrSize =
@@ -47,13 +49,6 @@ func size*[T](s: Seq2D[T]): ArrSize =
 func fillToSize*[T](grid: var Seq2D[T], size: ArrSize, val: T): void =
   ## Make sure `grid` is of `size` (or lagrger). Fill missing elements
   ## using `val`.
-  # defer: debugecho "Request to fill size: ", size
-  # defer:
-  #   for idx, row in grid.elems:
-  #     assert row.len == grid.colWidth,
-  #       &"Invariant invalidated: [{idx}].len: {row.len}, expected {grid.colWidth}"
-  #   # discard grid.colNum()
-
   if grid.colWidth < size.width:
     grid.colWidth = size.width
 
@@ -87,18 +82,21 @@ the index of new row. `idx` MUST be in range `[0, grid.rowNum()]`
 (inclsive)
 
   ]##
-  assert row.len == grid.colNum(),
-     msgjoin(
-       "Cannot insert row at index `", idx, "` expected",
-       "len:", grid.colNum(), ", but row has length", row.len
-     )
+  if not row.len == grid.colNum():
+    raiseArgumentError:
+      msgjoin(
+        "Cannot insert row at index `", idx, "` expected",
+        "len:", grid.colNum(), ", but row has length", row.len
+      )
 
   if idx == 0:
     grid.elems = row & grid.elems
+
   elif idx == grid.rowNum():
     grid.elems = grid.elems & row
+
   else:
-    raiseAssert("#[ IMPLEMENT ]#")
+    raiseImplementError("")
 
 func appendRow*[T](grid: var Seq2D[T], row: seq[T], default: T): void =
   ## Insert new row in grid. If `row.len < grid.colNum` fill missing
@@ -131,7 +129,7 @@ index of new column. `idx` MUST be in range `[0, grid.colNum()]`
 (inclusive)
 
   ]##
-  raiseAssert("#[ IMPLEMENT ]#")
+  raiseImplementError("<>")
 
 func makeSeq2D*[T](s: seq[seq[T]], default: T): Seq2d[T] =
   if s.len != 0:
@@ -147,9 +145,12 @@ func makeSeq2D*[T](s: seq[seq[T]]): Seq2d[T] =
   if s.len != 0:
     let maxlen = s.mapIt(it.len).max()
     for idx, row in s:
-      assert row.len == maxlen, "Cannot create 2d sequence from non-uniform " &
-        &"sequence. Row {idx} has {row.len} elements, but expected " &
-        &"{maxlen}"
+      if row.len != maxlen:
+        raiseArgumentError(
+          "Cannot create 2d sequence from non-uniform " &
+          &"sequence. Row {idx} has {row.len} elements, but expected " &
+          &"{maxlen}"
+        )
 
     return Seq2D[T](elems: s, colWidth: maxlen)
 
@@ -226,11 +227,12 @@ template mapIt2d*[T](inseq: Seq2d[T], op: untyped): untyped =
   var res: Seq2D[ResT]
   try:
     res = makeSeq2D(result)
-  except AssertionError:
+
+  except ArgumentError:
     {.noSideEffect.}:
       let msg = getCurrentExceptionMsg()
       let info = instantiationInfo()
-      raiseAssert(
+      raiseArgumentError(
         msg & ". Template `mapIt2D` instantiated on line: " & $info.line &
           ", file: " & $info.filename)
 
@@ -262,11 +264,8 @@ template maximizeColIt*[T](inseq: Seq2d[T], op: untyped): seq[int] =
   type ResType = typeof((var it {.inject.}: T; op))
   var res: seq[ResType]
   var idx = 0
-  templAssert(
-    instantiationInfo(),
-    inseq.colNum() > 0,
-    "Cannot maximize columns in empty grid"
-  )
+  if inseq.colNum() == 0:
+    raiseArgumentError("Cannot maximize columns in empty grid")
 
   for col in inseq.itercols():
     var buf: seq[ResType]
@@ -275,7 +274,8 @@ template maximizeColIt*[T](inseq: Seq2d[T], op: untyped): seq[int] =
       buf.add op
 
     if buf.len == 0:
-      raiseAssert("Failed to get any from column " & $idx)
+      raiseArgumentError("Failed to get any from column " & $idx)
+
     else:
       res.add buf.max()
 
@@ -292,13 +292,17 @@ template maximizeRowIt*[T](
   var idx = 0
   for row in inseq.iterrows():
     var buf: seq[ResType]
-    assert row.len > 0, "Cannot maximize empty row"
+    if row.len == 0:
+      raiseArgumentError(
+        "Cannot maximize empty row inseq[" & $idx & "].len == 0")
+
     for cell in row:
       let it {.inject.} = cell
       buf.add op
 
     if buf.len == 0:
-      raiseAssert("Failed to get any from row " & $idx)
+      raiseArgumentError("Failed to get any from row " & $idx)
+
     else:
       res.add buf.max()
 

@@ -299,19 +299,13 @@ func msgjoin*(args: varargs[string, `$`]): string =
   ## characters. Wrapper characters are: `_' "`
   msgjoinImpl(toSeq(args))
 
-template raisejoin*(text: seq[string]): untyped =
-  raiseAssert(msgjoinImpl(text))
-
 macro joinLiteral*(body: untyped): untyped =
   if body.kind == nnkStmtList:
     result = newLit(msgjoin body.mapIt(it.strVal())):
+
   elif body.kind in {nnkStrLit, nnkTripleStrLit}:
     result = body
-  # if body.matches StmtList(
-  #   [all (kind: in nnkStrKinds, strVal: @msgLines)]):
-  #   # echo result.treeRepr()
-  # elif body.matches (kind: in nnkStrKinds, strVal: @msgText):
-  #   return body
+
   else:
     error(
       "Expected either list of string literals or single literal", body)
@@ -332,3 +326,9 @@ template assertionFail*(body: untyped): untyped =
   ## passed as a message. It will be passed to `&` macro - i.e.
   ## variable interpolation is supported.
   raise newException(AssertionError, fmt(joinLiteral(body)))
+
+template argumentError*(body: untyped): untyped =
+  ## Raise `ArgumentError`. Body is a string literal which will be
+  ## passed as a message. It will be passed to `&` macro - i.e.
+  ## variable interpolation is supported.
+  raiseArgumentError(fmt(joinLiteral(body)))
