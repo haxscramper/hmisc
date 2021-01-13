@@ -1098,7 +1098,7 @@ func flatFiles*(tree: FsTree): seq[FsTree] =
     result = @[tree]
 
 
-func withoutPrefix*(file: AbsFile, pref: AbsDir): RelFile =
+proc withoutPrefix*(file: AbsFile, pref: AbsDir): RelFile =
   assert startsWith($file, addSuffix($pref, "/"))
   RelFile(dropPrefix($file, addSuffix($pref, "/")))
 

@@ -417,9 +417,9 @@ func quoteShell*(str: string): string =
 
 
 
-func toStr*(inAst: ShellAst, oneline: bool = false): string
+proc toStr*(inAst: ShellAst, oneline: bool = false): string
 
-func toStr*(part: ShellCmdPart, conf: ShellCmdConf): string =
+proc toStr*(part: ShellCmdPart, conf: ShellCmdConf): string =
   ## Convret shell command part to string representation
   let longPrefix =
     case conf.flagConf:
@@ -451,12 +451,12 @@ func toStr*(part: ShellCmdPart, conf: ShellCmdConf): string =
         return part.expr.toStr()
 
 
-func toStrSeq*(cmd: ShellCmd): seq[string] =
+proc toStrSeq*(cmd: ShellCmd): seq[string] =
   result = @[ cmd.bin ]
   for op in cmd.opts:
     result &= op.toStr(cmd.conf)
 
-func toStr*(cmd: ShellCmd): string = cmd.toStrSeq().join(" ")
+proc toStr*(cmd: ShellCmd): string = cmd.toStrSeq().join(" ")
 
 macro precompute(expr, varn: untyped, args: static[openarray[int]]): untyped =
   let inVarn = copyNimNode(varn)
@@ -493,8 +493,8 @@ macro precompute(expr, varn: untyped, args: static[openarray[int]]): untyped =
 
   result.add nnkElse.newTree(expr)
 
-func toStr*(inAst: ShellAst, oneline: bool = false): string =
-  func aux(ast: ShellAst, level: int, inExpr: bool): string =
+proc toStr*(inAst: ShellAst, oneline: bool = false): string =
+  proc aux(ast: ShellAst, level: int, inExpr: bool): string =
     let pref = if inExpr or oneline:
                  ""
                else:
@@ -573,7 +573,7 @@ func toStr*(inAst: ShellAst, oneline: bool = false): string =
 
 
 
-func toLogStr*(cmd: ShellCmd): string =
+proc toLogStr*(cmd: ShellCmd): string =
   ## Convert shell command to pretty-printed shell representation
   # TODO add newline escapes `\` at the end of the string
   for str in cmd.toStrSeq():
@@ -614,7 +614,7 @@ func listToInfix(infix: string, list: seq[NimNode], name: string): NimNode =
 
   result = cmds.foldl(nnkInfix.newTree(ident infix, a, b))
 
-func extendList(
+proc extendList(
   kind: ShellAstKind, e1: var ShellAst, e2: ShellAst) =
   if e1.kind == sakEmpty:
     e1 = e2
@@ -740,7 +740,7 @@ func `+`*[T1, T2: ShellMathExpr](lhs: T1, rhs: T2): ShellAst =
 
 
 
-func toShellArgument(arg: NimNode): NimNode =
+proc toShellArgument(arg: NimNode): NimNode =
   case arg.kind:
     of nnkExprEqExpr:
       nnkPar.newTree(arg[0].toShellArgument(), arg[1].toShellArgument())

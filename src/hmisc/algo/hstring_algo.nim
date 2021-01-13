@@ -90,7 +90,7 @@ iterator items*(part: StrPart): StrPart =
       for s in part.strs:
         yield toStrPart(s)
 
-func len*(part: StrPart): int =
+proc len*(part: StrPart): int =
   case part.kind:
     of spkSet:
       if part.chars.len == 0:
@@ -120,19 +120,19 @@ func contains*(str: string, parts: varargs[StrPart, toStrPart]): bool =
             return true
 
 
-func dropPrefix*(str: string, part: StrPart): string =
+proc dropPrefix*(str: string, part: StrPart): string =
   for alt in part:
     if str.startsWith(alt):
       return str[min(alt.len, str.len)..^1]
 
   return str
 
-func dropPrefix*(ss: seq[string], patt: StrPart): seq[string] =
+proc dropPrefix*(ss: seq[string], patt: StrPart): seq[string] =
   for s in ss:
     result.add s.dropPrefix(patt)
 
 
-func dropSuffix*(str: string, part: StrPart): string =
+proc dropSuffix*(str: string, part: StrPart): string =
   for alt in part:
     if str.endsWith(alt):
       return str[0 ..^ (alt.len + 1)]

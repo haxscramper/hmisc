@@ -195,7 +195,7 @@ func isSubseq*[T](subseq, inseq: openarray[T]): bool =
       result = true
 
 
-func dropSubseq*[T](inseq, subseq: openarray[T]): seq[T] =
+proc dropSubseq*[T](inseq, subseq: openarray[T]): seq[T] =
   ## Drop all non-overlapping occurencies of `subseq` in `inseq`
   var i = 0
   if subseq.len == 0:
@@ -226,7 +226,7 @@ func dropSubseq*[T](inseq, subseq: openarray[T]): seq[T] =
       i += subseq.len
 
 
-func dropLongestSubseq*[T](inseq: seq[T], subseqs: seq[seq[T]]): seq[T] =
+proc dropLongestSubseq*[T](inseq: seq[T], subseqs: seq[seq[T]]): seq[T] =
   ## Sort `subseq` by lenght and try to drop each from `inseq`. First
   ## first drop attempt that changes result length is returned.
   let subseqs = subseqs.sortedByIt(-it.len)
@@ -238,7 +238,7 @@ func dropLongestSubseq*[T](inseq: seq[T], subseqs: seq[seq[T]]): seq[T] =
       break
 
 
-func dropLongestSubseq*(inseq: string, inseqs: seq[string]): string =
+proc dropLongestSubseq*(inseq: string, inseqs: seq[string]): string =
   ## Sort `subseq` by lenght and try to drop each from `inseq`. First
   ## first drop attempt that changes result length is returned.
   runnableExamples:
@@ -250,14 +250,14 @@ func dropLongestSubseq*(inseq: string, inseqs: seq[string]): string =
 
   dropLongestSubseq(inseq.mapIt(it), inseqs).join("")
 
-func dropSubstr*(instr, substr: string): string =
+proc dropSubstr*(instr, substr: string): string =
   ## Drop all occurencies of `substr` in `instr`
   runnableExamples:
     assert "CX_CX_EEECX".dropSubstr("CX") == "__EEE"
 
   instr.dropSubseq(substr).join("")
 
-func dropCommonPrefix*(
+proc dropCommonPrefix*(
   strs: seq[string], dropSingle: bool = true): seq[string] =
   ## Drop common prefix from sequence of strings. If `dropSingle` is
   ## false sequences with `len == 1` are returned as-is.
