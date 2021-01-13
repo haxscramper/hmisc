@@ -17,6 +17,7 @@ import oswrap
 import std/[strutils, strformat, sequtils, options, deques, json, macros]
 
 import ../hexceptions
+import ../base_errors
 
 from std/os import quoteShell
 
@@ -27,56 +28,60 @@ when hasStrtabs: # https://github.com/nim-lang/Nim/pull/15172
 
 # import ../algo/halgorithm
 
-# TODO better way of building command for execution.
-# TODO overload for `runShell` that accepts callbacks failed execution.
-# TODO generate log calls?
-# TODO easy way to pipe things to stdout
-# TODO pretty-print long shell commands on failure - can split on `&&`
-#      and left-align commands. Highlight `--flags`, `commands` and
-#      arguments.
-# TODO option to force colored output when shell runner
+# - TODO :: better way of building command for execution.
 #
-# TODO implement functions for callsite checks in program execution
-#      Determine if all file parameters are present (create separate
-#      `fileArg` procedure), if binary itself is available and so on.
+# - TODO :: overload for `runShell` that accepts callbacks failed execution.
 #
-# TODO Support command chaining using `&&`, `||` (`and`, `or`) and pipes
-#      `|` for redirecting output streams.
+# - TODO :: generate log calls?
 #
-# TODO move command-line flags collections into separate type to use for
-#      working with external libraries that accept list of command-line
-#      flags (like libclang for example)
+# - TODO :: easy way to pipe things to stdout
 #
-# TODO Add 'subshell' command type - for passing strings that are shell
-#      expression themselves. Correct quoting etc.
+# - TODO :: pretty-print long shell commands on failure - can split on `&&`
+#   and left-align commands. Highlight `--flags`, `commands` and arguments.
+#
+# - TODO :: option to force colored output when shell runner
+#
+# - TODO :: implement functions for callsite checks in program execution
+#   Determine if all file parameters are present (create separate `fileArg`
+#   procedure), if binary itself is available and so on.
+#
+# - TODO :: Support command chaining using `&&`, `||` (`and`, `or`) and
+#   pipes `|` for redirecting output streams.
+#
+# - TODO :: move command-line flags collections into separate type to use
+#   for working with external libraries that accept list of command-line
+#   flags (like libclang for example)
+#
+# - TODO :: Add 'subshell' command type - for passing strings that are
+#   shell expression themselves. Correct quoting etc.
 
-# TODO write wrapper for a subset posix-compilant shell - this is useful in
-#      cases where you only have very limited access to different
-#      installation - like in docker container, over ssh or similar. Second
-#      use case: `git rev-list`, `sh -c` and the like. Command that accepts
-#      another shell command. You can only send a single string that should
-#      contain all necessary commands. In that case it would be very
-#      convinient to have builder for such strings - for example in
-#      expression like `if [[ (pwd) == "/" ]]` - I'm not even sure I got it
-#      right in the first place, and I don't want to remember all details
-#      about how shell `if [[ ]]` works too. And I can also analyze all
-#      shell expression on the application side - detect missing commands,
-#      infer needed dependencies, side effects (writes to file etc.)
+# - TODO :: write wrapper for a subset posix-compilant shell - this is
+#   useful in cases where you only have very limited access to different
+#   installation - like in docker container, over ssh or similar. Second
+#   use case: `git rev-list`, `sh -c` and the like. Command that accepts
+#   another shell command. You can only send a single string that should
+#   contain all necessary commands. In that case it would be very
+#   convinient to have builder for such strings - for example in expression
+#   like `if [[ (pwd) == "/" ]]` - I'm not even sure I got it right in the
+#   first place, and I don't want to remember all details about how shell
+#   `if [[ ]]` works too. And I can also analyze all shell expression on
+#   the application side - detect missing commands, infer needed
+#   dependencies, side effects (writes to file etc.)
 #
-# TODO Interacting with running process via stdin/stdout. REPL-like
-#      processes. Can test on `/bin/sh`
+# - TODO :: Interacting with running process via stdin/stdout. REPL-like
+#   processes. Can test on `/bin/sh`
 #
-# TODO Make it possible to implement own asciinema based on `hshell`. When
-#      starting program all necessary controls for process should be
-#      exposed, and your application must be able to pretend it is a
-#      full-blown terminal emulator.
+# - TODO :: Make it possible to implement own asciinema based on `hshell`.
+#   When starting program all necessary controls for process should be
+#   exposed, and your application must be able to pretend it is a
+#   full-blown terminal emulator.
 #
-# IDEA Provide `strace`-to-`json` converter.
+# - IDEA :: Provide `strace`-to-`json` converter.
 #
-# IDEA raw shell string validation. While it is certainly not simple to
-#      parse arbitrary bash code, `80%` of things that are passed to
-#      command execution are just `cmd1 && cmd2` and so on. Quite easy to
-#      parse.
+# - IDEA :: raw shell string validation. While it is certainly not simple
+#   to parse arbitrary bash code, `80%` of things that are passed to
+#   command execution are just `cmd1 && cmd2` and so on. Quite easy to
+#   parse.
 
 export ShellVar, ShellExpr
 
@@ -465,14 +470,17 @@ macro precompute(expr, varn: untyped, args: static[openarray[int]]): untyped =
     if nnode.kind in {nnkIdent, nnkSym} and
        eqIdent(nnode.repr, inVarn.repr):
       result = newExpr
+
     elif nnode.kind in {
       # Boring stuff, just list all nodes that cannot have subnodes
       nnkStrLit..nnkTripleStrLit, nnkFloatLit..nnkFloat64Lit, nnkCharLit..nnkUInt64Lit,
       nnkCommentStmt, nnkIdent, nnkSym, nnkNone, nnkEmpty, nnkNilLit
     }:
       result = nnode
+
     elif nnode.kind in {nnkHiddenStdConv}:
       result = aux(nnode[1], newExpr)
+
     else:
       result = newTree(nnode.kind)
       for elem in nnode:
@@ -502,7 +510,7 @@ func toStr*(inAst: ShellAst, oneline: bool = false): string =
 
     case ast.kind:
       of sakEmpty:
-        raiseAssert("'sakEmpty' cannot be converted to string and " &
+        raiseArgumentError("'sakEmpty' cannot be converted to string and " &
           "should exist withing final AST.")
 
       of sakListKinds:
@@ -511,8 +519,10 @@ func toStr*(inAst: ShellAst, oneline: bool = false): string =
           if sn.kind in sakListKinds:
             if sn.len == 0:
               discard
+
             else:
               buf.add &"({sn.toStr()})"
+
           else:
             buf.add sn.toStr()
 
@@ -520,25 +530,30 @@ func toStr*(inAst: ShellAst, oneline: bool = false): string =
           case ast.kind:
             of sakAndList: "&&"
             of sakOrList: "||"
-            else: raiseAssert(&"#[ IMPLEMENT for kind {ast.kind} ]#")
+            else: raiseImplementError(&"For kind {ast.kind}")
 
         result = buf.join(" " & sep & " ")
 
       of sakCmd:
         if inExpr:
           result = ast.cmd.toStr()
+
         else:
           result = pref & ast.cmd.toStr()
+
       of sakVar:
         result = pref & "$" & ast.shVar.string
+
       of sakStrLit:
         result = ast.strVal.quoteShell()
+
       of sakStmtList:
         for idx, stmt in ast.subnodes:
           if idx > 0:
             result &= (if oneline: "; " else: "\n")
 
           result &= pref & aux(stmt, level + 1, inExpr)
+
       of sakAsgn:
         var rhs = ast[1].aux(level + 1, inExpr = true)
         if ast[1].kind == sakMath:
@@ -554,6 +569,7 @@ func toStr*(inAst: ShellAst, oneline: bool = false): string =
 
         if not inExpr:
           result = &"$(({result}))"
+
       of sakWhile:
         if oneline:
           result = "while " & ast[0].aux(level + 1, true) & "; do " &
@@ -566,8 +582,9 @@ func toStr*(inAst: ShellAst, oneline: bool = false): string =
 {ast[1].aux(level, inExpr)}
 {pref}done
 """
+
       else:
-        raiseAssert(&"#[ IMPLEMENT for kind {ast.kind} {instantiationInfo()} ]#")
+        raiseImplementError(&"For kind {ast.kind} {instantiationInfo()}")
 
   return aux(inAst, 0, false)
 
@@ -618,15 +635,21 @@ func extendList(
   kind: ShellAstKind, e1: var ShellAst, e2: ShellAst) =
   if e1.kind == sakEmpty:
     e1 = e2
+
   elif e1.kind != kind:
-    raiseAssert(
+    raiseArgumentError(
       "Cannot extend shell list of kind " & $e1.kind &
       " as " & $kind & ". Use " & (
         case kind:
           of sakAndList: "&&="
-          else:
-            raiseAssert(
-              &"#[ IMPLEMENT for kind {kind} {instantiationInfo()} ]#")
+          of sakOrList: "||="
+          of sakAsyncList: "&="
+          of sakPipeList: "|="
+          of sakSequentialList: raiseImplementError("WIP")
+          else: raiseArgumentError(
+            "Cannot extend element of kind '" & $kind &
+              "' - not a list kind"
+          )
       ) & " instead."
     )
   else:
@@ -744,10 +767,12 @@ func toShellArgument(arg: NimNode): NimNode =
   case arg.kind:
     of nnkExprEqExpr:
       nnkPar.newTree(arg[0].toShellArgument(), arg[1].toShellArgument())
+
     of nnkIdent:
       arg.toStrLit()
+
     else:
-      raiseAssert(&"#[ IMPLEMENT for kind {arg.kind} ]#")
+      raiseImplementError(&"#[ IMPLEMENT for kind {arg.kind} ]#")
 
 
 
@@ -759,7 +784,7 @@ macro shCmd*(cmd: untyped, args: varargs[untyped]): untyped =
               elif cmd.kind == nnkAccQuoted:
                 cmd.mapIt(it.toStrLit().strVal()).join("").newLit()
               else:
-                raiseAssert(&"#[ IMPLEMENT for kind {cmd.kind} ]#")
+                raiseImplementError(&"#[ IMPLEMENT for kind {cmd.kind} ]#")
 
   let resId = genSym(nskVar, "res")
   result = newStmtList()
@@ -791,8 +816,7 @@ macro shCmd*(cmd: untyped, args: varargs[untyped]): untyped =
             "the expression $() or subcommand ''"
         )
       else:
-        raiseAssert(&"#[ IMPLEMENT for kind {arg.kind} ]#")
-        discard
+        raiseImplementError(&"#[ IMPLEMENT for kind {arg.kind} ]#")
 
   result.add quote do:
     `resId`
@@ -983,7 +1007,7 @@ proc shellResult*(
     # will certainly involve some fuckery with filtering out ansi
     # codes (because colored output is basically /the/ reason to have
     # piping to parent shell).
-    raiseAssert(
+    raiseArgumentError(
       "Stream access not allowed when you use poParentStreams. " &
         "Either set `discardOut` to true or remove `poParentStream` from options"
     )

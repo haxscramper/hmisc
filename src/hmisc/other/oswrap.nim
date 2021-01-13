@@ -2,19 +2,27 @@
 ## regular target.
 
 
-# TODO add support for error messages on missing files. etc
-# TODO add `MaybeFile` and `MaybeDir` typeclasses for things that
-#      might represent anything at runtime
-# TODO unit test with taint mode on
-# TODO parse file paths from URI (`file:///`)
-# TEST that compiles without errors.
-# IDEA optionally enable colored exception messages.
-# TODO convert exceptions to structured output
+# - TODO :: add support for error messages on missing files. etc
+#
+# - TODO :: add `MaybeFile` and `MaybeDir` typeclasses for things that
+#   might represent anything at runtime
+#
+# - TODO :: unit test with taint mode on
+#
+# - TODO :: parse file paths from URI (`file:///`)
+#
+# - TEST :: that compiles without errors.
+#
+# - IDEA :: optionally enable colored exception messages.
+#
+# - TODO :: convert exceptions to structured output
 
 import std/[strutils, macros, random, hashes,
             strformat, sequtils, options, streams]
 
 import ../algo/hstring_algo
+import ../base_errors
+
 from os import nil
 
 
@@ -481,18 +489,22 @@ proc assertValid*(path: AnyPath): void =
       raise newPathError(path, pekExpectedRel): fmtJoin:
         "Path '{path.getStr()}' has type {$typeof(path)}, but"
         "contains invalid string - expected relative path"
+
   elif path is AbsPath:
     if not os.isAbsolute(path.getStr()):
       raise newPathError(path, pekExpectedAbs): fmtJoin:
         "Path '{path.getStr()}' has type {$typeof(path)}, but"
         "contains invalid string - expected absolute path"
+
   elif path is FsFile:
     if path.isRelative:
       assertValid(path.relFile)
+
     else:
       assertValid(path.absFile)
+
   else:
-    static: raiseAssert("#[ IMPLEMENT validation for ]# " & $typeof(path))
+    static: raiseImplementError("Validation for " & $typeof(path))
 
 proc extractFilename*(path: AnyFile): string =
   os.extractFilename(path.string)
@@ -526,8 +538,10 @@ proc isRelative*(file: AnyPath): bool =
   assertValid file
   when file is FsFile:
     return file.isRelative
+
   elif file is RelPath:
     return true
+
   elif file is AbsPath:
     return false
 
@@ -592,8 +606,10 @@ proc toAbsFile*(file: AnyFile | string,
   when file is string:
     if os.isAbsolute(file):
       assertValid(AbsFile(file))
+
     else:
       assertValid(RelFile(file))
+
   else:
     assertValid(file)
 
@@ -611,12 +627,15 @@ proc toAbsDir*(
   when dir is string:
     if os.isAbsolute(dir):
       assertValid(AbsDir(dir))
+
     else:
       assertValid(RelDir(dir))
+
   else:
     assertValid(dir)
 
   result = AbsDir(os.absolutePath(dir.getStr(), root.getStr()))
+
   if checkExists:
     result.assertExists("")
 
@@ -672,6 +691,7 @@ template walkYieldImpl(): untyped {.dirty.} =
         block:
           if relative:
             RelFile(path).toFsFile()
+
           else:
             AbsFile(path).toFsFile()
       )
@@ -681,6 +701,7 @@ template walkYieldImpl(): untyped {.dirty.} =
         block:
           if relative:
             RelDir(path).toFsDir()
+
           else:
             AbsDir(path).toFsDir()
       )
@@ -716,6 +737,7 @@ iterator walkDirRec*(
     let comp = os.getFileInfo(
       if relative:
         os.joinPath(dir.getStr(), path)
+
       else:
         path
     ).kind
@@ -949,8 +971,9 @@ proc getUserRuntimeDir*(): AbsDir =
   when cbackend:
     existsEnvOrDefault(
       $$XDG_RUNTIME_DIR, AbsDir(env), ~RelDir($getUID()))
+
   else:
-    raiseAssert("#[ IMPLEMENT ]#")
+    raiseImplementErrro("#[ IMPLEMENT ]#")
 
 proc getUserCacheDir*(): AbsDir =
   ## The base directory relative to which user specific non-essential data
@@ -989,7 +1012,7 @@ when cbackend:
 
   proc getAppConfRc*(ext: string, hidden: bool = false): AbsFile =
     ## Get application configuration file
-    raiseAssert("#[ IMPLEMENT ]#")
+    raiseImplementError("#[ IMPLEMENT ]#")
 
 
 proc fileExists*(filename: AnyFile): bool =
@@ -1003,6 +1026,7 @@ proc dirExists*(dir: AnyDir): bool =
 proc exists*(path: AnyPath): bool =
   when path is AnyDir:
     dirExists(path)
+
   else:
     fileExists(path)
 
@@ -1023,6 +1047,7 @@ proc assertExists*(file: AnyFile, onMissing: string = ""): void =
       raise newException(
         OSError,
         &"Attempt to assert empty file name in directory {cwd()}")
+
     else:
       var msg =
           &"{path.string} is expected to be a file but directory was found"
@@ -1045,6 +1070,7 @@ proc assertExists*(dir: AnyDir, onMissing: string = ""): void =
       raise newException(
         OSError,
         &"Attempt to assert empty dir name in directory {cwd()}")
+
     else:
       var msg =
           &"{path.string} is expected to be a directory but file was found"
@@ -1076,6 +1102,7 @@ proc listDirs*(dir: AnyDir): seq[AbsDir] =
   when defined(NimScript):
     for d in system.listDirs(dir.getStr()):
       result.add AbsDir(d)
+
   else:
     for (kind, path) in os.walkDir(dir.getStr()):
       if kind == pcDir:
@@ -1085,6 +1112,7 @@ proc listFiles*(dir: AnyDir): seq[AbsFile] =
   ## Lists all the files (non-recursively) in the directory dir.
   when defined(NimScript):
     return system.listFiles(dir)
+
   else:
     for (kind, path) in os.walkDir(dir):
       if kind == pcFile:
@@ -1103,7 +1131,9 @@ func withoutPrefix*(file: AbsFile, pref: AbsDir): RelFile =
   RelFile(dropPrefix($file, addSuffix($pref, "/")))
 
 func withExt*(f: FsTree, ext: string): FsTree =
-  assert not f.isDir
+  if f.isDir:
+    raiseArgumentError("Cannot add extension to FsTree file")
+
   result = f
   result.ext = ext
 

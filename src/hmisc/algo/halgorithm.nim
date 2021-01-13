@@ -14,6 +14,8 @@ import ../hdebug_misc
 import hmath
 export hmath
 
+import ../base_errors
+
 #=======================  small helper templates  ========================#
 
 func add*[A, B](s: var seq[(A, B)], a: A, b: B) =
@@ -107,7 +109,9 @@ proc enumerate*[T](s: openArray[T]): seq[(int, T)] =
 
 func splitList*[T](s: openarray[T]): (T, seq[T]) =
   ## Return head and tail of the list
-  assert s.len > 0, "Cannot split empty list"
+  if s.len == 0:
+    raiseArgumentError("Cannot split empty list")
+
   (s[0], s[1..^1])
 
 
@@ -130,9 +134,9 @@ proc matchWith*[K, V](
       (@["cat", "dog", "mole"], "animal")
     ]
 
-    assert "one".matchWith(lookup) == some("number")
-    assert "dog".matchWith(lookup) == some("animal")
-    assert "number".matchWith(lookup).isNone()
+    doAssert "one".matchWith(lookup) == some("number")
+    doAssert "dog".matchWith(lookup) == some("animal")
+    doAssert "number".matchWith(lookup).isNone()
 
 
   for tupl in tbl:
@@ -205,9 +209,9 @@ func dropSubseq*[T](inseq, subseq: openarray[T]): seq[T] =
 
   var prev = -1
   while i < inseq.len:
-    # debugecho i, " ", inseq[i..^1], " ", subseq
-    if prev == i:
-      raiseAssert("#[ IMPLEMENT ]#")
+    # # debugecho i, " ", inseq[i..^1], " ", subseq
+    # if prev == i:
+    #   raiseAssert("#[ IMPLEMENT ]#")
     var matches: bool = true
     for shift in 0 ..< subseq.len:
       if (i + shift < inseq.len):
@@ -242,7 +246,7 @@ func dropLongestSubseq*(inseq: string, inseqs: seq[string]): string =
   ## Sort `subseq` by lenght and try to drop each from `inseq`. First
   ## first drop attempt that changes result length is returned.
   runnableExamples:
-    assert "CXX_CX".dropLongestSubseq(@["CXX", "CX"]) == "_CX"
+    doAssert "CXX_CX".dropLongestSubseq(@["CXX", "CX"]) == "_CX"
 
   let inseqs = collect(newSeq):
     for str in inseqs:
@@ -253,7 +257,7 @@ func dropLongestSubseq*(inseq: string, inseqs: seq[string]): string =
 func dropSubstr*(instr, substr: string): string =
   ## Drop all occurencies of `substr` in `instr`
   runnableExamples:
-    assert "CX_CX_EEECX".dropSubstr("CX") == "__EEE"
+    doAssert "CX_CX_EEECX".dropSubstr("CX") == "__EEE"
 
   instr.dropSubseq(substr).join("")
 
@@ -262,8 +266,8 @@ func dropCommonPrefix*(
   ## Drop common prefix from sequence of strings. If `dropSingle` is
   ## false sequences with `len == 1` are returned as-is.
   runnableExamples:
-    assert @["--", "-="].dropCommonPrefix() == @["-", "="]
-    assert @["---"].dropCommonPrefix(false) == @["---"]
+    doAssert @["--", "-="].dropCommonPrefix() == @["-", "="]
+    doAssert @["---"].dropCommonPrefix(false) == @["---"]
 
   if not dropSingle and strs.len == 1:
     return strs

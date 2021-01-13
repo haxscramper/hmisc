@@ -38,6 +38,13 @@ suite "Pathwrap":
     except:
       discard
 
+  test "Extension parts":
+    check RelFile("hello").withExt("nim") == RelFile("hello.nim")
+    check AbsFile("/tmp/test.nim").withoutPrefix(
+      AbsDir("/tmp")) == RelFile("test.nim")
+
+    # check
+
 
 suite "Shell":
   test "shell":

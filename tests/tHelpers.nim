@@ -9,27 +9,28 @@ func empty[T](): seq[T] = discard
 suite "Misc helper functions":
   test "Long assertion fail":
     try:
-      assertionFail:
+      raiseArgumentError: joinLiteral:
         "Nice {12 + 2}"
         "12"
-    except:
+
+    except ArgumentError:
       discard
 
   test "Split list":
-    expect AssertionError:
+    expect ArgumentError:
       discard empty[int]().splitList()
 
-    assert @[1].splitList() == (1, empty[int]())
-    assert @[1, 2].splitList() == (1, @[2])
+    doAssert @[1].splitList() == (1, empty[int]())
+    doAssert @[1, 2].splitList() == (1, @[2])
 
   test "{dedent} :proc:value:":
     assertEq "  a".dedent, "a"
     assertEq "A\n  a".dedent, "A\n  a"
 
   test "{enclosedIn} :proc:value:":
-    assert "-+-".enclosedIn(("-", "-"))
-    assert "-+-".enclosedIn("-")
-    assert not "+".enclosedIn("-")
+    doAssert "-+-".enclosedIn(("-", "-"))
+    doAssert "-+-".enclosedIn("-")
+    doAssert not "+".enclosedIn("-")
 
   test "{wrapTwoColumns} :proc:value:":
     assertEq @[("hello", "world"), ("", "nice")].wrapTwoColumns(
@@ -39,7 +40,7 @@ suite "Misc helper functions":
             nice""".dedent
 
   test "{enumerate} :template:value:":
-    assert @["cat", "dog"].enumerate() == @[(0, "cat"), (1, "dog")]
+    doAssert @["cat", "dog"].enumerate() == @[(0, "cat"), (1, "dog")]
 
   test "{join*} string joining functions":
     assertEq @["1", "2"].joinq(", "), "\"1\", \"2\""
@@ -47,15 +48,15 @@ suite "Misc helper functions":
     assertEq @["1", "2"].joinw(), "1 2"
 
   test "{tern} :template:":
-    assert (false).tern(1, 3) == 3
+    doAssert (false).tern(1, 3) == 3
     # If second branch is executed it will raise exception - due to
     # lazy evaluation it does not happen.
-    assert (true).tern(-1, raiseAssert("!!!")) == -1
+    doAssert (true).tern(-1, raiseAssert("!!!")) == -1
 
   test "{`==`} Option comparison :generic:":
-    assert some(12) == 12
-    assert not (none(int) == 2)
-    assert (some(12), some(2)) == (12, 2)
+    doAssert some(12) == 12
+    doAssert not (none(int) == 2)
+    doAssert (some(12), some(2)) == (12, 2)
 
 suite "If let":
   test "{iflet} Simple :macro:":
@@ -66,7 +67,7 @@ suite "If let":
     else:
      ok = true
 
-    assert ok
+    doAssert ok
 
   test "{iflet} Else-if brances :macro:":
     var final: int = 0
@@ -77,29 +78,32 @@ suite "If let":
     else:
       final = 1
 
-    assert final == 1
+    doAssert final == 1
 
   test "{iflet} Return value from body using block :macro:":
     let final = block:
       iflet (val = none(int)):
         3
+
       elif 2 == 3:
         5
+
       else:
         1
 
-    assert final == 1
+    doAssert final == 1
 
   test "{iflet} Iflet in generic function :macro:generic:":
     proc g[T](arg: T): T =
       var res = some(arg)
       iflet (resVal = res):
-        assert resVal == arg
+        doAssert resVal == arg
         return resVal
+
       else:
         fail()
 
-    assert g(12) == 12
+    doAssert g(12) == 12
 
   test "{iflet} inside of template :macro:template:":
     template whileLet(expr, body: untyped): untyped =
@@ -114,4 +118,4 @@ suite "If let":
     whileLet(none(int)):
       inc cnt
 
-    assert cnt == 0
+    doAssert cnt == 0

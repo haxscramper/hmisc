@@ -1,6 +1,8 @@
 import std/[sequtils, strformat, strutils,
             parseutils, macros, algorithm]
 
+import ../base_errors
+
 type
   StrBackIndex* = distinct string
   StrPartKind* = enum
@@ -103,7 +105,7 @@ func len*(part: StrPart): int =
       elif part.strs.len == 0:
         0
       else:
-        raiseAssert(
+        raiseArgumentError(
           "Cannot get length for string part with more that one substring")
 
 

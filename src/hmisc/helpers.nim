@@ -8,6 +8,8 @@ import hdebug_misc
 export hdebug_misc
 import strformat
 
+import base_errors
+export base_errors
 
 template subnodesEq*(lhs, rhs, field: untyped): untyped =
   ## Check if two objects `lhs` and `rhs` has identical field `field`

@@ -1,5 +1,6 @@
 import std/[strutils, tables, enumerate]
 import hseq_mapping, htext_algo
+import ../base_errors
 
 
 
@@ -173,16 +174,19 @@ const subSuperMap: Table[char, (string, string)] = toTable({
 
 func toUnicodeSubChar*(c: char): string =
   if c notin subSuperMap or subSuperMap[c][0] == "":
-    raiseAssert("Unicode does not provide subscript for char '" & $c & "'")
+    raiseArgumentError("Unicode does not provide subscript for char '" & $c & "'")
+
   else:
     return subSuperMap[c][0]
 
 
 func toUnicodeSupChar*(c: char): string =
   if c notin subSuperMap or subSuperMap[c][1] == "":
-    raiseAssert("Unicode does not provide superscript for char '" & $c & "'")
+    raiseArgumentError("Unicode does not provide superscript for char '" & $c & "'")
+
   else:
     return subSuperMap[c][1]
+
 const texIdents* = [
   "sqrt",
   "sqrt[3]",
@@ -270,7 +274,7 @@ func fromTexToUnicodeMath*(tex: string): string =
     of "mathbb{j}", "j": "ⅉ"
     of "e": "ℯ"
     else:
-      raiseAssert("Unsupported latex to unicde conversion: '" & tex & "'")
+      raiseArgumentError("Unsupported latex to unicde conversion: '" & tex & "'")
 # ∜
 # ⅈ, ⅉ ℯ, ⅇ ℇ ∞ ⧜ ⧝ ⧞
 #  ∋  ∌ ⋶ ⋽ ⋲ ⋺ ⋳ ⋻
@@ -457,6 +461,7 @@ func fromTexToUnicode*(
           isSup = idx > 0,
           isSub = isSub
         )
+
     else:
       if isSup:
         for c in ch:
@@ -469,6 +474,7 @@ func fromTexToUnicode*(
       else:
         try:
           result &= ch.fromTexToUnicodeMath()
+
         except:
           result &= ch
 

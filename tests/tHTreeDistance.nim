@@ -1,5 +1,6 @@
 import std/[xmlparser, xmltree, strformat]
 import unittest
+import hmisc/base_errors
 import hmisc/algo/[htree_distance, hseq_distance, halgorithm]
 import hmisc/hdebug_misc
 
@@ -75,7 +76,7 @@ proc apply(x: var XmlNode, cmd: EditCmd[string, string]) =
           # There is no `[]=` overload, so poitner magic it is
           (addr x[idx])[] = node
         else:
-          raiseAssert(
+          raiseArgumentError(
             &"Cannot set subnode '{node}' to index {idx} - " &
             &"'{x}' only has {x.len} subnodes")
     ),

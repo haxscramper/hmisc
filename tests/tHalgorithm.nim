@@ -7,6 +7,7 @@ import hmisc/types/[hvariant, colorstring]
 import hmisc/[helpers, hexceptions]
 import hmisc/algo/[halgorithm, htree_mapping, hseq_distance, clformat]
 import hmisc/hdebug_misc
+import hmisc/base_errors
 
 startHax()
 
@@ -72,7 +73,7 @@ suite "Tree mapping":
           Tree(name: "test12")
       ])
 
-    assert tree.mapItBFStoSeq(
+    doAssert tree.mapItBFStoSeq(
       it.subs,
       it.name & " on level " & $lv) == @[
         "test on level 0",
@@ -174,7 +175,7 @@ suite "Tree mapping":
 
 
   test "{mapDFSpost} value assetions :proc:generic:value:example:":
-    assert inval.mapDFSpost(
+    doAssert inval.mapDFSpost(
       map =
         proc(
           it: InTest,
@@ -201,8 +202,8 @@ suite "Tree mapping":
       getSubnodes = proc(it: InTest): seq[InTest] = it.sub
     )
 
-    assert res is Option[InTest]
-    assert res.get().mapItBFStoSeq(it.sub, it.val) == @[91, 90, 888]
+    doAssert res is Option[InTest]
+    doAssert res.get().mapItBFStoSeq(it.sub, it.val) == @[91, 90, 888]
 
   test "{mapItBFStoSeq} check missing subnodes :template:example:":
     ## Get subnodes only from nodes that have subnodes
@@ -246,7 +247,7 @@ suite "Tree mapping":
       it.kind in {JObject, JArray}
     )
 
-    assert values == @["CreateNewDoc()", "OpenDoc()", "CloseDoc()"]
+    doAssert values == @["CreateNewDoc()", "OpenDoc()", "CloseDoc()"]
 
   test "{mapBFStoSeq} nested grid":
     type
@@ -304,7 +305,7 @@ suite "Tree mapping":
       op = (
         block:
           # Export cells from grid.
-          assert it is ((int, int), Var2[Cell, Grid])
+          doAssert it is ((int, int), Var2[Cell, Grid])
           it
       ),
       hasSubnodes = (
@@ -313,8 +314,8 @@ suite "Tree mapping":
       )
     )
 
-    assert res is seq[((int, int), Var2[Cell, Grid])]
-    assert res[0][1].hasType(Grid) # First element
+    doAssert res is seq[((int, int), Var2[Cell, Grid])]
+    doAssert res[0][1].hasType(Grid) # First element
     for it in res[1..^1]:
       let cell = it[1].get(Cell)
 
@@ -337,7 +338,7 @@ suite "Tree mapping":
       hasSubnodes = proc(it: Ast): bool = not it.isToken
     )
 
-    assert res.get().mapItBFStoSeq(
+    doAssert res.get().mapItBFStoSeq(
       it.subnodes,
       if it.isToken: some(it.tok) else: none(string),
       not it.isToken) == @["ident", "ident"]
@@ -373,7 +374,7 @@ suite "Tree mapping":
 
         static: # Each node was folded into sequence of strings - list
                 # of nodes is passed to upper node.
-          assert subt is seq[seq[string]]
+          doAssert subt is seq[seq[string]]
 
         @[
           &"{currId} [label=\"{currName}\"];",
@@ -398,14 +399,14 @@ suite "Tree mapping":
       it.sub, OutTest,
       OutTest(val: $it.val & "+"))
 
-    assert res is OutTest
+    doAssert res is OutTest
 
   test "{mapItDFS} get subnodes using proc call :macro:value:":
     proc getSub(n: InTest): seq[InTest] = n.sub
     discard inval.mapItDFS(it.getSub(), string, "")
 
   test "{mapItDFS} value assertions :macro:value:":
-    assert inval.mapItDFS(
+    doAssert inval.mapItDFS(
       it.sub, OutTest,
       block:
         OutTest(
@@ -421,24 +422,24 @@ suite "Simple sequence templates":
     assertEq @[(1, 2), (3, 4)].foldlTuple(a + b), (4, @[2, 4])
 
   test "{maxIt}":
-    assert @[1,2,3,4].maxIt(it) == 4
+    doAssert @[1,2,3,4].maxIt(it) == 4
     var empty: seq[int]
-    assert empty.maxIt(it) == 0
+    doAssert empty.maxIt(it) == 0
 
   test "{allOfIt} empty sequence :template:":
     var empty: seq[int]
-    assert empty.allOfIt(false)
+    doAssert empty.allOfIt(false)
 
   test "{allOfIt} use example :template:example:":
-    assert @[1, 2, 3].allOfIt(it > 0)
+    doAssert @[1, 2, 3].allOfIt(it > 0)
 
   test "{mapPairs} type assertion :template:type:":
-    assert {1: "hello", 2: "222"}.mapPairs(
+    doAssert {1: "hello", 2: "222"}.mapPairs(
       $lhs & "--" & rhs
     ) is seq[string]
 
   test "{mapPairs} return value :template:value:":
-    assert {1: 2, 3: 4}.mapPairs(
+    doAssert {1: 2, 3: 4}.mapPairs(
       lhs + rhs
     ) == @[3, 7]
 
@@ -449,13 +450,13 @@ suite "Simple sequence templates":
   test "{mapPairs} iterate indexed :template:example:":
     let res = @["a", "b"].mapPairs(
       block:
-        assert lhs is int
-        assert rhs is string
+        doAssert lhs is int
+        doAssert rhs is string
         $lhs & ":" & rhs
     )
 
-    assert res is seq[string]
-    assert res == @["0:a", "1:b"]
+    doAssert res is seq[string]
+    doAssert res == @["0:a", "1:b"]
 
   test "{mapPairs} custom `pairs` :template:":
     type U = object
@@ -468,8 +469,8 @@ suite "Simple sequence templates":
       yield "222"
 
     let res = U().mapPairs($lhs & " () " & rhs)
-    assert res is seq[string]
-    assert res == @["1.2 () 1222"]
+    doAssert res is seq[string]
+    doAssert res == @["1.2 () 1222"]
 
   test "{mapPairs} custom `items` :template:":
     type U = object
@@ -480,8 +481,8 @@ suite "Simple sequence templates":
       yield "aaa"
 
     let res = U().mapPairs($lhs & " () " & rhs)
-    assert res is seq[string]
-    assert res == @["0 () 222", "1 () aaa"]
+    doAssert res is seq[string]
+    doAssert res == @["0 () 222", "1 () aaa"]
 
   test "{mapPairs} Element index injection :value:template:":
     assertEq [1, 2, 3].mapPairs((val: rhs, id: idx)),
@@ -548,7 +549,7 @@ suite "Simple sequence templates":
 
 
   block: # Get first mismatch for two sequences
-    assert true and zip(
+    doAssert true and zip(
       @[(1, 2)],
       @[(1, 2)]
     ).mapPairs(
@@ -560,35 +561,35 @@ suite "Simple sequence templates":
       U = object
         s: seq[U]
 
-    assert subnodesEq(U(), U(), s)
-    assert subnodesEq(U(s: @[U(), U()]), U(s: @[U(), U()]), s)
-    assert not subnodesEq(
+    doAssert subnodesEq(U(), U(), s)
+    doAssert subnodesEq(U(s: @[U(), U()]), U(s: @[U(), U()]), s)
+    doAssert not subnodesEq(
       U(s: @[U(), U(), U()]), U(s: @[U(), U()]), s)
 
   test "{findItFirst} :template:example:":
-    assert @["A", "B", "D"].findItFirst(it == "A") == "A"
+    doAssert @["A", "B", "D"].findItFirst(it == "A") == "A"
 
     expect AssertionError:
       discard @["A", "B"].findItFirst(it == "D")
 
   test "{findItFirstOpt} :template:example:":
-    assert @["A"].findItFirstOpt(it == "A").isSome()
-    assert @["A"].findItFirstOpt(it == "D").isNone()
+    doAssert @["A"].findItFirstOpt(it == "A").isSome()
+    doAssert @["A"].findItFirstOpt(it == "D").isNone()
 
   test "{findIt} :template:":
-    assert @[1].findIt(it == 1) == 0
-    assert @[2].findIt(it == 1) == -1
+    doAssert @[1].findIt(it == 1) == 0
+    doAssert @[2].findIt(it == 1) == -1
 
   test "{max} :proc:generic:":
-    assert @[1, 2, 3].max(90) == 3
+    doAssert @[1, 2, 3].max(90) == 3
     var tmp: seq[int]
-    assert tmp.max(80) == 80
+    doAssert tmp.max(80) == 80
 
   test "{anyOfIt} :template:":
-    assert [1, 2, 3].anyOfIt(it > 1)
-    assert not [3, 4, 5].anyOfIt(it < 1)
+    doAssert [1, 2, 3].anyOfIt(it > 1)
+    doAssert not [3, 4, 5].anyOfIt(it < 1)
     var tmp: seq[int]
-    assert not tmp.anyOfIt(it > 9)
+    doAssert not tmp.anyOfIt(it > 9)
 
   test "{deduplicateByIt} deduplicate ingeters :template:":
     let s = @[(1, 2), (1, 3), (1, 2)]
@@ -614,9 +615,9 @@ suite "Misc algorithms":
     template tmp(s1, s2, s3: untyped): untyped =
       assertEq longestCommonSubsequence(s1, s2)[0].matches, s3
 
-    assert longestCommonSubsequence(@[1], @[2, 3])[0].matches.len == 0
-    assert longestCommonSubsequence(@["Cond"], @["Int", "Lit"])[0].matches.len == 0
-    assert longestCommonSubsequence(@[1], @[2])[0].matches.len == 0
+    doAssert longestCommonSubsequence(@[1], @[2, 3])[0].matches.len == 0
+    doAssert longestCommonSubsequence(@["Cond"], @["Int", "Lit"])[0].matches.len == 0
+    doAssert longestCommonSubsequence(@[1], @[2])[0].matches.len == 0
     tmp("GAC", "AGCAT", "GA")
     tmp(@[1, 2], @[1, 2], @[1, 2])
     tmp(@[1, 2, 3], @[1, 2], @[1, 2])
@@ -663,7 +664,7 @@ suite "Misc algorithms":
           expr
       )
 
-      assert res.ok
+      doAssert res.ok
 
       if res.matches != expected:
         echo "input: ", input
@@ -909,19 +910,19 @@ suite "String helper functions":
     assertEq toNamedMulticharJoin(".."), "doubleDot"
 
   test "{[^]}":
-    assert "hello"[^"lo"]
-    assert "hello"["he"]
-    assert "hello"[{'h'}, {'o'}]
-    assert "hello"[{'h'}, "lo"]
-    assert "hello"['h', "lo"]
-    assert "hello"['h', ["lo", "le"]]
+    doAssert "hello"[^"lo"]
+    doAssert "hello"["he"]
+    doAssert "hello"[{'h'}, {'o'}]
+    doAssert "hello"[{'h'}, "lo"]
+    doAssert "hello"['h', "lo"]
+    doAssert "hello"['h', ["lo", "le"]]
 
   test "{msgjoin}":
     assertEq msgjoin("_", "nice", "_"), "_nice_"
     # echo msgjoin("[a", "b]")
     # echo "-", msgjoin("a", "b"), "-"
 
-    assert msgjoin("a", "b") == "a b"
+    doAssert msgjoin("a", "b") == "a b"
     assertEq msgjoin("[hello,", "nice", "weather]"),
             "[hello, nice weather]"
 
@@ -1002,15 +1003,15 @@ suite "String helper functions":
     assertEq @[].dropCommonPrefix(), emptySeq[string]()
 
 
-    assert @["--", "-="].dropCommonPrefix() == @["-", "="]
-    assert @["---"].dropCommonPrefix(false) == @["---"]
+    doAssert @["--", "-="].dropCommonPrefix() == @["-", "="]
+    doAssert @["---"].dropCommonPrefix(false) == @["---"]
 
   test "{isSubseq}":
-    assert @["usr", "include", "vector"].isSubseq(@[
+    doAssert @["usr", "include", "vector"].isSubseq(@[
       "usr", "include", "c++", "vector"])
 
-    assert @["A"].isSubseq(@["A"])
-    assert not @["B"].isSubseq(@["A"])
+    doAssert @["A"].isSubseq(@["A"])
+    doAssert not @["B"].isSubseq(@["A"])
 
   test "{dropSubseq}":
     assertEq @["C", "X", "X", "E"].dropSubseq(@["C", "X", "X"]), @["E"]
@@ -1024,21 +1025,21 @@ suite "String helper functions":
       "CXIdxEntityTemplateKind"
 
     # for runnable examples
-    assert "CXX_CX".dropLongestSubseq(@["CXX", "CX"]) == "_CX"
-    assert "CX_CX_EEECX".dropSubstr("CX") == "__EEE"
+    doAssert "CXX_CX".dropLongestSubseq(@["CXX", "CX"]) == "_CX"
+    doAssert "CX_CX_EEECX".dropSubstr("CX") == "__EEE"
 
 
   test "{startsWith}":
-    assert "        ()".startsWith(Whitespace, "()")
-    assert "-".startsWith({}, "-")
-    assert "---".startsWith({'-'})
-    assert "--".startsWith('-')
+    doAssert "        ()".startsWith(Whitespace, "()")
+    doAssert "-".startsWith({}, "-")
+    doAssert "---".startsWith({'-'})
+    doAssert "--".startsWith('-')
 
 
   test "{endsWith}":
-    assert "--, 9".endsWith("9", ", 9")
-    assert "---".endsWith({'-'})
-    assert "--".endsWith('-')
+    doAssert "--, 9".endsWith("9", ", 9")
+    doAssert "---".endsWith({'-'})
+    doAssert "--".endsWith('-')
 
 
   test "{dropSuffix}":

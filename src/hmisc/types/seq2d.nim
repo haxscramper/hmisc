@@ -1,6 +1,7 @@
 import sequtils, options, hprimitives, strformat, strutils, sugar
 import ../hdebug_misc
 import ../algo/[halgorithm, hseq_mapping]
+import ../base_errors
 import unicode
 
 #================================  TODO  =================================#
@@ -348,7 +349,9 @@ func makeLookup*(grid: Seq2d[Option[ArrSize]]): MulticellLookup =
       pos.colRange(size)
     ):
       if result[row, col].isSome():
-        raiseAssert &"Cannot set cell at position {pos}: {(row, col)} is already occupied"
+        raiseArgumentError(
+          &"Cannot set cell at position {pos}: {(row, col)} is already occupied")
+
       else:
         result[row, col] = some(makeArrrect(pos, size))
 
@@ -360,8 +363,8 @@ func makeLookup*(grid: Seq2d[Option[ArrSize]]): MulticellLookup =
 func `[]=`*[T](grid: var MulticellGrid[T], rect: ArrRect, val: T): void =
   for (row, col) in rect.itercells():
     if grid.lookup[row, col].isSome():
-      raiseAssert &"Cannot set cell at rec {rect}: " &
-       &"{(row, col)} is already occupied"
+      raiseArgumentError(
+        &"Cannot set cell at rec {rect}: {(row, col)} is already occupied")
 
   for (row, col) in rect.itercells():
     grid.lookup[row, col] = some(rect)

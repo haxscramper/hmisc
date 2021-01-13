@@ -1,5 +1,9 @@
 import macros, sequtils, strutils
 
+import ../base_errors
+
+type VariantAccessError* = ref object of ArgumentError
+
 type
   Var4*[T0, T1, T2, T3] = object
     case idx: range[0 .. 3]:
@@ -32,9 +36,11 @@ template get*[T0, T1, T2, T3](v: Var4[T0, T1, T2, T3], t: typed): auto =
     elif idx == 2: v.f2
     else: v.f3
   else:
-    raiseAssert("Cannot get value for type `" & $typeof(t) &
-      "` - current variant index is " & $v.idx & " (type is `" & v.getTypeName() &
-      "`) , but " & "value with type `" & $typeof(t) & "` has index " & $idx)
+    raise VariantAccessError(msg:
+      "Cannot get value for type `" & $typeof(t) &
+      "` - current variant index is " & $v.idx &
+      " (type is `" & v.getTypeName() & "`) , but " &
+      "value with type `" & $typeof(t) & "` has index " & $idx)
 
 
 func idx*[T0, T1, T2, T3](v: Var4[T0, T1, T2, T3]): int = v.idx

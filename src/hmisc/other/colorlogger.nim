@@ -1,5 +1,6 @@
 const cbackend = not (defined(nimscript) or defined(js))
 
+import ../base_errors
 import ../types/colorstring
 import ../algo/hstring_algo
 import macros, strutils, strformat
@@ -199,7 +200,8 @@ func typedArgs*(call: NimNode): seq[NimNode] =
                 else:
                   result.add elem
           else:
-            raiseAssert(&"#[ IMPLEMENT for kind {arg[1].kind} ]#")
+            raiseImplementError(&"For kind {arg[1].kind}")
+
       else:
         result.add arg
 

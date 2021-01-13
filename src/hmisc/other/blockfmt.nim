@@ -11,6 +11,7 @@ import std/[
   lenientops, options, hashes, math, sugar, streams
 ]
 
+import ../base_errors
 import ../algo/[hmath, halgorithm, hseq_mapping]
 import ../hdebug_misc, ../hexceptions
 import colorlogger
@@ -763,7 +764,7 @@ func padSpaces(
         padSpaces(item, indent)
 
     else:
-      raiseAssert(&"#[ IMPLEMENT for kind {bl.kind} {instantiationInfo()} ]#")
+      raiseImplementError(&"For kind {bl.kind} {instantiationInfo()}")
 
 
 
