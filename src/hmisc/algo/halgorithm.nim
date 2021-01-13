@@ -670,8 +670,8 @@ proc testEq*[A, B](lhs: A, rhs: B) =
         if line[0] != line[1]:
           echo fmt("LHS #{idx}: '{line[0]}'")
           echo fmt("RHS #{idx}: '{line[1]}'")
-          break
           hadAny = true
+          break
 
       if not hadAny:
         echo fmt("LHS: '{lhsStr}'")
