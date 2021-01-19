@@ -1,4 +1,4 @@
-import std/[strutils, tables, enumerate]
+import std/[strutils, tables, enumerate, strformat]
 import hseq_mapping, htext_algo
 import ../base_errors
 
@@ -40,9 +40,39 @@ func toPluralNoun*(noun: string, count: int, addNum: bool = true): string =
   ## TODO implement algorith described here:
   ## http://users.monash.edu/~damian/papers/HTML/Plurals.html
   if count == 1:
-    return $count & " " & noun
+    return noun
+
   else:
-    return $count & " " & noun & "s"
+    return noun & "s"
+
+func joinWords*(words: seq[string], sepWord: string): string =
+  case words.len:
+    of 0: discard
+    of 1: result = words[0]
+    of 2: result = &"{words[0]} {sepWord} {words[1]}"
+    else:
+      for idx, word in pairs(words):
+
+        if idx == words.high:
+          result &= sepWord & " " & word
+
+        else:
+          result &= word & ", "
+
+func namedItemListing*(
+    name: string,
+    words: seq[string],
+    sepWord: string
+  ): string =
+
+  if words.len == 0:
+    result = &"{toPluralNoun(name, 0).toLowerAscii()}"
+
+  else:
+    result = toPluralNoun(name, words.len) &
+      ": " & joinWords(words, sepWord)
+
+
 
 func toLatinNamedChar*(ch: char): seq[string] =
   ## Convert character `ch` to it's named for punctuation and control

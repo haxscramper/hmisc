@@ -24,9 +24,10 @@ func cumsumjoin*(
     result = result[0..^2]
 
 
-iterator `..+`*(start: int, offset: int): int =
-  for i in start ..< start + offset:
-    yield i
+proc `..+`*(start: int, offset: int): Slice[int] =
+  Slice[int](a: start, b: start + offset - 1)
+  # for i in start ..< start + offset:
+  #   yield i
 
 func order*[Num](a, b: Num): (Num, Num) =
   if a > b: (b, a)

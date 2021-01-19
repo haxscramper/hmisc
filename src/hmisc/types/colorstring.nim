@@ -1,5 +1,8 @@
-import sequtils, strformat, strutils, unicode, macros, strscans
+import std/[sequtils, strformat, strutils, unicode,
+           macros, strscans, algorithm]
+
 import ../macros/traceif
+import ../algo/[hseq_distance]
 
 
 when defined(nimscript):
@@ -589,3 +592,30 @@ func `[]=`*(
 
   buf[row] &= coloredWhitespaceRune.repeat(max(col - buf[row].len + 1, 0))
   buf[row][col] = ch
+
+func getEditVisual*(src, target: seq[char], ops: seq[LevEdit]): string =
+  var
+    src = src
+    currIdx = 0
+
+  for op in ops:
+    if currIdx < op.getPos():
+      for i in currIdx ..< op.getPos():
+        result.add src[i]
+
+      currIdx = op.getPos() + 1
+
+    case op.kind:
+      of lekInsert:
+        result.add toGreen($op.insertItem)
+
+      of lekDelete:
+        result.add toRed($src[op.deletePos])
+
+      of lekReplace:
+        result.add toRed($src[op.replacePos]) & toGreen($op.replaceItem)
+
+    src.apply(op)
+
+  for i in currIdx ..< src.len:
+    result.add src[i]

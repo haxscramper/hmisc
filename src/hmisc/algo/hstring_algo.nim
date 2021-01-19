@@ -299,6 +299,7 @@ func msgjoin*(args: varargs[string, `$`]): string =
   ## characters. Wrapper characters are: `_' "`
   msgjoinImpl(toSeq(args))
 
+
 macro joinLiteral*(body: untyped): untyped =
   if body.kind == nnkStmtList:
     result = newLit(msgjoin body.mapIt(it.strVal())):

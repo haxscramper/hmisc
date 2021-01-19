@@ -309,8 +309,8 @@ subnodes.
 ## Parameters
 
 :inTree: First node in tree
-:hasSubnodes: Expression to check if current node has list of subnodes
 :getSubnodes: Expression to get list of subnodes
+:hasSubnodes: Expression to check if current node has list of subnodes
 :order: Order of traversal
 :body: Body to evaluate for each node
 
@@ -398,9 +398,28 @@ nodes'.
           elems, stack[^1].path & @[stack[^1].idx]
         )
 
-template iterateItDFS*(tree, order, body: untyped): untyped =
-  static: assert order is DfsTraversalOrder
-  iterateItDFS(tree, it, true, order, body)
+template iterateItDFS*(tree, orderOrGetKind, body: untyped): untyped =
+  ## Perform iterative traversal of `tree`, invoking `body` for each node.
+  ##
+  ##
+  ## - @arg{tree} :: Input tree
+  ## - @arg{orderOrGetKind} :: Either `bool` or `DfsTraversalOrder`
+  ##   expression. `when is bool`, used as predicate for checking
+  ##   if @injected{it} has subnodes. `dfsPreorder` is then used
+  ##   as iteration order. When argument is of type `DfsTraversalOrder`
+  ##   it is used as traversal order parameter, and `true` is used for
+  ##   predicate.
+  ## - @arg{body} :: Code block invoked on each node
+
+  static:
+    assert (orderOrGetKind is DfsTraversalOrder) or (orderOrGetKind is bool)
+
+  when orderOrGetKind is bool:
+    iterateItDFS(tree, it, orderOrGetKind, dfsPreorder, body)
+
+  else:
+    iterateItDFS(tree, it, true, orderOrGetKind, body)
+
 
 
 template mapItDFSImpl*[InTree, OutTree](

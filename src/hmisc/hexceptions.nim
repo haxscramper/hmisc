@@ -1,7 +1,7 @@
 import std/[strformat, strutils, algorithm, sequtils, macros, os]
 # TODO use `oswrap` instead of `os`
 import types/colorstring
-import algo/[hseq_mapping, hmath, halgorithm]
+import algo/[hseq_mapping, hmath, halgorithm, hseq_distance, clformat]
 export alignLeft
 import std/enumerate
 import hdebug_misc
@@ -19,6 +19,7 @@ type
     case fromString*: bool
       of true:
         offset*: int ## Offset from the start of main substring
+
       of false:
         errpos*: LineInfo
 
@@ -34,6 +35,7 @@ type
       of true:
         substr*: GlobalSubstring
         offset*: int
+
       of false:
         errpos*: LineInfo ## Position of original error
 
@@ -84,6 +86,8 @@ proc getLines(annot: ErrorAnnotation, baseStr: string): seq[string] =
       while baseStr[lineStart] != '\n' and lineStart > 0:
         dec lineStart
 
+      inc lineStart
+
       for idx, line in enumerate(baseStr[lineStart .. ^1].split('\n')):
         if idx > annot.linerange:
           break
@@ -98,17 +102,17 @@ proc getLines(annot: ErrorAnnotation, baseStr: string): seq[string] =
 
 proc getColumn(annot: ErrorAnnotation, main: CodeError): int =
   if annot.fromString:
-    result = main.substr.column
-    for i in 0 ..< annot.offset:
-      if main.substr.str.len - 1 < i:
-        inc result
+    var offset = annot.offset
+    while main.substr.str[offset] != '\n':
+      dec offset
 
-      else:
-        if main.substr.str[i] == '\n':
-          result = 0
+    inc offset
 
-        else:
-          inc result
+    while offset < annot.offset:
+      inc result
+      inc offset
+
+    dec result
 
   else:
     result = annot.errpos.column
@@ -152,9 +156,14 @@ proc toColorString*(err: CodeError): string =
 
       block:
         for idx, line in filelines[0..^2]:
-          let lineidx = $(-(filelines.len - firstErr.errpos.line - idx + 1))
-          result &= " " & lineidx & " ".repeat(
-            position.len - lineidx.len - 1) & line & "\n"
+          if firstErr.fromString:
+            result &= line
+
+          else:
+            let lineidx = $(-(filelines.len - firstErr.errpos.line - idx + 1))
+
+            result &= " " & lineidx & " ".repeat(
+              position.len - lineidx.len - 1) & line & "\n"
 
         result &= position & filelines[^1] & "\n"
 
@@ -247,18 +256,16 @@ func toCodeError*(
     result.msg = toColorString(CodeError(
       msg: message,
       fromString: true,
-      substr: GlobalSubstring(
-        str: str
-      ),
+      substr: GlobalSubstring(str: str),
       annots: @[
         ErrorAnnotation(
-          expr: tern(offset > str.len,
+          expr: tern(offset > str.high,
                      "",
                      str[offset ..< min(str.len, offset + exprLen)]),
 
           fromString: true,
           annotation: annotation,
-          linerange: 0,
+          linerange: 1,
           offset: offset
         )
       ]
@@ -611,3 +618,58 @@ proc optFmt(arg: string): string = arg
 
 #   static: assert body is string
 #   raise newException(ValueError, joinLiteral(&body))
+
+
+func getStringMismatchMessage*(
+    input: string,
+    expected: openarray[string],
+    colorize: bool = true,
+    fixSuggestion: bool = true
+  ): string =
+
+  if expected.len == 0:
+    return "No matching alternatives"
+
+  var results: seq[tuple[
+    edits: tuple[distance: int, operations: seq[LevEdit]],
+    target: string
+  ]]
+
+  for str in expected:
+    if str == input:
+      return
+
+    else:
+      results.add (
+        levenshteinDistance(input.toSeq(), str.toSeq()),
+        str
+      )
+
+  results = sortedByIt(results, it.edits.distance)
+
+  let best = results[0]
+
+  if best.edits.distance > int(input.len.float * 0.8):
+    result = "No close matches, possible " & namedItemListing(
+      "alternative",
+      results[0 .. min(results.high, 3)].mapIt(
+        it.target.toYellow().wrap("''")),
+      "or"
+    )
+    # result = &"Best alternatives: " & joinWords(
+    #   , "and") & "."
+
+
+  else:
+    result = &"Did you mean to use '{toYellow(best.target, colorize)}'?"
+
+    if fixSuggestion:
+      if best.edits.operations.len < min(3, input.len div 2):
+        result &= " (" & getEditVisual(
+          toSeq(input),
+          toSeq(best.target),
+          best.edits.operations
+        ) & ")"
+
+      else:
+        result &= &" ({toRed(input)} -> {toGreen(best.target)})"

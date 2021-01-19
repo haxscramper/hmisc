@@ -610,7 +610,7 @@ suite "Simple sequence templates":
 
 import math
 
-suite "Misc algorithms":
+suite "String distance algorithms":
   test "{longestCommonSubsequence} :generic:value:":
     template tmp(s1, s2, s3: untyped): untyped =
       assertEq longestCommonSubsequence(s1, s2)[0].matches, s3
@@ -751,7 +751,31 @@ suite "Misc algorithms":
         quit 1
       # else:
 
+  test "Levenstein edit colored":
+    template impl(inSrc, inTarget: string) =
+      block:
+        var src = toSeq(inSrc)
+        var target = toSeq(inTarget)
+        let (dist, ops) = levenshteinDistance(src, target)
+        let output = getEditVisual(src, target, ops)
+        echo output
 
+    impl("nme", "name")
+    impl("name", "nme")
+    impl("hello", "hello")
+    impl("one", "two")
+
+  test "Identifier mismatch":
+    template mis(a, b): untyped = getStringMismatchMessage(a, b)
+
+    echo mis("nme", ["name"])
+    echo mis("hello world", ["hllo world"])
+    echo mis("person", ["table"])
+    echo mis("person", ["table", "distance"])
+    echo mis("person", newSeq[string]())
+
+
+suite "Colored string":
   test "Colored string wrapping":
     assertEq "999".toRed(), "\e[31m999\e[39m"
     assertEq "999".toDefault(), "999"

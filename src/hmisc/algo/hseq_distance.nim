@@ -321,15 +321,24 @@ type
     lekDelete
 
   LevEdit* = object
-    case kind: LevEditKind
+    case kind*: LevEditKind
       of lekInsert:
-        insertPos: int
-        insertItem: char
+        insertPos*: int
+        insertItem*: char
+
       of lekDelete:
-        deletePos: int
+        deletePos*: int
+
       of lekReplace:
-        replacePos: int
-        replaceItem: char
+        replacePos*: int
+        replaceItem*: char
+
+func getPos*(edit: LevEdit): int =
+  case edit.kind:
+    of lekInsert: edit.insertPos
+    of lekDelete: edit.deletePos
+    of lekReplace: edit.replacePos
+
 
 func apply*(str: var seq[char], op: LevEdit) =
   case op.kind:
@@ -340,8 +349,6 @@ func apply*(str: var seq[char], op: LevEdit) =
       str[op.replacePos] = op.replaceItem
     of lekInsert:
       str.insert($op.insertItem, op.insertPos)
-
-
 
 
 proc levenshteinDistance*(str1, str2: seq[char]): tuple[
@@ -355,7 +362,6 @@ proc levenshteinDistance*(str1, str2: seq[char]): tuple[
     paths: seq[seq[(int, int)]] = newSeqWith(l1 + 1,
                                              newSeqWith(l2 + 1, (0, 0)))
 
-  # m = @[toSeq(0 .. l1)]
   for i in 0 .. l1:
     m[i][0] = i
     paths[i][0] = (i - 1, 0)
@@ -393,9 +399,10 @@ proc levenshteinDistance*(str1, str2: seq[char]): tuple[
       i = paths[i][j][0]
       j = paths[t][j][1]
 
-  reverse(levenpath)
 
-  echov levenpath
+  reverse(levenpath)
+  result.distance = m[levenpath[^1][0]][levenpath[^1][1]]
+
   for i in 1 ..< levenpath.len:
     var
       last = levenpath[i - 1]
@@ -412,30 +419,28 @@ proc levenshteinDistance*(str1, str2: seq[char]): tuple[
           replacePos: cur.j - 1,
           replaceItem: str2[cur.j - 1]
         )
+
         cur.t = "replace"
+
       elif (cur.i == last.i and cur.j == last.j + 1):
         result.operations.add LevEdit(
           kind: lekInsert,
           insertPos: cur.i,
           insertItem: str2[cur.j - 1]
         )
+
         cur.t = "insert"
+
       elif (cur.i == last.i + 1 and cur.j == last.j):
         result.operations.add LevEdit(
           kind: lekDelete,
           deletePos: cur.i - 1,
         )
+
         cur.t = "delete"
 
-    # echov m.join("\n")
-    echov last
-    echov cur
-    # levenpath[i] = cur
 
 
-  echov m.join("\n")
-  echov levenpath
-  # return { matrix: m, levenpath: levenpath };
 
 type
   Align[T] = seq[AlignElem[T]]

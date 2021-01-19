@@ -14,7 +14,7 @@ namedBin      = {
 }.toTable()
 
 
-requires "nim >= 1.2.0", "cligen"
+requires "nim >= 1.4.0", "cligen"
 
 task docgen, "Generate documentation":
   if not fileExists("bin/hmisc-putils"):
