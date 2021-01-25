@@ -2,20 +2,18 @@
 ## regular target.
 
 
-# - TODO :: add support for error messages on missing files. etc
-#
-# - TODO :: add `MaybeFile` and `MaybeDir` typeclasses for things that
-#   might represent anything at runtime
-#
-# - TODO :: unit test with taint mode on
-#
-# - TODO :: parse file paths from URI (`file:///`)
-#
-# - TEST :: that compiles without errors.
-#
-# - IDEA :: optionally enable colored exception messages.
-#
-# - TODO :: convert exceptions to structured output
+## - TODO :: add support for error messages on missing files. etc
+## - TODO :: add `MaybeFile` and `MaybeDir` typeclasses for things that
+##   might represent anything at runtime
+## - TODO :: unit test with taint mode on
+## - TODO :: parse file paths from URI (`file:///`)
+## - TEST :: that compiles without errors.
+## - IDEA :: optionally enable colored exception messages.
+## - TODO :: convert exceptions to structured output
+## - TODO :: Add `/` overload for `static[string]` argument and generate
+##   warnings when literal string with `"/"` is used, or path looks like a
+##   file (though if `directory.d` naming convention is used it might be
+##   a big problematic).
 
 import std/[strutils, macros, random, hashes,
             strformat, sequtils, options, streams]
@@ -1351,13 +1349,16 @@ proc findExe*(bin: string): AbsFile =
 func `&&`*(lhs, rhs: string): string =
   if lhs.len == 0:
     rhs
+
   elif rhs.len == 0:
     lhs
+
   else:
     # TODO check for `||` ending to prevent incorrect string construction
     if lhs.strip().endsWith("&&") or rhs.strip.startsWith("&&"):
       # if rhs.strip().startsWith("&&"): # IMPLEMENT
       lhs & " " & rhs
+
     else:
       lhs & " && " & rhs
 
@@ -1377,6 +1378,7 @@ template withStreamFile*(inFile: AnyFile, body: untyped) =
     var file {.inject.} = open(inFile.getStr(), fmReadWrite)
     try:
       body
+
     finally:
       file.close()
 
@@ -1395,6 +1397,7 @@ iterator xPatterns(pattern: string): string =
     for ch in pattern:
       if ch == 'X':
         next.add sample({'a' .. 'z', 'A' .. 'Z'})
+
       else:
         next.add ch
 
@@ -1484,6 +1487,13 @@ template withCleanDir*(dirname, body: untyped): untyped =
     body
   finally:
     cd(curDir)
+
+template withTempFile*(
+    dirname: untyped, pattern: string, body: untyped): untyped =
+
+  let file {.inject.} = getTempFile(dirname, pattern)
+  block:
+    body
 
 
 
@@ -1975,3 +1985,10 @@ proc getMissingDependencies*(deplist: openarray[tuple[
         # echo pack
         if not isPackageInstalled(pack):
           result.add (pack, getInstallCmd(pack))
+
+when canImport(compiler/pathutils):
+  converter toAbsoluteDir*(dir: AbsDir): AbsoluteDir =
+    AbsoluteDir(dir.string)
+
+  converter toAbsoluteFile*(file: AbsFile): AbsoluteFile =
+    AbsoluteFile(file.string)

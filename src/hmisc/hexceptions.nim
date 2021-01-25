@@ -620,12 +620,13 @@ proc optFmt(arg: string): string = arg
 #   raise newException(ValueError, joinLiteral(&body))
 
 
-func getStringMismatchMessage*(
+func stringMismatchMessage*(
     input: string,
     expected: openarray[string],
     colorize: bool = true,
     fixSuggestion: bool = true
   ): string =
+  ## - TODO :: Better heuristics for missing/extraneous prefix/suffix
 
   if expected.len == 0:
     return "No matching alternatives"
@@ -656,9 +657,6 @@ func getStringMismatchMessage*(
         it.target.toYellow().wrap("''")),
       "or"
     )
-    # result = &"Best alternatives: " & joinWords(
-    #   , "and") & "."
-
 
   else:
     result = &"Did you mean to use '{toYellow(best.target, colorize)}'?"

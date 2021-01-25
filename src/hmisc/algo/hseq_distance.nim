@@ -236,12 +236,14 @@ proc fuzzyMatchRecursive[Seq, Item](
     # echo &"Else"
     result.ok = false
 
-
+type FuzzyMatchRes* = tuple[ok: bool, score: int, matches: seq[int]] 
 
 proc fuzzyMatchImpl[Seq, Item](
-  patt, other: Seq,
-  matchScore: proc(patt, other: Seq, matches: seq[int]): int,
-  eqCmp: EqCmpProc[Item]): tuple[ok: bool, score: int, matches: seq[int]] =
+    patt, other: Seq,
+    matchScore: proc(patt, other: Seq, matches: seq[int]): int,
+    eqCmp: EqCmpProc[Item]
+  ): FuzzyMatchRes =
+
   ## Perform fuzzy matching of `other` agains `patt`. Return `score` -
   ## how similar two sequences are and `matches` - indices for which
   ## other matches pattern.
@@ -270,9 +272,10 @@ proc fuzzyMatchImpl[Seq, Item](
   )
 
 proc fuzzyMatch*[T](
-  patt, other: openarray[T],
-  matchScore: proc(patt, other: openarray[T], matches: seq[int]): int,
-  eqCmp: EqCmpProc[T]): tuple[ok: bool, score: int, matches: seq[int]] =
+    patt, other: openarray[T],
+    matchScore: proc(patt, other: openarray[T], matches: seq[int]): int,
+    eqCmp: EqCmpProc[T]
+  ): FuzzyMatchRes =
   ## Generic fuzzy match algorithm. Returns similarity between two
   ## sequences using `matchScore` function to determine weight of each
   ## possible match. Highest possible match score for two sequences is
@@ -297,9 +300,9 @@ proc fuzzyMatch*[T](
 
 
 proc fuzzyMatch*[T](
-  patt, other: openarray[T],
-  matchScore: proc(patt, other: openarray[T], matches: seq[int]): int
-                  ): tuple[ok: bool, score: int, matches: seq[int]] =
+    patt, other: openarray[T],
+    matchScore: proc(patt, other: openarray[T], matches: seq[int]): int
+  ): FuzzyMatchRes =
 
   fuzzyMatchImpl[openarray[T], T](
     patt, other, matchScore,
@@ -307,12 +310,48 @@ proc fuzzyMatch*[T](
   )
 
 proc fuzzyMatch*(
-  patt, other: string,
-  matchScore: proc(patt, other: string, matches: seq[int]): int
-                 ): tuple[ok: bool, score: int, matches: seq[int]] =
+    patt, other: string,
+    matchScore: proc(patt, other: string, matches: seq[int]): int
+  ): FuzzyMatchRes =
+
   ## Fuzzy match overload for strings
   fuzzyMatchImpl[string, char](
     patt, other, matchScore, (proc(a, b: char): bool = a == b))
+
+
+proc fuzzyMatch*(
+    patt, other: string,
+    scores: seq[(set[char], int)],
+  ): FuzzyMatchRes =
+
+  var scoreArr: array[char, int]
+  for item in mitems(scoreArr):
+    item = 1
+
+  for (chars, value) in items(scores):
+    for ch in items(chars):
+      scoreArr[ch] = value
+
+  fuzzymatchImpl[string, char](
+    patt,
+    other,
+    (
+      proc(patt, other: string, matches: seq[int]): int =
+        var prevIdx = matches[0]
+        for idx in items(matches):
+          if prevIdx <= idx:
+            break
+
+          let score = scoreArr[other[idx]]
+
+          result += score
+
+    ),
+    (
+      proc(a, b: char): bool =
+        a == b
+    )
+  )
 
 type
   LevEditKind* = enum

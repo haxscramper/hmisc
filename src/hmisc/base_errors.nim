@@ -9,3 +9,8 @@ type
 
 template raiseImplementError*(errMsg: string) {.dirty.} =
   raise ImplementError(msg: errMsg)
+
+
+template canImport*(x: untyped): untyped =
+  compiles:
+    import x

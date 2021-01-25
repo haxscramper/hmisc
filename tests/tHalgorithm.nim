@@ -56,6 +56,9 @@ let astInval = Ast(isToken: false, subnodes: @[
   ])
 ])
 
+proc show(args: varargs[string]) =
+  echo "    ", join(args, " ")
+
 suite "Tree mapping":
   ## Test tempates/procs/macros for working on trees.
   # Tests are a little verbose
@@ -648,9 +651,17 @@ suite "String distance algorithms":
     lcs("AB", "A", "A", @[0], @[0])
 
 
+  proc showMatches(patt, input: string, matches: seq[int]) =
+    show "input:", input
+    var buf = " ".repeat(input.len)
+    for pattIdx, inIdx in matches:
+      buf[inIdx] = patt[pattIdx]
+
+    show "match:", buf
+
+    buf = " ".repeat(input.len)
 
 
-  # if true: quit 0
   test "{fuzzyMatch} fuzzy string matching":
     template test(
       patt, input: string, expr: untyped, expected: seq[int]): untyped =
@@ -667,18 +678,13 @@ suite "String distance algorithms":
       doAssert res.ok
 
       if res.matches != expected:
-        echo "input: ", input
+        showMatches(patt, input, res.matches)
+
         var buf = " ".repeat(input.len)
-        for pattIdx, inIdx in res.matches:
-          buf[inIdx] = patt[pattIdx]
-
-        echo "match: ", buf
-
-        buf = " ".repeat(input.len)
         for pattIdx, inIdx in expected:
           buf[inIdx] = patt[pattIdx]
 
-        echo "expec: ", buf
+        show "expec:", buf
 
       assertEq res.matches, expected
 
@@ -697,6 +703,21 @@ suite "String distance algorithms":
     test("123", "0123", m.sum(), @[1, 2, 3])
 
     test("123", "1123", m.sum(), @[1, 2, 3])
+
+
+  test "{fuzzyMatch} scored characters":
+    proc test(
+      patt, input: string,
+      scores: openarray[(set[char], int)],
+    ) =
+
+      let res = fuzzyMatch(patt, input, toSeq(scores))
+      showMatches(patt, input, res.matches)
+
+    test("/tmp", "/tmp/zz", {{'/'} : 10})
+    test("///", "/tmp///zz", {{'/'} : 10})
+    test("/q//", "/tmp/q//zz", {{'/'} : 10})
+
 
   test "{levenshteinDistance}":
     stopHax()
@@ -758,7 +779,7 @@ suite "String distance algorithms":
         var target = toSeq(inTarget)
         let (dist, ops) = levenshteinDistance(src, target)
         let output = getEditVisual(src, target, ops)
-        echo output
+        show output
 
     impl("nme", "name")
     impl("name", "nme")
@@ -766,13 +787,14 @@ suite "String distance algorithms":
     impl("one", "two")
 
   test "Identifier mismatch":
-    template mis(a, b): untyped = getStringMismatchMessage(a, b)
+    template mis(a, b): untyped = stringMismatchMessage(a, b)
 
-    echo mis("nme", ["name"])
-    echo mis("hello world", ["hllo world"])
-    echo mis("person", ["table"])
-    echo mis("person", ["table", "distance"])
-    echo mis("person", newSeq[string]())
+    show mis("nme", ["name"])
+    show mis("hello world", ["hllo world"])
+    show mis("person", ["table"])
+    show mis("person", ["table", "distance"])
+    show mis("person", ["table", "distance", "distance"])
+    show mis("person", newSeq[string]())
 
 
 suite "Colored string":
