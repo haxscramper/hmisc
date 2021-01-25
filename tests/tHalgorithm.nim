@@ -56,7 +56,7 @@ let astInval = Ast(isToken: false, subnodes: @[
   ])
 ])
 
-proc show(args: varargs[string]) =
+proc show(args: varargs[string, `$`]) =
   echo "    ", join(args, " ")
 
 suite "Tree mapping":
@@ -663,6 +663,8 @@ suite "String distance algorithms":
 
 
   test "{fuzzyMatch} fuzzy string matching":
+    doAssert not fuzzyMatch("/tmp", "zzz", @{{'/'} : 10}).ok
+
     template test(
       patt, input: string, expr: untyped, expected: seq[int]): untyped =
       let res = fuzzyMatch(
@@ -717,6 +719,20 @@ suite "String distance algorithms":
     test("/tmp", "/tmp/zz", {{'/'} : 10})
     test("///", "/tmp///zz", {{'/'} : 10})
     test("/q//", "/tmp/q//zz", {{'/'} : 10})
+
+  test "{fuzzyMatch} sorted":
+    var dataset = @["tMap", "tMap.nim", "tMatching",]
+
+    let patt = "tMap.nim"
+    let dataset2 = dataset.
+      mapIt((patt, it, fuzzyMatch(patt, it, @[]))).
+      sortedByIt(-it[2].score)
+
+    for entry in dataset2:
+      show "---"
+      showMatches(entry[0], entry[1], entry[2].matches)
+      show entry[2]
+
 
 
   test "{levenshteinDistance}":

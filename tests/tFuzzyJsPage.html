@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<!-- adapted from
+     https://s3-us-west-2.amazonaws.com/forrestthewoods.staticweb/lib_fts/tests/fuzzy_match/fts_fuzzy_match_test.html
+-->
+<meta charset="utf-8">
+<head>
+    <script type="text/javascript" src="tFuzzyJs.js"></script>
+    <script>
+      function ftsFuzzyMatchAsync(matchFn, pattern, dataSet, onComplete) {
+        const ITEMS_PER_CHECK = 1000;
+        const results = [];
+        const max_ms_per_frame = 1000.0 / 30.0;
+        let dataIndex = 0;
+        let resumeTimeout = null;
+
+        function step() {
+          clearTimeout(resumeTimeout);
+          resumeTimeout = null;
+
+          var stopTime = performance.now() + max_ms_per_frame;
+
+          for (; dataIndex < dataSet.length; ++dataIndex) {
+            if (dataIndex % ITEMS_PER_CHECK == 0) {
+              if (performance.now() > stopTime) {
+                resumeTimeout = setTimeout(step, 1);
+                return;
+              }
+            }
+
+            var str = dataSet[dataIndex];
+            var result = matchFn(pattern, str);
+            if (result[0] == true) {
+                results.push(result);
+            }
+          }
+
+          onComplete(results);
+          return null;
+        }
+
+        this.cancel = function() {
+          if (resumeTimeout !== null) clearTimeout(resumeTimeout);
+        };
+
+        this.start = function() {
+          step();
+        };
+
+        this.flush = function() {
+          max_ms_per_frame = Infinity;
+          step();
+        };
+      }
+    </script>
+</head>
+
+<body>
+    <form>
+        <input id="searchPatternField" type="text" size="25" value="">
+    </form>
+
+    <!-- Results -->
+    <h2>Results</h2>
+    <p id="resultsTime"></p>
+    <ul id="resultsList">
+    </ul>
+
+    <script>
+        var patternField;
+        var resultsTime;
+        var resultsList = null;
+
+        var currentDataSet = [
+
+         "nimdoc.out.css", "tBlockFmt", "tBlockFmt.nim",
+         "tBlockFmtCpp.nim", "tClFormat.nim", "tColortext.nim",
+         "tColortext.nim.bin", "tErrors", "tErrors.nim",
+         "tExampleKnuthPlass.nim.bin", "tFuzzyJs.js", "tFuzzyJs.nim",
+         "tFuzzyJsPage.html", "tHDrawing", "tHTreeDistance",
+         "tHTreeDistance.nim", "tHalgorithm", "tHalgorithm.nim",
+         "tHalgorithm.nim.bin", "tHalgorithm_script",
+         "tHalgorithm_script.nims", "tHelpers", "tHelpers.nim",
+         "tHmiscTypes", "tHmiscTypes.nim", "tHnimAst", "tHpprint",
+         "tHshell", "tHshell.nim", "tHtermsAst",
+         "tHtermsCallbackArithmetics", "tHtermsNimast", "tHtext",
+         "tHtext.nim", "tHtrie", "tHtrie.nim", "tHvariant",
+         "tHvariant.nim", "tLoop.nim", "tMap", "tMap.nim", "tMatching",
+         "tMatchingSimple", "tMisc", "tMisc.nim", "tNimScript.nims",
+         "tNimScript.nims.bin", "tNimTrs", "tObjMacros", "tOsWrap",
+         "tOsWrap.nim", "tOsWrap.nim.bin", "tParseObjPragmas", "tScanf",
+         "tScanf.nim"
+
+        ];
+
+        var asyncMatcher = null;
+
+        onload = function() {
+          patternField = document.getElementById('searchPatternField');
+          patternField.oninput = onPatternChange;
+          patternField.onpropertychange = patternField.oninput;
+
+          resultsTime = document.getElementById('resultsTime');
+          resultsList = document.getElementById('resultsList');
+        };
+
+        displayResults = function(results) {
+          var newResultsList = resultsList.cloneNode(false);
+          var max_entries = 10;
+          for (index = 0; index < results.length && index < max_entries; ++index) {
+              var li = document.createElement('li');
+              li.innerHTML = results[index];
+              newResultsList.appendChild(li);
+          }
+
+          resultsList.parentNode.replaceChild(newResultsList, resultsList);
+          resultsList = newResultsList;
+        };
+
+        onPatternChange = function() {
+          if (asyncMatcher !== null) {
+              asyncMatcher.cancel();
+              asyncMatcher = null;
+          }
+
+          var pattern = patternField.value;
+          if (currentDataSet == null)
+          {
+              return;
+          }
+
+          if (resultsList !== null)
+          {
+              var emptyList = resultsList.cloneNode(false);
+              resultsList.parentNode.replaceChild(emptyList, resultsList);
+              resultsList = emptyList;
+          }
+
+          if (pattern.length == 0)
+          {
+              return;
+          }
+
+          var startTime = performance.now();
+
+          asyncMatcher = new ftsFuzzyMatchAsync(
+              nimFuzzyMatch, pattern, currentDataSet, function(results) {
+              results = results
+                  .sort(function(a,b) { return b[1] - a[1]; })
+                  .map(function(v) { return v[1] + " - " + v[2]; });
+
+              var endTime = performance.now();
+
+              resultsTime.innerText = results.length + " matches in " + (
+                  endTime - startTime).toFixed(1) + " milliseconds";
+
+              displayResults(results);
+
+              asyncMatcher = null;
+          });
+          asyncMatcher.start();
+        };
+    </script>
+</body>

@@ -1,1 +1,3 @@
 cache/*
+!tFuzzyJsPage.html
+tFuzzyJs.js

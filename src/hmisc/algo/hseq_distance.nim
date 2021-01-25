@@ -325,12 +325,13 @@ proc fuzzyMatch*(
   ): FuzzyMatchRes =
 
   var scoreArr: array[char, int]
+
   for item in mitems(scoreArr):
     item = 1
 
-  for (chars, value) in items(scores):
-    for ch in items(chars):
-      scoreArr[ch] = value
+  for item in items(scores):
+    for ch in items(item[0]):
+      scoreArr[ch] = item[1]
 
   fuzzymatchImpl[string, char](
     patt,
@@ -339,12 +340,10 @@ proc fuzzyMatch*(
       proc(patt, other: string, matches: seq[int]): int =
         var prevIdx = matches[0]
         for idx in items(matches):
-          if prevIdx <= idx:
+          if prevIdx > idx:
             break
 
-          let score = scoreArr[other[idx]]
-
-          result += score
+          result += scoreArr[other[idx]]
 
     ),
     (

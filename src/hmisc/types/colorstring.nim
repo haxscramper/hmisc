@@ -617,5 +617,8 @@ func getEditVisual*(src, target: seq[char], ops: seq[LevEdit]): string =
 
     src.apply(op)
 
+    if op.kind == lekDelete:
+      result.add src[op.deletePos]
+
   for i in currIdx ..< src.len:
     result.add src[i]
