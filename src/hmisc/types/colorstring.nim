@@ -81,10 +81,13 @@ macro initStyle*(args: varargs[typed]): PrintStyling =
     result.add quote do:
       when `fld` is ForegroundColor:
         `tmp`.fg = `fld`
+
       elif `fld` is BackgroundColor:
         `tmp`.bg = `fld`
+
       elif `fld` is Style:
         `tmp`.style.incl `fld`
+
       elif `fld` is set[Style]:
         `tmp`.style = `fld`
 

@@ -15,7 +15,7 @@
 ##   file (though if `directory.d` naming convention is used it might be
 ##   a big problematic).
 
-import std/[strutils, macros, random, hashes,
+import std/[strutils, macros, random, hashes, json,
             strformat, sequtils, options, streams]
 
 import ../algo/hstring_algo
@@ -220,6 +220,8 @@ func parseFsDir*(dir: string): FsDir =
 
 func `$`*(path: AnyPath): string = path.getStr()
 func `$`*(entry: FsEntry): string = entry.getStr()
+func toJson*(v: ShellVar): JsonNode = newJString(v.string)
+
 # func `==`*(pathA, pathB: AnyPath, str: string): bool = path.string == str
 
 macro osAndNims*(code: untyped): untyped =

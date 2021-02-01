@@ -59,3 +59,15 @@ suite "Json pretty printing":
   "prReturn": 1
 }
 """))
+
+  test "Enum serialization":
+    type
+      En = enum
+        en1 = "hello"
+        en2
+
+    echo toJson(en1)
+    echo toJson(en2)
+
+    echo toJson(en1, false)
+    echo toJson(en2, false)

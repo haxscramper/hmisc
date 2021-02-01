@@ -1,9 +1,9 @@
-import std/[ json, options, tables, strutils,
+import std/[ json, options, tables, strutils, macros,
              sequtils, enumerate, unittest ]
 
 export json except items
 
-import ../macros/cl_logic
+import ../macros/[cl_logic, introspection]
 
 ##[
 
@@ -78,6 +78,10 @@ func asStrSeq*(node: JsonNode): seq[string] =
 
 func `%`*(c: char): JsonNode = %($c)
 
+template unref(val: untyped): untyped =
+  when val is ref: val[]
+  else: val
+
 func toJson*(arg: string | SomeInteger | bool | float | char): JsonNode =
   mixin toJson
   %arg
@@ -100,21 +104,28 @@ func toJson*(arg: openarray[(string, JsonNode)]): JsonNode =
   for (key, val) in items(arg):
     result[key] = val
 
+func toJson*(arg: enum, directName: bool = true): JsonNode =
+  if directname:
+    newJString(directEnumName(arg))
 
-func toJson*(arg: enum): JsonNode =
-  newJString($arg)
+  else:
+    newJString($arg)
 
 
 func toJson*(
-    arg: object | tuple,
+    arg: object | tuple | ref object | ref tuple,
     ignoreFields: static[seq[string]],
     compactOption: bool = true,
     compactArrays: bool = true,
   ): JsonNode =
 
+  when arg is ref:
+    if isNil(arg):
+      return newJNull()
+
   mixin toJson
   result = newJObject()
-  for key, val in fieldPairs(arg):
+  for key, val in fieldPairs(unref arg):
     when key notin ignoreFields:
       when val is Option:
         if compactOption:
@@ -133,7 +144,7 @@ func toJson*(
         result[key] = toJson(val)
 
 func toJson*(
-    arg: object | tuple,
+    arg: object | tuple | ref object | ref tuple,
     compactOption: bool = true,
     compactArrays: bool = true,
   ): JsonNode =
@@ -203,7 +214,7 @@ proc toPretty*(j: JsonNode, maxWidth: int = 80): string =
 
         for idx, entry in enumerate(items(j)):
           if idx != 0:
-            buf.add ", "
+            buf.add (if compact.ok: ", " else: ",")
 
           if allObject:
             if fitIdx[idx].ok:
@@ -233,7 +244,7 @@ proc toPretty*(j: JsonNode, maxWidth: int = 80): string =
         buf.add "{"
         for idx, (field, value) in enumerate(pairs(j)):
           if idx != 0:
-            buf.add ", "
+            buf.add (if compact.ok: ", " else: ",")
 
           if not compact.ok:
             buf.add "\n"
