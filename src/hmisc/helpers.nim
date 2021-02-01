@@ -56,3 +56,13 @@ template isMutable*(v: typed): untyped = compiles(takesOnlyMutable(v))
 
 macro dumpStr*(body: untyped): untyped =
   newCall(ident "echo", newLit(body.treeRepr()))
+
+template notNil*(arg: untyped): bool = not isNil(arg)
+
+
+{.push inline.}
+
+func `-`*[E](s1: set[E], s2: E): set[E] = s1 - {s2}
+func `-=`*[E](s1: var set[E], v: E | set[E]) = (s1 = s1 - {v})
+
+{.pop.}

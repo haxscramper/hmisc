@@ -61,5 +61,20 @@ macro cond*(v: untyped, conds: varargs[untyped]): untyped =
     let `exprId` = `v`
     `result`
 
+macro cond2*(conds: varargs[untyped]): untyped =
+  result = nnkIfExpr.newTree()
 
+  for cond in conds:
+    cond.assertNodeKind({nnkTupleConstr, nnkPar})
 
+    if cond.len == 1 or cond[0].eqIdent("_"):
+      result.add nnkElseExpr.newTree(cond[^1])
+
+    else:
+      result.add nnkElifExpr.newTree(cond[0], cond[1])
+
+  if result[^1].kind != nnkElseExpr:
+    raise conds[^1].toCodeError(
+      "No default branch for condition",
+      "Use (_, <expr>) or (<expr>) to create default"
+    )

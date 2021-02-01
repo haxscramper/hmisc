@@ -559,7 +559,7 @@ template pprintStackTrace*(): untyped =
 
       echo(
         prefix & (filePref) & " :" &
-          $(($tr.line).alignLeft(4)).toDefault(style = { styleUnderscore }) &
+          $(($tr.line).alignLeft(4)) &
           " " &
           $($tr.procname).toYellow())
 

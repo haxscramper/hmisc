@@ -8,7 +8,7 @@ type
   ImplementError* = ref object of CatchableError
 
 template raiseImplementError*(errMsg: string) {.dirty.} =
-  raise ImplementError(msg: errMsg)
+  raise ImplementError(msg: errMsg & " @" & $instantiationInfo())
 
 
 template canImport*(x: untyped): untyped =

@@ -642,6 +642,21 @@ template getSome*[T](opt: Option[T], injected: untyped): bool =
     true
   )
 
+
+template mapSomeIt*[T](opt: Option[T], expr: untyped): untyped =
+  var result: Option[typeof(
+    block:
+      var it {.inject.}: T
+      expr
+  )]
+
+  if opt.isSome():
+    let it {.inject.} = opt.get()
+    result = some(expr)
+
+  result
+
+
 #================================  tests  ================================#
 
 import unittest

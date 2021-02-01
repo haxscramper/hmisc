@@ -44,13 +44,17 @@ macro err*(args: varargs[untyped]): untyped =
     result.add arg
 
 
-proc identLog* =
+
+proc indentLog*() =
   when cbackend:
     for handler in getHandlers():
       if ColorLogger(handler) != nil:
         inc ColorLogger(handler).ident
   else:
     inc globalLog.ident
+
+proc identLog*() {.deprecated.} = indentLog()
+
 
 proc dedentLog* =
   when cbackend:
