@@ -103,7 +103,7 @@ proc getLines(annot: ErrorAnnotation, baseStr: string): seq[string] =
 proc getColumn(annot: ErrorAnnotation, main: CodeError): int =
   if annot.fromString:
     var offset = annot.offset
-    while main.substr.str[offset] != '\n':
+    while offset > -1 and main.substr.str[offset] != '\n':
       dec offset
 
     inc offset
