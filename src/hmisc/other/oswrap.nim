@@ -310,6 +310,9 @@ proc getCurrentDir*(): AbsDir =
   ## Retrieves the current working directory.
   AbsDir(osAndNims(getCurrentDir()))
 
+proc getCurrentCompilerExe*(): AbsFile =
+  AbsFile(os.getCurrentCompilerExe())
+
 proc cwd*(): AbsDir = getCurrentDir()
 
 proc normalizePathEnd*(path: var AnyPath; trailingSep = false): void =
@@ -482,7 +485,10 @@ func name*(file: AnyFile): string = file.splitFile().name
 
 proc assertValid*(path: AnyPath): void =
   if path.getStr().len < 1:
-    raise newPathError(path, pekInvalidEntry, "Empty path string")
+    raise newPathError(
+      path, pekInvalidEntry,
+      "Path validation failed - empty string is not a valid path"
+    )
 
   when path is RelPath:
     if os.isAbsolute(path.getStr()):
@@ -896,9 +902,12 @@ proc splitCmdLine*(c: string): seq[string] = os.parseCmdLine(c)
 
 
 
-proc paramStr*(i: int): string =
+proc paramStr*(i: int, addBin: bool = false): string =
   ## Retrieves the i'th command line parameter.
-  osAndNims(paramStr(i))
+  ## - @arg{addBin} :: Include binary name in param indexing.
+  ##   NOTE: disabled by default (differs from stdlib implementation)
+
+  osAndNims(paramStr(i + (if addBin: 0 else: 1)))
 
 proc paramCount*(): int =
   ## Retrieves the number of command line parameters.
@@ -911,7 +920,7 @@ proc paramStrs*(addBin: bool = false): seq[string] =
   ## the parameters itself)
   for i in 0 .. paramCount():
     if i > 0 or addBin:
-      result.add paramStr(i)
+      result.add paramStr(i, true)
 
 template `$$`*(v: untyped): untyped = ShellVar(astToStr(v))
 proc getEnv*(key: ShellVar; default = ""): string =
@@ -1152,10 +1161,10 @@ func withExt*[F: AbsFile | RelFIle](
 
   else:
     when F is AbsFile:
-      AbsFile(f.getStr() & newExt.addPrefix("."))
+      AbsFile(f.getStr() & hstring_algo.addPrefix(newExt, "."))
 
     else:
-      RelFile(f.getStr() & newExt.addPrefix("."))
+      RelFile(f.getStr() & hstring_algo.addPrefix(newExt, "."))
 
 
 func withBasePrefix*[F: AbsFile | RelFile | FsFile](
@@ -1624,11 +1633,16 @@ func next*(p: var OptParser) =
 
   if i < p.cmds[p.idx].len and p.cmds[p.idx][i] == '-':
     inc(i)
+
     if i < p.cmds[p.idx].len and p.cmds[p.idx][i] == '-':
       p.kind = cmdLongOption
       inc(i)
+
       i = parseWord(p.cmds[p.idx], i, p.key.string, {' ', '\t', ':', '='})
-      while i < p.cmds[p.idx].len and p.cmds[p.idx][i] in {'\t', ' '}: inc(i)
+
+      while i < p.cmds[p.idx].len and p.cmds[p.idx][i] in {'\t', ' '}:
+        inc(i)
+
       if i < p.cmds[p.idx].len and p.cmds[p.idx][i] in {':', '='}:
         inc(i)
         while i < p.cmds[p.idx].len and p.cmds[p.idx][i] in {'\t', ' '}: inc(i)
@@ -1639,19 +1653,28 @@ func next*(p: var OptParser) =
           i = 0
         if p.idx < p.cmds.len:
           p.val = TaintedString p.cmds[p.idx].substr(i)
-      elif len(p.longNoVal) > 0 and p.key.string notin p.longNoVal and p.idx+1 < p.cmds.len:
+
+      elif len(p.longNoVal) > 0 and
+           p.key.string notin p.longNoVal and
+           p.idx+1 < p.cmds.len
+        :
         p.val = TaintedString p.cmds[p.idx+1]
         inc p.idx
+
       else:
         p.val = TaintedString""
+
       inc p.idx
       p.pos = 0
+
     else:
       p.pos = i
       handleShortOption(p, p.cmds[p.idx])
+
   else:
     p.kind = cmdArgument
     p.key = TaintedString p.cmds[p.idx]
+    p.val = p.key
     inc p.idx
     p.pos = 0
 
@@ -1672,16 +1695,21 @@ iterator getopt*(p: var OptParser): tuple[kind: CmdLineKind, key,
     yield (p.kind, p.key, p.val)
 
 iterator getopt*(
-  cmdline: seq[TaintedString] = paramStrs(),
-  shortNoVal: set[char] = {},
-  longNoVal: seq[string] = @[]
-         ): tuple[kind: CmdLineKind, key, val: TaintedString] =
+    cmdline: seq[TaintedString] = paramStrs(),
+    shortNoVal: set[char] = {},
+    longNoVal: seq[string] = @[]
+  ): tuple[kind: CmdLineKind, key, val: TaintedString, idx: int] =
+
   var p = initOptParser(cmdline, shortNoVal = shortNoVal,
       longNoVal = longNoVal)
+
+  var idx = 0
+
   while true:
     next(p)
     if p.kind == cmdEnd: break
-    yield (p.kind, p.key, p.val)
+    yield (p.kind, p.key, p.val, idx)
+    inc idx
 
 import tables
 
