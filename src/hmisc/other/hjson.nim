@@ -141,7 +141,15 @@ func toJson*(
             result[key] = toJson(val)
 
       else:
-        result[key] = toJson(val)
+        when val is ref:
+          if isNil(val):
+            result[key] = newJNull()
+
+          else:
+            result[key] = toJson(val)
+
+        else:
+          result[key] = toJson(val)
 
 func toJson*(
     arg: object | tuple | ref object | ref tuple,

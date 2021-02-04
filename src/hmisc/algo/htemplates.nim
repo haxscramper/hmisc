@@ -4,19 +4,16 @@ import sugar, sequtils, macros
 
 #================================  tests  ================================#
 
-template tern*(
-  predicate: bool,
-  tBranch: untyped,
-  fBranch: untyped): untyped =
-    ## Shorthand for inline if/else.
-    runnableExamples:
-      let a = (1 == 2).tern("99", "0-")
-      assert a == "0-"
+template tern*(predicate: bool, tBranch: untyped, fBranch: untyped): untyped =
+  ## Shorthand for inline if/else.
+  runnableExamples:
+    let a = (1 == 2).tern("99", "0-")
+    assert a == "0-"
 
-    block:
-      # static: expectEqualTypes(tBranch, fBranch)
-      if predicate: tBranch
-      else: fBranch
+  block:
+    # static: expectEqualTypes(tBranch, fBranch)
+    if predicate: tBranch
+    else: fBranch
 
 template orElse*(
   value: untyped, predicate: bool, fallback: untyped): untyped =

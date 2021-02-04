@@ -74,7 +74,7 @@ proc getIdent*(): int =
 
 template logIndented*(body: untyped): untyped =
   try:
-    identLog()
+    indentLog()
     body
   finally:
     dedentLog()
