@@ -68,6 +68,3 @@ suite "Json pretty printing":
 
     echo toJson(en1)
     echo toJson(en2)
-
-    echo toJson(en1, false)
-    echo toJson(en2, false)

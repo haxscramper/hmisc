@@ -82,30 +82,66 @@ template unref(val: untyped): untyped =
   when val is ref: val[]
   else: val
 
-func toJson*(arg: string | SomeInteger | bool | float | char): JsonNode =
+type
+  JsonConvertOpt = enum
+    jcoCompactNil
+    jcoCompactOptions
+    jcoCompactEmptySeqs
+    jcoDirectEnumName
+
+  JsonConvertOpts* = set[JsonConvertOpt]
+
+const defaultJsonConvertOptions* = {
+  jcoCompactNil,
+  jcoCompactOptions,
+  jcoCompactEmptySeqs,
+  jcoDirectEnumName
+}
+
+func toJson*(
+    arg: string | SomeInteger | bool | float | char,
+    opts: JsonConvertOpts = defaultJsonConvertOptions
+  ): JsonNode =
+
   mixin toJson
   %arg
 
-func toJson*[T](arg: seq[T] | openarray[T] | set[T]): JsonNode =
+func toJson*[T](
+    arg: seq[T] | openarray[T] | set[T],
+    opts: JsonConvertOpts = defaultJsonConvertOptions
+  ): JsonNode =
+
   mixin toJson
   result = newJArray()
   for elem in items(arg):
     result.add toJson(elem)
 
 
-func toJson*[T](arg: openarray[(string, T)] | seq[(string, T)]): JsonNode =
+func toJson*[T](
+    arg: openarray[(string, T)] | seq[(string, T)],
+    opts: JsonConvertOpts = defaultJsonConvertOptions
+  ): JsonNode =
+
   mixin toJson
   result = newJObject()
   for (key, val) in items(arg):
     result[key] = toJson(val)
 
-func toJson*(arg: openarray[(string, JsonNode)]): JsonNode =
+func toJson*(
+    arg: openarray[(string, JsonNode)],
+    opts: JsonConvertOpts = defaultJsonConvertOptions
+  ): JsonNode =
+
   result = newJObject()
   for (key, val) in items(arg):
     result[key] = val
 
-func toJson*(arg: enum, directName: bool = true): JsonNode =
-  if directname:
+func toJson*(
+    arg: enum,
+    opts: JsonConvertOpts = defaultJsonConvertOptions
+  ): JsonNode =
+
+  if jcoDirectEnumName in opts:
     newJString(directEnumName(arg))
 
   else:
@@ -115,8 +151,7 @@ func toJson*(arg: enum, directName: bool = true): JsonNode =
 func toJson*(
     arg: object | tuple | ref object | ref tuple,
     ignoreFields: static[seq[string]],
-    compactOption: bool = true,
-    compactArrays: bool = true,
+    opts: JsonConvertOpts = defaultJsonConvertOptions
   ): JsonNode =
 
   when arg is ref:
@@ -128,7 +163,7 @@ func toJson*(
   for key, val in fieldPairs(unref arg):
     when key notin ignoreFields:
       when val is Option:
-        if compactOption:
+        if jcoCompactOptions in opts:
           if val.isSome():
             result[key] = toJson(val.get())
 
@@ -136,14 +171,14 @@ func toJson*(
           result[key] = toJson(val)
 
       elif val is seq:
-        if compactArrays:
-          if val.len > 0:
-            result[key] = toJson(val)
+        if (jcoCompactEmptySeqs notin opts) or val.len > 0:
+          result[key] = toJson(val)
 
       else:
         when val is ref:
           if isNil(val):
-            result[key] = newJNull()
+            if jcoCompactNil notin opts:
+              result[key] = newJNull()
 
           else:
             result[key] = toJson(val)
@@ -153,12 +188,11 @@ func toJson*(
 
 func toJson*(
     arg: object | tuple | ref object | ref tuple,
-    compactOption: bool = true,
-    compactArrays: bool = true,
+    opts: JsonConvertOpts = defaultJsonConvertOptions
   ): JsonNode =
 
   const emptySeq = newSeq[string]()
-  toJson(arg, emptySeq, compactOption, compactArrays)
+  toJson(arg, emptySeq, opts)
 
 
 proc toPretty*(j: JsonNode, maxWidth: int = 80): string =

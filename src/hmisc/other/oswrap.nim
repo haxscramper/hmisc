@@ -385,6 +385,8 @@ proc startsWith*(path: AnyPath, str: string): bool =
 proc relativePath*(path: AbsDir, base: AbsDir): RelDir =
   RelDir(os.relativePath(path.string, base.string))
 
+proc relativePath*(path: AbsFile, base: AbsFile): RelFile =
+  RelFile(os.relativePath(path.string, base.string))
 
 proc parentDir*(path: AbsPath): AbsDir = AbsDir(os.parentDir(path.getStr()))
 proc parentDir*(path: RelPath): RelDir = RelDir(os.parentDir(path.getStr()))
@@ -946,6 +948,32 @@ proc delEnv*(key: ShellVar) =
 proc get*(v: ShellVar): string = v.getEnv()
 proc del*(v: ShellVar) = v.delEnv
 proc set*(v: ShellVar, val: string) = v.setEnv(val)
+
+proc set*[T: int | char | bool](v: ShellVar, val: T | seq[T]) =
+  when val is seq:
+    let val = join(val, ",")
+
+  else:
+    let val = $val
+
+  v.setEnv(val)
+
+proc get*(
+    v: ShellVar,
+    TArg: typedesc[int] | typedesc[char] | typedesc[bool]
+  ): auto =
+
+  when TArg is int:
+    return parseInt(get(v))
+
+  elif TArg is char:
+    return get(v)[0]
+
+  else:
+    return parseBool(get(v))
+
+
+
 proc put*(v: ShellVar, val: string) = v.setEnv(val)
 proc exists*(v: ShellVar): bool = v.existsEnv()
 
@@ -2022,3 +2050,6 @@ when canImport(compiler/pathutils):
 
   converter toAbsoluteFile*(file: AbsFile): AbsoluteFile =
     AbsoluteFile(file.string)
+
+proc parseJson*(file: AnyFile): JsonNode =
+  parseJson(readFile(file.getStr()))

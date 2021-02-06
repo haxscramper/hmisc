@@ -43,7 +43,8 @@ suite "Pathwrap":
     check AbsFile("/tmp/test.nim").withoutPrefix(
       AbsDir("/tmp")) == RelFile("test.nim")
 
-    # check
+  test "Relative directories":
+    check AbsDir("/a/b/c/d").relativePath(AbsDir("/a/b/c")) == RelDir("d")
 
 
 suite "Shell":
@@ -86,3 +87,22 @@ suite "User directories":
 
     echo getUserRuntimeDir()
     echo getAppRuntimeDir()
+
+suite "Env wrap":
+  test "get/set/exists":
+    let env = $$TEST_ENV1
+
+    doAssert not exists(env)
+    set(env, "hello")
+    doAssert get(env) == "hello"
+    del(env)
+
+  test "Getting typed vars":
+    let env = $$TEST_ENV2
+    env.set(false)
+    doAssert not env.get(bool)
+
+    env.set(100)
+    doAssert env.get(int) == 100
+
+    del(env)

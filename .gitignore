@@ -22,3 +22,5 @@ nimdoc.cfg
 callgrind.out.*
 
 public/*
+**/cache
+**/hmisc-*
