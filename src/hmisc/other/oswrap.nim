@@ -386,10 +386,10 @@ proc getAbsDir*(path: string): AbsDir =
 proc startsWith*(path: AnyPath, str: string): bool =
   path.getStr().startsWith(str)
 
-proc relativePath*(path: AbsDir, base: AbsDir): RelDir =
+proc relativePath*(path: AbsDir, base: AbsDir | AbsDir): RelDir =
   RelDir(os.relativePath(path.string, base.string))
 
-proc relativePath*(path: AbsFile, base: AbsFile): RelFile =
+proc relativePath*(path: AbsFile, base: AbsFile | AbsDir): RelFile =
   RelFile(os.relativePath(path.string, base.string))
 
 proc parentDir*(path: AbsPath): AbsDir = AbsDir(os.parentDir(path.getStr()))
@@ -421,7 +421,7 @@ proc tailDir*(path: AnyDir): string = os.tailDir(path.string)
 iterator parentDirs*(
   path: AnyPath,
   fromRoot: bool = false,
-  inclusive: bool = true): AbsDir =
+  inclusive: bool = path is AnyDir): AbsDir =
 
   for p in os.parentDirs(path.string, fromRoot, inclusive):
     yield AbsDir(p)
@@ -730,7 +730,6 @@ iterator walkDir*(
     if comp in yieldFilter:
       walkYieldImpl()
 
-
 iterator walkDirRec*(
     dir: AnyDir,
     yieldFilter = {os.pcFile},
@@ -759,8 +758,10 @@ iterator walkDirRec*(
 iterator walkDir*[T: AnyPath](
     dir: AnyDir,
     resType: typedesc[T],
-    recurse: bool = true,
-    yieldLinks: bool = true
+    recurse: bool = false,
+    yieldLinks: bool = true,
+    exts: seq[string] = @[],
+    assertExists: bool = true
   ): T =
 
   ## Iterate over entries in `dir`, yielding only those that match
@@ -774,16 +775,24 @@ iterator walkDir*[T: AnyPath](
     for dir in walkDir(~".config", RelDir):
       assert dir is RelDir
 
+  if assertExists:
+    assertExists(dir, "Cannot iterate over non-existent directory.")
+
   when dir is RelDir and resType is AbsPath:
     let dir = toAbsDir(dir)
+
+  template optYield(entry: untyped): untyped =
+    if exts.len == 0 or
+      (exts.len > 0 and ext(entry) in exts):
+      yield entry
 
 
   template yieldImpl(): untyped {.dirty.} =
     when resType is RelFile:
-      yield entry.file.relFile
+      optYield entry.file.relFile
 
     elif resType is AbsFile:
-      yield entry.file.absFile
+      optYield entry.file.absFile
 
     elif resType is RelDir:
       yield entry.dir.relDir
@@ -792,7 +801,7 @@ iterator walkDir*[T: AnyPath](
       yield entry.dir.absDir
 
     elif resType is FsFile:
-      yield entry.file
+      optYield entry.file
 
     elif resType is FsDir:
       yield entry.dir
@@ -826,6 +835,7 @@ iterator walkDir*[T: AnyPath](
       dir, relative = relative, yieldFilter = resSet):
 
       yieldImpl()
+
   else:
     for entry in walkDir(
       dir, relative = relative, yieldFilter = resSet):
@@ -980,6 +990,10 @@ proc get*(
 
 proc put*(v: ShellVar, val: string) = v.setEnv(val)
 proc exists*(v: ShellVar): bool = v.existsEnv()
+
+proc shellHaxOn*(): bool =
+  let v = $$HAX_SHELL
+  exists(v) and get(v, bool) == true
 
 proc `~`*(path: string | RelDir): AbsDir = getHomeDir() / path
 template `~&`*(path: string): AbsDir =
