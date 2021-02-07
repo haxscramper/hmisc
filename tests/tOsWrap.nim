@@ -46,6 +46,43 @@ suite "Pathwrap":
   test "Relative directories":
     check AbsDir("/a/b/c/d").relativePath(AbsDir("/a/b/c")) == RelDir("d")
 
+  test "Mkdir structure":
+    let name = "hello"
+    proc generateText(): string = "input text test"
+    withTempDir(false):
+      mkdirStructure:
+        file "hello", "content"
+        file "test-1", generateText()
+        file &"{name}.nimble":
+          "author = haxscramper"
+
+        dir "src":
+          file &"{name}.nim"
+          dir &"{name}":
+            file "make_wrap.nim"
+            file "make_build.nim"
+
+        dir "tests":
+          file "multiline-test":
+            """
+Multiline string as file content
+Not that is looks particulatly pretty though
+"""
+
+          file "config.nims":
+            """switch("path", "$projectDir/../src")"""
+
+            doAssert currentFile() == "config.nims"
+
+
+      try:
+        execShell(ShelLExpr "ls -R")
+
+      except ShellError:
+        discard
+
+      doAssert readFile(&"{name}.nimble") == "author = haxscramper"
+
 
 suite "Shell":
   test "shell":

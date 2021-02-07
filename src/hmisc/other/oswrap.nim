@@ -15,6 +15,8 @@
 ##   file (though if `directory.d` naming convention is used it might be
 ##   a big problematic).
 
+# {.experimental: "caseStmtMacros".}
+
 import std/[strutils, macros, random, hashes, json,
             strformat, sequtils, options, streams]
 
@@ -36,6 +38,7 @@ export os.quoteShellWindows
 export os.quoteShellPosix
 export os.quoteShell
 
+# import fusion/matching
 
 const cbackend* = not (defined(nimscript) or defined(js))
 
@@ -117,6 +120,7 @@ type
     pekExpectedAbs
     pekExpectedRel
     pekNoSuchEntry
+    pekFileExists
     pekInvalidEntry
 
   PathError* = ref object of OSError
@@ -1317,6 +1321,14 @@ template readFile*(file: AnyFile): untyped =
 template writeFile*(file: AnyFile, text: string): untyped =
   writeFile(file.getStr(), text)
 
+proc writeNewFile*(file: AnyFile, text: string) =
+  if exists(file):
+    raise newPathError(
+      file, pekFileExists,
+      &"Cannot write new file - '{file}' already exists")
+
+  else:
+    writeFile(file, text)
 
 proc rmDir*(dir: AnyDir | string; checkDir = false) =
   ## Removes the directory dir.
@@ -1490,6 +1502,12 @@ template withDir*(dir: AnyDir, body: untyped): untyped =
   finally:
     cd(curDir)
 
+template withNewDir*(dir: AnyDir, body: untyped): untyped =
+  if not exists(dir):
+    mkDir(dir)
+
+  withDir(dir, body)
+
 template withTempDir*(clean: bool, setup, body: untyped): untyped =
   ## Create temporary directory (not don't cd into it!), execute
   ## `body` and remove it afterwards if `clean` is true
@@ -1556,6 +1574,87 @@ template withEnv*(envs: openarray[(string, string)], body: untyped): untyped =
   for varn in noValues:
     oswrap.delEnv(varn)
 
+macro mkDirStructure*(body: untyped): untyped =
+  # TODO for haxorg - add `header-args:nim` preable with all necessary
+  # imports, push `:dir` for all header-args, so code would execute in the
+  # same directory by default.
+  ##[
+
+DSL for creating directory structures
+
+#+begin_src nim
+  mkDirStructure:
+    file &"{name}.nimble":
+      "author = haxscramper"
+
+    dir "src":
+      file &"{name}.nim"
+      dir &"{name}":
+        file "make_build.nim"
+#+end_src
+
+#+begin_src sh
+  ls -R
+#+end_src
+
+- @edsl{file <filename> [<text>]} ::
+  Create file `<filename>`, and optionally store `<text>` in it.
+  - For each file block `writeFile(filename, text)` is generated.
+  - If text is omited empty string is written to file insted
+  - If `<text>` is a statement list only first element is used, to
+    allow for multiline string literals as arguments
+
+    #+begin_src nim
+      file "test-file.txt":
+        """Multiline string as file
+      content"""
+    #+end_src
+- @ndsl{dir <dirname> [<body>]} ::
+  Create directory `@dirname`, cd to it and execute optional block `@body`.
+- @inject{currentFile: string} :: for file blocks
+
+]##
+  proc aux(node: NimNode): NimNode =
+    case node.kind:
+      of nnkCommand:
+        if node[0].eqIdent("file"):
+          result = newCall("writeFile", ident "currentFile")
+
+          if node.len == 3:
+            if node[2].kind != nnkStmtList:
+              result.add node[2]
+
+            else:
+              result.add node[2][0]
+
+          else:
+            result.add newLit("")
+
+          result = newBlockStmt(
+            newStmtList(
+              newLetStmt(ident "currentFile", node[1]),
+              result
+            )
+          )
+
+        elif node[0].eqIdent("dir"):
+          result = newStmtList()
+          if node.len == 3:
+            for subnode in node[2]:
+              result.add aux(subnode)
+
+          result = newCall("withNewDir", newCall("RelDir", node[1]), result)
+
+      of nnkStmtList:
+        result = newStmtList()
+        for subnode in node:
+          result.add aux(subnode)
+
+      else:
+        result = node
+
+
+  result = aux(body)
 
 type
   CmdLineKind* = enum

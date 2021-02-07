@@ -7,6 +7,8 @@ import sequtils
 import hdebug_misc
 export hdebug_misc
 import strformat
+import strutils
+export strutils
 
 import base_errors
 export base_errors

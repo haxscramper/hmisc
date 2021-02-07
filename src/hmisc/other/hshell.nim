@@ -1119,6 +1119,10 @@ proc evalShellStdout*(cmd: ShellCmd, stdin: string = ""): string =
     options = {poEvalCommand, poUsePath},
   ).stdout.strip()
 
+
+proc evalShell*(cmd: ShellCmd, stdin: string = ""): auto =
+  runShell(cmd, stdin = stdin, options = {poEvalCommand, poUsePath})
+
 proc execShell*(cmd: ShellCmd, doRaise: bool = true): void =
   ## Execute shell command with stdout/stderr redirection into parent
   ## streams. To capture output use `runShell`, `eval` or `evalShellStdout`
@@ -1127,6 +1131,9 @@ proc execShell*(cmd: ShellCmd, doRaise: bool = true): void =
 
 proc eval*(expr: ShellExpr): string =
   shellResult(expr).execResult.stdout.strip()
+
+proc eval*(cmd: ShellCmd, stdin: string = ""): string =
+  evalShellStdout(cmd, stdin = stdin)
 
 export get, isSome, isNone
 

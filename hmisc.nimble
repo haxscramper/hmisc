@@ -15,6 +15,7 @@ namedBin      = {
 
 
 requires "nim >= 1.4.0", "cligen"
+# requires "https://github.com/haxscramper/fusion.git#matching-fixup"
 
 task docgen, "Generate documentation":
   if not fileExists("bin/hmisc-putils"):
