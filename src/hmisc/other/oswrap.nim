@@ -36,7 +36,7 @@ export os.sleep, os.getCurrentProcessId
 export os.unixToNativePath
 export os.quoteShellWindows
 export os.quoteShellPosix
-export os.quoteShell
+export os.quoteShell, os.joinPath
 
 # import fusion/matching
 
@@ -337,6 +337,9 @@ proc joinPath*(head: RelDir, tail: RelFile): RelFile =
 
 proc joinPath*(head: AbsDir, tail: seq[string]): AbsDir =
   AbsDir(os.joinPath(head.string & tail))
+
+# proc joinPath*(args: seq[string]): string =
+#   os.joinPath()
 
 proc joinPath*(dir: FsDir, relFile: RelFile): FsFile =
   let file = os.joinPath(dir.getStr(), relFile.string)
@@ -1169,9 +1172,9 @@ proc listFiles*(dir: AnyDir): seq[AbsFile] =
     return system.listFiles(dir)
 
   else:
-    for (kind, path) in os.walkDir(dir):
+    for (kind, path) in os.walkDir(dir.getStr()):
       if kind == pcFile:
-        result.add path
+        result.add AbsFile(path)
 
 func flatFiles*(tree: FsTree): seq[FsTree] =
   if tree.isDir:
@@ -1182,7 +1185,7 @@ func flatFiles*(tree: FsTree): seq[FsTree] =
 
 
 func withoutPrefix*(file: AbsFile, pref: AbsDir): RelFile =
-  assert startsWith($file, addSuffix($pref, "/"))
+  # assert startsWith($file, addSuffix($pref, "/"))
   RelFile(dropPrefix($file, addSuffix($pref, "/")))
 
 func withExt*(f: FsTree, ext: string): FsTree =

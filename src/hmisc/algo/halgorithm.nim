@@ -1,6 +1,8 @@
-import math, strutils, sequtils, random, macros, options, strformat,
-       parseutils, algorithm, sugar
-import std/wordwrap
+import std/[
+  math, strutils, sequtils, random, macros, options, strformat,
+  parseutils, algorithm, sugar, wordwrap
+]
+
 import htemplates
 export htemplates
 

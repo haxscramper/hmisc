@@ -1,5 +1,3 @@
-# Package
-
 version       = "0.9.18"
 author        = "haxscramper"
 description   = "Collection of helper utilities"

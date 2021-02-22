@@ -231,11 +231,31 @@ For tree like this `map` will first be executed for `IN1.1` through
 
 
 proc mapDFSpost*[InTree, OutTree](
-  tree: InTree,
-  map: proc(n: InTree, subn: seq[OutTree]): Option[OutTree],
-  getSubnodes: proc(tree: InTree): seq[InTree],
-  hasSubnodes: proc(it: InTree): bool = (proc(it: InTree): bool = true),
-  path: seq[int] = @[0]): Option[OutTree] =
+    tree: InTree,
+    map: proc(n: InTree, subn: seq[OutTree]): Option[OutTree],
+    getSubnodes: proc(tree: InTree): seq[InTree],
+    hasSubnodes: proc(it: InTree): bool = (proc(it: InTree): bool = true),
+    path: seq[int] = @[0]
+  ): Option[OutTree] =
+  ##[
+
+Map @param{InTree} to @param{OutTree} using @arg{map} for node conversion.
+
+
+- @arg{tree} :: Input tree structure
+- @arg{map} :: Conversion proc for subnodes.
+  - @arg{n} :: Input tree node
+  - @arg{subn} :: Sequence of already converted subnodes
+  - @ret{} :: Return new node with all subnodes added. If original @arg{n}
+    does not map into any node in new tree might return `none()`
+- @arg{getSubnodes} :: Return sequence of child nodes for @arg{tree}
+- @arg{hasSubnodes} :: Check if tree node has subnodes. Defaults to
+  always-true. Override is necessary for cases where @arg{getSubnodes} can
+  raise on invalid node kind (instead of returning empty sequence)
+- @arg[internal]{path} :: Path @arg{tree} in original tree.
+
+]##
+
   ## Overload without `path` for `map`
   # TODO DOC
   return mapDFSpost(

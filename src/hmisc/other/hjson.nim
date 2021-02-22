@@ -116,6 +116,11 @@ func toJson*[T](
   for elem in items(arg):
     result.add toJson(elem)
 
+func toJson*[K, V](table: Table[K, V]): JsonNode =
+  result = newJObject()
+  mixin toJson
+  for key, val in pairs(table):
+    result[key] = toJson(val)
 
 func toJson*[T](
     arg: openarray[(string, T)] | seq[(string, T)],

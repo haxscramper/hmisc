@@ -37,6 +37,10 @@ type
 
   MarkWord = Word[string, MarkStyling]
 
+func initTextWord*[A](
+    text: string, attr: A, kind: WordKind = wkText): TextWord[A] =
+  TextWord[A](text: text, attr: attr, kind: kind)
+
 func isMarkup*[T, A](w: Word[T, A]): bool = w.kind == wkMarkup
 
 func splitMark*(str: string): seq[MarkWord] =

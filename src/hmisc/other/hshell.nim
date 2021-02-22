@@ -778,6 +778,12 @@ func toShellArgument(arg: NimNode): NimNode =
 
 
 macro shCmd*(cmd: untyped, args: varargs[untyped]): untyped =
+  ##[
+
+DSL for consturction of the new shell commands, with syntax similar to
+regular shell.
+
+  ]##
   let shCmd = if cmd.kind == nnkIdent:
                 cmd.toStrLit()
               elif cmd.kind == nnkStrLit:

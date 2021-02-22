@@ -68,3 +68,16 @@ func `-`*[E](s1: set[E], s2: E): set[E] = s1 - {s2}
 func `-=`*[E](s1: var set[E], v: E | set[E]) = (s1 = s1 - {v})
 
 {.pop.}
+
+import std/[options, times]
+
+proc add*[T](s: var seq[T], opt: Option[T]) =
+  if opt.isSome():
+    s.add opt.get()
+
+template timeIt*(name: string, body: untyped): untyped =
+  block:
+    let start = cpuTime()
+    body
+    let total {.inject.} = cpuTime() - start
+    echo &"  {int(total * 1000):<5} ms ", name

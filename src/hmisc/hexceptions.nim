@@ -7,7 +7,7 @@ import std/enumerate
 import hdebug_misc
 
 type
-  GlobalSubstring = object
+  GlobalSubstring* = object
     ## Part of main string (from file or user input)
 
     str*: string ## Substring slice
