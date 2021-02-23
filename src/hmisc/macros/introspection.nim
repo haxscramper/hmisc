@@ -1,5 +1,6 @@
 import std/[macros, tables]
 import ../algo/hstring_algo
+export hstring_algo
 
 macro directEnumName*(arg: typed): untyped =
   ## #DOC
@@ -30,6 +31,7 @@ Return list of all enum names.
 
     prefix = commonPrefix(names)
 
+  mixin dropPrefix
   for enval in En:
     var names: seq[string]
     if withDirectName:

@@ -33,7 +33,7 @@ type
     shortDash*: bool
     keyPath: seq[string] ## Hello
     keySelect*: string
-    valStr*: string
+    valStr: string
     addKind*: CliAddKind
     optKind*: CliOptKind
 
@@ -54,13 +54,22 @@ type
     cfBadCliSyntax
     cfBadCliValue
     cfMissingValue
+    cfMultiFail
 
   CliFail* = object
     argStr*: string
-    kind*: CliFailKind
+    case kind*: CliFailKind
+      of cfMultiFail:
+        subFails*: seq[CliFail]
+
+      else:
+        discard
+
     jsonMsg*: JsonNode
     strMsg*: string
 
+func key*(opt: CliOpt): string = opt.keyPath[0]
+func value*(opt: CliOpt): string = opt.valStr
 
 macro scanpFull*(str: string, start: int, pattern: varargs[untyped]): untyped =
   result = nnkStmtList.newTree()
@@ -139,6 +148,12 @@ func splitCliArgs*(args: seq[string], config: CliParseConfig): seq[string] =
 func splitFlag*(arg: string, config: CliParseConfig): tuple[
     keyPath: seq[string], keySelector: string, value: string, dashes: string
   ] =
+
+  ##[
+
+- TODO :: Parse gcc/clang-style flags with selectors `-Wno-relocate`
+
+]##
 
   var
     pos = 0
@@ -240,6 +255,27 @@ func cliParse*(
   except ValueError as e:
     result = some CliFail(strMsg: e.msg, kind: cfBadCliValue)
 
+func cliParse*(
+  arg: string, res: var string, config: CliParseConfig): Option[CliFail] =
+  res = arg
+
+func cliParse*[T](
+  arg: string, res: var seq[T], config: CliParseConfig): Option[CliFail] =
+
+  let args = arg.split(config.seqSeparator)
+  var buf: seq[CliFail]
+  for arg in args:
+    var tmp: T
+    let status = cliParse(arg, tmp, config)
+    if status.isSome():
+      buf.add status.get()
+
+    else:
+      res.add tmp
+
+  if buf.len > 0:
+    result = some CliFail(kind: cfMultiFail, subFails: buf)
+
 func cliParse*[En: enum](
   arg: string, res: var En, config: CliParseConfig): Option[CliFail] =
 
@@ -264,6 +300,10 @@ func cliParse*[En: enum](
     result = some CliFail(
       strMsg: stringMismatchMessage(arg, allnames)
     )
+
+const defaulCliParseConfig* = CliParseConfig(
+  seqSeparator: ","
+)
 
 when isMainModule:
   let conf = CliParseConfig(shortOpts: {'W', 'q'})
