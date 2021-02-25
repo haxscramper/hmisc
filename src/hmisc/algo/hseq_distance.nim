@@ -1012,6 +1012,100 @@ proc align*[T](
     matchScore = matchScore
   )
 
+template rangeMatchImpl(): untyped {.dirty.} =
+  var matched = false;
+  var reverse = j + 1 < m and (glob[j + 1] == '^' or glob[j + 1] == '!')
+
+  if (reverse):
+    inc j;
+
+  inc j
+  while j < m and glob[j] != ']':
+    if glob[j + 1] == '-' and
+       CASE(glob[j]) <= CASE(text[i]) and
+       CASE(text[i]) <= CASE(glob[j + 2])
+      :
+      matched = true
+      inc j, 2
+
+    else:
+      if CASE(glob[j]) == CASE(text[i]):
+        matched = true
+      inc j
+
+  if (matched == reverse): break
+
+  inc i;
+
+  if (j < m):
+    inc j;
+  continue;
+
+
+proc globmatch(
+    text, glob: string,
+    useDotglob: bool = false,
+    caseInsensetive: bool = false
+  ): bool =
+  var
+    i = 0
+    j = 0
+    n = text.len()
+    m = glob.len()
+    text_backup = -1
+    glob_backup = -1
+
+  var nodot = not useDotGlob
+  const pathSep = '/'
+  template CASE(ch: char): char =
+    if caseInsensetive: toLowerAscii(ch) else: ch
+
+  while (i < n):
+    if (j < m):
+      case (glob[j]):
+        of '*':
+          if (nodot and text[i] == '.'): break
+          text_backup = i
+          glob_backup = (inc j; j)
+          continue;
+        of '?':
+          if (nodot and text[i] == '.'): break
+          if (text[i] == pathSep): break
+
+          inc i
+          inc j
+          continue
+
+        of '[':
+          if (nodot and text[i] == '.'): break
+          if (text[i] == pathSep): break
+
+          rangeMatchImpl()
+
+        else:
+          if glob[j] == '\\':
+            if (j + 1 < m):
+              inc j
+
+          if (CASE(glob[j]) != CASE(text[i]) and not(glob[j] == '/' and text[i] == pathSep)):
+            break
+
+          nodot = (not useDotGlob) and glob[j] == '/'
+          inc i
+          inc j
+          continue
+
+    if (glob_backup == -1 or text[text_backup] == pathSep):
+      return false
+
+    i = (inc text_backup; text_backup)
+    j = glob_backup
+
+  while (j < m and glob[j] == '*'):
+    inc j
+
+  return j >= m
+
 proc gitignoreGlobMatch*(
     text, glob: string,
     useDotglob: bool = false,
@@ -1020,11 +1114,7 @@ proc gitignoreGlobMatch*(
 
   const pathSep = '/'
   template CASE(ch: char): char =
-    if caseInsensetive:
-      toLowerAscii(ch)
-
-    else:
-      ch
+    if caseInsensetive: toLowerAscii(ch) else: ch
 
   var
     i = 0
@@ -1057,75 +1147,50 @@ proc gitignoreGlobMatch*(
     if (j < m):
       case (glob[j]):
         of '*':
-          if (nodot and text[i] == '.'): break
+          block caseBlock:
+            if (nodot and text[i] == '.'): break caseBlock
 
-          if ((inc j; j) < m and glob[j] == '*'):
-            if ((inc j; j) >= m):
-              return true;
+            if ((inc j; j) < m and glob[j] == '*'):
+              if ((inc j; j) >= m):
+                return true;
 
-            if (glob[j] != '/'):
-              return false;
+              if (glob[j] != '/'):
+                return false;
 
-            text1_backup = -1;
-            glob1_backup = -1;
-            text2_backup = i;
-            glob2_backup = (inc j; j)
+              text1_backup = -1;
+              glob1_backup = -1;
+              text2_backup = i;
+              glob2_backup = (inc j; j)
+              continue;
+
+            text1_backup = i;
+            glob1_backup = j;
             continue;
 
-          text1_backup = i;
-          glob1_backup = j;
-          continue;
-
         of '?':
-          if (nodot and text[i] == '.'): break
-          if (text[i] == pathSep): break
+          block caseBlock:
+            if (nodot and text[i] == '.'): break caseBlock
+            if (text[i] == pathSep): break caseBlock
 
-          inc i;
-          inc j;
-          continue;
+            inc i;
+            inc j;
+            continue;
 
         of '[':
-          if (nodot and text[i] == '.'): break
-          if (text[i] == pathSep): break
+          block caseBlock:
+            if (nodot and text[i] == '.'): break caseBlock
+            if (text[i] == pathSep): break caseBlock
 
-          var matched = false;
-          var reverse = j + 1 < m and (glob[j + 1] == '^' or glob[j + 1] == '!')
-
-          if (reverse):
-            inc j;
-
-          inc j
-          while j < m and glob[j] != ']':
-            if glob[j + 1] == '-' and
-               CASE(glob[j]) <= CASE(text[i]) and
-               CASE(text[i]) <= CASE(glob[j + 2])
-              :
-              matched = true
-              inc j, 2
-
-            else:
-              if CASE(glob[j]) == CASE(text[i]):
-                matched = true
-              inc j
-
-          if (matched == reverse): break
-
-          inc i;
-
-          if (j < m):
-            inc j;
-          continue;
-
+          rangeMatchImpl()
         else:
-          if glob[j] == '\\':
-            if (j + 1 < m):
-              inc j;
+          block caseBlock:
+            if glob[j] == '\\':
+              if (j + 1 < m):
+                inc j;
 
-          var ok = true
-          if (CASE(glob[j]) != CASE(text[i]) and not(glob[j] == '/' and text[i] == pathSep)):
-            ok = false
+            if (CASE(glob[j]) != CASE(text[i]) and not(glob[j] == '/' and text[i] == pathSep)):
+              break caseBlock
 
-          if ok:
             nodot = (not useDotglob) and glob[j] == '/';
             inc i;
             inc j;
