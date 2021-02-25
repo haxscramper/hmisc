@@ -1022,24 +1022,24 @@ template rangeMatchImpl(): untyped {.dirty.} =
   inc j
   while j < m and glob[j] != ']':
     if glob[j + 1] == '-' and
-       CASE(glob[j]) <= CASE(text[i]) and
-       CASE(text[i]) <= CASE(glob[j + 2])
+       CASE(glob[j]) <= CASE(text[txtPos]) and
+       CASE(text[txtPos]) <= CASE(glob[j + 2])
       :
       matched = true
       inc j, 2
 
     else:
-      if CASE(glob[j]) == CASE(text[i]):
+      if CASE(glob[j]) == CASE(text[txtPos]):
         matched = true
       inc j
 
   if (matched == reverse): break
 
-  inc i;
+  inc txtPos
 
-  if (j < m):
-    inc j;
-  continue;
+  if (j < m): inc j
+
+  continue
 
 
 proc globmatch(
@@ -1048,7 +1048,7 @@ proc globmatch(
     caseInsensetive: bool = false
   ): bool =
   var
-    i = 0
+    txtPos = 0
     j = 0
     n = text.len()
     m = glob.len()
@@ -1060,45 +1060,50 @@ proc globmatch(
   template CASE(ch: char): char =
     if caseInsensetive: toLowerAscii(ch) else: ch
 
-  while (i < n):
+  while (txtPos < n):
     if (j < m):
       case (glob[j]):
         of '*':
-          if (nodot and text[i] == '.'): break
-          text_backup = i
-          glob_backup = (inc j; j)
-          continue;
-        of '?':
-          if (nodot and text[i] == '.'): break
-          if (text[i] == pathSep): break
+          block caseBlock:
+            if (nodot and text[txtPos] == '.'): break caseBlock
+            text_backup = txtPos
+            glob_backup = (inc j; j)
+            continue
 
-          inc i
-          inc j
-          continue
+        of '?':
+          block caseBlock:
+            if (nodot and text[txtPos] == '.'): break caseBlock
+            if (text[txtPos] == pathSep): break caseBlock
+
+            inc txtPos
+            inc j
+            continue
 
         of '[':
-          if (nodot and text[i] == '.'): break
-          if (text[i] == pathSep): break
+          block caseBlock:
+            if (nodot and text[txtPos] == '.'): break caseBlock
+            if (text[txtPos] == pathSep): break caseBlock
 
-          rangeMatchImpl()
+            rangeMatchImpl()
 
         else:
-          if glob[j] == '\\':
-            if (j + 1 < m):
-              inc j
+          block caseBlock:
+            if glob[j] == '\\':
+              if (j + 1 < m):
+                inc j
 
-          if (CASE(glob[j]) != CASE(text[i]) and not(glob[j] == '/' and text[i] == pathSep)):
-            break
+            if (CASE(glob[j]) != CASE(text[txtPos]) and not(glob[j] == '/' and text[txtPos] == pathSep)):
+              break caseBlock
 
-          nodot = (not useDotGlob) and glob[j] == '/'
-          inc i
-          inc j
-          continue
+            nodot = (not useDotGlob) and glob[j] == '/'
+            inc txtPos
+            inc j
+            continue
 
     if (glob_backup == -1 or text[text_backup] == pathSep):
       return false
 
-    i = (inc text_backup; text_backup)
+    txtPos = (inc text_backup; text_backup)
     j = glob_backup
 
   while (j < m and glob[j] == '*'):
@@ -1117,7 +1122,7 @@ proc gitignoreGlobMatch*(
     if caseInsensetive: toLowerAscii(ch) else: ch
 
   var
-    i = 0
+    txtPos = 0
     j = 0
     n = text.len()
     m = glob.len()
@@ -1130,25 +1135,25 @@ proc gitignoreGlobMatch*(
   var nodot = useDotglob
 
   if (j + 1 < m and glob[j] == '/'):
-    while (i + 1 < n and text[i] == '.' and text[i + 1] == pathSep):
-      i += 2;
+    while (txtPos + 1 < n and text[txtPos] == '.' and text[txtPos + 1] == pathSep):
+      txtPos += 2;
 
-    if (i < n and text[i] == pathSep):
-      inc i
+    if (txtPos < n and text[txtPos] == pathSep):
+      inc txtPos
 
     inc j
 
   elif (glob.find('/') == -1):
     let sep = text.rfind(pathSep);
     if (sep != -1):
-      i = sep + 1
+      txtPos = sep + 1
 
-  while (i < n):
+  while (txtPos < n):
     if (j < m):
       case (glob[j]):
         of '*':
           block caseBlock:
-            if (nodot and text[i] == '.'): break caseBlock
+            if (nodot and text[txtPos] == '.'): break caseBlock
 
             if ((inc j; j) < m and glob[j] == '*'):
               if ((inc j; j) >= m):
@@ -1157,29 +1162,29 @@ proc gitignoreGlobMatch*(
               if (glob[j] != '/'):
                 return false;
 
-              text1_backup = -1;
-              glob1_backup = -1;
-              text2_backup = i;
+              text1_backup = -1
+              glob1_backup = -1
+              text2_backup = txtPos
               glob2_backup = (inc j; j)
               continue;
 
-            text1_backup = i;
-            glob1_backup = j;
+            text1_backup = txtPos
+            glob1_backup = j
             continue;
 
         of '?':
           block caseBlock:
-            if (nodot and text[i] == '.'): break caseBlock
-            if (text[i] == pathSep): break caseBlock
+            if (nodot and text[txtPos] == '.'): break caseBlock
+            if (text[txtPos] == pathSep): break caseBlock
 
-            inc i;
-            inc j;
-            continue;
+            inc txtPos
+            inc j
+            continue
 
         of '[':
           block caseBlock:
-            if (nodot and text[i] == '.'): break caseBlock
-            if (text[i] == pathSep): break caseBlock
+            if (nodot and text[txtPos] == '.'): break caseBlock
+            if (text[txtPos] == pathSep): break caseBlock
 
           rangeMatchImpl()
         else:
@@ -1188,23 +1193,23 @@ proc gitignoreGlobMatch*(
               if (j + 1 < m):
                 inc j;
 
-            if (CASE(glob[j]) != CASE(text[i]) and not(glob[j] == '/' and text[i] == pathSep)):
+            if (CASE(glob[j]) != CASE(text[txtPos]) and not(glob[j] == '/' and text[txtPos] == pathSep)):
               break caseBlock
 
             nodot = (not useDotglob) and glob[j] == '/';
-            inc i;
-            inc j;
-            continue;
+            inc txtPos
+            inc j
+            continue
 
     if (glob1_backup != -1 and text[text1_backup] != pathSep):
-      i = (inc text1_backup; text1_backup)
+      txtPos = (inc text1_backup; text1_backup)
       j = glob1_backup
       continue
 
     if (glob2_backup != -1):
-      i = (inc text2_backup; text2_backup)
-      j = glob2_backup;
-      continue;
+      txtPos = (inc text2_backup; text2_backup)
+      j = glob2_backup
+      continue
 
     return false
 
