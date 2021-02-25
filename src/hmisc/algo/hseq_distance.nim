@@ -236,7 +236,7 @@ proc fuzzyMatchRecursive[Seq, Item](
     # echo &"Else"
     result.ok = false
 
-type FuzzyMatchRes* = tuple[ok: bool, score: int, matches: seq[int]] 
+type FuzzyMatchRes* = tuple[ok: bool, score: int, matches: seq[int]]
 
 proc fuzzyMatchImpl[Seq, Item](
     patt, other: Seq,
@@ -1012,8 +1012,202 @@ proc align*[T](
     matchScore = matchScore
   )
 
+proc gitignoreGlobMatch*(
+    text, glob: string,
+    useDotglob: bool = false,
+    caseInsensetive: bool = false
+  ): bool =
+
+  const pathSep = '/'
+  template CASE(ch: char): char =
+    if caseInsensetive:
+      toLowerAscii(ch)
+
+    else:
+      ch
+
+  var
+    i = 0
+    j = 0
+    n = text.len()
+    m = glob.len()
+    text1_backup = -1
+    glob1_backup = -1
+    text2_backup = -1
+    glob2_backup = -1
+
+
+  var nodot = useDotglob
+
+  if (j + 1 < m and glob[j] == '/'):
+    while (i + 1 < n and text[i] == '.' and text[i + 1] == pathSep):
+      i += 2;
+
+    if (i < n and text[i] == pathSep):
+      inc i
+
+    inc j
+
+  elif (glob.find('/') == -1):
+    let sep = text.rfind(pathSep);
+    if (sep != -1):
+      i = sep + 1
+
+  while (i < n):
+    if (j < m):
+      case (glob[j]):
+        of '*':
+          if (nodot and text[i] == '.'):
+            break;
+
+          if ((inc j; j) < m and glob[j] == '*'):
+            if ((inc j; j) >= m):
+              return true;
+
+            if (glob[j] != '/'):
+              return false;
+
+            text1_backup = -1;
+            glob1_backup = -1;
+            text2_backup = i;
+            inc j
+            glob2_backup = j;
+            continue;
+
+          text1_backup = i;
+          glob1_backup = j;
+          continue;
+
+        of '?':
+          if (nodot and text[i] == '.'):
+            break;
+
+          if (text[i] == pathSep):
+            break;
+          inc i;
+          inc j;
+          continue;
+
+        of '[':
+          echov "At pattern"
+          if (nodot and text[i] == '.'):
+            break;
+
+          if (text[i] == pathSep):
+            break;
+
+          var matched = false;
+          var reverse = j + 1 < m and (glob[j + 1] == '^' or glob[j + 1] == '!')
+
+          if (reverse):
+            inc j;
+
+          const ch256 = '\xFF'
+          var lastchr = ch256  # WARNING original C code used `256` for
+                               # character
+
+          while (inc j; j < m) and glob[j] != ']':
+            lastchr = CASE(glob[j])
+            if (
+                (
+                  ord(lastchr) < ord(ch256) and
+                  glob[j] == '-' and
+                  j + 1 < m and
+                  glob[j + 1] != ']'
+                ) and
+                (
+                  CASE(text[i]) <= CASE(glob[(inc j; j)]) and
+                  CASE(text[i]) >= lastchr
+                )
+              ) or (
+                CASE(text[i]) == CASE(glob[j])
+            ):
+              matched = true;
+
+          if (matched == reverse):
+            break;
+
+          inc i;
+
+          if (j < m):
+            inc j;
+          continue;
+
+        else:
+          if glob[j] == '\\':
+            if (j + 1 < m):
+              inc j;
+
+          if (CASE(glob[j]) != CASE(text[i]) and not(glob[j] == '/' and text[i] == pathSep)):
+            break;
+
+          nodot = (not useDotglob) and glob[j] == '/';
+          inc i;
+          inc j;
+          continue;
+
+    if (glob1_backup != -1 and text[text1_backup] != pathSep):
+      i = (inc text1_backup; text1_backup)
+      j = glob1_backup
+
+
+    if (glob2_backup != -1):
+      i = (inc text2_backup; text2_backup)
+      j = glob2_backup;
+      continue;
+
+  while (j < m and glob[j] == '*'):
+    inc j
+
+  return j >= m;
+
+
+
 when isMainModule:
   if true:
+    for (text, patt) in {
+      "--":                                 ("--", true),
+      "123", "1234", "12345":               ("???*", true),
+      "a", "b", "x/a", "x/y/b":             ("*", true),
+      "a", "x/a", "x/y/a":                  ("a", true),
+      "a", "b", "x/a", "x/y/b":             ("*", true),
+      "a", "x/a", "x/y/a":                  ("a", true),
+      "a", "b":                             ("/*", true),
+      "a":                                  ("/a", true),
+      "axb", "ayb":                         ("a?b", true),
+      "axb", "ayb":                         ("a[xy]b", true),
+      "aab", "abb", "acb", "azb":           ("a[a-z]b", true),
+      "aab", "abb", "acb", "azb":           ("a[^xy]b", true),
+      "a3b", "aAb", "aZb":                  ("a[^a-z]b", true),
+      "a/x/b", "a/y/b":                     ("a/*/b", true),
+      "a", "x/a", "x/y/a":                  ("**/a", true),
+      "a/b", "a/x/b", "a/x/y/b":            ("a/**/b", true),
+      "a/x", "a/y", "a/x/y":                ("a/**", true),
+      "a?b":                                ("a\\?b", true),
+
+      "b", "x/b", "a/a/b":                  ("/*", false),
+      "x/a", "x/b", "x/y/a":                ("/a", false),
+      "x/a", "x/y/a":                       ("a?b", false),
+      "a", "b", "ab", "a/b":                ("a[xy]b", false),
+      "a", "b", "azb":                      ("a[a-z]b", false),
+      "a", "b", "a3b", "aAb", "aZb":        ("a[^xy]b", false),
+      "a", "b", "axb", "ayb":               ("a[^a-z]b", false),
+      "a", "b", "aab", "abb", "acb", "azb": ("a/*/b", false),
+      "a/b", "a/x/y/b":                     ("a/*/b", false),
+      "b", "x/b":                           ("**/a", false),
+      "x/a/b", "a/b/x":                     ("a/**/b", false),
+      "a", "b/x":                           ("a/**", false),
+      "a", "b", "ab", "axb", "a/b":         ("a\\?b", false),
+    }:
+      let res = gitignoreGlobMatch(text, patt[0])
+      if res != patt[1]:
+        startHax()
+        discard gitignoreGlobMatch(text, patt[0])
+        echo &"{text:<8} ~ {patt[0]:<8} {res == patt[1]:<5} (got {res:<5}, expected {patt[1]})"
+        stopHax()
+
+
+  if false:
     const
       gapPenalty = -1
       match_award = 1
@@ -1035,7 +1229,7 @@ when isMainModule:
     echo b.mapIt(if it.isGap: '-' else: it.item).join("")
 
 
-  if true:
+  if false:
     let
       seq1 = "ATGTAGTGTATAGTACATGCA".toSeq()
       seq2 = "ATGTAGTACATGCA".toSeq()
@@ -1063,7 +1257,7 @@ when isMainModule:
       echo b.mapIt(if it.isGap: ' ' else: it.item).join("")
       echo "---"
 
-  block:
+  if false:
     let gapCost = proc(a: char): int =
       if a == '=':
         -2
@@ -1092,7 +1286,7 @@ when isMainModule:
       echo al2.toString()
       echo "---"
 
-    if true:
+    if false:
       var group: AlignGroup[char] = AlignGroup[char](@[
           (idx: 2'i8, align: "let nice = 12".toAlignSeq()),
           (idx: 0'i8, align: "let   a = 12".toAlignSeq()),

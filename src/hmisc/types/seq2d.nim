@@ -54,7 +54,7 @@ func fillToSize*[T](grid: var Seq2D[T], size: ArrSize, val: T): void =
 
   for row in 0 ..< max(size.height, grid.rowNum()):
     if not (row < grid.elems.len):
-      grid.elems.add @[]
+      grid.elems.add newSeq[T]()
 
     let rowlen = grid.elems[row].len
     let expected = max(size.width, grid.colWidth)
@@ -219,7 +219,7 @@ template mapIt2d*[T](inseq: Seq2d[T], op: untyped): untyped =
 
   var result: seq[seq[ResT]]
   for row in inseq.elems:
-    result.add @[]
+    result.add newSeq[ResT]()
     for col in row:
       let it {.inject.} = col
       result[^1].add op
@@ -243,7 +243,7 @@ template mapIt2d*[T](inseq: Seq2d[T], op: untyped, default: typed): untyped =
   type ResT = typeof((var it {.inject.}: T; op))
   var res: seq[seq[ResT]]
   for row in inseq.elems:
-    res.add @[]
+    res.add newSeq[ResT]()
     for col in row:
       let it {.inject.} = col
       res[^1].add op

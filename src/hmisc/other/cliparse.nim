@@ -51,6 +51,7 @@ type
 
   CliFailKind* = enum
     cfNoSuchOption
+    cfNoSuchSelector
     cfBadCliSyntax
     cfBadCliValue
     cfMissingValue
@@ -61,6 +62,12 @@ type
     case kind*: CliFailKind
       of cfMultiFail:
         subFails*: seq[CliFail]
+
+      of cfNoSuchSelector:
+        selector*: string
+
+      of cfNoSuchOption:
+        option*: string
 
       else:
         discard
@@ -298,6 +305,8 @@ func cliParse*[En: enum](
       allnames &= names
 
     result = some CliFail(
+      selector: arg,
+      kind: cfNoSuchSelector,
       strMsg: stringMismatchMessage(arg, allnames)
     )
 
