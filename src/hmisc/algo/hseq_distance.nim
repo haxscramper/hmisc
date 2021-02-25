@@ -1057,8 +1057,7 @@ proc gitignoreGlobMatch*(
     if (j < m):
       case (glob[j]):
         of '*':
-          if (nodot and text[i] == '.'):
-            break;
+          if (nodot and text[i] == '.'): break
 
           if ((inc j; j) < m and glob[j] == '*'):
             if ((inc j; j) >= m):
@@ -1070,8 +1069,7 @@ proc gitignoreGlobMatch*(
             text1_backup = -1;
             glob1_backup = -1;
             text2_backup = i;
-            inc j
-            glob2_backup = j;
+            glob2_backup = (inc j; j)
             continue;
 
           text1_backup = i;
@@ -1079,32 +1077,25 @@ proc gitignoreGlobMatch*(
           continue;
 
         of '?':
-          if (nodot and text[i] == '.'):
-            break;
+          if (nodot and text[i] == '.'): break
+          if (text[i] == pathSep): break
 
-          if (text[i] == pathSep):
-            break;
           inc i;
           inc j;
           continue;
 
         of '[':
-          if (nodot and text[i] == '.'):
-            break;
-
-          if (text[i] == pathSep):
-            break;
+          if (nodot and text[i] == '.'): break
+          if (text[i] == pathSep): break
 
           var matched = false;
           var reverse = j + 1 < m and (glob[j + 1] == '^' or glob[j + 1] == '!')
-          echov reverse
 
           if (reverse):
             inc j;
 
           inc j
           while j < m and glob[j] != ']':
-            echov glob[j]
             if glob[j + 1] == '-' and
                CASE(glob[j]) <= CASE(text[i]) and
                CASE(text[i]) <= CASE(glob[j + 2])
@@ -1117,11 +1108,7 @@ proc gitignoreGlobMatch*(
                 matched = true
               inc j
 
-          echov "Finisedh pattern", glob[j]
-          if (matched == reverse):
-            echov matched == reverse
-            break;
-
+          if (matched == reverse): break
 
           inc i;
 
@@ -1134,23 +1121,27 @@ proc gitignoreGlobMatch*(
             if (j + 1 < m):
               inc j;
 
+          var ok = true
           if (CASE(glob[j]) != CASE(text[i]) and not(glob[j] == '/' and text[i] == pathSep)):
-            break;
+            ok = false
 
-          nodot = (not useDotglob) and glob[j] == '/';
-          inc i;
-          inc j;
-          continue;
+          if ok:
+            nodot = (not useDotglob) and glob[j] == '/';
+            inc i;
+            inc j;
+            continue;
 
     if (glob1_backup != -1 and text[text1_backup] != pathSep):
       i = (inc text1_backup; text1_backup)
       j = glob1_backup
-
+      continue
 
     if (glob2_backup != -1):
       i = (inc text2_backup; text2_backup)
       j = glob2_backup;
       continue;
+
+    return false
 
   while (j < m and glob[j] == '*'):
     inc j
@@ -1163,13 +1154,13 @@ when isMainModule:
   if true:
     for (text, patt) in {
       "a", "b":                             ("/*", true),
-      "b", "x/b", "a/a/b":                  ("/*", false),
+      "x/b", "a/a/b":                       ("/*", false),
       "--":                                 ("--", true),
       "123", "1234", "12345":               ("???*", true),
       "axb", "ayb":                         ("a[xy]b", true),
       "aab", "abb", "acb", "azb":           ("a[a-z]b", true),
       "aab", "abb", "acb", "azb":           ("a[^xy]b", true),
-      "a3b", "aAb", "aZb":                  ("a[^a-z]b", true),
+      "a3b", "aAb", "a3b", "aAb", "aZb":    ("a[^a-z]b", true),
       "a", "b", "x/a", "x/y/b":             ("*", true),
       "a", "x/a", "x/y/a":                  ("a", true),
       "a", "b", "x/a", "x/y/b":             ("*", true),
@@ -1185,26 +1176,19 @@ when isMainModule:
       "x/a", "x/b", "x/y/a":                ("/a", false),
       "x/a", "x/y/a":                       ("a?b", false),
       "a", "b", "ab", "a/b":                ("a[xy]b", false),
-      "a", "b", "azb":                      ("a[a-z]b", false),
-      "a", "b", "a3b", "aAb", "aZb":        ("a[^xy]b", false),
+      "a", "b":                             ("a[a-z]b", false),
+      "a", "b":                             ("a[^xy]b", false),
       "a", "b", "axb", "ayb":               ("a[^a-z]b", false),
       "a", "b", "aab", "abb", "acb", "azb": ("a/*/b", false),
       "a/b", "a/x/y/b":                     ("a/*/b", false),
       "b", "x/b":                           ("**/a", false),
-      "x/a/b", "a/b/x":                     ("a/**/b", false),
       "a", "b/x":                           ("a/**", false),
       "a", "b", "ab", "axb", "a/b":         ("a\\?b", false),
+      "x/a/b", "a/b/x":                     ("a/**/b", false),
     }:
-      echo text, " ", patt
       let res = gitignoreGlobMatch(text, patt[0])
       if res != patt[1]:
-        startHax()
-        echo ""
-        echov "Rerunning"
-        discard gitignoreGlobMatch(text, patt[0])
-        echov "Done rerun"
         echo &"{text:<8} ~ {patt[0]:<8} {res == patt[1]:<5} (got {res:<5}, expected {patt[1]})"
-        stopHax()
 
     echo "finished test"
 
