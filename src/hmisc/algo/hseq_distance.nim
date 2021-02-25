@@ -1089,7 +1089,6 @@ proc gitignoreGlobMatch*(
           continue;
 
         of '[':
-          echov "At pattern"
           if (nodot and text[i] == '.'):
             break;
 
@@ -1098,34 +1097,31 @@ proc gitignoreGlobMatch*(
 
           var matched = false;
           var reverse = j + 1 < m and (glob[j + 1] == '^' or glob[j + 1] == '!')
+          echov reverse
 
           if (reverse):
             inc j;
 
-          const ch256 = '\xFF'
-          var lastchr = ch256  # WARNING original C code used `256` for
-                               # character
+          inc j
+          while j < m and glob[j] != ']':
+            echov glob[j]
+            if glob[j + 1] == '-' and
+               CASE(glob[j]) <= CASE(text[i]) and
+               CASE(text[i]) <= CASE(glob[j + 2])
+              :
+              matched = true
+              inc j, 2
 
-          while (inc j; j < m) and glob[j] != ']':
-            lastchr = CASE(glob[j])
-            if (
-                (
-                  ord(lastchr) < ord(ch256) and
-                  glob[j] == '-' and
-                  j + 1 < m and
-                  glob[j + 1] != ']'
-                ) and
-                (
-                  CASE(text[i]) <= CASE(glob[(inc j; j)]) and
-                  CASE(text[i]) >= lastchr
-                )
-              ) or (
-                CASE(text[i]) == CASE(glob[j])
-            ):
-              matched = true;
+            else:
+              if CASE(glob[j]) == CASE(text[i]):
+                matched = true
+              inc j
 
+          echov "Finisedh pattern", glob[j]
           if (matched == reverse):
+            echov matched == reverse
             break;
+
 
           inc i;
 
@@ -1166,26 +1162,26 @@ proc gitignoreGlobMatch*(
 when isMainModule:
   if true:
     for (text, patt) in {
+      "a", "b":                             ("/*", true),
+      "b", "x/b", "a/a/b":                  ("/*", false),
       "--":                                 ("--", true),
       "123", "1234", "12345":               ("???*", true),
-      "a", "b", "x/a", "x/y/b":             ("*", true),
-      "a", "x/a", "x/y/a":                  ("a", true),
-      "a", "b", "x/a", "x/y/b":             ("*", true),
-      "a", "x/a", "x/y/a":                  ("a", true),
-      "a", "b":                             ("/*", true),
-      "a":                                  ("/a", true),
-      "axb", "ayb":                         ("a?b", true),
       "axb", "ayb":                         ("a[xy]b", true),
       "aab", "abb", "acb", "azb":           ("a[a-z]b", true),
       "aab", "abb", "acb", "azb":           ("a[^xy]b", true),
       "a3b", "aAb", "aZb":                  ("a[^a-z]b", true),
+      "a", "b", "x/a", "x/y/b":             ("*", true),
+      "a", "x/a", "x/y/a":                  ("a", true),
+      "a", "b", "x/a", "x/y/b":             ("*", true),
+      "a", "x/a", "x/y/a":                  ("a", true),
+      "a":                                  ("/a", true),
+      "axb", "ayb":                         ("a?b", true),
       "a/x/b", "a/y/b":                     ("a/*/b", true),
       "a", "x/a", "x/y/a":                  ("**/a", true),
       "a/b", "a/x/b", "a/x/y/b":            ("a/**/b", true),
       "a/x", "a/y", "a/x/y":                ("a/**", true),
       "a?b":                                ("a\\?b", true),
 
-      "b", "x/b", "a/a/b":                  ("/*", false),
       "x/a", "x/b", "x/y/a":                ("/a", false),
       "x/a", "x/y/a":                       ("a?b", false),
       "a", "b", "ab", "a/b":                ("a[xy]b", false),
@@ -1199,12 +1195,18 @@ when isMainModule:
       "a", "b/x":                           ("a/**", false),
       "a", "b", "ab", "axb", "a/b":         ("a\\?b", false),
     }:
+      echo text, " ", patt
       let res = gitignoreGlobMatch(text, patt[0])
       if res != patt[1]:
         startHax()
+        echo ""
+        echov "Rerunning"
         discard gitignoreGlobMatch(text, patt[0])
+        echov "Done rerun"
         echo &"{text:<8} ~ {patt[0]:<8} {res == patt[1]:<5} (got {res:<5}, expected {patt[1]})"
         stopHax()
+
+    echo "finished test"
 
 
   if false:
