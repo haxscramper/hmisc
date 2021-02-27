@@ -1042,7 +1042,7 @@ template rangeMatchImpl(): untyped {.dirty.} =
   continue
 
 
-proc globmatch(
+proc globmatch*(
     text, glob: string,
     useDotglob: bool = false,
     caseInsensetive: bool = false
