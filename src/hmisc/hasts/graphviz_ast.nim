@@ -75,14 +75,6 @@ converter toDotNodeId*(ids: seq[seq[int]]): seq[DotNodeId] =
   # defer: debugecho result
   ids.mapIt(DotNodeId(path: it))
 
-func quote*(input: string): string =
-  input.multiReplace([
-    ("\"", "\\\"")
-  ]).wrap(("\"", "\""))
-
-
-
-
 
 type
   DotNodeShape* = enum
@@ -366,20 +358,46 @@ type
 #============================  constructors  =============================#
 func initDotNode*(): DotNode = DotNode(style: nstDefault)
 
-func makeDotGraph*(name: string = "G",
-                   nodes: seq[DotNode] = @[],
-                   edges: seq[DotEdge] = @[]): DotGraph =
+
+func makeRectConsolasNode*(): DotNode =
+  result.fontname = "Consolas"
+  result.shape = nsaRect
+
+func makeRectConsolasEdge*(): DOtEdge =
+  result.fontname = "Consolas"
+
+func makeCircleConsolasNode*(): DotNode =
+  result.fontname = "Consolas"
+  result.shape = nsaCircle
+
+func makeDotGraph*(
+    name: string = "G",
+    nodes: seq[DotNode] = @[],
+    edges: seq[DotEdge] = @[],
+    styleNode: DotNode = makeRectConsolasNode(),
+    styleEdge: DotEdge = makeRectConsolasEdge()
+  ): DotGraph =
+
   DotGraph(
     name: name,
     nodes: nodes,
     edges: edges,
-    styleNode: initDotNode())
+    styleNode: styleNode,
+    styleEdge: styleEdge
+  )
 
 func addEdge*(graph: var DotGraph, edge: DotEdge): void =
   graph.edges.add edge
 
 func addNode*(graph: var DotGraph, node: DotNode): void =
   graph.nodes.add node
+
+func add*(graph: var DotGraph, node: DotNode): void =
+  graph.nodes.add node
+
+func add*(graph: var DotGraph, edge: DotEdge): void =
+  graph.edges.add edge
+
 
 func makeDotEdge*(idFrom, idTo: DotNodeId): DotEdge =
   DotEdge(src: idFrom, to: @[idTo])
@@ -389,14 +407,6 @@ func makeDotEdge*(idFrom, idTo: DotNodeId, label: string): DotEdge =
 
 func makeAuxEdge*(idFrom, idTo: DotNodeId): DotEdge =
   DotEdge(src: idFrom, to: @[idTo], weight: some(0.0), style: edsInvis)
-
-func makeRectConsolasNode*(): DotNode =
-  result.fontname = "Consolas"
-  result.shape = nsaRect
-
-func makeCircleConsolasNode*(): DotNode =
-  result.fontname = "Consolas"
-  result.shape = nsaCircle
 
 func applyStyle*(to: var DotNode, source: DotNode): void =
   if source.shape != nsaDefault:
@@ -467,6 +477,21 @@ func toString(record: RecordField): string =
   # TODO keep track of graph direction to ensure correct rotation
   &"<{record.id}>{record.text}"
 
+func quoteGraphviz*(str: string): string =
+  result.add '"'
+  for idx, ch in pairs(str):
+    if ch in {'\'', '"'}:
+      result.add "\\"
+
+    elif ch in {'\\'}:
+      result.add "\\"
+
+    result.add ch
+
+  result.add '"'
+
+
+
 func toTree(node: DotNode, idshift: int, level: int = 0): DotTree =
   var attr = newStringTable()
   result = DotTree(kind: dtkNodeDef)
@@ -475,7 +500,7 @@ func toTree(node: DotNode, idshift: int, level: int = 0): DotTree =
 
   if node.width > 0: attr["width"] = $node.width
   if node.height > 0: attr["height"] = $node.height
-  if node.fontname.len > 0: attr["fontname"] = node.fontname.quote()
+  if node.fontname.len > 0: attr["fontname"] = node.fontname.quoteGraphviz()
 
   case node.style:
     of nstStriped, nstWedged:
@@ -491,11 +516,11 @@ func toTree(node: DotNode, idshift: int, level: int = 0): DotTree =
 
       if node.shape != nsaPlaintext:
         if node.color.isSome():
-          attr["color"] = ($node.color.get()).quote()
+          attr["color"] = ($node.color.get()).quoteGraphviz()
 
   case node.shape:
     of nsaRecord, nsaMRecord:
-      attr["label"] = node.flds.mapIt(toString(it)).join("|").quote()
+      attr["label"] = quoteGraphviz(node.flds.mapIt(toString(it)).join("|"))
     of nsaPlaintext:
       attr["label"] = " <\n" & (node.htmlLabel.toFlatStr() & "> ").
         split("\n").
@@ -509,7 +534,7 @@ func toTree(node: DotNode, idshift: int, level: int = 0): DotTree =
             mapIt(node.labelLeftPad & it).
             join($node.labelAlign)
 
-          attr["label"] = quote(
+          attr["label"] = quoteGraphviz(
             case node.labelAlign:
               of nlaLeft, nlaRight: str & $node.labelAlign
               else: str
@@ -520,9 +545,9 @@ func toTree(node: DotNode, idshift: int, level: int = 0): DotTree =
               split("\n").
               mapIt(node.labelLeftPad & it).
               join("\n").
-              quote()
+              quoteGraphviz()
           else:
-            attr["label"] = node.label.get().quote()
+            attr["label"] = node.label.get().quoteGraphviz()
 
   if node.shape != nsaDefault: attr["shape"] = $node.shape
 
@@ -541,13 +566,13 @@ func toTree(edge: DotEdge, idshift: int, level: int = 0): DotTree =
   if edge.color != colBlack:
     # HACK black color is omitted unconditionally. need to IMPLEMENT
     # check whether or not this is allowed.
-    attrs["color"] = ($edge.color).quote
+    attrs["color"] = ($edge.color).quoteGraphviz()
 
   attrs.setSome("minlen", edge.minlen)
   if edge.weight.isSome(): attrs["weight"] = ($edge.weight.get())
-  if edge.label.isSome(): attrs["label"] = edge.label.get().quote()
+  if edge.label.isSome(): attrs["label"] = edge.label.get().quoteGraphviz()
   if edge.style != edsDefault: attrs["style"] = ($edge.style)
-  if edge.fontname.len > 0: attrs["fontname"] = edge.fontname.quote()
+  if edge.fontname.len > 0: attrs["fontname"] = edge.fontname.quoteGraphviz()
 
   result.origin = edge.src.addIdShift(idshift)
   result.targets = edge.to.mapIt(it.addIdShift(idshift))

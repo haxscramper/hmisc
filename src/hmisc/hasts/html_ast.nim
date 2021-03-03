@@ -555,9 +555,6 @@ template testComp(expr, asExpr: untyped): untyped =
 
 
 when testComp(fusion/htmlparser/xmltree, fus_xmltree):
-  static:
-    echo "Can import as"
-
   import fusion/htmlparser/xmltree as fus_xmltree
   func add2*(
     result: var string, n: fus_xmltree.XmlNode,

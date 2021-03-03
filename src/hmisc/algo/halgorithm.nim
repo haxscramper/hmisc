@@ -319,11 +319,24 @@ func splitTokenize*(str: string, seps: set[char]): seq[string] =
 
 
 func splitCamel*(
-  str: string,
-  dropUnderscore: bool = true,
-  splitUnderscores: bool = true
-     ): seq[string] =
-  ## Split abbreviation as **camelCase** identifier
+    str: string,
+    dropUnderscore: bool = true,
+    splitUnderscores: bool = true,
+    mergeCapitalized: bool = true,
+    adaptiveMerge: bool = true
+  ): seq[string] =
+  ##[
+
+Split abbreviation as **camelCase** identifier
+
+- @arg{dropUnderscore} :: Drop all `_` characters if found
+- @arg{splitUnderscores} :: Split on `_` characters
+- @arg{mergeCapitalized} :: Do not split consecutive capitalized
+- @arg{adaptiveMerge} :: Employ additional heuristics to make
+  capitalized chunk splits more 'logical'. `DBManager -> DB + Manager`,
+  but `FILE -> FILE`
+
+  ]##
   # TODO handle `kebab-style-identifiers`
   # TODO Split things like `ABBRName` into either `ABBR, Name` or
   #      `A, B, B ...`
@@ -334,15 +347,34 @@ func splitCamel*(
   if splitUnderscores:
     dropset.incl '_'
 
-  var splitset = {'A' .. 'Z'} + dropset
+  const capital = {'A' .. 'Z'}
+
+  var splitset = capital + dropset
 
   while pos < str.len:
     var start = pos
-    let next = start + str.skipUntil(splitset, start + 1)
+    var next: int
+    if  str[pos] in capital and mergeCapitalized:
+      next = start + str.skipWhile(capital, start + 1)
+      if adaptiveMerge:
+        if next == start:
+          next = next + str.skipUntil(splitset, next + 1)
+
+        elif next > start + 1 and
+             next < str.high and
+             str[next + 1] notin splitset
+          :
+          dec next
+
+      else:
+        next = next + str.skipUntil(splitset, next + 1)
+
+    else:
+      next = start + str.skipUntil(splitset, start + 1)
+
     if str[start] == '_' and dropUnderscore:
       inc start
 
-    # echov str.enumerate()
     # echov str[start..next]
     # echov (start, next)
 
@@ -361,9 +393,10 @@ func toSnakeCamelCase*(str: string): string =
     it.toLowerAscii().capitalizeAscii()).join("")
 
 func abbrevCamel*(
-  abbrSplit: seq[string],
-  splitWords: seq[seq[string]],
-  getExact: bool = false): seq[string] =
+    abbrSplit: seq[string],
+    splitWords: seq[seq[string]],
+    getExact: bool = false
+  ): seq[string] =
   ## Split abbreviation and all worlds as **camelCase** identifiers.
   ## Find all worlds that contains `abbrev` as subsequence.
   let abbr = abbrSplit.join("")
