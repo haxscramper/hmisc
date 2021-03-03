@@ -969,8 +969,15 @@ suite "Colored string":
     # echo err.toColorString()
 
 suite "String helper functions":
+  test "Namecache":
+    var cache: StringNameCache
+
+    assertEq cache.getName("ROFF_bp"), "ROFF_bp"
+    assertEq cache.getName("ROFF_bp"), "ROFF_bp"
+    assertEq cache.getName("ROFF_BP"), "ROFF_BP1"
+
   test "toLatin*Char":
-    for ch in "[({<>|!@#$%^&*})]":
+    for ch in "[({<>|!@#$%})]":
       echo &"{ch} : {ch.toLatinAbbrChar()}"
 
     echo "((()))".toNamedMultichar()

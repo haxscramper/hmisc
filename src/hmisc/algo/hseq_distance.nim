@@ -1,4 +1,4 @@
-import sequtils, tables, strformat, strutils, math, algorithm
+import std/[sequtils, tables, strformat, strutils, math, algorithm]
 import ../hdebug_misc
 import ../macros/traceif
 import ../types/hprimitives
@@ -1373,3 +1373,33 @@ when isMainModule:
         gapToItemPenalty = gapCost,
         realignIterations = 1
       )
+
+proc nimNorm*(str: string): string =
+  result = str.replace("_", "").toLowerAscii()
+  result[0] = str[0]
+
+type
+  StringNameCache* = object
+    renames: Table[string, string]
+    idents: Table[string, seq[string]]
+
+func newName*(cache: var StringNameCache, str: string): string =
+  let norm = nimNorm(str)
+  if norm notin cache.idents:
+    result = str
+    cache.idents[norm] = @[result]
+
+  else:
+    result = str & $cache.idents[norm].len
+    cache.idents[norm].add result
+
+  cache.renames[str] = result
+
+func getName*(cache: var StringNameCache, str: string): string =
+  if nimNorm(str) notin cache.idents or
+     str notin cache.renames
+    :
+    result = cache.newName(str)
+
+  else:
+    result = cache.renames[str]

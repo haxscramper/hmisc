@@ -386,6 +386,10 @@ template currentSourceDir*(): AbsDir {.dirty.} =
 proc getAbsDir*(path: string): AbsDir =
   AbsDir(os.splitPath(path).head)
 
+
+proc startsWith*(path: AnyPath, prefix: AnyPath): bool =
+  path.getStr().startsWith(prefix.getStr())
+
 proc startsWith*(path: AnyPath, str: string): bool =
   path.getStr().startsWith(str)
 

@@ -773,7 +773,7 @@ func toShellArgument(arg: NimNode): NimNode =
       arg.toStrLit()
 
     else:
-      raiseImplementError(&"#[ IMPLEMENT for kind {arg.kind} ]#")
+      raiseImplementError(&"{treeRepr(arg)}")
 
 
 
