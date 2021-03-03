@@ -331,6 +331,10 @@ template add2Aux(xmm: untyped) {.dirty.} =
 
         return
 
+      elif n.tag == "br":
+        result.add("<br/>")
+        return
+
       let pref = "" # " ".repeat(level * indWidth)
       result.add(pref & '<' & n.tag)
       if not isNil(n.attrs):
@@ -463,6 +467,9 @@ func toXml*(html: HtmlElem): seq[XmlNode] =
 
   if html.attrs != nil:
     var tmp = tmpres.attrs
+    if isNil(tmp):
+      tmp = newStringTable()
+
     for key, val in pairs(html.attrs):
       tmp[key] = val
 

@@ -5,11 +5,13 @@
 #
 # To run these tests, simply execute `nimble test`.
 
-import unittest, terminal, strformat
-
+import std/[unittest, terminal, strformat, strutils]
 import hmisc/hasts/[html_ast, graphviz_ast]
 import hmisc/types/colorstring
+import hmisc/hdebug_misc
 import hmisc/algo/halgorithm
+
+startHax()
 
 func cs(str: string, fg: ForegroundColor): ColoredString =
   initColoredString(str, fg = fg)
@@ -63,3 +65,42 @@ sdfas
 
       # echo doc
       "/tmp/page.html".writeFile(doc)
+
+
+suite "Graphviz generation":
+  var topGraph = makeDotGraph()
+
+  test "Colored note text":
+    var graph = makeDotGraph()
+    graph.idshift = 1
+    graph.add makeColoredDotNode(0, toGreen("<<<<GREEN>>>>"))
+    graph.add makeColoredDotNode(1, toYellow("<<<<GREEN>>>>"))
+    graph.add makeDotEdge(0, 1)
+    graph.toPng("/tmp/res.png")
+
+    topGraph.addSubgraph(graph)
+
+  test "Record nodes":
+    var record = makeDotGraph()
+    record.idshift = 2
+    record.add makeRecordDotNode(0, @[
+      makeDotRecord(1, "test-0-1"),
+      makeDotRecord(2, "test-0-2", @[
+        makeDotRecord(3, "test-0-1-1"),
+        makeDotRecord(4, "test-0-1-2")
+      ]),
+    ])
+    record.add makeRecordDotNode(1, @[
+      makeDotRecord(1, "test-1-1"),
+      makeDotRecord(2, "test-1-2", @[
+        makeDotRecord(3, "test-1-1-1"),
+        makeDotRecord(4, "test-1-1-2")
+      ]),
+    ])
+
+    record.add makeDotEdge(toDotPath(0, 1), toDotPath(1, 1))
+    record.add makeDotEdge(toDotPath(0, 3), toDotPath(1, 4))
+
+    topGraph.addSubgraph(record)
+
+  topGraph.toPng("/tmp/res.png")

@@ -883,6 +883,16 @@ suite "Colored string":
   test "{splitSGR_sep}":
     # echo "==".splitSGR_sep("=")
     # echo "==".splitSGR().mapIt(it.split("="))
+
+    block:
+      let tt = splitSGR_sep("test" & toRed("colored") & "12312")[0]
+      assertEq tt.len, 3
+      assertEq tt, @[
+        initColoredString("test"),
+        initColoredString("colored", fg = fgRed),
+        initColoredString("12312")
+      ]
+
     assertEq "*=*=*".splitSGR_sep("=").mapIt(it[0]),
       initColoredString("*=*=*").split("=")
 

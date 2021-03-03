@@ -1,11 +1,11 @@
-import std/[colors, options, strtabs, ropes, sequtils,
+import std/[colors, options, strtabs, ropes, sequtils, sets,
             strutils, strformat, os, hashes, tables]
 
 import hmisc/helpers
 # import ../halgorithm
 
 import html_ast
-import hmisc/types/hprimitives
+import hmisc/types/[hprimitives, colorstring]
 import hmisc/algo/halgorithm
 import hmisc/other/hshell
 
@@ -27,6 +27,9 @@ type
     path: seq[int]
     record: seq[int]
 
+func `hash`*(id: DotNodeId): Hash =
+  !$(hash(id.path) !& hash(id.record))
+
 func isRecord*(id: DotNodeId): bool =
   id.record.len > 0
 
@@ -34,7 +37,7 @@ func isEmpty*(id: DotNodeId): bool  =
   id.path.len == 0 and id.record.len == 0
 
 func toStr*(id: DotNodeId, isRecord: bool = false): string =
-  (id.isRecord or isRecord).tern("struct", "") &
+  (id.isRecord or isRecord).tern("", "") &
   id.path.mapIt("t" & replace($it, "-", "neg")).join("_") &
     (id.record.len > 0).tern(
       ":" & id.record.mapIt("t" & replace($it, "-", "neg")).join(":"), "")
@@ -57,6 +60,9 @@ converter toDotNodeId*(ids: seq[int]): seq[DotNodeId] =
   ## Create multiple node ids
   ids.mapIt(DotNodeId(path: @[it]))
 
+func toDotPath*(top: int, sub: varargs[int]): DotNodeId =
+  DotNodeId(path: @[top], record: toSeq(sub))
+
 converter toDotNodeId*[T](p: ptr T): DotNodeId =
   DotNodeId(path: @[cast[int](p)])
 
@@ -74,6 +80,29 @@ converter toDotNodeId*(ids: seq[seq[int]]): seq[DotNodeId] =
   # debugecho ids
   # defer: debugecho result
   ids.mapIt(DotNodeId(path: it))
+
+
+func quoteGraphviz*(str: string): string =
+  result.add '"'
+  for idx, ch in pairs(str):
+    if ch in {'\'', '"'}:
+      result.add "\\"
+
+    elif ch in {'\\'}:
+      result.add "\\"
+
+    result.add ch
+
+  result.add '"'
+
+func escapeHtmlGraphviz*(str: string): string =
+  str.multiReplace({
+    "]": "&#93;",
+    "[": "&#91;",
+    "<": "&lt;",
+    ">": "&gt;"
+  })
+
 
 
 type
@@ -354,6 +383,7 @@ type
     subgraphs*: seq[DotGraph]
     nodes*: seq[DotNode]
     edges*: seq[DotEdge]
+    recordIds*: HashSet[DotNodeId]
 
 #============================  constructors  =============================#
 func initDotNode*(): DotNode = DotNode(style: nstDefault)
@@ -386,17 +416,20 @@ func makeDotGraph*(
     styleEdge: styleEdge
   )
 
-func addEdge*(graph: var DotGraph, edge: DotEdge): void =
-  graph.edges.add edge
-
-func addNode*(graph: var DotGraph, node: DotNode): void =
-  graph.nodes.add node
-
 func add*(graph: var DotGraph, node: DotNode): void =
   graph.nodes.add node
+  if node.shape in {nsaPlaintext}:
+    graph.recordIds.incl node.id
 
 func add*(graph: var DotGraph, edge: DotEdge): void =
+  var edge = edge
   graph.edges.add edge
+
+func addEdge*(graph: var DotGraph, edge: DotEdge): void {.deprecated.} =
+  graph.add edge
+
+func addNode*(graph: var DotGraph, node: DotNode): void {.deprecated.} =
+  graph.add node
 
 
 func makeDotEdge*(idFrom, idTo: DotNodeId): DotEdge =
@@ -430,13 +463,15 @@ func addSubgraph*(graph: var DotGraph, subg: DotGraph): void =
 
 
 func makeDotNode*(
-  id: DotNodeId,
-  label: string,
-  shape: DotNodeShape = nsaDefault,
-  color: Color = colNoColor,
-  style: DotNodeStyle = nstDefault,
-  width: float = -1.0,
-  height: float = -1.0): DotNode =
+    id: DotNodeId,
+    label: string,
+    shape: DotNodeShape = nsaDefault,
+    color: Color = colNoColor,
+    style: DotNodeStyle = nstDefault,
+    width: float = -1.0,
+    height: float = -1.0
+  ): DotNode =
+
   result = DotNode(shape: shape, style: style)
   result.id = id
   result.label = some(label)
@@ -445,6 +480,36 @@ func makeDotNode*(
 func makeDotNode*(id: DotNodeId, html: HtmlElem): DotNode =
   DotNode(id: id, shape: nsaPlaintext, htmlLabel: html)
 
+func makeDotRecord*(
+    id: DotNodeId, text: string, subfields: seq[RecordField] = @[]
+  ): RecordField =
+
+  RecordField(id: id, text: text, subfields: subfields)
+
+func makeRecordDotNode*(id: DotNodeId, records: seq[RecordField]): DotNode =
+  DotNode(shape: nsaRecord, id: id, flds: records)
+
+func makeColoredDotNode*(
+  id: DotNodeId, label: string, style: DotNodeStyle = nstDefault): DotNode =
+  var escaped: seq[HtmlElem]
+  var split = label.splitSGR_sep()
+  for chunk in mitems(split):
+    for elem in mitems(chunk):
+      elem.str = escapeHtmlGraphviz(elem.str)
+      escaped.add elem.toHtml(selector = false)
+
+    escaped.add newTree("br", @[])
+
+  DotNode(
+    id: id,
+    shape: nsaPlaintext,
+    htmlLabel:
+      newTree("table", @[
+        newTree("tr", @[
+          newTree("td", escaped, {"balign": "left"})
+        ]),
+      ], {"border": "0"})
+  )
 
 type
   DotTreeKind = enum
@@ -475,22 +540,11 @@ type
 
 func toString(record: RecordField): string =
   # TODO keep track of graph direction to ensure correct rotation
-  &"<{record.id}>{record.text}"
+  if record.subfields.len > 0:
+    "{" & record.subfields.mapIt(toString(it)).join("|") & "}"
 
-func quoteGraphviz*(str: string): string =
-  result.add '"'
-  for idx, ch in pairs(str):
-    if ch in {'\'', '"'}:
-      result.add "\\"
-
-    elif ch in {'\\'}:
-      result.add "\\"
-
-    result.add ch
-
-  result.add '"'
-
-
+  else:
+    &"<{record.id}>{record.text}"
 
 func toTree(node: DotNode, idshift: int, level: int = 0): DotTree =
   var attr = newStringTable()
