@@ -528,16 +528,34 @@ func toHTML*(str: ColoredString, selector: bool = true): HtmlElem =
 
   else:
     result = newHtmlText(str.str)
+    for prop in str.style:
+      case prop:
+        of styleItalic: result.textProps.incl htpItalic
+        of styleBright: result.textProps.incl htpBold
+        of styleUnderscore: result.textProps.incl htpUnderline
+        else:
+          discard
+
     result.textColor = case str.fg:
       of fgDefault: colNoColor
       of fgRed: colRed
       of fgGreen: colGreen
+      of fgCyan: colCyan
+      of fgMagenta: colMagenta
+      of fgYellow: colYellow
+      of fgBlack: colBlack
+      of fgWhite: colWhite
       else: colBlue
 
     result.textColorBg = case str.bg:
       of bgDefault: colNoColor
       of bgRed: colRed
       of bgGreen: colGreen
+      of bgCyan: colCyan
+      of bgMagenta: colMagenta
+      of bgYellow: colYellow
+      of bgBlack: colBlack
+      of bgWhite: colWhite
       else: colBlue
 
 func toHtml*(strs: openarray[ColoredString],

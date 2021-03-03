@@ -290,6 +290,10 @@ func msgjoinImpl*(args: seq[string]): string =
 
   #     if idx < max: result &= " "
 
+func toUpperAscii*(strs: seq[string]): seq[string] {.inline.} =
+  for str in strs:
+    result.add toUpperascii(str)
+
 func msgjoin*(args: varargs[string, `$`]): string =
   ## Concatenate arguments by adding whitespaces when necessary. When
   ## string ends with `_`, `'`, `"` or other similar characters (used

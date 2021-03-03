@@ -23,9 +23,24 @@ relevant places.
 
 
 type
+  DotPortPosition* = enum
+    dppNone = ""
+    dppTop = "n"
+    dppBotton = "s"
+
+    dppTopLeft = "nw"
+    dppLeft = "w"
+    dppBottomLeft = "sw"
+
+    dppTopRight = "ne"
+    dppRight = "e"
+    dppBottonRight = "se"
+
+
   DotNodeId* = object
     path: seq[int]
     record: seq[int]
+    port: DotPortPosition
 
 func `hash`*(id: DotNodeId): Hash =
   !$(hash(id.path) !& hash(id.record))
@@ -37,10 +52,17 @@ func isEmpty*(id: DotNodeId): bool  =
   id.path.len == 0 and id.record.len == 0
 
 func toStr*(id: DotNodeId, isRecord: bool = false): string =
-  (id.isRecord or isRecord).tern("", "") &
-  id.path.mapIt("t" & replace($it, "-", "neg")).join("_") &
-    (id.record.len > 0).tern(
-      ":" & id.record.mapIt("t" & replace($it, "-", "neg")).join(":"), "")
+  if id.isRecord or isRecord:
+    result.add ""
+
+  result.add id.path.mapIt("t" & replace($it, "-", "neg")).join("_")
+
+  if id.record.len > 0:
+    result.add ":"
+    result.add id.record.mapIt("t" & replace($it, "-", "neg")).join(":")
+
+    if id.port != dppNone:
+      result.add ":" & $id.port
 
 func `$`(id: DotNodeId): string = toStr(id)
 
@@ -60,8 +82,9 @@ converter toDotNodeId*(ids: seq[int]): seq[DotNodeId] =
   ## Create multiple node ids
   ids.mapIt(DotNodeId(path: @[it]))
 
-func toDotPath*(top: int, sub: varargs[int]): DotNodeId =
-  DotNodeId(path: @[top], record: toSeq(sub))
+func toDotPath*(
+  top: int, sub: int, port: DotPortPosition = dppNone): DotNodeId =
+  DotNodeId(path: @[top], record: @[sub], port: port)
 
 converter toDotNodeId*[T](p: ptr T): DotNodeId =
   DotNodeId(path: @[cast[int](p)])
@@ -490,7 +513,10 @@ func makeRecordDotNode*(id: DotNodeId, records: seq[RecordField]): DotNode =
   DotNode(shape: nsaRecord, id: id, flds: records)
 
 func makeColoredDotNode*(
-  id: DotNodeId, label: string, style: DotNodeStyle = nstDefault): DotNode =
+    id: DotNodeId, label: string,
+    tableAttrs: openarray[(string, string)] = {"border": "1"},
+    style: DotNodeStyle = nstDefault,
+  ): DotNode =
   var escaped: seq[HtmlElem]
   var split = label.splitSGR_sep()
   for chunk in mitems(split):
@@ -506,9 +532,9 @@ func makeColoredDotNode*(
     htmlLabel:
       newTree("table", @[
         newTree("tr", @[
-          newTree("td", escaped, {"balign": "left"})
+          newTree("td", escaped, {"balign": "left", "border": "0"})
         ]),
-      ], {"border": "0"})
+      ], tableAttrs)
   )
 
 type

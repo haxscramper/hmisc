@@ -5,7 +5,7 @@
 #
 # To run these tests, simply execute `nimble test`.
 
-import std/[unittest, terminal, strformat, strutils]
+import std/[unittest, terminal, strformat, strutils, colors]
 import hmisc/hasts/[html_ast, graphviz_ast]
 import hmisc/types/colorstring
 import hmisc/hdebug_misc
@@ -73,9 +73,26 @@ suite "Graphviz generation":
   test "Colored note text":
     var graph = makeDotGraph()
     graph.idshift = 1
-    graph.add makeColoredDotNode(0, toGreen("<<<<GREEN>>>>"))
-    graph.add makeColoredDotNode(1, toYellow("<<<<GREEN>>>>"))
-    graph.add makeDotEdge(0, 1)
+
+    for color in ForegroundColor:
+      var str = splitCamel($color)
+        .toUpperAscii()
+        .join("-")
+        .center(20)
+        .wrap("<<<<", ">>>>")
+        .initColoredString()
+
+      str.fg = color
+      str.style.incl styleItalic
+
+      graph.add makeColoredDotNode(
+        color.int, $str,
+        tableAttrs = {"bgcolor" : $colLightSlateGray}
+      )
+
+      if color != low(ForegroundColor):
+        graph.add makeDotEdge(color.int, pred(color).int)
+
     graph.toPng("/tmp/res.png")
 
     topGraph.addSubgraph(graph)
@@ -84,22 +101,35 @@ suite "Graphviz generation":
     var record = makeDotGraph()
     record.idshift = 2
     record.add makeRecordDotNode(0, @[
-      makeDotRecord(1, "test-0-1"),
-      makeDotRecord(2, "test-0-2", @[
-        makeDotRecord(3, "test-0-1-1"),
-        makeDotRecord(4, "test-0-1-2")
+      makeDotRecord(1, "test-0:1"),
+      makeDotRecord(2, "test-0:2", @[
+        makeDotRecord(3, "test-0:3"),
+        makeDotRecord(4, "test-0:4")
       ]),
     ])
     record.add makeRecordDotNode(1, @[
-      makeDotRecord(1, "test-1-1"),
-      makeDotRecord(2, "test-1-2", @[
-        makeDotRecord(3, "test-1-1-1"),
-        makeDotRecord(4, "test-1-1-2")
+      makeDotRecord(1, "test-1:1"),
+      makeDotRecord(2, "test-1:2", @[
+        makeDotRecord(3, "test-1:3"),
+        makeDotRecord(4, "test-1:4"),
+        makeDotRecord(5, "test-1:5", @[
+          makeDotRecord(6, "test-1:6"),
+          makeDotRecord(7, "test-1:7")
+        ])
       ]),
     ])
 
     record.add makeDotEdge(toDotPath(0, 1), toDotPath(1, 1))
-    record.add makeDotEdge(toDotPath(0, 3), toDotPath(1, 4))
+    record.add makeDotEdge(
+      toDotPath(0, 3, dppRight),
+      toDotPath(1, 4, dppRight)
+    )
+
+    record.add makeDotEdge(
+      toDotPath(0, 3, dppRight),
+      toDotPath(1, 7, dppRight)
+    )
+
 
     topGraph.addSubgraph(record)
 

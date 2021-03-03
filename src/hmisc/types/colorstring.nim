@@ -140,6 +140,15 @@ func initColoredString*(str: string, styling: PrintStyling): ColoredString =
 func fg*(cs: ColoredString): ForegroundColor = cs.styling.fg
 func bg*(cs: ColoredString): BackgroundColor = cs.styling.bg
 func style*(cs: ColoredString): set[Style] = cs.styling.style
+func style*(cs: var ColoredString): var set[Style] = cs.styling.style
+func `fg=`*(cs: var ColoredString, arg: ForegroundColor) =
+  cs.styling.fg = arg
+
+func `bg=`*(cs: var ColoredString, arg: BackgroundColor) =
+  cs.styling.bg = arg
+
+func `style=`*(cs: var ColoredString, arg: set[Style]) =
+  cs.styling.style = arg
 
 func wrapcode*(str: string, start, finish: int): string =
   fmt("\e[{start}m{str}\e[{finish}m")
