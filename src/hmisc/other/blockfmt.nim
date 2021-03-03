@@ -725,60 +725,12 @@ proc makeTextBlocks*(text: openarray[string]): seq[LytBlock] =
 
 func makeIndentBlock*(blc: LytBlock, indent: int): LytBlock
 
-func padSpaces(
-    bl: var LytBlock,
-    indent: int = 0
-  ) =
 
-  var indent = indent
-  # echov indent, bl
-
-  case bl.kind:
-    of bkText:
-      if indent > 0:
-        bl.text = " ".repeat(indent) & bl.text
-
-    of bkLine:
-      if bl.height == 1 and indent > 0:
-        padSpaces(bl.elements[0], indent)
-
-      else:
-        for toplevel in mitems(bl.elements):
-          if toplevel.height > 1:
-            if toplevel.kind == bkStack:
-              for idx in 1 .. toplevel.elements.high:
-                padSpaces(toplevel.elements[idx], indent)
-
-            elif toplevel.kind == bkChoice:
-              for choice in mitems(toplevel.elements):
-                padSpaces(choice, tern(choice.height == 1, 0, indent))
-
-          indent += toplevel.width
-
-    of bkStack:
-      for idx, item in mpairs(bl.elements):
-        padSpaces(item, tern(idx == 0, 0, indent))
-
-    of bkChoice:
-      for item in mitems(bl.elements):
-        padSpaces(item, indent)
-
-    else:
-      raiseImplementError(&"For kind {bl.kind} {instantiationInfo()}")
-
-
-
-func makeLineBlock*(
-    elems: openarray[LytBlock], fixLyt: bool = true
-  ): LytBlock =
+func makeLineBlock*(elems: openarray[LytBlock]): LytBlock =
 
   result = LytBlock(kind: bkLine, elements: toSeq(elems))
-
-  if fixLyt:
-    result.height = elems.maxIt(it.height)
-    result.width = elems.sumIt(it.width)
-
-    padSpaces(result)
+  result.height = elems.maxIt(it.height)
+  result.width = elems.sumIt(it.width)
 
 
 func makeIndentBlock*(blc: LytBlock, indent: int): LytBlock =
@@ -787,26 +739,15 @@ func makeIndentBlock*(blc: LytBlock, indent: int): LytBlock =
   else:
     makeLineBlock(@[makeTextBlock(" ".repeat(indent)), blc])
 
-func makeChoiceBlock*(
-    elems: openarray[LytBlock], fixLyt: bool = true
-  ): LytBlock =
-
+func makeChoiceBlock*(elems: openarray[LytBlock]): LytBlock =
   result = LytBlock(kind: bkChoice, elements: toSeq(elems))
+  result.width = elems.maxIt(it.width)
+  result.height = elems.maxIt(it.height)
 
-
-  if fixLyt:
-    result.width = elems.maxIt(it.width)
-    result.height = elems.maxIt(it.height)
-
-func makeStackBlock*(
-    elems: openarray[LytBlock], fixLyt: bool = true
-  ): LytBlock =
-
+func makeStackBlock*(elems: openarray[LytBlock]): LytBlock =
   result = LytBlock(kind: bkStack, elements: toSeq(elems))
-
-  if fixLyt:
-    result.height = elems.sumIt(it.height)
-    result.width = elems.maxIt(it.width)
+  result.height = elems.sumIt(it.height)
+  result.width = elems.maxIt(it.width)
 
 
 func makeWrapBlock*(elems: openarray[LytBlock]): LytBlock =
@@ -1293,8 +1234,54 @@ func join*(
         result.add sep
 
 
-proc toString*(bl: LytBlock, rightMargin: int = 80): string =
+func padSpaces(
+    bl: var LytBlock,
+    indent: int = 0
+  ) =
+
+  var indent = indent
+  # echov indent, bl
+
+  case bl.kind:
+    of bkText:
+      if indent > 0:
+        bl.text = " ".repeat(indent) & bl.text
+
+    of bkLine:
+      if bl.height == 1 and indent > 0:
+        padSpaces(bl.elements[0], indent)
+
+      else:
+        for toplevel in mitems(bl.elements):
+          if toplevel.height > 1:
+            if toplevel.kind == bkStack:
+              for idx in 1 .. toplevel.elements.high:
+                padSpaces(toplevel.elements[idx], indent)
+
+            elif toplevel.kind == bkChoice:
+              for choice in mitems(toplevel.elements):
+                padSpaces(choice, tern(choice.height == 1, 0, indent))
+
+          indent += toplevel.width
+
+    of bkStack:
+      for idx, item in mpairs(bl.elements):
+        padSpaces(item, tern(idx == 0, 0, indent))
+
+    of bkChoice:
+      for item in mitems(bl.elements):
+        padSpaces(item, indent)
+
+    else:
+      raiseImplementError(&"For kind {bl.kind} {instantiationInfo()}")
+
+proc toString*(
+  bl: LytBlock,
+  rightMargin: int = 80, fixLyt: bool = true): string =
   var bl = bl
+  if fixLyt:
+    padSpaces(bl)
+
   let opts = defaultFormatOpts.withIt do:
     it.rightMargin = rightMargin
 

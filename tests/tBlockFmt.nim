@@ -123,23 +123,25 @@ initBlockFmtDSL()
 
 suite "Edge case layouts":
   test "Stack of lines in braces":
-    echo toString(
-      H[
-        T["proc ("],
-        V[
-          T["line 1"],
-          T["line 2"],
-          T["line 3"],
-        ],
-        T[" = "],
-        V[
-          T["line 4"],
-          T["line 5"],
-          T["line 6"],
-        ],
-        T[")"]
-      ]
-    )
+    let bl = H[
+      T["proc ("],
+      V[
+        T["line 1"],
+        T["line 2"],
+        T["line 3"],
+      ],
+      T[" = "],
+      V[
+        T["line 4"],
+        T["line 5"],
+        T["line 6"],
+      ],
+      T[")"]
+    ]
+
+    echo toString(deepCopy(bl), fixLyt = false)
+    echo toString(bl)
+
 
   test "Choice stack vs line":
 
@@ -180,13 +182,13 @@ suite "Edge case layouts":
     if true:
       for i in [1, 5, 10]:
         var blocks = mapIt(0 .. i, T["arg: int" & $i])
-        echo toString(
-          H[
-            T["proc ("],
-            C[
-              H[blocks].join(T[", "]),
-              V[blocks].join(T[", "])
-            ],
-            T[")"]
-          ]
-        )
+        let bl = H[
+          T["proc ("],
+          C[
+            H[blocks].join(T[", "]),
+            V[blocks].join(T[", "])
+          ],
+          T[")"]
+        ]
+
+        echo toString(bl)
