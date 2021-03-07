@@ -213,6 +213,15 @@ type
     nstWedged = "wedged"
     nstStriped = "filled"
 
+  DotNodeCommonStyle = enum
+    ## Commonly encountered node stules
+    ncsDfaState ## DFA/NFA intermediate state. Single circle node.
+    ncsDfaAccept ## DFA/NFA accept state. Double circle node.
+    ncsAstTerminal ## AST tree terminal node. First line italic, second
+                   ## quoted bold. Light gray background, square node.
+    ncsAstNonTerminal ## AST tree nonterminal (intermediate) node. White
+                      ## background, square node.
+
   DotNodeLabelAlign* = enum
     nlaDefault = "\\n"
 
@@ -515,6 +524,7 @@ func makeRecordDotNode*(id: DotNodeId, records: seq[RecordField]): DotNode =
 func makeColoredDotNode*(
     id: DotNodeId, label: string,
     tableAttrs: openarray[(string, string)] = {"border": "1"},
+    cellAttrs: openarray[(string, string)] = {"balign": "left", "border": "0"},
     style: DotNodeStyle = nstDefault,
   ): DotNode =
   var escaped: seq[HtmlElem]
@@ -532,7 +542,7 @@ func makeColoredDotNode*(
     htmlLabel:
       newTree("table", @[
         newTree("tr", @[
-          newTree("td", escaped, {"balign": "left", "border": "0"})
+          newTree("td", escaped, cellAttrs)
         ]),
       ], tableAttrs)
   )
