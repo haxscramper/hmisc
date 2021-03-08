@@ -1383,6 +1383,9 @@ type
     renames: Table[string, string]
     idents: Table[string, seq[string]]
 
+func hasExactName*(cache: StringNameCache, name: string): bool =
+  name in cache.renames
+
 func newName*(cache: var StringNameCache, str: string): string =
   let norm = nimNorm(str)
   if norm notin cache.idents:
