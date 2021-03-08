@@ -26,54 +26,6 @@ func get[T](inseq: seq[Option[T]]): seq[T] =
     if elem.isSome():
       result.add elem.get()
 
-#*************************************************************************#
-#***************************  Printer console  ***************************#
-#*************************************************************************#
-#===========================  Type definition  ===========================#
-
-type
-  LytConsole* = ref object of RootObj
-    text*: string
-    margins: seq[int]
-
-method printString(c: var LytConsole, str: string): void =
-  c.text &= str
-
-method printSpace(c: var LytConsole, n: int): void =
-  ## Write a string of `n` spaces on the console.
-  c.text &= " ".repeat(n)
-
-type
-  LytDConsole = ref object of LytConsole
-
-method printString(c: var LytDConsole, str: string) = c.text &= str
-method printSpace(c: var LytDConsole, n: int) = c.text &= &"<spc({n})>"
-method printNewline(c: var LytDConsole, ident: bool = true) =
-  c.text &= "<NL" & (if ident: "i" else: "") & ">"
-
-type
-  LytStreamConsole* = ref object of LytConsole
-    stream: Stream
-    lineprefix: string
-
-
-func newStreamConsole*(
-  stream: Stream, prefix: string = ""): LytStreamConsole =
-  LytStreamConsole(stream: stream, lineprefix: prefix)
-
-method printString*(c: var LytStreamConsole, str: string) =
-  if c.lineprefix == "":
-    c.stream.write(str)
-  else:
-    for line in str.split('\n'):
-      c.stream.write("\n" & c.lineprefix & line)
-
-method printSpace*(c: var LytStreamConsole, n: int) =
-  c.stream.write(" ".repeat(n))
-
-# method printNewline*(c: var LytStreamConsole, ident: bool = true) =
-
-
 
 #*************************************************************************#
 #****************************  Format policy  ****************************#
@@ -89,9 +41,9 @@ type
     ##
     ## Refer to the corresponding methods of the LytConsole class for
     ## descriptions of the methods involved.
-    text: string ## Textual reprsentation of layout element for
-                 ## pretty-printing
-    impl: proc(pr: var LytConsole)
+    text: string ## Layout element text
+    debug: string ## Textual reprsentation of layout element for
+                  ## pretty-printing
 
   Layout* = object
     ## An object containing a sequence of directives to the console.
@@ -137,29 +89,20 @@ type
     breakElementLines: proc(blc: seq[seq[LytBlock]]): seq[seq[LytBlock]] ## Hook
 
 
-proc printOn*(self: Layout, console: var LytConsole): void =
+proc printOn*(self: Layout, buf: var string): void =
   for elem in self.elements:
-    elem.impl(console)
+    buf &= elem.text
 
-proc write*(stream: Stream | File, self: Layout, indent: int = 0) =
-  when stream is File:
-    var stream = newFileStream(stream)
 
-  var c = newStreamConsole(stream, " ".repeat(indent))
+proc debugOn*(self: Layout, buf: var string): void =
   for elem in self.elements:
-    elem.impl(LytConsole(c))
-
-proc printLayout(self: var LytConsole, layout: Layout): void =
-  layout.printOn(self)
+    buf &= elem.debug
 
 proc `$`*(le: LayoutElement): string = le.text
 
 
 proc `$`*(lt: Layout): string =
-  var c = LytDConsole()
-  lt.printOn(LytConsole(c))
-  return c.text
-  # lt.elements.mapIt($it).join(" ")
+  lt.debugOn(result)
 
 
 proc `$`*(sln: LytSolution): string =
@@ -175,9 +118,6 @@ proc `$`*(sln: LytSolution): string =
     inc idx
 
   result &= ">"
-  # for idx, sln in sln.layouts:
-  #   if idx.
-  # sln.layouts.mapIt($it).join(" ")
 
 proc `$`*(sln: Option[LytSolution]): string =
   if sln.isSome(): return $sln.get()
@@ -259,7 +199,7 @@ type
                  ## Expected value `~0.001`
     format_policy*: LytFormatPolicy
 
-func hash(elem: LayoutElement): Hash = hash(elem.impl)
+func hash(elem: LayoutElement): Hash = hash(elem.text)
 func hash(lyt: Layout): Hash = hash(lyt.elements)
 
 func hash(sln: Option[LytSolution]): Hash =
@@ -281,17 +221,16 @@ func hash(sln: Option[LytSolution]): Hash =
 #*******************************  Layout  ********************************#
 #*************************************************************************#
 func lytString(s: string): LayoutElement =
+  result.debug = s
   result.text = s
-  result.impl = proc(c: var LytConsole) =
-    c.printString(s)
 
 func lytNewline(indent: bool = true): LayoutElement =
-  result.text = "\\n"
-  result.impl = proc(c: var LytConsole) = c.printString("\n")
+  result.text = "\n"
+  result.debug = "\\n"
 
 proc lytPrint(lyt: Layout): LayoutElement =
-  result.text = &"[{lyt}]"
-  result.impl = proc(c: var LytConsole) = c.printLayout(lyt)
+  result.debug = &"[{lyt}]"
+  lyt.printOn(result.text)
 
 func getStacked(layouts: seq[Layout]): Layout =
   ## Return the vertical composition of a sequence of layouts.
@@ -1114,9 +1053,7 @@ proc layoutBlock*(blc: LytBlock, opts: LytOptions = defaultFormatOpts): string =
   let sln = none(LytSolution).withResIt do:
     blocks.doOptLayout(it, opts).get()
 
-  var c = LytConsole()
-  sln.layouts[0].printOn(c)
-  return c.text
+  sln.layouts[0].printOn(result)
 
 proc wrapBlocks*(blocks: seq[LytBlock],
                  opts: LytOptions = defaultFormatOpts,
@@ -1288,9 +1225,7 @@ proc toString*(
   let sln = none(LytSolution).withResIt do:
     bl.doOptLayout(it, opts).get()
 
-  var c = LytConsole()
-  sln.layouts[0].printOn(c)
-  return c.text
+  sln.layouts[0].printOn(result)
 
 func codegenRepr*(inBl: LytBlock): string =
   func aux(bl: LytBlock, level: int): string =

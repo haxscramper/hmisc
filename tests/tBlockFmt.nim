@@ -29,17 +29,7 @@ suite "Block formatting":
     let sln = none(LytSolution).withResIt do:
       bl.doOptLayout(it, ops).get()
 
-    # echo "\e[41m*==========\e[49m  -  \e[41m===========*\e[49m"
-    for l in sln.layouts:
-      # echo "----"
-      var c = LytConsole()
-      l.printOn(c)
-      # echo c.text
-
-
-    var c = LytConsole()
-    sln.layouts[0].printOn(c)
-    return c.text
+    sln.layouts[0].printOn(result)
 
   let str = lyt
 

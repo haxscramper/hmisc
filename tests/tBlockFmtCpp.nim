@@ -25,13 +25,7 @@ suite "Block formatting minimal":
     let sln = none(LytSolution).withResIt do:
       bl.doOptLayout(it, ops).get()
 
-    for l in sln.layouts:
-      var c = LytConsole()
-      l.printOn(c)
-
-    var c = LytConsole()
-    sln.layouts[0].printOn(c)
-    return c.text
+    sln.layouts[0].printOn(result)
 
   let str = lyt
 
