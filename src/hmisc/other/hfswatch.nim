@@ -1,12 +1,41 @@
 # import libfswatch, libfswatch/fswatch
-import oswrap
+import oswrap, rx
 import std/[bitops, strformat]
 import fusion/pointers
+import ../hdebug_misc
 
 const libfswatch =
   when defined(windows): "libfswatch.dll"
   elif defined(macosx):  "libfswatch.dylib"
   else:                  "libfswatch.so"
+
+##[
+
+## Path filtering
+
+From libfswatch documentation https://emcrisostomo.github.io/fswatch/doc/1.14.0/libfswatch.html/path-filtering.html
+
+    A filter type (fsw_filter_type) determines whether the filter regular
+    expression is used to include and exclude paths from the list of the
+    events processed by the library. libfswatch processes filters this way:
+
+    - If a path matches an including filter, the path is accepted no matter
+      any other filter.
+    - If a path matches an excluding filter, the path is rejected.
+    - If a path matches no lters, the path is accepted.
+
+    Said another way:
+
+    - All paths are accepted by default, unless an exclusion filter
+      says otherwise.
+    - Inclusion filters may override any other exclusion filter.
+    - The order in the filter definition has no effect.
+
+To simplify creation of regular expressions (especially considering two
+different flavors can be specified, each one different from pcre that nim
+uses) it is recommended to use `rx` helper
+
+]##
 
 
 type
@@ -65,8 +94,8 @@ pointer to it.
 
 
 
-  FswCmonitorFilter* = object
-    text*: string
+  FswFsMonitorFilter* = object
+    text*: cstring
     filterType*: FswFilterType
     caseSensitive*: bool
     extended*: bool
@@ -144,16 +173,16 @@ proc addEventTypeFilter*(handle: FswHandle, event_type: FswEventTypeFilter): cin
   {.importc: "fsw_add_event_type_filter".}
   ## Adds an event type filter to the current session.
 
-proc addFilter*(handle: FswHandle, filter: FswCmonitorFilter): cint
+proc addFilter*(handle: FswHandle, filter: FswFsMonitorFilter): cint
   {.importc: "fsw_add_filter".}
   ## Adds a filter to the current session. A filter is a regular expression
   ## that, depending on whether the filter type is exclusion or not, must
   ## or must not be matched for an event path for the event to be accepted.
 
-proc startMonitor*(handle: FswHandle): cint
+proc startFsMonitor*(handle: FswHandle): cint
   {.importc: "fsw_start_monitor".}
 
-proc stopMonitor*(handle: FswHandle): cint
+proc stopFsMonitor*(handle: FswHandle): cint
   {.importc: "fsw_stop_monitor".}
 
 proc isRunning*(handle: FswHandle): bool
@@ -167,12 +196,12 @@ proc fswIsVerbose*(): bool {.importc: "fsw_is_verbose".}
 proc fswSetVerbose*(verbose: bool) {.importc: "fsw_set_verbose".}
 
 type
-  Monitor* = object
+  FsMonitor* = object
     handle*: FswHandle
 
   FsWatchError = object of CatchableError
 
-proc addEventTypeFilter*(monitor: Monitor, types: set[FswEventFlag]) =
+proc addEventTypeFilter*(monitor: FsMonitor, types: set[FswEventFlag]) =
   for filterType in types:
     # WARNING discarding return code
     discard monitor.handle.addEventTypeFilter(
@@ -180,20 +209,20 @@ proc addEventTypeFilter*(monitor: Monitor, types: set[FswEventFlag]) =
 
 
 
-proc newMonitor*(): Monitor =
+proc newFsMonitor*(): FsMonitor =
   if fsw_init_library() != 0:
     raise newException(
       FsWatchError, "Failed to initalized libfswatch library")
 
   result.handle = fsw_init_session(0)
 
-proc addPath*(monitor: Monitor, path: string) =
+proc addPath*(monitor: FsMonitor, path: string) =
   if monitor.handle.add_path(path) != 0:
     raise newException(
       FsWatchError, &"Failed to add path {path} to monitor")
 
 
-proc setCallback*(monitor: Monitor, callback: proc(event: FswEvent)) =
+proc setCallback*(monitor: FsMonitor, callback: proc(event: FswEvent)) =
   let callbackWrap = proc(events: ptr FswEvent, eventNum: cint) =
     let arr = toUncheckedArray(events)
     for i in 0 ..< eventNum:
@@ -206,28 +235,56 @@ proc setCallback*(monitor: Monitor, callback: proc(event: FswEvent)) =
     raise newException(
       FsWatchError, &"Failed to set callback to monitor")
 
-proc start*(monitor: Monitor) =
-  discard monitor.handle.start_monitor()
+proc addFilter*(
+    monitor: FsMonitor, regex: Rx, inclusive: bool = false,
+    ignorecase: bool = false, extended: bool = true
+  ) =
+
+  let str: string = toStr(
+    regex, if extended: rxfExtendedPosix else: rxfPosix)
+
+  discard monitor.handle.addFilter(FswFsMonitorFilter(
+    text: str.cstring,
+    extended: extended,
+    filterType: (if inclusive: filterInclude else: filterExclude),
+    caseSensitive: not ignorecase
+  ))
+
+proc setFilterOnly*(monitor: FsMonitor, regexList: seq[Rx]) =
+  ## Accept only paths matching `regexList`
+  ##
+  ## - FIXME :: I don't know why, but current implementation simply does
+  ##   not work. I want to have this as a part of an API, so I won't be
+  ##   removing it, but for now all paths are to be filtered out manually.
+  monitor.addFilter(*nrx(rskAny), inclusive = false)
+  for regex in regexList:
+    monitor.addFilter(regex, inclusive = true)
+
+
+proc start*(monitor: FsMonitor) =
+  discard monitor.handle.startFsMonitor()
 
 func contains[T](superset: set[T], subset: set[T]): bool =
   len(subset - superset) == 0
 
-proc newMonitor*(path: AnyPath, cb: proc(event: FswEvent)): Monitor =
-  result = newMonitor()
+proc newFsMonitor*(path: AnyPath, cb: proc(event: FswEvent)): FsMonitor =
+  result = newFsMonitor()
   result.addPath(path.getStr())
   result.setCallback do(event: FswEvent):
     cb(event)
 
-template newMonitorEvent*(path: AnyPath, body: untyped): untyped =
-  newMonitor(
+template newFsMonitorEvent*(path: AnyPath, body: untyped): untyped =
+  newFsMonitor(
     path,
     proc(event {.inject.}: FswEvent) =
       body
   )
 
 when isMainModule:
-  var monitor = newMonitorEvent(AbsDir("/tmp")):
-    echo event
+  starthax()
+  let frx = nrx("/tmp").fullLine()
+  var monitor = newFsMonitorEvent(AbsDir("/tmp")):
+    echov event, " ", $event.path =~ frx
 
-  monitor.addEventTypeFilter({fefCreated, fefUpdated})
+  monitor.addFilter(frx)
   monitor.start()

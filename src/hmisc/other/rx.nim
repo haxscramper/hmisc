@@ -9,6 +9,8 @@ type
     rxfPerl
     rxfDebug
     rxfLisp
+    rxfPosix
+    rxfExtendedPosix
 
   RxSpecialKind* = enum
     rskLineStart
@@ -26,6 +28,8 @@ type
     rskDigit
     rskNotDigit
 
+    rskAny
+
   RxKind* = enum
     rxkText
     rxkCharset
@@ -40,6 +44,7 @@ type
     rxkOptional
 
     rxkAlt
+    rxkConcat
     rxkGroup
     rxkNonCapturingGroup
 
@@ -75,7 +80,7 @@ const
     rxkRepeatNtoMTimes
   }
 
-  rxkRepeatedArgKinds* = {rxkAlt} + rxkGroupKinds
+  rxkRepeatedArgKinds* = {rxkAlt, rxkConcat} + rxkGroupKinds
 
 type
   Rx* = object
@@ -151,13 +156,25 @@ func treeRepr*(rx: Rx, colored: bool = true, level: int = 0): string =
 func lispRepr*(rx: Rx, colored: bool = true, level: int = 0): string =
   result = "(" & ($rx.kind)[3..^1] & " "
   case rx.kind:
+    of rxkRepeatedArgKinds, rxkSingleArgKinds:
+      for idx, arg in pairs(rx.args):
+        if idx > 0:
+          result &= " "
+
+        result &= lispRepr(arg, colored, level + 1)
+
     of rxkText:
       result &= toYellow("\"" & rx.text & "\"", colored)
 
-    else:
-      result &= "po243oi234jilj234"
+    of rxkCharset:
+      result &= "[" & join(mapIt(rx.charElems, toStr(it)), "") & "]"
+
+    of rxkSpecial:
+      result &= $rx.special
 
   result &= ")"
+
+func `$`*(rx: Rx): string = lispRepr(rx)
 
 func toStr*(special: RxSpecialKind, flavor: RxFlavor = rxfPerl): string =
   case special:
@@ -173,6 +190,7 @@ func toStr*(special: RxSpecialKind, flavor: RxFlavor = rxfPerl): string =
     of rskStringEnd: "\\z"
     of rskStringBoundary: "\\b"
     of rskStringOrLineEnd: "\\z"
+    of rskAny: "."
 
 
 
@@ -189,7 +207,7 @@ func toStr*(kind: RxKind): string =
     of rxkAlt: "|"
     of rxkOptional: "?"
     of rxkGroupKinds: ""
-    of rxkRepeatNtoMTimes, rxkRepeatNTimes: ""
+    of rxkRepeatNtoMTimes, rxkRepeatNTimes, rxkConcat: ""
 
 func toStr*(rx: Rx, flavor: RxFlavor = rxfPerl): string =
   case flavor:
@@ -245,6 +263,8 @@ template toConstStr*(rx: static[Rx], flavor: RxFlavor = rxfPerl): untyped =
 func toRe*(rx: static[Rx]): Regex =
   re(toConstStr(rx, rxfPerl))
 
+func toRe*(rx: Rx): Regex = re(toStr(rx, rxfPerl))
+
 template `=~`*(s: string, rx: Rx): untyped {.dirty.} =
   s =~ toRe(rx)
 
@@ -278,6 +298,9 @@ func `|`*(rhs, lhs: Rx): Rx = initRx(rxkAlt, @[rhs, lhs])
 
 func group*(rxSeq: varargs[Rx]): Rx =
   initRx(rxkNonCapturingGroup, rxSeq)
+
+func fullLine*(rx: Rx): Rx =
+  initRx(rxkConcat, @[nrx(rskLineStart), rx, nrx(rskLineEnd)])
 
 func capture*(rxSeq: varargs[Rx]): Rx = initRx(rxkGroup, rxSeq)
 
