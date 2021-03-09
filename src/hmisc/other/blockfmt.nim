@@ -93,6 +93,19 @@ proc printOn*(self: Layout, buf: var string): void =
   for elem in self.elements:
     buf &= elem.text
 
+proc write*(stream: Stream | File, self: Layout, indent: int = 0) =
+  if indent == 0:
+    for elem in self.elements:
+      stream.write(elem.text)
+
+  else:
+    for elem in self.elements:
+      for ch in elem.text:
+        if ch == '\n':
+          stream.write " ".repeat(indent)
+
+        stream.write ch
+
 
 proc debugOn*(self: Layout, buf: var string): void =
   for elem in self.elements:

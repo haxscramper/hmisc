@@ -194,6 +194,9 @@ func `<`*(a, b: AnyPath): bool = a.getStr() < b.getStr()
 func contains*(path: AnyPath, substr: string): bool =
   path.getStr().contains substr
 
+func contains*(dir: AbsDir, path: AbsPath): bool =
+  dir.getStr() in path.getStr()
+
 template endsWith*(path: AnyPath, expr: typed): bool =
   path.getStr().endsWith(expr)
 
