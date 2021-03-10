@@ -14,12 +14,16 @@ template raiseImplementError*(errMsg: string) {.dirty.} =
 
 template raiseImplementKindError*(
   node: untyped, userMsg: string = "") {.dirty.} =
+  var msg: string
+  if userMsg.len > 0: msg &= " "
+  if '\n' in userMsg: msg &= "\n"
+  msg &= userMsg
+
   raise ImplementError(
     msg: "\nUnhandled entry kind: " &
       astToStr(node) &
       " has kind \e[32m" & $node.kind & "\e[39m" &
-      (if userMsg.len > 0: " " & userMsg else: "") &
-      " @" & $instantiationInfo() & "\n"
+      msg & " @" & $instantiationInfo() & "\n"
   )
 
 

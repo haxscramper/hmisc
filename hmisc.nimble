@@ -13,7 +13,6 @@ namedBin      = {
 
 
 requires "nim >= 1.4.0", "cligen"
-requires "libfswatch"
 requires "fusion"
 # requires "https://github.com/haxscramper/fusion.git#matching-fixup"
 
