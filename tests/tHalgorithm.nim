@@ -1072,10 +1072,13 @@ suite "String helper functions":
     assertEq "90".dropPrefix({'1', '9'}), "0"
 
   test "{commonPrefix}":
-    assertEq @[].commonPrefix(), ""
+    # assertEq @[].commonPrefix(), ""
     assertEq @["00"].commonPrefix(), "00"
     assertEq @["--+", "--="].commonPrefix(), "--"
     assertEq @["+=", "=+"].commonPrefix(), ""
+
+  test "{commonPrefix[T]}":
+    assertEq commonPrefix(@[@["A", "B"], @["A", "C"]]), @["A"]
 
   test "{dropCommonPrefix}":
     assertEq @["--"].dropCommonPrefix(), @[""]

@@ -603,6 +603,9 @@ func wrap*(str: string, delim: string): string =
   let left = delim.len div 2
   return delim[0 ..< left] & str & delim[left .. ^1]
 
+func wrap*(str: string, left, right: char): string {.inline.} =
+  $left & str & $right
+
 
 func escapeHTML*(input: string): string =
   input.multiReplace([

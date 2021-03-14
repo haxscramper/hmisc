@@ -769,7 +769,7 @@ func toShellArgument(arg: NimNode): NimNode =
     of nnkExprEqExpr:
       nnkPar.newTree(arg[0].toShellArgument(), arg[1].toShellArgument())
 
-    of nnkIdent:
+    of nnkIdent, nnkIntLit:
       arg.toStrLit()
 
     else:
@@ -943,21 +943,31 @@ proc updateException(
 
 type
   StrQue* = Deque[string]
-  StreamConverter* = proc(
-    que: var StrQue, cmd: ShellCmd): Option[JsonNode] {.noSideEffect.}
+  StreamConverter*[Cmd, Rec] = proc(que: var StrQue, cmd: Cmd): Option[Rec]
+
+
 
 when cbackend:
-  proc makeShellJsonIter*(
-    cmd: ShellCmd,
-    outConvert: StreamConverter,
-    errConvert: StreamConverter,
-    options: set[ProcessOption] = {poEvalCommand, poUsePath},
-    maxErrorLines: int = 12,
-    doRaise: bool = true
-       ): iterator(): JsonNode =
+  template yieldStream(que, cmd: typed) =
+    que.addLast line
+    let res = outConvert(que, cmd)
+    if res.isSome():
+      yield res.get()
+
+  proc makeShellRecordIter*[Cmd, Rec](
+      cmd: Cmd,
+      outConvert: StreamConverter[Cmd, Rec],
+      errConvert: StreamConverter[Cmd, Rec],
+      options: set[ProcessOption] = {poEvalCommand, poUsePath},
+      maxErrorLines: int = 12,
+      doRaise: bool = true
+    ): iterator(): Rec =
     ## Iterate over output of the shell command converted to json
-    return iterator(): JsonNode =
+    return iterator(): Rec =
       let
+        # FIXME allow different types to be used as shell commands (to
+        # avoid reparsing configuration each time). Right now it is
+        # 'generic', but `startShell` only works for `ShellCmd`
         process = startShell(cmd, options)
         stdoutStream = process.outputStream()
         stderrStream = process.errorStream()
@@ -966,27 +976,27 @@ when cbackend:
         stdoutQue: StrQue
         stderrQue: StrQue
 
-      template yieldStream(strm: untyped) =
-        `strm Que`.addLast line
-        let `strm Res` = outConvert(`strm Que`, cmd)
-        if `strm Res`.isSome():
-          yield `strm Res`.get()
-
       block:
+        # NOTE reading line-by-line from arbitrary processes might be a
+        # little more challenging than just `readLine()`. For example it
+        # might be better to keep a buffer and add new line only when `\n`
+        # is encountered. Also hardcoding particular separator is not the
+        # best idea, but it can be solved quite easily but passing
+        # `separators: set[char]` to the iterator builder.
         var line = ""
         while process.running:
           discard stdoutStream.readLine(line)
-          yieldStream(stdout)
+          yieldStream(stdoutQue, cmd)
 
           discard stderrStream.readLine(line)
-          yieldStream(stderr)
+          yieldStream(stderrQue, cmd)
 
       block:
         for line in stdoutStream.readAll().split("\n"):
-          yieldStream(stdout)
+          yieldStream(stdoutQue, cmd)
 
         for line in stderrStream.readAll().split("\n"):
-          yieldStream(stderr)
+          yieldStream(stderrQue, cmd)
 
       var res = ShellResult()
       res.execResult.code = process.peekExitCode()

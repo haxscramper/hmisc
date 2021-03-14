@@ -1375,8 +1375,9 @@ when isMainModule:
       )
 
 proc nimNorm*(str: string): string =
-  result = str.replace("_", "").toLowerAscii()
-  result[0] = str[0]
+  if str.len > 0:
+    result = str.replace("_", "").toLowerAscii()
+    result[0] = str[0]
 
 type
   StringNameCache* = object
@@ -1406,3 +1407,31 @@ func getName*(cache: var StringNameCache, str: string): string =
 
   else:
     result = cache.renames[str]
+
+
+func commonPrefix*[T](seqs: seq[seq[T]]): seq[T] =
+  ## Find common prefix for list of strings
+  # TODO implement without sorting
+  if seqs.len == 0:
+    return @[]
+
+  else:
+    result = seqs[0]
+    for s in seqs:
+      var prefix: int = 0
+      for i in 0 ..< len(s):
+        if result[i] == s[i]:
+          inc prefix
+
+      if prefix == 0:
+        return @[]
+
+      else:
+        result = result[0 ..< prefix]
+
+    # let strs = strs.sorted()
+    # for i in 0 ..< min(strs[0].len, strs[^1].len):
+    #   if strs[0][i] == strs[^1][i]:
+    #     result.add strs[0][i]
+    #   else:
+    #     return

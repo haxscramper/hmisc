@@ -20,7 +20,7 @@ suite "Hshell":
 
     var cmd = makeGnuShellCmd("ls")
 
-    let iter = makeShellJsonIter(
+    let iter = makeShellRecordIter(
       cmd,
       outConvert,
       errConvert
@@ -35,7 +35,7 @@ suite "Hshell":
     cmd - "l"
     cmd.arg "/tmp"
 
-    let iter = makeShellJsonIter(
+    let iter = makeShellRecordIter(
       cmd,
       lslOutConverter,
       lslErrConverter,
@@ -47,6 +47,20 @@ suite "Hshell":
         break
       else:
         discard msg["permissions"]
+
+  test "Strace parser":
+    var cmd = makeGnuShellCmd("strace")
+    cmd.arg "ls"
+    let iter = makeShellRecordIter(
+      cmd,
+      straceOutConverter,
+      straceErrConverter,
+      doRaise = false
+    )
+
+    for entry in iter:
+      discard
+      # echo entry
 
 
   test "Shell ast generation":

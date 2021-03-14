@@ -73,16 +73,9 @@ proc getIdent*(): int =
     globalLog.ident
 
 template logIndented*(body: untyped): untyped =
-  try:
-    indentLog()
-    body
-  finally:
-    dedentLog()
-
-template logDefer*(logCmd, before: untyped): untyped =
-  logCmd before
-  identLog()
-  defer: dedentLog()
+  indentLog()
+  body
+  dedentLog()
 
 proc startColorLogger*(level: Level = lvlAll, showfile: bool = false): void =
   # TODO read environment variable for logging indentation/filter etc.
@@ -131,11 +124,11 @@ template impl(): untyped {.dirty.} =
 
   if (logger != nil) and args.len > 0:
     let args = pos & " " & args[1..^1].msgjoin()
-    if logger.prevBuf.len > 0 and logger.prevBuf[^1] != args:
-      echo makeLogString(level, args)
-      logger.prevBuf = @[]
-    elif logger.prevBuf.len == 0:
-      echo makeLogString(level, args)
+    # if logger.prevBuf.len > 0 and logger.prevBuf[^1] != args:
+    #   echo makeLogString(level, args)
+    #   logger.prevBuf = @[]
+    # elif logger.prevBuf.len == 0:
+    echo makeLogString(level, args)
       # echo "  ".repeat(getIdent()), " ... "
       # echo logger.prevBuf.len, " times"
 
@@ -183,6 +176,12 @@ template err*(args: varargs[string, `$`]) =
 
 template fatal*(args: varargs[string, `$`]) =
   log(lvlFatal, @[$instantiationInfo()] & toSeqFix(args))
+
+template logDefer*(logCmd: untyped, args: varargs[string, `$`]): untyped =
+  log(`lvl logCmd`, @[$instantiationInfo()] & toSeqFix(args))
+  identLog()
+  defer: dedentLog()
+
 
 
 proc logError*(args: varargs[string, `$`]): void =

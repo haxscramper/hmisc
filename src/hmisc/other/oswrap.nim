@@ -332,6 +332,10 @@ proc normalizePathEnd*(path: var AnyPath; trailingSep = false): void =
 proc joinPath*(head: AbsDir, tail: RelFile): AbsFile =
   AbsFile(os.joinPath(head.string, tail.string))
 
+
+proc joinPath*(head: RelDir, tail: RelDir): RelDir =
+  RelDir(os.joinPath(head.string, tail.string))
+
 proc joinPath*(head: AbsDir, tail: RelDir): AbsDir =
   AbsDir(os.joinPath(head.string, tail.string))
 
@@ -1944,8 +1948,8 @@ proc detectOsWithAllCmd(d: Distribution, cache: var array[4, string]): bool =
            ("operating system: " & dd) in toLowerAscii(hostnamectl(cache[3]))
 
 
-proc detectOs(d: Distribution, cache: var array[4, string]): bool =
-  case d
+proc detectOs*(d: Distribution, cache: var array[4, string]): bool =
+  case d:
     of Distribution.Windows: result = defined(windows)
     of Distribution.Posix: result = defined(posix)
     of Distribution.MacOSX: result = defined(macosx)

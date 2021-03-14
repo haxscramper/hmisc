@@ -5,6 +5,7 @@ import ../base_errors
 
 type
   StrBackIndex* = distinct string
+  CharBackIndex* = distinct char
   StrPartKind* = enum
     spkSet
     spkSubstr
@@ -66,13 +67,19 @@ func endsWith*(s: string, part: Strpart): bool =
 
       return false
 
+{.push inline.}
+
 func `^`*(s: string): StrBackIndex = StrBackIndex(s)
+func `^`*(s: char): CharBackIndex = CharBackIndex(s)
 
 func `[]`*(ins: string, back: StrBackIndex): bool =
   ins.endsWith(back.string)
 
-func `[]`*(ins: string, forward: string): bool =
-  ins.startsWith(forward.string)
+func `[]`*(ins: string, back: CharBackIndex): bool =
+  ins.endsWith(back.char)
+
+func `[]`*(ins: string, forward: string|char): bool =
+  ins.startsWith(toStrPart(forward))
 
 func `[]`*(ins: string, strs: openarray[string]): bool =
   ins.startsWith(strs)
@@ -82,6 +89,8 @@ func `[]`*(ins: string, beg: StrPart, final: StrPartConv): bool =
 
 func `[]`*(ins: string, beg: StrPart, final: openarray[string]): bool =
   ins[beg, toSeq(final)]
+
+{.pop inline.}
 
 iterator items*(part: StrPart): StrPart =
   case part.kind:

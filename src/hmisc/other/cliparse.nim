@@ -78,7 +78,7 @@ type
 func key*(opt: CliOpt): string = opt.keyPath[0]
 func value*(opt: CliOpt): string = opt.valStr
 
-macro scanpFull*(str: string, start: int, pattern: varargs[untyped]): untyped =
+macro scanpFull*(str: typed, start: int, pattern: varargs[untyped]): untyped =
   result = nnkStmtList.newTree()
   let tmp = genSym(nskVar, "tmp")
   result.add newVarStmt(tmp, start)
@@ -93,7 +93,7 @@ macro scanpFull*(str: string, start: int, pattern: varargs[untyped]): untyped =
   )
 
 
-macro scanpFull*(str: string, pattern: varargs[untyped]): untyped =
+macro scanpFull*(str: typed, pattern: varargs[untyped]): untyped =
   result = nnkStmtList.newTree()
   let tmp = genSym(nskVar, "tmp")
   result.add newVarStmt(tmp, newLit(0))

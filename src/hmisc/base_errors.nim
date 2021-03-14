@@ -1,15 +1,34 @@
 type
-  ArgumentError* = ref object of CatchableError
+  ArgumentError* = object of CatchableError
+  UnexpectedKindError* = object of ArgumentError
 
 template raiseArgumentError*(errMsg: string) {.dirty.} =
-  raise ArgumentError(msg: errMsg)
+  raise newException(ArgumentError, errMsg)
+
+template assertKind*(expr, expected: typed) {.dirty.} =
+  let kind = expr.kind
+  var msg: string
+  when compiles(kind notin expected):
+    if kind notin expected:
+      msg = "Unexpected kind - got " & $kind &
+        ", but expected " & $expected
+
+  elif expected is enum:
+    if kind != expected:
+      msg = "Unexpected kind - got " & $kind &
+        ", but expected any of " & $expected
+
+  if msg.len > 0:
+    raise newException(UnexpectedKindError, msg)
+
 
 type
-  ImplementError* = ref object of CatchableError
-  ImplementKindError* = ref object of ImplementError
+  ImplementError* = object of CatchableError
+  ImplementKindError* = object of ImplementError
 
 template raiseImplementError*(errMsg: string) {.dirty.} =
-  raise ImplementError(msg: errMsg & " @" & $instantiationInfo())
+  raise newException(
+    ImplementError, errMsg & " @" & $instantiationInfo())
 
 
 template raiseImplementKindError*(
@@ -19,8 +38,8 @@ template raiseImplementKindError*(
   if '\n' in userMsg: msg &= "\n"
   msg &= userMsg
 
-  raise ImplementError(
-    msg: "\nUnhandled entry kind: " &
+  raise newException(ImplementError,
+    "\nUnhandled entry kind: " &
       astToStr(node) &
       " has kind \e[32m" & $node.kind & "\e[39m" &
       msg & " @" & $instantiationInfo() & "\n"
