@@ -9,17 +9,25 @@ template assertKind*(expr, expected: typed) {.dirty.} =
   let kind = expr.kind
   var msg: string
   when compiles(kind notin expected):
+    var anyOf: string
+    when kind is set:
+      if len(kind) > 1:
+        anyOf = "any of "
+
+
+
     if kind notin expected:
       msg = "Unexpected kind - got " & $kind &
-        ", but expected " & $expected
+        ", but expected " & anyOf & $expected
 
   elif expected is enum:
     if kind != expected:
       msg = "Unexpected kind - got " & $kind &
-        ", but expected any of " & $expected
+        ", but expected " & $expected
 
   if msg.len > 0:
-    raise newException(UnexpectedKindError, msg)
+    {.line: instantiationInfo(fullPaths = true).}:
+      raise newException(UnexpectedKindError, msg)
 
 
 type

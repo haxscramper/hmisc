@@ -100,6 +100,14 @@ proc `[]`*(str; slice: Slice[int]): string =
   for i in slice:
     result.add str[i]
 
+proc `[]`*(str; slice: HSlice[int, char]): string =
+  var pos = slice.a
+  while not str[pos, slice.b] and hasNxt(str, pos):
+    result.add str[pos]
+    inc pos
+
+
+
 proc `$`*(str): string {.inline.} =
   &"[{str.pos}: {str.str[str.pos .. ^1]}]"
 

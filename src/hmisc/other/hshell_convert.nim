@@ -20,7 +20,10 @@ func withIdent(strs: seq[string], ident: int): seq[string] =
     else:
       break
 
-proc lslOutConverter*(stream: var PosStr, cmd: ShellCmd): Option[JsonNode] =
+proc lslOutConverter*(
+  stream: var PosStr, cmd: ShellCmd, state: var Option[void]):
+  Option[JsonNode] =
+
   let line = stream.readLine().split(" ").filterIt(it.len != 0)
   if line.len == 0 or line[0] == "total":
     return
@@ -42,7 +45,9 @@ proc lslOutConverter*(stream: var PosStr, cmd: ShellCmd): Option[JsonNode] =
       }
     )
 
-proc lslErrConverter*(stream: var PosStr, cmd: ShellCmd): Option[JsonNode] =
+proc lslErrConverter*(
+  stream: var PosStr, cmd: ShellCmd, state: var Option[void]):
+  Option[JsonNode] =
   discard
 
 
@@ -121,13 +126,13 @@ proc lexCall*(str: var PosStr): Option[StrTok] =
 
     of '/':
       if str[+1, '*']:
-        str.advance(2)
+        str.advance(3)
         str.pushRange()
 
         while not str["*/"]:
           str.advance()
 
-        result = some initTok(str, stkComment)
+        result = some initTok(str.popRange(0, -1), stkComment)
         str.advance(2)
 
     of '\n':
@@ -137,30 +142,41 @@ proc lexCall*(str: var PosStr): Option[StrTok] =
       raiseImplementError(&"[{str[]} (str[].int)] {$str}")
 
 
-proc parseCall*(str: var PosStr): StraceRecord =
-  var lex = initLexer(str, lexCall)
-  let hasKind = hsTokHasKind[StrTok, StrTokKind]
-
+proc parseCall*(lex: var HsLexer[StrTok]): StraceRecord =
+  lex.pushRange()
+  lex.expectKind({stkIdent})
   let head = lex.hsParseIdent("ident")
-  let args = lex.hsInsideBalanced(
-    hasKind(stkLPar),
-    hasKind(stkRPar)
-  ).hsSplitSep(hasKind(stkComma))
+  let args = lex.hsInsideBalanced({stkLPar}, {stkRPar}).
+    hsSplitSep({stkComma})
+
   lex.skip(stkEq)
-  echov args
+  lex.skipTo({'\n'})
+
+  let str = lex.popRange()
+  echov str
+  echov head
+  lex.resetBuffer()
+  for arg in args:
+    echov "  ", arg
 
 
 
-proc straceOutConverter*(str: var PosStr, cmd: ShellCmd):
+proc straceOutConverter*(
+  str: var PosStr, cmd: ShellCmd, state: var Option[HsLexer[StrTok]]):
   Option[StraceRecord] =
 
   discard
 
-proc straceErrConverter*(str: var PosStr, cmd: ShellCmd):
+proc straceErrConverter*(
+  str: var PosStr, cmd: ShellCmd, state: var Option[HsLexer[StrTok]]):
   Option[StraceRecord] =
 
+  if state.isNone():
+    state = some initLexer(str, lexCall)
+
+
   if str.startsWith(IdentChars, "("):
-    return some parseCall(str)
+    return some parseCall(state.get())
 
   else:
     str.skipLine()

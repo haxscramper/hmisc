@@ -944,8 +944,9 @@ proc updateException(
     )
 
 type
-  StreamConverter*[Cmd, Rec] =
-    proc(stream: var PosStr, cmd: Cmd): Option[Rec]
+  StreamConverter*[Cmd, Rec, State] =
+    proc(stream: var PosStr, cmd: Cmd, state: var Option[State]):
+    Option[Rec]
 
 
 
@@ -956,10 +957,10 @@ when cbackend:
     if res.isSome():
       yield res.get()
 
-  proc makeShellRecordIter*[Cmd, OutRec, ErrRec](
+  proc makeShellRecordIter*[Cmd, OutRec, ErrRec, State](
       cmd: Cmd,
-      outConvert: StreamConverter[Cmd, OutRec],
-      errConvert: StreamConverter[Cmd, ErrRec],
+      outConvert: StreamConverter[Cmd, OutRec, State],
+      errConvert: StreamConverter[Cmd, ErrRec, State],
       options: set[ProcessOption] = {poEvalCommand, poUsePath},
       maxErrorLines: int = 12,
       doRaise: bool = true
@@ -977,14 +978,15 @@ when cbackend:
       block:
         iterator resIter(): OutRec =
           var str = PosStr(stream: inStream)
+          var state: Option[State]
           while process.running:
-            let res = convert(str, cmd)
+            let res = convert(str, cmd, state)
             if res.isSome():
               yield res.get()
 
 
           while not str.finished():
-            let res = convert(str, cmd)
+            let res = convert(str, cmd, state)
             if res.isSome():
               yield res.get()
 

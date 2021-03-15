@@ -12,7 +12,7 @@ type
         rule*: Rule
         subnodes*: seq[HsTokTree[Rule, Tok]]
 
-  HsTok*[K] = object
+  HsTok*[K: enum] = object
     kind*: K
     str*: string
 
@@ -46,6 +46,10 @@ func `$`*[T](lex: HSLexer[T]): string =
 
   result &= "]"
 
+func resetBuffer*[T](lex: var HSLexer[T]) =
+  lex.pos = 0
+  lex.tokens.setLen(0)
+
 func nextToken*[T](lex: var HSLexer[T]): T =
   var tok: Option[T]
   while tok.isNone():
@@ -59,9 +63,18 @@ func fillNext*[T](lex: var HSLexer[T], chars: int) =
     for _ in 0 ..< needed:
       lex.tokens.add nextToken(lex)
 
+func haxNxt*[T](lex: HsLexer[T], offset: int): bool =
+  lex.pos + offset < lex.tokens.len
+
 func `[]`*[T](lex: var HSlexer[T], offset: int = 0): T =
-  fillNext(lex, offset)
+  if not haxNxt(lex, offset):
+    fillNext(lex, offset)
+
   lex.tokens[lex.pos + offset]
+
+func `[]`*[T](lex: var HsLexer[T], slice: Slice[int]): seq[T] =
+  for i in slice:
+    result.add lex[i]
 
 func advance*[T](lex: var HSlexer[T], step: int = 1) =
   inc(lex.pos, step)
@@ -77,23 +90,20 @@ func skip*[T, En](lexer: var HsLexer[T], kind: En) =
   assertKind(lexer[], kind)
   lexer.advance()
 
-func hsTokHasKind*[T, En](kind: En): HsTokPredicate[T] =
-  proc cb(tok: T): bool =
-    tok.kind == kind
-
-  return cb
+proc skipTo*[T](lex: var HsLexer[T], chars: set[char]) =
+  lex.str[].skipWhile(AllChars - chars)
 
 func hsParseIdent*[R, T](lex: var HsLexer[T], rule: R):
   HsTokTree[R, T] = HsTokTree[R, T](isToken: true, token: lex.pop())
 
-func hsInsideBalanced*[T](
-    lex: var HsLexer[T], isOpen, isClose: HsTokPredicate[T],
+func hsInsideBalanced*[T, K](
+    lex: var HsLexer[T], openKinds, closeKinds: set[K],
     withWrap: bool = false
   ): seq[T] =
 
   var cnt: int
 
-  if isOpen(lex[]):
+  if lex[].kind in openKinds:
     inc cnt
     if withWrap:
       result.add lex.pop()
@@ -102,10 +112,10 @@ func hsInsideBalanced*[T](
       lex.advance()
 
     while cnt > 0:
-      if isOpen(lex[]):
+      if lex[].kind in openKinds:
         inc cnt
 
-      elif isClose(lex[]):
+      elif lex[].kind in closeKinds:
         dec cnt
 
       if cnt > 0 or withWrap:
@@ -114,11 +124,44 @@ func hsInsideBalanced*[T](
       else:
         lex.advance()
 
-func hsSplitSep*[T](tokens: seq[T], isSep: HsTokPredicate[T]): seq[seq[T]] =
+func hsSplitSep*[T, K](tokens: seq[T], sep: set[K]): seq[seq[T]] =
   result.add @[]
   for tok in tokens:
-    if isSep(tok):
+    if tok.kind in sep:
       result.add @[]
 
     else:
       result[^1].add tok
+
+func hsSplitKeyValue*[T, K](tokens: seq[T], kvDelimiter: set[K], itemSep: set[K]):
+  seq[tuple[key, value: seq[T]]] =
+
+  var inKey: bool = true
+  for tok in tokens:
+    if tok.kind in itemSep:
+      inKey = true
+      result.add @[]
+
+    if tok.kind in kvDelimiter:
+      inKey = false
+
+    else:
+      if inKey:
+        result[^1].key.add tok
+
+      else:
+        result[^1].value.add tok
+
+func getInsideBalanced*[T, K](tokens: seq[T], openKinds, closeKinds: set[K]):
+  set[T] =
+
+  discard
+
+func expectKind*[T, K](lex: var HsLexer[T], kind: set[K]) =
+  lex[].assertKind(kind)
+
+func pushRange*[T](lex: var HsLexer[T]) =
+  lex.str[].pushRange()
+
+func popRange*[T](lex: var HsLexer[T]): string =
+  lex.str[].popRange()
