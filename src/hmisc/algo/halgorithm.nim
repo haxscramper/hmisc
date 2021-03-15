@@ -767,6 +767,32 @@ template assertEq*(lhs, rhs: untyped): untyped =
     echo lhs.astToStr(), " == ", rhs.astToStr()
     raiseAssert("Comparison failed on line " & $lInfo.line)
 
+func toMapArray*[K, V](map: openarray[(K, V)]): array[K, V] =
+  for (k, v) in map:
+    result[k] = v
+
+func toKeySet*[K, V](map: openarray[(K, V)]): set[K] =
+  for (k, v) in map:
+    result.incl k
+
+func toValSet*[K, V](map: openarray[(K, V)]): set[V] =
+  for (k, v) in map:
+    result.incl v
+
+func mapChar*[Cat: enum](
+  ch: char, map: static[openarray[tuple[key: char, val: Cat]]]): Cat =
+
+  const
+    chars = toKeySet(map)
+    map = toMapArray(map)
+
+  if ch notin chars:
+    raiseArgumentError(
+      &"Unexpected input char: got '{ch}', but expected {chars}")
+
+  return map[ch]
+
+
 # func `&`*[T](s: seq[T], v: T): seq[T] = s & @[v]
 
 #=========================  functional helpers  ==========================#

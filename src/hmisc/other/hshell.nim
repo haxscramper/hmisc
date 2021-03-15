@@ -19,6 +19,8 @@ import std/[strutils, strformat, sequtils, options, deques, json, macros]
 import ../hexceptions
 import ../base_errors
 
+import ../algo/hlex_base
+
 from std/os import quoteShell
 
 const hasStrtabs = cbackend or (NimMajor, NimMinor, NimPatch) > (1, 2, 6)
@@ -942,8 +944,8 @@ proc updateException(
     )
 
 type
-  StrQue* = Deque[string]
-  StreamConverter*[Cmd, Rec] = proc(que: var StrQue, cmd: Cmd): Option[Rec]
+  StreamConverter*[Cmd, Rec] =
+    proc(stream: var PosStr, cmd: Cmd): Option[Rec]
 
 
 
@@ -954,58 +956,49 @@ when cbackend:
     if res.isSome():
       yield res.get()
 
-  proc makeShellRecordIter*[Cmd, Rec](
+  proc makeShellRecordIter*[Cmd, OutRec, ErrRec](
       cmd: Cmd,
-      outConvert: StreamConverter[Cmd, Rec],
-      errConvert: StreamConverter[Cmd, Rec],
+      outConvert: StreamConverter[Cmd, OutRec],
+      errConvert: StreamConverter[Cmd, ErrRec],
       options: set[ProcessOption] = {poEvalCommand, poUsePath},
       maxErrorLines: int = 12,
       doRaise: bool = true
-    ): iterator(): Rec =
+    ): tuple[stdout: iterator(): OutRec, stderr: iterator(): ErrRec] =
     ## Iterate over output of the shell command converted to json
-    return iterator(): Rec =
-      let
-        # FIXME allow different types to be used as shell commands (to
-        # avoid reparsing configuration each time). Right now it is
-        # 'generic', but `startShell` only works for `ShellCmd`
-        process = startShell(cmd, options)
-        stdoutStream = process.outputStream()
-        stderrStream = process.errorStream()
+    let
+      # FIXME allow different types to be used as shell commands (to
+      # avoid reparsing configuration each time). Right now it is
+      # 'generic', but `startShell` only works for `ShellCmd`
+      process = startShell(cmd, options)
+      stdoutStream = process.outputStream()
+      stderrStream = process.errorStream()
 
-      var
-        stdoutQue: StrQue
-        stderrQue: StrQue
-
+    template makeReader(convert, inStream: untyped): untyped =
       block:
-        # NOTE reading line-by-line from arbitrary processes might be a
-        # little more challenging than just `readLine()`. For example it
-        # might be better to keep a buffer and add new line only when `\n`
-        # is encountered. Also hardcoding particular separator is not the
-        # best idea, but it can be solved quite easily but passing
-        # `separators: set[char]` to the iterator builder.
-        var line = ""
-        while process.running:
-          discard stdoutStream.readLine(line)
-          yieldStream(stdoutQue, cmd)
-
-          discard stderrStream.readLine(line)
-          yieldStream(stderrQue, cmd)
-
-      block:
-        for line in stdoutStream.readAll().split("\n"):
-          yieldStream(stdoutQue, cmd)
-
-        for line in stderrStream.readAll().split("\n"):
-          yieldStream(stderrQue, cmd)
-
-      var res = ShellResult()
-      res.execResult.code = process.peekExitCode()
-      updateException(res, cmd, maxErrorLines)
-
-      if not res.resultOk and doRaise:
-        raise res.exception
+        iterator resIter(): OutRec =
+          var str = PosStr(stream: inStream)
+          while process.running:
+            let res = convert(str, cmd)
+            if res.isSome():
+              yield res.get()
 
 
+          while not str.finished():
+            let res = convert(str, cmd)
+            if res.isSome():
+              yield res.get()
+
+          var res = ShellResult()
+          res.execResult.code = process.peekExitCode()
+          updateException(res, cmd, maxErrorLines)
+
+          if not res.resultOk and doRaise:
+            raise res.exception
+
+        resIter
+
+    result.stdout = makeReader(outConvert, stdoutStream)
+    result.stderr = makeReader(errConvert, stderrStream)
 
 proc shellResult*(
   cmd: ShellCmd,
