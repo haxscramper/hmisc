@@ -157,8 +157,16 @@ proc parseCall*(lex: var HsLexer[StrTok]): StraceRecord =
   echov head
   lex.resetBuffer()
   for arg in args:
-    echov "  ", arg
+    if arg[stkLCurly]:
+      for kv in arg.
+        getInsideBalanced({stkLCurly}, {stkRCurly}).
+        hsSplitKeyValue({stkEq}, {stkComma})
+        :
 
+        echov "    ", kv
+
+    else:
+      echov "  ", arg
 
 
 proc straceOutConverter*(

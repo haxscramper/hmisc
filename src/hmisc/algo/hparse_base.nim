@@ -76,6 +76,17 @@ func `[]`*[T](lex: var HsLexer[T], slice: Slice[int]): seq[T] =
   for i in slice:
     result.add lex[i]
 
+
+func `[]`*[K](tokens: seq[HsTok[K]], offset: int, kind: set[K]|K): bool =
+  when kind is set:
+    tokens[offset].kind in kind
+
+  else:
+    tokens[offset].kind == kind
+
+func `[]`*[K](tokens: seq[HsTok[K]], kind: set[K]|K): bool =
+  tokens[0, kind]
+
 func advance*[T](lex: var HSlexer[T], step: int = 1) =
   inc(lex.pos, step)
 
@@ -136,11 +147,14 @@ func hsSplitSep*[T, K](tokens: seq[T], sep: set[K]): seq[seq[T]] =
 func hsSplitKeyValue*[T, K](tokens: seq[T], kvDelimiter: set[K], itemSep: set[K]):
   seq[tuple[key, value: seq[T]]] =
 
+  var init = (newSeq[T](), newSeq[T]())
+  result.add init
+
   var inKey: bool = true
   for tok in tokens:
     if tok.kind in itemSep:
       inKey = true
-      result.add @[]
+      result.add init
 
     if tok.kind in kvDelimiter:
       inKey = false
@@ -152,10 +166,34 @@ func hsSplitKeyValue*[T, K](tokens: seq[T], kvDelimiter: set[K], itemSep: set[K]
       else:
         result[^1].value.add tok
 
-func getInsideBalanced*[T, K](tokens: seq[T], openKinds, closeKinds: set[K]):
-  set[T] =
+func getInsideBalanced*[T, K](
+  tokens: seq[T], openKinds, closeKinds: set[K], withWrap: bool = false):
+  seq[T] =
 
-  discard
+  var pos = 0
+  var cnt: int
+  if tokens[pos].kind in openKinds:
+    inc cnt
+    if withWrap:
+      result.add tokens[pos]
+      inc pos
+
+    else:
+      inc pos
+
+    while cnt > 0 and pos < tokens.len:
+      if tokens[pos].kind in openKinds:
+        inc cnt
+
+      elif tokens[pos].kind in closeKinds:
+        dec cnt
+
+      if cnt > 0 or withWrap:
+        result.add tokens[pos]
+        inc pos
+
+      else:
+        inc pos
 
 func expectKind*[T, K](lex: var HsLexer[T], kind: set[K]) =
   lex[].assertKind(kind)
