@@ -145,9 +145,16 @@ suite "Env wrap":
     del(env)
 
   test "Equality comparison for variables":
+    put($$CI, "true")
     discard $$CI == true
     discard $$CI == 1
     discard $$IC == "1"
+
+    static:
+      put($$III, true)
+      if $$III == 1:
+        discard
+
 
   test "Assign variables":
     static:

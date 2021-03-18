@@ -1008,7 +1008,13 @@ proc put*[T: ShellVarType](v: ShellVar, val: T | seq[T]) =
 proc exists*(v: ShellVar): bool = v.existsEnv()
 
 proc `==`*(v: ShellVar, val: ShellVarType): bool =
-  exists(v) and get(v, typeof(val)) == val
+  result = exists(v)
+  if result:
+    try:
+      result = get(v, typeof(val)) == val
+
+    except ValueError:
+      result = false
 
 proc toBool*(v: ShellVar, raiseInvalid: bool = true, fallback: bool = false):
   bool =
