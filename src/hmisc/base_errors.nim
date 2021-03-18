@@ -39,18 +39,37 @@ template raiseImplementError*(errMsg: string) {.dirty.} =
     ImplementError, errMsg & " @" & $instantiationInfo())
 
 
+proc prepareMsg*(userMsg: string): string =
+  var msg: string
+  if userMsg.len > 0: msg &= " "
+  if '\n' in userMsg: msg &= "\n"
+  msg &= userMsg
+
+  return msg
+
+
 template raiseImplementKindError*(
+  node: untyped, userMsg: string = "") {.dirty.} =
+
+  raise newException(ImplementKindError,
+    "\nUnhandled entry kind: " &
+      astToStr(node) &
+      " has kind \e[32m" & $node.kind & "\e[39m" &
+      prepareMsg(userMsg) & " @" & $instantiationInfo() & "\n"
+  )
+
+
+template raiseUnexpectedKindError*(
   node: untyped, userMsg: string = "") {.dirty.} =
   var msg: string
   if userMsg.len > 0: msg &= " "
   if '\n' in userMsg: msg &= "\n"
   msg &= userMsg
 
-  raise newException(ImplementError,
-    "\nUnhandled entry kind: " &
+  raise newException(UnexpectedKindError,
+    "\nUnexpected entry kind: " &
       astToStr(node) &
-      " has kind \e[32m" & $node.kind & "\e[39m" &
-      msg & " @" & $instantiationInfo() & "\n"
+      " has kind \e[32m" & $node.kind & "\e[39m" & prepareMsg(userMsg)
   )
 
 

@@ -220,7 +220,12 @@ func toStr*(rx: Rx, flavor: RxFlavor = rxfPerl): string =
           result = rx.text
 
         of rxkSingleArgKinds:
-          result = toStr(rx.args[0], flavor) & toStr(rx.kind)
+          result = toStr(rx.args[0], flavor)
+
+          if rx.kind == rxkOptional:
+            result = "(" & result & ")"
+
+          result &= toStr(rx.kind)
 
           case rx.kind:
             of rxkRepeatNTimes:
@@ -260,17 +265,22 @@ template toConstStr*(rx: static[Rx], flavor: RxFlavor = rxfPerl): untyped =
   const rxRes = toStr(rx, flavor)
   rxRes
 
-func toRe*(rx: static[Rx]): Regex =
+func toRegex*(rx: static[Rx]): Regex =
   re(toConstStr(rx, rxfPerl))
 
-func toRe*(rx: Rx): Regex = re(toStr(rx, rxfPerl))
+func toRegex*(rx: Rx): Regex = re(toStr(rx, rxfPerl))
+func toRegex*(regex: Regex): Regex {.inline.} = regex
+
 
 template `=~`*(s: string, rx: Rx): untyped {.dirty.} =
-  s =~ toRe(rx)
+  s =~ toRegex(rx)
 
 {.push inline.}
 
-func nrx*(text: string): Rx = Rx(kind: rxkText, text: text)
+func nrx*(text: string): Rx =
+  result = Rx(kind: rxkText)
+  result.text = text
+
 func nrx*(ch: char): Rx = Rx(kind: rxkText, text: $ch)
 
 func nrx*(special: RxSpecialKind): Rx =

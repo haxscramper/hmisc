@@ -1,4 +1,4 @@
-import std/[sequtils, strformat, strutils, unicode,
+import std/[sequtils, strformat, strutils, unicode, enumerate,
            macros, strscans, algorithm]
 
 import ../macros/traceif
@@ -63,6 +63,8 @@ type
     styling* {.requiresinit.}: PrintStyling
     rune*: Rune
 
+  ColoredRuneGrid* = seq[seq[ColoredRune]]
+
 func contains*(ps: PrintStyling, s: Style): bool =
   ps.style.contains(s)
 
@@ -116,6 +118,9 @@ func toColored*(
     rune: Rune(ch),
     styling: (if not colorize: initPrintStyling() else: styling))
 
+func toColored*(rune: ColoredRune, styling: PrintStyling): ColoredRune =
+  result = rune
+  result.styling = styling
 
 func toColored*(
   ch: Rune,
@@ -133,6 +138,9 @@ func initColoredString*(str: string,
     fg: fg, bg: bg, style: style))
 
 func initColoredString*(str: string, styling: PrintStyling): ColoredString =
+  ColoredString(str: str, styling: styling)
+
+func toColored*(str: string, styling: PrintStyling): ColoredString =
   ColoredString(str: str, styling: styling)
 
 # func initColoredString*(str: str)
@@ -190,21 +198,42 @@ func toString*(strs: seq[ColoredString], color: bool = true): string =
     for str in strs:
       result &= str.str
 
+func `$`*(colored: ColoredString | ColoredRune): string =
+  when colored is ColoredString:
+    result = colored.str
+
+  else:
+    result = $colored.rune
+
+  if colored.styling.fg.int != 0 and
+     colored.styling.fg != fgDefault
+    :
+    result = result.wrapcode(
+      int(colored.styling.fg) + (
+        if styleBright in colored.styling.style: 60 else: 0), 39)
+
+  if colored.styling.bg.int != 0 and
+     colored.styling.bg != bgDefault
+    :
+    result = result.wrapcode(
+      int(colored.styling.bg) + (
+        if styleBright in colored.styling.style: 60 else: 0), 49)
+
+  if styleUnderscore in colored.styling.style:
+    result = result.wrapcode(4, 24)
+
+  if styleItalic in colored.styling.style:
+    result = result.wrapcode(3, 23)
+
+
 func `$`*(colr: seq[ColoredRune]): string = colr.toString()
+func `$`*(colr: seq[seq[ColoredRune]]): string =
+  for idx, line in colr:
+    if idx > 0:
+      result &= "\n"
 
-func `$`*(colored: ColoredString): string =
-  result = colored.str
-
-  if colored.fg.int != 0 and colored.fg != fgDefault:
-    result = result.wrapcode(int(colored.fg) +
-      (if styleBright in colored.style: 60 else: 0), 39)
-
-  if colored.bg.int != 0 and colored.bg != bgDefault:
-    result = result.wrapcode(int(colored.bg) +
-      (if styleBright in colored.style: 60 else: 0), 49)
-
-  if styleUnderscore in colored.style: result = result.wrapcode(4, 24)
-  if styleItalic in colored.style: result = result.wrapcode(3, 23)
+    for rune in line:
+      result &= $rune
 
 func lispRepr*(colstr: ColoredString): string =
   fmt("(\"{colstr.str}\" :bg {colstr.bg} :fg {colstr.fg} :style {colstr.style})")
@@ -595,15 +624,49 @@ func toRuneGrid*(sseq: seq[seq[ColoredString]]): seq[seq[ColoredRune]] =
 func toColoredRuneGrid*(str: string): seq[seq[ColoredRune]] =
   str.splitSGR_sep().toRuneGrid()
 
-func `[]=`*(
-  buf: var seq[seq[ColoredRune]],
-  row: int, col: int,
-  ch: ColoredRune): void =
-  for _ in buf.len .. row:
-    buf.add @[coloredWhitespaceRune]
+func `[]=`*[R1, R2: openarray[int] | Slice[int] | int](
+    buf: var seq[seq[ColoredRune]],
+    rowIdx: R1, colIdx: R2, ch: ColoredRune
+  ): void =
 
-  buf[row] &= coloredWhitespaceRune.repeat(max(col - buf[row].len + 1, 0))
-  buf[row][col] = ch
+  proc aux(row, col: int, buf: var ColoredRuneGrid, ch: ColoredRune) =
+    for _ in buf.len .. row:
+      buf.add @[coloredWhitespaceRune]
+
+    buf[row] &= coloredWhitespaceRune.repeat(max(col - buf[row].len + 1, 0))
+    buf[row][col] = ch
+
+
+  var rows: seq[int]
+  var cols: seq[int]
+
+  when rowIdx is int:
+    rows = @[rowIdx]
+
+  elif rowIdx is Slice[int] | openarray[int]:
+    for row in rowIdx:
+      rows.add row
+
+
+  when colIdx is int:
+    cols = @[colIdx]
+
+  elif colIdx is Slice[int] | openarray[int]:
+    for col in colIdx:
+      cols.add col
+
+  for row in rows:
+    for col in cols:
+      aux(row, col, buf, ch)
+
+func `[]=`*(buf: var ColoredRuneGrid, row, col: int, str: ColoredString) =
+  for rowIdx, line in enumerate(split(str.str, '\n')):
+    for colIdx, ch in line:
+      buf[row + rowIdx, col + colIdx] = toColored(ch, str.styling)
+
+func `[]`*(buf: ColoredRuneGrid, row, col: int): ColoredRune =
+  buf[row][col]
+
 
 func getEditVisual*(src, target: seq[char], ops: seq[LevEdit]): string =
   var

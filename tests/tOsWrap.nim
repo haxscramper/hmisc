@@ -136,10 +136,36 @@ suite "Env wrap":
 
   test "Getting typed vars":
     let env = $$TEST_ENV2
-    env.set(false)
+    env.put(false)
     doAssert not env.get(bool)
 
-    env.set(100)
+    env.put(100)
     doAssert env.get(int) == 100
 
     del(env)
+
+  test "Equality comparison for variables":
+    discard $$CI == true
+    discard $$CI == 1
+    discard $$IC == "1"
+
+  test "Assign variables":
+    static:
+      put($$ZZZ, false)
+
+      doAssert $$ZZZ == false
+      doAssert get($$ZZZ, string) == "false"
+
+
+    when $$ZZZ == true:
+      fail()
+
+    else:
+      discard
+
+    put($$CI, true)
+    if $$CI == true:
+      discard
+
+    else:
+      fail()

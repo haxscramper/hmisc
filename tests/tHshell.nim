@@ -6,7 +6,43 @@ import hmisc/other/[hshell, hshell_convert, oswrap, hjson, nimbleutils]
 
 import hmisc/scripts/hmisc_putils
 
-startHax()
+if not toBool($$CI):
+  startHax()
+
+suite "Shell output parser":
+  test "Strace":
+    echov "Strace parser"
+    var cmd = makeGnuShellCmd("strace echo '\"\"'")
+    cmd.arg "ls"
+    let (_, errIter) = makeShellRecordIter(
+      cmd,
+      straceOutConverter,
+      straceErrConverter,
+      doRaise = false
+    )
+
+    for entry in errIter:
+      discard
+      # echo entry
+
+  test "ls json parser":
+    var cmd = makeGnuShellCmd("ls")
+    cmd - "l"
+    cmd.arg "/tmp"
+
+    let (outIter, _) = makeShellRecordIter(
+      cmd,
+      lslOutConverter,
+      lslErrConverter,
+      doRaise = false
+    )
+
+    for idx, msg in enumerate(outIter):
+      if idx > 10:
+        break
+      else:
+        discard msg["permissions"]
+
 
 suite "Hshell":
   test "Echo":
@@ -31,39 +67,6 @@ suite "Hshell":
   #   for res in iter:
   #     if res[0].getStr() == "stdout":
   #       assert res[1].getStr() == "file"
-
-  test "json parser":
-    var cmd = makeGnuShellCmd("ls")
-    cmd - "l"
-    cmd.arg "/tmp"
-
-    let (outIter, _) = makeShellRecordIter(
-      cmd,
-      lslOutConverter,
-      lslErrConverter,
-      doRaise = false
-    )
-
-    for idx, msg in enumerate(outIter):
-      if idx > 10:
-        break
-      else:
-        discard msg["permissions"]
-
-  test "Strace parser":
-    echov "Strace parser"
-    var cmd = makeGnuShellCmd("strace")
-    cmd.arg "ls"
-    let (_, errIter) = makeShellRecordIter(
-      cmd,
-      straceOutConverter,
-      straceErrConverter,
-      doRaise = false
-    )
-
-    for entry in errIter:
-      discard
-      # echo entry
 
 
   test "Shell ast generation":

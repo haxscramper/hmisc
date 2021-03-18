@@ -23,6 +23,12 @@ const
   PunctSentenceChars* = {',', '.', '?', '!'}
   PunctChars* = PunctOpenChars + PunctCloseChars + PunctSentenceChars
 
+func initPosStr*(str: string): PosStr =
+  PosStr(str: str)
+
+func initPosStr*(stream: Stream): PosStr =
+  PosStr(stream: stream)
+
 
 template atom*(input: PosStr; idx: int; c: char): bool =
   input.str[input.pos + idx] == c
@@ -53,6 +59,9 @@ macro scanpTemp*(str: typed, pattern: varargs[untyped]): untyped =
 proc fillNext*(str; chars: int) =
   ## Read necessary amount of data from stream to make at least `chars`
   ## lookahead available
+  if isNil(str.stream):
+    return
+
   let needed = chars - (str.str.len - str.pos - 1)
   if needed > 0:
     str.str &= str.stream.readStr(needed)
@@ -70,6 +79,10 @@ proc `[]`*(str; idx: int = 0): char {.inline.} =
       &"Cannot get char at [+{idx}]")
 
   str.str[str.pos + idx]
+
+proc `[]`*(str; slice: HSlice[int, BackwardsIndex]): string {.inline.} =
+  fillNext(str, slice.a)
+  result = str.str[str.pos + slice.a .. ^1]
 
 proc `[]`*(str; offset: int, patt: char | set[char] | string):
   bool {.inline.} =
@@ -157,7 +170,10 @@ proc popStringLit*(str: var PosStr): string {.inline.} =
   str.pushRange()
 
   str.advance()
-  while not str['"']:
+
+  var found = false
+  while not found:
+    found = str['"'] and not str[-1, '\\']
     str.advance()
 
   str.advance()
@@ -195,3 +211,42 @@ proc readLine*(str; skipNl: bool = true): string =
 proc skipLine*(str) =
   while not str['\n']: str.advance()
   str.advance()
+
+import std/re
+import ../other/rx
+
+
+proc matchLen*(inStr: PosStr, regex: Regex): int =
+  matchLen(inStr.str, regex, inStr.pos)
+
+proc matchLen*(
+    inStr: PosStr, regex: Regex, matches: var openarray[string]): int =
+
+  matchLen(inStr.str, regex, matches, inStr.pos)
+
+template tildeImpl(inStr: typed, regex: Regex): untyped {.dirty.} =
+  var matches {.inject.}: array[20, string]
+  let matchLen {.inject.} = matchLen(inStr, regex, matches)
+  matchLen != -1
+
+
+template `=~`*(inStr: var PosStr, regex: Regex, advance: int = 128): untyped =
+  fillNext(advance)
+  tildeImpl(inStr, regex)
+
+template `=~`*(inStr: PosStr, regex: Regex): untyped =
+  tildeImpl(inStr, regex)
+
+template `=~`*(inStr: PosStr, regex: Rx): untyped =
+  # const regexPattern = re(toConstStr(regex))
+  const str: string = toConstStr(regex)
+  let r = re(str)
+  tildeImpl(inStr, r)
+
+proc cut*(str; rx: Rx | Regex, fill: int = 128): string =
+  fillNext(str, fill)
+  let rx = toRegex(rx)
+  let match = matchLen(str, rx)
+  str.pushRange()
+  str.advance(match)
+  result = str.popRange()

@@ -127,6 +127,9 @@ type
     entry*: FsEntry
     kind*: PathErrorKind
 
+  EnvVarError* = ref object of OSError
+    varname*: ShellVar
+
 type
   AnyPath* = AbsFile | AbsDir | RelFile | RelDir |
              FsFile | FsDir | FsEntry | FsTree
@@ -977,7 +980,23 @@ proc get*(v: ShellVar): string = v.getEnv()
 proc del*(v: ShellVar) = v.delEnv
 proc set*(v: ShellVar, val: string) = v.setEnv(val)
 
-proc set*[T: int | char | bool](v: ShellVar, val: T | seq[T]) =
+type
+  ShellVarType* = string | char | bool | int | float
+
+proc get*[T: ShellVarType](v: ShellVar, TArg: typedesc[T]): auto =
+  when TArg is int:
+    return parseInt(get(v))
+
+  elif TArg is char:
+    return get(v)[0]
+
+  elif TArg is string:
+    return get(v)
+
+  else:
+    return parseBool(get(v))
+
+proc put*[T: ShellVarType](v: ShellVar, val: T | seq[T]) =
   when val is seq:
     let val = join(val, ",")
 
@@ -986,24 +1005,40 @@ proc set*[T: int | char | bool](v: ShellVar, val: T | seq[T]) =
 
   v.setEnv(val)
 
-proc get*(
-    v: ShellVar,
-    TArg: typedesc[int] | typedesc[char] | typedesc[bool]
-  ): auto =
+proc exists*(v: ShellVar): bool = v.existsEnv()
 
-  when TArg is int:
-    return parseInt(get(v))
+proc `==`*(v: ShellVar, val: ShellVarType): bool =
+  exists(v) and get(v, typeof(val)) == val
 
-  elif TArg is char:
-    return get(v)[0]
+proc toBool*(v: ShellVar, raiseInvalid: bool = true, fallback: bool = false):
+  bool =
+
+  const
+   trueNames = ["true", "t", "yes", "1", "on"]
+   falseNames = ["false", "nil", "no", "none", "off", "1"]
+
+  if not exists(v):
+    return false
+
+  var text = v.get().toLowerAscii()
+
+  if text in trueNames:
+    return true
+
+  elif text in falseNames:
+    return false
 
   else:
-    return parseBool(get(v))
+    if raiseInvalid:
+      raise EnvVarError(
+        msg: &"Environment variable {v.string} cannot be converted to bool, value: {text}",
+        varname: v
+      )
+
+    else:
+      return fallback
 
 
-
-proc put*(v: ShellVar, val: string) = v.setEnv(val)
-proc exists*(v: ShellVar): bool = v.existsEnv()
 
 proc shellHaxOn*(): bool =
   let v = $$HAX_SHELL
