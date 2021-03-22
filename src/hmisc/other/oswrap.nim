@@ -1603,6 +1603,9 @@ template withTempDir*(clean: bool, setup, body: untyped): untyped =
 template withTempDir*(clean: bool, body: untyped): untyped =
   withTempDir(clean, (discard nil), body)
 
+template withTempDir*(body: untyped): untyped =
+  withTempDir(true, (discard nil), body)
+
 
 template withCleanDir*(dirname, body: untyped): untyped =
   let curDir = cwd()

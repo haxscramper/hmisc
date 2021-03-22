@@ -80,4 +80,4 @@ template timeIt*(name: string, body: untyped): untyped =
     let start = cpuTime()
     body
     let total {.inject.} = cpuTime() - start
-    echo &"  {int(total * 1000):<5} ms ", name
+    echo &"  {total:<5} ms ", name

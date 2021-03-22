@@ -103,6 +103,7 @@ type
     # - REFACTOR :: move `execResult` into `true` branch for `resultOk`
     execResult*: ShellExecResult ## Result of command execution
     hasBeenSet*: bool ## Whether or not result been set
+    cmd*: ShellCmd
     case resultOk*: bool ## No failures (return code == 0)
       of true:
         nil
@@ -229,6 +230,11 @@ const
     kvSep: "="
   )
 
+  SpaceShellCmdConf* = ShellCmdConf(
+    flagConf: ccRegularFlags,
+    kvSep: " "
+  )
+
   NimShellCmdConf* = ShellCmdConf(
     flagConf: ccRegularFlags,
     kvSep: ":"
@@ -240,6 +246,12 @@ const
   )
 
   sakListKinds* = {sakAndList, sakOrList}
+
+func stdout*(shellRes: ShellResult): string =
+  shellRes.execResult.stdout
+
+func stderr*(shellRes: ShellResult): string =
+  shellRes.execResult.stderr
 
 func `[]`*(sa: ShellAst, idx: int): ShellAst = sa.subnodes[idx]
 func len*(sa: ShellAst): int = sa.subnodes.len
@@ -355,6 +367,10 @@ func makeShellCmd*(conf: ShellCmdConf, bin: string): ShellCmd =
 const
   gnuShellCmdsList* = ["ls"]
   nimShellCmdsList* = ["nimble"]
+  spaceShellCmdsList* = [
+    "curl",
+    "wget"
+  ]
   x11ShellCmdsList* = [
     "xclip",
     "pdflatex",
@@ -370,6 +386,9 @@ func makeShellCmd*(bin: string): ShellCmd =
 
   elif bin in x11ShellCmdsList:
     result.conf = X11ShellCmdConf
+
+  elif bin in spaceShellCmdsList:
+    result.conf = SpaceShellCmdConf
 
   else:
     if bin.startsWith("x"):
@@ -774,6 +793,9 @@ func toShellArgument(arg: NimNode): NimNode =
     of nnkIdent, nnkIntLit:
       arg.toStrLit()
 
+    of nnkStrLit:
+      arg
+
     else:
       raiseImplementError(&"{treeRepr(arg)}")
 
@@ -874,37 +896,8 @@ iterator iterstdout*(command: ShellExpr): string =
     for line in (if rem.len > 0: rem[0..^2] else: rem):
       yield line
 
-when cbackend:
-  proc startShell*(
-    cmd: ShellCmd,
-    options: set[ProcessOption] = {poUsePath}): Process =
-    ## Launch process using shell command
-
-    let env = cmd.envVals
-    result =
-      if poEvalCommand in options:
-        startProcess(
-          cmd.toStr(),
-          options = options,
-          env = if env.len > 0: newStringTable(env) else: nil
-        )
-      else:
-        startProcess(
-          cmd.bin,
-          options = options,
-          args = cmd.opts.mapIt(it.toStr(cmd.conf)),
-          env = if env.len > 0: newStringTable(env) else: nil
-        )
-
-    if result.isNil:
-      raise ShellError(
-        msg: "Command '" & cmd.toStr() & "' failed to start",
-        cwd: getCurrentDir(),
-        cmd: cmd.toStr()
-      )
-
-proc updateException(
-  res: var ShellResult, cmd: ShellCmd, maxErrorLines: int) =
+proc updateException(res: var ShellResult, cmd: ShellCmd, maxErrorLines: int) =
+  res.cmd = cmd
   let
     env = cmd.envVals
     command = cmd.toStr()
@@ -942,6 +935,124 @@ proc updateException(
       resultOk: true,
       execResult: res.execResult
     )
+
+
+when cbackend:
+  proc startShell*(
+      cmd: ShellCmd,
+      options: set[ProcessOption] = {poUsePath},
+      stdin: string = ""
+    ): Process =
+    ## Launch process using shell command
+
+    let env = cmd.envVals
+    result =
+      if poEvalCommand in options:
+        startProcess(
+          cmd.toStr(),
+          options = options,
+          env = if env.len > 0: newStringTable(env) else: nil
+        )
+      else:
+        startProcess(
+          cmd.bin,
+          options = options,
+          args = cmd.opts.mapIt(it.toStr(cmd.conf)),
+          env = if env.len > 0: newStringTable(env) else: nil
+        )
+
+    if result.isNil:
+      raise ShellError(
+        msg: "Command '" & cmd.toStr() & "' failed to start",
+        cwd: getCurrentDir(),
+        cmd: cmd.toStr()
+      )
+
+    elif stdin.len > 0:
+      let ins = result.inputStream()
+      ins.write(stdin)
+      ins.close()
+
+  import std/[posix]
+  import os
+  iterator runShellResult*(
+      cmds: seq[ShellCmd],
+      fullParams: set[ProcessOption] = {poEvalCommand},
+      maxPool: int = 8
+    ): ShellResult =
+
+    var processList: seq[Process] = newSeq[Process](maxPool)
+    var commandMap: seq[int] = newSeq[int](maxPool)
+
+
+    var leftCount = len(cmds)
+    var cmdIdx = 0
+
+    while cmdIdx < maxPool:
+      processList[cmdIdx] = startShell(cmds[cmdIdx], fullParams)
+      commandMap[cmdIdx] = cmdIdx
+      inc(cmdIdx)
+
+    while leftCount > 0:
+      var exitedIdx = -1
+      var status: cint = 1
+      let res: Pid = waitpid(-1, status, 0)
+      if res > 0:
+        for idx, process in mpairs(processList):
+          if not isNil(process) and process.processID() == res:
+            if WIFEXITED(status) or WIFSIGNALED(status):
+              # process.exitFlag = true
+              # process.exitStatus = status
+              exitedIdx = idx
+              break
+
+      else:
+        let err = osLastError()
+        if err == OSErrorCode(ECHILD):
+          # some child exits, we need to check our childs exit codes
+          for idx, process in mpairs(processList):
+            if (not isNil(process)) and (not running(process)):
+              # process.exitFlag = true
+              # process.exitStatus = status
+              exitedIdx = idx
+              break
+
+        elif err == OSErrorCode(EINTR):
+          # signal interrupted our syscall, lets repeat it
+          continue
+
+        else:
+          # all other errors are exceptions
+          raiseOSError(err)
+
+      if exitedIdx >= 0:
+        var res: ShellResult
+
+        let p = processList[exitedIdx]
+
+        res.execResult.stdout = p.outputStream.readAll()
+        res.execResult.stderr = p.errorStream.readAll()
+        res.execResult.code = p.peekExitCode()
+        updateException(res, cmds[commandMap[exitedIdx]], 50)
+        yield res
+
+        close(processList[exitedIdx])
+        if cmdIdx < len(cmds):
+          processList[exitedIdx] = startShell(cmds[cmdIdx], fullParams)
+          commandMap[exitedIdx] = cmdIdx
+          inc(cmdIdx)
+
+        else:
+          processList[exitedIdx] = nil
+
+
+        dec(leftCount)
+
+
+
+
+
+
 
 type
   StreamConverter*[Cmd, Rec, State] =
@@ -1003,11 +1114,12 @@ when cbackend:
     result.stderr = makeReader(errConvert, stderrStream)
 
 proc shellResult*(
-  cmd: ShellCmd,
-  stdin: string = "",
-  options: set[ProcessOption] = {poEvalCommand},
-  maxErrorLines: int = 12,
-  discardOut: bool = false): ShellResult {.tags: [
+    cmd: ShellCmd,
+    stdin: string = "",
+    options: set[ProcessOption] = {poEvalCommand},
+    maxErrorLines: int = 12,
+    discardOut: bool = false
+  ): ShellResult {.tags: [
     ShellExecEffect,
     ExecIOEffect,
     ReadEnvEffect,
@@ -1025,13 +1137,8 @@ proc shellResult*(
     )
 
   when not defined(NimScript):
-    let pid = startShell(cmd, options)
+    let pid = startShell(cmd, options, stdin)
     if not discardOut:
-      let ins = pid.inputStream()
-      ins.write(stdin)
-      # ins.flush()
-      ins.close()
-
       let outStream = pid.outputStream
       var line = ""
 
@@ -1070,13 +1177,15 @@ proc shellResult*(
 
 
 
+
 proc runShell*(
-  cmd: ShellCmd,
-  doRaise: bool = true,
-  stdin: string = "",
-  options: set[ProcessOption] = {poEvalCommand},
-  maxErrorLines: int = 12,
-  discardOut: bool = false): tuple[stdout, stderr: string, code: int] =
+    cmd: ShellCmd,
+    doRaise: bool = true,
+    stdin: string = "",
+    options: set[ProcessOption] = {poEvalCommand},
+    maxErrorLines: int = 12,
+    discardOut: bool = false
+  ): tuple[stdout, stderr: string, code: int] =
   ## Execute shell command and return it's output. `stdin` - optional
   ## parameter, will be piped into process. `doRaise` - raise
   ## exception (default) if command finished with non-zero code.
