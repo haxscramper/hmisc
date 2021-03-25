@@ -395,7 +395,7 @@ func makeShellCmd*(bin: string): ShellCmd =
       result.conf = X11ShellCmdConf
 
     else:
-      result.conf = NimShellCmdConf
+      result.conf = GnuShellCmdConf
 
   result.bin = bin
 
@@ -801,13 +801,7 @@ func toShellArgument(arg: NimNode): NimNode =
 
 
 
-macro shCmd*(cmd: untyped, args: varargs[untyped]): untyped =
-  ##[
-
-DSL for consturction of the new shell commands, with syntax similar to
-regular shell.
-
-  ]##
+macro shellCmd*(cmd: untyped, args: varargs[untyped]): untyped {.deprecated.} =
   let shCmd = if cmd.kind == nnkIdent:
                 cmd.toStrLit()
               elif cmd.kind == nnkStrLit:
@@ -835,10 +829,20 @@ regular shell.
 
       of nnkStrLit, nnkIntLit:
         result.add newCall("arg", resId, arg)
+
       of nnkIdent:
         result.add newCall("arg", resId, arg.toStrLit())
+
       of nnkExprEqExpr:
         result.add newCall("-", resId, toShellArgument(arg))
+
+      of nnkAccQuoted:
+        var res: string
+        for node in arg:
+          res &= node.repr
+
+        result.add newCall("arg", resId, newLit(res))
+
       of nnkCall, nnkCommand:
         raise arg.toCodeError(
           "shCmd does not support call arguments due to " &
@@ -856,6 +860,20 @@ regular shell.
     block:
       `result`
 
+
+
+
+macro shCmd*(cmd: untyped, args: varargs[untyped]): untyped {.deprecated.} =
+  ##[
+
+DSL for consturction of the new shell commands, with syntax similar to
+regular shell.
+
+  ]##
+  result = newCall("shellCmd")
+  result.add cmd
+  for arg in args:
+    result.add arg
 
 
 
@@ -1088,7 +1106,7 @@ when cbackend:
     template makeReader(convert, inStream: untyped): untyped =
       block:
         iterator resIter(): OutRec =
-          var str = PosStr(stream: inStream)
+          var str = initPosStr(inStream)
           var state: Option[State]
           while process.running:
             let res = convert(str, cmd, state)

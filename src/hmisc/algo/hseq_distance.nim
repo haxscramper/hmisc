@@ -1419,7 +1419,7 @@ func commonPrefix*[T](seqs: seq[seq[T]]): seq[T] =
     result = seqs[0]
     for s in seqs:
       var prefix: int = 0
-      for i in 0 ..< len(s):
+      for i in 0 ..< min(len(s), len(result)):
         if result[i] == s[i]:
           inc prefix
 

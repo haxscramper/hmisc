@@ -3,6 +3,7 @@ import std/[strutils, sequtils, strformat, segfaults,
 
 import hmisc/[helpers, hdebug_misc]
 import hmisc/other/[hshell, hshell_convert, oswrap, hjson, nimbleutils]
+import hmisc/algo/[hlex_base, hparse_base]
 
 import hmisc/scripts/hmisc_putils
 
@@ -11,7 +12,6 @@ if not toBool($$CI):
 
 suite "Shell output parser":
   test "Strace":
-    echov "Strace parser"
     var cmd = makeGnuShellCmd("strace echo '\"\"'")
     cmd.arg "ls"
     let (_, errIter) = makeShellRecordIter(
@@ -24,6 +24,23 @@ suite "Shell output parser":
     for entry in errIter:
       discard
       # echo entry
+
+  test "Strace parser with string view":
+    let cmd = shellCmd(strace, echo, "-")
+    let text = cmd.evalShell().stderr
+    var str = initPosStr(text)
+    var strView = initPosStrView(str)
+
+    var state: Option[HsLexer[StrTok]]
+    while not strView.finished():
+      discard straceErrConverter(strView, cmd, state)
+
+    echo "Err converter finished"
+
+    state = none(HSLexer[StrTok])
+    while not strView.finished():
+      discard straceErrConverter(str, cmd, state)
+
 
   test "ls json parser":
     var cmd = makeGnuShellCmd("ls")

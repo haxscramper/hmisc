@@ -1261,11 +1261,17 @@ func withExt*[F: AbsFile | RelFIle](
     parent /. (file & (if resExt.len > 0: "." & resExt else: ""))
 
   else:
+    let extAdd =
+      if newExt.len > 0:
+        hstring_algo.addPrefix(newExt, ".")
+      else:
+        ""
+
     when F is AbsFile:
-      AbsFile(f.getStr() & hstring_algo.addPrefix(newExt, "."))
+      AbsFile(f.getStr() & extAdd)
 
     else:
-      RelFile(f.getStr() & hstring_algo.addPrefix(newExt, "."))
+      RelFile(f.getStr() & extAdd)
 
 
 func withBasePrefix*[F: AbsFile | RelFile | FsFile](
@@ -1626,12 +1632,15 @@ template withTempFile*(
 
 
 
-template withEnv*(envs: openarray[(string, string)], body: untyped): untyped =
-  var prevValues: seq[(string, string)]
-  var noValues: seq[string]
+template withEnv*(
+  envs: openarray[(ShellVar, string)], body: untyped): untyped =
+
+  var prevValues: seq[(ShellVar, string)]
+  var noValues: seq[ShellVar]
   for (varn, value) in envs:
     if oswrap.existsEnv(varn):
       prevValues.add (varn, oswrap.getEnv(varn))
+
     else:
       noValues.add varn
 

@@ -2,13 +2,33 @@ import std/[streams, strscans, strutils, strformat, macros]
 import ../base_errors, ../hdebug_misc
 import ./halgorithm
 
+
+##[
+
+- TODO :: Tokenize range into runes
+
+]##
+
 type
+  PosStrSlice = object
+    start*: int
+    finish*: int
+
   PosStr* = object
-    ## Helper type for scanning complicated strings
-    str*: string
-    stream*: Stream
+    case isSlice*: bool
+      of false:
+        str*: string
+        stream*: Stream
+
+      of true:
+        sliceIdx*: int
+        baseStr*: ptr string
+        slices*: seq[PosStrSlice]
+
     pos*: int
     ranges*: seq[int]
+    bufferActive*: bool
+    sliceBuffer*: seq[seq[PosStrSlice]]
 
 using str: var PosStr
 
@@ -22,13 +42,38 @@ const
   PunctCloseChars* = {')', ']', '}', '>'}
   PunctSentenceChars* = {',', '.', '?', '!'}
   PunctChars* = PunctOpenChars + PunctCloseChars + PunctSentenceChars
+  Newline* = {'\n'}
+  AllSpace* = Whitespace
+  HorizontalSpace* = AllSpace - Newline
+  VeritcalSpace* = Newline
+
+func len*(slice: PosStrSlice): int = slice.finish - slice.start
+func toAbsolute*(slice: PosStrSlice, offset: int): int =
+  slice.start + offset
 
 func initPosStr*(str: string): PosStr =
-  PosStr(str: str)
+  ## Create new string with full buffer and `nil` input stream
+  PosStr(str: str, isSlice: false)
 
 func initPosStr*(stream: Stream): PosStr =
-  PosStr(stream: stream)
+  ## Create new string with empty buffer and non-nil input stream.
+  PosStr(stream: stream, isSlice: false)
 
+func initPosStr*(str): PosStr =
+  ## Pop one layer of slices from slice buffer and create new sub-string
+  ## lexer from it.
+  PosStr(isSlice: true, baseStr: addr str.str, slices: str.sliceBuffer.pop)
+
+func initPosStrView*(str): PosStr =
+  ## Create substring with `0 .. high(int)` slice range
+  PosStr(
+    isSlice: true, baseStr: addr str.str,
+    slices: @[PosStrSlice(start: 0, finish: high(int))]
+  )
+
+
+func contains*(slice: PosStrSlice, position: int): bool =
+  slice.start <= position and position <= slice.finish
 
 template atom*(input: PosStr; idx: int; c: char): bool =
   input.str[input.pos + idx] == c
@@ -36,8 +81,15 @@ template atom*(input: PosStr; idx: int; c: char): bool =
 template atom*(input: PosStr; idx: int; s: set[char]): bool =
   input.str[input.pos + idx] in s
 
-template hasNxt*(input: PosStr; idx: int): bool =
-  input.pos + idx < input.str.len
+proc hasNxt*(input: PosStr; idx: int): bool =
+  let pos = input.pos + idx
+  if input.isSlice:
+    for slice in input.slices[input.sliceIdx .. ^1]:
+      if pos in slice and pos < input.baseStr[].len:
+        return true
+
+  else:
+    return pos < input.str.len
 
 proc finished*(str: PosStr): bool =
   not str.hasNxt(0) and str.stream.atEnd()
@@ -59,6 +111,9 @@ macro scanpTemp*(str: typed, pattern: varargs[untyped]): untyped =
 proc fillNext*(str; chars: int) =
   ## Read necessary amount of data from stream to make at least `chars`
   ## lookahead available
+  if str.isSlice:
+    return
+
   if isNil(str.stream):
     return
 
@@ -75,10 +130,21 @@ proc resetBuffer*(str) =
 proc `[]`*(str; idx: int = 0): char {.inline.} =
   fillNext(str, idx)
   if not hasNxt(str, idx):
-    raiseArgumentError(
-      &"Cannot get char at [+{idx}]")
+    raiseArgumentError(&"Cannot get char at [+{idx}]")
 
-  str.str[str.pos + idx]
+  if str.isSlice:
+    var sliceStart = 0
+    for slice in str.slices[str.sliceIdx .. ^1]:
+      if sliceStart <= idx and
+         idx <= sliceStart + slice.len:
+        return str.baseStr[][slice.toAbsolute(idx - sliceStart)]
+
+      else:
+        sliceStart += slice.len
+
+    raiseArgumentError(&"Cannot get char at [+{idx}]")
+  else:
+    return str.str[str.pos + idx]
 
 proc `[]`*(str; slice: HSlice[int, BackwardsIndex]): string {.inline.} =
   fillNext(str, slice.a)
@@ -89,10 +155,10 @@ proc `[]`*(str; offset: int, patt: char | set[char] | string):
 
   fillNext(str, offset)
   when patt is char:
-    result = (str.pos + offset < str.str.len) and str[offset] == patt
+    result = str.hasNxt(offset) and str[offset] == patt
 
   elif patt is set[char]:
-    result = (str.pos + offset < str.str.len) and str[offset] in patt
+    result = str.hasNxt(offset) and str[offset] in patt
 
   else:
     result = true
@@ -119,20 +185,59 @@ proc `[]`*(str; slice: HSlice[int, char]): string =
     result.add str[pos]
     inc pos
 
-
+proc `$`*(slice: PosStrSlice): string = &"{slice.start}..{slice.finish}"
+proc `[]`*(str; slice: PosStrSlice): string =
+  str.baseStr[][slice.start ..< slice.finish]
 
 proc `$`*(str): string {.inline.} =
-  &"[{str.pos}: {str.str[str.pos .. ^1]}]"
+  if str.isSlice:
+    result = "["
+    for slice in str.slices:
+      var text = str[slice]
+      if text.count('\n') == 1:
+        text = "\"" & text.replace("\n", "⮒") & "\""
 
-proc pushRange*(str: var PosStr) {.inline.} =
+      result &= &"[{slice}: {text}]"
+
+    result &= "]"
+
+  else:
+    result = &"[{str.pos}: {str.str[str.pos .. ^1]}]"
+
+proc pushRange*(str) {.inline.} =
   str.ranges.add str.pos
+
+proc startSlice*(str) {.inline.} =
+  if str.sliceBuffer.len == 0:
+    str.sliceBuffer.add @[]
+
+  str.sliceBuffer[^1].add PosStrSlice(start: str.pos)
+
+proc finishSlice*(str) {.inline.} =
+  str.sliceBuffer[^1][^1].finish = str.pos
+
+proc toggleBuffer*(str; activate: bool = not str.bufferActive) {.inline.} =
+  str.bufferActive = activate
+
 
 proc popRange*(str; leftShift: int = 0, rightShift: int = 0):
   string {.inline.} =
 
-  let start = str.ranges.pop
-  return str.str[(start + leftShift) ..<
-                 min(str.pos + rightShift, str.str.len)]
+  let start = str.ranges.pop + leftShift
+  let finish = str.pos +  rightShift
+
+  if str.isSlice:
+    var foundStart = false
+    for slice in str.slices:
+      result &= str.baseStr[][
+        max(start, slice.start) ..< min(finish, slice.finish)
+      ]
+
+
+
+
+  else:
+    return str.str[start ..< min(finish, str.str.len)]
 
 proc advance*(str; step: int = 1) {.inline.} =
   inc(str.pos, step)
@@ -141,6 +246,25 @@ proc skipWhile*(str; chars: set[char]) {.inline.} =
   if str[] in chars:
     while str[chars]:
       str.advance()
+
+proc skipUntil*(str; chars: set[char], including: bool = false) {.inline.} =
+  var changed = false
+  while not str[chars]:
+    str.advance()
+    changed = true
+
+  if changed and including:
+    str.advance()
+
+proc skipToEOL*(str; including: bool = true) =
+  str.skipUntil(Newline, including)
+
+proc skipIndent*(str; maxIndent = high(int)): int =
+  while str[HorizontalSpace]:
+    inc result
+    str.advance()
+    if result >= maxIndent:
+      break
 
 proc popWhile*(str; chars: set[char]): string {.inline.} =
   str.pushRange()
@@ -153,6 +277,27 @@ proc startsWith*(str; skip: set[char], search: string): bool =
     inc pos
 
   result = str[pos, search]
+
+proc getIndent*(str): int =
+  while str[result, HorizontalSpace]:
+    inc result
+
+proc hasIndent*(str; indent: int, exactIndent: bool = false): bool =
+  var foundIndent = 0
+  while str[foundIndent, HorizontalSpace]:
+    inc foundIndent
+    if foundIndent >= indent:
+      break
+
+  if foundIndent == indent:
+    return true
+
+  elif foundIndent <= indent:
+    return false
+
+  else:
+    return not exactIndent or (str[foundIndent] notin HorizontalSpace)
+
 
 proc peekStr*(str; chars: int): string =
   for i in 0 ..< chars:

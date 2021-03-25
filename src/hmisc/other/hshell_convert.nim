@@ -73,7 +73,7 @@ type
     stkQuestion
     stkPlus
 
-  StrTok = HsTok[StrTokKind]
+  StrTok* = HsTok[StrTokKind]
 
   StraceRecordKind = enum
     srkCall
@@ -153,8 +153,8 @@ proc parseCall*(lex: var HsLexer[StrTok]): StraceRecord =
   lex.skipTo({'\n'})
 
   let str = lex.popRange()
-  echov str
-  echov head
+  # echov str
+  # echov head
   lex.resetBuffer()
   for arg in args:
     if arg[stkLCurly]:
@@ -163,15 +163,17 @@ proc parseCall*(lex: var HsLexer[StrTok]): StraceRecord =
         hsSplitKeyValue({stkEq}, {stkComma})
         :
 
-        echov "    ", kv
+        discard
+        # echov "    ", kv
 
-    else:
-      echov "  ", arg
+    # else:
+    #   echov "  ", arg
 
 
 proc straceOutConverter*(
   str: var PosStr, cmd: ShellCmd, state: var Option[HsLexer[StrTok]]):
   Option[StraceRecord] =
+
 
   discard
 
