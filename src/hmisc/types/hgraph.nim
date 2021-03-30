@@ -1,6 +1,8 @@
 ## Generic implementation of graph data structure
 
-import std/[tables, deques, hashes, random, strformat, strutils]
+import std/[tables, deques, hashes, random,
+            strformat, strutils, sequtils
+]
 
 #[
 checklist
@@ -16,83 +18,90 @@ checklist
 import std/[intsets]
 
 type
-  Node[N, E] = ref NodeObj[N, E]
-  NodeObj[N, E] = object
+  HNode[N, E] = ref HNodeObj[N, E]
+  HNodeObj[N, E] = object
     id: int
     nodeValue: N
 
-  Edge[N, E] = ref EdgeObj[N, E]
-  EdgeObj[N, E] = object
+  HEdge[N, E] = ref HEdgeObj[N, E]
+  HEdgeObj[N, E] = object
     id: int
-    source*: Node[N, E]
-    target*: Node[N, E]
+    source*: HNode[N, E]
+    target*: HNode[N, E]
     edgeValue: E
 
-  GraphProperty = enum
+  HGraphProperty = enum
     gpDirected
     gpUndirected
     gpAllowSelfLoops
 
-  Graph[N, E] = ref GraphObj[N, E]
+  HGraph[N, E] = ref HGraphObj[N, E]
 
-  GraphObj[N, E] = object
-    nodeMap: Table[Hash, Node[N, E]]
-    nodeIdMap: Table[int, Node[N, E]]
-    properties: set[GraphProperty]
+  HGraphObj[N, E] = object
+    nodeMap: Table[Hash, HNode[N, E]]
+    nodeIdMap: Table[int, HNode[N, E]]
+    properties: set[HGraphProperty]
     maxId: int
-    edgeMap: Table[(int, int), Edge[N, E]]
+    edgeMap: Table[(int, int), HEdge[N, E]]
     ingoingIndex: Table[int, IntSet]
     outgoingIndex: Table[int, IntSet]
 
-  GraphPath[N, E] = seq[Edge[N, E]]
+  HGraphPath[N, E] = seq[HEdge[N, E]]
 
 
 type
-  GraphError = ref object of CatchableError
+  HGraphError = ref object of CatchableError
 
-  GraphCyclesError = ref object of GraphError
+  HGraphCyclesError = ref object of HGraphError
 
 
 
-func newGraph*[N, E](
-    properties: set[GraphProperty] = {gpDirected, gpAllowSelfLoops}
-  ): Graph[N, E] =
+func newHGraph*[N, E](
+    properties: set[HGraphProperty] = {gpDirected, gpAllowSelfLoops}
+  ): HGraph[N, E] =
 
-  Graph[N, E](properties: properties)
+  HGraph[N, E](properties: properties)
 
-func value*[N, E](node: Node[N, E]): N {.inline.} = node.nodeValue
+proc `$`*[N, E](node: HNode[N, E]): string = $node[]
+proc `$`*[N, E](edge: HEdge[N, E]): string = $edge[]
 
-func value*[N, E](edge: Edge[N, E]): E {.inline.} = edge.edgeValue
+func value*[N, E](node: HNode[N, E]): N {.inline.} = node.nodeValue
 
-func `value=`*[N, E](node: var Node[N, E], value: N) {.inline.} =
+func value*[N, E](edge: HEdge[N, E]): E {.inline.} = edge.edgeValue
+
+func `value=`*[N, E](node: var HNode[N, E], value: N) {.inline.} =
   node.nodeValue = value
 
-func `value=`*[N, E](edge: var Node[N, E], value: E) {.inline.} =
+func `value=`*[N, E](edge: var HNode[N, E], value: E) {.inline.} =
   edge.edgeValue = value
 
-func lenEdges*[N, E](graph: Graph[N, E]): int = graph.edgeMap.len
+func lenEdges*[N, E](graph: HGraph[N, E]): int {.deprecated.} =
+  graph.edgeMap.len
 
-func inDeg*[N, E](graph: Graph[N, E], node: Node[N, E]): int {.inline.} =
+func edgesCount*[N, E](graph: HGraph[N, E]): int = graph.edgeMap.len
+func nodeCount*[N, E](graph: HGraph[N, E]): int = graph.nodeMap.len
+
+func inDeg*[N, E](graph: HGraph[N, E], node: HNode[N, E]): int {.inline.} =
   if node.id in graph.ingoingIndex:
     result = len(graph.ingoingIndex[node.id])
 
-func newId[N, E](graph: var Graph[N, E]): int {.inline.} =
+func newId[N, E](graph: var HGraph[N, E]): int {.inline.} =
   result = graph.maxId
   inc graph.maxId
 
-func isDirected*[N, E](graph: Graph[N, E]): bool {.inline.} =
+func isDirected*[N, E](graph: HGraph[N, E]): bool {.inline.} =
   gpDirected in graph.properties
 
-proc addNode*[N, E](graph: var Graph[N, E], value: N): Node[N, E] =
-  result = Node[N, E](id: graph.newId, nodeValue: value)
+proc addNode*[N, E](graph: var HGraph[N, E], value: N): HNode[N, E] =
+  result = HNode[N, E](id: graph.newId, nodeValue: value)
   graph.nodeIdMap[result.id] = result
   graph.nodeMap[hash(value)] = result
 
 proc addEdge*[N, E](
-    graph: var Graph[N, E],
-    source, target: Node[N, E], value: E): Edge[N, E] =
+    graph: var HGraph[N, E],
+    source, target: HNode[N, E], value: E): HEdge[N, E] =
 
-  result = Edge[N, E](
+  result = HEdge[N, E](
     id: graph.maxId,
     edgeValue: value,
     source: source,
@@ -106,12 +115,23 @@ proc addEdge*[N, E](
   if not graph.isDirected():
     graph.ingoingIndex.mgetOrPut(target.id, IntSet()).incl source.id
 
+proc addEdge*[N, E](
+    graph: var HGraph[N, E], sourceValue, targetValue: N, edgeValue: E):
+  HEdge[N, E] =
 
-proc removeNode*[N, E](graph: var Graph[N, E], node: Node[N, E]) =
+  return graph.addEdge(
+    graph.addNode(sourceValue),
+    graph.addNode(targetValue),
+    edgeValue,
+  )
+
+
+
+proc removeNode*[N, E](graph: var HGraph[N, E], node: HNode[N, E]) =
   ## Remove `node` from graph.
   ##
   ## Note that related edges will be removed too, if they completely loose
-  ## all related nodes. So calling `removeNode("a -> b", "b")` will not
+  ## all related nodes. So calling `removeHNode("a -> b", "b")` will not
   ## only remove node `"b"`, but also an edge.
   for targets in mitems(graph.edges[node.id]):
     targets.excl node.id
@@ -119,51 +139,77 @@ proc removeNode*[N, E](graph: var Graph[N, E], node: Node[N, E]) =
   graph.edges.del node.id
 
 
-proc removeEdge*[N, E](graph: var Graph[N, E], edge: Edge[N, E]) =
+proc removeEdge*[N, E](graph: var HGraph[N, E], edge: HEdge[N, E]) =
   ## Remove `edge` from graph. Note that starting/ending nodes will not be
   ## removed.
   graph.edgeMap.del (edge.source.id, edge.target.id)
   # FIXME
   graph.ingoingIndex.del edge.target.id
 
-proc getNode*[N, E](graph: Graph[N, E], value: N): Node[N, E] =
+proc getNode*[N, E](graph: HGraph[N, E], value: N): HNode[N, E] =
   ## Return node associated with given value
   graph.nodeMap[hash(value)]
 
-proc getNodeById*[N, E](graph: Graph[N, E], id: int): Node[N, E] =
+proc getNodeId*[N, E](node: HNode[N, E]): int =
+  node.id
+
+proc getNodeById*[N, E](graph: HGraph[N, E], id: int): HNode[N, E] =
   graph.nodeIdMap[id]
 
-proc adjacent*[N, E](graph: Graph[N, E], node1, node2: Node[N, E]): bool =
+proc isAdjacent*[N, E](graph: HGraph[N, E], node1, node2: HNode[N, E]): bool =
   ## Tests whether there is an edge from the vertex x to the vertex y;
   discard
 
-iterator outgoing*[N, E](graph: Graph[N, E], node: Node[N, E]): Edge[N, E] =
-  ## Iterate over outgoing edges for `node`
-  if node.id in graph.outgoingIndex:
-    for targetId in graph.outgoingIndex[node.id]:
-      yield graph.edgeMap[(node.id, targetId)]
+iterator outgoing*[N, E](graph: HGraph[N, E], source: HNode[N, E]):
+  HEdge[N, E] =
 
-iterator ingoing*[N, E](graph: Graph[N, E], node: Node[N, E]): Edge[N, E] =
-  ## Iterate over ingoing edges for `node`
-  for sourceId in items(graph.ingoingIndex[node.id]):
-    yield graph[node.id][sourceId]
+  ## Iterate over outgoing edges for `source`
+  if source.id in graph.outgoingIndex:
+    for targetId in graph.outgoingIndex[source.id]:
+      yield graph.edgeMap[(source.id, targetId)]
 
-iterator edges*[N, E](graph: Graph[N, E]): Edge[N, E] =
+iterator ingoing*[N, E](graph: HGraph[N, E], target: HNode[N, E]):
+  HEdge[N, E] =
+
+  ## Iterate over ingoing edges for `target`
+  if target.id in graph.outgoingIndex:
+    for sourceId in items(graph.ingoingIndex[target.id]):
+      yield graph.edgeMap[(sourceId, target.id)]
+
+iterator adjacent*[N, E](graph: HGraph[N, E], node: HNode[N, E]): HNode[N, E] =
+  ## Iterate over all adjacent nodes for `node`
+  var yielded: IntSet
+  for edge in outgoing(graph, node):
+    yield edge.target
+    yielded.incl edge.target.id
+
+  for edge in ingoing(graph, node):
+    if edge.source.id notin yielded:
+      yield edge.source
+      yielded.incl edge.source.id
+
+
+
+iterator edges*[N, E](graph: HGraph[N, E]): HEdge[N, E] =
   ## Iterate over all edges in graph
   for _, edge in pairs(graph.edgeMap):
     yield edge
 
-iterator nodes*[N, E](graph: Graph[N, E]): Node[N, E] =
+iterator nodes*[N, E](graph: HGraph[N, E]): HNode[N, E] =
   ## Iterate over all nodes in graph
   for _, node in pairs(graph.nodeMap):
     yield node
+
+iterator nodesId*[N, E](graph: HGraph[N, E]): int =
+  for id, _ in pairs(graph.nodeMap):
+    yield id
 
 template depthFirstAux(): untyped {.dirty.} =
   discard
 
 iterator depthFirst*[N, E](
-    graph: Graph[N, E], root: Node[N, E], preorderYield: bool = true
-  ): Node[N, E] =
+    graph: HGraph[N, E], root: HNode[N, E], preorderYield: bool = true
+  ): HNode[N, E] =
   ## Perform depth-first iteration of **immutable** nodes in graph,
   ## starting from `node`
   discard
@@ -171,13 +217,13 @@ iterator depthFirst*[N, E](
 
 
 iterator depthFirst*[N, E](
-    graph: var Graph[N, E], root: Node[N, E], preorderYield: bool = true
-  ): Node[N, E] =
+    graph: var HGraph[N, E], root: HNode[N, E], preorderYield: bool = true
+  ): HNode[N, E] =
   ## Perform depth-first iteration of **mutable** nodes in graph, starting
   ## from `node`
   var
     visited: IntSet
-    stack: seq[seq[Node[N, E]]]
+    stack: seq[seq[HNode[N, E]]]
 
   stack.add @[root]
 
@@ -187,31 +233,31 @@ iterator depthFirst*[N, E](
 
     yield top
 
-    var buf: seq[Node[N, E]]
-    for outEdge in graph.outgoing(top):
-      if outEdge.target.id notin visited:
-        visited.incl outEdge.target.id
-        buf.add outEdge.target
+    var buf: seq[HNode[N, E]]
+    for outHEdge in graph.outgoing(top):
+      if outHEdge.target.id notin visited:
+        visited.incl outHEdge.target.id
+        buf.add outHEdge.target
 
     if buf.len > 0:
       stack.add buf
 
-iterator breadthFirst*[N, E](graph: Graph[N, E], root: Node[N, E]): Node[N, E] =
+iterator breadthFirst*[N, E](graph: HGraph[N, E], root: HNode[N, E]): HNode[N, E] =
   ## Perform breadth-first iteration of parent graph, starting from `node`
   discard
 
-iterator breadthFirst*[N, E](graph: var Graph[N, E], root: Node[N, E]): var Node[N, E] =
+iterator breadthFirst*[N, E](graph: var HGraph[N, E], root: HNode[N, E]): var HNode[N, E] =
   ## Perform breadth-first iteration of parent graph, starting from `node`
-  var que = initDeque[Node[N, E]]()
+  var que = initDeque[HNode[N, E]]()
   que.addLast(root)
 
   var visited: IntSet
 
   while que.len > 0:
-    for outEdge in graph.outgoing(root):
-      if outEdge.target.id notin visited:
-        visited.incl outEdge.target.id
-        que.add outEdge.target
+    for outHEdge in graph.outgoing(root):
+      if outHEdge.target.id notin visited:
+        visited.incl outHEdge.target.id
+        que.add outHEdge.target
 
 proc pop(iset: var IntSet): int =
   for i in iset:
@@ -220,9 +266,9 @@ proc pop(iset: var IntSet): int =
 
   iset.excl result
 
-proc topologicalOrdering*[N, E](graph: Graph[N, E]): seq[Node[N, E]] =
+proc topologicalOrdering*[N, E](graph: HGraph[N, E]): seq[HNode[N, E]] =
   ## Return graph nodes in topological ordering if possible. Otherwise (if
-  ## graph contains cycles raise `GraphCyclesError`)
+  ## graph contains cycles raise `HGraphCyclesError`)
   var noincoming: IntSet
   for node in graph.nodes:
     if graph.inDeg(node) == 0:
@@ -239,26 +285,74 @@ proc topologicalOrdering*[N, E](graph: Graph[N, E]): seq[Node[N, E]] =
         noincoming.incl outEdge.target.id
 
   if graph.lenEdges > 0:
-    raise GraphCyclesError(
+    raise HGraphCyclesError(
       msg: "Topological sorting is impossible, graph contains cycles")
 
 
 
 
 proc dependencyOrdering*[N, E](
-    graph: Graph[N, E],
-    root: Node[N, N], leafFirst: bool = true): seq[Node[N, E]] =
+    graph: HGraph[N, E],
+    root: HNode[N, N], leafFirst: bool = true): seq[HNode[N, E]] =
   ## Return graph nodes in dependencies for `node`.
 
   discard
 
-proc findCycles*[N, E](graph: Graph[N, E]): seq[GraphPath[N, E]] =
+proc findCycles*[N, E](graph: HGraph[N, E]): seq[HGraphPath[N, E]] =
   discard
 
+proc connectedComponents*[N, E](graph: HGraph[N, E]): seq[seq[HNode[N, E]]] =
+  ## Return list of nodes forming strongly connected components
+
+  var time: int
+
+  proc aux(
+    u: int, disc: var seq[int], low: var seq[int],
+    st: var seq[int], stackMember: var seq[bool],
+    components: var seq[seq[int]]
+  ) =
+
+    inc time
+    disc[u] = time
+    low[u] = time
+    st.add u
+    stackMember[u] = true
+
+    for node in graph.adjacent(graph.getNodeById(u)):
+      let v = node.getNodeId()
+      if disc[v] == -1:
+        aux(v, disc, low, st, stackMember, components)
+        low[u]  = min(low[u], low[v])
+
+      elif stackMember[v] == true:
+        low[u] = min(low[u], disc[v])
+
+    var w = 0
+    if (low[u] == disc[u]):
+      components.add @[]
+      while st[^1] != u:
+        w = st.pop()
+        components[^1].add w
+        stackMember[w] = false
+
+      w = st.pop()
+      components[^1].add w
+      stackMember[w] = false
+
+  var disc = newSeqWith[int](graph.edgesCount(), -1)
+  var low = newSeqWith[int](graph.edgesCount(), -1)
+  var stackMember = newSeqWith[bool](graph.edgesCount(), false)
+  var st = newSeq[int]()
+
+  var components: seq[seq[int]]
+  for id in nodesId(graph):
+    if disc[id] == -1:
+      aux(id, disc, low, st, stackMember, components)
+
 proc graphvizRepr*[N, E](
-    graph: Graph[N, E],
-    nodeDotAttrs: proc(node: Node[N, E]): string = nil,
-    edgeDotAttrs: proc(edge: Edge[N, E]): string = nil,
+    graph: HGraph[N, E],
+    nodeDotAttrs: proc(node: HNode[N, E]): string = nil,
+    edgeDotAttrs: proc(edge: HEdge[N, E]): string = nil,
     nodeFormatting: seq[tuple[key, value: string]] = @[],
     edgeFormatting: seq[tuple[key, value: string]] = @[],
     graphFormatting: seq[tuple[key, value: string]] = @[],
@@ -269,7 +363,7 @@ proc graphvizRepr*[N, E](
 
   result.add "digraph G {\n"
 
-  template toIdStr(node: Node[N, E]): string =
+  template toIdStr(node: HNode[N, E]): string =
     "n" & replace($node.id, "-", "neg")
 
   for node in graph.nodes:
@@ -309,51 +403,63 @@ template timeIt(name: string, body: untyped): untyped =
 
 
 proc main() =
-  var graph = newGraph[string, int]()
+  if true:
+    var graph = newHGraph[int, string]()
+    discard graph.addEdge(0, 1, "e0")
+    discard graph.addEdge(1, 2, "e1")
+    discard graph.addEdge(2, 3, "e2")
+    discard graph.addEdge(2, 4, "e3")
+    discard graph.addEdge(3, 0, "e4")
+    discard graph.addEdge(4, 2, "e5")
 
-  let node1 = graph.addNode("test1")
-  let node2 = graph.addNode("test2")
-  let edge = graph.addEdge(node1, node2, 190)
+    echo graph.connectedComponents()
 
-  echo isNil(edge)
+  if false:
+    var graph = newHGraph[string, int]()
 
-  for node in graph.depthFirst(node1):
-    echo node.value
+    let node1 = graph.addNode("test1")
+    let node2 = graph.addNode("test2")
+    let edge = graph.addEdge(node1, node2, 190)
 
-  for node in graph.topologicalOrdering():
-    echo node.value
+    echo isNil(edge)
 
-  let dotRepr = graph.graphvizRepr() do (node: Node[string, int]) -> string:
-    "[shape=box]"
+    for node in graph.depthFirst(node1):
+      echo node.value
 
-  echo dotRepr
+    for node in graph.topologicalOrdering():
+      echo node.value
 
-  var rand = initRand(228)
+    let dotRepr = graph.graphvizRepr() do (node: HNode[string, int]) -> string:
+      "[shape=box]"
 
-  for i in [10, 100, 1000, 10000]:
-    var graph = newGraph[int, int]()
-    echo "Processing \e[31m", i, "\e[39m items"
-    timeIt "Adding nodes":
-      for val in 0 ..< i:
-        discard graph.addNode(val)
+    echo dotRepr
+
+    var rand = initRand(228)
+
+    for i in [10, 100, 1000, 10000]:
+      var graph = newHGraph[int, int]()
+      echo "Processing \e[31m", i, "\e[39m items"
+      timeIt "Adding nodes":
+        for val in 0 ..< i:
+          discard graph.addNode(val)
 
 
-    timeIt "Adding edges":
-      for val in 0 ..< i:
-        discard graph.addEdge(
-          graph.getNode(rand.rand 0 ..< i),
-          graph.getNode(rand.rand 0 ..< i),
-          0
-        )
+      timeIt "Adding edges":
+        for val in 0 ..< i:
+          discard graph.addEdge(
+            graph.getNode(rand.rand 0 ..< i),
+            graph.getNode(rand.rand 0 ..< i),
+            0
+          )
 
-    timeIt "Iterate over nodes":
-      for node in graph.nodes:
-        discard node.value
+      timeIt "Iterate over nodes":
+        for node in graph.nodes:
+          discard node.value
 
-    timeIt "Iterate over all outging for each node":
-      for node in graph.nodes:
-        for outNode in graph.outgoing(node):
-          discard outNode.value
+      timeIt "Iterate over all outging for each node":
+        for node in graph.nodes:
+          for outHNode in graph.outgoing(node):
+            discard outHNode.value
 
 when isMainModule:
   main()
