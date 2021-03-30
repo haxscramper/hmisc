@@ -1,6 +1,6 @@
 import std/[strutils, strformat, parseutils, options]
 import ../base_errors, ../hdebug_misc
-import ./hlex_base, ./hstring_algo
+import ./hlex_base, ./hstring_algo, ./hseq_mapping
 
 type
   HsTokTree*[Rule, Tok] = object
@@ -24,6 +24,29 @@ type
 
   HsLexCallback*[T] = proc(str: var PosStr): Option[T]
   HsTokPredicate*[T] = proc(tok: T): bool
+
+  ParseError = object
+
+  ParseResult[Val] = object
+    case ok*: bool
+      of true:
+        value*: Val
+
+      of false:
+        fail*: ParseError
+
+  HsParseCallback*[T, Val] = proc(toks: var HsLexer[T]): ParseResult[Val]
+
+func isFail*[T](parse: ParseResult[T]): bool = not parse.ok
+func isOk*[T](parse: ParseResult[T]): bool = parse.ok
+func initParseResult*[T](value: T): ParseResult[T] =
+  ParseResult[T](ok: true, value: value)
+
+func initParseResult*[T](fail: ParseError): ParseResult[T] =
+  ParseResult[T](ok: false, fail: fail)
+
+proc get*[V](parseResult: ParseResult[V]): V =
+  return parseResult.value
 
 func `$`*[K](tok: HsTok[K]): string =
   var kindStr = $tok.kind
@@ -86,6 +109,11 @@ func `[]`*[K](tokens: seq[HsTok[K]], offset: int, kind: set[K]|K): bool =
 
 func `[]`*[K](tokens: seq[HsTok[K]], kind: set[K]|K): bool =
   tokens[0, kind]
+
+func returnTo*[T](lex: var HsLexer[T], position: int) =
+  lex.pos = position
+
+func getPosition*[T](lex: var HsLexer[T]): int = lex.pos
 
 func advance*[T](lex: var HSlexer[T], step: int = 1) =
   inc(lex.pos, step)
@@ -203,3 +231,70 @@ func pushRange*[T](lex: var HsLexer[T]) =
 
 func popRange*[T](lex: var HsLexer[T]): string =
   lex.str[].popRange()
+
+func parsePlus*[T, V](parser: HsParseCallback[T, V]):
+  HsParseCallback[T, seq[V]] =
+
+  return proc(toks: var HsLexer[T]): ParseResult[seq[V]] =
+    var item = parser(toks)
+    if item.isFail():
+      return initParseResult[seq[T]](item.fail)
+
+    else:
+      result = initParseResult(@[item])
+      var position = toks.getPosition()
+      while item.isOk():
+        item = parser(toks)
+        if not item.isOk():
+          toks.returnTo(position)
+
+        else:
+          result.value.add item
+
+func parseToken*[T](token: T): HsParseCallback[T, T] =
+  return proc(toks: var HsLexer[T]): ParseResult[T] =
+    if toks[] == token:
+      toks.advance()
+      initParseResult(toks[])
+
+    else:
+      initParseResult[T](ParseError())
+
+func parseLongestMatch*[T, V](parsers: seq[HsParseCallback[T, V]]):
+  HsParseCallback[T, V] =
+
+  return proc(toks: var HsLexer[T]): ParseResult[T] =
+    var position = toks.getPosition()
+    var matches: seq[tuple[match: ParseResult[T], endPosition: int]]
+    for parser in parsers:
+      toks.returnTo(position)
+      let match = parser(toks)
+      matches.add (match, toks.getPosition())
+
+
+    sortIt(matches, it.endPosition)
+    for (match, position) in matches:
+      if match.ok:
+        toks.returnTo(position)
+        return match
+
+    # IMPLEMENT better error reporting? This is a main source of unreadable
+    # error messages from parser combinators (choice operator)
+    return matches[0].match
+
+func parseFistMatch*[T, V](parsers: seq[HsParseCallback[T, V]]):
+  HsParseCallback[T, V] =
+
+  return proc(toks: var HsLexer[T]): ParseResult[T] =
+    var position = toks.getPosition()
+    var lastFail: ParseResult[T]
+    for parser in parsers:
+      toks.returnTo(position)
+      let match = parser(toks)
+      if match.ok:
+        return match
+
+      else:
+        lastFail = match
+
+    return lastFail

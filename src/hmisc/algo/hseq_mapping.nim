@@ -88,6 +88,15 @@ template deduplicateIt*[T](
 
   res
 
+template sortIt*[T](sequence: var seq[T], expr: untyped): untyped =
+  sort(sequence,
+       proc(item1, item2: T): int =
+         var it {.inject.} = item1
+         let it1 = expr
+         it = item2
+         let it2 = expr
+         return cmp(it1, it2))
+
 template twoPassSortByIt*(
   sequence, operation1, operation2: untyped): untyped =
   ## Sort input sequence using firt `operation1`, then group into

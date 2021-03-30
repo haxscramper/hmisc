@@ -75,6 +75,14 @@ proc add*[T](s: var seq[T], opt: Option[T]) =
   if opt.isSome():
     s.add opt.get()
 
+proc `&`*[T](elements: openarray[seq[T]]): seq[T] =
+  for element in elements:
+    result &= element
+
+proc `&`*(strings: openarray[string]): string =
+  for str in strings:
+    result &= str
+
 template timeIt*(name: string, body: untyped): untyped =
   block:
     let start = cpuTime()

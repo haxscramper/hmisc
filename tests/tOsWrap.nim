@@ -1,10 +1,9 @@
 import sugar, strutils, sequtils, strformat
 import ../src/hmisc/helpers
 import ../src/hmisc/other/[hshell, oswrap, pathwrap]
+import ../src/hmisc/hdebug_misc
 
-#===========================  implementation  ============================#
-
-#================================  tests  ================================#
+startHax()
 
 import unittest
 
@@ -45,6 +44,18 @@ suite "Pathwrap":
 
   test "Relative directories":
     check AbsDir("/a/b/c/d").relativePath(AbsDir("/a/b/c")) == RelDir("d")
+
+  test "Relative depth":
+    check relativeUpCount(AbsFile("/a/b.txt"), AbsDir("/a")) == 0
+    check relativeUpCount(AbsFile("/a/b/b.txt"), AbsDir("/a")) == 1
+    expect PathError:
+      check relativeUpCount(AbsDir("/a/b"), AbsFile("/b.txt")) == -1
+    check relativeUpCount(AbsFile("/a.txt"), AbsFile("/b.txt")) == 0
+    check relativeUpCount(AbsFile("/tmp/a.txt"), AbsFile("/tmp/b.txt")) == 0
+
+    # check relativeUpCount(AbsDir("/b.txt"), AbsDir("/a/b")) == -2
+    # check relativeUpCount(AbsDir("/a/b/c.txt"), AbsDir("/b.txt")) == 3
+
 
   test "Mkdir structure":
     let name = "hello"

@@ -17,11 +17,12 @@
 
 # {.experimental: "caseStmtMacros".}
 
-import std/[strutils, macros, random, hashes, json,
+import std/[strutils, macros, random, hashes, json, math,
             strformat, sequtils, options, streams]
 
 import ../algo/hstring_algo
 import ../base_errors
+import ../hdebug_misc
 
 from os import nil
 
@@ -115,6 +116,8 @@ type
 
 type
   PathErrorKind* = enum
+    pekDefault
+
     pekExpectedDir
     pekExpectedFile
     pekExpectedAbs
@@ -156,6 +159,8 @@ template ignorePathErrors*(
 
 func `==`*(se1, se2: ShellExpr): bool = se1.string == se2.string
 
+
+template getStr*(str: string): string = str
 func getStr*(path: AnyPath | string): string =
   # `get` prefix is specifically used to indicate that this is an
   # accessor to internal state of the `path`, not just property that
@@ -204,7 +209,7 @@ template endsWith*(path: AnyPath, expr: typed): bool =
   path.getStr().endsWith(expr)
 
 template startsWith*(path: AnyPath, expr: typed): bool =
-  path.getStr().startsWith(expr)
+  path.getStr().startsWith(expr.getStr())
 
 
 const
@@ -408,6 +413,56 @@ proc relativePath*(path: AbsDir, base: AbsDir | AbsDir): RelDir =
 
 proc relativePath*(path: AbsFile, base: AbsFile | AbsDir): RelFile =
   RelFile(os.relativePath(path.string, base.string))
+
+proc relativeUpCount*[P1: AbsPath, P2: AbsPath](
+  inCurrent: P1, inTarget: P2): int =
+
+  var current = inCurrent.getStr()
+  var target = inTarget.getStr()
+
+  # let common =
+  # current.dropPrefix(common)
+  # target.dropPrefix(common)
+
+  if current.startsWith(target):
+    swap(current, target)
+
+  elif target.startsWith(current):
+    discard
+
+  else:
+    let common = commonPrefix(@[current, target])
+
+    if count(current.dropPrefix(common), "/") == 0 and
+       count(target.dropPrefix(common), "/") == 0:
+
+      return 0
+
+    else:
+      raise PathError(
+        msg: "Cannot compute relative up count for unrelated paths" &
+          &"(current: '{inCurrent}', target: '{inTarget}')"
+      )
+
+  var relative = os.relativePath(current, target)
+  # echov (current, target)
+  # echov relative
+  when P1 is AnyFile or P2 is AnyFile:
+    relative = relative.dropPrefix("..")
+
+  result = relative.count("..")
+  # echov result
+  # when P1 is AnyFile or P2 is AnyFile:
+  #   result += -1 * sgn(result)
+
+  # var diff = current.dropPrefix(target)
+  # if inTarget is AnyDir:
+  #   diff = diff.dropPrefix("/")
+
+  # echov current
+  # echov target
+  # echov diff
+
 
 proc parentDir*(path: AbsPath): AbsDir = AbsDir(os.parentDir(path.getStr()))
 proc parentDir*(path: RelPath): RelDir = RelDir(os.parentDir(path.getStr()))
@@ -1240,6 +1295,12 @@ func withoutPrefix*(file: AbsFile, pref: AbsDir): RelFile =
   # assert startsWith($file, addSuffix($pref, "/"))
   RelFile(dropPrefix($file, addSuffix($pref, "/")))
 
+func withoutRoot*(file: AbsFile, root: AbsDir): RelFile =
+  if not startsWith(file, root):
+    raise PathError(msg: "Cannot remove root '{root}' from path '{file}'")
+
+  return withoutPrefix(file, root)
+
 func withExt*(f: FsTree, ext: string): FsTree =
   if f.isDir:
     raiseArgumentError("Cannot add extension to FsTree file")
@@ -1272,6 +1333,9 @@ func withExt*[F: AbsFile | RelFIle](
 
     else:
       RelFile(f.getStr() & extAdd)
+
+func withoutExt*[F: AbsFile | RelFile](file: F): F =
+  withExt(file, "")
 
 
 func withBasePrefix*[F: AbsFile | RelFile | FsFile](
