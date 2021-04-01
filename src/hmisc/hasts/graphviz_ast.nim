@@ -420,6 +420,8 @@ type
 #============================  constructors  =============================#
 func initDotNode*(): DotNode = DotNode(style: nstDefault)
 
+func `[]=`*(graph: var DotGraph, key, value: string) =
+  graph.attrs[key] = value
 
 func makeRectConsolasNode*(): DotNode =
   result.fontname = "Consolas"
@@ -512,6 +514,66 @@ func makeDotNode*(
 func makeDotNode*(id: DotNodeId, html: HtmlElem): DotNode =
   DotNode(id: id, shape: nsaPlaintext, htmlLabel: html)
 
+const defaultDotBackgroundMap*: array[BackgroundColor, Color] =
+  block:
+    var res: array[BackgroundColor, Color]
+
+    res[bgDefault] = colNoColor
+    res[bgRed]     = Color(0x964C7B) # colRed
+    res[bgGreen]   = Color(0x74DFC4) # colGreen
+    res[bgCyan]    = Color(0x6D7E8A) # colCyan
+    res[bgMagenta] = Color(0xB381C5) # colMagenta
+    res[bgYellow]  = Color(0xFFE261) # colYellow
+    res[bgBlack]   = colBlack
+    res[bgWhite]   = colWhite
+    res[bgBlue]    = Color(0x336A79) # colBlue
+
+    res
+
+const defaultDotForegroundMap*: array[ForegroundColor, Color] =
+  block:
+    var res: array[ForegroundColor, Color]
+
+    res[fgDefault] = colNoColor
+    res[fgRed]     = Color(0x964C7B) # colRed
+    res[fgGreen]   = Color(0x74DFC4) # colGreen
+    res[fgCyan]    = Color(0x6D7E8A) # colCyan
+    res[fgMagenta] = Color(0xB381C5) # colMagenta
+    res[fgYellow]  = Color(0xFFE261) # colYellow
+    res[fgBlack]   = colBlack
+    res[fgWhite]   = colWhite
+    res[fgBlue]    = Color(0x336A79) # colBlue
+
+    res
+
+func makeHtmlDotNodeContents*(
+    cellItems: seq[HtmlElem],
+    tableAttrs: openarray[(string, string)] = {"border": "1"},
+    cellAttrs: openarray[(string, string)] = {"balign": "left", "border": "0"}):
+  HtmlElem =
+
+    newTree("table", @[
+        newTree("tr", @[
+          newTree("td", cellItems, cellAttrs)
+        ]),
+      ], tableAttrs)
+
+func makeDotNode*(
+    id: DotNodeId, label: string,
+    fg: ForegroundColor, bg: BackgroundColor,
+    bgColorMap: array[BackgroundColor, Color] = defaultDotBackgroundMap,
+    fgColorMap: array[ForegroundColor, Color] = defaultDotForegroundMap
+  ): DotNode =
+
+  result = DotNode(id: id, shape: nsaPlaintext)
+  var label = newHtmlText(escapeHtmlGraphviz(label))
+
+  label.textColor = fgColorMap[fg]
+  # label.textColorBg =
+  result.htmlLabel = makeHtmlDotNodeContents(@[label])
+  result.htmlLabel["bgcolor"] = $bgColorMap[bg]
+
+
 func makeDotRecord*(
     id: DotNodeId, text: string, subfields: seq[RecordField] = @[]
   ): RecordField =
@@ -527,6 +589,9 @@ func makeColoredDotNode*(
     cellAttrs: openarray[(string, string)] = {"balign": "left", "border": "0"},
     style: DotNodeStyle = nstDefault,
   ): DotNode =
+  ## Create graphviz with colored note text. `label` is allowed to contain
+  ## terminal ANSI SGR control codes like `\e[32`
+
   var escaped: seq[HtmlElem]
   var split = label.splitSGR_sep()
   for chunk in mitems(split):
@@ -539,12 +604,7 @@ func makeColoredDotNode*(
   DotNode(
     id: id,
     shape: nsaPlaintext,
-    htmlLabel:
-      newTree("table", @[
-        newTree("tr", @[
-          newTree("td", escaped, cellAttrs)
-        ]),
-      ], tableAttrs)
+    htmlLabel: makeHtmlDotNodeContents(escaped, tableAttrs, cellAttrs)
   )
 
 type
@@ -858,12 +918,15 @@ let res = DotGraph(
 # import shell
 
 # FIXME use `AbsFile` etc.
-proc topng*(
+
+import hmisc/other/oswrap
+
+proc toPng*(
     graph: DotGraph,
-    resfile: string,
+    resfile: AbsFile,
     resolution: int = 300,
-    tmpfile: string = "/tmp/dot-file.dot",
-    tmpimage: string = "/tmp/dot-image-tmp.png"
+    tmpfile: AbsFile = AbsFile "/tmp/dot-file.dot",
+    tmpimage: AbsFile = AbsFile "/tmp/dot-image-tmp.png"
   ): void =
   ## Generate file from graph
 
@@ -872,16 +935,15 @@ proc topng*(
   try:
     discard runShell makeX11ShellCmd("dot").withIt do:
       it - ("T", "", "png")
-      it - ("o", "", tmpimage)
+      it - ("o", "", $tmpimage)
       it.arg tmpfile
 
 
-    copyFile tmpimage, resfile
+    cpFile tmpimage, resfile
   except ShellError:
     printShellError()
     raise
 
-import hmisc/other/oswrap
 
 proc toXDot*(
     graph: DotGraph,
@@ -897,4 +959,13 @@ proc toXDot*(
     it - ("o", "", $resfile)
     it.arg tmpfile
 
-# res.topng("/tmp/file.png")
+proc toPng*(
+    graph: DotGraph,
+    resfile: string,
+    resolution: int = 300,
+    tmpfile: string = "/tmp/dot-file.dot",
+    tmpimage: string =  "/tmp/dot-image-tmp.png"
+  ): void {.deprecated.} =
+
+  toPng(graph, AbsFile resFile, resolution,
+        AbsFile tmpFile, AbsFile tmpImage)

@@ -133,4 +133,36 @@ suite "Graphviz generation":
 
     topGraph.addSubgraph(record)
 
-  topGraph.toPng("/tmp/res.png")
+  topGraph.toPng("/tmp/res.png", tmpfile = "/tmp/dot-1.dot")
+
+suite "graphiz terminal node styling":
+  test "All color combinations":
+    var topGraph = makeDotGraph()
+    topGraph["bgcolor"] = "\"#27212E\""
+
+    type
+      F = ForegroundColor
+      B = BackgroundColor
+
+    proc toId(fg: F, bg: B): DotNodeId =
+      toDotNodeId(int(fg) * 100 + int(bg))
+
+    proc hasSucc(c: F | B): bool =
+      c < high(typeof(c))
+
+    for fg in F:
+      for bg in B:
+        topGraph.add makeDotNode(
+          int(fg) * 100 + int(bg), $fg & "-" & $bg, fg, bg)
+
+    for fg in F:
+      for bg in B:
+        if hasSucc(fg):
+          topGraph.add makeDotEdge(toId(fg, bg), toId(succ(fg), bg))
+
+        if hasSucc(bg):
+          topGraph.add makeDotEdge(toId(fg, bg), toId(fg, succ(bg)))
+
+
+
+    topGraph.toPng("/tmp/res-1.png", tmpfile = "/tmp/dot-2.dot")
