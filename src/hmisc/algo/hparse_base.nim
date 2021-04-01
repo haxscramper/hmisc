@@ -1,4 +1,5 @@
-import std/[strutils, strformat, parseutils, options]
+import std/[strutils, strformat, parseutils,
+            options, segfaults]
 import ../base_errors, ../hdebug_misc
 import ./hlex_base, ./hstring_algo, ./hseq_mapping
 
@@ -89,6 +90,9 @@ func fillNext*[T](lex: var HSLexer[T], chars: int) =
 func haxNxt*[T](lex: HsLexer[T], offset: int): bool =
   lex.pos + offset < lex.tokens.len
 
+proc finished*[T](lex: HsLexer[T]): bool =
+  not haxNxt(lex, 0) and lex.str[].finished()
+
 func `[]`*[T](lex: var HSlexer[T], offset: int = 0): T =
   if not haxNxt(lex, offset):
     fillNext(lex, offset)
@@ -99,13 +103,21 @@ func `[]`*[T](lex: var HsLexer[T], slice: Slice[int]): seq[T] =
   for i in slice:
     result.add lex[i]
 
-
 func `[]`*[K](tokens: seq[HsTok[K]], offset: int, kind: set[K]|K): bool =
   when kind is set:
     tokens[offset].kind in kind
 
   else:
     tokens[offset].kind == kind
+
+func `[]`*[T, K](lex: var HsLexer[T], kind: set[K]|K): bool =
+  when kind is set:
+    return lex[].kind in kind
+
+  else:
+    return lex[].kind == kind
+
+
 
 func `[]`*[K](tokens: seq[HsTok[K]], kind: set[K]|K): bool =
   tokens[0, kind]
@@ -135,14 +147,17 @@ proc skipTo*[T](lex: var HsLexer[T], chars: set[char]) =
 func hsParseIdent*[R, T](lex: var HsLexer[T], rule: R):
   HsTokTree[R, T] = HsTokTree[R, T](isToken: true, token: lex.pop())
 
-func hsInsideBalanced*[T, K](
+proc hsInsideBalanced*[T, K](
     lex: var HsLexer[T], openKinds, closeKinds: set[K],
     withWrap: bool = false
   ): seq[T] =
 
+  if lex.finished():
+    return
+
   var cnt: int
 
-  if lex[].kind in openKinds:
+  if lex[openKinds]:
     inc cnt
     if withWrap:
       result.add lex.pop()
@@ -151,10 +166,10 @@ func hsInsideBalanced*[T, K](
       lex.advance()
 
     while cnt > 0:
-      if lex[].kind in openKinds:
+      if lex[openKinds]:
         inc cnt
 
-      elif lex[].kind in closeKinds:
+      elif lex[closeKinds]:
         dec cnt
 
       if cnt > 0 or withWrap:

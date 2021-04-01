@@ -1,4 +1,5 @@
-import std/[streams, strscans, strutils, strformat, macros]
+import std/[streams, strscans, strutils, strformat,
+            macros, segfaults]
 import ../base_errors, ../hdebug_misc
 import ./halgorithm
 
@@ -47,6 +48,14 @@ const
   HorizontalSpace* = AllSpace - Newline
   VeritcalSpace* = Newline
 
+template raiseCannotGetOffset*(str: PosStr, offset: int) =
+  {.line: instantiationInfo().}:
+    mixin finished
+    raiseArgumentError(
+      "Cannot get char at +" & $offset & " input string is finished: " &
+      $finished(str)
+    )
+
 func len*(slice: PosStrSlice): int = slice.finish - slice.start
 func toAbsolute*(slice: PosStrSlice, offset: int): int =
   slice.start + offset
@@ -92,7 +101,7 @@ proc hasNxt*(input: PosStr; idx: int): bool =
     return pos < input.str.len
 
 proc finished*(str: PosStr): bool =
-  not str.hasNxt(0) and str.stream.atEnd()
+  not str.hasNxt(0) and (str.isSlice or str.stream.atEnd())
 
 
 template nxt*(input: var PosStr; idx, step: int = 1) =
@@ -130,9 +139,11 @@ proc resetBuffer*(str) =
 proc `[]`*(str; idx: int = 0): char {.inline.} =
   fillNext(str, idx)
   if not hasNxt(str, idx):
-    raiseArgumentError(&"Cannot get char at [+{idx}]")
+    raiseCannotGetOffset(str, idx)
+    # raiseArgumentError(&"Cannot get char at [+{idx}]")
 
   if str.isSlice:
+    let idx = str.pos + idx
     var sliceStart = 0
     for slice in str.slices[str.sliceIdx .. ^1]:
       if sliceStart <= idx and
@@ -143,6 +154,7 @@ proc `[]`*(str; idx: int = 0): char {.inline.} =
         sliceStart += slice.len
 
     raiseArgumentError(&"Cannot get char at [+{idx}]")
+
   else:
     return str.str[str.pos + idx]
 
@@ -187,13 +199,17 @@ proc `[]`*(str; slice: HSlice[int, char]): string =
 
 proc `$`*(slice: PosStrSlice): string = &"{slice.start}..{slice.finish}"
 proc `[]`*(str; slice: PosStrSlice): string =
-  str.baseStr[][slice.start ..< slice.finish]
+  str.baseStr[][
+    max(slice.start, 0) ..< min(slice.finish, str.baseStr[].high)]
 
-proc `$`*(str): string {.inline.} =
+proc `$`*(str): string =
   if str.isSlice:
     result = "["
     for slice in str.slices:
       var text = str[slice]
+      if text.len == 0:
+        continue
+
       if text.count('\n') == 1:
         text = "\"" & text.replace("\n", "⮒") & "\""
 
@@ -243,7 +259,7 @@ proc advance*(str; step: int = 1) {.inline.} =
   inc(str.pos, step)
 
 proc skipWhile*(str; chars: set[char]) {.inline.} =
-  if str[] in chars:
+  if str[chars]:
     while str[chars]:
       str.advance()
 

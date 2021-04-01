@@ -153,8 +153,6 @@ proc parseCall*(lex: var HsLexer[StrTok]): StraceRecord =
   lex.skipTo({'\n'})
 
   let str = lex.popRange()
-  # echov str
-  # echov head
   lex.resetBuffer()
   for arg in args:
     if arg[stkLCurly]:
@@ -164,10 +162,6 @@ proc parseCall*(lex: var HsLexer[StrTok]): StraceRecord =
         :
 
         discard
-        # echov "    ", kv
-
-    # else:
-    #   echov "  ", arg
 
 
 proc straceOutConverter*(
