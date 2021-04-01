@@ -12,6 +12,9 @@ checklist
 - As little side effects as possible
 - Make node and edge ID's distinct integers to avoid messing them up
 
+- IDEA :: Add `->` and `<-` as operators that would return `TempEdge`
+  object that can be added via `graph.add source -> target`.
+
 ]#
 
 import std/[intsets]
@@ -65,8 +68,9 @@ proc `$`*[N, E](node: HNode[N, E]): string = $node[]
 proc `$`*[N, E](edge: HEdge[N, E]): string = $edge[]
 
 func value*[N, E](node: HNode[N, E]): N {.inline.} = node.nodeValue
-
 func value*[N, E](edge: HEdge[N, E]): E {.inline.} = edge.edgeValue
+func value*[N, E](node: var HNode[N, E]): var N {.inline.} = node.nodeValue
+func value*[N, E](edge: var HEdge[N, E]): var E {.inline.} = edge.edgeValue
 
 func `value=`*[N, E](node: var HNode[N, E], value: N) {.inline.} =
   node.nodeValue = value
@@ -109,23 +113,34 @@ proc addOrGetNode*[N, E](graph: var HGraph[N, E], value: N): HNode[N, E] =
   else:
     return graph.addNode(value)
 
-proc addEdge*[N, E](
-    graph: var HGraph[N, E],
-    source, target: HNode[N, E], value: E): HEdge[N, E] =
+template addEdgeImpl(N, E, post: untyped): untyped {.dirty.} =
+  result = HEdge[N, E](id: graph.maxId, source: source, target: target)
 
-  result = HEdge[N, E](
-    id: graph.maxId,
-    edgeValue: value,
-    source: source,
-    target: target
-  )
+  post
 
   graph.edgeMap[(source.id, target.id)] = result
-
   graph.outgoingIndex.mgetOrPut(source.id, IntSet()).incl target.id
 
   if not graph.isDirected():
     graph.ingoingIndex.mgetOrPut(target.id, IntSet()).incl source.id
+
+
+
+proc addEdge*[N, E](
+    graph: var HGraph[N, E], source, target: HNode[N, E], value: E):
+  HEdge[N, E] =
+
+  addEdgeImpl(N, E):
+    result.edgeValue = value
+
+
+proc addEdge*[N](
+    graph: var HGraph[N, void], source, target: HNode[N, void]):
+  HEdge[N, void] =
+
+  addEdgeImpl(N, void):
+    discard
+
 
 proc addEdge*[N, E](
     graph: var HGraph[N, E], sourceValue, targetValue: N, edgeValue: E):
@@ -149,7 +164,8 @@ proc addOrGetEdge*[N, E](
 
 proc addOrGetEdge*[N, E](
     graph: var HGraph[N, E],
-    edgePairs: openarray[tuple[edgePair: tuple[sourceValue, targetValue: N], edgeValue: E]]):
+    edgePairs: openarray[tuple[edgePair:
+      tuple[sourceValue, targetValue: N], edgeValue: E]]):
   seq[HEdge[N, E]] =
 
   for (valuePair, edge) in edgePairs:
@@ -199,7 +215,7 @@ iterator outEdges*[N, E](graph: HGraph[N, E], source: HNode[N, E]):
 
   ## Iterate over outgoing edges for `source`
   if source.id in graph.outgoingIndex:
-    for targetId in graph.outgoingIndex[source.id]:
+    for targetId in items(graph.outgoingIndex[source.id]):
       yield graph.edgeMap[(source.id, targetId)]
 
 iterator inEdges*[N, E](graph: HGraph[N, E], target: HNode[N, E]):
@@ -352,7 +368,7 @@ proc findCycles*[N, E](graph: HGraph[N, E]): seq[HGraphPath[N, E]] =
   discard
 
 proc connectedComponents*[N, E](graph: HGraph[N, E]): seq[seq[HNode[N, E]]] =
-  ## Return list of nodes forming strongly connected components
+  ## Return nodes forming strongly connected components
   type
     Node = HNode[N, E]
     IdTable = Table[int, int]
