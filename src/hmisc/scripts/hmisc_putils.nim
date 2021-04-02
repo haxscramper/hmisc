@@ -8,10 +8,11 @@ startColorLogger()
 proc tempDirPath(proj: AbsDir): AbsDir =
   AbsDir("/tmp") / proj.splitDir().tail
 
-proc dockertest*(projectDir: AbsDir = cwd(),
-                 localDeps: seq[string] = @[],
-                 preTestCmds: seq[ShellExpr] = @[]
-                ) =
+proc dockertest*(
+    projectDir: AbsDir = cwd(),
+    localDeps: seq[string] = @[],
+    preTestCmds: seq[ShellExpr] = @[]
+  ) =
   ## Run unti tests in new docker container
   let tmpd = tempDirPath(projectDir)
   runDockerTest(projectDir, tmpd,
@@ -42,9 +43,10 @@ proc docgen*() =
   runDocgen(conf)
 
 proc dockerDocGen*(
-  projectDir: AbsDir = cwd(),
-  localDeps: seq[string] = @[],
-  simulateCI: bool = true) =
+    projectDir: AbsDir = cwd(),
+    localDeps: seq[string] = @[],
+    simulateCI: bool = true
+  ) =
   ## Test documentation generation in new docker container
   info "Creating new docker container"
   debug "Input directory is", projectDir

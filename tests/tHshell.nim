@@ -27,7 +27,12 @@ suite "Shell output parser":
 
   test "Strace parser with string view":
     let cmd = shellCmd(strace, echo, "-")
-    let text = cmd.evalShell().stderr
+    var text: string
+    try:
+      text = cmd.evalShell().stderr
+    except ShellError:
+      skip()
+
     var str = initPosStr(text)
     var strView = initPosStrView(str)
 
@@ -35,10 +40,10 @@ suite "Shell output parser":
     while not strView.finished():
       discard straceErrConverter(strView, cmd, state)
 
-    echo "Err converter finished"
+    # echo "Err converter finished"
 
     state = none(HSLexer[StrTok])
-    while not strView.finished():
+    while not str.finished():
       discard straceErrConverter(str, cmd, state)
 
 

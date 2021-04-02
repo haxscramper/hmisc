@@ -172,7 +172,7 @@ proc straceOutConverter*(
   discard
 
 proc straceErrConverter*(
-  str: var PosStr, cmd: ShellCmd, state: var Option[HsLexer[StrTok]]):
+    str: var PosStr, cmd: ShellCmd, state: var Option[HsLexer[StrTok]]):
   Option[StraceRecord] =
 
   if state.isNone():

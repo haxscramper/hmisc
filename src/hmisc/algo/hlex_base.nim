@@ -101,7 +101,11 @@ proc hasNxt*(input: PosStr; idx: int): bool =
     return pos < input.str.len
 
 proc finished*(str: PosStr): bool =
-  not str.hasNxt(0) and (str.isSlice or str.stream.atEnd())
+  not str.hasNxt(0) and (
+    str.isSlice or
+    isNil(str.stream) or
+    str.stream.atEnd()
+  )
 
 
 template nxt*(input: var PosStr; idx, step: int = 1) =
@@ -370,7 +374,7 @@ proc readLine*(str; skipNl: bool = true): string =
     result.add str.pop()
 
 proc skipLine*(str) =
-  while not str['\n']: str.advance()
+  while not str['\n'] and not str.finished(): str.advance()
   str.advance()
 
 import std/re
