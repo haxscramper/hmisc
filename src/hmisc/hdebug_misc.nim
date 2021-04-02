@@ -134,6 +134,9 @@ proc echoi*(message: varargs[string, `$`]): void =
   ## Echo with message joined by spaces
   echo message.join(" ")
 
+proc `@`*(p: ptr): string = $cast[int](p)
+
+
 template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
   # Store previous indentation echo and print next level indented or
   # unindented based on new column value.

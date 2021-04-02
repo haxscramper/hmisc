@@ -20,12 +20,12 @@ checklist
 import std/[intsets]
 
 type
-  HNode[N, E] = ref HNodeObj[N, E]
+  HNode*[N, E] = ref HNodeObj[N, E]
   HNodeObj[N, E] = object
     id: int
     nodeValue: N
 
-  HEdge[N, E] = ref HEdgeObj[N, E]
+  HEdge*[N, E] = ref HEdgeObj[N, E]
   HEdgeObj[N, E] = object
     id: int
     source*: HNode[N, E]
@@ -37,7 +37,7 @@ type
     gpUndirected
     gpAllowSelfLoops
 
-  HGraph[N, E] = ref HGraphObj[N, E]
+  HGraph*[N, E] = ref HGraphObj[N, E]
 
   HGraphObj[N, E] = object
     nodeMap: Table[N, HNode[N, E]]
@@ -48,13 +48,13 @@ type
     ingoingIndex: Table[int, IntSet]
     outgoingIndex: Table[int, IntSet]
 
-  HGraphPath[N, E] = seq[HEdge[N, E]]
+  HGraphPath*[N, E] = seq[HEdge[N, E]]
 
 
 type
-  HGraphError = ref object of CatchableError
+  HGraphError* = ref object of CatchableError
 
-  HGraphCyclesError = ref object of HGraphError
+  HGraphCyclesError* = ref object of HGraphError
 
 
 
@@ -95,7 +95,9 @@ func newId[N, E](graph: var HGraph[N, E]): int {.inline.} =
 func isDirected*[N, E](graph: HGraph[N, E]): bool {.inline.} =
   gpDirected in graph.properties
 
-proc addNode*[N, E](graph: var HGraph[N, E], value: N): HNode[N, E] =
+proc addNode*[N, E](graph: var HGraph[N, E], value: N):
+  HNode[N, E] {.discardable.} =
+
   result = HNode[N, E](id: graph.newId, nodeValue: value)
   graph.nodeIdMap[result.id] = result
   graph.nodeMap[value] = result
@@ -106,7 +108,9 @@ proc first(intSet: IntSet): int =
     return value
 
 
-proc addOrGetNode*[N, E](graph: var HGraph[N, E], value: N): HNode[N, E] =
+proc addOrGetNode*[N, E](graph: var HGraph[N, E], value: N):
+  HNode[N, E] {.discardable.} =
+
   if value in graph.nodeMap:
     return graph.nodeMap[value]
 
@@ -128,7 +132,7 @@ template addEdgeImpl(N, E, post: untyped): untyped {.dirty.} =
 
 proc addEdge*[N, E](
     graph: var HGraph[N, E], source, target: HNode[N, E], value: E):
-  HEdge[N, E] =
+  HEdge[N, E] {.discardable.} =
 
   addEdgeImpl(N, E):
     result.edgeValue = value
@@ -136,7 +140,7 @@ proc addEdge*[N, E](
 
 proc addEdge*[N](
     graph: var HGraph[N, void], source, target: HNode[N, void]):
-  HEdge[N, void] =
+  HEdge[N, void] {.discardable.} =
 
   addEdgeImpl(N, void):
     discard
@@ -144,7 +148,7 @@ proc addEdge*[N](
 
 proc addEdge*[N, E](
     graph: var HGraph[N, E], sourceValue, targetValue: N, edgeValue: E):
-  HEdge[N, E] =
+  HEdge[N, E] {.discardable.} =
 
   return graph.addEdge(
     graph.addNode(sourceValue),
@@ -154,7 +158,7 @@ proc addEdge*[N, E](
 
 proc addOrGetEdge*[N, E](
     graph: var HGraph[N, E], sourceValue, targetValue: N, edgeValue: E):
-  HEdge[N, E] =
+  HEdge[N, E] {.discardable.} =
 
   return graph.addEdge(
     graph.addOrGetNode(sourceValue),
@@ -166,7 +170,7 @@ proc addOrGetEdge*[N, E](
     graph: var HGraph[N, E],
     edgePairs: openarray[tuple[edgePair:
       tuple[sourceValue, targetValue: N], edgeValue: E]]):
-  seq[HEdge[N, E]] =
+  seq[HEdge[N, E]] {.discardable.} =
 
   for (valuePair, edge) in edgePairs:
     result.add graph.addEdge(

@@ -159,10 +159,10 @@ proc makeIndex*[T, L, V](
     index.idValues[result.id] = getValue(tree)
     index.idLabels[result.id] = getLabel(tree)
     index.idLevels[result.id] = result.level
-    static:
-      echo typeof(index.subnodes)
-      echo typeof(result.id)
-      echo typeof(id)
+    # static:
+    #   echo typeof(index.subnodes)
+    #   echo typeof(result.id)
+    #   echo typeof(id)
 
     index.subnodes[result.id] = id
 
