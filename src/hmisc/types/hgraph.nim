@@ -85,8 +85,13 @@ func edgesCount*[N, E](graph: HGraph[N, E]): int = graph.edgeMap.len
 func nodeCount*[N, E](graph: HGraph[N, E]): int = graph.nodeMap.len
 
 func inDeg*[N, E](graph: HGraph[N, E], node: HNode[N, E]): int {.inline.} =
+  ## Return in degree for @arg{node}
   if node.id in graph.ingoingIndex:
     result = len(graph.ingoingIndex[node.id])
+
+func outDeg*[N, E](graph: HGraph[N, E], node: HNode[N, E]): int =
+  ## Return out degree for @arg{node}. IMPLEMENT
+  discard
 
 func newId[N, E](graph: var HGraph[N, E]): int {.inline.} =
   result = graph.maxId
@@ -363,9 +368,18 @@ proc topologicalOrdering*[N, E](graph: HGraph[N, E]): seq[HNode[N, E]] =
 
 proc dependencyOrdering*[N, E](
     graph: HGraph[N, E],
-    root: HNode[N, N], leafFirst: bool = true): seq[HNode[N, E]] =
-  ## Return graph nodes in dependencies for `node`.
+    root: HNode[N, E], leafFirst: bool = true
+  ): seq[HNode[N, E]] =
+  ## Return graph nodes in dependencies for `node`. IMPLEMENT
 
+  discard
+
+proc colorizeRLF*[N, E](graph: HGraph[N, E]) =
+  ## Color graph using RLF algorithm. IMPLEMENT
+  discard
+
+proc minmalSpanningTree*[N, E](graph: HGraph[N, E]): HGraph[N, E] =
+  ## Return minimal spanning tree for graph. IMPLEMENT
   discard
 
 proc findCycles*[N, E](graph: HGraph[N, E]): seq[HGraphPath[N, E]] =
