@@ -4,6 +4,7 @@ import hmisc/base_errors
 import hmisc/algo/[htree_distance, hseq_distance, halgorithm]
 import hmisc/hdebug_misc
 
+import hmisc/other/oswrap
 when $$CI == true:
   static:
     # I have absolutely no idea why this thing fails compilation on github
