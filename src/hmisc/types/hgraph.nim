@@ -34,8 +34,6 @@ type
 
   HEdge* = object
     id: HEdgeId
-    source*: HNode
-    target*: HNode
 
   HGraphProperty = enum
     gpDirected
@@ -46,9 +44,9 @@ type
   HGraphStructure* = object
     properties: set[HGraphProperty]
     maxId: int
-    edgeMap: Table[(HNodeId, HNodeId), HEdge]
-    ingoingIndex: Table[HNodeId, HNodeSet]
-    outgoingIndex: Table[HNodeId, HNodeSet]
+    edgeMap: Table[HEdgeId, (HNode, HNode)]
+    ingoingIndex: Table[HNodeId, HEdgeSet]
+    outgoingIndex: Table[HNodeId, HEdgeSet]
 
 
   HNodePropertyMap*[N] = object
@@ -130,6 +128,10 @@ func excl*(s: var HNodeSet, node: HNode) =
 func excl*(s: var HEdgeSet, edge: HEdge) =
   s.intSet.excl edge.id.int
 
+iterator items*(s: HEdgeSet): HEdge =
+  for item in s.intSet:
+    yield HEdge(id: HEdgeId(item))
+
 func contains*(s: HEdgeSet, id: HEdgeId): bool = id.int in s.intSet
 func contains*(s: HNodeSet, id: HNodeId): bool = id.int in s.intSet
 func contains*(s: HNodeSet, node: HNode): bool = node.id.int in s.intSet
@@ -166,6 +168,12 @@ func `[]`*[N, E](g: var HGraph[N, E], node: HNode): N =
 
 func `[]`*[N, E](g: var HGraph[N, E], edge: HEdge): E =
   g.edgeMap.valueMap[edge]
+
+func target*[N, E](g: HGraph[N, E], edge: HEdge): HNode =
+  g.structure.edgeMap[edge.id][1]
+
+func source*[N, E](g: HGraph[N, E], edge: HEdge): HNode =
+  g.structure.edgeMap[edge.id][0]
 
 func contains*[N](map: HNodePropertyMap[N], value: N): bool =
   value in map.reverseMap
@@ -271,16 +279,16 @@ proc addOrGetNode*[N, E](graph: var HGraph[N, E], value: N):
     return graph.addNode(value)
 
 template addEdgeImpl(N, E, post: untyped): untyped {.dirty.} =
-  result = HEdge(id: HEdgeId(graph.newId()), source: source, target: target)
+  result = HEdge(id: HEdgeId(graph.newId()))
 
   post
 
-  graph.structure.edgeMap[(source.id, target.id)] = result
-  graph.structure.outgoingIndex.mgetOrPut(source.id, HNodeSet()).incl target
+  graph.structure.edgeMap[result.id] = (source, target)
+  graph.structure.outgoingIndex.mgetOrPut(source.id, HEdgeSet()).incl result
 
   if not graph.isDirected():
     graph.structure.ingoingIndex.mgetOrPut(
-      target.id, HNodeSet()).incl source
+      target.id, HEdgeSet()).incl result
 
 
 
@@ -354,7 +362,7 @@ proc removeEdge*[N, E](graph: var HGraph[N, E], edge: HEdge) =
   ## removed.
   graph.edgeMap.del edge
   # FIXME
-  graph.structure.ingoingIndex.del edge.target.id
+  graph.structure.ingoingIndex.del graph.target(edge).id
 
 proc getNode*[N, E](graph: HGraph[N, E], value: N): HNode =
   ## Return node associated with given value
@@ -373,24 +381,23 @@ proc isAdjacent*[N, E](graph: HGraph[N, E], node1, node2: HNode): bool =
 iterator outEdges*[N, E](graph: HGraph[N, E], source: HNode): HEdge =
   ## Iterate over outgoing edges for `source`
   if source.id in graph.structure.outgoingIndex:
-    for targetId in items(graph.structure.outgoingIndex[source.id]):
-      yield graph.structure.edgeMap[(source.id, targetId)]
+    for edgeId in items(graph.structure.outgoingIndex[source.id]):
+      yield edgeId
 
 iterator inEdges*[N, E](graph: HGraph[N, E], target: HNode): HEdge =
   ## Iterate over ingoing edges for `target`
   if target.id in graph.structure.ingoingIndex:
-    for sourceId in items(graph.structure.ingoingIndex[target.id]):
-      yield graph.structure.edgeMap[(sourceId, target.id)]
+    for edgeId in items(graph.structure.ingoingIndex[target.id]):
+      yield edgeId
 
 iterator outNodes*[N, E](graph: HGraph[N, E], source: HNode): HNode =
-
   for edge in outEdges(graph, source):
-    yield edge.target
+    yield graph.target(edge)
 
 iterator inNodes*[N, E](graph: HGraph[N, E], source: HNode): HNode =
 
   for edge in inEdges(graph, source):
-    yield edge.source
+    yield graph.source(edge)
 
 iterator adjacent*[N, E](graph: HGraph[N, E], node: HNode): HNode =
   ## Iterate over all adjacent nodes for `node`
@@ -488,15 +495,16 @@ proc topologicalOrdering*[N, E](graph: HGraph[N, E]): seq[HNode] =
     if graph.inDeg(node) == 0:
       noincoming.incl node
 
-  var graph = graph
+  var graph = graph # WARNING use `copyGraphStructure`
 
   while len(noincoming) > 0:
     let node = noincoming.pop
     result.add node
     for outEdge in graph.outEdges(node):
       graph.removeEdge(outEdge)
-      if graph.inDeg(outEdge.target) == 0:
-        noincoming.incl outEdge.target
+      let target = graph.target(outEdge)
+      if graph.inDeg(target) == 0:
+        noincoming.incl target
 
   if graph.edgesCount > 0:
     raise HGraphCyclesError(
@@ -598,14 +606,14 @@ proc graphvizRepr*[N, E](
     result.add ";\n"
 
   for edge in graph.edges:
-    result.add  "  " & toIdStr(edge.source)
+    result.add  "  " & toIdStr(graph.source(edge))
     if graph.isDirected():
       result.add " -> "
 
     else:
       result.add " -- "
 
-    result.add toIdStr(edge.target)
+    result.add toIdStr(graph.target(edge))
 
     if not isNil(edgeDotAttrs):
       result.add edgeDotAttrs(edge)
