@@ -51,7 +51,7 @@ type
     outgoingIndex: Table[HNodeId, HEdgeSet]
 
 
-  HNodePropertyMap*[N] = ref object
+  HNodeMap*[N] = ref object
     valueMap: Table[HNode, N]
     case keepReverseIndex: bool
       of true:
@@ -60,7 +60,7 @@ type
       of false:
         discard
 
-  HEdgePropertyMap*[E] = ref object
+  HEdgeMap*[E] = ref object
     valueMap: Table[HEdge, E]
     case keepReverseIndex: bool
       of true:
@@ -71,8 +71,8 @@ type
 
   HGraph*[N, E] = object
     structure*: HGraphStructure
-    edgeMap*: HEdgePropertyMap[E]
-    nodeMap*: HNodePropertyMap[N]
+    edgeMap*: HEdgeMap[E]
+    nodeMap*: HNodeMap[N]
 
   HGraphPath* = seq[HEdge]
 
@@ -83,16 +83,16 @@ type
   HGraphCyclesError* = ref object of HGraphError
 
 
-func newHEdgePropertyMap*[E](keepReverseIndex: bool = true):
-  HEdgePropertyMap[E] =
+func newHEdgeMap*[E](keepReverseIndex: bool = true):
+  HEdgeMap[E] =
 
-  return HEdgePropertyMap[E](keepReverseIndex: keepReverseIndex)
+  return HEdgeMap[E](keepReverseIndex: keepReverseIndex)
 
 
-func newHNodePropertyMap*[E](keepReverseIndex: bool = true):
-  HNodePropertyMap[E] =
+func newHNodeMap*[E](keepReverseIndex: bool = true):
+  HNodeMap[E] =
 
-  return HNodePropertyMap[E](keepReverseIndex: keepReverseIndex)
+  return HNodeMap[E](keepReverseIndex: keepReverseIndex)
 
 func initHNode*(id: int): HNode = HNode(id: HNodeId(id))
 func initHEdge*(id: int): HEdge = HEdge(id: HEdgeId(id))
@@ -103,8 +103,8 @@ func newHGraph*[N, E](
 
   HGraph[N, E](
     structure: HGraphStructure(properties: properties),
-    nodeMap: newHNodePropertyMap[N](),
-    edgeMap: newHEdgePropertyMap[E]()
+    nodeMap: newHNodeMap[N](),
+    edgeMap: newHEdgeMap[E]()
   )
 
 func copyStructureHGraph*[N, E](graph: HGraph[N, E]): HGraph[N, E] =
@@ -114,15 +114,15 @@ func copyStructureHGraph*[N, E](graph: HGraph[N, E]): HGraph[N, E] =
     nodeMap: graph.nodeMap
   )
 
-func withPropertyMap*[N1, N2, E](
-    graph: HGraph[N1, E], map: HNodePropertyMap[N2]): HGraph[N2, E] =
+func withMap*[N1, N2, E](
+    graph: HGraph[N1, E], map: HNodeMap[N2]): HGraph[N2, E] =
 
   HGraph[N2, E](
     structure: graph.structure, nodeMap: map, edgeMap: graph.edgeMap)
 
 
-func withPropertyMap*[N, E1, E2](
-    graph: HGraph[N, E1], map: HEdgePropertyMap[E2]): HGraph[N, E2] =
+func withMap*[N, E1, E2](
+    graph: HGraph[N, E1], map: HEdgeMap[E2]): HGraph[N, E2] =
 
   HGraph[N, E2](
     structure: graph.structure, nodeMap: graph.nodeMap, edgeMap: map)
@@ -186,43 +186,43 @@ func target*[N, E](g: HGraph[N, E], edge: HEdge): HNode =
 func source*[N, E](g: HGraph[N, E], edge: HEdge): HNode =
   g.structure.edgeMap[edge.id][0]
 
-func contains*[N](map: HNodePropertyMap[N], value: N): bool =
+func contains*[N](map: HNodeMap[N], value: N): bool =
   value in map.reverseMap
 
-func contains*[N](map: HNodePropertyMap[N], node: HNode): bool =
+func contains*[N](map: HNodeMap[N], node: HNode): bool =
   node in map.valueMap
 
-func len*[N](map: HEdgePropertyMap[N]): int = map.valueMap.len
-func len*[E](map: HNodePropertyMap[E]): int = map.valueMap.len
+func len*[N](map: HEdgeMap[N]): int = map.valueMap.len
+func len*[E](map: HNodeMap[E]): int = map.valueMap.len
 
-func del*[N](map: var HEdgePropertyMap[N], edge: HEdge) =
+func del*[N](map: var HEdgeMap[N], edge: HEdge) =
   map.valueMap.del edge
   if map.keepReverseIndex:
     # IMPLEMENT remove reverse index
     discard
 
-func `[]`*[N](map: HNodePropertyMap[N], value: N): HNode =
+func `[]`*[N](map: HNodeMap[N], value: N): HNode =
   ## Return fist node matching value `value`
   map.reverseMap[value][0]
 
-func `[]`*[N](map: HNodePropertyMap[N], node: HNode): N =
+func `[]`*[N](map: HNodeMap[N], node: HNode): N =
   map.valueMap[node]
 
-func `[]=`*[N](map: var HNodePropertyMap[N], node: HNode, value: N) =
+func `[]=`*[N](map: var HNodeMap[N], node: HNode, value: N) =
   map.valueMap[node] = value
   # IMPLEMENT how to handle revese index?
 
 
-iterator pairs*[N](map: HNodePropertyMap[N]): (HNode, N) =
+iterator pairs*[N](map: HNodeMap[N]): (HNode, N) =
   for node, value in pairs(map.valueMap):
     yield (node, value)
 
 
-iterator pairs*[N](map: HEdgePropertyMap[N]): (HEdge, N) =
+iterator pairs*[N](map: HEdgeMap[N]): (HEdge, N) =
   for edge, value in pairs(map.valueMap):
     yield (edge, value)
 
-func `$`*[N](map: HNodePropertyMap[N]): string =
+func `$`*[N](map: HNodeMap[N]): string =
   result = "{"
   for key, value in pairs(map):
     result &= $key & ": " & $value & ", "
@@ -230,12 +230,12 @@ func `$`*[N](map: HNodePropertyMap[N]): string =
   result &= "}"
 
 
-func add*[N](map: var HNodePropertyMap[N], value: N, node: HNode) =
+func add*[N](map: var HNodeMap[N], value: N, node: HNode) =
   map.valueMap[node] = value
   if map.keepReverseIndex:
     map.reverseMap.mgetOrPut(value, @[]).add node
 
-func add*[E](map: var HEdgePropertyMap[E], value: E, edge: HEdge) =
+func add*[E](map: var HEdgeMap[E], value: E, edge: HEdge) =
   map.valueMap[edge] = value
   if map.keepReverseIndex:
     map.reverseMap.mgetOrPut(value, @[]).add edge
@@ -528,7 +528,7 @@ proc dependencyOrdering*[N, E](
   discard
 
 proc colorizeDSatur*[N, E](graph: HGraph[N, E]):
-  tuple[maxColors: int, colorMap: HNodePropertyMap[int]] =
+  tuple[maxColors: int, colorMap: HNodeMap[int]] =
   ## Color graph nodes using DSatur algorithm
 
   type
@@ -571,7 +571,7 @@ proc colorizeDSatur*[N, E](graph: HGraph[N, E]):
 
   var nodes: seq[DSatNode]
 
-  var dsatMap = newHnodePropertyMap[DSatNode](false)
+  var dsatMap = newHnodeMap[DSatNode](false)
 
   for node in nodes(graph):
     let dsatur = DSatNode(
@@ -587,7 +587,7 @@ proc colorizeDSatur*[N, E](graph: HGraph[N, E]):
     for node in graph.outNodes(dsat.baseNode):
       dsat.adjacent.add dsatMap[node]
 
-  result.colorMap = newHNodePropertyMap[int](false)
+  result.colorMap = newHNodeMap[int](false)
 
   while nodes.len > 0:
     let node = nodes.popMaxDSat()
@@ -617,7 +617,7 @@ proc connectedComponents*[N, E](graph: HGraph[N, E]): seq[seq[HNode]] =
   ## Return nodes forming strongly connected components
   type
     Node = HNode
-    IdTable = HNodePropertyMap[int]
+    IdTable = HNodeMap[int]
 
   var time: int
 
@@ -653,8 +653,8 @@ proc connectedComponents*[N, E](graph: HGraph[N, E]): seq[seq[HNode]] =
       stackMember.excl w
 
   var
-    disc = newHNodePropertyMap[int](false)
-    low = newHNodePropertyMap[int](false)
+    disc = newHNodeMap[int](false)
+    low = newHNodeMap[int](false)
     stackMember: HNodeSet
     st = newSeq[Node]()
 
