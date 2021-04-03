@@ -1,9 +1,10 @@
 ## Generic implementation of graph data structure
 
-import std/[tables, deques, hashes, random,
+import std/[tables, deques, hashes, random, options,
             strformat, strutils, sequtils, algorithm]
 
 import ../algo/htemplates
+import ../hasts/graphviz_ast
 
 #[
 checklist
@@ -22,6 +23,7 @@ checklist
 import std/[intsets]
 
 type
+  NoProperty = distinct char
   HNodeId* = distinct int
   HEdgeId* = distinct int
 
@@ -49,6 +51,7 @@ type
     edgeMap: Table[HEdgeId, (HNode, HNode)]
     ingoingIndex: Table[HNodeId, HEdgeSet]
     outgoingIndex: Table[HNodeId, HEdgeSet]
+    nodeSet: HNodeSet
 
 
   HNodeMap*[N] = ref object
@@ -96,6 +99,12 @@ func newHNodeMap*[E](keepReverseIndex: bool = true):
 
 func initHNode*(id: int): HNode = HNode(id: HNodeId(id))
 func initHEdge*(id: int): HEdge = HEdge(id: HEdgeId(id))
+converter toDotNodeId*(id: HNodeId): DotNodeId = toDotNodeId(id.int)
+converter toDotNodeId*(id: HNode): DotNodeId = toDotNodeId(id.id.int)
+
+converter toDotNodeId*(id: seq[HNode|HNodeID]): seq[DotNodeId] =
+  for item in id:
+    result.add toDotNodeId(item)
 
 func newHGraph*[N, E](
     properties: set[HGraphProperty] = {gpDirected, gpAllowSelfLoops}
@@ -144,11 +153,15 @@ iterator items*(s: HEdgeSet): HEdge =
   for item in s.intSet:
     yield HEdge(id: HEdgeId(item))
 
+
 func contains*(s: HEdgeSet, id: HEdgeId): bool = id.int in s.intSet
 func contains*(s: HNodeSet, id: HNodeId): bool = id.int in s.intSet
 func contains*(s: HNodeSet, node: HNode): bool = node.id.int in s.intSet
 func contains*(s: HEdgeSet, node: HEdge): bool = node.id.int in s.intSet
 func len*(s: HNodeSet | HEdgeSet): int = s.intSet.len
+func contains*[N, E](graph: HGraph[N, E], node: HNode): bool =
+  node in graph.structure.nodeSet
+
 
 func pop(iset: var IntSet): int =
   for i in iset:
@@ -174,10 +187,10 @@ func hash*(edge: HEdge): Hash = hash(edge.id)
 # proc `$`*(node: HNode): string = $node.id
 # proc `$`*(edge: HEdge): string = $edge.id
 
-func `[]`*[N, E](g: var HGraph[N, E], node: HNode): N =
+func `[]`*[N, E](g: HGraph[N, E], node: HNode): N =
   g.nodeMap.valueMap[node]
 
-func `[]`*[N, E](g: var HGraph[N, E], edge: HEdge): E =
+func `[]`*[N, E](g: HGraph[N, E], edge: HEdge): E =
   g.edgeMap.valueMap[edge]
 
 func target*[N, E](g: HGraph[N, E], edge: HEdge): HNode =
@@ -232,6 +245,7 @@ func `$`*[N](map: HNodeMap[N]): string =
 
 func add*[N](map: var HNodeMap[N], value: N, node: HNode) =
   map.valueMap[node] = value
+  mixin hash
   if map.keepReverseIndex:
     map.reverseMap.mgetOrPut(value, @[]).add node
 
@@ -265,7 +279,15 @@ proc addNode*[N, E](graph: var HGraph[N, E], value: N):
   ## Add new node with `value` to graph and return resulting node
 
   result = HNode(id: HNodeId(graph.newId()))
+  graph.structure.nodeSet.incl result
   graph.nodeMap.add(value, result)
+
+proc addNode*[N, E](graph: var HGraph[N, E], node: HNode, value: N):
+  HNode {.discardable.} =
+
+  graph.structure.nodeSet.incl node
+  graph.nodeMap.add(value, result)
+
 
 proc first(intSet: IntSet): int =
   assert intSet.len > 0
@@ -309,10 +331,10 @@ proc addEdge*[N, E](
 
 
 proc addEdge*[N](
-    graph: var HGraph[N, void], source, target: HNode):
+    graph: var HGraph[N, NoProperty], source, target: HNode):
   HEdge {.discardable.} =
 
-  addEdgeImpl(N, void):
+  addEdgeImpl(N, NoProperty):
     discard
 
 
@@ -369,6 +391,38 @@ proc removeEdge*[N, E](graph: var HGraph[N, E], edge: HEdge) =
   graph.edgeMap.del edge
   # FIXME
   graph.structure.ingoingIndex.del graph.target(edge).id
+
+proc newHGraphForRef*[T: ref](t: T): HGraph[T, NoProperty] =
+  var graph = newHGraph[T, NoProperty]()
+
+  func toHNode[T](entry: T): HNode =
+    HNode(id: HNodeId(cast[int](unsafeAddr entry)))
+
+  func buildGraph(entry: T) =
+    let node = toHNode(entry)
+    if node in graph:
+      return
+
+    else:
+      graph.addNode(node, entry)
+      for name, field in fieldPairs(entry[]):
+        var outgoing: seq[T]
+        when field is T:
+          outgoing.add field
+
+        elif field is seq[T]:
+          outgoing.add field
+
+        for outNode in outgoing:
+          graph.addEdge(node, toHNode(outNode))
+          buildGraph(outNode)
+
+  buildGraph(t)
+  return graph
+
+
+
+
 
 proc getNode*[N, E](graph: HGraph[N, E], value: N): HNode =
   ## Return node associated with given value
@@ -662,44 +716,43 @@ proc connectedComponents*[N, E](graph: HGraph[N, E]): seq[seq[HNode]] =
     if node notin disc:
       aux(node, disc, low, st, stackMember, result)
 
-proc graphvizRepr*[N, E](
+proc dotRepr*[N, E](
     graph: HGraph[N, E],
-    nodeDotAttrs: proc(node: HNode): string = nil,
-    edgeDotAttrs: proc(edge: HEdge): string = nil,
-    nodeFormatting: seq[tuple[key, value: string]] = @[],
-    edgeFormatting: seq[tuple[key, value: string]] = @[],
-    graphFormatting: seq[tuple[key, value: string]] = @[],
-    globalFormatting: seq[tuple[key, value: string]] = @[],
-  ): string =
+    nodeDotRepr: proc(node: N): DotNode,
+    edgeDotRepr: proc(edge: E): DotEdge,
+  ): DotGraph =
 
-  ## Return `dot` representation for graph
+  result = DotGraph(
+    name: "G",
+    styleNode: DotNode(shape: nsaBox, labelAlign: nlaLeft, fontname: "consolas",),
+    styleEdge: DotEdge(fontname: "consolas")
+  )
 
-  result.add "digraph G {\n"
+  for node in nodes(graph):
+    var dotNode = nodeDotRepr(graph[node])
+    dotNode.id = node.id
+    result.nodes.add dotNode
 
-  template toIdStr(node: HNode): string =
-    "n" & replace($node.id, "-", "neg")
+  if edgeDotRepr.isNil:
+    for edge in edges(graph):
+      result.edges.add DotEdge(
+        src: graph.source(edge),
+        to: @[graph.target(edge)]
+      )
 
-  for node in graph.nodes:
-    result.add "  " & toIdStr(node)
-    if not isNil(nodeDotAttrs):
-      result.add nodeDotAttrs(node)
-
-    result.add ";\n"
-
-  for edge in graph.edges:
-    result.add  "  " & toIdStr(graph.source(edge))
-    if graph.isDirected():
-      result.add " -> "
-
-    else:
-      result.add " -- "
-
-    result.add toIdStr(graph.target(edge))
-
-    if not isNil(edgeDotAttrs):
-      result.add edgeDotAttrs(edge)
-
-    result.add ";\n"
+  else:
+    for edge in edges(graph):
+      var dotEdge = edgeDotRepr(graph[edge])
+      dotEdge.src = graph.source(edge)
+      dotEdge.to = @[graph.target(edge)]
+      result.edges.add dotEdge
 
 
-  result.add "}"
+proc dotRepr*[N, E](graph: HGraph[N, E]): DotGraph =
+  ## Convert `graph` to graphviz representation, using stringification for
+  ## node and edge values.
+  return dotRepr(
+    graph,
+    proc(node: N): DotNode = DotNode(shape: nsaRect, label: some $node),
+    proc(edge: E): DotEdge = DotEdge(label: some $edge),
+  )

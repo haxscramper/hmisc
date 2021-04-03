@@ -1,11 +1,21 @@
 import hmisc/types/hgraph
 import hmisc/algo/hgraph_db
 import hmisc/hdebug_misc
+import hmisc/hasts/graphviz_ast
 import benchy
 
-import std/[unittest, sequtils, algorithm, random, strformat]
+import std/[unittest, sequtils, algorithm, random, strformat,
+            hashes]
 
 startHax()
+
+type
+  RefT = ref object
+    subnodes: seq[RefT]
+
+func hash(t: RefT): Hash =
+  hashes.hash(unsafeAddr t)
+
 
 suite "Graph API":
   test "Connected components":
@@ -35,9 +45,7 @@ suite "Graph API":
     for node in graph.topologicalOrdering():
       echo graph[node]
 
-    let dotRepr = graph.graphvizRepr() do (node: HNode) -> string:
-      "[shape=box]"
-
+    let dotRepr = graph.dotRepr()
     echo dotRepr
 
   test "Graph coloring":
@@ -50,6 +58,12 @@ suite "Graph API":
 
     let colorMap = graph.colorizeDSatur()
     echo $colorMap.colorMap
+
+  test "Build graph from ref type":
+    let graph = newHGraphForRef(RefT(
+      subnodes: @[RefT(), RefT()]
+    ))
+
 
   test "Graph microbenchmark":
     var rand = initRand(228)
