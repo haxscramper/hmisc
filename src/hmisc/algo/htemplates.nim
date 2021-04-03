@@ -97,6 +97,33 @@ template maxIt*(s: untyped, op: untyped): untyped =
       res = val
   res
 
+template findMaxIt*(s: untyped, op: untyped): untyped =
+  var res: int = 0
+  var idx = 0
+  var prev: typeof((let it {.inject.} = s[0]; op))
+
+  for it {.inject.} in s:
+    let val = op
+    if val > prev:
+      res = idx
+
+    inc idx
+
+  res
+
+template findMinIt*(s: untyped, op: untyped): untyped =
+  var res: int = 0
+  var idx = 0
+  var prev: getIterOpType(s, op)
+  for it {.inject.} in s:
+    let val = op
+    if val < prev:
+      res = idx
+
+    inc idx
+
+  res
+
 template sumIt*(s: untyped, op: untyped): untyped =
   type OutType = getIterOpType(s, op)
   var res: OutType

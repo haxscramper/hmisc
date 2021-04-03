@@ -3,6 +3,8 @@
 import std/[tables, deques, hashes, random,
             strformat, strutils, sequtils, algorithm]
 
+import ../algo/htemplates
+
 #[
 checklist
 
@@ -41,7 +43,7 @@ type
     gpAllowSelfLoops
 
 
-  HGraphStructure* = object
+  HGraphStructure* = ref object
     properties: set[HGraphProperty]
     maxId: int
     edgeMap: Table[HEdgeId, (HNode, HNode)]
@@ -49,7 +51,7 @@ type
     outgoingIndex: Table[HNodeId, HEdgeSet]
 
 
-  HNodePropertyMap*[N] = object
+  HNodePropertyMap*[N] = ref object
     valueMap: Table[HNode, N]
     case keepReverseIndex: bool
       of true:
@@ -58,7 +60,7 @@ type
       of false:
         discard
 
-  HEdgePropertyMap*[E] = object
+  HEdgePropertyMap*[E] = ref object
     valueMap: Table[HEdge, E]
     case keepReverseIndex: bool
       of true:
@@ -67,12 +69,10 @@ type
       of false:
         discard
 
-  HGraph*[N, E] = ref HGraphObj[N, E]
-
-  HGraphObj[N, E] = object
-    structure: HGraphStructure
-    edgeMap: HEdgePropertyMap[E]
-    nodeMap: HNodePropertyMap[N]
+  HGraph*[N, E] = object
+    structure*: HGraphStructure
+    edgeMap*: HEdgePropertyMap[E]
+    nodeMap*: HNodePropertyMap[N]
 
   HGraphPath* = seq[HEdge]
 
@@ -83,13 +83,13 @@ type
   HGraphCyclesError* = ref object of HGraphError
 
 
-func newHEdgePropertyMap[E](keepReverseIndex: bool = true):
+func newHEdgePropertyMap*[E](keepReverseIndex: bool = true):
   HEdgePropertyMap[E] =
 
   return HEdgePropertyMap[E](keepReverseIndex: keepReverseIndex)
 
 
-func newHNodePropertyMap[E](keepReverseIndex: bool = true):
+func newHNodePropertyMap*[E](keepReverseIndex: bool = true):
   HNodePropertyMap[E] =
 
   return HNodePropertyMap[E](keepReverseIndex: keepReverseIndex)
@@ -107,23 +107,32 @@ func newHGraph*[N, E](
     edgeMap: newHEdgePropertyMap[E]()
   )
 
-func incl*(s: var HNodeSet, id: HNodeId) {.deprecated: "Use `incl` for nodes".} =
-  s.intSet.incl id.int
+func copyStructureHGraph*[N, E](graph: HGraph[N, E]): HGraph[N, E] =
+  HGraph[N, E](
+    structure: deepCopy(graph.structure),
+    edgeMap: graph.edgeMap,
+    nodeMap: graph.nodeMap
+  )
 
-func incl*(s: var HEdgeSet, id: HEdgeId) {.deprecated: "Use `incl` for edges".} =
-  s.intSet.incl id.int
+func withPropertyMap*[N1, N2, E](
+    graph: HGraph[N1, E], map: HNodePropertyMap[N2]): HGraph[N2, E] =
+
+  HGraph[N2, E](
+    structure: graph.structure, nodeMap: map, edgeMap: graph.edgeMap)
+
+
+func withPropertyMap*[N, E1, E2](
+    graph: HGraph[N, E1], map: HEdgePropertyMap[E2]): HGraph[N, E2] =
+
+  HGraph[N, E2](
+    structure: graph.structure, nodeMap: graph.nodeMap, edgeMap: map)
+
 
 func incl*(s: var HNodeSet, node: HNode) =
   s.intSet.incl node.id.int
 
 func incl*(s: var HEdgeSet, edge: HEdge) =
   s.intSet.incl edge.id.int
-
-func excl*(s: var HNodeSet, id: HNodeId) {.deprecated: "Use `excl` for nodes".} =
-  s.intSet.excl id.int
-
-func excl*(s: var HEdgeSet, id: HEdgeId) {.deprecated: "Use `excl` for edges".} =
-  s.intSet.excl id.int
 
 func excl*(s: var HNodeSet, node: HNode) =
   s.intSet.excl node.id.int
@@ -155,7 +164,6 @@ func pop*(s: var HNodeSet): HNode = HNode(id: HNodeId(s.intSet.pop()))
 iterator items*(s: HNodeSet): HNode =
   for item in items(s.intSet):
     yield HNode(id: HNodeId(item))
-
 
 func `$`*(id: HNodeId|HEdgeId): string = $id.int
 func `==`*(id1, id2: HNodeId | HEdgeId): bool = id1.int == id2.int
@@ -214,6 +222,14 @@ iterator pairs*[N](map: HEdgePropertyMap[N]): (HEdge, N) =
   for edge, value in pairs(map.valueMap):
     yield (edge, value)
 
+func `$`*[N](map: HNodePropertyMap[N]): string =
+  result = "{"
+  for key, value in pairs(map):
+    result &= $key & ": " & $value & ", "
+
+  result &= "}"
+
+
 func add*[N](map: var HNodePropertyMap[N], value: N, node: HNode) =
   map.valueMap[node] = value
   if map.keepReverseIndex:
@@ -224,20 +240,6 @@ func add*[E](map: var HEdgePropertyMap[E], value: E, edge: HEdge) =
   if map.keepReverseIndex:
     map.reverseMap.mgetOrPut(value, @[]).add edge
 
-
-# func value*[N, E](node: HNode): N {.inline.} = node.nodeValue
-# func value*[N, E](edge: HEdge): E {.inline.} = edge.edgeValue
-# func value*[N, E](node: var HNode): var N {.inline.} = node.nodeValue
-# func value*[N, E](edge: var HEdge): var E {.inline.} = edge.edgeValue
-
-# func `value=`*[N, E](node: var HNode, value: N) {.inline.} =
-#   node.nodeValue = value
-
-# func `value=`*[N, E](edge: var HNode, value: E) {.inline.} =
-#   edge.edgeValue = value
-
-func lenEdges*[N, E](graph: HGraph[N, E]): int {.deprecated.} =
-  graph.edgeMap.len
 
 func edgeCount*[N, E](graph: HGraph[N, E]): int = graph.edgeMap.len
 func nodeCount*[N, E](graph: HGraph[N, E]): int = graph.nodeMap.len
@@ -524,6 +526,81 @@ proc dependencyOrdering*[N, E](
   ## Return graph nodes in dependencies for `node`. IMPLEMENT
 
   discard
+
+proc colorizeDSatur*[N, E](graph: HGraph[N, E]):
+  tuple[maxColors: int, colorMap: HNodePropertyMap[int]] =
+  ## Color graph nodes using DSatur algorithm
+
+  type
+    DColor = int16
+    DSatNode = ref object
+      baseNode: HNode
+      color: DColor
+      dsat: int
+      degree: int
+      adjacent: seq[DSatNode]
+
+  let noColor: DColor = -1
+  func `<`(n1, n2: DSatNode): bool =
+    if n1.dsat == n2.dsat:
+      n1.degree < n2.degree
+
+    else:
+      n1.dsat < n2.dsat
+
+  func popMaxDSat(nodes: var seq[DSatNode]): DSatNode =
+    let idx = findMaxIt(nodes, it.dsat)
+    result = nodes[idx]
+    nodes.delete(idx)
+
+  func nextMinColor(node: DSatNode):
+    tuple[nextMin: DColor, distinctAdjacent: int] =
+
+    var used: set[DColor]
+    for node in node.adjacent:
+      used.incl node.color
+
+    for color in int16(0) .. DColor.high:
+      if color notin used:
+        return (color, used.len())
+
+  func updateDSat(node: DSatNode) =
+    for adjacent in node.adjacent:
+      if adjacent.color == noColor:
+        adjacent.dsat = adjacent.nextMinColor().distinctAdjacent
+
+  var nodes: seq[DSatNode]
+
+  var dsatMap = newHnodePropertyMap[DSatNode](false)
+
+  for node in nodes(graph):
+    let dsatur = DSatNode(
+      degree: graph.outDeg(node),
+      color: noColor,
+      baseNode: node
+    )
+
+    nodes.add dsatur
+    dsatMap[node] = dsatur
+
+  for dsat in mitems(nodes):
+    for node in graph.outNodes(dsat.baseNode):
+      dsat.adjacent.add dsatMap[node]
+
+  result.colorMap = newHNodePropertyMap[int](false)
+
+  while nodes.len > 0:
+    let node = nodes.popMaxDSat()
+    let (color, nextMin) = node.nextMinColor()
+    node.color = color
+    result.maxColors = nextMin + 1
+    node.updateDSat()
+    result.colorMap[node.baseNode] = node.color.int
+
+
+
+
+
 
 proc colorizeRLF*[N, E](graph: HGraph[N, E]) =
   ## Color graph using RLF algorithm. IMPLEMENT

@@ -40,6 +40,16 @@ suite "Graph API":
 
     echo dotRepr
 
+  test "Graph coloring":
+    var graph = newHGraph[int, int]()
+    graph.addOrGetEdge({
+      (0, 1): 0,
+      (1, 2): 0,
+      (2, 0): 0
+    })
+
+    let colorMap = graph.colorizeDSatur()
+    echo $colorMap.colorMap
 
   test "Graph microbenchmark":
     var rand = initRand(228)
