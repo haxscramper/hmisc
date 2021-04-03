@@ -23,10 +23,10 @@ type
   HNodeId* = distinct int
   HEdgeId* = distinct int
 
-  HNodeSet = object
+  HNodeSet* = object
     intSet: IntSet
 
-  HEdgeSet = object
+  HEdgeSet* = object
     intSet: IntSet
 
   HNode* = object
@@ -94,6 +94,9 @@ func newHNodePropertyMap[E](keepReverseIndex: bool = true):
 
   return HNodePropertyMap[E](keepReverseIndex: keepReverseIndex)
 
+func initHNode*(id: int): HNode = HNode(id: HNodeId(id))
+func initHEdge*(id: int): HEdge = HEdge(id: HEdgeId(id))
+
 func newHGraph*[N, E](
     properties: set[HGraphProperty] = {gpDirected, gpAllowSelfLoops}
   ): HGraph[N, E] =
@@ -149,9 +152,9 @@ func pop*(s: var HNodeSet): HNode = HNode(id: HNodeId(s.intSet.pop()))
 
 
 
-iterator items*(s: HNodeSet): HNodeId =
+iterator items*(s: HNodeSet): HNode =
   for item in items(s.intSet):
-    yield HNodeId(item)
+    yield HNode(id: HNodeId(item))
 
 
 func `$`*(id: HNodeId|HEdgeId): string = $id.int
@@ -182,6 +185,7 @@ func contains*[N](map: HNodePropertyMap[N], node: HNode): bool =
   node in map.valueMap
 
 func len*[N](map: HEdgePropertyMap[N]): int = map.valueMap.len
+func len*[E](map: HNodePropertyMap[E]): int = map.valueMap.len
 
 func del*[N](map: var HEdgePropertyMap[N], edge: HEdge) =
   map.valueMap.del edge
@@ -235,7 +239,7 @@ func add*[E](map: var HEdgePropertyMap[E], value: E, edge: HEdge) =
 func lenEdges*[N, E](graph: HGraph[N, E]): int {.deprecated.} =
   graph.edgeMap.len
 
-func edgesCount*[N, E](graph: HGraph[N, E]): int = graph.edgeMap.len
+func edgeCount*[N, E](graph: HGraph[N, E]): int = graph.edgeMap.len
 func nodeCount*[N, E](graph: HGraph[N, E]): int = graph.nodeMap.len
 
 func inDeg*[N, E](graph: HGraph[N, E], node: HNode): int {.inline.} =
@@ -366,9 +370,9 @@ proc removeEdge*[N, E](graph: var HGraph[N, E], edge: HEdge) =
 
 proc getNode*[N, E](graph: HGraph[N, E], value: N): HNode =
   ## Return node associated with given value
-  graph.nodeMap[hash(value)]
+  graph.nodeMap[value]
 
-proc getNodeId*[N, E](node: HNode): int =
+proc getNodeId*(node: HNode): HNodeId =
   node.id
 
 proc getNodeById*[N, E](graph: HGraph[N, E], id: int): HNode =
@@ -506,7 +510,7 @@ proc topologicalOrdering*[N, E](graph: HGraph[N, E]): seq[HNode] =
       if graph.inDeg(target) == 0:
         noincoming.incl target
 
-  if graph.edgesCount > 0:
+  if graph.edgeCount > 0:
     raise HGraphCyclesError(
       msg: "Topological sorting is impossible, graph contains cycles")
 
@@ -622,86 +626,3 @@ proc graphvizRepr*[N, E](
 
 
   result.add "}"
-
-
-import std/[times]
-
-template timeIt(name: string, body: untyped): untyped =
-  block:
-    let start = cpuTime()
-    body
-    let total {.inject.} = cpuTime() - start
-    echo &"  {int(total * 1000):<5} ms ", name
-
-
-proc main() =
-  if false:
-    var graph = newHGraph[int, string]()
-    discard graph.addOrGetEdge(0, 1, "e0")
-    discard graph.addOrGetEdge(1, 2, "e1")
-    discard graph.addOrGetEdge(2, 0, "e2")
-
-    for component in graph.connectedComponents():
-      echo component
-
-  if true:
-    var graph = newHGraph[int, string]()
-    discard graph.addOrGetEdge({
-      (0, 1) : "e1",
-      (1, 2) : "e2",
-      (2, 3) : "e3",
-      (2, 4) : "e4",
-      (3, 0) : "e5",
-      (4, 2) : "e6",
-    })
-
-    doAssert graph.connectedComponents()[0].mapIt(graph[it]).sorted() ==
-      @[0, 1, 2, 3, 4]
-
-  if false:
-    var graph = newHGraph[string, int]()
-
-    let node1 = graph.addNode("test1")
-    let node2 = graph.addNode("test2")
-    let edge = graph.addEdge(node1, node2, 190)
-
-    for node in graph.depthFirst(node1):
-      echo graph[node]
-
-    for node in graph.topologicalOrdering():
-      echo graph[node]
-
-    let dotRepr = graph.graphvizRepr() do (node: HNode) -> string:
-      "[shape=box]"
-
-    echo dotRepr
-
-    var rand = initRand(228)
-
-    for i in [10, 100, 1000, 10000]:
-      var graph = newHGraph[int, int]()
-      echo "Processing \e[31m", i, "\e[39m items"
-      timeIt "Adding nodes":
-        for val in 0 ..< i:
-          discard graph.addNode(val)
-
-
-      timeIt "Adding edges":
-        for val in 0 ..< i:
-          discard graph.addEdge(
-            graph.getNode(rand.rand 0 ..< i),
-            graph.getNode(rand.rand 0 ..< i),
-            0
-          )
-
-      timeIt "Iterate over nodes":
-        for node in graph.nodes:
-          discard graph[node]
-
-      timeIt "Iterate over all outging for each node":
-        for node in graph.nodes:
-          for outHNode in graph.outNodes(node):
-            discard graph[outHNode]
-
-when isMainModule:
-  main()

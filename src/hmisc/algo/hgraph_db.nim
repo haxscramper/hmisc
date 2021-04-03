@@ -6,8 +6,6 @@ import ../base_errors
 type
   Value* = string
   DGraph = HGraph[Value, string]
-  Vertex = HNode[Value, string]
-  Edge = HEdge[Value, string]
 
   QueryResultKind = enum
     qrkNone
@@ -24,7 +22,7 @@ type
         value: Value
 
       of qrkVertex:
-        vertex: Vertex
+        vertex: HNode
 
   Query = object
     graph: DGraph
@@ -39,7 +37,7 @@ type
 
   Gremlin = object
     value*: Option[Value]
-    vertex*: Option[Vertex]
+    vertex*: Option[HNode]
 
   VertexFilterKind = enum
     vfkNone
@@ -53,10 +51,10 @@ type
         discard
 
       of vfkIdSet:
-        idSet: IntSet
+        idSet: HNodeSet
 
       of vfkPredicate:
-        predicate: proc(vertex: Vertex): bool
+        predicate: proc(vertex: HNode): bool
 
       of vfkProperty:
         property: Value
@@ -82,15 +80,15 @@ type
         property: string
 
       of pkUnique:
-        seen: IntSet
+        seen: HNodeSet
 
       of pkOutNodes:
-        edges: seq[Edge]
+        edges: seq[HEdge]
         gremlin: Option[Gremlin]
 
       of pkFilter:
         init: bool
-        vertices: seq[Vertex]
+        vertices: seq[HNode]
         filter: VertexFilter
 
 
@@ -163,7 +161,7 @@ proc filter*(query: var Query, filter: VertexFilter): var Query =
 
 proc start*(query: var Query, node: HNode): var Query =
   var filter = VertexFilter(kind: vfkIdSet)
-  filter.idSet.incl node.getNodeId()
+  filter.idSet.incl node
   return query.filter(filter)
 
 proc outNodes*(query: var Query): var Query =
@@ -174,13 +172,13 @@ proc outNodes*(query: var Query): var Query =
 proc runUniquePipe(pipe: var Pipe, gremlin: Option[Gremlin]): MaybeGremlin =
   if gremlin.isNone() or
      gremlin.get().vertex.isNone() or
-     gremlin.get().vertex.get().getNodeId() in pipe.seen:
+     gremlin.get().vertex.get() in pipe.seen:
     return MaybeGremlin(kind: mgkPull)
 
   else:
     return MaybeGremlin(kind: mgkGremlin, gremlin: gremlin.get())
 
-proc getEdges(pipe: Pipe): seq[Edge] =
+proc getEdges(pipe: Pipe): seq[HEdge] =
   case pipe.kind:
     of pkOutNodes:
       for edge in pipe.graph.outEdges(pipe.gremlin.get().vertex.get()):
@@ -204,7 +202,7 @@ proc runTraversalPipe(pipe: var Pipe, gremlin: Option[Gremlin]): MaybeGremlin =
   let vertex = pipe.edges.pop()
 
   return MaybeGremlin(kind: mgkGremlin, gremlin: Gremlin(
-    vertex: some(vertex.target)
+    vertex: some(pipe.graph.target(vertex))
   ))
 
 
@@ -214,7 +212,7 @@ proc evalFilterPipe(pipe: var Pipe, gremlin: Option[Gremlin]): MaybeGremlin =
       if not pipe.init:
         pipe.init = true
         for id in pipe.filter.idSet:
-          pipe.vertices.add pipe.graph.getNodeById(id)
+          pipe.vertices.add id
 
       if pipe.vertices.len > 0:
         return MaybeGremlin(kind: mgkGremlin, gremlin: Gremlin(

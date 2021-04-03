@@ -14,6 +14,7 @@ namedBin      = {
 
 requires "nim >= 1.4.0", "cligen"
 requires "fusion"
+requires "benchy"
 # requires "https://github.com/haxscramper/fusion.git#matching-fixup"
 
 task docgen, "Generate documentation":
