@@ -1,7 +1,7 @@
 ## Generic implementation of graph data structure
 
-import std/[tables, deques, hashes, random, options,
-            strformat, strutils, sequtils, algorithm]
+import std/[tables, deques, hashes, random, options, math, lenientops,
+            strformat, strutils, sequtils, algorithm, random]
 
 import ../algo/htemplates
 import ../hasts/graphviz_ast
@@ -660,7 +660,7 @@ proc colorizeRLF*[N, E](graph: HGraph[N, E]) =
   ## Color graph using RLF algorithm. IMPLEMENT
   discard
 
-proc minmalSpanningTree*[N, E](graph: HGraph[N, E]): HGraph[N, E] =
+proc minimalSpanningTree*[N, E](graph: HGraph[N, E]): HGraph[N, E] =
   ## Return minimal spanning tree for graph. IMPLEMENT
   discard
 
@@ -715,6 +715,80 @@ proc connectedComponents*[N, E](graph: HGraph[N, E]): seq[seq[HNode]] =
   for node in nodes(graph):
     if node notin disc:
       aux(node, disc, low, st, stackMember, result)
+
+type
+  OrthoLayoutData = object
+
+
+proc orthoLayout*[N, E](graph: HGraph[N, E]): OrthoLayoutData =
+  ## WIP implementation of orthogonal graph layout algorithm described in
+  ## https://arxiv.org/abs/1807.09368
+  let vLen = graph.nodeCount()
+  var grid: seq[seq[Option[HNode]]] = newSeqWith(
+    5 * int(sqrt(vLen.float)),
+    newSeqWith(5 * int(sqrt(vLen.float)), none(HNode)))
+
+  proc adjacentMedianX(node: HNode): float = discard
+  proc adjacentMedianY(node: HNode): float = discard
+  proc compact(horDirection: bool, gamma: float, expand: bool) =
+    discard
+
+  var rand = initRand(19203)
+
+  let iterationCount = 90 * int(sqrt(vLen.float))
+  var compactionDir = true
+  var temp = 2 * sqrt(vLen.float)
+  let k = pow(0.2 / temp, 1.0 / iterationCount)
+
+  for i in 0 ..< int(iterationCount / 2):
+    for node in nodes(graph):
+      let
+        x = adjacentMedianX(node) + rand.rand(-temp .. temp).int
+        y = adjacentMedianY(node) + rand.rand(-temp .. temp).int
+
+      # Put `node` near `(x, y)`
+      # if `node` has not changed place from previous iteration
+         # *try* to swapvjwith nodes nearby;
+
+    if iterationCount mod 9 == 0:
+      compact(compactionDir, 3, false)
+      compactionDir = not compactionDir
+
+    temp = temp * k
+
+  compact(true, 3, true)
+  compact(false, 3, true)
+
+  var sizes = newHNodeMap[tuple[width, height: int]](false)
+
+  for i in int(iterationCount / 2 + 1) ..< iterationCount:
+    for node in nodes(graph):
+      let
+        x = adjacentMedianX(node) +
+            rand.rand(-temp * sizes[node].width .. temp * sizes[node].height)
+
+        y = adjacentMedianY(node) +
+            rand.rand(-temp + sizes[node].height .. temp * sizes[node].height)
+
+      # Put `node` near `(x, y)`
+      # if `node` has not changed place from previous iteration
+         # *try* to swapvjwith nodes nearby;
+
+    if iterationCount mod 9 == 0:
+      compact(
+        compactionDir,
+        max(1, 1 + 2 * (iterationCount - i - 30) / (0.5 * iterationCount)),
+        false
+      )
+
+      compactionDir = not compactionDir
+
+    temp = temp * k
+
+
+proc drawOrthoLayout*(layoutData: OrthoLayoutData): seq[seq[string]] =
+  discard
+
 
 proc dotRepr*[N, E](
     graph: HGraph[N, E],

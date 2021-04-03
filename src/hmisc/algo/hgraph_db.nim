@@ -1,7 +1,8 @@
 import ../types/hgraph
-import std/[options, intsets]
 import ../hdebug_misc
 import ../base_errors
+
+import std/[options, intsets, sequtils, tables]
 
 type
   Value* = string
@@ -25,19 +26,19 @@ type
         vertex: HNode
 
   Query = object
-    graph: DGraph
     program: seq[Pipe]
 
-  MaybeGremlinKind = enum
-    mgkPull
-    mgkPush
-    mgkGremlin
-    mgkDone
-    mgkFalse
+  OptGremlinKind = enum
+    ogkPull
+    ogkPush
+    ogkGremlin
+    ogkDone
+    ogkFalse
 
   Gremlin = object
     value*: Option[Value]
     vertex*: Option[HNode]
+    asMap: Option[Table[string, HNode]]
 
   VertexFilterKind = enum
     vfkNone
@@ -59,12 +60,12 @@ type
       of vfkProperty:
         property: Value
 
-  MaybeGremlin = object
-    case kind*: MaybeGremlinKind
-      of mgkPull, mgkPush, mgkFalse, mgkDone:
+  OptGremlin = object
+    case kind*: OptGremlinKind
+      of ogkPull, ogkPush, ogkFalse, ogkDone:
         discard
 
-      of mgkGremlin:
+      of ogkGremlin:
         gremlin*: Gremlin
 
   PipeKind = enum
@@ -72,9 +73,14 @@ type
     pkUnique
     pkFilter
     pkOutNodes
+    pkInNodes
+    pkTakeN
+    pkAsTagged ## Tag pipe results
+    pkMergeTagged ## Merge tagged pipe results
+    pkBack
+
 
   Pipe = object
-    graph: DGraph # {.deprecated: "Pass graph in `run` for main pipe".}
     case kind*: PipeKind
       of pkProperty:
         property: string
@@ -82,7 +88,7 @@ type
       of pkUnique:
         seen: HNodeSet
 
-      of pkOutNodes:
+      of pkOutNodes, pkInNodes:
         edges: seq[HEdge]
         gremlin: Option[Gremlin]
 
@@ -91,33 +97,50 @@ type
         vertices: seq[HNode]
         filter: VertexFilter
 
+      of pkTakeN:
+        takeNum: int
 
-proc run(pipe: var Pipe, gremlin: Option[Gremlin]): MaybeGremlin
+      of pkAsTagged:
+        asName: string
 
-proc newQuery*(graph: HGraph): Query =
-  Query(graph: graph)
+      of pkMergeTagged:
+        mergeNames: seq[string]
 
-proc run*(query: var Query): seq[QueryResult] =
+      of pkBack:
+        backName: string
+
+
+proc run(pipe: var Pipe, gremlin: Option[Gremlin], graph: DGraph): OptGremlin
+
+proc newQuery*(): Query = Query()
+proc makePull*(): OptGremlin = OptGremlin(kind: ogkPull)
+proc makeYield*(gremlin: Gremlin): OptGremlin =
+  OptGremlin(kind: ogkGremlin, gremlin: gremlin)
+
+proc makeDone*(): OptGremlin = OptGremlin(kind: ogkDone)
+proc makeFalse*(): OptGremlin = OptGremlin(kind: ogkFalse)
+
+
+proc run*(query: var Query, graph: DGraph): seq[QueryResult] =
   let max = query.program.high()
   var
     results: seq[Gremlin]
-    maybeGremlin = MaybeGremlin(kind: mgkFalse)
+    optGremlin = makeFalse()
     done = -1
     pc = max
 
   while done < max:
-    maybeGremlin = run(
-      query.program[pc],
-      if maybeGremlin.kind == mgkGremlin:
-        some(maybeGremlin.gremlin)
+    let arg =
+      if optGremlin.kind == ogkGremlin:
+        some(optGremlin.gremlin)
 
       else:
         none(Gremlin)
-    )
 
-    if maybeGremlin.kind == mgkPull:
+    optGremlin = run(query.program[pc], arg, graph)
+    if optGremlin.kind == ogkPull:
       # Current pipe needs more input
-      maybeGremlin = MaybeGremlin(kind: mgkFalse)
+      optGremlin = makeFalse()
       if pc - 1 > done:
         # Try previous filter - decrement PC and continue evaluation
         dec pc
@@ -126,17 +149,17 @@ proc run*(query: var Query): seq[QueryResult] =
       else:
         done = pc
 
-    if maybeGremlin.kind == mgkDone:
-      maybeGremlin = MaybeGremlin(kind: mgkFalse)
+    if optGremlin.kind == ogkDone:
+      optGremlin = makeFalse()
       done = pc
 
     inc pc
 
     if pc > max:
-      if maybeGremlin.kind == mgkGremlin:
-        results.add maybeGremlin.gremlin
+      if optGremlin.kind == ogkGremlin:
+        results.add optGremlin.gremlin
 
-      maybeGremlin = MaybeGremlin(kind: mgkFalse)
+      optGremlin = makeFalse()
       dec pc
 
   for gremlin in results:
@@ -156,7 +179,7 @@ proc unique*(query: var Query): var Query =
   return query
 
 proc filter*(query: var Query, filter: VertexFilter): var Query =
-  query.program.add Pipe(kind: pkFilter, filter: filter, graph: query.graph)
+  query.program.add Pipe(kind: pkFilter, filter: filter)
   return query
 
 proc start*(query: var Query, node: HNode): var Query =
@@ -164,49 +187,81 @@ proc start*(query: var Query, node: HNode): var Query =
   filter.idSet.incl node
   return query.filter(filter)
 
-proc outNodes*(query: var Query): var Query =
-  query.program.add Pipe(kind: pkOutNodes, graph: query.graph)
+proc inNodes*(query: var Query): var Query =
+  query.program.add Pipe(kind: pkInNodes)
   return query
 
+proc outNodes*(query: var Query): var Query =
+  query.program.add Pipe(kind: pkOutNodes)
+  return query
 
-proc runUniquePipe(pipe: var Pipe, gremlin: Option[Gremlin]): MaybeGremlin =
+proc asTag*(query: var Query, name: string): var Query =
+  query.program.add Pipe(kind: pkAsTagged, asName: name)
+  return query
+
+proc merge*(query: var Query, toMerge: varargs[string]): var Query =
+  query.program.add Pipe(kind: pkMergeTagged, mergeNames: toSeq(toMerge))
+  return query
+
+proc runUniquePipe(
+    pipe: var Pipe, gremlin: Option[Gremlin], graph: DGraph): OptGremlin =
+
   if gremlin.isNone() or
      gremlin.get().vertex.isNone() or
      gremlin.get().vertex.get() in pipe.seen:
-    return MaybeGremlin(kind: mgkPull)
+    return makePull()
 
   else:
-    return MaybeGremlin(kind: mgkGremlin, gremlin: gremlin.get())
+    return makeYield(gremlin.get())
 
-proc getEdges(pipe: Pipe): seq[HEdge] =
+proc getEdges(pipe: Pipe, graph: DGraph): seq[HEdge] =
   case pipe.kind:
     of pkOutNodes:
-      for edge in pipe.graph.outEdges(pipe.gremlin.get().vertex.get()):
+      for edge in graph.outEdges(pipe.gremlin.get().vertex.get()):
+        result.add edge
+
+    of pkInNodes:
+      for edge in graph.inEdges(pipe.gremlin.get().vertex.get()):
         result.add edge
 
     else:
       raiseUnexpectedKindError(pipe)
 
 
-proc runTraversalPipe(pipe: var Pipe, gremlin: Option[Gremlin]): MaybeGremlin =
+proc runTraversalPipe(
+    pipe: var Pipe, gremlin: Option[Gremlin], graph: DGraph): OptGremlin =
+
   if gremlin.isNone() and pipe.edges.len() == 0:
-    return MaybeGremlin(kind: mgkPull)
+    return makePull()
 
   if pipe.edges.len() == 0:
     pipe.gremlin = gremlin
-    pipe.edges.add getEdges(pipe)
+    pipe.edges.add getEdges(pipe, graph)
 
   if pipe.edges.len() == 0:
-    return MaybeGremlin(kind: mgkPull)
+    return makePull()
 
   let vertex = pipe.edges.pop()
 
-  return MaybeGremlin(kind: mgkGremlin, gremlin: Gremlin(
-    vertex: some(pipe.graph.target(vertex))
-  ))
+  return makeYield(Gremlin(vertex: some(graph.target(vertex))))
 
+proc optGet[K, V](table: Table[K, V], key: K): Option[V] =
+  if key in table:
+    return some table[key]
 
-proc evalFilterPipe(pipe: var Pipe, gremlin: Option[Gremlin]): MaybeGremlin =
+proc runBackPipe(
+    pipe: var Pipe, gremlin: Option[Gremlin], graph: DGraph): OptGremlin =
+
+  if gremlin.isNone(): return makePull()
+
+  let asName: Option[HNode] = gremlin.get().
+    asMap.get().optGet(pipe.backName) # [pipe.backName]
+
+  return makeYield(Gremlin(vertex: asName))
+
+proc evalFilterPipe(
+    pipe: var Pipe, gremlin: Option[Gremlin], graph: DGraph): OptGremlin =
+
   case pipe.filter.kind:
     of vfkIdSet:
       if not pipe.init:
@@ -215,28 +270,31 @@ proc evalFilterPipe(pipe: var Pipe, gremlin: Option[Gremlin]): MaybeGremlin =
           pipe.vertices.add id
 
       if pipe.vertices.len > 0:
-        return MaybeGremlin(kind: mgkGremlin, gremlin: Gremlin(
-          vertex: some(pipe.vertices.pop()),
-        ))
+        return makeYield Gremlin(vertex: some(pipe.vertices.pop()))
 
       else:
         # Not found any new vertices, returning
-        return MaybeGremlin(kind: mgkDone)
+        return makeDone()
 
 
     else:
       raiseImplementKindError(pipe.filter)
 
-proc run(pipe: var Pipe, gremlin: Option[Gremlin]): MaybeGremlin =
+proc run(
+    pipe: var Pipe, gremlin: Option[Gremlin], graph: DGraph): OptGremlin =
+
   case pipe.kind:
     of pkUnique:
-      return runUniquePipe(pipe, gremlin)
+      return runUniquePipe(pipe, gremlin, graph)
 
-    of pkOutNodes:
-      return runTraversalPipe(pipe, gremlin)
+    of pkOutNodes, pkInNodes:
+      return runTraversalPipe(pipe, gremlin, graph)
 
     of pkFilter:
-      return evalFilterPipe(pipe, gremlin)
+      return evalFilterPipe(pipe, gremlin, graph)
+
+    of pkBack:
+      return runBackPipe(pipe, gremlin, graph)
 
     else:
       raiseImplementKindError(pipe)

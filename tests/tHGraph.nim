@@ -64,6 +64,10 @@ suite "Graph API":
       subnodes: @[RefT(), RefT()]
     ))
 
+  test "Ortho layout":
+    let graph = newHGraph[int, int]()
+    let data = orthoLayout(graph)
+
 
   test "Graph microbenchmark":
     var rand = initRand(228)
@@ -95,7 +99,7 @@ suite "Graph DB API":
   graph.addEdge(start, graph.addNode("out-node-1"), "->")
   graph.addEdge(start, graph.addNode("out-node-2"), "->")
 
-  var query = newQuery(graph)
-  let resultNodes = query.start(start).outNodes().run()
+  var query = newQuery()
+  let resultNodes = query.start(start).outNodes().run(graph)
   for res in resultNodes:
     echo res.kind
