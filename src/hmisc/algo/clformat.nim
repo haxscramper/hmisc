@@ -37,13 +37,17 @@ func toPluralNoun*(noun: string, count: int, addNum: bool = true): string =
   ##
   ## NOTE placeholder implementation that just adds 's'
   ##
-  ## TODO implement algorith described here:
-  ## http://users.monash.edu/~damian/papers/HTML/Plurals.html
+  ## - TODO :: implement algorith described here:
+  ##   http://users.monash.edu/~damian/papers/HTML/Plurals.html
+  ## - TODO Generate either numerical literal, or word representation
   if count == 1:
-    return noun
+    result = noun
 
   else:
-    return noun & "s"
+    result = noun & "s"
+
+  if addNum:
+    result = $count & " " & result
 
 func joinWords*(words: seq[string], sepWord: string): string =
   case words.len:
