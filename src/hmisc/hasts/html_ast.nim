@@ -11,6 +11,7 @@ import std/[colors, xmltree, strformat, strutils, strtabs, sequtils, terminal,
 import hmisc/[helpers, hexceptions]
 import hmisc/types/[hprimitives, colorstring]
 export xmltree
+import ./xml_ast
 
 type
   Xml* = XmlNode
@@ -107,13 +108,6 @@ func newHtmlText*(text: string): HtmlElem =
 
 const xmlSeqTag* = "xml-seq-tag-ignore-when-export"
 
-func add*(xml: var Xml, optXml: Option[Xml]) =
-  if optXml.isSome():
-    xml.add optXml.get()
-
-func newXml*(tag: string, args: seq[Xml] = @[]): Xml =
-  newXmlTree(tag, args)
-
 func newXmlSeq*(elems: seq[Xml] = @[]): Xml = newXmlTree(xmlSeqTag, elems)
 
 func newHtmlPre*(text: string): HtmlElem =
@@ -201,33 +195,11 @@ func wrap*(xml: HtmlElem, tag: string): HtmlElem =
   result = newElementHtml(tag)
   result.add xml
 
-func wrap*(xml: XmlNode, tag: string): XmlNode =
-  result = newElement(tag)
-  result.add xml
-
-
-func wrap*(xml: seq[XmlNode], tag: string): XmlNode =
-  result = newElement(tag)
-  for node in xml:
-    result.add node
-
-
 func wrap*(xml: seq[HtmlElem], tag: string): HtmlElem =
   result = newElementHtml(tag)
   for node in xml:
     result.add node
 
-func add*(xml: var XmlNode, sub: seq[XmlNode]): void =
-  for it in sub:
-    xml.add it
-
-func `[]=`*(xml: var XmlNode, attrname: string, attrval: string): void =
-  var attrs = xml.attrs()
-  if attrs != nil:
-    attrs[attrname] = attrval
-    xml.attrs = attrs
-  else:
-    xml.attrs = {attrname : attrval}.toXmlAttributes()
 
 
 macro orCond*(body: untyped): untyped =

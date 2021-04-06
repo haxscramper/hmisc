@@ -12,7 +12,7 @@ import ../types/colorstring
 
 
 type
-  XsdEntryKind = enum
+  XsdEntryKind* = enum
     xekComplexComplexType ## Complex type with complex content
     xekComplexSimpleType ## Complex type with simple content
     xekComplexType
@@ -30,11 +30,11 @@ type
     xekEnumeration ## `xsd:enumeration`
     xekPattern
 
-  XsdEntry = ref object
-    name: Option[string] ## `name=""` attribute
+  XsdEntry* = ref object
+    xsdName: Option[string] ## `name=""` attribute
     xsdType: Option[string] ## `type=""` attribute
-    minOccurs: Option[int] ## `minOccurs`
-    maxOccurs: Option[int] ## `maxOccurs`
+    xsdMinOccurs: Option[int] ## `minOccurs`
+    xsdMaxOccurs: Option[int] ## `maxOccurs`
     subnodes: seq[XsdEntry]
     attrs: StringTableRef
 
@@ -43,13 +43,13 @@ type
         cstContent: string
 
       of xekGroupRef:
-        groupRef: string
+        groupRef*: string
 
       of xekTop:
         startElement: XsdEntry
 
       of xekEnumeration:
-        value: string
+        value*: string
 
       else:
         discard
@@ -63,6 +63,9 @@ type
 
 proc add*(entry: var XsdEntry, subnode: XsdEntry) =
   entry.subnodes.add subnode
+
+proc `==`*(entry: XsdEntry, kind: XsdEntryKind): bool =
+  entry.kind == kind
 
 func `[]`*(entry: XsdEntry, idx: int | BackwardsIndex): XsdEntry =
   entry.subnodes[idx]
@@ -78,6 +81,11 @@ iterator pairs*(entry: XsdEntry): (int, XsdEntry) =
     inc idx
 
 func len*(entry: XsdEntry): int = entry.subnodes.len
+func hasName*(entry: XsdEntry): bool = entry.xsdName.isSome()
+func name*(entry: XsdEntry): string = entry.xsdName.get()
+func hasType*(entry: XsdEntry): bool = entry.xsdType.isSome()
+func xsdType*(entry: XsdEntry): string = entry.xsdType.get()
+func subnodes*(entry: XsdEntry): seq[XsdEntry] = entry.subnodes
 
 proc newTree*(kind: XsdEntryKind, subnodes: varargs[XsdEntry]): XsdEntry =
   result = XsdEntry(kind: kind)
@@ -85,6 +93,13 @@ proc newTree*(kind: XsdEntryKind, subnodes: varargs[XsdEntry]): XsdEntry =
     assert notNil(node)
     result.subnodes.add node
 
+proc isEnumerationType*(xsd: XsdEntry): bool =
+  if xsd == xekSimpleType and xsd[0] == xekRestriction:
+    for node in xsd[0]:
+      if node != xekEnumeration:
+        return false
+
+      return true
 
 template treeReprRecurse(node: typed, level: int, idx: seq[int]): untyped =
   if len(node) > 0:
@@ -119,7 +134,14 @@ proc treeRepr*(
             discard
 
           else:
-            result &= &[" ", toCyan(name, colored), " = ", toYellow($field, colored)]
+            result &= &[" ", toCyan(name, colored), " = ",
+                        toYellow($field, colored)]
+
+      if notNil(element.attrs):
+        for key, value in element.attrs:
+          result &= &[" ", toRed(key, colored), " = ",
+                      toYellow(value, colored)]
+
 
     let pref {.inject.} =
       if indexed:
@@ -132,6 +154,8 @@ proc treeRepr*(
 
     result &= pref & toGreen(($n.kind)[3 ..^ 1], colored)
 
+    updateValue(n[])
+
     case n.kind:
       of xekSimpleType:
         result &= &[" / ", toRed(($n[0].kind)[3 ..^ 1], colored)]
@@ -140,11 +164,7 @@ proc treeRepr*(
       else:
         discard
 
-    updateValue(n[])
 
-    if notNil(n.attrs):
-      for key, value in n.attrs:
-        result &= &[" ", toRed(key, colored), " = ", toYellow(value, colored)]
 
 
     case n.kind:
@@ -157,29 +177,9 @@ proc treeRepr*(
 
   return aux(pnode, 0, @[])
 
-proc x(str: string): string = "xsd:" & str
+proc xsd*(str: string): string = "xsd:" & str
 
-func `[]`*(node: XmlNode, property: string): string = node.attrs[property]
-
-func optGet*(node: XmlNode, property: string): Option[string] =
-  if node.attrs.isNil() or property notin node.attrs:
-    discard
-
-  else:
-    return some node.attrs[property]
-
-template mapItOpt(opt: typed, expr: untyped): untyped =
-  type ExprType = typeof((var it {.inject.} = opt.get(); expr))
-
-  let value = opt
-  if value.isSome():
-    let it {.inject.} = value.get()
-    some expr
-
-  else:
-    none ExprType
-
-proc updateBaseAttrs(entry: var XsdEntry, node: XmlNode) =
+proc updateBaseAttrs*(entry: var XsdEntry, node: XmlNode) =
   for key, value in node.attrs:
     var used = false
     if entry.kind == xekEnumeration:
@@ -188,12 +188,12 @@ proc updateBaseAttrs(entry: var XsdEntry, node: XmlNode) =
         used = true
 
     case key:
-      of "name": entry.name = some value
+      of "name": entry.xsdName = some value
       of "type": entry.xsdType = some value
-      of "minOccurs": entry.minOccurs = some parseInt(value)
+      of "minOccurs": entry.xsdMinOccurs = some parseInt(value)
       of "maxOccurs":
         if value != "unbounded":
-          entry.maxOccurs = some parseInt(value)
+          entry.xsdMaxOccurs = some parseInt(value)
 
       else:
         if not used:
@@ -204,23 +204,33 @@ proc updateBaseAttrs(entry: var XsdEntry, node: XmlNode) =
 
 
 
-proc convertElement(element: XmlNode): XsdEntry =
+proc convertElement*(element: XmlNode): XsdEntry =
   result = xekElement.newTree()
   updateBaseAttrs(result, element)
 
-proc convertAttribute(element: XmlNode, groups: var XsdGroups): XsdEntry =
+  if not hasType(result):
+    # The type definition corresponding to the <simpleType> or
+    # <complexType> element information item in the [children], if either
+    # is present, otherwise the type definition ·resolved· to by the
+    # ·actual value· of the type [attribute], otherwise the {type
+    # definition} of the element declaration ·resolved· to by the ·actual
+    # value· of the substitutionGroup [attribute], if present, otherwise
+    # the ·ur-type definition·.
+    result.xsdType = some "xsd:anyType"
+
+proc convertAttribute*(element: XmlNode, groups: var XsdGroups): XsdEntry =
   result = xekAttribute.newTree()
   updateBaseAttrs(result, element)
 
 
-proc convertSequence(sequence: XmlNode, groups: var XsdGroups): XsdEntry
+proc convertSequence*(sequence: XmlNode, groups: var XsdGroups): XsdEntry
 
-proc convertGroup(element: XmlNode, groups: var XsdGroups): XsdEntry =
+proc convertGroup*(element: XmlNode, groups: var XsdGroups): XsdEntry =
   if element.hasAttr("name"):
     result = xekGroupDeclare.newTree()
     for node in element:
       case node.safeTag():
-        of x"choice", x"sequence":
+        of xsd"choice", xsd"sequence":
           result.add convertSequence(node, groups)
 
 
@@ -235,21 +245,21 @@ proc convertGroup(element: XmlNode, groups: var XsdGroups): XsdEntry =
 
 
 
-proc convertSequence(sequence: XmlNode, groups: var XsdGroups): XsdEntry =
+proc convertSequence*(sequence: XmlNode, groups: var XsdGroups): XsdEntry =
   case sequence.safeTag():
-    of x"sequence": result = XsdEntry(kind: xekSequence)
-    of x"choice": result = XsdEntry(kind: xekChoice)
+    of xsd"sequence": result = XsdEntry(kind: xekSequence)
+    of xsd"choice": result = XsdEntry(kind: xekChoice)
     else: raiseImplementError(sequence.safeTag())
 
   for element in sequence:
     case element.safeTag():
-      of x"element":
+      of xsd"element":
         result.add convertElement(element)
 
-      of x"sequence", x"choice":
+      of xsd"sequence", xsd"choice":
         result.add convertSequence(element, groups)
 
-      of x"group":
+      of xsd"group":
         result.add convertGroup(element, groups)
 
       else:
@@ -259,14 +269,14 @@ proc convertSequence(sequence: XmlNode, groups: var XsdGroups): XsdEntry =
 proc convertExtension(xml: XmlNode, groups: var XsdGroups): XsdEntry =
   result = newTree(xekExtension)
 
-proc convertRestriction(xml: XmlNode, groups: var XsdGroups): XsdEntry =
+proc convertRestriction*(xml: XmlNode, groups: var XsdGroups): XsdEntry =
   result = newTree(xekRestriction)
-
+  updateBaseAttrs(result, xml)
   for node in xml:
     let kind =
       case node.safeTag():
-        of x"enumeration": xekEnumeration
-        of x"pattern": xekPattern
+        of xsd"enumeration": xekEnumeration
+        of xsd"pattern": xekPattern
         else:
           raiseImplementError(node.safeTag())
 
@@ -276,10 +286,10 @@ proc convertRestriction(xml: XmlNode, groups: var XsdGroups): XsdEntry =
 
 
 proc convertComplexType(xsdType: XmlNode, groups: var XsdGroups): XsdEntry =
-  if xsdType.find(x"simpleType") != -1:
+  if xsdType.find(xsd"simpleType") != -1:
     result = xekComplexSimpleType.newTree()
 
-  elif xsdType.find(x"complexType") != -1:
+  elif xsdType.find(xsd"complexType") != -1:
     result = xekComplexComplexType.newTree()
 
   else:
@@ -289,32 +299,32 @@ proc convertComplexType(xsdType: XmlNode, groups: var XsdGroups): XsdEntry =
 
   for subnode in xsdType:
     case subnode.safeTag():
-      of x"sequence":
+      of xsd"sequence":
         result.add convertSequence(subnode, groups)
 
-      of x"attribute":
+      of xsd"attribute":
         result.add convertAttribute(subnode, groups)
 
-      of x"simpleContent":
+      of xsd"simpleContent":
         case subnode[0].safeTag():
-          of x"extension":
+          of xsd"extension":
             result.add xekSimpleContent.newTree(
               convertExtension(subnode[0], groups))
 
-          of x"restriction":
+          of xsd"restriction":
             result.add xekSimpleContent.newTree(
               convertRestriction(subnode[0], groups))
 
           else:
             raiseImplementError(subnode[0].safeTag())
 
-      of x"choice":
+      of xsd"choice":
         result.add convertSequence(subnode, groups)
 
-      of x"group":
+      of xsd"group":
         result.add convertGroup(subnode, groups)
 
-      of x"anyAttribute":
+      of xsd"anyAttribute":
         discard
 
       else:
@@ -325,7 +335,7 @@ proc convertSimpleType(node: XmlNode, groups: var XsdGroups): XsdEntry =
   result = newTree(xekSimpleType)
   updateBaseAttrs(result, node)
   case node[0].safeTag():
-    of x"restriction":
+    of xsd"restriction":
       result.add convertRestriction(node[0], groups)
 
     else:
@@ -333,24 +343,24 @@ proc convertSimpleType(node: XmlNode, groups: var XsdGroups): XsdEntry =
 
 
 proc convertSchema(node: XmlNode): XsdDocument =
-  assert node.tag == x"schema", node.tag
+  assert node.tag == xsd"schema", node.tag
   result.entry = newTree(xekTop)
   for entry in node:
     if entry.kind == xnElement:
       case entry.tag:
-        of x"complexType":
+        of xsd"complexType":
           result.entry.add convertComplexType(entry, result.groups)
 
-        of x"simpleType":
+        of xsd"simpleType":
           result.entry.add convertSimpleType(entry, result.groups)
 
-        of x"import":
+        of xsd"import":
           discard
 
-        of x"element":
+        of xsd"element":
           result.entry.startElement = convertElement(entry)
 
-        of x"group":
+        of xsd"group":
           result.entry.add convertGroup(entry, result.groups)
 
 

@@ -1,4 +1,4 @@
-import std/[xmltree, parsexml, xmlparser, enumerate, strtabs]
+import std/[xmltree, parsexml, xmlparser, enumerate, strtabs, options]
 import ../other/oswrap
 import ../helpers
 import ../types/colorstring
@@ -7,6 +7,40 @@ import ../algo/clformat
 proc parseXml*(file: AbsFile): XmlNode = parseXml(file.readFile())
 
 export xmltree, strtabs, xmlparser
+
+
+func add*(xml: var XmlNode, optXml: Option[XmlNode]) =
+  if optXml.isSome():
+    xml.add optXml.get()
+
+func newXml*(tag: string, args: seq[XmlNode] = @[]): XmlNode =
+  newXmlTree(tag, args)
+
+
+
+func wrap*(xml: XmlNode, tag: string): XmlNode =
+  result = newElement(tag)
+  result.add xml
+
+
+func wrap*(xml: seq[XmlNode], tag: string): XmlNode =
+  result = newElement(tag)
+  for node in xml:
+    result.add node
+
+
+func add*(xml: var XmlNode, sub: seq[XmlNode]): void =
+  for it in sub:
+    xml.add it
+
+func `[]=`*(xml: var XmlNode, attrname: string, attrval: string): void =
+  var attrs = xml.attrs()
+  if attrs != nil:
+    attrs[attrname] = attrval
+    xml.attrs = attrs
+  else:
+    xml.attrs = {attrname : attrval}.toXmlAttributes()
+
 
 iterator pairs*(node: XmlNode): (int, XmlNode) =
   var idx = 0
@@ -26,6 +60,17 @@ func safeTag*(node: XmlNode): string =
 
 func hasAttr*(node: XmlNode, attribute: string): bool =
   notNil(node.attrs) and attribute in node.attrs
+
+
+func `[]`*(node: XmlNode, property: string): string = node.attrs[property]
+
+func optGet*(node: XmlNode, property: string): Option[string] =
+  if node.attrs.isNil() or property notin node.attrs:
+    discard
+
+  else:
+    return some node.attrs[property]
+
 
 proc treeRepr*(
     pnode: XmlNode, colored: bool = true,
