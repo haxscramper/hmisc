@@ -159,7 +159,8 @@ template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
       when variable is string:
         # vart = vart.multiReplace({"\n" : "⮒\n"})
         if vart.split("\n").len > 1:
-          vart = "\n\"\"\"\n" & vart & "\n\"\"\"\n"
+          # discard
+          vart = "\n" & vart
 
         else:
           vart = "\"" & vart & "\""

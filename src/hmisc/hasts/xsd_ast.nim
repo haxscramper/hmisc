@@ -30,13 +30,22 @@ type
     xekEnumeration ## `xsd:enumeration`
     xekPattern
 
+  XsdOccursCount = object
+    case isFinite*: bool
+      of true:
+        count*: int
+
+      of false:
+        discard
+        # unbounded*: bool
+
   XsdEntry* = ref object
-    xsdName: Option[string] ## `name=""` attribute
+    xsdName*: Option[string] ## `name=""` attribute
     xsdType: Option[string] ## `type=""` attribute
-    xsdMinOccurs: Option[int] ## `minOccurs`
-    xsdMaxOccurs: Option[int] ## `maxOccurs`
+    xsdMinOccurs*: Option[XsdOccursCount] ## `minOccurs`
+    xsdMaxOccurs*: Option[XsdOccursCount] ## `maxOccurs`
     subnodes: seq[XsdEntry]
-    attrs: StringTableRef
+    attrs*: StringTableRef
 
     case kind*: XsdEntryKind
       of xekComplexSimpleType:
@@ -101,6 +110,50 @@ proc isEnumerationType*(xsd: XsdEntry): bool =
 
       return true
 
+proc isPrimitiveRestriction*(xsd: XsdEntry): bool =
+  ## Whether entry described by `xsd` is a restriction for some base type
+  ## (`xsd:string` that matches particular patern for example)
+  xsd == xekSimpleType and
+  xsd[0] == xekRestriction and
+  xsd[0].allOfIt(it.kind in {xekPattern})
+
+proc isOptional*(xsd: XsdEntry): bool =
+  ## Whether entry described by `xsd` has explicit `use="optional"` tag, or
+  ## has `minOccurs` equal to zero
+  return (
+    notNil(xsd.attrs) and
+    "use" in xsd.attrs and
+    xsd.attrs["use"] == "optional"
+  ) or (
+    xsd.xsdMinOccurs.isSome() and
+    xsd.xsdMinOccurs.get().isFinite and
+    xsd.xsdMinOccurs.get().count == 0
+  )
+
+proc isUnboundedRepeat*(xsd: XsdEntry): bool =
+  ## Whether entry descibed by `xsd` does not have finite upper repeat
+  ## bound. Lower repeat bound can be anything
+  return xsd.xsdMaxOccurs.isSome() and not xsd.xsdMaxOccurs.get().isFinite
+
+# template isSomeAndExpr*(opt: Option)
+
+proc isFinite*(xsd: XsdEntry): bool =
+  return
+    (
+      xsd.xsdMaxOccurs.ifSomeIt(it.isFinite) and
+      xsd.xsdMinOccurs.ifSomeIt(it.isFinite)
+    ) or (
+      xsd.xsdMaxOccurs.isNone() and
+      xsd.xsdMinOccurs.isNone()
+    )
+
+proc getAttributes*(xsd: XsdEntry): seq[XsdEntry] =
+  assert xsd.kind == xekComplexType
+  for node in xsd:
+    if node == xekAttribute:
+      result.add node
+
+
 template treeReprRecurse(node: typed, level: int, idx: seq[int]): untyped =
   if len(node) > 0:
     result &= "\n"
@@ -109,6 +162,13 @@ template treeReprRecurse(node: typed, level: int, idx: seq[int]): untyped =
     result &= aux(subn, level + 1, idx & newIdx)
     if newIdx < len(node) - 1:
       result &= "\n"
+
+func `$`*(occur: XsdOccursCount): string =
+  if occur.isFinite:
+    $occur.count
+
+  else:
+    "unbounded"
 
 proc treeRepr*(
     pnode: XsdEntry, colored: bool = true,
@@ -180,20 +240,38 @@ proc treeRepr*(
 proc xsd*(str: string): string = "xsd:" & str
 
 proc updateBaseAttrs*(entry: var XsdEntry, node: XmlNode) =
+  if isNil(node.attrs): return
+
   for key, value in node.attrs:
     var used = false
-    if entry.kind == xekEnumeration:
-      if key == "value":
-        entry.value = value
-        used = true
+    case entry.kind:
+      of xekEnumeration:
+        if key == "value":
+          entry.value = value
+          used = true
+
+      of xekRestriction:
+        if key == "base":
+          entry.xsdType = some value
+          used = true
+
+      else:
+        discard
 
     case key:
       of "name": entry.xsdName = some value
       of "type": entry.xsdType = some value
-      of "minOccurs": entry.xsdMinOccurs = some parseInt(value)
+      of "minOccurs": entry.xsdMinOccurs =
+        some XsdOccursCount(isFinite: true, count: parseInt(value))
+
       of "maxOccurs":
-        if value != "unbounded":
-          entry.xsdMaxOccurs = some parseInt(value)
+        if value == "unbounded":
+          entry.xsdMaxOccurs = some XsdOccursCount(isFinite: false)
+
+        else:
+          entry.xsdMaxOccurs = some XsdOccursCount(
+            isFinite: true, count: parseInt(value))
+
 
       else:
         if not used:
@@ -246,6 +324,7 @@ proc convertGroup*(element: XmlNode, groups: var XsdGroups): XsdEntry =
 
 
 proc convertSequence*(sequence: XmlNode, groups: var XsdGroups): XsdEntry =
+  # echo sequence
   case sequence.safeTag():
     of xsd"sequence": result = XsdEntry(kind: xekSequence)
     of xsd"choice": result = XsdEntry(kind: xekChoice)
@@ -265,6 +344,8 @@ proc convertSequence*(sequence: XmlNode, groups: var XsdGroups): XsdEntry =
       else:
         echo element
         raiseImplementError(element.safeTag())
+
+  updateBaseAttrs(result, sequence)
 
 proc convertExtension(xml: XmlNode, groups: var XsdGroups): XsdEntry =
   result = newTree(xekExtension)

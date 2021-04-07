@@ -661,7 +661,10 @@ template ifSomeIt*[T](opt: Option[T], predicate: untyped): bool =
     static: error "ifSomeIt denends on options module. " &
       "Add `import std/options` to fix this error"
   else:
-    opt.isSome() and ((let it {.inject.} = opt.get(); predicate))
+    ((
+      block:
+      (opt.isSome() and ((let it {.inject.} = opt.get(); predicate)))
+    ))
 
 
 template getSomeIt*[T](opt: Option[T], value, default: untyped): untyped =
