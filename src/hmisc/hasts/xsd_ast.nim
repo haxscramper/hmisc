@@ -110,13 +110,6 @@ proc isEnumerationType*(xsd: XsdEntry): bool =
 
       return true
 
-proc isPrimitiveRestriction*(xsd: XsdEntry): bool =
-  ## Whether entry described by `xsd` is a restriction for some base type
-  ## (`xsd:string` that matches particular patern for example)
-  xsd == xekSimpleType and
-  xsd[0] == xekRestriction and
-  xsd[0].allOfIt(it.kind in {xekPattern})
-
 proc isOptional*(xsd: XsdEntry): bool =
   ## Whether entry described by `xsd` has explicit `use="optional"` tag, or
   ## has `minOccurs` equal to zero
@@ -148,10 +141,44 @@ proc isFinite*(xsd: XsdEntry): bool =
     )
 
 proc getAttributes*(xsd: XsdEntry): seq[XsdEntry] =
-  assert xsd.kind == xekComplexType
-  for node in xsd:
-    if node == xekAttribute:
-      result.add node
+  assert xsd.kind in {xekComplexType, xekSimpleType}
+
+  var res: seq[XsdEntry]
+  proc aux(xsd: XsdEntry) =
+    for node in xsd:
+      case node.kind:
+        of xekAttribute:
+          res.add node
+
+        of xekSimpleContent, xekExtension:
+          aux(node)
+
+        else:
+          discard
+
+  aux(xsd)
+  return res
+
+proc isPrimitiveRestriction*(xsd: XsdEntry): bool =
+  ## Whether entry described by `xsd` is a restriction for some base type
+  ## (`xsd:string` that matches particular patern for example)
+  xsd == xekSimpleType and
+  xsd[0] == xekRestriction and
+  xsd[0].allOfIt(it.kind in {xekPattern}) and
+  xsd.getAttributes().len == 0
+
+
+proc isPrimitiveExtension*(xsd: XsdEntry): bool =
+  ## Whether entry described by `xsd` is a restriction for some base type
+  ## (`xsd:string` that matches particular patern for example)
+  xsd == xekComplexType and
+  len(xsd) > 0 and xsd[0] == xekSimpleContent and
+  len(xsd[0]) > 0 and xsd[0][0] == xekExtension and
+  xsd[0][0].hasType()
+
+proc getExtensionSection*(xsd: XsdEntry): XsdEntry =
+  assert xsd.isPrimitiveExtension()
+  return xsd[0][0]
 
 
 template treeReprRecurse(node: typed, level: int, idx: seq[int]): untyped =
@@ -250,7 +277,7 @@ proc updateBaseAttrs*(entry: var XsdEntry, node: XmlNode) =
           entry.value = value
           used = true
 
-      of xekRestriction:
+      of xekRestriction, xekExtension:
         if key == "base":
           entry.xsdType = some value
           used = true
@@ -349,6 +376,15 @@ proc convertSequence*(sequence: XmlNode, groups: var XsdGroups): XsdEntry =
 
 proc convertExtension(xml: XmlNode, groups: var XsdGroups): XsdEntry =
   result = newTree(xekExtension)
+  updateBaseAttrs(result, xml)
+  for node in xml:
+    case node.safeTag():
+      of xsd"attribute":
+        result.add convertAttribute(node, groups)
+
+      else:
+        raiseImplementError(node.safeTag())
+
 
 proc convertRestriction*(xml: XmlNode, groups: var XsdGroups): XsdEntry =
   result = newTree(xekRestriction)

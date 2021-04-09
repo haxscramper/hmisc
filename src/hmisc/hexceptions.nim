@@ -542,9 +542,9 @@ template pprintStackTrace*(): untyped =
           if ($tr.procname).startsWith(@["expect", "assert"]):
             "(asr) ".toBlue()
           else:
-            "(usr) "
+            "(usr) ".toGreen()
         else:
-          $("(sys) ".toGreen())
+          "(sys) "
 
 
       let (_, name, ext) = filename.splitFile()
