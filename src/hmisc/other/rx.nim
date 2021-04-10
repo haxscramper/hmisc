@@ -122,13 +122,23 @@ func initRx*(kind: RxKind, args: varargs[Rx]): Rx =
     of rxkRepeatedArgKinds:
       result.args.add args
 
+template rxEscape*(ch: char): string =
+  case ch:
+    of '.': "\\."
+    else: $ch
+
+func rxEscape*(str: string): string =
+  for ch in str:
+    result.add rxEscape(ch)
+
+
 func toStr*(elem: RxSetElem): string =
   case elem.kind:
     of rseItem:
-      result = $elem.item
+      result = rxEscape(elem.item)
 
     of rseRange:
-      result = $elem.start & "-" & $elem.finish
+      result = rxEscape(elem.start) & "-" & rxEscape(elem.finish)
 
 func treeRepr*(rx: Rx, colored: bool = true, level: int = 0): string =
   let pref = "  ".repeat(level)
@@ -143,7 +153,7 @@ func treeRepr*(rx: Rx, colored: bool = true, level: int = 0): string =
 
     of rxkText:
       result = pref & name & " " & toYellow(
-        "\"" & rx.text & "\"", colored)
+        "\"" & rx.text.rxEscape() & "\"", colored)
 
     of rxkCharset:
       result = pref & name & "[" &
@@ -217,12 +227,22 @@ func toStr*(rx: Rx, flavor: RxFlavor = rxfPerl): string =
     else:
       case rx.kind:
         of rxkText:
-          result = rx.text
+          result = rx.text.rxEscape()
 
         of rxkSingleArgKinds:
-          result = toStr(rx.args[0], flavor)
+          let a0 = rx.args[0]
+          result = toStr(a0, flavor)
 
-          if rx.kind == rxkOptional:
+          if rx.kind == rxkOptional and
+             # Is an optional wrapper and first argument cannot be used
+             # without parenthesis.
+             not(
+               # Optional charset has it's own wrapping - `[a-A]?`
+               (a0.kind in {rxkCharset}) or
+               # Single-char text also does not require any escape
+               # wrapping, even if it is escaped (e.g. `\.?` is fine)
+               (a0.kind in {rxkText} and len(a0.text) == 1)
+             ):
             result = "(" & result & ")"
 
           result &= toStr(rx.kind)
@@ -260,6 +280,11 @@ func toStr*(rx: Rx, flavor: RxFlavor = rxfPerl): string =
 
           if rx.kind in rxkGroupKinds:
             result = result & ")"
+
+          elif rx.kind == rxkAlt:
+            # TODO generate more optimized matching, avoid creating
+            # unnecessary groups
+            result = "(" & result & ")"
 
 template toConstStr*(rx: static[Rx], flavor: RxFlavor = rxfPerl): untyped =
   const rxRes = toStr(rx, flavor)
@@ -304,7 +329,14 @@ func `*`*(rx: Rx): Rx = initRx(rxkZeroOrMoreGreedy, @[rx])
 func `*?`*(rx: Rx): Rx = initRx(rxkZeroOrMoreLAzy, @[rx])
 func `?`*(rx: Rx): Rx = initRx(rxkOptional, @[rx])
 
+func `?`*(rxItems: openarray[Rx]): Rx =
+  initRx(rxkOptional, @[initRx(rxkConcat, rxItems)])
+
 func `|`*(rhs, lhs: Rx): Rx = initRx(rxkAlt, @[rhs, lhs])
+func `|`*(rxItems: openarray[Rx]): Rx = initRx(rxkAlt, rxItems)
+
+func `&`*(rhs, lhs: Rx): Rx = initRx(rxkConcat, @[rhs, lhs])
+func `&`*(rxItems: openarray[Rx]): Rx = initRx(rxkConcat, rxItems)
 
 func group*(rxSeq: varargs[Rx]): Rx =
   initRx(rxkNonCapturingGroup, rxSeq)

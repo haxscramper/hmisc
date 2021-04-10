@@ -10,7 +10,7 @@ import parsexml
 # import std/parsexml as pxml
 export xmltree, strtabs, xmlparser, parsexml
 
-import ../other/oswrap
+import ../other/[oswrap, rx]
 import ../helpers
 import ../types/colorstring
 import ../algo/clformat
@@ -432,6 +432,204 @@ proc parseXsdAnyType*(
   ) =
   next(parser)
 
+type
+  XsdTokenKind = enum
+    xtkString               ## ``xsd:string``
+    xtkBoolean              ## ``xsd:boolean``
+    xtkDecimal              ## ``xsd:decimal``
+    xtkInteger              ## ``xsd:integer``
+    xtkFloat                ## ``xsd:float``
+    xtkDouble               ## ``xsd:double``
+    xtkDuration             ## ``xsd:duration``
+    xtkDateTime             ## ``xsd:datetime``
+    xtkTime                 ## ``xsd:time``
+    xtkDate                 ## ``xsd:date``
+    xtkGYearMonth           ## ``xsd:gyearmonth``
+    xtkGYear                ## ``xsd:gyear``
+    xtkGMonthDay            ## ``xsd:gmonthday``
+    xtkGDay                 ## ``xsd:gday``
+    xtkGMonth               ## ``xsd:gmonth``
+    xtkHexBinary            ## ``xsd:hexbinary``
+    xtkBase64Binary         ## ``xsd:base64binary``
+    xtkUri                  ## ``xsd:uri``
+    xtkAnyType              ## ``xsd:anytype``
+
+    xtkError                 ## an error occurred during parsing
+    xtkEof                   ## end of file reached
+    xtkCharData              ## character data
+    xtkWhitespace            ## whitespace has been parsed
+    xtkComment               ## a comment has been parsed
+    xtkPI                    ## processing instruction (``<?name something ?>``)
+    xtkElementStart          ## ``<elem>``
+    xtkElementEnd            ## ``</elem>``
+    xtkElementOpen           ## ``<elem
+    xtkAttribute             ## ``key = "value"`` pair
+    xtkElementClose          ## ``>``
+    xtkCData                 ## ``<![CDATA[`` ... data ... ``]]>``
+    xtkEntity                ## &entity;
+    xtkSpecial                ## ``<! ... data ... >``
+
+  XsdToken = object
+    case kind*: XsdTokenKind
+     of xtkElementStart .. xtkAttribute:
+       xmlName: string
+
+     else:
+       discard
+
+proc classifyXsdString*(str: string, expected: set[XsdTokenKind]): XsdTokenKind =
+  const
+    floatingPointPrefix = &[?nrx({'-', '+'}), *nrx(rskDigit), ?nrx('.'), +nrx(rskDigit)]
+    # decimal has a lexical representation consisting of a finite-length
+    # sequence of decimal digits (#x30-#x39) separated by a period as a
+    # decimal indicator. An optional leading sign is allowed. If the sign
+    # is omitted, "+" is assumed. Leading and trailing zeroes are optional.
+
+
+    floatRx = &[
+      floatingPointPrefix,
+      ?[nrx({'e', 'E'}), ?nrx({'-', '+'}), +nrx(rskDigit)],
+      nrx(rskLineEnd)
+    ]
+    # Floating point parsing is taken from first random SO answer, but I'm
+    # sure it is much more involved than that.
+
+    decimalRx = &[floatingPointPrefix, nrx(rskLineEnd)]
+    integerRx = fullLine &[nrx('0') | &[nrx('1', '9'), *nrx('0', '9')]]
+
+    # NOTE this pattern certainly has unnecessary number of comments,
+    # that is probably making it harder to understand that simple
+    # regex like `-?\d{4}-\d{2}-\d{2}` (and so on), but I wanted to
+    # test if it works for something simple.
+    digit2 = nrx(rskDigit).repeat(2)
+
+    dateRx = &[
+      # `'-'? yyyy`
+      ?nrx('-'), nrx(rskDigit).repeat(4),
+      # `'-' mm`
+      nrx('-'), digit2,
+      # `'-' dd`
+      nrx('-'), digit2,
+    ]
+
+    secondsFractionRx = &[nrx('.'), +nrx(rskDigit)]
+
+    timeRx = &[
+      digit2,
+      # `':' mm`
+      nrx(':'), digit2,
+      # `':' ss`
+      nrx(':'), digit2,
+    ]
+
+    # `(zzzzzz)?` Timezone is a string of the form:
+    # `(('+' | '-') hh ':' mm) | 'Z'` where
+    timezoneRx = nrx('Z') | &[
+      nrx({
+        '+', # '+' indicates a nonnegative duration,
+        '-', # '-' indicates a nonpositive duration.
+      }),
+      # `hh` is a two-digit numeral (with leading zeros as
+      # required) that represents the hours,
+      digit2,
+      nrx(':'),
+      # `mm` is a two-digit numeral that represents the minutes,
+      digit2
+    ]
+
+  # echo str, " ", str =~ integerRx, " ", integerRx.toStr()
+  # echo integerRx
+
+  if xtkBoolean in expected and str in ["true", "false"]:
+    result = xtkBoolean
+
+
+  elif xtkInteger in expected and str =~ integerRx:
+    result = xtkInteger
+
+  elif xtkDecimal in expected and str =~ decimalRx:
+    result = xtkDecimal
+
+  elif len({xtkFloat, xtkDouble} * expected) > 0 and
+       (str in ["INF"] or str =~ floatRx):
+    # For now just use primitive implementation, later I would have to
+    # parse the string and determine if it can fit in float or it is a
+    # double.
+
+    if xtkFloat in expected:
+      result = xtkFloat
+
+    else:
+      result = xtkDouble
+
+  elif xtkDuration in expected and str[0] == 'P':
+    result = xtkDuration
+    # The lexical representation for duration is the [ISO 8601] extended
+    # format PnYn MnDTnH nMnS, where nY represents the number of years, nM
+    # the number of months, nD the number of days, 'T' is the date/time
+    # separator, nH the number of hours, nM the number of minutes and nS
+    # the number of seconds. The number of seconds can include decimal
+    # digits to arbitrary precision.
+
+  elif xtkDateTime in expected and
+       str =~ &[dateRx, nrx('T'), timeRx, ?secondsFractionRx, ?timezoneRx]:
+    # dateTime consists of finite-length sequences of characters of the
+    # form:
+    #
+    # `'-'? yyyy '-' mm '-' dd 'T' hh ':' mm ':' ss ('.' s+)? (zzzzzz)?`
+
+    result = xtkDateTime
+
+  elif xtkTime in expected and
+       str =~ &[timeRx, ?secondsFractionRx, ?timezoneRx]:
+    result = xtkTime
+
+  # Date is undeschipherable without looking into 8601 standard
+
+  # elif xtkDate in expected and
+  #      str =~ &[timeRx]
+
+  else:
+    result = xtkCharData
+
+
+proc xsdToken*(parser: HXmlParser, expected: set[XsdTokenKind]): XsdToken =
+  var kind: XsdTokenKind
+  case parser.kind:
+    of xmlError:        kind = xtkError
+    of xmlEof:          kind = xtkEof
+    of xmlWhitespace:   kind = xtkWhitespace
+    of xmlComment:      kind = xtkComment
+    of xmlPI:           kind = xtkPI
+    of xmlAttribute:    kind = xtkAttribute
+    of xmlElementClose: kind = xtkElementClose
+    of xmlSpecial:      kind = xtkSpecial
+    of xmlEntity:       kind = xtkEntity
+    of xmlCharData:     kind = parser.strVal().classifyXsdString(expected)
+    of xmlCData:        kind = xtkCData
+
+
+    of xmlElementStart:
+      return XsdToken(kind: xtkElementStart, xmlName: parser.strVal())
+
+    of xmlElementEnd:
+      return XsdToken(kind: xtkElementEnd, xmlName: parser.strVal())
+
+    of xmlElementOpen:
+      return XsdToken(kind: xtkElementOpen, xmlName: parser.strVal())
+
+  return XsdToken(kind: kind)
+
+
 
 when isMainModule:
-  discard
+  import std/unittest
+  let t = classifyXsdString
+
+  let all = { low(XsdTokenKind) .. high(XsdTokenKind) }
+
+  check t("12", all) == xtkInteger
+  check t("12.0", all) == xtkDecimal
+  check t("+0.3E-2", all) == xtkFloat
+  check t("2002-10-10T12:00:00+05:00", all) == xtkDateTime
+  check t("00:00:00", all) == xtkTime
