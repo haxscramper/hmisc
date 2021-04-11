@@ -433,7 +433,7 @@ proc parseXsdAnyType*(
   next(parser)
 
 type
-  XsdTokenKind = enum
+  XsdTokenKind* = enum
     xtkString               ## ``xsd:string``
     xtkBoolean              ## ``xsd:boolean``
     xtkDecimal              ## ``xsd:decimal``
@@ -469,7 +469,7 @@ type
     xtkEntity                ## &entity;
     xtkSpecial                ## ``<! ... data ... >``
 
-  XsdToken = object
+  XsdToken* = object
     case kind*: XsdTokenKind
      of xtkElementStart .. xtkAttribute:
        xmlName: string
