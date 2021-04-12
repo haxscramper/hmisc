@@ -486,11 +486,12 @@ type
   XsdToken* = object
     case kind*: XsdTokenKind
      of xtkNamedKinds:
-       xmlName: string
+       xmlName*: string
 
      else:
        discard
 
+func name*(token: XsdToken): string = token.xmlName
 proc classifyXsdString*(str: string, expected: set[XsdTokenKind]): XsdTokenKind =
   const
     floatingPointPrefix = &[?nrx({'-', '+'}), *nrx(rskDigit), ?nrx('.'), +nrx(rskDigit)]
