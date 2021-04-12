@@ -439,46 +439,45 @@ Return token kind -> parser name mapping for each element in `alts`.
 
 
 
-proc getextensionsection*(xsd): XsdEntry =
-  assert xsd.isprimitiveextension()
+proc getExtensionSection*(xsd): XsdEntry =
+  assert xsd.isPrimitiveExtension()
   return xsd[0][0]
 
-
-template treereprrecurse(node: typed, level: int, idx: seq[int]): untyped =
+template treeReprRecurse(node: typed, level: int, idx: seq[int]): untyped =
   if len(node) > 0:
     result &= "\n"
 
-  for newidx, subn in pairs(node):
-    result &= aux(subn, level + 1, idx & newidx)
-    if newidx < len(node) - 1:
+  for newIdx, subn in pairs(node):
+    result &= aux(subn, level + 1, idx & newIdx)
+    if newIdx < len(node) - 1:
       result &= "\n"
 
-func `$`*(occur: xsdoccurscount): string =
-  if occur.isfinite:
+func `$`*(occur: XsdOccursCount): string =
+  if occur.isFinite:
     $occur.count
 
   else:
     "unbounded"
 
-proc treerepr*(
+proc treeRepr*(
     xsd; colored: bool = true,
     indexed: bool = false, maxdepth: int = 120
   ): string =
 
   proc aux(n: XsdEntry, level: int, idx: seq[int]): string =
-    template updatevalue(element: typed) =
-      for name, field in fieldpairs(element):
-        when field is option and
-             field isnot option[XsdEntry]
+    template updateValue(element: typed) =
+      for name, field in fieldPairs(element):
+        when field is Option and
+             field isnot Option[XsdEntry]
           :
-          if field.issome():
-            result &= &[" ", tocyan(name, colored), " = ",
-                        toyellow($field.get(), colored)]
+          if field.isSome():
+            result &= &[" ", toCyan(name, colored), " = ",
+                        toYellow($field.get(), colored)]
 
         elif field is XsdEntry or
-             field is XsdEntrykind or
+             field is XsdEntryKind or
              field is seq[XsdEntry] or
-             field is option[XsdEntry]
+             field is Option[XsdEntry]
           :
           discard
 
@@ -487,13 +486,13 @@ proc treerepr*(
             discard
 
           else:
-            result &= &[" ", tocyan(name, colored), " = ",
-                        toyellow($field, colored)]
+            result &= &[" ", toCyan(name, colored), " = ",
+                        toYellow($field, colored)]
 
-      if notnil(element.attrs):
+      if notNil(element.attrs):
         for key, value in element.attrs:
-          result &= &[" ", tored(key, colored), " = ",
-                      toyellow(value, colored)]
+          result &= &[" ", toRed(key, colored), " = ",
+                      toYellow(value, colored)]
 
 
     let pref {.inject.} =
@@ -502,17 +501,17 @@ proc treerepr*(
       else:
         "  ".repeat(level)
 
-    if isnil(n): return pref & tored("<nil>", colored)
+    if isNil(n): return pref & toRed("<nil>", colored)
     if level > maxdepth: return pref & " ..."
 
-    result &= pref & togreen(($n.kind)[3 ..^ 1], colored)
+    result &= pref & toGreen(($n.kind)[3 ..^ 1], colored)
 
-    updatevalue(n[])
+    updateValue(n[])
 
     case n.kind:
-      of xeksimpletype:
-        result &= &[" / ", tored(($n[0].kind)[3 ..^ 1], colored)]
-        updatevalue(n[0][])
+      of xekSimpleType:
+        result &= &[" / ", toRed(($n[0].kind)[3 ..^ 1], colored)]
+        updateValue(n[0][])
 
       else:
         discard
@@ -521,100 +520,125 @@ proc treerepr*(
 
 
     case n.kind:
-      of xekelement, xekattribute: discard
-      of xeksimpletype:
-        treereprrecurse(n[0], level, idx)
+      of xekElement, xekAttribute: discard
+      of xekSimpleType:
+        treeReprRecurse(n[0], level, idx)
 
       else:
-        treereprrecurse(n, level, idx)
+        treeReprRecurse(n, level, idx)
 
   return aux(xsd, 0, @[])
 
 proc xsd*(str: string): string = "xsd:" & str
 
-proc updatebaseattrs*(xsd: var XsdEntry, node: xmlnode) =
-  if isnil(node.attrs): return
+proc updateBaseAttrs*(xsd: var XsdEntry, node: XmlNode) =
+  if isNil(node.attrs): return
 
   for key, value in node.attrs:
     var used = false
     case xsd.kind:
-      of xekenumeration:
+      of xekEnumeration:
         if key == "value":
           xsd.value = value
           used = true
 
-      of xekrestriction, xekextension:
+      of xekRestriction, xekExtension:
         if key == "base":
-          xsd.xsdtype = some value
+          xsd.xsdType = some value
           used = true
 
       else:
         discard
 
     case key:
-      of "name": xsd.xsdname = some value
-      of "type": xsd.xsdtype = some value
-      of "minoccurs": xsd.xsdminoccurs =
-        some xsdoccurscount(isfinite: true, count: parseint(value))
+      of "name": xsd.xsdName = some value
+      of "type": xsd.xsdType = some value
+      of "minOccurs": xsd.xsdMinOccurs =
+        some XsdOccursCount(isFinite: true, count: parseInt(value))
 
-      of "maxoccurs":
+      of "maxOccurs":
         if value == "unbounded":
-          xsd.xsdmaxoccurs = some xsdoccurscount(isfinite: false)
+          xsd.xsdMaxOccurs = some XsdOccursCount(isFinite: false)
 
         else:
-          xsd.xsdmaxoccurs = some xsdoccurscount(
-            isfinite: true, count: parseint(value))
+          xsd.xsdMaxOccurs = some XsdOccursCount(
+            isFinite: true, count: parseInt(value))
 
 
       else:
         if not used:
-          if xsd.attrs.isnil():
-            xsd.attrs = newstringtable()
+          if xsd.attrs.isNil():
+            xsd.attrs = newStringTable()
 
           xsd.attrs[key] = value
 
 
 
-proc convertelement*(xml): XsdEntry =
-  result = xekelement.newtree()
-  updatebaseattrs(result, xml)
+proc convertElement*(xml): XsdEntry =
+  result = xekElement.newTree()
+  updateBaseAttrs(result, xml)
 
-  if not hastype(result):
-    # the type definition corresponding to the <simpletype> or
-    # <complextype> element information item in the [children], if either
+  if not hasType(result):
+    # The type definition corresponding to the <simpleType> or
+    # <complexType> element information item in the [children], if either
     # is present, otherwise the type definition ·resolved· to by the
     # ·actual value· of the type [attribute], otherwise the {type
     # definition} of the element declaration ·resolved· to by the ·actual
-    # value· of the substitutiongroup [attribute], if present, otherwise
+    # value· of the substitutionGroup [attribute], if present, otherwise
     # the ·ur-type definition·.
-    result.xsdtype = some "xsd:anytype"
+    result.xsdType = some "xsd:anyType"
 
-proc convertattribute*(xml; context): XsdEntry =
-  result = xekattribute.newtree()
-  updatebaseattrs(result, xml)
+proc convertAttribute*(xml; context): XsdEntry =
+  result = xekAttribute.newTree()
+  updateBaseAttrs(result, xml)
 
 
-proc convertsequence*(xml; context): XsdEntry
+proc convertSequence*(xml; context): XsdEntry
 
-proc convertgroup*(xml; context): XsdEntry =
-  if xml.hasattr("name"):
-    result = xekgroupdeclare.newtree()
+proc convertGroup*(xml; context): XsdEntry =
+  if xml.hasAttr("name"):
+    result = xekGroupDeclare.newTree()
     for node in xml:
-      case node.safetag():
+      case node.safeTag():
         of xsd"choice", xsd"sequence":
-          result.add convertsequence(node, context)
+          result.add convertSequence(node, context)
 
 
         else:
-          raiseimplementerror(node.safetag())
+          raiseImplementError(node.safeTag())
 
     context.groups[xml["name"]] = result
 
   else:
-    result = XsdEntry(kind: xekgroupref)
-    result.groupname = xml["ref"]
-    result.groupref = context.groups[result.groupname]
+    result = XsdEntry(kind: xekGroupRef)
+    result.groupName = xml["ref"]
+    result.groupRef = context.groups[result.groupName]
 
+
+
+proc convertSequence*(xml; context): XsdEntry =
+  # echo sequence
+  case xml.safeTag():
+    of xsd"sequence": result = XsdEntry(kind: xekSequence)
+    of xsd"choice": result = XsdEntry(kind: xekChoice)
+    else: raiseImplementError(xml.safeTag())
+
+  for element in xml:
+    case element.safeTag():
+      of xsd"element":
+        result.add convertElement(element)
+
+      of xsd"sequence", xsd"choice":
+        result.add convertSequence(element, context)
+
+      of xsd"group":
+        result.add convertGroup(element, context)
+
+      else:
+        echo element
+        raiseImplementError(element.safeTag())
+
+  updateBaseAttrs(result, xml)
 
 
 proc convertsequence*(xml; context): XsdEntry =
