@@ -36,6 +36,13 @@ proc currentEventToStr*(parser: HXmlParser): string =
     of xmlError:
       $parser.base.kind & " " & parser.base.errorMsg()
 
+    of {
+      xmlCharData, xmlWhitespace, xmlComment, xmlCData, xmlSpecial
+    }:
+      var chard = parser.base.charData()
+      chard = chard[0 .. min(chard.high, 20)]
+      $parser.base.kind & " " & chard
+
     else:
       $parser.base.kind
 
@@ -469,9 +476,16 @@ type
     xtkEntity                ## &entity;
     xtkSpecial                ## ``<! ... data ... >``
 
+const
+  # IDEA associated type constants. I had to split type definitions into
+  # two section to put constants inbetween, but in documentation they
+  # should appear in exactly the same order as here.
+  xtkNamedKinds* = {xtkElementStart .. xtkAttribute}
+
+type
   XsdToken* = object
     case kind*: XsdTokenKind
-     of xtkElementStart .. xtkAttribute:
+     of xtkNamedKinds:
        xmlName: string
 
      else:
