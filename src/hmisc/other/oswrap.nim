@@ -1625,6 +1625,8 @@ proc getTempFile*(
   ##
   ## - @arg{assertExists} :: check if input directory exists
 
+  if filePatt.count('X') == 0:
+    return dir / RelFile(filePatt)
 
   assertExists(dir)
   for next in xPatterns(filePatt):

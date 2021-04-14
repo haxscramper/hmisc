@@ -1374,61 +1374,6 @@ when isMainModule:
         realignIterations = 1
       )
 
-proc nimNorm*(str: string): string =
-  if str.len > 0:
-    result = str.replace("_", "").toLowerAscii()
-    result[0] = str[0]
-
-type
-  StringNameCache* = object
-    renames: Table[string, string]
-    idents: Table[string, seq[string]]
-
-func hasExactName*(cache: StringNameCache, name: string): bool =
-  name in cache.renames
-
-func newName*(cache: var StringNameCache, str: string): string =
-  let norm = nimNorm(str)
-  if norm notin cache.idents:
-    result = str
-    cache.idents[norm] = @[result]
-
-  else:
-    result = str & $cache.idents[norm].len
-    cache.idents[norm].add result
-
-  cache.renames[str] = result
-
-func getName*(cache: var StringNameCache, str: string): string =
-  if nimNorm(str) notin cache.idents or
-     str notin cache.renames
-    :
-    result = cache.newName(str)
-
-  else:
-    result = cache.renames[str]
-
-
-func commonPrefix*[T](seqs: seq[seq[T]]): seq[T] =
-  ## Find common prefix for list of strings
-  # TODO implement without sorting
-  if seqs.len == 0:
-    return @[]
-
-  else:
-    result = seqs[0]
-    for s in seqs:
-      var prefix: int = 0
-      for i in 0 ..< min(len(s), len(result)):
-        if result[i] == s[i]:
-          inc prefix
-
-      if prefix == 0:
-        return @[]
-
-      else:
-        result = result[0 ..< prefix]
-
     # let strs = strs.sorted()
     # for i in 0 ..< min(strs[0].len, strs[^1].len):
     #   if strs[0][i] == strs[^1][i]:

@@ -188,6 +188,18 @@ func commonPrefix*(strs: seq[string]): string =
 
 
 
+func delete*(str: string, chars: set[char]): string =
+  for c in str:
+    if c notin chars:
+      result &= c
+
+func delete*(str: var string, chars: set[char]) =
+  var tmp: string
+  for c in str:
+    if c notin chars:
+      tmp &= c
+
+  str = tmp
 
 # func endsWith*(str: string, chars: set[char]): bool =
 #   ## True if last character of the strings is in `chars`

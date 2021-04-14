@@ -1,7 +1,8 @@
-import std/[options, strutils, tables]
+import std/[options, strutils, tables, hashes, sets]
 export tables
 
 import ./xml_ast
+export xml_ast
 
 import ../algo/[hstring_algo, halgorithm, clformat]
 import ../other/oswrap
@@ -100,6 +101,14 @@ func len*(xsd): int = xsd.subnodes.len
 func hasName*(xsd): bool = xsd.xsdName.isSome()
 func name*(xsd): string = xsd.xsdName.get()
 func hasType*(xsd): bool = xsd.xsdType.isSome()
+func hasAttr*(xsd; attr: string): bool =
+  notNil(xsd.attrs) and attr in xsd.attrs
+
+func hasAttr*(xsd; key, value: string): bool =
+  xsd.hasAttr(key) and xsd.attrs[key] == value
+
+func `[]`*(xsd; key: string): string = xsd.attrs[key]
+
 func getType*(xsd): string =
   ## Return type name for `xsd` - either `type=""` attribute, or name of
   ## the type itself (if xsd is a simple/complex type)
@@ -307,7 +316,7 @@ proc isPrimitiveExtension*(xsd): bool =
   xsd[0][0].hasType()
 
 proc isPrimitiveType*(xsdType: string): bool =
-  xsdType in [
+  normalize(xsdType) in [
     "xsd:string",
     "xsd:boolean",
     "xsd:decimal",
@@ -373,13 +382,35 @@ Similar to `isAlwaysPrimitiveType`, but checks whether object might
 tag.
 
 ]##
-  discard
+  case xsd.kind:
+    of xekExtension:
+      for attribute in xsd:
+        if not attribute.isOptional():
+          return false
 
+    of xekComplexType:
+      if xsd.hasAttr("mixed") and xsd["mixed"] == "true":
+        # https://www.w3.org/TR/REC-xml/#sec-mixed-content " An element
+        # type has mixed content when elements of that type may contain
+        # character data, optionally interspersed with child elements".
+        #
+        # I.e. body can start with primitive token (string)
+        return true
+
+    of xekSimpleContent:
+       if xsd.hasType() and xsd.getType().isPrimitiveType():
+         return true
+
+       elif xsd.hasTypeImpl():
+         return xsd.getTypeImpl().isPossiblePrimitiveType()
+
+    else:
+      raiseImplementKindError(xsd)
 
 ## #+endsection
 
-proc classifyPrimitiveTypeKind*(xsd): XsdTokenKind =
-  case xsd.getType():
+proc classifyPrimitiveTypeKind*(str: string): XsdTokenKind =
+  case str:
     of "xsd:string": xtkString
     of "xsd:boolean": xtkBoolean
     of "xsd:decimal": xtkDecimal
@@ -398,9 +429,12 @@ proc classifyPrimitiveTypeKind*(xsd): XsdTokenKind =
     of "xsd:hexbinary": xtkHexBinary
     of "xsd:base64binary": xtkBase64Binary
     of "xsd:uri": xtkUri
-    of "xsd:anytype": xtkAnyType
+    of "xsd:anyType", "xsd:anytype": xtkAnyType
     else:
-      raiseImplementError(xsd.getType())
+      raiseArgumentError(str)
+
+proc classifyPrimitiveTypeKind*(xsd): XsdTokenKind =
+  classifyPrimitiveTypeKind(xsd.getType())
 
 proc namePrimitiveTypeKind*(
     kind: XsdTokenKind; withPrefix: bool = false): string =
@@ -435,78 +469,170 @@ proc namePrimitiveTypeKind*(
 
   result &= map[kind]
 
+
+proc getNimName*(kind: XsdTokenKind): string =
+  case kind:
+    of xtkString: "string"
+    of xtkBoolean: "bool"
+    of xtkDecimal: "float"
+    of xtkInteger: "int"
+    of xtkFloat: "float"
+    of xtkDouble: "float64"
+    of xtkDuration: "Duration"
+    of xtkDateTime: "DateTime"
+    of xtkTime: "DateTime"
+    of xtkDate: "DateTime"
+    of xtkGYearMonth: "DateTime"
+    of xtkGYear: "DateTime"
+    of xtkGMonthDay: "DateTime"
+    of xtkGDay: "DateTime"
+    of xtkGMonth: "DateTime"
+    of xtkHexBinary: "string"
+    of xtkBase64Binary: "string"
+    of xtkUri: "URI"
+    of xtkAnyType: "XmlNode"
+    else:
+      raiseUnexpectedKindError(kind)
+
 proc getParserName*(kind: XsdTokenKind): string =
   "parseXsd" & capitalizeAscii(namePrimitiveTypeKind(kind))
 
-proc getFirstTokens*(xsd): seq[XsdToken] =
+proc getNimType*(name: string): string =
+  if name.startsWith("xsd:"):
+    name.classifyPrimitiveTypeKind().getNimName()
+
+  else:
+    name.capitalizeAscii()
+
+proc getFirstTokens*(xsd; parent: XsdEntry = nil):
+    seq[tuple[token: XsdToken, source: Option[XsdEntry]]] =
+
   ##[
 
 Return list of tokens that entry described by `xsd` can start with.
 
 ]##
 
-  echov treeRepr(xsd)
-  case xsd.kind:
-    of xekElement, xekRestriction, xekExtension:
-      # `xsd:restriction` must be handled separately, because it might
-      # separate set of `xsd:string` values into two subtypes using
-      # `xsd:enumeration` for example. This is a placeholder
-      # implementation, hopefully it won't blow up instantly
+  var visited: HashSet[int]
 
-      # I've added `xsd:extension` here because I've seen it used as it all
-      # attributes are optional, even without bein explicitly annotated
-      # with `use="optional"`. Again - not really sure if that is exactly
-      # how it should be implemented.
-      if xsd.hasType() and xsd.getType().isPrimitiveType():
-        let kind = xsd.classifyPrimitiveTypeKind()
-        result.add XsdToken(kind: kind)
+  proc aux(xsd; parent: XsdEntry):
+    seq[tuple[token: XsdToken, source: Option[XsdEntry]]] =
 
-      elif xsd.hasTypeImpl():
-        result.add getFirstTokens(xsd.getTypeImpl())
-
-      if xsd.hasName():
-        result.add XsdToken(kind: xtkElementStart, xmlName: xsd.name())
-
-    of xekSequence:
-      result = getFirstTokens(xsd[0])
-
-    of xekChoice:
-      for alt in xsd:
-        result.add getFirstTokens(alt)
-
-    of xekComplexType:
-      case xsd[0].kind:
-        of xekSequence, xekChoice:
-          result.add getFirstTokens(xsd[0])
-
-        of xekSimpleContent:
-          # SImple content with extension
-          result.add getFirstTokens(xsd[0][0])
-
-        of xekAttribute:
-          discard
-
-        else:
-          raiseUnexpectedKindError(xsd[0])
-
-    of xekSimpleType:
-      if xsd[0].kind in {xekRestriction}:
-        result.add getFirstTokens(xsd[0])
+    if cast[int](xsd) in visited:
+      return
 
     else:
-      raiseUnexpectedKindError(xsd)
+      visited.incl cast[int](xsd)
+
+    case xsd.kind:
+      of xekElement, xekRestriction, xekExtension:
+        # `xsd:restriction` must be handled separately, because it might
+        # separate set of `xsd:string` values into two subtypes using
+        # `xsd:enumeration` for example. This is a placeholder
+        # implementation, hopefully it won't blow up instantly
+
+        # I've added `xsd:extension` here because I've seen it used as it all
+        # attributes are optional, even without bein explicitly annotated
+        # with `use="optional"`. Again - not really sure if that is exactly
+        # how it should be implemented.
+        if xsd.hasType() and xsd.getType().isPrimitiveType():
+          let kind = xsd.classifyPrimitiveTypeKind()
+          var source: Option[XsdEntry]
+          if xsd.kind == xekElement:
+            source = some(xsd)
+
+          elif notNil(parent):
+            source = some(parent)
+
+          # result.add (XsdToken(kind: kind), source)
+
+        # elif xsd.hasTypeImpl():
+        #   result.add aux(xsd.getTypeImpl(), xsd)
+
+        if xsd.hasName():
+          result.add ((
+            XsdToken(kind: xtkElementStart, xmlName: xsd.name()),
+            some(xsd)
+          ))
+
+      of xekSequence:
+        result = aux(xsd[0], parent)
+
+      of xekChoice:
+        for alt in xsd:
+          result.add aux(alt, parent)
+
+      of xekGroupRef:
+        result.add aux(xsd.groupRef, parent)
+
+      of xekGroupDeclare:
+        for item in xsd:
+          result.add aux(item, parent)
+
+      of xekComplexType:
+        if len(xsd) == 0:
+          return
+
+        case xsd[0].kind:
+          of xekSequence, xekChoice:
+            result.add aux(xsd[0], parent)
+
+          of xekSimpleContent:
+            # SImple content with extension
+            result.add aux(xsd[0][0], parent)
+
+          of xekAttribute:
+            discard
+
+          of xekGroupRef:
+            result.add aux(xsd[0], parent)
+
+          else:
+            raiseUnexpectedKindError(xsd[0])
+
+      of xekSimpleType:
+        if xsd[0].kind in {xekRestriction}:
+          result.add aux(xsd[0], parent)
+
+      else:
+        raiseUnexpectedKindError(xsd)
+
+  return aux(xsd, parent)
 
 
 
 
 
 proc getFirstSet*(xsd): set[XsdTokenKind] =
-  for token in getFirstTokens(xsd):
+  for (token, _) in getFirstTokens(xsd):
     result.incl token.kind
 
-proc getFirstParsers*(alts: seq[XsdEntry]):
-  tuple[onTokenKinds: seq[(XsdTokenKind, string)],
-        onTokenNames: seq[(string, string)]] =
+
+type
+  XsdParser* = object
+    case onKind*: bool
+      of true:
+        kind*: XsdTokenKind
+
+      of false:
+        tag*: string
+
+    parser*: string
+    entry*: Option[XsdEntry]
+
+  XsdParsers* = object
+    onKinds*: seq[XsdParser]
+    onNames*: seq[XsdParser]
+
+proc getExpectedKinds*(parsers: XsdParsers): set[XsdTokenKind] =
+  if parsers.onNames.len > 0:
+    result.incl xtkElementStart
+    result.incl xtkElementOpen
+
+  for parser in parsers.onKinds:
+    result.incl parser.kind
+
+proc getFirstParsers*(alts: seq[XsdEntry]): XsdParsers =
   ##[
 
 Return token kind -> parser name mapping for each element in `alts`.
@@ -530,23 +656,44 @@ Return token kind -> parser name mapping for each element in `alts`.
 
   var used: set[XsdTokenKind]
   for alt in alts:
-    for token in getFirstTokens(alt):
+    for (token, source) in getFirstTokens(alt):
       if token.kind in used:
         raiseargumenterror(
           $token.kind &
             " is already used in first set for this group of tokens")
 
       else:
-        let parser = "parse" & capitalizeAscii(alt.getType())
         case token.kind:
           of xtkNamedKinds:
-            result.onTokenNames.add((alt.name(), parser))
+            let parser =
+              if alt.getType().isPrimitiveType():
+                alt.getType().classifyPrimitiveTypeKind().getParserName()
+
+              else:
+                "parse" & source.get().getType().getNimType()
+
+            # echov token
+            # echov alt.name()
+
+            result.onNames.add(
+              XsdParser(
+                onKind: false,
+                tag: token.name(),
+                parser: parser,
+                entry: source
+            ))
 
           else:
             # only add unnamed kinds, because named tokens might appearh
             # multiple times in the input.
             used.incl token.kind
-            result.onTokenKinds.add((token.kind, parser))
+            result.onKinds.add(
+              XsdParser(
+                onKind: true,
+                kind: token.kind,
+                parser: token.kind.getParserName(),
+                entry: source
+            ))
 
 
 

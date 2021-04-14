@@ -10,6 +10,8 @@ import parsexml
 # import std/parsexml as pxml
 export xmltree, strtabs, xmlparser, parsexml
 
+import ../base_errors
+export base_errors
 import ../other/[oswrap, rx]
 import ../helpers
 import ../types/colorstring
@@ -55,15 +57,16 @@ template expectAt(
     parser: HXmlParser, at: set[XmlEventKind], procname: string
   ): untyped {.dirty.} =
 
-  if parser.base.kind notin at:
-    raise newException(
-      HXmlParserEventError,
-      (
-        "Invalid curent parser event kind for " & procname &
-        " expected any of " & $at & " & but found " & $parser.base.kind() &
-        " at " & displayAt(parser)
+  {.line: instantiationInfo().}:
+    if parser.base.kind notin at:
+      raise newException(
+        HXmlParserEventError,
+        (
+          "Invalid curent parser event kind for '" & procname &
+          "'. Expected any of " & $at & ", but found " & $parser.base.kind() &
+          " at " & displayAt(parser)
+        )
       )
-    )
 
 proc charData*(my: HXmlParser): string =
   expectAt(my, {
@@ -140,6 +143,7 @@ proc skipElementEnd*(parser: var HXmlParser, tag: string) =
 
 
 proc newHXmlParser*(file: AbsFile, traceNext: bool = false): HXmlParser =
+  assertExists(file)
   var fileStream = newFileStream(file.string, fmRead)
   if isNIl fileStream:
     discard
@@ -181,8 +185,8 @@ template raiseUnexpectedElement*(parser: HXmlParser, tag: string): untyped =
     raise newException(
       HXmlParseError,
       "Unexpected element: expected <" & tag &
-        ">, but found" & parser.elementName() &
-        " at " & parser.displayAt()
+        ">, but found <" & parser.elementName() &
+        "> at " & parser.displayAt()
     )
 
 func add*(xml: var XmlNode, optXml: Option[XmlNode]) =
@@ -311,133 +315,150 @@ import std/[times, uri]
 
 type XsdParseTarget[T] = T | seq[T] | Option[T]
 
+proc setValue[T](target: var Option[T], value: T) =
+  target = some value
+
+proc setValue[T](target: var T, value: T) =
+  target = value
+
+proc setValue[T](target: var seq[T], value: T) =
+  target.add value
+
 proc parseXsdString*(
     target: var XsdParseTarget[string], parser: var HXmlParser,
     tag: string = ""
   ) =
   expectAt(parser, {
-    xmlCharData, xmlAttribute, xmlElementStart
+    xmlCharData, xmlAttribute, xmlElementStart, xmlWhitespace
   }, "parseXsdString")
 
   var res: string
 
-  while parser.kind() in {xmlWhitespace, xmlCharData}:
-    res &= parser.strVal()
-    next(parser)
+  if parser.kind() == xmlAttribute:
+    res = parser.strVal()
 
-  when target is seq:    target.add res
-  elif target is Option: target = some res
-  else:                  target = res
+  else:
+    while parser.kind() in {xmlWhitespace, xmlCharData}:
+      res &= parser.strVal()
+      next(parser)
+
+  setValue(target, res)
 
 
 proc parseXsdBoolean*(
     target: var XsdParseTarget[bool], parser: var HXmlParser,
     tag: string = ""
   ) =
-  discard
+  raiseImplementError("")
 
 proc parseXsdDecimal*(
     target: var XsdParseTarget[float], parser: var HXmlParser,
     tag: string = ""
   ) =
-  discard
+  raiseImplementError("")
 
 proc parseXsdInteger*(
     target: var XsdParseTarget[int], parser: var HXmlParser,
     tag: string = ""
   ) =
-  discard
+  raiseImplementError("")
 
 proc parseXsdFloat*(
     target: var XsdParseTarget[float], parser: var HXmlParser,
     tag: string = ""
   ) =
-  discard
+  raiseImplementError("")
 
 proc parseXsdDouble*(
     target: var XsdParseTarget[float], parser: var HXmlParser,
     tag: string = ""
   ) =
-  discard
+  raiseImplementError("")
 
 proc parseXsdDuration*(
     target: var XsdParseTarget[Duration], parser: var HXmlParser,
     tag: string = ""
   ) =
-  discard
+  raiseImplementError("")
 
 proc parseXsdDateTime*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  discard
+  raiseImplementError("")
 
 proc parseXsdTime*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  discard
+  raiseImplementError("")
 
 proc parseXsdDate*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  discard
+  raiseImplementError("")
 
 proc parseXsdGYearMonth*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  discard
+  raiseImplementError("")
 
 proc parseXsdGYear*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  discard
+  raiseImplementError("")
 
 proc paresXsdGMonthDay*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  discard
+  raiseImplementError("")
 
 proc parseXsdGDay*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  discard
+  raiseImplementError("")
 
 proc parseXsdGMonth*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  discard
+  raiseImplementError("")
 
 proc parseXsdHexBinary*(
     target: var XsdParseTarget[string], parser: var HXmlParser,
     tag: string = ""
   ) =
-  discard
+  raiseImplementError("")
 
 proc parseXsdBase64Binary*(
     target: var XsdParseTarget[string], parser: var HXmlParser,
     tag: string = ""
   ) =
-  discard
+  raiseImplementError("")
 
 proc parseXsdUri*(
     target: var XsdParseTarget[URI], parser: var HXmlParser,
     tag: string = ""
   ) =
-  discard
-
+  raiseImplementError("")
 
 proc parseXsdAnyType*(
     target: var XsdParseTarget[XmlNode], parser: var HXmlParser,
     tag: string = ""
   ) =
-  next(parser)
+  case parser.kind():
+    of xmlCharData:
+      target.setValue(newText(parser.strVal()))
+      next(parser)
+
+    else:
+      raiseImplementKindError(parser)
+
 
 type
   XsdTokenKind* = enum
@@ -492,7 +513,18 @@ type
        discard
 
 func name*(token: XsdToken): string = token.xmlName
-proc classifyXsdString*(str: string, expected: set[XsdTokenKind]): XsdTokenKind =
+func `$`*(token: XsdToken): string =
+  result &= "(" & $token.kind
+
+  if token.kind in xtkNamedKinds:
+    result &= " " & token.xmlName
+
+  result &= ")"
+
+
+proc classifyXsdString*(
+    str: string, expected: set[XsdTokenKind]): XsdTokenKind =
+
   const
     floatingPointPrefix = &[?nrx({'-', '+'}), *nrx(rskDigit), ?nrx('.'), +nrx(rskDigit)]
     # decimal has a lexical representation consisting of a finite-length
@@ -604,6 +636,9 @@ proc classifyXsdString*(str: string, expected: set[XsdTokenKind]): XsdTokenKind 
   # elif xtkDate in expected and
   #      str =~ &[timeRx]
 
+  elif xtkString in expected:
+    result = xtkString
+
   else:
     result = xtkCharData
 
@@ -636,6 +671,16 @@ proc xsdToken*(parser: HXmlParser, expected: set[XsdTokenKind]): XsdToken =
   return XsdToken(kind: kind)
 
 
+
+template raiseUnexpectedToken*(
+    parser: HXmlParser, token: XsdToken): untyped =
+
+  {.line: instantiationInfo().}:
+    raise newException(
+      HXmlParseError,
+      "Unexpected token <" & $token & "> at " &
+        parser.displayAt()
+    )
 
 when isMainModule:
   import std/unittest
