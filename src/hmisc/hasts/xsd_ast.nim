@@ -20,7 +20,7 @@ type
     xekSimpleType ## Simple type
     xekElement ## `xsd:element`
     xekAttribute ## `xsd:attribute`
-    xekGroupDeclare ## `xsd:group`
+    xekGroupDecl ## `xsd:group`
     xekChoice ## `xsd:choice`
     xekGroupRef ## `xsd:group ref=`
     xekSequence ## `xsd:sequence`. Ordered list of elements
@@ -73,6 +73,8 @@ type
   XsdDocument* = object
     entry*: XsdEntry
 
+const xekGroupDeclare* = xekGroupDecl
+
 using
   xml: XmlNode
   xsd: XsdEntry
@@ -112,8 +114,11 @@ func `[]`*(xsd; key: string): string = xsd.attrs[key]
 func getType*(xsd): string =
   ## Return type name for `xsd` - either `type=""` attribute, or name of
   ## the type itself (if xsd is a simple/complex type)
-  if xsd.kind in {xekSimpleType, xekComplexType}:
+  if xsd.kind in {xekSimpleType, xekComplexType, xekGroupDecl}:
     xsd.name()
+
+  elif xsd.kind in {xekGroupRef}:
+    xsd["ref"]
 
   else:
     xsd.xsdType.get()
@@ -261,7 +266,7 @@ proc isFinite*(xsd): bool =
     )
 
 proc getAttributes*(xsd): seq[XsdEntry] =
-  assert xsd.kind in {xekComplexType, xekSimpleType}
+  assertKind(xsd, {xekComplexType, xekSimpleType, xekGroupDecl})
 
   var res: seq[XsdEntry]
   proc aux(xsd: XsdEntry) =
@@ -280,7 +285,7 @@ proc getAttributes*(xsd): seq[XsdEntry] =
   return res
 
 proc getElements*(xsd): seq[XsdEntry] =
-  assert xsd.kind in {xekComplexType}
+  assert xsd.kind in {xekComplexType, xekGroupDecl}
   if len(xsd) > 0 and xsd[0].kind in {xekChoice, xekSequence}:
     for node in items(xsd):
       if node.kind == xekElement:
@@ -565,7 +570,7 @@ Return list of tokens that entry described by `xsd` can start with.
       of xekGroupRef:
         result.add aux(xsd.groupRef, parent)
 
-      of xekGroupDeclare:
+      of xekGroupDecl:
         for item in xsd:
           result.add aux(item, parent)
 
@@ -672,9 +677,6 @@ Return token kind -> parser name mapping for each element in `alts`.
               else:
                 "parse" & source.get().getType().getNimType()
 
-            # echov token
-            # echov alt.name()
-
             result.onNames.add(
               XsdParser(
                 onKind: false,
@@ -771,7 +773,7 @@ proc convertSequence*(xml; context): XsdEntry
 
 proc convertGroup*(xml; context): XsdEntry =
   if xml.hasAttr("name"):
-    result = xekGroupDeclare.newTree()
+    result = xekGroupDecl.newTree()
     for node in xml:
       case node.safeTag():
         of xsd"choice", xsd"sequence":
@@ -787,6 +789,8 @@ proc convertGroup*(xml; context): XsdEntry =
     result = XsdEntry(kind: xekGroupRef)
     result.groupName = xml["ref"]
     result.groupRef = context.groups[result.groupName]
+
+  updateBaseAttrs(result, xml)
 
 
 

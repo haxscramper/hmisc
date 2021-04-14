@@ -1,25 +1,56 @@
 ## Identifier and type name generator algorithms
 
+##[
+
+This module provide helper functions to deal with nim's style insensetivity
+when generating code (especially when converting from other sources that
+are not style-insensetive).
+
+Along with simple tools for fixing up names by removing all non-identifier
+symbols 'name cache' is provided for making it easier to keep track of all
+identifier renames and avoid name clashes by keeping track of all generated
+names.
+
+
+- NOTE :: All identifiers are genrated in accordance with nep1 style guide.
+  Alternative naming styles (snake case) are not currently supported, and
+  most likely won't be added in the future either.
+
+]##
+
 import std/[tables, strutils, sequtils]
 import ./hstring_algo, ./halgorithm
+import ../base_errors, ../hdebug_misc
 
 type
   StringNameCache* = object
-    renames: Table[string, string]
-    idents: Table[string, seq[string]]
+    renames: Table[string, string] ## 'raw' name mapped to renamed
+                                   ## counterparts
+    idents: Table[string, seq[string]] ## 'renamed' identifier mapped to
 
-proc nimNorm*(str: string): string =
+proc nimNorm*(str: string, normalize: bool = true): string =
   ## Normalize nim identifier name
-  if str.len > 0:
-    result = str.replace("_", "").toLowerAscii()
-    result[0] = str[0]
+  if normalize:
+    if str.len > 0:
+      result = str.replace("_", "").toLowerAscii()
+      result[0] = str[0]
+
+  else:
+    result = str
 
 
 func hasExactName*(cache: StringNameCache, name: string): bool =
   name in cache.renames
 
-func newName*(cache: var StringNameCache, str: string): string =
-  let norm = nimNorm(str)
+func newName*(
+    cache: var StringNameCache, str: string, normalize: bool = true): string =
+  ## Create new unique name for `str`
+  ##
+  ## If *normalized* `str` has never been used as identifier in the cache
+  ## return it unmodified, otherwise return new name.
+  ##
+  ## Rename `str -> result` is registered
+  let norm = nimNorm(str, normalize)
   if norm notin cache.idents:
     result = str
     cache.idents[norm] = @[result]
@@ -31,13 +62,40 @@ func newName*(cache: var StringNameCache, str: string): string =
   cache.renames[str] = result
 
 func getName*(cache: var StringNameCache, str: string): string =
-  if nimNorm(str) notin cache.idents or
-     str notin cache.renames
-    :
+  if nimNorm(str) notin cache.idents or str notin cache.renames:
     result = cache.newName(str)
 
   else:
     result = cache.renames[str]
+
+func newRename*(
+    cache: var StringNameCache, baseName, newName: string,
+    exact: bool = true
+  ) =
+  ## Register rename from `baseName` to `newName`
+
+  let norm = nimNorm(baseName, not exact)
+  if norm in cache.renames:
+    raiseArgumentError(
+      "Rename for " & baseName & " already exists in cache")
+
+  else:
+    cache.renames[norm] = newName
+    cache.idents[newName] = @[baseName]
+
+func knownRename*(
+    cache: StringNameCache, baseName: string, exact: bool = true): bool =
+  ## Whether `baseName` has been renamed to something in the `cache`
+  nimNorm(baseName, not exact) in cache.renames
+
+func knownName*(cache: StringNameCache, name: string): bool =
+  ## Whether `name` has already been generated in the `cache`
+  name in cache.idents
+
+func getRename*(
+    cache: StringNameCache, baseName: string, exact: bool = true): string =
+  ## Get what `baseName` was renamed to in the cache
+  cache.renames[nimNorm(baseName, not exact)]
 
 
 func commonPrefix*[T](seqs: seq[seq[T]]): seq[T] =
@@ -132,6 +190,58 @@ proc enumPrefixForCamel*(camel: string): string =
   for part in camel.splitCamel():
     result.add toLowerAscii(part[0])
 
+proc enumPrefixForCamel*(camel: string, cache: var StringNameCache): string =
+  if cache.knownRename(camel):
+    return getRename(cache, camel)
+
+  var split = camel.splitCamel().mapIt((0, it.toLowerAscii()))
+  while true:
+    result = ""
+    for (pref, str) in split:
+      result &= str[0 .. pref].toLowerAscii()
+
+    if cache.knownName(result):
+      var hadInc = false
+      for val in mitems(split):
+        if val[0] < val[1].high and
+           val[1][val[0] + 1] in {'0' .. '9'}:
+          # First try to increment element with integer values (it is very
+          # likely that they are already used to disambiguate between
+          # different kinds)
+          hadInc = true
+          inc val[0]
+          break
+
+      if not hadInc:
+        for val in mitems(split):
+          if val[0] < val[1].high:
+            inc val[0]
+            break
+
+    else:
+      break
+
+  cache.newRename(camel, result)
+
+
 proc kindEnumName*(name, parent: string): string =
-  parent.filterIt(it in {'A' .. 'Z', '0' .. '9'}).join().toLowerAscii() &
-    name.capitalizeAscii()
+  enumPrefixForCamel(parent) & name.capitalizeAscii()
+
+proc kindEnumName*(
+    name, parent: string,
+    cache: var StringNameCache,
+    addPrefix: bool = true
+  ): string =
+
+  if cache.knownRename(parent & name):
+    return cache.getRename(parent & name)
+
+  else:
+    let prefix = enumPrefixForCamel(parent, cache)
+    let newName = cache.newName(capitalizeAscii(name))
+    if addPrefix:
+      result = prefix
+
+    result &= newName
+
+    cache.newRename(parent & name, result)
