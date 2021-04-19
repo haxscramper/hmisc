@@ -242,7 +242,10 @@ func toStr*(rx: Rx, flavor: RxFlavor = rxfPerl): string =
                # Single-char text also does not require any escape
                # wrapping, even if it is escaped (e.g. `\.?` is fine)
                (a0.kind in {rxkText} and len(a0.text) == 1)
-             ):
+             ) and
+             # Explicitly check for wrapper parenthesis (might be necessary
+             # to check for balanced too.)
+             not (result[0] == '(' and result[^1] == ')'):
             result = "(" & result & ")"
 
           result &= toStr(rx.kind)

@@ -1,6 +1,10 @@
 type
   ArgumentError* = object of CatchableError
+  LogicError* = object of CatchableError
   UnexpectedKindError* = object of ArgumentError
+
+template raiseLogicError*(errMsg: string) {.dirty.} =
+  raise newException(LogicError, errMsg)
 
 template raiseArgumentError*(errMsg: string) {.dirty.} =
   raise newException(ArgumentError, errMsg)

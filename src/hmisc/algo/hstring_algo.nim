@@ -357,4 +357,5 @@ template argumentError*(body: untyped): untyped =
   ## Raise `ArgumentError`. Body is a string literal which will be
   ## passed as a message. It will be passed to `&` macro - i.e.
   ## variable interpolation is supported.
-  raiseArgumentError(fmt(joinLiteral(body)))
+  {.line: instantiationInfo().}:
+    raiseArgumentError(fmt(joinLiteral(body)))

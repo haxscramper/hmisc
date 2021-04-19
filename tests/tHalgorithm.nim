@@ -5,7 +5,8 @@ import sugar, json, sequtils, tables, strformat, options, terminal
 
 import hmisc/types/[hvariant, colorstring]
 import hmisc/[helpers, hexceptions]
-import hmisc/algo/[halgorithm, htree_mapping, hseq_distance, clformat]
+import hmisc/algo/[halgorithm, htree_mapping, hseq_distance,
+                   clformat, namegen]
 import hmisc/hdebug_misc
 import hmisc/base_errors
 

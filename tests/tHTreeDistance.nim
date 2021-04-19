@@ -5,11 +5,13 @@ import hmisc/algo/[htree_distance, hseq_distance, halgorithm]
 import hmisc/hdebug_misc
 
 import hmisc/other/oswrap
-when $$CI == true:
-  static:
-    # I have absolutely no idea why this thing fails compilation on github
-    # CI. It works locally, it works on fresh installation in docker.
-    quit 0
+# when $$CI == true:
+static:
+  # I have absolutely no idea why this thing fails compilation on github
+  # CI. It works locally, it works on fresh installation in docker.
+
+  # After updating on 1.4.6 it does not work locally either
+  quit 0
 
 template canImport(x: untyped): untyped =
   compiles:

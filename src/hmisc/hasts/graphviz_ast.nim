@@ -109,9 +109,13 @@ func quoteGraphviz*(str: string): string =
   result.add '"'
   for idx, ch in pairs(str):
     if ch in {'\'', '"'}:
+
       result.add "\\"
 
-    elif ch in {'\\'}:
+    elif ch in {'\\'} and (
+      # Do not escape `\l` and `\r`
+      idx < str.high and str[idx + 1] notin {'l', 'r'}):
+
       result.add "\\"
 
     result.add ch
@@ -380,6 +384,10 @@ type
     label*: Option[string]
 
 type
+  DotGraphPresets* = enum
+    dgpAutomata
+    dgpAutomataAccept
+
   DotGraphNodeRank* = enum
     gnrDefault = ""
     gnrSame = "same"
@@ -426,6 +434,7 @@ func `[]=`*(graph: var DotGraph, key, value: string) =
 func makeRectConsolasNode*(): DotNode =
   result.fontname = "Consolas"
   result.shape = nsaRect
+  result.labelAlign = nlaLeft
 
 func makeRectConsolasEdge*(): DOtEdge =
   result.fontname = "Consolas"
@@ -433,6 +442,27 @@ func makeRectConsolasEdge*(): DOtEdge =
 func makeCircleConsolasNode*(): DotNode =
   result.fontname = "Consolas"
   result.shape = nsaCircle
+
+func makeDotNode*(style: DotGraphPresets): DotNode =
+  case style:
+    of dgpAutomata:
+      result.fontname = "Consolas"
+      result.shape = nsaCircle
+
+    of dgpAutomataAccept:
+      result.fontname = "Consolas"
+      result.shape = nsaDoubleCircle
+
+
+func makeDotEdge*(style: DotGraphPresets): DotEdge =
+  case style:
+    of dgpAutomata, dgpAutomataAccept:
+      result.fontname = "Consolas"
+
+func setProps*(node: sink DotNode, id: DotNodeId, label: string): DotNode =
+  result = node
+  result.id = id
+  result.label = some(label)
 
 func makeDotGraph*(
     name: string = "G",
@@ -449,6 +479,21 @@ func makeDotGraph*(
     styleNode: styleNode,
     styleEdge: styleEdge
   )
+
+func makeDotGraph*(style: DotGraphPresets, name: string = "G"): DotGraph =
+  result = DotGraph(
+    name: name,
+    styleNode: makeDotNode(style),
+    styleEdge: makeDotEdge(style)
+  )
+
+  case style:
+    of dgpAutomata:
+      result.rankdir = grdLeftRight
+
+    else:
+      discard
+
 
 func add*(graph: var DotGraph, node: DotNode): void =
   graph.nodes.add node
@@ -920,6 +965,7 @@ let res = DotGraph(
 # FIXME use `AbsFile` etc.
 
 import hmisc/other/oswrap
+export oswrap
 
 proc toPng*(
     graph: DotGraph,
