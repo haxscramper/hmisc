@@ -18,7 +18,7 @@ names.
 
 ]##
 
-import std/[tables, strutils, sequtils]
+import std/[tables, strutils, sequtils, sets]
 import ./hstring_algo, ./halgorithm
 import ../base_errors, ../hdebug_misc
 
@@ -27,6 +27,8 @@ type
     renames: Table[string, string] ## 'raw' name mapped to renamed
                                    ## counterparts
     idents: Table[string, seq[string]] ## 'renamed' identifier mapped to
+    genNormalized: CountTable[string] ## Set of all *normalized* generated
+                                      ## identifiers
 
 proc nimNorm*(str: string, normalize: bool = true): string =
   ## Normalize nim identifier name
@@ -60,6 +62,7 @@ func newName*(
     cache.idents[norm].add result
 
   cache.renames[str] = result
+  cache.genNormalized.inc nimNorm(result)
 
 func getName*(cache: var StringNameCache, str: string): string =
   if nimNorm(str) notin cache.idents or str notin cache.renames:
@@ -83,10 +86,17 @@ func newRename*(
     cache.renames[norm] = newName
     cache.idents[newName] = @[baseName]
 
+  cache.genNormalized.inc nimNorm(newName)
+
 func knownRename*(
     cache: StringNameCache, baseName: string, exact: bool = true): bool =
   ## Whether `baseName` has been renamed to something in the `cache`
   nimNorm(baseName, not exact) in cache.renames
+
+func knownGenerated*(
+    cache: StringNameCache, name: string): bool =
+  ## Whether *normalized* form of `name` was created in the cache
+  nimNorm(name) in cache.genNormalized
 
 func knownName*(cache: StringNameCache, name: string): bool =
   ## Whether `name` has already been generated in the `cache`
@@ -145,7 +155,7 @@ func isReservedNimIdent*(str: string): bool =
 
   ]
 
-  return nimNorm(str) notin reserved
+  return nimNorm(str) in reserved
 
 # func isValidNimIdent*(str: string): bool =
 #   str.len > 0 and isRevered
@@ -164,11 +174,38 @@ proc fixIdentName*(str: string, prefix: string): string =
   if not str.isReservedNimIdent():
     assert prefix.len > 0
     result = keepNimIdentChars(str)
-    while not result.isReservedNimIdent():
+    while result.isReservedNimIdent():
       result = prefix & capitalizeAscii(result)
 
   else:
     result = str
+
+proc fixIdentName*(str, prefix: string, cache: var StringNameCache): string =
+  # echov cache.knownRename(str), str
+  # echov cache.renames
+  if cache.knownRename(str):
+    return cache.getRename(str)
+
+  if str.isReservedNimIdent():
+    assert prefix.len > 0
+    result = prefix & keepNimIdentChars(str).capitalizeAscii()
+    while result.isReservedNimIdent():
+      result = prefix & result
+
+  else:
+    result = prefix & str
+    result[prefix.len] = toUpperAscii(result[prefix.len])
+
+  while cache.knownGenerated(result):
+    result = prefix & result
+
+  result[0] = toLowerAscii(result[0])
+  cache.newRename(str, result)
+
+
+
+
+
 
 proc fixNimTypeName*(str: string, useReserved: bool = true): string =
   ## Convert possibly reserved type identifier `str` to string by
