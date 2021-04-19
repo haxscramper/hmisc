@@ -60,6 +60,7 @@ type
   EditScript*[L, V] = object
     cmds: seq[EditCmd[L, V]]
 
+
 proc makeInvalidNode[L, V](isSource: bool): NodeId[L, V] =
   NodeId[L, V](id: -1, index: nil, path: @[], isSource: isSource)
 
@@ -413,6 +414,15 @@ proc subnodes[L, V](node: NodeId[L, V]): seq[NodeId[L, V]] =
 proc `[]`*[L, V](node: NodeId[L, V], idx: int): NodeId[L, V] =
   node.index.subnodes[node][idx]
 
+func followPath*[L, V](node: NodeId[L, V], path: TreePath): NodeId[L, V] =
+  var res: NodeId[L, V] = node
+  for step in path.pathTail():
+    res = node.index.subnodes[node][step] # node[step]
+
+  res
+
+
+
 iterator bfsIterate[L, V](tree: NodeId[L, V]): NodeId[L, V] =
   ## Yield each node id in tree in BFS order
   iterateItBFS(tree, toSeq(items(it)), true):
@@ -671,7 +681,7 @@ proc applyLast[L, V](
       return some(node)
     of ekDel:
       bind `[]`
-      var node = index.root().followPath(cmd.delPath)
+      var node = followPath(index.root(), cmd.delPath)
       index.subnodes[node.parent].del(cmd.delPath[^1])
       # TEST checl for repeated deletion - might need to swap iteration
       # order (although it is DFS-post now, so this is probably fine)
