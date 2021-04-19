@@ -1,4 +1,4 @@
-version       = "0.11.3"
+version       = "0.11.4"
 author        = "haxscramper"
 description   = "Collection of helper utilities"
 license       = "Apache-2.0"
