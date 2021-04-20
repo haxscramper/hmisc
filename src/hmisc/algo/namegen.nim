@@ -180,7 +180,11 @@ proc fixIdentName*(str: string, prefix: string): string =
   else:
     result = str
 
-proc fixIdentName*(str, prefix: string, cache: var StringNameCache): string =
+proc fixIdentName*(
+    str, prefix: string,
+    cache: var StringNameCache,
+    requirePrefix: bool = false
+  ): string =
   # echov cache.knownRename(str), str
   # echov cache.renames
   if cache.knownRename(str):
@@ -192,9 +196,13 @@ proc fixIdentName*(str, prefix: string, cache: var StringNameCache): string =
     while result.isReservedNimIdent():
       result = prefix & result
 
-  else:
+  elif requirePrefix:
     result = prefix & str
     result[prefix.len] = toUpperAscii(result[prefix.len])
+
+  else:
+    result = str
+    result[0] = toLowerAscii(result[0])
 
   while cache.knownGenerated(result):
     result = prefix & result

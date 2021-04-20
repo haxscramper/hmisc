@@ -245,7 +245,7 @@ const
     kvSep: " "
   )
 
-  sakListKinds* = {sakAndList, sakOrList}
+  sakListKinds* = {sakAndList, sakOrList, sakPipeList}
 
 func stdout*(shellRes: ShellResult): string =
   shellRes.execResult.stdout
@@ -374,7 +374,8 @@ const
   x11ShellCmdsList* = [
     "xclip",
     "pdflatex",
-    "java"
+    "java",
+    "wmctrl"
   ]
 
 func makeShellCmd*(bin: string): ShellCmd =
@@ -552,6 +553,7 @@ func toStr*(inAst: ShellAst, oneline: bool = false): string =
           case ast.kind:
             of sakAndList: "&&"
             of sakOrList: "||"
+            of sakPipeList: "|"
             else: raiseImplementError(&"For kind {ast.kind}")
 
         result = buf.join(" " & sep & " ")
@@ -801,7 +803,7 @@ func toShellArgument(arg: NimNode): NimNode =
 
 
 
-macro shellCmd*(cmd: untyped, args: varargs[untyped]): untyped {.deprecated.} =
+macro shellCmd*(cmd: untyped, args: varargs[untyped]): untyped =
   let shCmd = if cmd.kind == nnkIdent:
                 cmd.toStrLit()
               elif cmd.kind == nnkStrLit:
@@ -1235,6 +1237,11 @@ proc execShell*(cmd: ShellAst): void =
 proc evalShell*(cmd: ShellExpr): auto =
   var opts = {poEvalCommand, poUsePath}
   runShell(cmd, options = opts)
+
+
+proc evalShell*(ast: ShellAst): auto =
+  var opts = {poEvalCommand, poUsePath}
+  runShell(ShellCmd(bin: ast.toStr()), options = opts)
 
 
 proc evalShellStdout*(cmd: ShellExpr): string =
