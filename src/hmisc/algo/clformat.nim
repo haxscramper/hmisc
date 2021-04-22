@@ -520,7 +520,7 @@ func unicodifyIdent*(str: string): string =
 
   return fromTexToUnicode(str)
 
-func hfmtIt*[T](s: openarray[T]): string =
+func hFormat*[T](s: openarray[T]): string =
   result &= "["
   for idx, item in pairs(s):
     if idx > 0:
