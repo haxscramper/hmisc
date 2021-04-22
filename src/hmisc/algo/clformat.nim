@@ -521,6 +521,7 @@ func unicodifyIdent*(str: string): string =
   return fromTexToUnicode(str)
 
 func hFormat*[T](s: openarray[T]): string =
+  ## - TODO :: Add formatting options
   result &= "["
   for idx, item in pairs(s):
     if idx > 0:

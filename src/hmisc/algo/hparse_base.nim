@@ -13,7 +13,19 @@ type
         rule*: Rule
         subnodes*: seq[HsTokTree[Rule, Tok]]
 
-  HsTok*[K: enum] = object
+  HsTok*[K: enum | SomeInteger | char] = object
+    # uint*-based positional information allows to save up to 50% of token
+    # size, but I decided it is not really necessary as tokens themselves
+    # are not really inteded to be stored in large numbers anywhere.
+    # Although if necessary it might also be possible to implement SSO
+    # string and make token a fully stack-allocated object with size of 16
+    # bytes
+
+    # line*: uint32
+    # column*: uint16
+
+    line*: int
+    column*: int
     kind*: K
     str*: string
 
@@ -38,13 +50,31 @@ type
 
   HsParseCallback*[T, Val] = proc(toks: var HsLexer[T]): ParseResult[Val]
 
+# proc getLine*[K](tok: HsTok[K]): int {.inline.} = tok.line
+# proc getColumn*[K](tok: HsTok[K]): int {.inline.} = tok.column
+
+proc lineCol*[K](tok: HsTok[K]): LineCol {.inline.} =
+  (line: tok.line, column: tok.column)
+
 proc initTok*[K](str: var PosStr, kind: K): HsTok[K] =
-  HsTok[K](str: str.popRange(), kind: kind)
+  HsTok[K](str: str.popRange(), kind: kind,
+           line: str.line, column: str.column)
 
 proc initTok*[K](kind: K): HsTok[K] = HsTok[K](kind: kind)
 
 proc initTok*[K](str: char | string, kind: K): HsTok[K] =
   HsTok[K](str: $str, kind: kind)
+
+template initTok*[K](
+    posStr: PosStr, inStr: char | string, inKind: K): HsTok[K] =
+  ## Create token using positional information from `posStr`.
+  ##
+  ## - WHY :: Template was used to avoid eager argument evaluation that
+  ##   prevented `str.initTok(str.popIdent(), 'i')` use pattern -
+  ##   identifier pop was evaluated first, causing `str` to change
+  ##   positions
+  HsTok[K](line: posStr.line, column: posStr.column,
+           kind: inKind, str: $inStr)
 
 func strVal*[K: enum](tok: HsTok[K]): string = tok.str
 
@@ -206,6 +236,24 @@ proc skipTo*[T](lex: var HsLexer[T], chars: set[char]) =
 func parseIdent*[R, T](lex: var HsLexer[T], rule: R):
   HsTokTree[R, T] = HsTokTree[R, T](isToken: true, token: lex.pop())
 
+func expectKind*[T, K](lex: var HsLexer[T], kind: set[K]) =
+  lex[].assertKind(kind)
+
+func pushRange*[T](lex: var HsLexer[T]) =
+  lex.str[].pushRange()
+
+func popRange*[T](lex: var HsLexer[T]): string =
+  lex.str[].popRange()
+
+proc getAll*[T](lex: var HsLexer[T]): seq[T] =
+  while not lex.finished():
+    result.add lex.pop()
+
+proc lexAll*[T](str: string, impl: HsLexCallback[T]): seq[T] =
+  var str = initPosStr(str)
+  var lexer = initLexer(str, impl)
+  return lexer.getAll()
+
 proc insideBalanced*[T, K](
     lex: var HsLexer[T], openKinds, closeKinds: set[K],
     withWrap: bool = false
@@ -335,16 +383,6 @@ func foldNested*[T, K](
     if idx < tokens.len and
        tokens[idx].kind in delimiterKinds:
       inc idx
-
-
-func expectKind*[T, K](lex: var HsLexer[T], kind: set[K]) =
-  lex[].assertKind(kind)
-
-func pushRange*[T](lex: var HsLexer[T]) =
-  lex.str[].pushRange()
-
-func popRange*[T](lex: var HsLexer[T]): string =
-  lex.str[].popRange()
 
 func parsePlus*[T, V](parser: HsParseCallback[T, V]):
   HsParseCallback[T, seq[V]] =

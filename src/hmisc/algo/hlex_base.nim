@@ -15,6 +15,8 @@ type
     start*: int
     finish*: int
 
+  LineCol* = tuple[line: int, column: int]
+
   PosStr* = object
     case isSlice*: bool
       of false:
@@ -27,11 +29,15 @@ type
         slices*: seq[PosStrSlice]
 
     pos*: int
+    line*: int
+    column*: int
     ranges*: seq[int]
     bufferActive*: bool
     sliceBuffer*: seq[seq[PosStrSlice]]
 
 using str: var PosStr
+
+export strutils
 
 const
   LowerAsciiLetters* = {'a' .. 'b'}
@@ -55,6 +61,12 @@ template raiseCannotGetOffset*(str: PosStr, offset: int) =
       "Cannot get char at +" & $offset & " input string is finished: " &
       $finished(str)
     )
+
+# func getLine*(str: PosStr): int {.inline.} = str.line
+# func getColumn*(str: PosStr): int {.inline.} = str.column
+func lineCol*(str: PosStr): LineCol {.inline.} =
+  (line: str.line, column: str.column)
+
 
 func len*(slice: PosStrSlice): int = slice.finish - slice.start
 func toAbsolute*(slice: PosStrSlice, offset: int): int =
@@ -267,7 +279,17 @@ proc popRange*(str; leftShift: int = 0, rightShift: int = 0):
     return str.str[start ..< min(finish, str.str.len)]
 
 proc advance*(str; step: int = 1) {.inline.} =
+  if str['\n']:
+    inc str.line
+    str.column = 0
+  else:
+    inc str.column
+
   inc(str.pos, step)
+
+proc skip*(str; ch: char) {.inline.} =
+  assert str[] == ch
+  str.advance()
 
 proc skipWhile*(str; chars: set[char]) {.inline.} =
   if str[chars]:
