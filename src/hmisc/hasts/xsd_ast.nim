@@ -229,7 +229,7 @@ proc isEnumerationType*(xsd): bool =
       return true
 
 proc isChoiceType*(xsd): bool =
-  xsd == xekComplexType and xsd[0] == xekChoice
+  xsd == xekComplexType and len(xsd) > 0 and xsd[0] == xekChoice
 
 proc isMixed*(xsd): bool =
   notNil(xsd.attrs) and "mixed" in xsd.attrs and

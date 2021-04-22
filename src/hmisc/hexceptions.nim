@@ -505,68 +505,69 @@ proc getFileName*(f: string): string =
 
 template pprintStackTrace*(): untyped =
   mixin toGreen, toDefault, toYellow, getFileName, splitFile
-  block:
-    let e = getCurrentException()
-    let stackEntries =
-      if e != nil:
-        e.getStackTraceEntries()
-      else:
-        getStackTraceEntries()
-
-
-
-    let choosenim = getHomeDir() & ".choosenim"
-    when nimvm:
-      discard
-    else:
-      echo ""
-      if e != nil:
-        printSeparator("Exception")
-      else:
-        printSeparator("Stacktrace")
-
-      echo ""
-
-    var fileW = 0
-    for tr in stackEntries:
-      let (_, name, ext) = ($tr.filename).splitFile()
-      fileW = max(name.len, fileW)
-
-
-    var foundErr: bool = false
-    for idx, tr in stackEntries:
-      let filename: string = $tr.filename
-
-      let prefix =
-        if not filename.startsWith(choosenim):
-          if ($tr.procname).startsWith(@["expect", "assert"]):
-            "(asr) ".toBlue()
-          else:
-            "(usr) ".toGreen()
+  {.line: instantiationInfo().}:
+    block:
+      let e = getCurrentException()
+      let stackEntries =
+        if e != nil:
+          e.getStackTraceEntries()
         else:
-          "(sys) "
+          getStackTraceEntries()
 
 
-      let (_, name, ext) = filename.splitFile()
-      var filePref = $name.alignLeft(fileW)
-      if (not foundErr) and idx + 1 < stackEntries.len:
-        let next = stackEntries[idx + 1]
-        let nextFile = $next.filename
-        if nextFile.startsWith(choosenim) or ($next.procname).startsWith(@[
-          "expect", "assert"]):
-          filePref = filePref.toRed()
-          foundErr = true
 
-      echo(
-        prefix & (filePref) & " :" &
-          $(($tr.line).alignLeft(4)) &
-          " " &
-          $($tr.procname).toYellow())
+      let choosenim = getHomeDir() & ".choosenim"
+      when nimvm:
+        discard
+      else:
+        echo ""
+        if e != nil:
+          printSeparator("Exception")
+        else:
+          printSeparator("Stacktrace")
 
-    # let idx = e.msg.find('(')
-    echo ""
-    if e != nil:
-      echo e.msg
+        echo ""
+
+      var fileW = 0
+      for tr in stackEntries:
+        let (_, name, ext) = ($tr.filename).splitFile()
+        fileW = max(name.len, fileW)
+
+
+      var foundErr: bool = false
+      for idx, tr in stackEntries:
+        let filename: string = $tr.filename
+
+        let prefix =
+          if not filename.startsWith(choosenim):
+            if ($tr.procname).startsWith(@["expect", "assert"]):
+              "(asr) ".toBlue()
+            else:
+              "(usr) ".toGreen()
+          else:
+            "(sys) "
+
+
+        let (_, name, ext) = filename.splitFile()
+        var filePref = $name.alignLeft(fileW)
+        if (not foundErr) and idx + 1 < stackEntries.len:
+          let next = stackEntries[idx + 1]
+          let nextFile = $next.filename
+          if nextFile.startsWith(choosenim) or ($next.procname).startsWith(@[
+            "expect", "assert"]):
+            filePref = filePref.toRed()
+            foundErr = true
+
+        echo(
+          prefix & (filePref) & " :" &
+            $(($tr.line).alignLeft(4)) &
+            " " &
+            $($tr.procname).toYellow())
+
+      # let idx = e.msg.find('(')
+      echo ""
+      if e != nil:
+        echo e.msg
 
 
 template pprintErr*(): untyped =

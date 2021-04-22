@@ -361,91 +361,93 @@ proc parseXsdInteger*(
     target: var XsdParseTarget[int], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError("")
+  let res = parser.strVal().parseInt()
+  setValue(target, res)
+  parser.next()
 
 proc parseXsdFloat*(
     target: var XsdParseTarget[float], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError("")
+  raiseImplementError(parser.displayAt())
 
 proc parseXsdDouble*(
     target: var XsdParseTarget[float], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError("")
+  raiseImplementError(parser.displayAt())
 
 proc parseXsdDuration*(
     target: var XsdParseTarget[Duration], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError("")
+  raiseImplementError(parser.displayAt())
 
 proc parseXsdDateTime*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError("")
+  raiseImplementError(parser.displayAt())
 
 proc parseXsdTime*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError("")
+  raiseImplementError(parser.displayAt())
 
 proc parseXsdDate*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError("")
+  raiseImplementError(parser.displayAt())
 
 proc parseXsdGYearMonth*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError("")
+  raiseImplementError(parser.displayAt())
 
 proc parseXsdGYear*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError("")
+  raiseImplementError(parser.displayAt())
 
 proc paresXsdGMonthDay*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError("")
+  raiseImplementError(parser.displayAt())
 
 proc parseXsdGDay*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError("")
+  raiseImplementError(parser.displayAt())
 
 proc parseXsdGMonth*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError("")
+  raiseImplementError(parser.displayAt())
 
 proc parseXsdHexBinary*(
     target: var XsdParseTarget[string], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError("")
+  raiseImplementError(parser.displayAt())
 
 proc parseXsdBase64Binary*(
     target: var XsdParseTarget[string], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError("")
+  raiseImplementError(parser.displayAt())
 
 proc parseXsdUri*(
     target: var XsdParseTarget[URI], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError("")
+  raiseImplementError(parser.displayAt())
 
 proc parseXsdAnyType*(
     target: var XsdParseTarget[XmlNode], parser: var HXmlParser,

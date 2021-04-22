@@ -534,11 +534,7 @@ template mapItDFSImpl*[InTree, OutTree](
   res
 
 macro mapItDFS*(
-  inTree: untyped,
-  subnodeCall: untyped,
-  outType: untyped,
-  op: untyped,
-  hasSubnodes: untyped = true): untyped =
+  inTree, subnodeCall, outType, hasSubnodes, op: untyped): untyped =
 
   ##[
 

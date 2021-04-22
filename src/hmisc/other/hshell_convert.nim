@@ -85,12 +85,6 @@ type
         callArgs*: seq[string]
         callResult*: int
 
-proc initTok(str: var PosStr, kind: StrTokKind): StrTok =
-  StrTok(str: str.popRange(), kind: kind)
-
-proc initTok(str: char | string, kind: StrTokKind): StrTok =
-  StrTok(str: $str, kind: kind)
-
 proc lexCall*(str: var PosStr): Option[StrTok] =
   case str[]:
     of IdentStartChars:
@@ -145,9 +139,9 @@ proc lexCall*(str: var PosStr): Option[StrTok] =
 proc parseCall*(lex: var HsLexer[StrTok]): StraceRecord =
   lex.pushRange()
   lex.expectKind({stkIdent})
-  let head = lex.hsParseIdent("ident")
-  let args = lex.hsInsideBalanced({stkLPar}, {stkRPar}).
-    hsSplitSep({stkComma})
+  let head = lex.parseIdent("ident")
+  let args = lex.insideBalanced({stkLPar}, {stkRPar}).
+    splitSep({stkComma})
 
   lex.skip(stkEq)
   lex.skipTo({'\n'})
@@ -158,8 +152,7 @@ proc parseCall*(lex: var HsLexer[StrTok]): StraceRecord =
     if arg[stkLCurly]:
       for kv in arg.
         getInsideBalanced({stkLCurly}, {stkRCurly}).
-        hsSplitKeyValue({stkEq}, {stkComma})
-        :
+        splitKeyValue({stkEq}, {stkComma}):
 
         discard
 

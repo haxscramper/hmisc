@@ -357,34 +357,30 @@ suite "Tree mapping":
         sub: seq[T]
 
     let val = T(val: "hello", sub: @[T(val: "world"), T(val: "!")])
-    let res = val.mapItDFS(
-      it.sub,
-      seq[string],
-      block:
-        # Get name of the current subnode
-        let currName = it.val
-        # Get id for current node
-        let currId = "_" & path.mapIt($it).join("_")
-        # Get all subnode ids
-        let subnodes: seq[string] = collect(newSeq):
-          for idx, _ in it.sub:
-            "_" & (path & @[idx]).mapIt($it).join("_")
+    let res = val.mapItDFS(it.sub, seq[string], true) do:
+      # Get name of the current subnode
+      let currName = it.val
+      # Get id for current node
+      let currId = "_" & path.mapIt($it).join("_")
+      # Get all subnode ids
+      let subnodes: seq[string] = collect(newSeq):
+        for idx, _ in it.sub:
+          "_" & (path & @[idx]).mapIt($it).join("_")
 
-        let edgeCode =
-          if subnodes.len > 0:
-            &"{currId} -> {{{subnodes.join(',')}}};"
-          else:
-            ""
+      let edgeCode =
+        if subnodes.len > 0:
+          &"{currId} -> {{{subnodes.join(',')}}};"
+        else:
+          ""
 
-        static: # Each node was folded into sequence of strings - list
-                # of nodes is passed to upper node.
-          doAssert subt is seq[seq[string]]
+      static: # Each node was folded into sequence of strings - list
+              # of nodes is passed to upper node.
+        doAssert subt is seq[seq[string]]
 
-        @[
-          &"{currId} [label=\"{currName}\"];",
-          edgeCode
-        ] & subt.concat()
-    )
+      @[
+        &"{currId} [label=\"{currName}\"];",
+        edgeCode
+      ] & subt.concat()
 
     let inner = res.filterIt(it.len > 0).mapIt("  " & it).join('\n')
     let final = &"digraph G {{\n{inner}\n}}"
@@ -399,19 +395,18 @@ suite "Tree mapping":
   # TODO macro type assertions for option
 
   test "{mapItDFS} type assertions :macro:type:example:":
-    let res = InTest().mapItDFS(
-      it.sub, OutTest,
-      OutTest(val: $it.val & "+"))
+    let res = InTest().mapItDFS(it.sub, OutTest, true) do:
+      OutTest(val: $it.val & "+")
 
     doAssert res is OutTest
 
   test "{mapItDFS} get subnodes using proc call :macro:value:":
     proc getSub(n: InTest): seq[InTest] = n.sub
-    discard inval.mapItDFS(it.getSub(), string, "")
+    discard inval.mapItDFS(it.getSub(), string, true, "")
 
   test "{mapItDFS} value assertions :macro:value:":
     doAssert inval.mapItDFS(
-      it.sub, OutTest,
+      it.sub, OutTest, true,
       block:
         OutTest(
           val: $it.val & "--" & $(subt.len()),
@@ -436,6 +431,13 @@ suite "Simple sequence templates":
 
   test "{allOfIt} use example :template:example:":
     doAssert @[1, 2, 3].allOfIt(it > 0)
+
+  test "{groupByIt}":
+    doAssert @[1, 2, 1].groupByIt(it) == @[@[1, 1], @[2]]
+    doAssert @[1].groupByIt(it) == @[@[1]]
+    doAssert @[1, 1, 1].groupByIt(it) == @[@[1, 1, 1]]
+
+    doAssert @[(1, 2), (1, 3)].groupByIt(it[0]) == @[@[(1, 2), (1, 3)]]
 
   test "{mapPairs} type assertion :template:type:":
     doAssert {1: "hello", 2: "222"}.mapPairs(

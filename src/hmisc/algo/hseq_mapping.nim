@@ -122,6 +122,23 @@ template twoPassSortByIt*(
 
   secondSorted
 
+template groupByIt*(sequence, op: untyped): untyped =
+  var res: seq[typeof(sequence)]
+  for item in sequence:
+    for i in 0 .. res.len:
+      if i == res.len:
+        res.add @[item]
+
+      else:
+        if ((block:
+               let it {.inject.} = res[i][0]; op)) ==
+           ((block:
+               let it {.inject.} = item; op)):
+          res[i].add item
+          break
+
+  res
+
 #===========================  transformation  ============================#
 
 macro mapPairs*(

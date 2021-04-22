@@ -183,8 +183,15 @@ proc `[]`*(str; offset: int, patt: char | set[char] | string):
         return false
 
 proc `[]`*(str; patt: char|set[char]|string): bool {.inline.} =
-  return str[0, patt]
+  str[0, patt]
 
+
+proc `[]`*(str; patt1, patt2: char | set[char] | string): bool {.inline.} =
+  str[0, patt1] and str[1, patt2]
+
+proc `[]`*(
+    str; patt1, patt2, patt3: char | set[char] | string): bool {.inline.} =
+  str[0, patt1] and str[1, patt2] and str[2, patt3]
 
 
 proc `@`*(str): seq[char] =
@@ -269,7 +276,7 @@ proc skipWhile*(str; chars: set[char]) {.inline.} =
 
 proc skipUntil*(str; chars: set[char], including: bool = false) {.inline.} =
   var changed = false
-  while not str[chars]:
+  while str[AllChars - chars]:
     str.advance()
     changed = true
 
@@ -289,6 +296,11 @@ proc skipIndent*(str; maxIndent = high(int)): int =
 proc popWhile*(str; chars: set[char]): string {.inline.} =
   str.pushRange()
   str.skipWhile(chars)
+  return str.popRange()
+
+proc popUntil*(str; chars: set[char]): string {.inline.} =
+  str.pushRange()
+  str.skipUntil(chars)
   return str.popRange()
 
 proc startsWith*(str; skip: set[char], search: string): bool =
@@ -358,6 +370,12 @@ proc popDigit*(str: var PosStr): string {.inline.} =
 
 proc popIdent*(str; chars: set[char] = IdentChars):
   string {.inline.} = str.popWhile(chars)
+
+proc popBacktickIdent*(str): string {.inline.} =
+  if str[] == '`':
+    str.advance()
+
+  str.popUntil({'`'})
 
 proc readLine*(str; skipNl: bool = true): string =
   while not str['\n']:
