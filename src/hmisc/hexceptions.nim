@@ -5,42 +5,7 @@ import algo/[hseq_mapping, hmath, halgorithm, hseq_distance, clformat]
 export alignLeft
 import std/enumerate
 import hdebug_misc
-
-type
-  GlobalSubstring* = object
-    ## Part of main string (from file or user input)
-
-    str*: string ## Substring slice
-    line*: int ## Line number for substring in main file
-    column*: int ## Column number for substring in file
-    filename*: string ## Name of the file being parsed
-
-  ErrorAnnotation* = object
-    case fromString*: bool
-      of true:
-        offset*: int ## Offset from the start of main substring
-
-      of false:
-        errpos*: LineInfo
-
-    expr*: string
-    annotation*: string
-    linerange*: int
-
-
-  InstantiationInfo = tuple[filename: string, line: int, column: int]
-  CodeError* = ref object of CatchableError
-    raisepos*: LineInfo
-    case fromString*: bool
-      of true:
-        substr*: GlobalSubstring
-        offset*: int
-
-      of false:
-        errpos*: LineInfo ## Position of original error
-
-    annots*: seq[ErrorAnnotation] ## Additional error annotations
-    postannot*: string
+import base_errors
 
 
 ## Exception type and helper functions for generating better errors in

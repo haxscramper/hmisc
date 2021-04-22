@@ -13,6 +13,7 @@ type
         rule*: Rule
         subnodes*: seq[HsTokTree[Rule, Tok]]
 
+
   HsTok*[K: enum | SomeInteger | char] = object
     # uint*-based positional information allows to save up to 50% of token
     # size, but I decided it is not really necessary as tokens themselves
@@ -35,6 +36,18 @@ type
     pos*: int
     str*: ptr PosStr
 
+  LexerIndentKind* = enum
+    likIncIndent ## Indentation increased on current position
+    likDecIndent ## Decreased on current position
+    likSameIndent ## No indentation change
+    likNoIndent ## Not at position where indentation can be determine (e.g.
+                ## is inside of a identifier or at the start of the line)
+
+  HsLexerState*[Flag: enum | char | uint8 | uint16 | int8 | int16] = ref object
+    flagStack: seq[Flag]
+    flagSet: array[Flag, int]
+    indent: int
+
   HsLexCallback*[T] = proc(str: var PosStr): Option[T]
   HsTokPredicate*[T] = proc(tok: T): bool
 
@@ -53,8 +66,74 @@ type
 # proc getLine*[K](tok: HsTok[K]): int {.inline.} = tok.line
 # proc getColumn*[K](tok: HsTok[K]): int {.inline.} = tok.column
 
+proc lift*[F](state: var HsLexerState[F], flag: F) =
+  state.flagStack.add flag
+  inc state.flagSet[flag]
+
+proc drop*[F](state: var HsLexerState[F], flag: F) =
+  assert flag == state.flagStack.pop()
+  dec state.flagSet[flag]
+
+proc toFlag*[F](state: var HsLexerState[F], newFlag: F) =
+  let flag = state.flagStack.pop()
+  dec state.flagSet[flag]
+  inc state.flagSet[newFlag]
+  state.flagStack.add newFlag
+
+proc topFlag*[F](state: var HsLexerState[F]): F =
+  state.flagStack[^1]
+
+proc hasFlag*[F](state: HsLexerState[F], flag: F): bool =
+  state.flagSet[flag] > 0
+
+proc newLexerState*[F](startFlag: F): HsLexerState[F] =
+  result = HsLexerState[F](flagStack: @[startFlag])
+  inc result.flagSet[startFlag]
+
+proc skipIndent*[F](state: var HsLexerState[F], str: var PosStr): LexerIndentKind =
+  if str[Newline]:
+    str.advance()
+
+  if not str[{' '}]:
+    if state.indent == 0:
+      result = likSameIndent
+
+    else:
+      result = likDecIndent
+      state.indent = 0
+
+  else:
+    str.skipWhile({' '})
+    if state.indent > str.column:
+      result = likDecIndent
+
+    elif state.indent < str.column:
+      result = likIncIndent
+
+    else:
+      result = likSameIndent
+
+    state.indent = str.column
+
+
+
 proc lineCol*[K](tok: HsTok[K]): LineCol {.inline.} =
   (line: tok.line, column: tok.column)
+
+proc `==`*[K](tok: HsTok[K], other: tuple[kind: K, value: string]): bool =
+  tok.kind == other.kind and tok.str == other.value
+
+proc `==`*[K](
+    tok: openarray[HsTok[K]], other: openarray[tuple[kind: K, value: string]]
+  ): bool =
+
+  result = len(tok) == len(other)
+  if result:
+    for idx, _ in pairs(tok):
+      if tok[idx] != other[idx]:
+        return false
+
+
 
 proc initTok*[K](str: var PosStr, kind: K): HsTok[K] =
   HsTok[K](str: str.popRange(), kind: kind,

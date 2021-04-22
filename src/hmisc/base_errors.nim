@@ -1,7 +1,64 @@
+import std/macros
+
+## Commonly used exceptions definitions. More target-specific errors are
+## implemented in respective submodules such as [[code:hshell.ShellError]]
+## for shell-related operations, [[code:oswrap.PathError]] for unexpected
+## situations related to filesystem path handling and
+## [[code:oswrap.EnvVarError]] for environment variable handling.
+
 type
-  ArgumentError* = object of CatchableError
-  LogicError* = object of CatchableError
+  ArgumentError*       = object of CatchableError
+    ## Invalid argument passed to a functions
+
+  LogicError*          = object of CatchableError
+
   UnexpectedKindError* = object of ArgumentError
+    ## More concrete specializaton of argument error for handling variant
+    ## objects
+
+  ImplementError*      = object of CatchableError
+    ## I use this error as a more active restrictive `TODO` tag.
+
+  ImplementKindError*  = object of ImplementError
+    ## Specialization of implementation placeholder for handling error
+    ## kinds
+
+
+  GlobalSubstring* = object
+    ## Part of main string (from file or user input)
+
+    str*: string ## Substring slice
+    line*: int ## Line number for substring in main file
+    column*: int ## Column number for substring in file
+    filename*: string ## Name of the file being parsed
+
+  ErrorAnnotation* = object
+    case fromString*: bool
+      of true:
+        offset*: int ## Offset from the start of main substring
+
+      of false:
+        errpos*: LineInfo
+
+    expr*: string
+    annotation*: string
+    linerange*: int
+
+
+  InstantiationInfo = tuple[filename: string, line: int, column: int]
+  CodeError* = ref object of CatchableError
+    raisepos*: LineInfo
+    case fromString*: bool
+      of true:
+        substr*: GlobalSubstring
+        offset*: int
+
+      of false:
+        errpos*: LineInfo ## Position of original error
+
+    annots*: seq[ErrorAnnotation] ## Additional error annotations
+    postannot*: string
+
 
 template raiseLogicError*(errMsg: string) {.dirty.} =
   raise newException(LogicError, errMsg)
@@ -33,10 +90,6 @@ template assertKind*(expr, expected: typed) {.dirty.} =
     {.line: instantiationInfo(fullPaths = true).}:
       raise newException(UnexpectedKindError, msg)
 
-
-type
-  ImplementError* = object of CatchableError
-  ImplementKindError* = object of ImplementError
 
 template raiseImplementError*(errMsg: string) {.dirty.} =
   raise newException(
