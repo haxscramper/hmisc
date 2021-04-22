@@ -47,7 +47,7 @@ const
   HexDigits* = HexDigitsLow + HexDigitsHigh
   PunctOpenChars* = {'(', '[', '{', '<'}
   PunctCloseChars* = {')', ']', '}', '>'}
-  PunctSentenceChars* = {',', '.', '?', '!'}
+  PunctSentenceChars* = {',', '.', '?', '!', ';', ':'}
   PunctChars* = PunctOpenChars + PunctCloseChars + PunctSentenceChars
   Newline* = {'\n'}
   AllSpace* = Whitespace
@@ -118,6 +118,8 @@ proc finished*(str: PosStr): bool =
     isNil(str.stream) or
     str.stream.atEnd()
   )
+
+proc `?`*(str: PosStr): bool = not str.finished()
 
 
 template nxt*(input: var PosStr; idx, step: int = 1) =

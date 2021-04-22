@@ -2,6 +2,29 @@ import hmisc/algo/[hparse_base, hlex_base]
 
 import std/[unittest, options]
 
+suite "Hlex base":
+  test "test":
+    var str = initPosStr("""
+of true:
+  sliceIdx*: int
+  baseString*: ptr string
+  slices*: seq[PosStrSlice]
+""")
+
+    str.skipToEol()
+    let indent = str.getIndent()
+    echo indent
+    while str.hasIndent(indent):
+      str.advance(indent)
+      str.startSlice()
+      str.skipToEol()
+      str.finishSlice()
+
+    var subStr = initPosStr(str)
+
+    echo subStr
+
+
 suite "Positional string low-level parse API":
   test "Pop numbers":
     var str = initPosStr("1234")
@@ -14,16 +37,36 @@ suite "Positional string low-level parse API":
     check str.line == 1
     check str.column == 0
 
-suite "Lexer":
-  test "Token positional information":
-    proc lexerImpl(str: var PosStr): Option[HsTok[char]] =
-      case str[]:
-        of IdentStartChars: return some str.initTok(str.popIdent(), 'i')
-        of Digits:          return some str.initTok(str.popDigit(), 'd')
-        of PunctChars:      return some str.initTok(str.popChar(), str[])
-        else:               str.advance()
+proc simpleLexerImpl(str: var PosStr): Option[HsTok[char]] =
+  if not ?str: return
 
-    let tokens = lexAll("a\nb", lexerImpl)
+  case str[]:
+    of IdentStartChars:
+      result = some str.initTok(str.popIdent(), 'i')
+
+    of Digits:
+      result = some str.initTok(str.popDigit(), 'd')
+
+    of PunctChars:
+      let ch = str[]
+      result = some str.initTok(str.popChar(), ch)
+
+    else:
+      str.advance()
+
+
+suite "Lexer":
+  test "Edge case checks":
+    var str = initPosStr("a b c d e f g ;")
+    var lex = initLexer(str, simpleLexerImpl)
+
+    while ?lex and not lex[';']:
+      lex.advance()
+
+    check lex[].strVal() == ";"
+
+  test "Token positional information":
+    let tokens = lexAll("a\nb", simpleLexerImpl)
     check tokens[0].line == 0
     check tokens[1].line == 1
     check tokens[0].column == 0

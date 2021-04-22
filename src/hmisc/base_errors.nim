@@ -45,7 +45,7 @@ type
     linerange*: int
 
 
-  InstantiationInfo = tuple[filename: string, line: int, column: int]
+  InstantiationInfo* = tuple[filename: string, line: int, column: int]
   CodeError* = ref object of CatchableError
     raisepos*: LineInfo
     case fromString*: bool

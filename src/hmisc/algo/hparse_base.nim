@@ -51,7 +51,8 @@ type
   HsLexCallback*[T] = proc(str: var PosStr): Option[T]
   HsTokPredicate*[T] = proc(tok: T): bool
 
-  ParseError = object
+  ParseError* = object of CatchableError
+
 
   ParseResult[Val] = object
     case ok*: bool
@@ -155,7 +156,7 @@ template initTok*[K](
   HsTok[K](line: posStr.line, column: posStr.column,
            kind: inKind, str: $inStr)
 
-func strVal*[K: enum](tok: HsTok[K]): string = tok.str
+func strVal*[K](tok: HsTok[K]): string = tok.str
 
 proc initCharTok*[Cat: enum](
     str: var PosStr,
@@ -217,27 +218,34 @@ func resetBuffer*[T](lex: var HSLexer[T]) =
   lex.pos = 0
   lex.tokens.setLen(0)
 
-func nextToken*[T](lex: var HSLexer[T]): T =
+proc nextToken*[T](lex: var HSLexer[T]): T =
   var tok: Option[T]
-  while tok.isNone():
+  while ?lex.str[] and tok.isNone():
     tok = lex.cb(lex.str[])
 
-  return tok.get()
+  if tok.isNone():
+    raise newException(ParseError, "No tokens")
 
-func fillNext*[T](lex: var HSLexer[T], chars: int) =
+  else:
+    return tok.get()
+
+proc fillNext*[T](lex: var HSLexer[T], chars: int) =
   let needed = chars - (lex.tokens.len - lex.pos - 1)
   if needed > 0:
     for _ in 0 ..< needed:
       lex.tokens.add nextToken(lex)
 
-func haxNxt*[T](lex: HsLexer[T], offset: int): bool =
+func hasNxt*[T](lex: HsLexer[T], offset: int): bool =
   lex.pos + offset < lex.tokens.len
 
 proc finished*[T](lex: HsLexer[T]): bool =
-  not haxNxt(lex, 0) and lex.str[].finished()
+  not hasNxt(lex, 0) and lex.str[].finished()
+
+proc `?`*[T](lex: HsLexer[T]): bool = not lex.finished()
+
 
 proc `[]`*[T](lex: var HSlexer[T], offset: int = 0): T =
-  if not haxNxt(lex, offset):
+  if not hasNxt(lex, offset):
     fillNext(lex, offset)
 
   lex.tokens[lex.pos + offset]
@@ -273,8 +281,6 @@ proc `[]`*[K](lex: var HsLexer[HsTok[K]], kind1, kind2: set[K]|K): bool =
 proc `[]`*[K](lex: var HsLexer[HsTok[K]], kind1, kind2, kind3: set[K]|K): bool =
   lex[0, kind1] and lex[1, kind2] and lex[2, kind3]
 
-
-
 func `[]`*[K](tokens: seq[HsTok[K]], kind: set[K]|K): bool =
   tokens[0, kind]
 
@@ -292,7 +298,7 @@ func getPosition*[T](lex: var HsLexer[T]): int = lex.pos
 func advance*[T](lex: var HSlexer[T], step: int = 1) =
   inc(lex.pos, step)
 
-func pop*[T](lex: var HsLexer[T]): T =
+proc pop*[T](lex: var HsLexer[T]): T =
   result = lex[]
   lex.advance()
 
