@@ -97,8 +97,13 @@ type
     errstr*: string ## Stderr for command
     outstr*: string ## Stdout for command
 
-  ShellExecResult* = tuple[stdout, stderr: string, code: int] ## Shell command
-  ## execution result - standard error, output and return code.
+  ShellExecResult* = object
+    ## Shell command execution result - standard error, output and return
+    ## code.
+    stdout*: string
+    stderr*: string
+    code*: int
+
   ShellResult* = object
     # - REFACTOR :: move `execResult` into `true` branch for `resultOk`
     execResult*: ShellExecResult ## Result of command execution
@@ -247,10 +252,10 @@ const
 
   sakListKinds* = {sakAndList, sakOrList, sakPipeList}
 
-func stdout*(shellRes: ShellResult): string =
+func getStdout*(shellRes: ShellResult): string =
   shellRes.execResult.stdout
 
-func stderr*(shellRes: ShellResult): string =
+func getStderr*(shellRes: ShellResult): string =
   shellRes.execResult.stderr
 
 func `[]`*(sa: ShellAst, idx: int): ShellAst = sa.subnodes[idx]
@@ -1205,7 +1210,7 @@ proc runShell*(
     options: set[ProcessOption] = {poEvalCommand},
     maxErrorLines: int = 12,
     discardOut: bool = false
-  ): tuple[stdout, stderr: string, code: int] =
+  ): ShellExecResult =
   ## Execute shell command and return it's output. `stdin` - optional
   ## parameter, will be piped into process. `doRaise` - raise
   ## exception (default) if command finished with non-zero code.

@@ -303,25 +303,25 @@ proc pop*[T](lex: var HsLexer[T]): T =
   lex.advance()
 
 
-func pop*[K](lex: var HsLexer[HsTok[K]], kind: K): HsTok[K] =
+proc pop*[K](lex: var HsLexer[HsTok[K]], kind: K): HsTok[K] =
   result = lex[]
   assertKind(lex[], kind)
   lex.advance()
 
-func initLexer*[T](str: var PosStr, lexCb: HsLexCallback[T]): HsLexer[T] =
+proc initLexer*[T](str: var PosStr, lexCb: HsLexCallback[T]): HsLexer[T] =
   HsLexer[T](str: addr str, cb: lexCb)
 
-func skip*[T, En](lexer: var HsLexer[T], kind: En) =
+proc skip*[T, En](lexer: var HsLexer[T], kind: En) =
   assertKind(lexer[], kind)
   lexer.advance()
 
 proc skipTo*[T](lex: var HsLexer[T], chars: set[char]) =
   lex.str[].skipWhile(AllChars - chars)
 
-func parseIdent*[R, T](lex: var HsLexer[T], rule: R):
+proc parseIdent*[R, T](lex: var HsLexer[T], rule: R):
   HsTokTree[R, T] = HsTokTree[R, T](isToken: true, token: lex.pop())
 
-func expectKind*[T, K](lex: var HsLexer[T], kind: set[K]) =
+proc expectKind*[T, K](lex: var HsLexer[T], kind: set[K]) =
   lex[].assertKind(kind)
 
 func pushRange*[T](lex: var HsLexer[T]) =

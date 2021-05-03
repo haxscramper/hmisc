@@ -6,6 +6,7 @@ export alignLeft
 import std/enumerate
 import hdebug_misc
 import base_errors
+export base_errors
 
 
 ## Exception type and helper functions for generating better errors in
@@ -590,9 +591,12 @@ func stringMismatchMessage*(
     input: string,
     expected: openarray[string],
     colorize: bool = true,
-    fixSuggestion: bool = true
+    fixSuggestion: bool = true,
+    showAll: bool = false,
   ): string =
   ## - TODO :: Better heuristics for missing/extraneous prefix/suffix
+
+  let expected = deduplicate(expected)
 
   if expected.len == 0:
     return "No matching alternatives"
@@ -617,12 +621,13 @@ func stringMismatchMessage*(
   let best = results[0]
 
   if best.edits.distance > int(input.len.float * 0.8):
-    result = "No close matches, possible " & namedItemListing(
-      "alternative",
-      results[0 .. min(results.high, 3)].mapIt(
-        it.target.toYellow().wrap("''")),
-      "or"
-    )
+    result = &"No close matches to {toRed(input, colorize)}, possible " &
+      namedItemListing(
+        "alternative",
+        results[0 .. min(results.high, 3)].mapIt(
+          it.target.toYellow().wrap("''")),
+        "or"
+      )
 
   else:
     result = &"Did you mean to use '{toYellow(best.target, colorize)}'?"
@@ -637,3 +642,13 @@ func stringMismatchMessage*(
 
       else:
         result &= &" ({toRed(input)} -> {toGreen(best.target)})"
+
+    if showAll and expected.len > 1:
+      result &= " ("
+      for idx, alt in results[1 ..^ 1]:
+        if idx > 0:
+          result &= " "
+
+        result &= to8Bit(toItalic(alt.target, colorize) & "?", tcGrey63)
+
+      result &= ")"

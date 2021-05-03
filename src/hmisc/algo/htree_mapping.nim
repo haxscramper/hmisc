@@ -326,7 +326,7 @@ Perform DFS iteration of the `inTree` using `getSubnodes` to get list of
 subnodes and `hasSubnodes` to determine if particular node has
 subnodes.
 
-## Parameters
+* Parameters
 
 :inTree: First node in tree
 :getSubnodes: Expression to get list of subnodes
@@ -334,7 +334,7 @@ subnodes.
 :order: Order of traversal
 :body: Body to evaluate for each node
 
-## Injected variables
+* Injected variables
 
 :it: Current node
 :path: Path to current node starting from the tree root
@@ -344,21 +344,26 @@ subnodes.
   traversal (and 'child' part of inorder) is equal to child count.
   For preorder - equal to 0.
 
-## Notes
+* Notes
 
-NOTE - inorder traversal is only well-defined for binary trees (e.g.
-when partitioning on 'left' and 'right' can be performed easyly). For
-all other cases you can use injected `childIndex` - determine when
-'middle' if the child list is reached and execute callback yourself.
-So most likely, for inorder traversal body should have form of
+- NOTE :: inorder traversal is only well-defined for binary trees (e.g.
+  when partitioning on 'left' and 'right' can be performed easyly). For all
+  other cases you can use injected `childIndex` - determine when 'middle'
+  if the child list is reached and execute callback yourself. So most
+  likely, for inorder traversal body should have form of
 
-.. code-block:: nim
-  if childIndex == it.len div 2:
-    # execute actual callback
+  ```nim
+    if childIndex == it.len div 2:
+      # execute actual callback
+  ```
 
-or something similar (when last/first child is reached). Otherwise
-body will be executed each time traversal triggers 'between child
-nodes'.
+or something similar (when last/first child is reached). Otherwise body
+will be executed each time traversal triggers 'between child nodes'.
+
+* TODO
+
+- TODO :: Support iteration over mutable tree using
+  pointers/references/view types or anything of that sort.
 
   ]##
   type InTree = typeof(inTree)
@@ -402,7 +407,7 @@ nodes'.
       else:
         var elems: seq[InTree]
         block:
-          let it {.inject.} = stack[^1].inSubt[stack[^1].idx]
+          var it {.inject.} = stack[^1].inSubt[stack[^1].idx]
           if order == dfsPreorder:
             let
               path {.inject.} = stack[^1].path

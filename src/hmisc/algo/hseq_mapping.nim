@@ -141,9 +141,7 @@ template groupByIt*(sequence, op: untyped): untyped =
 
 #===========================  transformation  ============================#
 
-macro mapPairs*(
-  inseq: untyped, op: untyped,
-  injectNames: untyped): untyped =
+macro mapPairs*(inseq: untyped, op: untyped, injectNames: untyped): untyped =
   ## `mapIt` for object with `pairs`. `lhs`, `rhs` and `idx` are
   ## injected into scope
   assert injectNames.kind == nnkPar

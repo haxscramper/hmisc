@@ -1,4 +1,4 @@
-import std/[xmltree, xmlparser, enumerate, strutils,
+import std/[xmltree, xmlparser, enumerate, strutils, tables,
             strtabs, options, streams]
 
 # import std/parsexml except charData, elementName, entityName,
@@ -25,6 +25,8 @@ type
   HXmlParser* = object
     base*: XmlParser
     traceNext*: bool
+
+const xmlAttr* = XmlEventKind.xmlAttribute
 
 proc currentEventToStr*(parser: HXmlParser): string =
   case parser.base.kind:
@@ -53,7 +55,7 @@ proc displayAt*(parser: HXmlParser): string =
   result.add currentEventToStr(parser)
 
 
-template expectAt(
+template expectAt*(
     parser: HXmlParser, at: set[XmlEventKind], procname: string
   ): untyped {.dirty.} =
 
@@ -106,7 +108,8 @@ proc kind*(parser: HXmlParser): XmlEventKind = parser.base.kind()
 proc strVal*(parser: HXmlParser): string =
   expectAt(parser, {
     xmlAttribute,
-    xmlCharData, xmlWhitespace, xmlComment, xmlCData, xmlSpecial
+    xmlCharData, xmlWhitespace, xmlComment, xmlCData, xmlSpecial,
+    xmlElementStart, xmlElementOpen
   }, "strVal")
 
   if parser.kind in {xmlAttribute}:
@@ -116,6 +119,9 @@ proc strVal*(parser: HXmlParser): string =
     xmlCharData, xmlWhitespace, xmlComment, xmlCData, xmlSpecial
   }:
     result = parser.charData()
+
+  elif parser.kind in {xmlElementStart, xmlElementOpen}:
+    result = parser.elementName()
 
   if parser.traceNext:
     echo "  ? ", parser.currentEventToStr(), " -> ", result
@@ -129,7 +135,7 @@ proc next*(parser: var HXmlParser) =
   next(parser.base)
 
 proc skipElementStart*(parser: var HXmlParser, tag: string) =
-  parser.expectAt({xmlElementStart}, tag)
+  parser.expectAt({xmlElementStart, xmlElementOpen}, tag)
   assert parser.elementName == tag
   if parser.traceNext: echo "  + ", "Skipping ", tag, " start"
 
@@ -646,6 +652,7 @@ proc classifyXsdString*(
 
 
 proc xsdToken*(parser: HXmlParser, expected: set[XsdTokenKind]): XsdToken =
+  ## Classify current XSD token
   var kind: XsdTokenKind
   case parser.kind:
     of xmlError:        kind = xtkError
@@ -683,6 +690,136 @@ template raiseUnexpectedToken*(
       "Unexpected token <" & $token & "> at " &
         parser.displayAt()
     )
+
+## * XML generation
+
+type
+  XmlWriter* = object
+    stream: Stream
+    indentBuf: string
+    ignoreIndent: int
+
+using writer: var XmlWriter
+
+proc newXmlWriter*(stream: Stream): XmlWriter =
+  XmlWriter(stream: stream)
+
+
+proc space*(writer) = writer.stream.write(" ")
+proc line*(writer) = writer.stream.write("\n")
+proc indent*(writer) = writer.indentBuf.add "  "
+proc dedent*(writer) =
+  writer.indentBuf.setLen(max(writer.indentBuf.len - 2, 0))
+
+proc writeInd*(writer) =
+  if writer.ignoreIndent > 0:
+    dec writer.ignoreIndent
+
+  else:
+    writer.stream.write(writer.indentBuf)
+
+proc ignoreNextIndent*(writer) = inc writer.ignoreIndent
+
+proc xmlCData*(writer; text: string) =
+  writer.stream.write("<![CDATA[")
+  writer.stream.write(text)
+  writer.stream.write("]]>")
+
+proc xmlStart*(writer; elem: string, indent: bool = true) =
+  if indent: writer.writeInd()
+  writer.stream.write("<", elem, ">")
+  if indent: writer.line()
+
+proc xmlEnd*(writer; elem: string, indent: bool = true) =
+  if indent: writer.writeInd()
+  writer.stream.write("</", elem, ">")
+  if indent: writer.line()
+
+proc xmlOpen*(writer; elem: string, indent: bool = true) =
+  if indent: writer.writeInd()
+  writer.stream.write("<", elem)
+
+proc xmlClose*(writer) = writer.stream.write(">")
+
+proc xmlCloseEnd*(writer; newline: bool = true) =
+  writer.stream.write("/>")
+  if newline: writer.line()
+
+
+proc xmlWrappedCdata*(writer; text, tag: string) =
+  writer.writeInd()
+  writer.xmlStart(tag, false)
+  writer.xmlCData(text)
+  writer.xmlEnd(tag, false)
+  writer.line()
+
+proc toXmlString*[T](item: Option[T]): string =
+  mixin toXmlString
+  if item.isSome():
+    return toXmlString(item.get())
+
+proc toXmlString*(item: string): string = item
+proc toXmlString*(item: enum | bool | float): string = $item
+proc toXmlString*(item: SomeInteger): string = $item
+proc writeRaw*(writer; text: string) =
+  writer.stream.write(xmltree.escape text)
+
+proc xmlAttribute*(
+    writer; key: string, value: SomeInteger | bool | float | enum | string) =
+  writer.stream.write(
+    " ", key, "=\"", xmltree.escape(toXmlString(value)), "\"")
+
+proc xmlAttribute*[T](writer; key: string, value: Option[T]) =
+  if value.isSome():
+    xmlAttribute(writer, key, value.get())
+
+proc xmlAttribute*[A, B](writer; key: string, value: HSlice[A, B]) =
+  xmlAttribute(writer, key, toXmlString(value.a) & ":" & toXmlString(value.b))
+
+proc writeXml*(
+  writer; value: string | SomeInteger | bool | SomeFloat | enum, tag: string) =
+  writer.writeInd()
+  writer.xmlStart(tag, false)
+  writer.stream.write(xmltree.escape $value)
+  writer.xmlEnd(tag, false)
+  writer.line()
+
+
+proc writeXml*[T](writer; values: seq[T], tag: string) =
+  mixin writeXml
+  for it in values:
+    writer.writeXml(it, tag)
+
+proc writeXml*[K, V](writer; table: Table[K, V], tag: string) =
+  mixin writeXml
+  for key, value in pairs(table):
+    writer.xmlStart(tag)
+    writer.writeXml(key, "key")
+    writer.writeXml(value, "value")
+    writer.xmlEnd(tag)
+
+proc writeXml*[T](writer; opt: Option[T], tag: string) =
+  if opt.isSome():
+    writeXml(writer, opt.get(), tag)
+
+proc writeXml*(writer; value: Slice[int], tag: string) =
+  writer.xmlOpen(tag)
+  writer.xmlAttribute("a", $value.a)
+  writer.xmlAttribute("b", $value.b)
+  writer.xmlCloseEnd()
+
+proc writeXml*[E: enum](writer; values: set[E], tag: string) =
+  writer.xmlStart(tag)
+  writer.indent()
+  writer.writeInd()
+  for item in values:
+    writer.xmlOpen("item")
+    writer.xmlAttribute("val", $item)
+    writer.xmlCloseEnd()
+
+  writer.dedent()
+  writer.xmlEnd(tag)
+
 
 when isMainModule:
   import std/unittest

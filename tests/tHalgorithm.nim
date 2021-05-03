@@ -804,7 +804,8 @@ suite "String distance algorithms":
     impl("one", "two")
 
   test "Identifier mismatch":
-    template mis(a, b): untyped = stringMismatchMessage(a, b)
+    template mis(a, b: untyped, exp: bool = false): untyped =
+      stringMismatchMessage(a, b, showAll = exp)
 
     show mis("nme", ["name"])
     show mis("hello world", ["hllo world"])
@@ -812,6 +813,10 @@ suite "String distance algorithms":
     show mis("person", ["table", "distance"])
     show mis("person", ["table", "distance", "distance"])
     show mis("person", newSeq[string]())
+
+    show mis("Error", [
+      "prog", "EOFError", "IOError", "OSError", "array",
+      "or", "repr", "xor"], exp = true)
 
 
 suite "Colored string":

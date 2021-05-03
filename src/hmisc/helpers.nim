@@ -83,9 +83,15 @@ proc `&`*(strings: openarray[string]): string =
   for str in strings:
     result &= str
 
+proc `&=`*(target: var string, args: openarray[string]) =
+  for arg in args:
+    target &= arg
+
 template timeIt*(name: string, body: untyped): untyped =
   block:
     let start = cpuTime()
     body
     let total {.inject.} = cpuTime() - start
     echo &"  {total:<5} ms ", name
+
+proc toString*(x: enum): string {.magic: "EnumToStr", noSideEffect.}

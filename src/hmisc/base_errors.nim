@@ -105,13 +105,17 @@ proc prepareMsg*(userMsg: string): string =
   return msg
 
 
+template kindToStr*(expr: typed): untyped =
+  when expr is enum: $expr else: $expr.kind
+
+
 template raiseImplementKindError*(
   node: untyped, userMsg: string = "") {.dirty.} =
 
   raise newException(ImplementKindError,
     "\nUnhandled entry kind: " &
       astToStr(node) &
-      " has kind \e[32m" & $node.kind & "\e[39m" &
+      " has kind \e[32m" & kindToStr(node) & "\e[39m" &
       prepareMsg(userMsg) & " @" & $instantiationInfo() & "\n"
   )
 
@@ -123,16 +127,11 @@ template raiseUnexpectedKindError*(
   if '\n' in userMsg: msg &= "\n"
   msg &= userMsg
 
-  when node is enum:
-    let kind = $node
-
-  else:
-    let kind = $node.kind
 
   raise newException(UnexpectedKindError,
     "\nUnexpected entry kind: " &
       astToStr(node) &
-      " has kind \e[32m" & kind & "\e[39m" & prepareMsg(userMsg)
+      " has kind \e[32m" & kindToStr(node) & "\e[39m" & prepareMsg(userMsg)
   )
 
 

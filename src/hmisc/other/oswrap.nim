@@ -1756,7 +1756,7 @@ DSL for creating directory structures
         """Multiline string as file
       content"""
     #+end_src
-- @ndsl{dir <dirname> [<body>]} ::
+- @edsl{dir <dirname> [<body>]} ::
   Create directory `@dirname`, cd to it and execute optional block `@body`.
 - @inject{currentFile: string} :: for file blocks
 
@@ -2299,3 +2299,25 @@ when canImport(compiler/pathutils):
 
 proc parseJson*(file: AnyFile): JsonNode =
   parseJson(readFile(file.getStr()))
+
+
+proc newFileStream*(
+  filename: AbsFile | RelFile;
+  mode: FileMode = fmRead; bufSize: int = -1): owned FileStream =
+
+  if mode == fmRead:
+    assertExists(filename, "Cannot open file for stream reading")
+
+  return newFileStream(filename.string, mode, bufSize)
+
+type
+  OutStringStream* = ref object of StreamObj
+    str: ptr string
+
+proc newOutStringStream*(target: var string): OutStringStream =
+  result = OutStringStream(str: addr target,)
+  result.writeDataImpl = proc(
+    s: OutStringStream; buffer: pointer; bufLen: int) =
+    let len = s.str[].len
+    s.str[].setLen(s.str[].len + bufLen)
+    copyMem(addr(s.str[len]), buffer, bufLen)

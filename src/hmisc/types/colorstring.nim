@@ -4,6 +4,268 @@ import std/[sequtils, strformat, strutils, unicode, enumerate,
 import ../macros/traceif
 import ../algo/[hseq_distance]
 
+type
+  TermColor8Bit* = enum
+    tcBlack             = 0
+    tcMaroon            = 1
+    tcGreen             = 2
+    tcOlive             = 3
+    tcNavy              = 4
+    tcPurple            = 5
+    tcTeal              = 6
+    tcSilver            = 7
+    tcGrey              = 8
+    tcRed               = 9
+    tcLime              = 10
+    tcYellow            = 11
+    tcBlue              = 12
+    tcFuchsia           = 13
+    tcAqua              = 14
+    tcWhite             = 15
+    tcGrey0             = 16
+    tcNavyBlue          = 17
+    tcDarkBlue          = 18
+    tcBlue3             = 19
+    tcBlue3_1           = 20
+    tcBlue1             = 21
+    tcDarkGreen         = 22
+    tcDeepSkyBlue4      = 23
+    tcDeepSkyBlue4_1    = 24
+    tcDeepSkyBlue4_2    = 25
+    tcDodgerBlue3       = 26
+    tcDodgerBlue2       = 27
+    tcGreen4            = 28
+    tcSpringGreen4      = 29
+    tcTurquoise4        = 30
+    tcDeepSkyBlue3      = 31
+    tcDeepSkyBlue3_1    = 32
+    tcDodgerBlue1       = 33
+    tcGreen3            = 34
+    tcSpringGreen3      = 35
+    tcDarkCyan          = 36
+    tcLightSeaGreen     = 37
+    tcDeepSkyBlue2      = 38
+    tcDeepSkyBlue1      = 39
+    tcGreen3_1          = 40
+    tcSpringGreen3_1    = 41
+    tcSpringGreen2      = 42
+    tcCyan3             = 43
+    tcDarkTurquoise     = 44
+    tcTurquoise2        = 45
+    tcGreen1            = 46
+    tcSpringGreen2_1    = 47
+    tcSpringGreen1      = 48
+    tcMediumSpringGreen = 49
+    tcCyan2             = 50
+    tcCyan1             = 51
+    tcDarkRed           = 52
+    tcDeepPink4         = 53
+    tcPurple4           = 54
+    tcPurple4_1         = 55
+    tcPurple3           = 56
+    tcBlueViolet        = 57
+    tcOrange4           = 58
+    tcGrey37            = 59
+    tcMediumPurple4     = 60
+    tcSlateBlue3        = 61
+    tcSlateBlue3_1      = 62
+    tcRoyalBlue1        = 63
+    tcChartreuse4       = 64
+    tcDarkSeaGreen4     = 65
+    tcPaleTurquoise4    = 66
+    tcSteelBlue         = 67
+    tcSteelBlue3        = 68
+    tcCornflowerBlue    = 69
+    tcChartreuse3       = 70
+    tcDarkSeaGreen4_1   = 71
+    tcCadetBlue         = 72
+    tcCadetBlue_1       = 73
+    tcSkyBlue3          = 74
+    tcSteelBlue1        = 75
+    tcChartreuse3_1     = 76
+    tcPaleGreen3        = 77
+    tcSeaGreen3         = 78
+    tcAquamarine3       = 79
+    tcMediumTurquoise   = 80
+    tcSteelBlue1_1      = 81
+    tcChartreuse2       = 82
+    tcSeaGreen2         = 83
+    tcSeaGreen1         = 84
+    tcSeaGreen1_1       = 85
+    tcAquamarine1       = 86
+    tcDarkSlateGray2    = 87
+    tcDarkRed_1         = 88
+    tcDeepPink4_1       = 89
+    tcDarkMagenta       = 90
+    tcDarkMagenta_1     = 91
+    tcDarkViolet        = 92
+    tcPurple_1          = 93
+    tcOrange4_1         = 94
+    tcLightPink4        = 95
+    tcPlum4             = 96
+    tcMediumPurple3     = 97
+    tcMediumPurple3_1   = 98
+    tcSlateBlue1        = 99
+    tcYellow4           = 100
+    tcWheat4            = 101
+    tcGrey53            = 102
+    tcLightSlateGrey    = 103
+    tcMediumPurple      = 104
+    tcLightSlateBlue    = 105
+    tcYellow4_1         = 106
+    tcDarkOliveGreen3   = 107
+    tcDarkSeaGreen      = 108
+    tcLightSkyBlue3     = 109
+    tcLightSkyBlue3_1   = 110
+    tcSkyBlue2          = 111
+    tcChartreuse2_1     = 112
+    tcDarkOliveGreen3_1 = 113
+    tcPaleGreen3_1      = 114
+    tcDarkSeaGreen3     = 115
+    tcDarkSlateGray3    = 116
+    tcSkyBlue1          = 117
+    tcChartreuse1       = 118
+    tcLightGreen        = 119
+    tcLightGreen_1      = 120
+    tcPaleGreen1        = 121
+    tcAquamarine1_1     = 122
+    tcDarkSlateGray1    = 123
+    tcRed3              = 124
+    tcDeepPink4_2       = 125
+    tcMediumVioletRed   = 126
+    tcMagenta3          = 127
+    tcDarkViolet_1      = 128
+    tcPurple_2          = 129
+    tcDarkOrange3       = 130
+    tcIndianRed         = 131
+    tcHotPink3          = 132
+    tcMediumOrchid3     = 133
+    tcMediumOrchid      = 134
+    tcMediumPurple2     = 135
+    tcDarkGoldenrod     = 136
+    tcLightSalmon3      = 137
+    tcRosyBrown         = 138
+    tcGrey63            = 139
+    tcMediumPurple2_1   = 140
+    tcMediumPurple1     = 141
+    tcGold3             = 142
+    tcDarkKhaki         = 143
+    tcNavajoWhite3      = 144
+    tcGrey69            = 145
+    tcLightSteelBlue3   = 146
+    tcLightSteelBlue    = 147
+    tcYellow3           = 148
+    tcDarkOliveGreen3_2 = 149
+    tcDarkSeaGreen3_1   = 150
+    tcDarkSeaGreen2     = 151
+    tcLightCyan3        = 152
+    tcLightSkyBlue1     = 153
+    tcGreenYellow       = 154
+    tcDarkOliveGreen2   = 155
+    tcPaleGreen1_1      = 156
+    tcDarkSeaGreen2_1   = 157
+    tcDarkSeaGreen1     = 158
+    tcPaleTurquoise1    = 159
+    tcRed3_1            = 160
+    tcDeepPink3         = 161
+    tcDeepPink3_1       = 162
+    tcMagenta3_1        = 163
+    tcMagenta3_2        = 164
+    tcMagenta2          = 165
+    tcDarkOrange3_1     = 166
+    tcIndianRed_1       = 167
+    tcHotPink3_1        = 168
+    tcHotPink2          = 169
+    tcOrchid            = 170
+    tcMediumOrchid1     = 171
+    tcOrange3           = 172
+    tcLightSalmon3_1    = 173
+    tcLightPink3        = 174
+    tcPink3             = 175
+    tcPlum3             = 176
+    tcViolet            = 177
+    tcGold3_1           = 178
+    tcLightGoldenrod3   = 179
+    tcTan               = 180
+    tcMistyRose3        = 181
+    tcThistle3          = 182
+    tcPlum2             = 183
+    tcYellow3_1         = 184
+    tcKhaki3            = 185
+    tcLightGoldenrod2   = 186
+    tcLightYellow3      = 187
+    tcGrey84            = 188
+    tcLightSteelBlue1   = 189
+    tcYellow2           = 190
+    tcDarkOliveGreen1   = 191
+    tcDarkOliveGreen1_1 = 192
+    tcDarkSeaGreen1_1   = 193
+    tcHoneydew2         = 194
+    tcLightCyan1        = 195
+    tcRed1              = 196
+    tcDeepPink2         = 197
+    tcDeepPink1         = 198
+    tcDeepPink1_1       = 199
+    tcMagenta2_1        = 200
+    tcMagenta1          = 201
+    tcOrangeRed1        = 202
+    tcIndianRed1_1      = 203
+    tcIndianRed1_2      = 204
+    tcHotPink           = 205
+    tcHotPink_1         = 206
+    tcMediumOrchid1_1   = 207
+    tcDarkOrange        = 208
+    tcSalmon1           = 209
+    tcLightCoral        = 210
+    tcPaleVioletRed1    = 211
+    tcOrchid2           = 212
+    tcOrchid1           = 213
+    tcOrange1           = 214
+    tcSandyBrown        = 215
+    tcLightSalmon1      = 216
+    tcLightPink1        = 217
+    tcPink1             = 218
+    tcPlum1             = 219
+    tcGold1             = 220
+    tcLightGoldenrod2_1 = 221
+    tcLightGoldenrod2_2 = 222
+    tcNavajoWhite1      = 223
+    tcMistyRose1        = 224
+    tcThistle1          = 225
+    tcYellow1           = 226
+    tcLightGoldenrod1   = 227
+    tcKhaki1            = 228
+    tcWheat1            = 229
+    tcCornsilk1         = 230
+    tcGrey100           = 231
+    tcGrey3             = 232
+    tcGrey7             = 233
+    tcGrey11            = 234
+    tcGrey15            = 235
+    tcGrey19            = 236
+    tcGrey23            = 237
+    tcGrey27            = 238
+    tcGrey30            = 239
+    tcGrey35            = 240
+    tcGrey39            = 241
+    tcGrey42            = 242
+    tcGrey46            = 243
+    tcGrey50            = 244
+    tcGrey54            = 245
+    tcGrey58            = 246
+    tcGrey62            = 247
+    tcGrey66            = 248
+    tcGrey70            = 249
+    tcGrey74            = 250
+    tcGrey78            = 251
+    tcGrey82            = 252
+    tcGrey85            = 253
+    tcGrey89            = 254
+    tcGrey93            = 255
+
+const
+  tcGreyColors* = { tcGrey3 .. tcGrey93 }
+
 
 when defined(nimscript):
   type
@@ -304,6 +566,12 @@ func toUndescore*(str: string, color: bool): string =
 
 func toItalic*(str: string): string = str.toDefault({styleItalic})
 func toUndescore*(str: string): string = str.toDefault({styleUnderscore})
+
+func to8Bit*(str: string, color: TermColor8Bit): string =
+  &"\e[38;5;{color.ord}m{str}\e[0m"
+
+func to8BitBg*(str: string, color: TermColor8Bit): string =
+  &"\e[48;5;{color.ord}m{str}\e[0m"
 
 func len*(str: ColoredString): int = str.str.len
 
@@ -697,3 +965,14 @@ func getEditVisual*(src, target: seq[char], ops: seq[LevEdit]): string =
 
   for i in currIdx ..< src.len:
     result.add src[i]
+
+when isMainModule:
+  for base in 0 .. (ord(high(TermColor8Bit)) - ord(low(TermColor8Bit))) div 4:
+    for color in 0 .. 3:
+      let color = TermColor8Bit(color + base * 4)
+      stdout.write to8BitBg("##", color), " "
+      stdout.write to8Bit(strutils.alignLeft($color, 20), color)
+
+    stdout.write "\n"
+
+  echo "done"
