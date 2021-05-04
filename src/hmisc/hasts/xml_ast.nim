@@ -1,4 +1,4 @@
-import std/[xmltree, xmlparser, enumerate, strutils, tables,
+import std/[xmltree, xmlparser, enumerate, strutils, tables, with,
             strtabs, options, streams]
 
 # import std/parsexml except charData, elementName, entityName,
@@ -59,7 +59,7 @@ template expectAt*(
     parser: HXmlParser, at: set[XmlEventKind], procname: string
   ): untyped {.dirty.} =
 
-  {.line: instantiationInfo().}:
+  {.line: instantiationInfo(fullPaths = true).}:
     if parser.base.kind notin at:
       raise newException(
         HXmlParserEventError,
@@ -134,6 +134,14 @@ proc next*(parser: var HXmlParser) =
 
   next(parser.base)
 
+
+proc errorAt*(parser: var HXmlParser): string =
+  result = "(" & $parser.base.getLine & ":" & $parser.base.getColumn & ") "
+  for _ in 0 .. 5:
+    result.add currentEventToStr(parser)
+    parser.next()
+
+
 proc skipElementStart*(parser: var HXmlParser, tag: string) =
   parser.expectAt({xmlElementStart, xmlElementOpen}, tag)
   assert parser.elementName == tag
@@ -151,19 +159,22 @@ proc skipElementEnd*(parser: var HXmlParser, tag: string) =
 proc newHXmlParser*(file: AbsFile, traceNext: bool = false): HXmlParser =
   assertExists(file)
   var fileStream = newFileStream(file.string, fmRead)
-  if isNIl fileStream:
-    discard
+  assert not isNil(fileStream),
+      "Failed to open file for reading" & file.string
 
-  else:
-    open(result.base, fileStream, file.string)
-    result.traceNext = traceNext
-    next(result.base)
+  open(result.base, fileStream, file.string)
+  result.traceNext = traceNext
+  next(result.base)
 
 proc newHXmlParser*(text: string, traceNext: bool = false): HXmlParser =
   var stringStream = newStringStream(text)
   open(result.base, stringStream, "<text>")
   result.traceNext = traceNext
   next(result.base)
+
+proc close*(parser: var HXmlParser) = parser.base.close()
+proc `=destroy`*(parser: var HXmlParser) = parser.close()
+
 
 type
   HXmlParseError* = object of CatchableError
@@ -173,27 +184,27 @@ template raiseUnexpectedAttribute*(parser: HXmlParser): untyped =
   raise newException(
     HXmlParseError,
     "Unexpected attribute \"" & parser.attrKey() & "\" at " &
-      parser.displayAt()
+      parser.errorAt()
   )
 
 
-template raiseUnexpectedElement*(parser: HXmlParser): untyped =
-  {.line: instantiationInfo().}:
-    raise newException(
-      HXmlParseError,
-      "Unexpected element <" & parser.elementName() & "> at " &
-        parser.displayAt()
-    )
+template raiseUnknownElement*(
+  parser: HXmlParser, extra: string = ""): untyped =
+  raise newException(
+    HXmlParseError,
+    "Unknown element <" & parser.elementName() & "> at " &
+      parser.errorAt() & " " & extra
+  )
 
 
-template raiseUnexpectedElement*(parser: HXmlParser, tag: string): untyped =
-  {.line: instantiationInfo().}:
-    raise newException(
-      HXmlParseError,
-      "Unexpected element: expected <" & tag &
-        ">, but found <" & parser.elementName() &
-        "> at " & parser.displayAt()
-    )
+template raiseUnexpectedElement*(
+    parser: HXmlParser, tag: string, extra: string = ""): untyped =
+  raise newException(
+    HXmlParseError,
+    "Unexpected element: expected <" & tag &
+      ">, but found <" & parser.elementName() &
+      "> at " & parser.errorAt() & " " & extra
+  )
 
 func add*(xml: var XmlNode, optXml: Option[XmlNode]) =
   if optXml.isSome():
@@ -699,7 +710,14 @@ type
     indentBuf: string
     ignoreIndent: int
 
-using writer: var XmlWriter
+using
+  writer: var XmlWriter
+  reader: var HXmlParser
+
+proc close*(writer: var XmlWriter) = writer.stream.close()
+
+proc `=destroy`*(writer: var XmlWriter) =
+  writer.close()
 
 proc newXmlWriter*(stream: Stream): XmlWriter =
   XmlWriter(stream: stream)
@@ -753,6 +771,78 @@ proc xmlWrappedCdata*(writer; text, tag: string) =
   writer.xmlEnd(tag, false)
   writer.line()
 
+proc skipOpen*(r: var HXmlParser; tag: string) =
+  expectAt(r, {xmlElementOpen}, "skipOpen")
+  assert r.elementName() == tag
+  r.next()
+
+proc skipStart*(r: var HXmlParser; tag: string) =
+  expectAt(r, {xmlElementStart}, "skipStart")
+  assert r.elementName() == tag
+  r.next()
+
+proc skipClose*(r: var HXmlParser) =
+  expectAt(r, {xmlElementClose}, "skipClose")
+  r.next()
+
+
+proc skipCloseEnd*(r: var HXmlParser) =
+  expectAt(r, {xmlElementClose}, "skipCloseEnd")
+  r.next()
+  expectAt(r, {xmlElementEnd}, "skipCloseEnd")
+  r.next()
+
+proc skipEnd*(r: var HXmlParser, tag: string) =
+  expectAt(r, {xmlElementEnd}, "skipEnd")
+  if r.elementName() != tag:
+    raiseUnexpectedElement(r, tag)
+
+  r.next()
+
+
+proc `[]`*(r: var HXmlParser, key: string): bool =
+  # expectAt(r, {xmlAttr, xmlElementStart, xmlElementOpen, xmlElementEnd}, "[]")
+  case r.kind:
+    of xmlAttr:
+      result = r.attrKey() == key
+    of xmlElementStart, xmlElementOpen, xmlElementEnd:
+      result = r.elementName() == key
+
+    else:
+      result = false
+
+    # else:
+    #   discard
+
+proc atClose*(r: var HXmlParser): bool = r.kind in {xmlElementClose}
+proc atAttr*(r: var HXmlParser): bool = r.kind in {xmlAttr}
+proc atCdata*(r: var HXmlParser): bool = r.kind in {XmlEventKind.xmlCData}
+
+template loadPrimitive*(
+    stream: var HXmlParser, target: typed, tag: string,
+    loadAttr: untyped, loadField: untyped
+  ): untyped =
+
+  if stream.isAttribute():
+    loadAttr
+    stream.next()
+
+  else:
+    stream.skipElementStart(tag)
+    loadField
+    stream.skipElementEnd(tag)
+
+proc loadEnumWithPrefix*[E](
+    r: var HXmlParser; kind: var E, tag, prefix: string) =
+  loadPrimitive(
+    r, kind, tag,
+    (kind = parseEnum[E](prefix & r.strVal())),
+    (kind = parseEnum[E](prefix & r.strVal()))
+  )
+
+
+
+
 proc toXmlString*[T](item: Option[T]): string =
   mixin toXmlString
   if item.isSome():
@@ -803,10 +893,11 @@ proc writeXml*[T](writer; opt: Option[T], tag: string) =
     writeXml(writer, opt.get(), tag)
 
 proc writeXml*(writer; value: Slice[int], tag: string) =
-  writer.xmlOpen(tag)
-  writer.xmlAttribute("a", $value.a)
-  writer.xmlAttribute("b", $value.b)
-  writer.xmlCloseEnd()
+  with writer:
+    xmlOpen(tag)
+    xmlAttribute("a", $value.a)
+    xmlAttribute("b", $value.b)
+    xmlCloseEnd()
 
 proc writeXml*[E: enum](writer; values: set[E], tag: string) =
   writer.xmlStart(tag)
@@ -827,20 +918,6 @@ proc loadXml*[E: enum](stream: var HXmlParser, target: var E, tag: string) =
 
 proc isAttribute*(stream: HXmlParser): bool =
   stream.kind == XmlEventKind.xmlAttribute
-
-template loadPrimitive*(
-    stream: var HXmlParser, target: typed, tag: string,
-    loadAttr: untyped, loadField: untyped
-  ): untyped =
-
-  if stream.isAttribute():
-    loadAttr
-    stream.next()
-
-  else:
-    stream.skipElementStart(tag)
-    loadField
-    stream.skipElementEnd(tag)
 
 proc loadXml*(stream: var HXmlParser, target: var bool, tag: string) =
   loadPrimitive(
@@ -898,12 +975,15 @@ proc loadXml*[T](stream: var HXmlParser, target: var Option[T], tag: string) =
 
 proc loadXml*(stream: var HXmlParser, target: var string, tag: string) =
   if stream.isAttribute():
-    target = stream.strVal()
+    target &= stream.strVal()
     stream.next()
 
   else:
     stream.skipElementStart(tag)
-    parseXsdString(target, stream)
+    while stream.kind() in {xmlWhitespace, xmlCharData, XmlEventKind.xmlCData}:
+      target &= stream.strVal()
+      next(stream)
+
     stream.skipElementEnd(tag)
 
 proc loadXml*(stream: var HXmlParser, target: var int, tag: string) =
@@ -915,6 +995,23 @@ proc loadXml*(stream: var HXmlParser, target: var int, tag: string) =
     stream.skipElementStart(tag)
     target = stream.strVal().parseInt()
     stream.skipElementEnd(tag)
+
+
+proc loadXml*(reader; target: var Slice[int], tag: string) =
+  if reader.atAttr:
+    let val = reader.strVal().split(":")
+    target.a = parseInt(val[0])
+    target.b = parseInt(val[1])
+    reader.next()
+
+
+  else:
+    with reader:
+      skipOpen(tag)
+      loadXml(target.a, "a")
+      loadXml(target.b, "b")
+      skipClose()
+
 
 
 
