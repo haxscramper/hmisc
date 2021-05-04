@@ -821,6 +821,103 @@ proc writeXml*[E: enum](writer; values: set[E], tag: string) =
   writer.xmlEnd(tag)
 
 
+proc loadXml*[E: enum](stream: var HXmlParser, target: var E, tag: string) =
+  target = parseEnum[E](stream.attrValue())
+  stream.next()
+
+proc isAttribute*(stream: HXmlParser): bool =
+  stream.kind == XmlEventKind.xmlAttribute
+
+template loadPrimitive*(
+    stream: var HXmlParser, target: typed, tag: string,
+    loadAttr: untyped, loadField: untyped
+  ): untyped =
+
+  if stream.isAttribute():
+    loadAttr
+    stream.next()
+
+  else:
+    stream.skipElementStart(tag)
+    loadField
+    stream.skipElementEnd(tag)
+
+proc loadXml*(stream: var HXmlParser, target: var bool, tag: string) =
+  loadPrimitive(
+    stream, target, tag,
+    loadAttr = (target = stream.strVal().parseBool()),
+    loadField = (target = stream.strVal().parseBool()),
+  )
+
+proc loadXml*(stream: var HXmlParser, target: var SomeFloat, tag: string) =
+  loadPrimitive(
+    stream, target, tag,
+    loadAttr = (target = stream.strVal().parseFloat()),
+    loadField = (target = stream.strVal().parseFloat()),
+  )
+
+proc loadXml*[E](stream: var HXmlParser, target: var set[E], tag: string) =
+  stream.skipElementStart(tag)
+  while stream.elementName() == "item":
+    stream.next()
+    assert stream.attrKey() == "val"
+    target.incl parseEnum[E](stream.attrValue())
+    stream.next()
+
+  stream.skipElementEnd(tag)
+
+proc loadXml*[T](stream: var HXmlParser, target: var seq[T], tag: string) =
+  mixin loadXml
+  while stream.kind in {xmlElementOpen, xmlElementStart} and
+        stream.elementName() == tag:
+    var tmp: T
+    loadXml(stream, tmp, tag)
+    target.add tmp
+
+proc loadXml*[A, B](
+  stream: var HXmlParser, target: var Table[A, B], tag: string) =
+
+  mixin loadXml
+  while stream.elementName() == tag:
+    var key: A
+    var val: B
+    stream.skipElementStart(tag)
+    loadXml(stream, key, "key")
+    loadXml(stream, val, "value")
+    stream.skipElementEnd(tag)
+    target[key] = val
+
+
+
+proc loadXml*[T](stream: var HXmlParser, target: var Option[T], tag: string) =
+  mixin loadXml
+  if stream.elementName() == tag:
+    var tmp: T
+    loadXml(stream, tmp, tag)
+    target = some(tmp)
+
+proc loadXml*(stream: var HXmlParser, target: var string, tag: string) =
+  if stream.isAttribute():
+    target = stream.strVal()
+    stream.next()
+
+  else:
+    stream.skipElementStart(tag)
+    parseXsdString(target, stream)
+    stream.skipElementEnd(tag)
+
+proc loadXml*(stream: var HXmlParser, target: var int, tag: string) =
+  if stream.isAttribute():
+    target = stream.strVal().parseInt()
+    stream.next()
+
+  else:
+    stream.skipElementStart(tag)
+    target = stream.strVal().parseInt()
+    stream.skipElementEnd(tag)
+
+
+
 when isMainModule:
   import std/unittest
   let t = classifyXsdString
