@@ -35,6 +35,11 @@ type
     bufferActive*: bool
     sliceBuffer*: seq[seq[PosStrSlice]]
 
+
+  HLexerError = ref object of CatchableError
+    pos*, line*, column*: int
+
+
 using str: var PosStr
 
 export strutils
@@ -42,6 +47,7 @@ export strutils
 const
   LowerAsciiLetters* = {'a' .. 'b'}
   HighAsciiLetters* = {'A' .. 'Z'}
+  IntegerStartChars* = {'0' .. '9', '-', '+'}
   HexDigitsLow* = {'a', 'b', 'c', 'd', 'e', 'f'} + Digits
   HexDigitsHigh* = {'A', 'B', 'C', 'D', 'E', 'F'} + Digits
   HexDigits* = HexDigitsLow + HexDigitsHigh
@@ -54,6 +60,12 @@ const
   HorizontalSpace* = AllSpace - Newline
   VeritcalSpace* = Newline
 
+template raiseUnexpectedChar*(str: PosStr) =
+  raise HLexerError(
+    msg: "Unexpected character encountered while parsing: '" & $str[0] &
+      "' at " & $str.line & ":" & $str.column,
+    column: str.column, line: str.line, pos: str.pos)
+
 template raiseCannotGetOffset*(str: PosStr, offset: int) =
   {.line: instantiationInfo().}:
     mixin finished
@@ -62,11 +74,11 @@ template raiseCannotGetOffset*(str: PosStr, offset: int) =
       $finished(str)
     )
 
+
 # func getLine*(str: PosStr): int {.inline.} = str.line
 # func getColumn*(str: PosStr): int {.inline.} = str.column
 func lineCol*(str: PosStr): LineCol {.inline.} =
   (line: str.line, column: str.column)
-
 
 func len*(slice: PosStrSlice): int = slice.finish - slice.start
 func toAbsolute*(slice: PosStrSlice, offset: int): int =
@@ -377,9 +389,9 @@ proc popStringLit*(str: var PosStr): string {.inline.} =
     found = str['"'] and not str[-1, '\\']
     str.advance()
 
-  str.advance()
+  result = str.popRange()
+  # str.advance()
 
-  return str.popRange()
 
 proc popDigit*(str: var PosStr): string {.inline.} =
   str.pushRange()

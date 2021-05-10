@@ -86,6 +86,10 @@ func toDotPath*(
   top: int, sub: int, port: DotPortPosition = dppNone): DotNodeId =
   DotNodeId(path: @[top], record: @[sub], port: port)
 
+func toDotPath*(
+  top, sub: DotNodeId, port: DotPortPosition = dppNone): DotNodeId =
+  DotNodeId(path: @[top.path[0]], record: @[sub.path[0]], port: port)
+
 converter toDotNodeId*[T](p: ptr T): DotNodeId =
   DotNodeId(path: @[cast[int](p)])
 
@@ -295,7 +299,7 @@ type
 
 
 type
-  RecordField = object
+  RecordField* = object
     id*: DotNodeId ## Record field id
     text*: string ## Text in record field
     # REVIEW allow use of html directly?
@@ -336,15 +340,17 @@ type
       else:
         color*: Option[Color] ## DotNode color
 
+    labelAlign*: DotNodeLabelAlign
     case shape*: DotNodeShape
       of nsaRecord, nsaMRecord:
         # NOTE top-level record is always horizontal (?)
         flds*: seq[RecordField]
+
       of nsaPlaintext:
         htmlLabel*: HtmlElem
+
       else:
         labelLeftPad*: string
-        labelAlign*: DotNodeLabelAlign
         label*: Option[string] ## DotNode label
 
 type
@@ -626,7 +632,7 @@ func makeDotRecord*(
   RecordField(id: id, text: text, subfields: subfields)
 
 func makeRecordDotNode*(id: DotNodeId, records: seq[RecordField]): DotNode =
-  DotNode(shape: nsaRecord, id: id, flds: records)
+  DotNode(shape: nsaRecord, id: id, flds: records, labelAlign: nlaLeft)
 
 func makeColoredDotNode*(
     id: DotNodeId, label: string,
@@ -679,13 +685,15 @@ type
       of dtkComment:
         text: string
 
-func toString(record: RecordField): string =
+func toString(record: RecordField, align: DotNodeLabelAlign): string =
   # TODO keep track of graph direction to ensure correct rotation
   if record.subfields.len > 0:
-    "{" & record.subfields.mapIt(toString(it)).join("|") & "}"
+    "{" & record.subfields.mapIt(
+      toString(it, align)).join("|") & "}"
 
   else:
-    &"<{record.id}>{record.text}"
+    let text = record.text.split("\n").join($align) & $align
+    &"<{record.id}>{text}"
 
 func toTree(node: DotNode, idshift: int, level: int = 0): DotTree =
   var attr = newStringTable()
@@ -715,12 +723,15 @@ func toTree(node: DotNode, idshift: int, level: int = 0): DotTree =
 
   case node.shape:
     of nsaRecord, nsaMRecord:
-      attr["label"] = quoteGraphviz(node.flds.mapIt(toString(it)).join("|"))
+      attr["label"] = quoteGraphviz(
+        node.flds.mapIt(toString(it, node.labelAlign)).join("|"))
+
     of nsaPlaintext:
       attr["label"] = " <\n" & (node.htmlLabel.toFlatStr() & "> ").
         split("\n").
         mapIt("  ".repeat(level + 1) & it).
         joinl()
+
     else:
       if node.label.isSome():
         if node.labelAlign != nlaDefault:
@@ -734,6 +745,7 @@ func toTree(node: DotNode, idshift: int, level: int = 0): DotTree =
               of nlaLeft, nlaRight: str & $node.labelAlign
               else: str
           )
+
         else:
           if node.labelLeftPad.len > 0:
             attr["label"] = node.label.get().
@@ -904,7 +916,11 @@ proc toRope(tree: DotTree, level: int = 0): Rope =
         # TODO Generate muliple edegs for record types, one edge per target
         # TODO test of thsi works on graphviz first
         for to in tree.targets:
-          res.add &"{pref}{tree.origin} -> {to};\n"
+          if attrs.len == 0:
+            res.add rope(&"{pref}{tree.origin} -> {to};\n")
+          else:
+            res.add rope(&"{pref}{tree.origin} -> {to}[{attrs}];\n")
+          # res.add &"{pref}{tree.origin} -> {to};\n"
 
         res
       else:

@@ -23,7 +23,7 @@ checklist
 import std/[intsets]
 
 type
-  NoProperty = distinct char
+  NoProperty* = distinct char
   HNodeId* = distinct int
   HEdgeId* = distinct int
 
@@ -39,7 +39,7 @@ type
   HEdge* = object
     id: HEdgeId
 
-  HGraphProperty = enum
+  HGraphProperty* = enum
     gpDirected
     gpUndirected
     gpAllowSelfLoops
@@ -178,9 +178,10 @@ iterator items*(s: HNodeSet): HNode =
   for item in items(s.intSet):
     yield HNode(id: HNodeId(item))
 
-func `$`*(id: HNodeId|HEdgeId): string = $id.int
+func `$`*(id: HNodeId | HEdgeId): string = $id.int
 func `==`*(id1, id2: HNodeId | HEdgeId): bool = id1.int == id2.int
-func hash*(id: HNodeId|HEdgeId): Hash = hash(id.int)
+func `==`*(n1, n2: NoProperty): bool = true
+func hash*(id: HNodeId | HEdgeId): Hash = hash(id.int)
 func hash*(node: HNode): Hash = hash(node.id)
 func hash*(edge: HEdge): Hash = hash(edge.id)
 
@@ -348,6 +349,17 @@ proc addEdge*[N, E](
     edgeValue,
   )
 
+
+proc addEdge*[N, NoProperty](
+    graph: var HGraph[N, NoProperty], sourceValue, targetValue: N):
+  HEdge {.discardable.} =
+
+  return graph.addEdge(
+    graph.addNode(sourceValue),
+    graph.addNode(targetValue),
+    NoProperty('0'),
+  )
+
 proc addOrGetEdge*[N, E](
     graph: var HGraph[N, E], sourceValue, targetValue: N, edgeValue: E):
   HEdge {.discardable.} =
@@ -356,6 +368,16 @@ proc addOrGetEdge*[N, E](
     graph.addOrGetNode(sourceValue),
     graph.addOrGetNode(targetValue),
     edgeValue
+  )
+
+proc addOrGetEdge*[N, E](
+    graph: var HGraph[N, E], sourceValue, targetValue: N):
+  HEdge {.discardable.} =
+
+  return graph.addEdge(
+    graph.addOrGetNode(sourceValue),
+    graph.addOrGetNode(targetValue),
+    NoProperty('0')
   )
 
 proc addOrGetEdge*[N, E](
@@ -793,13 +815,15 @@ proc drawOrthoLayout*(layoutData: OrthoLayoutData): seq[seq[string]] =
 proc dotRepr*[N, E](
     graph: HGraph[N, E],
     nodeDotRepr: proc(node: N): DotNode,
-    edgeDotRepr: proc(edge: E): DotEdge,
+    edgeDotRepr: proc(edge: E): DotEdge = nil,
   ): DotGraph =
 
   result = DotGraph(
     name: "G",
-    styleNode: DotNode(shape: nsaBox, labelAlign: nlaLeft, fontname: "consolas",),
-    styleEdge: DotEdge(fontname: "consolas")
+    styleNode: DotNode(
+      shape: nsaBox, labelAlign: nlaLeft, fontname: "consolas"),
+    styleEdge: DotEdge(
+      fontname: "consolas")
   )
 
   for node in nodes(graph):

@@ -121,6 +121,8 @@ proc skipIndent*[F](state: var HsLexerState[F], str: var PosStr): LexerIndentKin
 proc lineCol*[K](tok: HsTok[K]): LineCol {.inline.} =
   (line: tok.line, column: tok.column)
 
+
+
 proc `==`*[K](tok: HsTok[K], other: tuple[kind: K, value: string]): bool =
   tok.kind == other.kind and tok.str == other.value
 
@@ -135,6 +137,9 @@ proc `==`*[K](
         return false
 
 
+
+proc initEof*[K](str: var PosStr, kind: K): HsTok[K] =
+  HsTok[K](kind: kind, line: str.line, column: str.column)
 
 proc initTok*[K](str: var PosStr, kind: K): HsTok[K] =
   HsTok[K](str: str.popRange(), kind: kind,

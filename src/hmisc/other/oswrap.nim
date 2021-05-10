@@ -387,6 +387,14 @@ proc splitDir*(dir: AbsDir): tuple[head: AbsDir, tail: RelDir] =
   result.head = AbsDir(head)
   result.tail = RelDir(tail)
 
+proc dropSuffix*(dir: AbsDir, suffix: string): AbsDir =
+  let (head, tail) = os.splitPath(dir.getStr())
+  if tail == suffix:
+    return AbsDir(head)
+
+  else:
+    return AbsDir(os.joinPath(head, tail.dropSuffix(suffix)))
+
 proc splitDir*(dir: RelDir): tuple[head: RelDir, tail: RelDir] =
   let (head, tail) = os.splitPath(dir.getStr())
   result.head = RelDir(head)
@@ -649,8 +657,8 @@ when cbackend:
   proc absolute*(dir: RelDir, root: AbsDir = getCurrentDir()): AbsDir =
     AbsDir(os.absolutePath(dir.string, root.string))
 
-  proc isAbsolute*(path: AnyPath): bool =
-    os.isAbsolute(path.getStr())
+  proc isAbsolute*(path: AnyPath): bool = os.isAbsolute(path.getStr())
+  proc isAbsolute*(path: string): bool = os.isAbsolute(path)
 
   proc absolute*(file: RelFile, root: AbsDir = getCurrentDir()): AbsFile =
     AbsFile(os.absolutePath(file.string, root.string))
@@ -1333,6 +1341,8 @@ func withExt*[F: AbsFile | RelFIle](
 
     else:
       RelFile(f.getStr() & extAdd)
+
+proc `&.`*(file: AbsFile, ext: string): AbsFile = withExt(file, ext)
 
 func withoutExt*[F: AbsFile | RelFile](file: F): F =
   withExt(file, "")

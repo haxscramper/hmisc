@@ -67,7 +67,11 @@ template raiseArgumentError*(errMsg: string) {.dirty.} =
   raise newException(ArgumentError, errMsg)
 
 template assertKind*(expr, expected: typed) {.dirty.} =
-  let kind = expr.kind
+  when expr is enum:
+    let kind = expr
+  else:
+    let kind = expr.kind
+
   var msg: string
   when compiles(kind notin expected):
     var anyOf: string

@@ -130,15 +130,17 @@ proc strVal*(parser: HXmlParser): string =
 
 proc next*(parser: var HXmlParser) =
   if parser.traceNext:
-    echo "> ", parser.currentEventToStr()
+    echo "> ", parser.displayAt()
 
   next(parser.base)
 
 
 proc errorAt*(parser: var HXmlParser): string =
   result = "(" & $parser.base.getLine & ":" & $parser.base.getColumn & ") "
-  for _ in 0 .. 5:
-    result.add currentEventToStr(parser)
+  for i in 0 .. 5:
+    if i > 0:
+      result &= " "
+    result &= "[" & currentEventToStr(parser) & "]"
     parser.next()
 
 
@@ -716,11 +718,15 @@ using
 
 proc close*(writer: var XmlWriter) = writer.stream.close()
 
-proc `=destroy`*(writer: var XmlWriter) =
-  writer.close()
+proc `=destroy`*(writer: var XmlWriter) = discard
+  # echo "=destroy called"
+  # writer.close()
 
 proc newXmlWriter*(stream: Stream): XmlWriter =
   XmlWriter(stream: stream)
+
+proc newXmlWriter*(file: AbsFile): XmlWriter =
+  newXmlWriter(newFileStream(file, fmWrite))
 
 
 proc space*(writer) = writer.stream.write(" ")
@@ -740,7 +746,16 @@ proc ignoreNextIndent*(writer) = inc writer.ignoreIndent
 
 proc xmlCData*(writer; text: string) =
   writer.stream.write("<![CDATA[")
-  writer.stream.write(text)
+  var start = 0
+  var pos = text.find("]]>")
+  while pos != -1:
+    writer.stream.write(text[start .. pos])
+    writer.stream.write("]]")
+    start = pos + 3
+    pos = text.find("]]>", start)
+    writer.stream.write("]]><![CDATA[>")
+
+  writer.stream.write(text[start .. ^1])
   writer.stream.write("]]>")
 
 proc xmlStart*(writer; elem: string, indent: bool = true) =
@@ -815,6 +830,9 @@ proc `[]`*(r: var HXmlParser, key: string): bool =
     #   discard
 
 proc atClose*(r: var HXmlParser): bool = r.kind in {xmlElementClose}
+proc atOpenStart*(r: var HXmlParser): bool =
+  r.kind in {xmlElementStart, xmlElementOpen}
+
 proc atAttr*(r: var HXmlParser): bool = r.kind in {xmlAttr}
 proc atCdata*(r: var HXmlParser): bool = r.kind in {XmlEventKind.xmlCData}
 
@@ -913,8 +931,15 @@ proc writeXml*[E: enum](writer; values: set[E], tag: string) =
 
 
 proc loadXml*[E: enum](stream: var HXmlParser, target: var E, tag: string) =
-  target = parseEnum[E](stream.attrValue())
-  stream.next()
+  if stream.atAttr():
+    target = parseEnum[E](stream.attrValue())
+    stream.next()
+
+  else:
+    stream.skipStart(tag)
+    target = parseEnum[E](stream.strVal())
+    stream.next()
+    stream.skipEnd(tag)
 
 proc isAttribute*(stream: HXmlParser): bool =
   stream.kind == XmlEventKind.xmlAttribute
@@ -968,14 +993,16 @@ proc loadXml*[A, B](
 
 proc loadXml*[T](stream: var HXmlParser, target: var Option[T], tag: string) =
   mixin loadXml
-  if stream.elementName() == tag:
+  if (stream.isAttribute() and stream.attrKey() == tag) or
+     (stream.elementName() == tag):
     var tmp: T
     loadXml(stream, tmp, tag)
     target = some(tmp)
 
 proc loadXml*(stream: var HXmlParser, target: var string, tag: string) =
   if stream.isAttribute():
-    target &= stream.strVal()
+    target = stream.strVal()
+    # if stream.attrKey() == "path": echov target
     stream.next()
 
   else:
@@ -985,6 +1012,11 @@ proc loadXml*(stream: var HXmlParser, target: var string, tag: string) =
       next(stream)
 
     stream.skipElementEnd(tag)
+
+proc loadXml*(stream: var HXmlparser, target: var AbsFile, tag: string) =
+  var tmp: string
+  loadXml(stream, tmp, tag)
+  target = AbsFile(tmp)
 
 proc loadXml*(stream: var HXmlParser, target: var int, tag: string) =
   if stream.isAttribute():
