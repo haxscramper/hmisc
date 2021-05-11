@@ -1,16 +1,23 @@
 import std/[strutils, strformat, parseutils,
             options, segfaults]
-import ../base_errors, ../hdebug_misc
-import ./hlex_base, ./hstring_algo, ./hseq_mapping, ./halgorithm
+
+import
+  ../base_errors,
+  ../hdebug_misc,
+  ../types/colorstring,
+  ./hlex_base,
+  ./hstring_algo,
+  ./hseq_mapping,
+  ./halgorithm
 
 type
   HsTokTree*[Rule, Tok] = object
+    rule*: Rule
     case isToken*: bool
       of true:
         token*: Tok
 
       of false:
-        rule*: Rule
         subnodes*: seq[HsTokTree[Rule, Tok]]
 
 
@@ -28,9 +35,19 @@ type
     line*: int
     column*: int
     kind*: K
-    str*: string
+    case isSlice*: bool
+      of true:
+        slice*: Slice[uint32]
+
+      of false:
+        str*: string
 
   HsLexer*[Tok] = object
+    explicitEof*: bool ## Lexer callback as separate token to denote end of
+    ## file that is returned when end is reached. - `finished()` will
+    ## always return false.
+    ##
+    ## - WARNING :: If set to `true` user MUST handle string end.
     tokens*: seq[Tok]
     cb*: HsLexCallback[Tok]
     pos*: int
@@ -138,19 +155,30 @@ proc `==`*[K](
       if tok[idx] != other[idx]:
         return false
 
+proc add*[R, T](tree: var HsTokTree[R, T], sub: HsTokTree[R, T]) =
+  tree.subnodes.add sub
 
+proc newHTree*[R, T](
+    rule: R, subnodes: seq[HsTokTree[R, T]]): HsTokTree[R, T] =
+  HsTokTree[R, T](isToken: false, rule: rule, subnodes: subnodes)
+
+proc newHTree*[R, T](rule: R, token: T): HsTokTree[R, T] =
+  HsTokTree[R, T](isToken: true, token: token, rule: rule)
+
+proc newHTree*[R, T](lexer: HsLexer[T], rule: R): HsTokTree[R, T] =
+  HsTokTree[R, T](isToken: false, rule: rule)
 
 proc initEof*[K](str: var PosStr, kind: K): HsTok[K] =
-  HsTok[K](kind: kind, line: str.line, column: str.column)
+  HsTok[K](kind: kind, line: str.line, column: str.column, isSlice: false)
 
 proc initTok*[K](str: var PosStr, kind: K): HsTok[K] =
-  HsTok[K](str: str.popRange(), kind: kind,
+  HsTok[K](str: str.popRange(), kind: kind, isSlice: false,
            line: str.line, column: str.column)
 
 proc initTok*[K](kind: K): HsTok[K] = HsTok[K](kind: kind)
 
 proc initTok*[K](str: char | string, kind: K): HsTok[K] =
-  HsTok[K](str: $str, kind: kind)
+  HsTok[K](str: $str, kind: kind, isSlice: false)
 
 template initTok*[K](
     posStr: PosStr, inStr: char | string, inKind: K): HsTok[K] =
@@ -161,7 +189,7 @@ template initTok*[K](
   ##   identifier pop was evaluated first, causing `str` to change
   ##   positions
   HsTok[K](line: posStr.line, column: posStr.column,
-           kind: inKind, str: $inStr)
+           kind: inKind, str: $inStr, isSlice: false)
 
 func strVal*[K](tok: HsTok[K]): string = tok.str
 
@@ -197,6 +225,22 @@ func add*[T](res: var ParseResult[seq[T]], value: seq[T] | T) =
 func add*[T](res: var ParseResult[seq[T]], value: ParseResult[T]) =
   res.value.add value.value
 
+func len*[R, T](t: HsTokTree[R, T]): int =
+  if not t.isToken: result = t.subnodes.len()
+
+iterator items*[R, T](t: HsTokTree[R, T]): HsTokTree[R, T] =
+  if not t.isToken:
+    for sub in items(t.subnodes):
+      yield sub
+
+iterator pairs*[R, T](t: HsTokTree[R, T]): (int, HsTokTree[R, T]) =
+  if not t.isToken:
+    for idx, sub in pairs(t.subnodes):
+      yield (idx, sub)
+
+func `[]`*[R, T](t: HsTokTree[R, T], idx: int): HsTokTree[R, T] =
+  t.subnodes[idx]
+
 proc get*[V](parseResult: ParseResult[V]): V =
   return parseResult.value
 
@@ -225,9 +269,19 @@ func resetBuffer*[T](lex: var HSLexer[T]) =
   lex.pos = 0
   lex.tokens.setLen(0)
 
+func hasNxt*[T](lex: HsLexer[T], offset: int): bool =
+  lex.pos + offset < lex.tokens.len
+
+proc finished*[T](lex: HsLexer[T]): bool =
+  not hasNxt(lex, 0) and lex.str[].finished()
+
+proc `?`*[T](lex: HsLexer[T]): bool =
+  lex.explicitEof or not lex.finished()
+
+
 proc nextToken*[T](lex: var HSLexer[T]): T =
   var tok: Option[T]
-  while ?lex.str[] and tok.isNone():
+  while ?lex and tok.isNone():
     tok = lex.cb(lex.str[])
 
   if tok.isNone():
@@ -241,14 +295,6 @@ proc fillNext*[T](lex: var HSLexer[T], chars: int) =
   if needed > 0:
     for _ in 0 ..< needed:
       lex.tokens.add nextToken(lex)
-
-func hasNxt*[T](lex: HsLexer[T], offset: int): bool =
-  lex.pos + offset < lex.tokens.len
-
-proc finished*[T](lex: HsLexer[T]): bool =
-  not hasNxt(lex, 0) and lex.str[].finished()
-
-proc `?`*[T](lex: HsLexer[T]): bool = not lex.finished()
 
 
 proc `[]`*[T](lex: var HSlexer[T], offset: int = 0): T =
@@ -315,11 +361,14 @@ proc pop*[K](lex: var HsLexer[HsTok[K]], kind: K): HsTok[K] =
   assertKind(lex[], kind)
   lex.advance()
 
-proc initLexer*[T](str: var PosStr, lexCb: HsLexCallback[T]): HsLexer[T] =
-  HsLexer[T](str: addr str, cb: lexCb)
+proc initLexer*[T](
+    str: var PosStr, lexCb: HsLexCallback[T],
+    explicitEof: bool = false): HsLexer[T] =
+  HsLexer[T](str: addr str, cb: lexCb, explicitEof: explicitEof)
 
-proc initLexer*[T](lexCb: HsLexCallback[T]): HsLexer[T] =
-  HsLexer[T](cb: lexCb)
+proc initLexer*[T](
+    lexCb: HsLexCallback[T], explicitEof: bool = false): HsLexer[T] =
+  HsLexer[T](cb: lexCb, explicitEof: explicitEof)
 
 proc setStr*[T](lexer: var HsLexer[T], str: var PosStr) =
   lexer.str = addr str
@@ -598,3 +647,64 @@ func parseFirstMatch*[T, V](parsers: seq[HsParseCallback[T, V]]):
         lastFail = match
 
     return lastFail
+
+
+func treeRepr*[R, T](
+    tree: HsTokTree[R, T],
+    colored: bool = true,
+    pathIndexed: bool = false,
+    positionIndexed: bool = true,
+    maxdepth: int = 120,
+    baseStr: PosStr = PosStr()
+  ): string =
+
+  proc aux(n: HsTokTree[R, T], level: int, idx: seq[int]): string =
+    let pref =
+      if pathIndexed:
+        idx.join("", ("[", "]")) & "    "
+
+      elif positionIndexed:
+        if level > 0:
+          "  ".repeat(level - 1) & "\e[38;5;240m#" & $idx[^1] & "\e[0m" &
+            "\e[38;5;237m/" & alignLeft($level, 2) & "\e[0m" & " "
+
+        else:
+          "    "
+
+      else:
+        "  ".repeat(level)
+
+    if level > maxdepth:
+      return pref & " ..."
+
+    let rule = $n.rule
+    result &= pref & toCyan(
+      rule[rule.skipWhile({'a' .. 'z'}) .. ^1], colored)
+
+    if n.isToken:
+      let tok = $n.token.kind
+      result &= " " & toYellow(
+        tok[tok.skipWhile({'a' .. 'z'}) .. ^1], colored)
+
+      if '\n' in n.token.str:
+        result &= "\n"
+        result &= n.token.str.strip().
+          indent(idx.len * 2 + 6).toGreen(colored)
+
+      else:
+        result &= " " & toGreen(n.token.str, colored)
+
+
+    else:
+      if n.len > 0:
+        result &= "\n"
+
+      for newIdx, subn in n:
+        result &= aux(subn, level + 1, idx & newIdx)
+        if level + 1 > maxDepth:
+          break
+
+        if newIdx < n.len - 1:
+          result &= "\n"
+
+  return aux(tree, 0, @[])

@@ -20,10 +20,13 @@ type
     mtkEof
 
   MustacheAstKind = enum
+    makStmtList
     makSection
     makContent
+    makPartial
     makWrapSwitch
-    makGetData
+    makIdent
+    makGetExpr
 
   MTok = HsTok[MustacheTokenKind]
   MLexer = HsLexer[MTok]
@@ -79,21 +82,70 @@ proc newMustacheLexer*(): MLexer =
         else:
           result = some initTok(str, str.popUntil('{'), mtkContent)
 
+  return initLexer(lexerImpl, true)
 
-  # var str = initPosStr(str)
-  # echov str[]
-  # echov str.finished()
-  return initLexer(lexerImpl)
+proc parseGetExpr(lexer: var MLexer): MTree =
+  lexer.advance()
+  result = lexer.newHTree(makGetExpr)
+  if lexer[].kind in {mtkSectionStart, mtkSectionEnd}:
+    lexer.advance()
 
+  while lexer[].kind in {mtkIdent, mtkDot}:
+    if lexer[].kind == mtkIdent:
+      result.add newHTree(makIdent, lexer.pop())
+
+    else:
+      lexer.advance()
+
+  lexer.advance()
+
+
+proc parseStmtList(lexer: var MLexer): MTree =
+  result = lexer.newHTree(makStmtList)
+  while lexer[].kind != mtkEof:
+    case lexer[].kind:
+      of mtkContent:
+        result.add newHTree(makContent, lexer.pop())
+
+      of mtkCurlyOpen:
+        case lexer[+1].kind:
+          of mtkSectionStart:
+            let
+              start = parseGetExpr(lexer)
+              section = parseStmtList(lexer)
+              finish = parseGetExpr(lexer)
+
+            result.add newHTree(makSection, @[start[0], section])
+
+          of mtkIdent:
+            result.add parseGetExpr(lexer)
+
+          of mtkChangeWrapper:
+            raiseImplementError("")
+
+          of mtkPartial:
+            lexer.advance()
+            result.add newHTree(makPartial, lexer.pop())
+            lexer.advance()
+
+          of mtkSectionEnd:
+            return
+
+          else:
+            raiseImplementKindError(lexer[+1])
+
+      else:
+        raiseImplementKindError(lexer[])
 
 proc mustacheParse*(str: string): MTree =
   echov "123123"
   var str = initPosStr(str)
   var lexer = newMustacheLexer()
   lexer.setStr(str)
-  echov lexer.str[].finished()
-  let tokens = lexer.getAll()
-  echov tokens
+  return parseStmtList(lexer)
+  # echov lexer.str[].finished()
+  # let tokens = lexer.getAll()
+  # echov tokens
 
 
 when isMainModule:
@@ -104,3 +156,7 @@ when isMainModule:
   <strong>{{name}}</strong>
 {{/names}}
 """)
+
+  echo treeRepr(tree)
+
+  echo "ok"
