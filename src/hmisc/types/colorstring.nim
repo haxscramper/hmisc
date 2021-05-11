@@ -573,6 +573,45 @@ func to8Bit*(str: string, color: TermColor8Bit): string =
 func to8BitBg*(str: string, color: TermColor8Bit): string =
   &"\e[48;5;{color.ord}m{str}\e[0m"
 
+proc to8Bit*(
+  str: string, r, g, b: range[0 .. 5], colored: bool = true): string =
+  if colored:
+    result = &"\e[38;5;{16 + b + g * 6 + (6 * 6) * r}m{str}\e[0m"
+
+  else:
+    result = str
+
+proc to8Bit*(
+  str: string, gray: range[0 .. 23], colored: bool = true): string =
+  if colored:
+    result = &"\e[38;5;{232 + gray}m{str}\e[0m"
+
+  else:
+    result = str
+
+
+proc to8BitBg*(
+  str: string, r, g, b: range[0 .. 5], colored: bool = true): string =
+  if colored:
+    result = &"\e[48;5;{16 + b + g * 6 + (6 * 6) * r}m{str}\e[0m"
+
+  else:
+    result = str
+
+proc to8BitBg*(
+  str: string, gray: range[0 .. 23], colored: bool = true): string =
+  if colored:
+    result = &"\e[48;5;{232 + gray}m{str}\e[0m"
+
+  else:
+    result = str
+
+proc term8Bit*(r, g, b: range[0 .. 5]): TermColor8Bit =
+  TermColor8Bit(16 + b + g * 6 + (6 * 6) * r)
+
+proc term8Bit*(gray: range[0 .. 23]): TermColor8Bit =
+  TermColor8Bit(232 + gray)
+
 func len*(str: ColoredString): int = str.str.len
 
 func termLen*(str: string): int =
@@ -967,12 +1006,29 @@ func getEditVisual*(src, target: seq[char], ops: seq[LevEdit]): string =
     result.add src[i]
 
 when isMainModule:
-  for base in 0 .. (ord(high(TermColor8Bit)) - ord(low(TermColor8Bit))) div 4:
-    for color in 0 .. 3:
-      let color = TermColor8Bit(color + base * 4)
-      stdout.write to8BitBg("##", color), " "
-      stdout.write to8Bit(strutils.alignLeft($color, 20), color)
+  if false:
+    for base in 0 .. (ord(high(TermColor8Bit)) -
+                      ord(low(TermColor8Bit))) div 4:
+      for color in 0 .. 3:
+        let color = TermColor8Bit(color + base * 4)
+        stdout.write to8BitBg("##", color), " "
+        stdout.write to8Bit(strutils.alignLeft($color, 20), color)
 
-    stdout.write "\n"
+      stdout.write "\n"
 
-  echo "done"
+    echo "done"
+
+
+  for gray in 0 .. 23:
+    stdout.write to8BitBg(&"[{gray}]", gray)
+
+  stdout.write("\n")
+
+  for r in 0 .. 5:
+    for g in 0 .. 5:
+      for b in 0 .. 5:
+        stdout.write to8BitBg(&"[{r} {g} {b}]", r, g, b)
+
+      stdout.write("\n")
+
+    stdout.write("\n")

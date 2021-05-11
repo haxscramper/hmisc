@@ -665,8 +665,8 @@ func treeRepr*[R, T](
 
       elif positionIndexed:
         if level > 0:
-          "  ".repeat(level - 1) & "\e[38;5;240m#" & $idx[^1] & "\e[0m" &
-            "\e[38;5;237m/" & alignLeft($level, 2) & "\e[0m" & " "
+          "  ".repeat(level - 1) & to8Bit("#" & $idx[^1], 10) &
+            to8Bit("/" & alignLeft($level, 2), 5) & " "
 
         else:
           "    "
@@ -687,12 +687,14 @@ func treeRepr*[R, T](
         tok[tok.skipWhile({'a' .. 'z'}) .. ^1], colored)
 
       if '\n' in n.token.str:
+        result &= to8Bit(&" ({n.token.line}:{n.token.column})", 2, 3, 3)
         result &= "\n"
         result &= n.token.str.strip().
           indent(idx.len * 2 + 6).toGreen(colored)
 
       else:
         result &= " " & toGreen(n.token.str, colored)
+        result &= to8Bit(&" ({n.token.line}:{n.token.column})", 2, 3, 3)
 
 
     else:
