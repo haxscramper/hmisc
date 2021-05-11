@@ -725,6 +725,9 @@ proc `=destroy`*(writer: var XmlWriter) = discard
 proc newXmlWriter*(stream: Stream): XmlWriter =
   XmlWriter(stream: stream)
 
+proc newXmlWriter*(file: File): XmlWriter =
+  newXmlWriter(newFileStream(file))
+
 proc newXmlWriter*(file: AbsFile): XmlWriter =
   newXmlWriter(newFileStream(file, fmWrite))
 

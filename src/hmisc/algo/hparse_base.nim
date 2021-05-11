@@ -43,7 +43,9 @@ type
     likNoIndent ## Not at position where indentation can be determine (e.g.
                 ## is inside of a identifier or at the start of the line)
 
-  HsLexerState*[Flag: enum | char | uint8 | uint16 | int8 | int16] = ref object
+  HsLexerState*[Flag:
+    enum | char | uint8 | uint16 | int8 | int16 | bool] = ref object
+
     flagStack: seq[Flag]
     flagSet: array[Flag, int]
     indent: int
@@ -315,6 +317,12 @@ proc pop*[K](lex: var HsLexer[HsTok[K]], kind: K): HsTok[K] =
 
 proc initLexer*[T](str: var PosStr, lexCb: HsLexCallback[T]): HsLexer[T] =
   HsLexer[T](str: addr str, cb: lexCb)
+
+proc initLexer*[T](lexCb: HsLexCallback[T]): HsLexer[T] =
+  HsLexer[T](cb: lexCb)
+
+proc setStr*[T](lexer: var HsLexer[T], str: var PosStr) =
+  lexer.str = addr str
 
 proc skip*[T, En](lexer: var HsLexer[T], kind: En) =
   assertKind(lexer[], kind)

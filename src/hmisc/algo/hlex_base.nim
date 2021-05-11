@@ -211,7 +211,6 @@ proc `[]`*(str; offset: int, patt: char | set[char] | string):
 proc `[]`*(str; patt: char|set[char]|string): bool {.inline.} =
   str[0, patt]
 
-
 proc `[]`*(str; patt1, patt2: char | set[char] | string): bool {.inline.} =
   str[0, patt1] and str[1, patt2]
 
@@ -256,6 +255,18 @@ proc `$`*(str): string =
 
   else:
     result = &"[{str.pos}: {str.str[str.pos .. ^1]}]"
+
+template assertAhead*(str: PosStr, ahead: string) =
+  if not str[ahead]:
+    raise HLexerError(
+      msg: "Lexer error - expected : '" & ahead & "', but found " &
+        str[0 .. len(ahead)] & " at " & $str.line & ":" & $str.column,
+      column: str.column,
+      line: str.line,
+      pos: str.pos
+    )
+
+
 
 proc pushRange*(str) {.inline.} =
   str.ranges.add str.pos
@@ -334,9 +345,9 @@ proc popWhile*(str; chars: set[char]): string {.inline.} =
   str.skipWhile(chars)
   return str.popRange()
 
-proc popUntil*(str; chars: set[char]): string {.inline.} =
+proc popUntil*(str; chars: set[char] | char): string {.inline.} =
   str.pushRange()
-  str.skipUntil(chars)
+  when chars is set: str.skipUntil(chars) else: str.skipUntil({chars})
   return str.popRange()
 
 proc startsWith*(str; skip: set[char], search: string): bool =
