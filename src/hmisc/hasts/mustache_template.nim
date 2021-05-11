@@ -1,8 +1,10 @@
 import
-  ../base_errors, ../hdebug_misc,
-  ../algo/[hlex_base, hparse_base]
+  ../base_errors,
+  ../hdebug_misc,
+  ../algo/[hlex_base, hparse_base],
+  ../types/ptree
 
-import std/[options]
+import std/[options, streams]
 
 
 type
@@ -32,6 +34,7 @@ type
   MLexer = HsLexer[MTok]
   MTree = HsTokTree[MustacheAstKind, MTok]
   MState = HsLexerState[bool]
+  MPContext = PTree[string, string]
 
 
 proc newMustacheLexer*(): MLexer =
@@ -138,14 +141,31 @@ proc parseStmtList(lexer: var MLexer): MTree =
         raiseImplementKindError(lexer[])
 
 proc mustacheParse*(str: string): MTree =
-  echov "123123"
   var str = initPosStr(str)
   var lexer = newMustacheLexer()
   lexer.setStr(str)
   return parseStmtList(lexer)
-  # echov lexer.str[].finished()
-  # let tokens = lexer.getAll()
-  # echov tokens
+
+
+proc writeTemplate*(stream: Stream, tree: MTree, ctx: MPcontext) =
+  case tree.kind:
+    of makContent:
+      stream.write(tree.token.str)
+
+    of makStmtList:
+      for sub in items(tree):
+        stream.writeTemplate(sub, ctx)
+
+    of makSection:
+      let get = ctx.getKey(tree[0].strVal())
+      for value in items(get):
+        stream.writeTemplate(tree[1], value)
+
+    of makGetExpr:
+      let get = ctx.getKey(tree[0].strVal())
+
+    else:
+      raiseImplementKindError(tree.kind)
 
 
 when isMainModule:
@@ -158,5 +178,16 @@ when isMainModule:
 """)
 
   echo treeRepr(tree)
+
+  var ctx = newPTree({
+    "names": newPTree([
+      newPTree({"name": "test-name"}),
+      newPTree({"name": "test-name"}),
+      newPTree({"name": "test-name"})
+    ])
+  })
+
+  let s = newFileStream(stdout)
+  s.writeTemplate(tree, ctx)
 
   echo "ok"

@@ -12,7 +12,7 @@ import
 
 type
   HsTokTree*[Rule, Tok] = object
-    rule*: Rule
+    kind*: Rule
     case isToken*: bool
       of true:
         token*: Tok
@@ -159,14 +159,14 @@ proc add*[R, T](tree: var HsTokTree[R, T], sub: HsTokTree[R, T]) =
   tree.subnodes.add sub
 
 proc newHTree*[R, T](
-    rule: R, subnodes: seq[HsTokTree[R, T]]): HsTokTree[R, T] =
-  HsTokTree[R, T](isToken: false, rule: rule, subnodes: subnodes)
+    kind: R, subnodes: seq[HsTokTree[R, T]]): HsTokTree[R, T] =
+  HsTokTree[R, T](isToken: false, kind: kind, subnodes: subnodes)
 
-proc newHTree*[R, T](rule: R, token: T): HsTokTree[R, T] =
-  HsTokTree[R, T](isToken: true, token: token, rule: rule)
+proc newHTree*[R, T](kind: R, token: T): HsTokTree[R, T] =
+  HsTokTree[R, T](isToken: true, token: token, kind: kind)
 
-proc newHTree*[R, T](lexer: HsLexer[T], rule: R): HsTokTree[R, T] =
-  HsTokTree[R, T](isToken: false, rule: rule)
+proc newHTree*[R, T](lexer: HsLexer[T], kind: R): HsTokTree[R, T] =
+  HsTokTree[R, T](isToken: false, kind: kind)
 
 proc initEof*[K](str: var PosStr, kind: K): HsTok[K] =
   HsTok[K](kind: kind, line: str.line, column: str.column, isSlice: false)
@@ -380,7 +380,7 @@ proc skip*[T, En](lexer: var HsLexer[T], kind: En) =
 proc skipTo*[T](lex: var HsLexer[T], chars: set[char]) =
   lex.str[].skipWhile(AllChars - chars)
 
-proc parseIdent*[R, T](lex: var HsLexer[T], rule: R):
+proc parseIdent*[R, T](lex: var HsLexer[T], kind: R):
   HsTokTree[R, T] = HsTokTree[R, T](isToken: true, token: lex.pop())
 
 proc expectKind*[T, K](lex: var HsLexer[T], kind: set[K]) =
@@ -502,7 +502,7 @@ func foldNested*[T, K](
     if (idx + 1 < tokens.len) and
        (tokens[idx + 1].kind in openKinds):
 
-      result = HsTokTree[T, T](isToken: false, rule: tokens[idx])
+      result = HsTokTree[T, T](isToken: false, kind: tokens[idx])
 
     else:
       result = HsTokTree[T, T](isToken: true, token: tokens[idx])
@@ -648,6 +648,8 @@ func parseFirstMatch*[T, V](parsers: seq[HsParseCallback[T, V]]):
 
     return lastFail
 
+func strVal*[R, T](tree: HsTokTree[R, T]): string = tree.token.str
+
 
 func treeRepr*[R, T](
     tree: HsTokTree[R, T],
@@ -677,9 +679,9 @@ func treeRepr*[R, T](
     if level > maxdepth:
       return pref & " ..."
 
-    let rule = $n.rule
+    let kind = $n.kind
     result &= pref & toCyan(
-      rule[rule.skipWhile({'a' .. 'z'}) .. ^1], colored)
+      kind[kind.skipWhile({'a' .. 'z'}) .. ^1], colored)
 
     if n.isToken:
       let tok = $n.token.kind

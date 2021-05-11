@@ -2,7 +2,7 @@ import ../hdebug_misc, ../base_errors
 import std/[tables, options]
 
 type
-  PTree[K, V] = ref object
+  PTree*[K, V] = ref object
     case isValue: bool
       of true:
         value: V
@@ -22,6 +22,29 @@ type
 
           of false:
             subtree: seq[PTree[K, V]]
+
+
+func newPTree*[K, V](kvPairs: openarray[(K, PTree[K, V])]): PTree[K, V] =
+  result = PTree[K, V](
+    isValue: false, isAttrProvider: false, isSubProvider: false)
+
+  for (key, val) in kvPairs:
+    result.attrs[key] = val
+
+
+func newPTree*[K, V](subItems: openarray[PTree[K, V]]): PTree[K, V] =
+  result = PTree[K, V](
+    isValue: false, isAttrProvider: false, isSubProvider: false)
+
+  for item in items(subItems):
+    result.subTree.add item
+
+func newPTree*[K, V](kvPairs: openarray[(K, V)]): PTree[K, V] =
+  result = PTree[K, V](
+    isValue: false, isAttrProvider: false, isSubProvider: false)
+
+  for (key, val) in kvPairs:
+    result.attrs[key] = PTree[K, V](isValue: true, value: val)
 
 
 proc getKey*[K, V](tree: PTree[K, V], key: K): PTree[K, V] =
@@ -47,7 +70,8 @@ proc setKey*[K, V](tree: var PTree[K, V], key: K, value: PTree[K, V]) =
     tree.attrs[key] = value
 
 
-proc setIdx*[K, V](tree: var PTree[K, V], idx: int, value: PTree[K, V]): PTree[K, V] =
+proc setIdx*[K, V](
+  tree: var PTree[K, V], idx: int, value: PTree[K, V]): PTree[K, V] =
   if tree.isSubProvider:
     raiseArgumentError("Cannot set index to subtree provider")
 
@@ -59,12 +83,13 @@ proc add*[K, V](tree: var PTree[K, V], sub: PTree[K, V]): PTree[K, V] =
 
 iterator items*[K, V](tree: PTree[K, V]): PTree[K, V] =
   if tree.isSubProvider:
+    for i in 0 ..< tree.subLen.get():
+      yield tree.getSub(i)
+
+  else:
     for sub in tree.subtree:
       yield sub
 
-  else:
-    for i in 0 ..< tree.subLen:
-      yield tree.getSub(i)
 
 iterator pairs*[K, V](tree: PTree[K, V]): (K, PTree[K, V]) =
   for key, val in pairs(tree.attrs):
