@@ -60,6 +60,8 @@ proc newMustacheLexer*(): MLexer =
           result = some initTok(mtkCurlyClose)
           str.advance(2)
           state.toFlag(false)
+          if str['\n']:
+            str.advance()
 
         of ' ':
           str.skipWhile({' '})
@@ -162,7 +164,7 @@ proc writeTemplate*(stream: Stream, tree: MTree, ctx: MPcontext) =
         stream.writeTemplate(tree[1], value)
 
     of makGetExpr:
-      let get = ctx.getKey(tree[0].strVal())
+      stream.write ctx.getKey(tree[0].strVal()).getVal()
 
     else:
       raiseImplementKindError(tree.kind)

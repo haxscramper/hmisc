@@ -691,8 +691,25 @@ func treeRepr*[R, T](
       if '\n' in n.token.str:
         result &= to8Bit(&" ({n.token.line}:{n.token.column})", 2, 3, 3)
         result &= "\n"
-        result &= n.token.str.strip().
-          indent(idx.len * 2 + 6).toGreen(colored)
+        var tmp = n.token.str
+
+        if tmp.len == 0:
+          tmp = "∅"
+
+        else:
+          var nlCount = 0
+          while nlCount < tmp.high and
+                tmp[tmp.high - nlCount] in {'\n'}:
+            inc nlCount
+
+          tmp.setLen(tmp.len - nlCount)
+          result &= tmp.strip().indent(idx.len * 2 + 6).toGreen(colored)
+
+          if nlCount == 0 and n.token.str[^1] in {'\n'}:
+            inc nlCount
+          for nl in 0 ..< nlCount:
+            result.add toRed("⮒", colored)
+
 
       else:
         result &= " " & toGreen(n.token.str, colored)

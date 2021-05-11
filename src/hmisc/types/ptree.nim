@@ -46,6 +46,7 @@ func newPTree*[K, V](kvPairs: openarray[(K, V)]): PTree[K, V] =
   for (key, val) in kvPairs:
     result.attrs[key] = PTree[K, V](isValue: true, value: val)
 
+proc getVal*[K, V](tree: PTree[K, V]): V = tree.value
 
 proc getKey*[K, V](tree: PTree[K, V], key: K): PTree[K, V] =
   if tree.isAttrProvider:
