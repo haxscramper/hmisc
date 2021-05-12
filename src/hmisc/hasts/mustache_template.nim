@@ -4,8 +4,8 @@ import
   ../algo/[hlex_base, hparse_base],
   ../types/ptree
 
-import std/[options, streams]
-
+import std/[options, streams, tables]
+export hparse_base
 
 type
   MustacheTokenKind = enum
@@ -120,7 +120,7 @@ proc parseStmtList(lexer: var MLexer): MTree =
               section = parseStmtList(lexer)
               finish = parseGetExpr(lexer)
 
-            result.add newHTree(makSection, @[start[0], section])
+            result.add newHTree(makSection, @[start, section])
 
           of mtkIdent:
             result.add parseGetExpr(lexer)
@@ -159,7 +159,10 @@ proc writeTemplate*(stream: Stream, tree: MTree, ctx: MPcontext) =
         stream.writeTemplate(sub, ctx)
 
     of makSection:
-      let get = ctx.getKey(tree[0].strVal())
+      var get = ctx
+      for key in tree[0]:
+        get = get.getKey(key.strVal())
+
       for value in items(get):
         stream.writeTemplate(tree[1], value)
 
@@ -168,28 +171,3 @@ proc writeTemplate*(stream: Stream, tree: MTree, ctx: MPcontext) =
 
     else:
       raiseImplementKindError(tree.kind)
-
-
-when isMainModule:
-  startHax()
-  let tree = mustacheParse("""
-<h2>Names</h2>
-{{#names}}
-  <strong>{{name}}</strong>
-{{/names}}
-""")
-
-  echo treeRepr(tree)
-
-  var ctx = newPTree({
-    "names": newPTree([
-      newPTree({"name": "test-name"}),
-      newPTree({"name": "test-name"}),
-      newPTree({"name": "test-name"})
-    ])
-  })
-
-  let s = newFileStream(stdout)
-  s.writeTemplate(tree, ctx)
-
-  echo "ok"

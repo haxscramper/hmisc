@@ -1,5 +1,8 @@
-import std/[strutils, strformat, parseutils,
-            options, segfaults]
+import std/[
+  strutils, strformat, parseutils,
+  options, segfaults, parseutils,
+  sequtils
+]
 
 import
   ../base_errors,
@@ -34,10 +37,11 @@ type
 
     line*: int
     column*: int
+    offset*: int
     kind*: K
     case isSlice*: bool
       of true:
-        slice*: Slice[uint32]
+        finish*: int
 
       of false:
         str*: string
@@ -70,8 +74,19 @@ type
   HsLexCallback*[T] = proc(str: var PosStr): Option[T]
   HsTokPredicate*[T] = proc(tok: T): bool
 
-  ParseError* = object of CatchableError
+  ParseError* = ref object of CatchableError
+    line*: int
+    column*: int
+    baseOffset*: int
+    annotation*: string
 
+  UnexpectedTokenError* = ref object of ParseError
+    gotToken*: string
+    expected*: seq[string]
+    linePos*: int
+    lineText*: string
+
+  ParseFail = object of CatchableError
 
   ParseResult[Val] = object
     case ok*: bool
@@ -79,12 +94,10 @@ type
         value*: Val
 
       of false:
-        fail*: ParseError
+        fail*: ParseFail
 
   HsParseCallback*[T, Val] = proc(toks: var HsLexer[T]): ParseResult[Val]
 
-# proc getLine*[K](tok: HsTok[K]): int {.inline.} = tok.line
-# proc getColumn*[K](tok: HsTok[K]): int {.inline.} = tok.column
 
 proc lift*[F](state: var HsLexerState[F], flag: F) =
   state.flagStack.add flag
@@ -140,8 +153,6 @@ proc skipIndent*[F](state: var HsLexerState[F], str: var PosStr): LexerIndentKin
 proc lineCol*[K](tok: HsTok[K]): LineCol {.inline.} =
   (line: tok.line, column: tok.column)
 
-
-
 proc `==`*[K](tok: HsTok[K], other: tuple[kind: K, value: string]): bool =
   tok.kind == other.kind and tok.str == other.value
 
@@ -188,8 +199,14 @@ template initTok*[K](
   ##   prevented `str.initTok(str.popIdent(), 'i')` use pattern -
   ##   identifier pop was evaluated first, causing `str` to change
   ##   positions
-  HsTok[K](line: posStr.line, column: posStr.column,
-           kind: inKind, str: $inStr, isSlice: false)
+  HsTok[K](
+    line: posStr.line,
+    column: posStr.column,
+    kind: inKind,
+    offset: posStr.pos,
+    str: $inStr,
+    isSlice: false,
+  )
 
 func strVal*[K](tok: HsTok[K]): string = tok.str
 
@@ -216,8 +233,22 @@ func initParseResult*[Tfrom, Tto](res: ParseResult[Tfrom]): ParseResult[Tto] =
   else:
     initParseResult[Tto](res.value)
 
-func initParseResult*[T](fail: ParseError): ParseResult[T] =
+func initParseResult*[T](fail: ParseFail): ParseResult[T] =
   ParseResult[T](ok: false, fail: fail)
+
+func toHsParse*[K, Val](
+    arg: proc(lexer: var HsLexer[HsTok[K]]): Val, first: set[K]
+  ): HsParseCallback[HsTok[K], Val] =
+
+  return proc(lexer: var HsLexer[HsTok[K]]): ParseResult[Val] =
+    if lexer[].kind in first:
+      result = initParseResult(arg(lexer))
+
+    else:
+      result = initParseResult[Val](ParseFail())
+
+
+
 
 func add*[T](res: var ParseResult[seq[T]], value: seq[T] | T) =
   res.value.add value
@@ -285,7 +316,7 @@ proc nextToken*[T](lex: var HSLexer[T]): T =
     tok = lex.cb(lex.str[])
 
   if tok.isNone():
-    raise newException(ParseError, "No tokens")
+    raise newException(ParseFail, "No tokens")
 
   else:
     return tok.get()
@@ -377,6 +408,17 @@ proc skip*[T, En](lexer: var HsLexer[T], kind: En) =
   assertKind(lexer[], kind)
   lexer.advance()
 
+proc skip*[T, En](
+    lexer: var HsLexer[T], kind1, kind2: set[En]|En) =
+  lexer.skip(kind1)
+  lexer.skip(kind2)
+
+proc skip*[T, En](
+    lexer: var HsLexer[T], kind1, kind2, kind3: set[En]|En) =
+  lexer.skip(kind1)
+  lexer.skip(kind2)
+  lexer.skip(kind3)
+
 proc skipTo*[T](lex: var HsLexer[T], chars: set[char]) =
   lex.str[].skipWhile(AllChars - chars)
 
@@ -395,6 +437,37 @@ func popRange*[T](lex: var HsLexer[T]): string =
 proc getAll*[T](lex: var HsLexer[T]): seq[T] =
   while not lex.finished():
     result.add lex.pop()
+
+proc unexpectedTokenError*[K](
+    lexer: var HsLexer[HsTok[K]],
+    expected: set[K] = {}
+  ): UnexpectedTokenError =
+
+  let (line, linePos) = lexer.str[].lineAround(lexer[].offset)
+  result = UnexpectedTokenError(
+    line: lexer[].line,
+    column: lexer[].column,
+    lineText: line,
+    linePos: linePos,
+    gotToken: $lexer[],
+    expected: mapIt(expected, $it)
+  )
+
+  var buf = initRuneGrid()
+
+  var pos = &"{result.line}:{result.column}"
+  buf[1, 0] = pos
+  buf[1, pos.len + 1] = result.lineText
+  let arrow = pos.len + 1 + linePos
+  buf[2, arrow] = "^"
+  buf[3, arrow] = "|"
+  buf[4, arrow] = result.gotToken
+
+  result.msg = $buf
+
+
+
+
 
 proc lexAll*[T](str: string, impl: HsLexCallback[T]): seq[T] =
   var str = initPosStr(str)
@@ -551,9 +624,10 @@ func parsePlus*[T, V](parser: HsParseCallback[T, V]):
           result.value.add item
 
 
-func parseDelimitedStar*[T, V](
-  itemParse, delimiterParse: HsParseCallback[T, V]):
-  HsParseCallback[T, seq[V]] =
+func parseDelimitedStar*[T, V, Skip](
+    itemParse: HsParseCallback[T, V],
+    delimiterParse: HsParseCallback[T, Skip]
+  ): HsParseCallback[T, seq[V]] =
 
   return proc(toks: var HsLexer[T]): ParseResult[seq[V]] =
     var position = toks.getPosition()
@@ -597,7 +671,7 @@ func parseToken*[T](token: T): HsParseCallback[T, T] =
       initParseResult(toks[])
 
     else:
-      initParseResult[T](ParseError())
+      initParseResult[T](ParseFail())
 
 
 func parseTokenKind*[K](kind: K): HsParseCallback[HsTok[K], HsTok[K]] =
@@ -607,7 +681,8 @@ func parseTokenKind*[K](kind: K): HsParseCallback[HsTok[K], HsTok[K]] =
       toks.advance()
 
     else:
-      result = initParseResult[HsTok[K]](ParseError())
+      result = initParseResult[HsTok[K]](ParseFail())
+
 
 func parseLongestMatch*[T, V](parsers: seq[HsParseCallback[T, V]]):
   HsParseCallback[T, V] =
@@ -689,8 +764,6 @@ func treeRepr*[R, T](
         tok[tok.skipWhile({'a' .. 'z'}) .. ^1], colored)
 
       if '\n' in n.token.str:
-        result &= to8Bit(&" ({n.token.line}:{n.token.column})", 2, 3, 3)
-        result &= "\n"
         var tmp = n.token.str
 
         if tmp.len == 0:
@@ -703,16 +776,31 @@ func treeRepr*[R, T](
             inc nlCount
 
           tmp.setLen(tmp.len - nlCount)
-          result &= tmp.strip().indent(idx.len * 2 + 6).toGreen(colored)
-
+          var suffix = ""
           if nlCount == 0 and n.token.str[^1] in {'\n'}:
             inc nlCount
           for nl in 0 ..< nlCount:
-            result.add toRed("⮒", colored)
+            suffix.add toRed("⮒", colored)
+
+          if n.token.str.count('\n') == nlCount:
+            result &= " \"" & tmp.strip().toGreen(colored) & suffix & "\""
+            result &= to8Bit(&" ({n.token.line}:{n.token.column})", 2, 3, 3)
+
+          else:
+            result &= to8Bit(&" ({n.token.line}:{n.token.column})", 2, 3, 3)
+            result &= "\n"
+            result &= tmp.strip().indent(idx.len * 2 + 6).toGreen(colored)
+            result &= suffix
+
 
 
       else:
-        result &= " " & toGreen(n.token.str, colored)
+        # if n.token.str[0] in {' '} or n.token.str[^1] in {' '}:
+        result &= " \"" & toGreen(n.token.str, colored) & "\""
+
+        # else:
+        #   result &= " " & toGreen(n.token.str, colored)
+
         result &= to8Bit(&" ({n.token.line}:{n.token.column})", 2, 3, 3)
 
 
@@ -729,3 +817,43 @@ func treeRepr*[R, T](
           result &= "\n"
 
   return aux(tree, 0, @[])
+
+func dropLowerPrefix*(str: sink string): string =
+  result = str[str.skipWhile({'a' .. 'z'}) .. ^1]
+
+proc toColored*[K](
+    toks: seq[HsTok[K]],
+    colorMap: array[K, PrintStyling] = default(array[K, PrintStyling]),
+    wrapLine: int = 80
+  ): ColoredRuneGrid =
+
+  # const colorMap = toMapArray(colorMap)
+
+  var
+    line = toks[0].line
+    row = 0
+    column = 0
+
+  for tok in toks:
+    if tok.line > line:
+      inc row
+      line = tok.line
+      column = 0
+
+    let
+      str = tok.str
+      kind = dropLowerPrefix($tok.kind)
+
+    if colorMap[tok.kind].isValid():
+      result[row * 2, column] = toColored(str, colorMap[tok.kind])
+
+    else:
+      result[row * 2, column] = toColored(str, initStyle(fgRed))
+
+
+    result[row * 2 + 1, column] = kind
+    column += max(len(str), len(kind)) + 1
+    if column > wrapLine:
+      inc row
+      column = 4
+      result[row * 2, 0] = "..."

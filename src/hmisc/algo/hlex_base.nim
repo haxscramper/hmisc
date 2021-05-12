@@ -238,6 +238,17 @@ proc `[]`*(str; slice: PosStrSlice): string =
   str.baseStr[][
     max(slice.start, 0) ..< min(slice.finish, str.baseStr[].high)]
 
+proc lineAround*(str; pos: int): tuple[line: string, pos: int] =
+  var start = pos
+  while start > 0 and str.str[start] notin {'\n'}:
+    dec start
+
+  result.pos = pos - start
+
+  while start < str.str.len and str.str[start] notin {'\n'}:
+    result.line.add str.str[start]
+    inc start
+
 proc `$`*(str): string =
   if str.isSlice:
     result = "["
@@ -417,6 +428,12 @@ proc popDigit*(str: var PosStr): string {.inline.} =
 
 proc popIdent*(str; chars: set[char] = IdentChars):
   string {.inline.} = str.popWhile(chars)
+
+
+proc popNext*(str; count: int): string {.inline.} =
+  str.pushRange()
+  str.advance(count)
+  return str.popRange()
 
 proc popBacktickIdent*(str): string {.inline.} =
   if str[] == '`':

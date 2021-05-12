@@ -313,8 +313,15 @@ else:
 
 type
   PrintStyling* = object
-    fg*: ForegroundColor
-    bg*: BackgroundColor
+    case use8Bit*: bool
+      of true:
+        fg8*: TermColor8Bit
+        bg8*: TermColor8Bit
+
+      of false:
+        fg*: ForegroundColor
+        bg*: BackgroundColor
+
     style*: set[Style]
 
   ColoredString* = object
@@ -325,15 +332,34 @@ type
     styling* {.requiresinit.}: PrintStyling
     rune*: Rune
 
-  ColoredRuneGrid* = seq[seq[ColoredRune]]
+  ColoredRuneLine* = seq[ColoredRune]
+  ColoredRuneGrid* = seq[ColoredRuneLine]
+
+func isValid*(style: PrintStyling): bool =
+  style.use8Bit or (style.fg.int != 0 and style.bg.int != 0)
+
+func `==`*(s1, s2: PrintStyling): bool =
+  s1.style == s2.style and
+  s1.use8Bit == s2.use8Bit and (
+    if s1.use8Bit: s1.fg8 == s2.fg8 and s1.bg8 == s2.bg8
+    else: s1.fg == s2.fg and s1.bg == s2.bg
+  )
 
 func contains*(ps: PrintStyling, s: Style): bool =
   ps.style.contains(s)
 
-func initPrintStyling*(fg: ForegroundColor = fgDefault,
-                       bg: BackgroundColor = bgDefault,
-                       style: set[Style] = {}): PrintStyling =
-  PrintStyling(fg: fg, bg: bg, style: style)
+func initPrintStyling*(
+    fg: ForegroundColor = fgDefault,
+    bg: BackgroundColor = bgDefault,
+    style: set[Style] = {}
+  ): PrintStyling =
+  PrintStyling(use8Bit: false, fg: fg, bg: bg, style: style)
+
+func initStyleBg*(term: TermColor8Bit): PrintStyling {.inline.} =
+  PrintStyling(use8Bit: true, bg8: term)
+
+func initStyleFg*(term: TermColor8Bit): PrintStyling {.inline.} =
+  PrintStyling(use8Bit: true, fg8: term)
 
 macro initStyle*(args: varargs[typed]): PrintStyling =
   let tmp = genSym(nskVar, "tmp")
@@ -397,7 +423,7 @@ func initColoredString*(str: string,
                         fg: ForegroundColor = fgDefault,
                         style: set[Style] = {}): ColoredString =
   ColoredString(str: str, styling: PrintStyling(
-    fg: fg, bg: bg, style: style))
+    use8Bit: false, fg: fg, bg: bg, style: style))
 
 func initColoredString*(str: string, styling: PrintStyling): ColoredString =
   ColoredString(str: str, styling: styling)
@@ -467,19 +493,25 @@ func `$`*(colored: ColoredString | ColoredRune): string =
   else:
     result = $colored.rune
 
-  if colored.styling.fg.int != 0 and
-     colored.styling.fg != fgDefault
-    :
-    result = result.wrapcode(
-      int(colored.styling.fg) + (
-        if styleBright in colored.styling.style: 60 else: 0), 39)
+  if colored.styling.use8Bit:
+    if colored.styling.fg8.int != 0:
+      result = &"\e[38;5;{colored.styling.fg8.ord}m{result}\e[0m"
 
-  if colored.styling.bg.int != 0 and
-     colored.styling.bg != bgDefault
-    :
-    result = result.wrapcode(
-      int(colored.styling.bg) + (
-        if styleBright in colored.styling.style: 60 else: 0), 49)
+    if colored.styling.bg8.int != 0:
+      result = &"\e[48;5;{colored.styling.bg8.ord}m{result}\e[0m"
+
+  else:
+    if colored.styling.fg.int != 0 and
+       colored.styling.fg != fgDefault:
+      result = result.wrapcode(
+        int(colored.styling.fg) + (
+          if styleBright in colored.styling.style: 60 else: 0), 39)
+
+    if colored.styling.bg.int != 0 and
+       colored.styling.bg != bgDefault:
+      result = result.wrapcode(
+        int(colored.styling.bg) + (
+          if styleBright in colored.styling.style: 60 else: 0), 49)
 
   if styleUnderscore in colored.styling.style:
     result = result.wrapcode(4, 24)
@@ -611,6 +643,12 @@ proc term8Bit*(r, g, b: range[0 .. 5]): TermColor8Bit =
 
 proc term8Bit*(gray: range[0 .. 23]): TermColor8Bit =
   TermColor8Bit(232 + gray)
+
+func initStyleBg*(r, g, b: range[0 .. 5]): PrintStyling {.inline.} =
+  PrintStyling(use8Bit: true, bg8: term8Bit(r, g, b))
+
+func initStyleFg*(r, g, b: range[0 .. 5]): PrintStyling {.inline.} =
+  PrintStyling(use8Bit: true, fg8: term8Bit(r, g, b))
 
 func len*(str: ColoredString): int = str.str.len
 
@@ -797,7 +835,7 @@ func changeStyle(ps: var PrintStyling, code: int): void =
 
 func stripSGR*(str: string): string =
   var
-    style: PrintStyling = PrintStyling(bg: bgDefault, fg: fgDefault)
+    style: PrintStyling = initPrintStyling()
     prev: int = 0
     pos: int = 0
     sgrbuf: string
@@ -817,7 +855,7 @@ func stripSGR*(str: string): string =
 
 func splitSGR*(str: string): seq[ColoredString] =
   var
-    style: PrintStyling = PrintStyling(bg: bgDefault, fg: fgDefault)
+    style: PrintStyling = initPrintStyling()
     prev: int = 0
     pos: int = 0
     sgrbuf: string
@@ -869,7 +907,6 @@ func addToLast[T](sseq: var seq[seq[T]], val: T): void =
   else:
     sseq[^1].add val
 
-  # quit 0
 
 func splitSGR_sep*(str: string, sep: string = "\n"): seq[seq[ColoredString]] =
   # NOTE There are unit tests for this thing but I actually have very
@@ -971,9 +1008,16 @@ func `[]=`*(buf: var ColoredRuneGrid, row, col: int, str: ColoredString) =
     for colIdx, ch in line:
       buf[row + rowIdx, col + colIdx] = toColored(ch, str.styling)
 
+func `[]=`*(buf: var ColoredRuneGrid, row, col: int, str: string) =
+  let style = initPrintStyling()
+  for rowIdx, line in enumerate(split(str, '\n')):
+    for colIdx, ch in line:
+      buf[row + rowIdx, col + colIdx] = toColored(ch, style)
+
 func `[]`*(buf: ColoredRuneGrid, row, col: int): ColoredRune =
   buf[row][col]
 
+func initRuneGrid*(): ColoredRuneGrid = discard
 
 func getEditVisual*(src, target: seq[char], ops: seq[LevEdit]): string =
   var

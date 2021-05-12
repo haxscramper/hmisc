@@ -359,8 +359,8 @@ proc runDockerTest*(
   notice "Docker container finished run"
 
 proc pkgVersion*(pkg: string): string =
-  let (stdout, stderr, code) = runShell(ShellExpr "nimble dump " & pkg)
-  for line in stdout.split("\n"):
+  let res = runShell(ShellExpr "nimble dump " & pkg)
+  for line in res.stdout.split("\n"):
     if line.startsWith("version: "):
       return line["version: \"".len() .. ^2]
 

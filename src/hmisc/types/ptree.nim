@@ -1,5 +1,5 @@
 import ../hdebug_misc, ../base_errors
-import std/[tables, options]
+import std/[tables, options, sequtils]
 
 type
   PTree*[K, V] = ref object
@@ -31,6 +31,9 @@ func newPTree*[K, V](kvPairs: openarray[(K, PTree[K, V])]): PTree[K, V] =
   for (key, val) in kvPairs:
     result.attrs[key] = val
 
+
+func newPTree*[K; V: not seq and not array](value: V): PTree[K, V] =
+  PTree[K, V](isValue: true, value: value)
 
 func newPTree*[K, V](subItems: openarray[PTree[K, V]]): PTree[K, V] =
   result = PTree[K, V](

@@ -774,6 +774,11 @@ func toMapArray*[K, V](map: openarray[(K, V)]): array[K, V] =
   for (k, v) in map:
     result[k] = v
 
+func toMapArray*[K, V](map: openarray[(set[K], V)]): array[K, V] =
+  for (keySet, v) in map:
+    for k in items(keySet):
+      result[k] = v
+
 func toKeySet*[K, V](map: openarray[(K, V)]): set[K] =
   for (k, v) in map:
     result.incl k
