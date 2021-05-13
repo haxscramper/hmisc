@@ -1235,6 +1235,16 @@ proc execShell*(cmd: ShellExpr): void =
   discard runShell(cmd, discardOut = true, options = {
     poEvalCommand, poParentStreams, poUsePath})
 
+proc hasCmd*(cmd: ShellCmd): bool =
+  for dir in get($$PATH).split(':'):
+    let dir = AbsDir(dir)
+    if exists(dir):
+      for file in walkDir(dir, RelFile):
+        if file.name() == cmd.bin:
+          return true
+
+  return false
+
 proc execShell*(cmd: ShellAst): void =
   discard runShell(ShellCmd(bin: cmd.toStr()), discardOut =  true, options = {
     poEvalCommand, poParentStreams, poUsePath})

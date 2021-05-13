@@ -556,7 +556,7 @@ type
     ## immediately when a page is loaded but may be instantiated
     ## subsequently during runtime using JavaScript.
 
-  HtmlAttrKind = enum
+  HtmlAttrKind* = enum
     atAccept           = "accept"            ## Specifies the types of files that the server accepts (only for type=""file"")"
     atAcceptCharset    = "accept-charset"    ## Specifies the character encodings that are to be used for the form submission
     atAccesskey        = "accesskey"         ## Specifies a shortcut key to activate/focus an element
