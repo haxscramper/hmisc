@@ -113,12 +113,17 @@ template findMaxIt*(s: untyped, op: untyped): untyped =
 
 template findMinIt*(s: untyped, op: untyped): untyped =
   var res: int = 0
-  var idx = 0
-  var prev: getIterOpType(s, op)
+  var idx {.inject.} = 0
+  var prevMin: getIterOpType(s, op)
   for it {.inject.} in s:
     let val = op
-    if val < prev:
-      res = idx
+    if idx == 0:
+      prevMin = val
+
+    else:
+      if val < prevMin:
+        prevMin = val
+        res = idx
 
     inc idx
 

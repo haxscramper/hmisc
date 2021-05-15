@@ -1,8 +1,11 @@
-import std/[sequtils, strformat, strutils, unicode, enumerate,
-           macros, strscans, algorithm]
+import std/[
+  sequtils, strformat, strutils, unicode, enumerate,
+  lenientops, macros, strscans, algorithm, math, options
+]
 
 import ../macros/traceif
-import ../algo/[hseq_distance]
+import ../hdebug_misc, ../base_errors
+import ../algo/[hseq_distance, htemplates]
 
 type
   TermColor8Bit* = enum
@@ -638,11 +641,564 @@ proc to8BitBg*(
   else:
     result = str
 
-proc term8Bit*(r, g, b: range[0 .. 5]): TermColor8Bit =
+func term8Bit*(r, g, b: range[0 .. 5]): TermColor8Bit =
   TermColor8Bit(16 + b + g * 6 + (6 * 6) * r)
 
-proc term8Bit*(gray: range[0 .. 23]): TermColor8Bit =
+func term8Bit*(gray: range[0 .. 23]): TermColor8Bit =
   TermColor8Bit(232 + gray)
+
+func toRGB*(color: TermColor8Bit): tuple[r, g, b: range[0 .. 5]] =
+  let col = color.int - 16
+  result.r = col div 36
+  result.g = (col div 6) mod 6
+  result.b = col mod 6
+
+
+type TermHSV* = tuple[h: int, s, v: float]
+
+func round5*(f: int): int = (f div 5) * 5
+func round5*(f: float): float = float(int(f / 5) * 5)
+
+
+func toHSL*(color: TermColor8Bit): tuple[h: int, s, l: float] =
+  let (r, g, b) = color.toRGB()
+  let
+    r1 = r / 5
+    g1 = g / 5
+    b1 = b / 5
+    cMax = max([r1, g1, b1])
+    cMin = min([r1, g1, b1])
+    delta = cMax - cMin
+
+
+  result.l = (cMax + cMin) / 2
+
+  result.h =
+    if delta == 0:   0
+    elif cMax == r1: 60 * (int((g1 - b1) / delta) mod 6)
+    elif cMax == g1: 60 * (int((b1 - r1) / delta) + 2)
+    else:            60 * (int((r1 - g1) / delta) + 4)
+
+  result.s = if delta == 0: 0.0 else: delta / (1 - abs(2 * result.l - 1))
+
+func toHSV*(color: TermColor8Bit): TermHSV =
+  let (r, g, b) = color.toRGB()
+  let rgb = (r: r.int * 42.66, g: g.int * 42.66, b: b.int * 42.66)
+  var hue, saturation, value: float
+  var max = max([rgb.r, rgb.g, rgb.b]);
+  var diff = max - min([rgb.r, rgb.g, rgb.b])
+
+  saturation = if (max == 0.0): 0.0 else: (100 * diff / max)
+
+  if saturation == 0:
+    hue = 0
+
+  elif rgb.r == max:
+    hue = 60.0 * (rgb.g - rgb.b) / diff
+
+  elif rgb.g == max:
+    hue = 120.0 + 60.0 * (rgb.b - rgb.r) / diff
+
+  elif rgb.b == max:
+    hue = 240.0 + 60.0 * (rgb.r - rgb.g) / diff
+
+  if hue < 0.0:
+    hue += 360.0;
+
+  value = round(max * 100 / 255) / 100.0;
+  hue = round(hue);
+  saturation = round(saturation) / 100.0;
+
+  return (h: hue.int, s: saturation, v: value)
+
+func clampedHsv*(hsv: TermHSV): TermHsv =
+   (
+     h: round5(hsv.h.float).int,
+     s: round5(hsv.s * 100) / 100.0,
+     v: round5(hsv.v * 100) / 100.0
+   )
+
+
+
+type
+  ColSpec = object
+    s: float
+    l: float
+    v: float
+    id: TermColor8Bit
+
+
+const hues =
+  block:
+    var hues: array[360, seq[ColSpec]]
+    hues[0] = @[
+      ColSpec(s: 0.0 , l: 0.0 , id: TermColor8Bit(16 ), v: 0),
+      ColSpec(s: 0.0 , l: 1.0 , id: TermColor8Bit(231), v: 1),
+      ColSpec(s: 0.0 , l: 0.75, id: TermColor8Bit(250), v: 0.74),
+      ColSpec(s: 0.0 , l: 0.5 , id: TermColor8Bit(244), v: 0.5),
+      ColSpec(s: 0.0 , l: 0.35, id: TermColor8Bit(240), v: 0.35),
+      ColSpec(s: 0.0 , l: 0.55, id: TermColor8Bit(245), v: 0.54),
+      ColSpec(s: 0.0 , l: 0.7 , id: TermColor8Bit(249), v: 0.7),
+      ColSpec(s: 0.0 , l: 0.85, id: TermColor8Bit(253), v: 0.85),
+      ColSpec(s: 0.0 , l: 0.05, id: TermColor8Bit(233), v: 0.07000000000000001),
+      ColSpec(s: 0.0 , l: 0.1 , id: TermColor8Bit(234), v: 0.11),
+      ColSpec(s: 0.0 , l: 0.15, id: TermColor8Bit(235), v: 0.15),
+      ColSpec(s: 0.0 , l: 0.2 , id: TermColor8Bit(236), v: 0.19),
+      ColSpec(s: 0.0 , l: 0.25, id: TermColor8Bit(238), v: 0.27),
+      ColSpec(s: 0.0 , l: 0.3 , id: TermColor8Bit(239), v: 0.31),
+      ColSpec(s: 0.0 , l: 0.4 , id: TermColor8Bit(242), v: 0.4),
+      ColSpec(s: 0.0 , l: 0.45, id: TermColor8Bit(243), v: 0.46),
+      ColSpec(s: 0.0 , l: 0.6 , id: TermColor8Bit(247), v: 0.62),
+      ColSpec(s: 0.0 , l: 0.65, id: TermColor8Bit(248), v: 0.66),
+      ColSpec(s: 0.0 , l: 0.8 , id: TermColor8Bit(252), v: 0.82),
+      ColSpec(s: 0.0 , l: 0.9 , id: TermColor8Bit(254), v: 0.89),
+      ColSpec(s: 0.0 , l: 0.95, id: TermColor8Bit(255), v: 0.93),
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(196), v: 1),
+      ColSpec(s: 1.0 , l: 0.5 , id: TermColor8Bit(1  ), v: 0.5),
+      ColSpec(s: 1.0 , l: 0.35, id: TermColor8Bit(52 ), v: 0.37),
+      ColSpec(s: 1.0 , l: 0.55, id: TermColor8Bit(88 ), v: 0.53),
+      ColSpec(s: 1.0 , l: 0.7 , id: TermColor8Bit(124), v: 0.6899999999999999),
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(160), v: 0.84),
+      ColSpec(s: 0.3 , l: 1.0 , id: TermColor8Bit(217), v: 1),
+      ColSpec(s: 0.3 , l: 0.55, id: TermColor8Bit(95 ), v: 0.53),
+      ColSpec(s: 0.45, l: 1.0 , id: TermColor8Bit(210), v: 1),
+      ColSpec(s: 0.45, l: 0.7 , id: TermColor8Bit(131), v: 0.6899999999999999),
+      ColSpec(s: 0.25, l: 0.7 , id: TermColor8Bit(138), v: 0.6899999999999999),
+      ColSpec(s: 0.55, l: 0.85, id: TermColor8Bit(167), v: 0.84),
+      ColSpec(s: 0.35, l: 0.85, id: TermColor8Bit(174), v: 0.84),
+      ColSpec(s: 0.2 , l: 0.85, id: TermColor8Bit(181), v: 0.84),
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(203), v: 1),
+      ColSpec(s: 0.15, l: 1.0 , id: TermColor8Bit(224), v: 1),
+    ]
+    hues[15] = @[
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(209), v: 1),
+    ]
+    hues[20] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(202), v: 1),
+      ColSpec(s: 0.55, l: 0.85, id: TermColor8Bit(173), v: 0.84),
+      ColSpec(s: 0.45, l: 1.0 , id: TermColor8Bit(216), v: 1),
+    ]
+    hues[25] = @[
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(166), v: 0.84),
+    ]
+    hues[30] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(208), v: 1),
+      ColSpec(s: 0.45, l: 0.7 , id: TermColor8Bit(137), v: 0.6899999999999999),
+      ColSpec(s: 0.35, l: 0.85, id: TermColor8Bit(180), v: 0.84),
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(215), v: 1),
+      ColSpec(s: 0.3 , l: 1.0 , id: TermColor8Bit(223), v: 1),
+    ]
+    hues[35] = @[
+      ColSpec(s: 1.0 , l: 0.7 , id: TermColor8Bit(130), v: 0.6899999999999999),
+    ]
+    hues[40] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(214), v: 1),
+      ColSpec(s: 1.0 , l: 0.55, id: TermColor8Bit(94 ), v: 0.53),
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(172), v: 0.84),
+      ColSpec(s: 0.55, l: 0.85, id: TermColor8Bit(179), v: 0.84),
+      ColSpec(s: 0.45, l: 1.0 , id: TermColor8Bit(222), v: 1),
+    ]
+    hues[45] = @[
+      ColSpec(s: 1.0 , l: 0.7 , id: TermColor8Bit(136), v: 0.6899999999999999),
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(221), v: 1),
+    ]
+    hues[50] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(220), v: 1),
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(178), v: 0.84),
+    ]
+    hues[60] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(226), v: 1),
+      ColSpec(s: 1.0 , l: 0.5 , id: TermColor8Bit(3  ), v: 0.5),
+      ColSpec(s: 1.0 , l: 0.35, id: TermColor8Bit(58 ), v: 0.37),
+      ColSpec(s: 1.0 , l: 0.55, id: TermColor8Bit(100), v: 0.53),
+      ColSpec(s: 1.0 , l: 0.7 , id: TermColor8Bit(142), v: 0.6899999999999999),
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(184), v: 0.84),
+      ColSpec(s: 0.3 , l: 1.0 , id: TermColor8Bit(229), v: 1),
+      ColSpec(s: 0.3 , l: 0.55, id: TermColor8Bit(101), v: 0.53),
+      ColSpec(s: 0.45, l: 1.0 , id: TermColor8Bit(228), v: 1),
+      ColSpec(s: 0.45, l: 0.7 , id: TermColor8Bit(143), v: 0.6899999999999999),
+      ColSpec(s: 0.25, l: 0.7 , id: TermColor8Bit(144), v: 0.6899999999999999),
+      ColSpec(s: 0.55, l: 0.85, id: TermColor8Bit(185), v: 0.84),
+      ColSpec(s: 0.35, l: 0.85, id: TermColor8Bit(186), v: 0.84),
+      ColSpec(s: 0.2 , l: 0.85, id: TermColor8Bit(187), v: 0.84),
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(227), v: 1),
+      ColSpec(s: 0.15, l: 1.0 , id: TermColor8Bit(230), v: 1),
+    ]
+    hues[70] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(190), v: 1),
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(148), v: 0.84),
+    ]
+    hues[75] = @[
+      ColSpec(s: 1.0 , l: 0.7 , id: TermColor8Bit(106), v: 0.6899999999999999),
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(191), v: 1),
+    ]
+    hues[80] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(154), v: 1),
+      ColSpec(s: 1.0 , l: 0.55, id: TermColor8Bit(64 ), v: 0.53),
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(112), v: 0.84),
+      ColSpec(s: 0.55, l: 0.85, id: TermColor8Bit(149), v: 0.84),
+      ColSpec(s: 0.45, l: 1.0 , id: TermColor8Bit(192), v: 1),
+    ]
+    hues[85] = @[
+      ColSpec(s: 1.0 , l: 0.7 , id: TermColor8Bit(70 ), v: 0.6899999999999999),
+    ]
+    hues[90] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(118), v: 1),
+      ColSpec(s: 0.45, l: 0.7 , id: TermColor8Bit(107), v: 0.6899999999999999),
+      ColSpec(s: 0.35, l: 0.85, id: TermColor8Bit(150), v: 0.84),
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(155), v: 1),
+      ColSpec(s: 0.3 , l: 1.0 , id: TermColor8Bit(193), v: 1),
+    ]
+    hues[95] = @[
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(76 ), v: 0.84),
+    ]
+    hues[100] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(82 ), v: 1),
+      ColSpec(s: 0.55, l: 0.85, id: TermColor8Bit(113), v: 0.84),
+      ColSpec(s: 0.45, l: 1.0 , id: TermColor8Bit(156), v: 1),
+    ]
+    hues[105] = @[
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(119), v: 1),
+    ]
+    hues[120] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(46 ), v: 1),
+      ColSpec(s: 1.0 , l: 0.5 , id: TermColor8Bit(2  ), v: 0.5),
+      ColSpec(s: 1.0 , l: 0.35, id: TermColor8Bit(22 ), v: 0.37),
+      ColSpec(s: 1.0 , l: 0.55, id: TermColor8Bit(28 ), v: 0.53),
+      ColSpec(s: 1.0 , l: 0.7 , id: TermColor8Bit(34 ), v: 0.6899999999999999),
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(40 ), v: 0.84),
+      ColSpec(s: 0.3 , l: 1.0 , id: TermColor8Bit(157), v: 1),
+      ColSpec(s: 0.3 , l: 0.55, id: TermColor8Bit(65 ), v: 0.53),
+      ColSpec(s: 0.45, l: 1.0 , id: TermColor8Bit(120), v: 1),
+      ColSpec(s: 0.45, l: 0.7 , id: TermColor8Bit(71 ), v: 0.6899999999999999),
+      ColSpec(s: 0.55, l: 0.85, id: TermColor8Bit(77 ), v: 0.84),
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(83 ), v: 1),
+      ColSpec(s: 0.25, l: 0.7 , id: TermColor8Bit(108), v: 0.6899999999999999),
+      ColSpec(s: 0.35, l: 0.85, id: TermColor8Bit(114), v: 0.84),
+      ColSpec(s: 0.2 , l: 0.85, id: TermColor8Bit(151), v: 0.84),
+      ColSpec(s: 0.15, l: 1.0 , id: TermColor8Bit(194), v: 1),
+    ]
+    hues[135] = @[
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(84 ), v: 1),
+    ]
+    hues[140] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(47 ), v: 1),
+      ColSpec(s: 0.55, l: 0.85, id: TermColor8Bit(78 ), v: 0.84),
+      ColSpec(s: 0.45, l: 1.0 , id: TermColor8Bit(121), v: 1),
+    ]
+    hues[145] = @[
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(41 ), v: 0.84),
+    ]
+    hues[150] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(48 ), v: 1),
+      ColSpec(s: 0.45, l: 0.7 , id: TermColor8Bit(72 ), v: 0.6899999999999999),
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(85 ), v: 1),
+      ColSpec(s: 0.35, l: 0.85, id: TermColor8Bit(115), v: 0.84),
+      ColSpec(s: 0.3 , l: 1.0 , id: TermColor8Bit(158), v: 1),
+    ]
+    hues[155] = @[
+      ColSpec(s: 1.0 , l: 0.7 , id: TermColor8Bit(35 ), v: 0.6899999999999999),
+    ]
+    hues[160] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(49 ), v: 1),
+      ColSpec(s: 1.0 , l: 0.55, id: TermColor8Bit(29 ), v: 0.53),
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(42 ), v: 0.84),
+      ColSpec(s: 0.55, l: 0.85, id: TermColor8Bit(79 ), v: 0.84),
+      ColSpec(s: 0.45, l: 1.0 , id: TermColor8Bit(122), v: 1),
+    ]
+    hues[165] = @[
+      ColSpec(s: 1.0 , l: 0.7 , id: TermColor8Bit(36 ), v: 0.6899999999999999),
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(86 ), v: 1),
+    ]
+    hues[170] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(50 ), v: 1),
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(43 ), v: 0.84),
+    ]
+    hues[180] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(51 ), v: 1),
+      ColSpec(s: 1.0 , l: 0.5 , id: TermColor8Bit(6  ), v: 0.5),
+      ColSpec(s: 1.0 , l: 0.35, id: TermColor8Bit(23 ), v: 0.37),
+      ColSpec(s: 1.0 , l: 0.55, id: TermColor8Bit(30 ), v: 0.53),
+      ColSpec(s: 1.0 , l: 0.7 , id: TermColor8Bit(37 ), v: 0.6899999999999999),
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(44 ), v: 0.84),
+      ColSpec(s: 0.3 , l: 1.0 , id: TermColor8Bit(159), v: 1),
+      ColSpec(s: 0.3 , l: 0.55, id: TermColor8Bit(66 ), v: 0.53),
+      ColSpec(s: 0.45, l: 1.0 , id: TermColor8Bit(123), v: 1),
+      ColSpec(s: 0.45, l: 0.7 , id: TermColor8Bit(73 ), v: 0.6899999999999999),
+      ColSpec(s: 0.55, l: 0.85, id: TermColor8Bit(80 ), v: 0.84),
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(87 ), v: 1),
+      ColSpec(s: 0.25, l: 0.7 , id: TermColor8Bit(109), v: 0.6899999999999999),
+      ColSpec(s: 0.35, l: 0.85, id: TermColor8Bit(116), v: 0.84),
+      ColSpec(s: 0.2 , l: 0.85, id: TermColor8Bit(152), v: 0.84),
+      ColSpec(s: 0.15, l: 1.0 , id: TermColor8Bit(195), v: 1),
+    ]
+    hues[190] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(45 ), v: 1),
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(38 ), v: 0.84),
+    ]
+    hues[195] = @[
+      ColSpec(s: 1.0 , l: 0.7 , id: TermColor8Bit(31 ), v: 0.6899999999999999),
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(81 ), v: 1),
+    ]
+    hues[200] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(39 ), v: 1),
+      ColSpec(s: 1.0 , l: 0.55, id: TermColor8Bit(24 ), v: 0.53),
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(32 ), v: 0.84),
+      ColSpec(s: 0.55, l: 0.85, id: TermColor8Bit(74 ), v: 0.84),
+      ColSpec(s: 0.45, l: 1.0 , id: TermColor8Bit(117), v: 1),
+    ]
+    hues[205] = @[
+      ColSpec(s: 1.0 , l: 0.7 , id: TermColor8Bit(25 ), v: 0.6899999999999999),
+    ]
+    hues[210] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(33 ), v: 1),
+      ColSpec(s: 0.45, l: 0.7 , id: TermColor8Bit(67 ), v: 0.6899999999999999),
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(75 ), v: 1),
+      ColSpec(s: 0.35, l: 0.85, id: TermColor8Bit(110), v: 0.84),
+      ColSpec(s: 0.3 , l: 1.0 , id: TermColor8Bit(153), v: 1),
+    ]
+    hues[215] = @[
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(26 ), v: 0.84),
+    ]
+    hues[220] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(27 ), v: 1),
+      ColSpec(s: 0.55, l: 0.85, id: TermColor8Bit(68 ), v: 0.84),
+      ColSpec(s: 0.45, l: 1.0 , id: TermColor8Bit(111), v: 1),
+    ]
+    hues[225] = @[
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(69 ), v: 1),
+    ]
+    hues[240] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(21 ), v: 1),
+      ColSpec(s: 1.0 , l: 0.5 , id: TermColor8Bit(4  ), v: 0.5),
+      ColSpec(s: 1.0 , l: 0.35, id: TermColor8Bit(17 ), v: 0.37),
+      ColSpec(s: 1.0 , l: 0.55, id: TermColor8Bit(18 ), v: 0.53),
+      ColSpec(s: 1.0 , l: 0.7 , id: TermColor8Bit(19 ), v: 0.6899999999999999),
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(20 ), v: 0.84),
+      ColSpec(s: 0.3 , l: 1.0 , id: TermColor8Bit(147), v: 1),
+      ColSpec(s: 0.3 , l: 0.55, id: TermColor8Bit(60 ), v: 0.53),
+      ColSpec(s: 0.45, l: 1.0 , id: TermColor8Bit(105), v: 1),
+      ColSpec(s: 0.45, l: 0.7 , id: TermColor8Bit(61 ), v: 0.6899999999999999),
+      ColSpec(s: 0.55, l: 0.85, id: TermColor8Bit(62 ), v: 0.84),
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(63 ), v: 1),
+      ColSpec(s: 0.25, l: 0.7 , id: TermColor8Bit(103), v: 0.6899999999999999),
+      ColSpec(s: 0.35, l: 0.85, id: TermColor8Bit(104), v: 0.84),
+      ColSpec(s: 0.2 , l: 0.85, id: TermColor8Bit(146), v: 0.84),
+      ColSpec(s: 0.15, l: 1.0 , id: TermColor8Bit(189), v: 1),
+    ]
+    hues[255] = @[
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(99 ), v: 1),
+    ]
+    hues[260] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(57 ), v: 1),
+      ColSpec(s: 0.55, l: 0.85, id: TermColor8Bit(98 ), v: 0.84),
+      ColSpec(s: 0.45, l: 1.0 , id: TermColor8Bit(141), v: 1),
+    ]
+    hues[265] = @[
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(56 ), v: 0.84),
+    ]
+    hues[270] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(93 ), v: 1),
+      ColSpec(s: 0.45, l: 0.7 , id: TermColor8Bit(97 ), v: 0.6899999999999999),
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(135), v: 1),
+      ColSpec(s: 0.35, l: 0.85, id: TermColor8Bit(140), v: 0.84),
+      ColSpec(s: 0.3 , l: 1.0 , id: TermColor8Bit(183), v: 1),
+    ]
+    hues[275] = @[
+      ColSpec(s: 1.0 , l: 0.7 , id: TermColor8Bit(55 ), v: 0.6899999999999999),
+    ]
+    hues[280] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(129), v: 1),
+      ColSpec(s: 1.0 , l: 0.55, id: TermColor8Bit(54 ), v: 0.53),
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(92 ), v: 0.84),
+      ColSpec(s: 0.55, l: 0.85, id: TermColor8Bit(134), v: 0.84),
+      ColSpec(s: 0.45, l: 1.0 , id: TermColor8Bit(177), v: 1),
+    ]
+    hues[285] = @[
+      ColSpec(s: 1.0 , l: 0.7 , id: TermColor8Bit(91 ), v: 0.6899999999999999),
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(171), v: 1),
+    ]
+    hues[290] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(165), v: 1),
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(128), v: 0.84),
+    ]
+    hues[300] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(201), v: 1),
+      ColSpec(s: 1.0 , l: 0.5 , id: TermColor8Bit(5  ), v: 0.5),
+      ColSpec(s: 1.0 , l: 0.35, id: TermColor8Bit(53 ), v: 0.37),
+      ColSpec(s: 1.0 , l: 0.55, id: TermColor8Bit(90 ), v: 0.53),
+      ColSpec(s: 1.0 , l: 0.7 , id: TermColor8Bit(127), v: 0.6899999999999999),
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(164), v: 0.84),
+      ColSpec(s: 0.3 , l: 1.0 , id: TermColor8Bit(219), v: 1),
+      ColSpec(s: 0.3 , l: 0.55, id: TermColor8Bit(96 ), v: 0.53),
+      ColSpec(s: 0.45, l: 1.0 , id: TermColor8Bit(213), v: 1),
+      ColSpec(s: 0.45, l: 0.7 , id: TermColor8Bit(133), v: 0.6899999999999999),
+      ColSpec(s: 0.25, l: 0.7 , id: TermColor8Bit(139), v: 0.6899999999999999),
+      ColSpec(s: 0.55, l: 0.85, id: TermColor8Bit(170), v: 0.84),
+      ColSpec(s: 0.35, l: 0.85, id: TermColor8Bit(176), v: 0.84),
+      ColSpec(s: 0.2 , l: 0.85, id: TermColor8Bit(182), v: 0.84),
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(207), v: 1),
+      ColSpec(s: 0.15, l: 1.0 , id: TermColor8Bit(225), v: 1),
+    ]
+    hues[310] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(200), v: 1),
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(163), v: 0.84),
+    ]
+    hues[315] = @[
+      ColSpec(s: 1.0 , l: 0.7 , id: TermColor8Bit(126), v: 0.6899999999999999),
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(206), v: 1),
+    ]
+    hues[320] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(199), v: 1),
+      ColSpec(s: 1.0 , l: 0.55, id: TermColor8Bit(89 ), v: 0.53),
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(162), v: 0.84),
+      ColSpec(s: 0.55, l: 0.85, id: TermColor8Bit(169), v: 0.84),
+      ColSpec(s: 0.45, l: 1.0 , id: TermColor8Bit(212), v: 1),
+    ]
+    hues[325] = @[
+      ColSpec(s: 1.0 , l: 0.7 , id: TermColor8Bit(125), v: 0.6899999999999999),
+    ]
+    hues[330] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(198), v: 1),
+      ColSpec(s: 0.45, l: 0.7 , id: TermColor8Bit(132), v: 0.6899999999999999),
+      ColSpec(s: 0.35, l: 0.85, id: TermColor8Bit(175), v: 0.84),
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(205), v: 1),
+      ColSpec(s: 0.3 , l: 1.0 , id: TermColor8Bit(218), v: 1),
+    ]
+    hues[335] = @[
+      ColSpec(s: 1.0 , l: 0.85, id: TermColor8Bit(161), v: 0.84),
+    ]
+    hues[340] = @[
+      ColSpec(s: 1.0 , l: 1.0 , id: TermColor8Bit(197), v: 1),
+      ColSpec(s: 0.55, l: 0.85, id: TermColor8Bit(168), v: 0.84),
+      ColSpec(s: 0.45, l: 1.0 , id: TermColor8Bit(211), v: 1),
+    ]
+    hues[345] = @[
+      ColSpec(s: 0.65, l: 1.0 , id: TermColor8Bit(204), v: 1),
+    ]
+    hues
+
+
+
+func getColor(hsv: TermHSV): Option[TermColor8Bit] =
+  var hsv = clampedHsv(hsv)
+  if hsv.h notin 0 .. 360: return
+
+  for sv in hues[hsv.h]:
+    if sv.s == hsv.s and hsv.v == hsv.v:
+      return some TermColor8Bit(sv.id)
+
+
+
+func `$`*(col: TermColor8Bit): string = to8BitBg("##", col)
+
+
+
+func in360(v: auto): auto =
+  result = v
+  if result >= 360:
+    result -= 360
+
+  elif result < 0:
+    result += 360
+
+template dist(hsv: TermHSV, spec: ColSpec): float =
+  abs(hsv.s - spec.s) * 5 + abs(hsv.v - spec.v)
+
+func closestMatchingColor*(
+    hsv: TermHSV, dirUp: Option[bool] = none(bool)): TermColor8Bit =
+
+  let start = hsv.h.round5()
+  var
+    idx1 = 0
+    idx2 = 0
+    h1 = in360(start + 5)
+    h2 = in360(start - 5)
+
+  if dirUp.isNone() or dirUp.get() == true:
+    while hues[h1].len == 0:
+      h1 += 5
+
+    idx1 = hues[h1].findMinIt:
+      dist(hsv, it)
+
+  if dirUp.isNone() or dirUp.get() == false:
+    while hues[h2].len == 0:
+      h2 -= 5
+
+    idx2 = hues[h2].findMinIt:
+      dist(hsv, it)
+
+  if dirUp.isNone():
+    if dist(hsv, hues[h2][idx2]) < dist(hsv, hues[h1][idx1]):
+      result = hues[h2][idx2].id
+
+    else:
+      result = hues[h1][idx1].id
+
+  elif dirUp.get() == false:
+    result = hues[h2][idx2].id
+
+  else:
+    result = hues[h1][idx1].id
+
+
+func complementary*(col: TermColor8Bit): tuple[main, complement: TermColor8Bit] =
+  var hsv = clampedHSV(toHSV(col))
+  hsv.h += 180
+  if hsv.h >= 360: hsv.h -= 360
+  return (col, closestMatchingColor(hsv))
+
+func splitComplementary*(col: TermColor8Bit):
+    tuple[main, compUp, compDown: TermColor8Bit] =
+
+  let hsv = clampedHSV(toHSV(col))
+
+  return (
+    col,
+    closestMatchingColor((h: in360(hsv.h + 190), s: hsv.s, v: hsv.v), some true),
+    closestMatchingColor((h: in360(hsv.h + 170), s: hsv.s, v: hsv.v), some false),
+  )
+
+
+func triad*(col: TermColor8Bit): array[3, TermColor8Bit] =
+  let hsv = clampedHSV(toHSV(col))
+  return [
+    col,
+    closestMatchingColor((h: in360(hsv.h + 120), s: hsv.s, v: hsv.v), some true),
+    closestMatchingColor((h: in360(hsv.h + 240), s: hsv.s, v: hsv.v), some false),
+  ]
+
+func tetradic*(col: TermColor8Bit): array[4, TermColor8Bit] =
+  let hsv = clampedHSV(toHSV(col))
+  return [
+    col,
+    closestMatchingColor((h: in360(hsv.h + 180), s: hsv.s, v: hsv.v)),
+    closestMatchingColor((h: in360(hsv.h + 40), s: hsv.s, v: hsv.v)),
+    closestMatchingColor((h: in360(hsv.h + 180 + 4), s: hsv.s, v: hsv.v)),
+  ]
+
+func square*(col: TermColor8Bit): array[4, TermColor8Bit] =
+  let hsv = clampedHSV(toHSV(col))
+  return [
+    col,
+    closestMatchingColor((h: in360(hsv.h + 90), s: hsv.s, v: hsv.v)),
+    closestMatchingColor((h: in360(hsv.h + 180), s: hsv.s, v: hsv.v)),
+    closestMatchingColor((h: in360(hsv.h + 270), s: hsv.s, v: hsv.v)),
+  ]
+
+func analog*(col: TermColor8Bit, shift: int = 10): array[3, TermColor8Bit] =
+  let hsv = clampedHSV(toHSV(col))
+  return [
+    col,
+    closestMatchingColor((h: hsv.h + shift, s: hsv.s, v: hsv.v), some true),
+    closestMatchingColor((h: hsv.h - shift, s: hsv.s, v: hsv.v), some false),
+  ]
+
+
+func complement*(color: TermColor8Bit): TermColor8Bit =
+  let (r, g, b) = color.toRGB()
+  return term8Bit(5 - r, 5 - g, 5 - b)
 
 func initStyleBg*(r, g, b: range[0 .. 5]): PrintStyling {.inline.} =
   PrintStyling(use8Bit: true, bg8: term8Bit(r, g, b))
@@ -1050,6 +1606,7 @@ func getEditVisual*(src, target: seq[char], ops: seq[LevEdit]): string =
     result.add src[i]
 
 when isMainModule:
+  startHax()
   if false:
     for base in 0 .. (ord(high(TermColor8Bit)) -
                       ord(low(TermColor8Bit))) div 4:
@@ -1063,16 +1620,61 @@ when isMainModule:
     echo "done"
 
 
-  for gray in 0 .. 23:
-    stdout.write to8BitBg(&"[{gray}]", gray)
+  if false:
+    for gray in 0 .. 23:
+      stdout.write to8BitBg(&"[{gray}]", gray)
 
-  stdout.write("\n")
+    stdout.write("\n")
+
+    for r in 0 .. 5:
+      for g in 0 .. 5:
+        for b in 0 .. 5:
+          stdout.write to8BitBg(&"[{r} {g} {b}]", r, g, b)
+        stdout.write("\n")
+      stdout.write("\n")
 
   for r in 0 .. 5:
     for g in 0 .. 5:
       for b in 0 .. 5:
-        stdout.write to8BitBg(&"[{r} {g} {b}]", r, g, b)
+        let col = term8Bit(r, g, b)
+        let (r1, g1, b1) = col.toRGB()
+        assert r1 == r, &"{r1}, {r}"
+        assert g1 == g, &"{g1}, {g}"
+        assert b1 == b, &"{b1}, {b}"
 
-      stdout.write("\n")
+  for c in 0 .. 5:
+    let
+      r = 5 - c
+      g = c
+      b = 5 - c
+      col = term8Bit(r, g, b)
+    echo &"{col.int:<3} ", to8Bit(&"{r} {g} {b}", col), " -> ",
+          to8Bit("??", col.complement()), "; ", col.toHSL()
 
-    stdout.write("\n")
+
+  echo "analog            square            triad"
+  for c in 0 .. 5:
+    let
+      r = 5 - c
+      g = c
+      b = 5 - c
+      col = term8Bit(r, g, b)
+
+    template w(expr: untyped, col: TermColor8Bit): untyped =
+      stdout.write to8BitBg(expr, col), " ",
+             strutils.alignLeft($col.int, 3)
+
+    template ws(): untyped = stdout.write(" ")
+    template wl(): untyped = stdout.write("\n")
+
+
+    let a = col.analog()
+    w("#", a[0]); ws(); w("1", a[1]); ws(); w("2", a[2]); ws()
+
+    let s = col.square()
+    w("1", s[1]); ws(); w("2", s[2]); ws(); w("3", s[3]); ws()
+
+    let t = col.triad()
+    w("1", t[1]); ws(); w("2", t[2]); ws()
+
+    wl()
