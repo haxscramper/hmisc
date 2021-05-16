@@ -364,6 +364,9 @@ func initStyleBg*(term: TermColor8Bit): PrintStyling {.inline.} =
 func initStyleFg*(term: TermColor8Bit): PrintStyling {.inline.} =
   PrintStyling(use8Bit: true, fg8: term)
 
+func initStyle*(fg, bg: TermColor8Bit): PrintStyling {.inline.} =
+  PrintStyling(use8Bit: true, fg8: fg, bg8: bg)
+
 macro initStyle*(args: varargs[typed]): PrintStyling =
   let tmp = genSym(nskVar, "tmp")
   result = newStmtList()
@@ -985,7 +988,6 @@ const (hues, hslMap) =
     (hues, hslMap)
 
 func `$`(hsv: TermHSV): string = &"<{hsv.h:^3}|{hsv.s:^3}|{hsv.v:^3}>"
-func `$`*(col: TermColor8Bit): string = to8BitBg($col.int, col)
 
 
 
@@ -1000,12 +1002,13 @@ func getColor(hsv: TermHSV): Option[TermColor8Bit] =
 
   for sv in hues[hsv.h]:
     let ok = sv.hsv.s == hsv.s and sv.hsv.v == hsv.v
-    # Can still store colors in range 0-16, but prioritize higher values
-    if ok and sv.id.int > 16:
-      return some sv.id
+    if ok:
+      # Can still store colors in range 0-16, but prioritize higher values
+      if sv.id.int > 16:
+        return some sv.id
 
-    else:
-      result = some sv.id
+      else:
+        result = some sv.id
 
 
 block:
@@ -1038,21 +1041,26 @@ func closestMatchingColor(
     lookUp = dirUp.isNone() or dirUp.get() == true
     lookDown = dirUp.isNone() or dirUp.get() == false
 
+  # echov "INPUT", hsv
+
   when hsv is array:
     for idx, col in hsv:
       if col.isSome():
         let color = getColor(col.get())
         if color.isSome():
-          echov color
+          # echov col.get(), color
           return color.get()
 
+    # echov (lookUp, lookDown)
     if lookUp:
       var h = hsv[1].get().h + 5
       while hues[h].len == 0:
         h += 5
         if h >= 360: h -= 360
 
-      colLow = some (h, hsv[1].get().s, hsv[1].get().v)
+      # echov "H:", h
+
+      colHigh = some (h, hsv[1].get().s, hsv[1].get().v)
 
     if lookDown:
       var h = hsv[0].get().h - 5
@@ -1060,7 +1068,7 @@ func closestMatchingColor(
         h -= 5
         if h < 0: h += 360
 
-      colHigh = some (h, hsv[0].get().s, hsv[0].get().v)
+      colLow = some (h, hsv[0].get().s, hsv[0].get().v)
 
 
     return closestMatchingColor([colLow, colHigh], dirUp)
@@ -1087,7 +1095,6 @@ func closestMatchingColor(
 
       colLow = some (h, hsv.get().s, hsv.get().v)
 
-    echov [colLow, colHigh]
     return closestMatchingColor([colLow, colHigh], dirUp)
 
 func complementary*(col: TermColor8Bit): tuple[main, complement: TermColor8Bit] =
@@ -1158,6 +1165,11 @@ func analog*(col: TermColor8Bit, shift: int = 5): array[3, TermColor8Bit] =
 func complement*(color: TermColor8Bit): TermColor8Bit =
   let (r, g, b) = color.toRGB()
   return term8Bit(5 - r, 5 - g, 5 - b)
+
+
+func `$`*(col: TermColor8Bit): string =
+  $toColored(&"{col.int:<3}", initStyle(col.complement(), col))
+
 
 func initStyleBg*(r, g, b: range[0 .. 5]): PrintStyling {.inline.} =
   PrintStyling(use8Bit: true, bg8: term8Bit(r, g, b))
@@ -1610,16 +1622,7 @@ when isMainModule:
     echo &"{col.int:<3} ", to8Bit(&"{r} {g} {b}", col), " -> ",
           to8Bit("??", col.complement()), "; ", col.toHSV()
 
-
   if true:
-    # echo term8Bit(5, 0, 5).analog()
-    # let a1 = term8Bit(5, 0, 5).analog()
-    # echo a1, " ", a1.mapIt(toHSV(it))
-
-    let a2 = term8Bit(4, 1, 4).analog()
-    echo a2, " ", a2.mapIt(toHSV(it))
-
-  if false:
     echo "analog            square            triad"
     for c in 0 .. 5:
       let
@@ -1628,24 +1631,5 @@ when isMainModule:
         b = 5 - c
         col = term8Bit(r, g, b)
 
-      template w(expr: untyped, col: TermColor8Bit): untyped =
-        stdout.write to8BitBg(expr, col), " ",
-               strutils.alignLeft($col.int, 3)
-
-      template ws(): untyped = stdout.write(" ")
-      template wl(): untyped = stdout.write("\n")
-
-
-      let a = col.analog()
-      w("#", a[0]); ws(); w("1", a[1]); ws(); w("2", a[2]); ws()
-
-      let s = col.square()
-      w("1", s[1]); ws(); w("2", s[2]); ws(); w("3", s[3]); ws()
-
-      let t = col.triad()
-      w("1", t[1]); ws(); w("2", t[2]); ws()
-
-      stdout.write &" {r} {g} {b}"
-
-
-      wl()
+      stdout.write(
+        col.analog(), col.square(), col.triad(),&" {r} {g} {b}\n")
