@@ -682,13 +682,22 @@ func rgbToHsv(rgb: tuple[r, g, b: 0 .. 255]): TermHSV =
   var max = max([rgb.r, rgb.g, rgb.b])
   var diff = max - min([rgb.r, rgb.g, rgb.b])
   result.s = if (max == 0.0): 0.float else: (100 * diff / max)
+  # echov max
+  # echov diff
   if (result.s == 0): result.h = 0
   elif (rgb.r == max): result.h = round(60.0 * (rgb.g - rgb.b) / diff).int
   elif (rgb.g == max): result.h = round(60.0 * (rgb.b - rgb.r) / diff + 120.0).int
-  elif (rgb.b == max): result.h = round(60.0 * (rgb.r - rgb.g) / diff + 120.0).int
+  elif (rgb.b == max): result.h = round(60.0 * (rgb.r - rgb.g) / diff + 240.0).int
   if (result.h < 0.0): result.h += 360
   result.v = round(max * 100 / 255)
   result.s = round(result.s)
+
+# startHax()
+# for hex in ["#ff0000", "#ff0000"]:
+#   let rgb = hexToRGB(hex)
+#   echov rgb
+#   echov rgbToHSV(rgb)
+# stopHax()
 
 const colorsHex = [
   (0, "#000000"),
@@ -975,6 +984,12 @@ const (hues, hslMap) =
 
     (hues, hslMap)
 
+func `$`(hsv: TermHSV): string = &"<{hsv.h:^3}|{hsv.s:^3}|{hsv.v:^3}>"
+func `$`*(col: TermColor8Bit): string = to8BitBg($col.int, col)
+
+
+
+
 func toHSV*(color: TermColor8Bit): TermHSV =
   let (hue, idx) = hslMap[color]
   return hues[hue][idx].hsv
@@ -985,19 +1000,20 @@ func getColor(hsv: TermHSV): Option[TermColor8Bit] =
 
   for sv in hues[hsv.h]:
     let ok = sv.hsv.s == hsv.s and sv.hsv.v == hsv.v
-    if ok:
+    # Can still store colors in range 0-16, but prioritize higher values
+    if ok and sv.id.int > 16:
       return some sv.id
+
+    else:
+      result = some sv.id
 
 
 block:
   for col in TermColor8Bit(17) .. high(TermColor8Bit):
     let hsv = toHsv(col)
     let newCol = getColor(hsv)
-    if not(col == newCol.get()): echo &"{col.int} == {newCol.get().int}"
-
-
-func `$`*(col: TermColor8Bit): string =
-  to8BitBg($col.int, col)
+    if not(col == newCol.get()):
+      echo &"{hsv}  {toHsv(newCol.get())} | {col.int:<3} {col} == {newCol.get().int} {newCol.get()}"
 
 
 
@@ -1016,21 +1032,18 @@ func closestMatchingColor(
     hsv: Option[TermHSV] | array[2, Option[TermHsv]],
     dirUp: Option[bool] = none(bool)): TermColor8Bit =
 
-  echov hsv
   var
     colLow: Option[TermHSV]
     colHigh: Option[TermHSV]
     lookUp = dirUp.isNone() or dirUp.get() == true
     lookDown = dirUp.isNone() or dirUp.get() == false
 
-  echov (lookUP, lookDown)
-
   when hsv is array:
     for idx, col in hsv:
       if col.isSome():
         let color = getColor(col.get())
         if color.isSome():
-          echov color.get()
+          echov color
           return color.get()
 
     if lookUp:
@@ -1059,8 +1072,7 @@ func closestMatchingColor(
         return color.get()
 
     if lookUp:
-      echov hsv.get()
-      var h = hsv.get().h
+      var h = hsv.get().h + 5
       while hues[h].len == 0:
         h += 5
         if h >= 360: h -= 360
@@ -1075,62 +1087,14 @@ func closestMatchingColor(
 
       colLow = some (h, hsv.get().s, hsv.get().v)
 
-    echov colLow
+    echov [colLow, colHigh]
     return closestMatchingColor([colLow, colHigh], dirUp)
-
-
-
-
-
-
-
-
-
-
-func closestMatchingColor*(
-    hsv: TermHSV, dirUp: Option[bool] = none(bool)): TermColor8Bit =
-
-  echov hsv
-  let start = hsv.h.round5()
-  var
-    idx1 = 0
-    idx2 = 0
-    h1 = in360(start + 5)
-    h2 = in360(start - 5)
-
-  if dirUp.isNone() or dirUp.get() == true:
-    while hues[h1].len == 0:
-      h1 += 5
-
-    idx1 = hues[h1].findMinIt:
-      dist(hsv, it)
-
-  if dirUp.isNone() or dirUp.get() == false:
-    while hues[h2].len == 0:
-      h2 -= 5
-
-    idx2 = hues[h2].findMinIt:
-      dist(hsv, it)
-
-  if dirUp.isNone():
-    if dist(hsv, hues[h2][idx2]) < dist(hsv, hues[h1][idx1]):
-      result = hues[h2][idx2].id
-
-    else:
-      result = hues[h1][idx1].id
-
-  elif dirUp.get() == false:
-    result = hues[h2][idx2].id
-
-  else:
-    result = hues[h1][idx1].id
-
 
 func complementary*(col: TermColor8Bit): tuple[main, complement: TermColor8Bit] =
   var hsv = clampedHSV(toHSV(col))
   hsv.h += 180
   if hsv.h >= 360: hsv.h -= 360
-  return (col, closestMatchingColor(hsv))
+  return (col, closestMatchingColor(some hsv))
 
 func splitComplementary*(col: TermColor8Bit):
     tuple[main, compUp, compDown: TermColor8Bit] =
@@ -1139,8 +1103,10 @@ func splitComplementary*(col: TermColor8Bit):
 
   return (
     col,
-    closestMatchingColor((h: in360(hsv.h + 190), s: hsv.s, v: hsv.v), some true),
-    closestMatchingColor((h: in360(hsv.h + 170), s: hsv.s, v: hsv.v), some false),
+    closestMatchingColor(
+      some (h: in360(hsv.h + 190), s: hsv.s, v: hsv.v), some true),
+    closestMatchingColor(
+      some (h: in360(hsv.h + 170), s: hsv.s, v: hsv.v), some false),
   )
 
 
@@ -1148,26 +1114,34 @@ func triad*(col: TermColor8Bit): array[3, TermColor8Bit] =
   let hsv = clampedHSV(toHSV(col))
   return [
     col,
-    closestMatchingColor((h: in360(hsv.h + 120), s: hsv.s, v: hsv.v), some true),
-    closestMatchingColor((h: in360(hsv.h + 240), s: hsv.s, v: hsv.v), some false),
+    closestMatchingColor(
+      some (h: in360(hsv.h + 120), s: hsv.s, v: hsv.v), some true),
+    closestMatchingColor(
+      some (h: in360(hsv.h + 240), s: hsv.s, v: hsv.v), some false),
   ]
 
 func tetradic*(col: TermColor8Bit): array[4, TermColor8Bit] =
   let hsv = clampedHSV(toHSV(col))
   return [
     col,
-    closestMatchingColor((h: in360(hsv.h + 180), s: hsv.s, v: hsv.v)),
-    closestMatchingColor((h: in360(hsv.h + 40), s: hsv.s, v: hsv.v)),
-    closestMatchingColor((h: in360(hsv.h + 180 + 4), s: hsv.s, v: hsv.v)),
+    closestMatchingColor(
+      some (h: in360(hsv.h + 180), s: hsv.s, v: hsv.v)),
+    closestMatchingColor(
+      some (h: in360(hsv.h + 40), s: hsv.s, v: hsv.v)),
+    closestMatchingColor(
+      some (h: in360(hsv.h + 180 + 4), s: hsv.s, v: hsv.v)),
   ]
 
 func square*(col: TermColor8Bit): array[4, TermColor8Bit] =
   let hsv = clampedHSV(toHSV(col))
   return [
     col,
-    closestMatchingColor((h: in360(hsv.h + 90), s: hsv.s, v: hsv.v)),
-    closestMatchingColor((h: in360(hsv.h + 180), s: hsv.s, v: hsv.v)),
-    closestMatchingColor((h: in360(hsv.h + 270), s: hsv.s, v: hsv.v)),
+    closestMatchingColor(
+      some (h: in360(hsv.h + 90), s: hsv.s, v: hsv.v)),
+    closestMatchingColor(
+      some (h: in360(hsv.h + 180), s: hsv.s, v: hsv.v)),
+    closestMatchingColor(
+      some (h: in360(hsv.h + 270), s: hsv.s, v: hsv.v)),
   ]
 
 func analog*(col: TermColor8Bit, shift: int = 5): array[3, TermColor8Bit] =
@@ -1639,7 +1613,11 @@ when isMainModule:
 
   if true:
     # echo term8Bit(5, 0, 5).analog()
-    echo term8Bit(4, 0, 4).analog()
+    # let a1 = term8Bit(5, 0, 5).analog()
+    # echo a1, " ", a1.mapIt(toHSV(it))
+
+    let a2 = term8Bit(4, 1, 4).analog()
+    echo a2, " ", a2.mapIt(toHSV(it))
 
   if false:
     echo "analog            square            triad"
@@ -1666,5 +1644,8 @@ when isMainModule:
 
       let t = col.triad()
       w("1", t[1]); ws(); w("2", t[2]); ws()
+
+      stdout.write &" {r} {g} {b}"
+
 
       wl()
