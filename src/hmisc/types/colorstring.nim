@@ -647,6 +647,16 @@ proc to8BitBg*(
 func term8Bit*(r, g, b: range[0 .. 5]): TermColor8Bit =
   TermColor8Bit(16 + b + g * 6 + (6 * 6) * r)
 
+func term8Bit*(color: Color): TermColor8Bit =
+  let
+    (r1, g1, b1) = color.extractRGB()
+    (r2, g2, b2) = (int(r1 / 42.6), int(g1 / 42.6), int(b1 / 42.6))
+
+  echov (r1, g1, b1, r2, g2, b2)
+
+  return term8Bit(r2, g2, b2)
+
+
 func term8Bit*(gray: range[0 .. 23]): TermColor8Bit =
   TermColor8Bit(232 + gray)
 
@@ -655,10 +665,6 @@ func toRGB*(color: TermColor8Bit): tuple[r, g, b: range[0 .. 5]] =
   result.r = col div 36
   result.g = (col div 6) mod 6
   result.b = col mod 6
-
-
-
-
 
 type
   TermHSV* = tuple[h: int, s, v: float]
@@ -703,262 +709,263 @@ func rgbToHsv(rgb: tuple[r, g, b: 0 .. 255]): TermHSV =
 # stopHax()
 
 const colorsHex = [
-  (0, "#000000"),
-  (1, "#800000"),
-  (2, "#008000"),
-  (3, "#808000"),
-  (4, "#000080"),
-  (5, "#800080"),
-  (6, "#008080"),
-  (7, "#c0c0c0"),
-  (8, "#808080"),
-  (9, "#ff0000"),
-  (10, "#00ff00"),
-  (11, "#ffff00"),
-  (12, "#0000ff"),
-  (13, "#ff00ff"),
-  (14, "#00ffff"),
-  (15, "#ffffff"),
-  (16, "#000000"),
-  (17, "#00005f"),
-  (18, "#000087"),
-  (19, "#0000af"),
-  (20, "#0000d7"),
-  (21, "#0000ff"),
-  (22, "#005f00"),
-  (23, "#005f5f"),
-  (24, "#005f87"),
-  (25, "#005faf"),
-  (26, "#005fd7"),
-  (27, "#005fff"),
-  (28, "#008700"),
-  (29, "#00875f"),
-  (30, "#008787"),
-  (31, "#0087af"),
-  (32, "#0087d7"),
-  (33, "#0087ff"),
-  (34, "#00af00"),
-  (35, "#00af5f"),
-  (36, "#00af87"),
-  (37, "#00afaf"),
-  (38, "#00afd7"),
-  (39, "#00afff"),
-  (40, "#00d700"),
-  (41, "#00d75f"),
-  (42, "#00d787"),
-  (43, "#00d7af"),
-  (44, "#00d7d7"),
-  (45, "#00d7ff"),
-  (46, "#00ff00"),
-  (47, "#00ff5f"),
-  (48, "#00ff87"),
-  (49, "#00ffaf"),
-  (50, "#00ffd7"),
-  (51, "#00ffff"),
-  (52, "#5f0000"),
-  (53, "#5f005f"),
-  (54, "#5f0087"),
-  (55, "#5f00af"),
-  (56, "#5f00d7"),
-  (57, "#5f00ff"),
-  (58, "#5f5f00"),
-  (59, "#5f5f5f"),
-  (60, "#5f5f87"),
-  (61, "#5f5faf"),
-  (62, "#5f5fd7"),
-  (63, "#5f5fff"),
-  (64, "#5f8700"),
-  (65, "#5f875f"),
-  (66, "#5f8787"),
-  (67, "#5f87af"),
-  (68, "#5f87d7"),
-  (69, "#5f87ff"),
-  (70, "#5faf00"),
-  (71, "#5faf5f"),
-  (72, "#5faf87"),
-  (73, "#5fafaf"),
-  (74, "#5fafd7"),
-  (75, "#5fafff"),
-  (76, "#5fd700"),
-  (77, "#5fd75f"),
-  (78, "#5fd787"),
-  (79, "#5fd7af"),
-  (80, "#5fd7d7"),
-  (81, "#5fd7ff"),
-  (82, "#5fff00"),
-  (83, "#5fff5f"),
-  (84, "#5fff87"),
-  (85, "#5fffaf"),
-  (86, "#5fffd7"),
-  (87, "#5fffff"),
-  (88, "#870000"),
-  (89, "#87005f"),
-  (90, "#870087"),
-  (91, "#8700af"),
-  (92, "#8700d7"),
-  (93, "#8700ff"),
-  (94, "#875f00"),
-  (95, "#875f5f"),
-  (96, "#875f87"),
-  (97, "#875faf"),
-  (98, "#875fd7"),
-  (99, "#875fff"),
-  (100, "#878700"),
-  (101, "#87875f"),
-  (102, "#878787"),
-  (103, "#8787af"),
-  (104, "#8787d7"),
-  (105, "#8787ff"),
-  (106, "#87af00"),
-  (107, "#87af5f"),
-  (108, "#87af87"),
-  (109, "#87afaf"),
-  (110, "#87afd7"),
-  (111, "#87afff"),
-  (112, "#87d700"),
-  (113, "#87d75f"),
-  (114, "#87d787"),
-  (115, "#87d7af"),
-  (116, "#87d7d7"),
-  (117, "#87d7ff"),
-  (118, "#87ff00"),
-  (119, "#87ff5f"),
-  (120, "#87ff87"),
-  (121, "#87ffaf"),
-  (122, "#87ffd7"),
-  (123, "#87ffff"),
-  (124, "#af0000"),
-  (125, "#af005f"),
-  (126, "#af0087"),
-  (127, "#af00af"),
-  (128, "#af00d7"),
-  (129, "#af00ff"),
-  (130, "#af5f00"),
-  (131, "#af5f5f"),
-  (132, "#af5f87"),
-  (133, "#af5faf"),
-  (134, "#af5fd7"),
-  (135, "#af5fff"),
-  (136, "#af8700"),
-  (137, "#af875f"),
-  (138, "#af8787"),
-  (139, "#af87af"),
-  (140, "#af87d7"),
-  (141, "#af87ff"),
-  (142, "#afaf00"),
-  (143, "#afaf5f"),
-  (144, "#afaf87"),
-  (145, "#afafaf"),
-  (146, "#afafd7"),
-  (147, "#afafff"),
-  (148, "#afd700"),
-  (149, "#afd75f"),
-  (150, "#afd787"),
-  (151, "#afd7af"),
-  (152, "#afd7d7"),
-  (153, "#afd7ff"),
-  (154, "#afff00"),
-  (155, "#afff5f"),
-  (156, "#afff87"),
-  (157, "#afffaf"),
-  (158, "#afffd7"),
-  (159, "#afffff"),
-  (160, "#d70000"),
-  (161, "#d7005f"),
-  (162, "#d70087"),
-  (163, "#d700af"),
-  (164, "#d700d7"),
-  (165, "#d700ff"),
-  (166, "#d75f00"),
-  (167, "#d75f5f"),
-  (168, "#d75f87"),
-  (169, "#d75faf"),
-  (170, "#d75fd7"),
-  (171, "#d75fff"),
-  (172, "#d78700"),
-  (173, "#d7875f"),
-  (174, "#d78787"),
-  (175, "#d787af"),
-  (176, "#d787d7"),
-  (177, "#d787ff"),
-  (178, "#d7af00"),
-  (179, "#d7af5f"),
-  (180, "#d7af87"),
-  (181, "#d7afaf"),
-  (182, "#d7afd7"),
-  (183, "#d7afff"),
-  (184, "#d7d700"),
-  (185, "#d7d75f"),
-  (186, "#d7d787"),
-  (187, "#d7d7af"),
-  (188, "#d7d7d7"),
-  (189, "#d7d7ff"),
-  (190, "#d7ff00"),
-  (191, "#d7ff5f"),
-  (192, "#d7ff87"),
-  (193, "#d7ffaf"),
-  (194, "#d7ffd7"),
-  (195, "#d7ffff"),
-  (196, "#ff0000"),
-  (197, "#ff005f"),
-  (198, "#ff0087"),
-  (199, "#ff00af"),
-  (200, "#ff00d7"),
-  (201, "#ff00ff"),
-  (202, "#ff5f00"),
-  (203, "#ff5f5f"),
-  (204, "#ff5f87"),
-  (205, "#ff5faf"),
-  (206, "#ff5fd7"),
-  (207, "#ff5fff"),
-  (208, "#ff8700"),
-  (209, "#ff875f"),
-  (210, "#ff8787"),
-  (211, "#ff87af"),
-  (212, "#ff87d7"),
-  (213, "#ff87ff"),
-  (214, "#ffaf00"),
-  (215, "#ffaf5f"),
-  (216, "#ffaf87"),
-  (217, "#ffafaf"),
-  (218, "#ffafd7"),
-  (219, "#ffafff"),
-  (220, "#ffd700"),
-  (221, "#ffd75f"),
-  (222, "#ffd787"),
-  (223, "#ffd7af"),
-  (224, "#ffd7d7"),
-  (225, "#ffd7ff"),
-  (226, "#ffff00"),
-  (227, "#ffff5f"),
-  (228, "#ffff87"),
-  (229, "#ffffaf"),
-  (230, "#ffffd7"),
-  (231, "#ffffff"),
-  (232, "#080808"),
-  (233, "#121212"),
-  (234, "#1c1c1c"),
-  (235, "#262626"),
-  (236, "#303030"),
-  (237, "#3a3a3a"),
-  (238, "#444444"),
-  (239, "#4e4e4e"),
-  (240, "#585858"),
-  (241, "#626262"),
-  (242, "#666666"),
-  (243, "#767676"),
-  (244, "#808080"),
-  (245, "#8a8a8a"),
-  (246, "#949494"),
-  (247, "#9e9e9e"),
-  (248, "#a8a8a8"),
-  (249, "#b2b2b2"),
-  (250, "#bcbcbc"),
-  (251, "#c6c6c6"),
-  (252, "#d0d0d0"),
-  (253, "#dadada"),
-  (254, "#e4e4e4"),
-  (255, "#eeeeee"),
+  (0, Color(0x00_00_00)),
+  (1, Color(0x80_00_00)),
+  (2, Color(0x00_80_00)),
+  (3, Color(0x80_80_00)),
+  (4, Color(0x00_00_80)),
+  (5, Color(0x80_00_80)),
+  (6, Color(0x00_80_80)),
+  (7, Color(0xc0_c0_c0)),
+  (8, Color(0x80_80_80)),
+  (9, Color(0xff_00_00)),
+  (10, Color(0x00_ff_00)),
+  (11, Color(0xff_ff_00)),
+  (12, Color(0x00_00_ff)),
+  (13, Color(0xff_00_ff)),
+  (14, Color(0x00_ff_ff)),
+  (15, Color(0xff_ff_ff)),
+  (16, Color(0x00_00_00)),
+  (17, Color(0x00_00_5f)),
+  (18, Color(0x00_00_87)),
+  (19, Color(0x00_00_af)),
+  (20, Color(0x00_00_d7)),
+  (21, Color(0x00_00_ff)),
+  (22, Color(0x00_5f_00)),
+  (23, Color(0x00_5f_5f)),
+  (24, Color(0x00_5f_87)),
+  (25, Color(0x00_5f_af)),
+  (26, Color(0x00_5f_d7)),
+  (27, Color(0x00_5f_ff)),
+  (28, Color(0x00_87_00)),
+  (29, Color(0x00_87_5f)),
+  (30, Color(0x00_87_87)),
+  (31, Color(0x00_87_af)),
+  (32, Color(0x00_87_d7)),
+  (33, Color(0x00_87_ff)),
+  (34, Color(0x00_af_00)),
+  (35, Color(0x00_af_5f)),
+  (36, Color(0x00_af_87)),
+  (37, Color(0x00_af_af)),
+  (38, Color(0x00_af_d7)),
+  (39, Color(0x00_af_ff)),
+  (40, Color(0x00_d7_00)),
+  (41, Color(0x00_d7_5f)),
+  (42, Color(0x00_d7_87)),
+  (43, Color(0x00_d7_af)),
+  (44, Color(0x00_d7_d7)),
+  (45, Color(0x00_d7_ff)),
+  (46, Color(0x00_ff_00)),
+  (47, Color(0x00_ff_5f)),
+  (48, Color(0x00_ff_87)),
+  (49, Color(0x00_ff_af)),
+  (50, Color(0x00_ff_d7)),
+  (51, Color(0x00_ff_ff)),
+  (52, Color(0x5f_00_00)),
+  (53, Color(0x5f_00_5f)),
+  (54, Color(0x5f_00_87)),
+  (55, Color(0x5f_00_af)),
+  (56, Color(0x5f_00_d7)),
+  (57, Color(0x5f_00_ff)),
+  (58, Color(0x5f_5f_00)),
+  (59, Color(0x5f_5f_5f)),
+  (60, Color(0x5f_5f_87)),
+  (61, Color(0x5f_5f_af)),
+  (62, Color(0x5f_5f_d7)),
+  (63, Color(0x5f_5f_ff)),
+  (64, Color(0x5f_87_00)),
+  (65, Color(0x5f_87_5f)),
+  (66, Color(0x5f_87_87)),
+  (67, Color(0x5f_87_af)),
+  (68, Color(0x5f_87_d7)),
+  (69, Color(0x5f_87_ff)),
+  (70, Color(0x5f_af_00)),
+  (71, Color(0x5f_af_5f)),
+  (72, Color(0x5f_af_87)),
+  (73, Color(0x5f_af_af)),
+  (74, Color(0x5f_af_d7)),
+  (75, Color(0x5f_af_ff)),
+  (76, Color(0x5f_d7_00)),
+  (77, Color(0x5f_d7_5f)),
+  (78, Color(0x5f_d7_87)),
+  (79, Color(0x5f_d7_af)),
+  (80, Color(0x5f_d7_d7)),
+  (81, Color(0x5f_d7_ff)),
+  (82, Color(0x5f_ff_00)),
+  (83, Color(0x5f_ff_5f)),
+  (84, Color(0x5f_ff_87)),
+  (85, Color(0x5f_ff_af)),
+  (86, Color(0x5f_ff_d7)),
+  (87, Color(0x5f_ff_ff)),
+  (88, Color(0x87_00_00)),
+  (89, Color(0x87_00_5f)),
+  (90, Color(0x87_00_87)),
+  (91, Color(0x87_00_af)),
+  (92, Color(0x87_00_d7)),
+  (93, Color(0x87_00_ff)),
+  (94, Color(0x87_5f_00)),
+  (95, Color(0x87_5f_5f)),
+  (96, Color(0x87_5f_87)),
+  (97, Color(0x87_5f_af)),
+  (98, Color(0x87_5f_d7)),
+  (99, Color(0x87_5f_ff)),
+  (100, Color(0x87_87_00)),
+  (101, Color(0x87_87_5f)),
+  (102, Color(0x87_87_87)),
+  (103, Color(0x87_87_af)),
+  (104, Color(0x87_87_d7)),
+  (105, Color(0x87_87_ff)),
+  (106, Color(0x87_af_00)),
+  (107, Color(0x87_af_5f)),
+  (108, Color(0x87_af_87)),
+  (109, Color(0x87_af_af)),
+  (110, Color(0x87_af_d7)),
+  (111, Color(0x87_af_ff)),
+  (112, Color(0x87_d7_00)),
+  (113, Color(0x87_d7_5f)),
+  (114, Color(0x87_d7_87)),
+  (115, Color(0x87_d7_af)),
+  (116, Color(0x87_d7_d7)),
+  (117, Color(0x87_d7_ff)),
+  (118, Color(0x87_ff_00)),
+  (119, Color(0x87_ff_5f)),
+  (120, Color(0x87_ff_87)),
+  (121, Color(0x87_ff_af)),
+  (122, Color(0x87_ff_d7)),
+  (123, Color(0x87_ff_ff)),
+  (124, Color(0xaf_00_00)),
+  (125, Color(0xaf_00_5f)),
+  (126, Color(0xaf_00_87)),
+  (127, Color(0xaf_00_af)),
+  (128, Color(0xaf_00_d7)),
+  (129, Color(0xaf_00_ff)),
+  (130, Color(0xaf_5f_00)),
+  (131, Color(0xaf_5f_5f)),
+  (132, Color(0xaf_5f_87)),
+  (133, Color(0xaf_5f_af)),
+  (134, Color(0xaf_5f_d7)),
+  (135, Color(0xaf_5f_ff)),
+  (136, Color(0xaf_87_00)),
+  (137, Color(0xaf_87_5f)),
+  (138, Color(0xaf_87_87)),
+  (139, Color(0xaf_87_af)),
+  (140, Color(0xaf_87_d7)),
+  (141, Color(0xaf_87_ff)),
+  (142, Color(0xaf_af_00)),
+  (143, Color(0xaf_af_5f)),
+  (144, Color(0xaf_af_87)),
+  (145, Color(0xaf_af_af)),
+  (146, Color(0xaf_af_d7)),
+  (147, Color(0xaf_af_ff)),
+  (148, Color(0xaf_d7_00)),
+  (149, Color(0xaf_d7_5f)),
+  (150, Color(0xaf_d7_87)),
+  (151, Color(0xaf_d7_af)),
+  (152, Color(0xaf_d7_d7)),
+  (153, Color(0xaf_d7_ff)),
+  (154, Color(0xaf_ff_00)),
+  (155, Color(0xaf_ff_5f)),
+  (156, Color(0xaf_ff_87)),
+  (157, Color(0xaf_ff_af)),
+  (158, Color(0xaf_ff_d7)),
+  (159, Color(0xaf_ff_ff)),
+  (160, Color(0xd7_00_00)),
+  (161, Color(0xd7_00_5f)),
+  (162, Color(0xd7_00_87)),
+  (163, Color(0xd7_00_af)),
+  (164, Color(0xd7_00_d7)),
+  (165, Color(0xd7_00_ff)),
+  (166, Color(0xd7_5f_00)),
+  (167, Color(0xd7_5f_5f)),
+  (168, Color(0xd7_5f_87)),
+  (169, Color(0xd7_5f_af)),
+  (170, Color(0xd7_5f_d7)),
+  (171, Color(0xd7_5f_ff)),
+  (172, Color(0xd7_87_00)),
+  (173, Color(0xd7_87_5f)),
+  (174, Color(0xd7_87_87)),
+  (175, Color(0xd7_87_af)),
+  (176, Color(0xd7_87_d7)),
+  (177, Color(0xd7_87_ff)),
+  (178, Color(0xd7_af_00)),
+  (179, Color(0xd7_af_5f)),
+  (180, Color(0xd7_af_87)),
+  (181, Color(0xd7_af_af)),
+  (182, Color(0xd7_af_d7)),
+  (183, Color(0xd7_af_ff)),
+  (184, Color(0xd7_d7_00)),
+  (185, Color(0xd7_d7_5f)),
+  (186, Color(0xd7_d7_87)),
+  (187, Color(0xd7_d7_af)),
+  (188, Color(0xd7_d7_d7)),
+  (189, Color(0xd7_d7_ff)),
+  (190, Color(0xd7_ff_00)),
+  (191, Color(0xd7_ff_5f)),
+  (192, Color(0xd7_ff_87)),
+  (193, Color(0xd7_ff_af)),
+  (194, Color(0xd7_ff_d7)),
+  (195, Color(0xd7_ff_ff)),
+  (196, Color(0xff_00_00)),
+  (197, Color(0xff_00_5f)),
+  (198, Color(0xff_00_87)),
+  (199, Color(0xff_00_af)),
+  (200, Color(0xff_00_d7)),
+  (201, Color(0xff_00_ff)),
+  (202, Color(0xff_5f_00)),
+  (203, Color(0xff_5f_5f)),
+  (204, Color(0xff_5f_87)),
+  (205, Color(0xff_5f_af)),
+  (206, Color(0xff_5f_d7)),
+  (207, Color(0xff_5f_ff)),
+  (208, Color(0xff_87_00)),
+  (209, Color(0xff_87_5f)),
+  (210, Color(0xff_87_87)),
+  (211, Color(0xff_87_af)),
+  (212, Color(0xff_87_d7)),
+  (213, Color(0xff_87_ff)),
+  (214, Color(0xff_af_00)),
+  (215, Color(0xff_af_5f)),
+  (216, Color(0xff_af_87)),
+  (217, Color(0xff_af_af)),
+  (218, Color(0xff_af_d7)),
+  (219, Color(0xff_af_ff)),
+  (220, Color(0xff_d7_00)),
+  (221, Color(0xff_d7_5f)),
+  (222, Color(0xff_d7_87)),
+  (223, Color(0xff_d7_af)),
+  (224, Color(0xff_d7_d7)),
+  (225, Color(0xff_d7_ff)),
+  (226, Color(0xff_ff_00)),
+  (227, Color(0xff_ff_5f)),
+  (228, Color(0xff_ff_87)),
+  (229, Color(0xff_ff_af)),
+  (230, Color(0xff_ff_d7)),
+  (231, Color(0xff_ff_ff)),
+  (232, Color(0x08_08_08)),
+  (233, Color(0x12_12_12)),
+  (234, Color(0x1c_1c_1c)),
+  (235, Color(0x26_26_26)),
+  (236, Color(0x30_30_30)),
+  (237, Color(0x3a_3a_3a)),
+  (238, Color(0x44_44_44)),
+  (239, Color(0x4e_4e_4e)),
+  (240, Color(0x58_58_58)),
+  (241, Color(0x62_62_62)),
+  (242, Color(0x66_66_66)),
+  (243, Color(0x76_76_76)),
+  (244, Color(0x80_80_80)),
+  (245, Color(0x8a_8a_8a)),
+  (246, Color(0x94_94_94)),
+  (247, Color(0x9e_9e_9e)),
+  (248, Color(0xa8_a8_a8)),
+  (249, Color(0xb2_b2_b2)),
+  (250, Color(0xbc_bc_bc)),
+  (251, Color(0xc6_c6_c6)),
+  (252, Color(0xd0_d0_d0)),
+  (253, Color(0xda_da_da)),
+  (254, Color(0xe4_e4_e4)),
+  (255, Color(0xee_ee_ee)),
+
 ]
 
 
@@ -968,7 +975,7 @@ const (hues, hslMap) =
     var hslMap: array[TermColor8Bit, tuple[hue, idx: int]]
 
     for (id, hex) in colorsHex:
-      let rgb = hexToRgb(hex)
+      let rgb = extractRGB(hex)
       var spec = ColSpec(
         rgb: rgb,
         hsv: rgbToHsv(rgb).clampedHSV(),
@@ -987,9 +994,13 @@ const (hues, hslMap) =
 
     (hues, hslMap)
 
+
+
 func `$`(hsv: TermHSV): string = &"<{hsv.h:^3}|{hsv.s:^3}|{hsv.v:^3}>"
 
 
+func toColor*(color: TermColor8Bit): Color =
+  colorsHex[color.int][1]
 
 
 func toHSV*(color: TermColor8Bit): TermHSV =
@@ -1161,6 +1172,52 @@ func analog*(col: TermColor8Bit, shift: int = 5): array[3, TermColor8Bit] =
       some (h: hsv.h - shift, s: hsv.s, v: hsv.v), some false),
   ]
 
+func inverseSrgbCompanding(c: Color): Color =
+  let c = c.extractRGB()
+  var (r, g, b) = (c.r / 255, c.g / 255, c.b / 255)
+  if (r > 0.04045): r = pow((r + 0.055) / 1.055, 2.4) else: r = r / 12.92
+  if (g > 0.04045): g = pow((g + 0.055) / 1.055, 2.4) else: g = g / 12.92
+  if (b > 0.04045): b = pow((b + 0.055) / 1.055, 2.4) else: b = b / 12.92
+
+  return rgb(int(r * 255), int(g * 255), int(b * 255))
+
+
+func srgbCompanding(c: Color): Color =
+  let c = c.extractRGB()
+  var (r, g, b) = (c.r / 255, c.g / 255, c.b / 255)
+
+  if (r > 0.0031308): r = 1.055 * pow(r, 1 / 2.4) - 0.055 else: r = r * 12.92
+  if (g > 0.0031308): g = 1.055 * pow(g, 1 / 2.4) - 0.055 else: g = g * 12.92
+  if (b > 0.0031308): b = 1.055 * pow(b, 1 / 2.4) - 0.055 else: b = b * 12.92
+
+  return rgb(int(r * 255), int(g * 255), int(b * 255))
+
+func colorMix*(c1, c2: Color, ratio: float): Color =
+  var
+    c1 = inverseSrgbCompanding(c1).extractRGB()
+    c2 = inverseSrgbCompanding(c2).extractRGB()
+
+  var
+    r = c1.r * (1 - ratio) + c2.r * (ratio)
+    g = c1.g * (1 - ratio) + c2.g * (ratio)
+    b = c1.b * (1 - ratio) + c2.b * (ratio)
+
+  return srgbCompanding(rgb(int(r), int(g), int(b)))
+
+func interpolGradient*(start, finish: TermColor8Bit): seq[TermColor8Bit] =
+  let
+    start = toColor(start)
+    finish = toColor(finish)
+
+  const sep = 5
+  for mix in 0 .. sep:
+    let col = colorMix(start, finish, 1 / sep * mix)
+    result.add term8Bit(col)
+
+  sort(result)
+  deduplicate(result)
+
+
 
 func complement*(color: TermColor8Bit): TermColor8Bit =
   let (r, g, b) = color.toRGB()
@@ -1168,7 +1225,7 @@ func complement*(color: TermColor8Bit): TermColor8Bit =
 
 
 func `$`*(col: TermColor8Bit): string =
-  $toColored(&"{col.int:<3}", initStyle(col.complement(), col))
+  $toColored(&"{col.int:<3}", initStyle(col))
 
 
 func initStyleBg*(r, g, b: range[0 .. 5]): PrintStyling {.inline.} =
@@ -1575,61 +1632,3 @@ func getEditVisual*(src, target: seq[char], ops: seq[LevEdit]): string =
 
   for i in currIdx ..< src.len:
     result.add src[i]
-
-when isMainModule:
-  startHax()
-  if false:
-    for base in 0 .. (ord(high(TermColor8Bit)) -
-                      ord(low(TermColor8Bit))) div 4:
-      for color in 0 .. 3:
-        let color = TermColor8Bit(color + base * 4)
-        stdout.write to8BitBg("##", color), " "
-        stdout.write to8Bit(strutils.alignLeft($color, 20), color)
-
-      stdout.write "\n"
-
-    echo "done"
-
-
-  if false:
-    for gray in 0 .. 23:
-      stdout.write to8BitBg(&"[{gray}]", gray)
-
-    stdout.write("\n")
-
-    for r in 0 .. 5:
-      for g in 0 .. 5:
-        for b in 0 .. 5:
-          stdout.write to8BitBg(&"[{r} {g} {b}]", r, g, b)
-        stdout.write("\n")
-      stdout.write("\n")
-
-  for r in 0 .. 5:
-    for g in 0 .. 5:
-      for b in 0 .. 5:
-        let col = term8Bit(r, g, b)
-        let (r1, g1, b1) = col.toRGB()
-        assert r1 == r, &"{r1}, {r}"
-        assert g1 == g, &"{g1}, {g}"
-        assert b1 == b, &"{b1}, {b}"
-
-  for c in 0 .. 5:
-    let
-      r = 5 - c
-      g = c
-      b = 5 - c
-      col = term8Bit(r, g, b)
-    echo &"{col.int:<3} ", to8Bit(&"{r} {g} {b}", col), " -> ",
-          to8Bit("??", col.complement()), "; ", col.toHSV()
-
-  if true:
-    echo "analog            square            triad"
-    for c in 0 .. 5:
-      let
-        r = 5 - c
-        g = c
-        b = 5 - c
-        col = term8Bit(r, g, b)
-
-      stdout.write(
-        col.analog(), col.square(), col.triad(),&" {r} {g} {b}\n")
