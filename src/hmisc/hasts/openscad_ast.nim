@@ -1,10 +1,7 @@
-import strtabs
-import strformat
-import sequtils
-import strutils
-import hmisc/helpers
-import math
-import common
+import std/[strtabs, strformat, sequtils, strutils, math]
+import
+  ../types/geometry_primitives,
+  ../helpers
 
 type
   GenerateWhat = enum

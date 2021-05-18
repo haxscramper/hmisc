@@ -1225,7 +1225,7 @@ func complement*(color: TermColor8Bit): TermColor8Bit =
 
 
 func `$`*(col: TermColor8Bit): string =
-  $toColored(&"{col.int:<3}", initStyle(col))
+  $toColored(&"{col.int:<3}", initStyleBg(col))
 
 
 func initStyleBg*(r, g, b: range[0 .. 5]): PrintStyling {.inline.} =

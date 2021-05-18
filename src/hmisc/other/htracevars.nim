@@ -24,7 +24,6 @@ type
 
 var cnt {.compiletime.}: int = 0
 macro optCall{call(args)}(call: typed, args: varargs[typed]): untyped =
-  echo cnt
   inc cnt
   result = nnkCall.newTree(call)
   for arg in args:
@@ -53,9 +52,3 @@ macro optCall{call(args)}(call: typed, args: varargs[typed]): untyped =
             originalError: getCurrentException(),
             variables: `vardump`
           )
-
-  # echo result.repr
-
-
-
-echo(12)

@@ -67,8 +67,8 @@ suite "Close colors":
           assert b1 == b, &"{b1}, {b}"
 
 
-    for col in interpolGradient(tcBlue3, tcGreen3):
-      echo col
+    for col in interpolGradient(tcBlue3, tcGreen3): echo col
+    for col in interpolGradient(tcRed3, tcWhite): echo col
 
     echo "analog            square            triad"
     for c in 0 .. 5:

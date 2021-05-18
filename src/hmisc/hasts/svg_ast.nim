@@ -1,4 +1,9 @@
-import sequtils, xmltree, strtabs, strformat, strutils
+import std/[
+  sequtils, xmltree, strtabs, strformat, strutils, options]
+
+import
+  ../algo/htemplates,
+  ../types/geometry_primitives
 
 
 const svgMulti* = 50 ## Multiplication ratio for converting float to
@@ -97,7 +102,7 @@ proc makeText*(text: string, p: Vec, textClass = "coordinate"): XmlNode =
   makeSVG(
     "text",
     {"x" : "0", "y" : "0", "class" : textClass},
-    text)
+    some(text))
   .svgTranslate(p.x, -p.y)
   .svgScale(1, -1)
 
@@ -111,32 +116,32 @@ proc `&`*(attrs, addition: XmlAttributes): XmlAttributes =
 
   return attrs
 
-proc toSVG*(key: Key): XmlNode =
-  newXmlTree(
-    "rect", [],
-    {
-      "width" : $(key.length * svgMulti).toInt(),
-      "height" : $(key.width * svgMulti).toInt(),
-      "class" : "key-box"
-    }.toXmlAttributes()
-  )
+# proc toSVG*(key: Key): XmlNode =
+#   newXmlTree(
+#     "rect", [],
+#     {
+#       "width" : $(key.length * svgMulti).toInt(),
+#       "height" : $(key.width * svgMulti).toInt(),
+#       "class" : "key-box"
+#     }.toXmlAttributes()
+#   )
 
-proc toSVG*(row: Row): XmlNode =
-  var shift = 0.0
-  let keys: seq[XmlNode] =
-      row.keys.mapIt(
-        block:
-          var keyXml = it.key.toSVG()
-          shift += it.space
-          keyXml.attrs = keyXml.attrs &
-            {"x" : $(shift * svgMulti).toInt() }.toXmlAttributes()
-          shift += it.key.length
-          keyXml
-      )
+# proc toSVG*(row: Row): XmlNode =
+#   var shift = 0.0
+#   let keys: seq[XmlNode] =
+#       row.keys.mapIt(
+#         block:
+#           var keyXml = it.key.toSVG()
+#           shift += it.space
+#           keyXml.attrs = keyXml.attrs &
+#             {"x" : $(shift * svgMulti).toInt() }.toXmlAttributes()
+#           shift += it.key.length
+#           keyXml
+#       )
 
-  newXmlTree("g",
-    newComment("row start") & keys & newComment("row end")
-  )
+#   newXmlTree("g",
+#     newComment("row start") & keys & newComment("row end")
+#   )
 
 
 
@@ -181,13 +186,13 @@ proc toSVG*(line: Line): XmlNode =
       "stroke-width" : "3"
     })
 
-proc toSVG*(geom: Geometry): XmlNode =
-  case geom.kind:
-    of gkLine: geom.l.toSVG()
-    of gkVec: geom.v.toSVG()
+# proc toSVG*(geom: Geometry): XmlNode =
+#   case geom.kind:
+#     of gkLine: geom.l.toSVG()
+#     of gkVec: geom.v.toSVG()
 
-proc toSVG*(geoms: seq[Geometry]): XmlNode =
-  geoms.mapIt(it.toSVG).makeSVGGroup()
+# proc toSVG*(geoms: seq[Geometry]): XmlNode =
+#   geoms.mapIt(it.toSVG).makeSVGGroup()
 
 proc toSVGImage*(
   body: seq[XmlNode],

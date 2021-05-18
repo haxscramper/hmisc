@@ -14,6 +14,8 @@
 ##   warnings when literal string with `"/"` is used, or path looks like a
 ##   file (though if `directory.d` naming convention is used it might be
 ##   a big problematic).
+## - TODO :: Check if file can be created or written to (e.g. if parent
+##   directory for a target file exists, or the file itself exists).
 
 # {.experimental: "caseStmtMacros".}
 

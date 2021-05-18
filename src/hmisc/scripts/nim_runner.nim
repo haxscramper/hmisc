@@ -34,5 +34,3 @@ withTempDir true:
   if res.code == 0:
     let res = runShell(fileCmd)
     buf.add "\n" & res.stdout.strip() & "\n" & res.stderr.strip()
-
-echo buf.strip()
