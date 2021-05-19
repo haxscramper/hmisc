@@ -53,10 +53,11 @@ proc getVal*[K, V](tree: PTree[K, V]): V = tree.value
 
 proc getKey*[K, V](tree: PTree[K, V], key: K): PTree[K, V] =
   if tree.isAttrProvider:
-    tree.getAttr(key)
+    result = tree.getAttr(key)
 
   else:
-    tree.attrs[key]
+    when not defined(nimdoc):
+      result = tree.attrs[key]
 
 
 proc getIdx*[K, V](tree: PTree[K, V], idx: int): PTree[K, V] =
