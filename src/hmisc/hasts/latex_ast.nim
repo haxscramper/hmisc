@@ -1,5 +1,5 @@
-import strutils, strformat, sequtils, ropes, os
-import shell
+import std/[strutils, strformat, sequtils, ropes, os]
+import ../other/hshell
 import hmisc/helpers
 
 type
@@ -134,21 +134,26 @@ func toRope*(node: LAstNode): Rope =
       discard
 
 #=============================  Compilation  =============================#
-proc compileToPdf*(document: LAstNode,
-                  tmpfile: string = "/tmp/latextmp.tex",
-                  compiler: LatexCompiler = lacPdflatex
-                  ): tuple[ok: bool, log: string] =
+proc compileToPdf*(
+    document: LAstNode,
+    tmpfile: string = "/tmp/latextmp.tex",
+    compiler: LatexCompiler = lacPdflatex
+  ): string =
+
   let (outdir, _, _) = splitFile(tmpfile)
   tmpfile.writeFile($document.toRope())
-  let noMsg: set[DebugOutputKind] = {}
-  let (output, error, code) = shellVerboseErr noMsg:
-    pdflatex "-interaction=nonstopmode" "-output-directory="($outdir) ($tmpfile)
+  let res = evalShell shellCmd(
+    pdflatex,
+    `interaction` = nonstopmode,
+    "output-directory" = $outdir,
+    $tmpfile
+  )
 
-  # echo code
-  result.log = output
-  result.ok = (code == 0)
+  result = res.stdout
 
 when isMainModule:
   discard makeDocument(@[
     makePlaintext("HHHH")
   ]).compileToPdf()
+
+  echo "compile ok"

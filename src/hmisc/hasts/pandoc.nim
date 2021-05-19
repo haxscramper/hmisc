@@ -1,9 +1,6 @@
-import shell
 import hmisc/helpers
-import sequtils
-import json
-import strutils, strformat
-import options
+import ../other/[hshell]
+import std/[sequtils, json, strutils, strformat, options]
 
 type
   ListStyleKind = enum
@@ -339,23 +336,9 @@ func toLatexTable(tbl: SimpleTable): string =
 proc htmlTableToLatex*(htmlTable: string): string =
   let tmpfile = "/tmp/htmltable.html"
   tmpfile.writeFile(htmlTable)
-  let (res, err, code) = shellVerboseErr {dokCommand}:
-    pandoc -t json ($tmpfile)
+  let res = evalShell shellCmd(pandoc, -t, json, $tmpFile)
 
-  if code == 0:
-    let jnode = res.parseJson()
-    let blocks = jnode["blocks"].getElems()
-    let tbl = getTable(blocks.map(toRawPandoc))
-    return tbl.toLatexTable()
-  else:
-    echo err
-    return ""
-
-
-when isMainModule:
-  discard htmlTableToLatex("test.tmp.html".readFile().string())
-
-
-
-# for blc in parsed:
-#   print blc
+  let jnode = res.stdout.parseJson()
+  let blocks = jnode["blocks"].getElems()
+  let tbl = getTable(blocks.map(toRawPandoc))
+  return tbl.toLatexTable()

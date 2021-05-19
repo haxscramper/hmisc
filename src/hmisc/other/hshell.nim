@@ -800,7 +800,13 @@ func toShellArgument(arg: NimNode): NimNode =
     of nnkIdent, nnkIntLit:
       arg.toStrLit()
 
-    of nnkStrLit:
+    of nnkAccQuoted:
+      var buf: string
+      for sub in arg:
+        buf.add sub.strVal()
+      newLit(buf)
+
+    of nnkStrLit, nnkPrefix:
       arg
 
     else:
