@@ -1,9 +1,9 @@
 import
   hmisc/hasts/hext_template,
   hmisc/hdebug_misc,
-  hmisc/algo/halgorithm
+  hmisc/algo/[halgorithm, hparse_base]
 
-import std/[unittest]
+import std/[unittest, streams]
 
 startHax()
 
@@ -27,3 +27,14 @@ suite "Parser":
       "{% for item in seq %} {{item}} {%else%} No iteration {%end%}")
 
     echo tree.treeRepr()
+
+suite "Output generation":
+  test "For loop generator":
+    let tree = parseHext(
+      "{% for item in seq %} <<{{item}}>> {%else%} No iteration {%end%}")
+
+    echo treeRepr(tree)
+
+    evalHext(tree, newFileStream(stdout), {
+      "seq": boxValue(HextValue[int], @[1,2,3,4,4])
+    })

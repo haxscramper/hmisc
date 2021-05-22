@@ -1645,6 +1645,10 @@ proc getTempFile*(
     if not fileExists(dir / RelFile(next)):
       return dir / RelFile(next)
 
+proc writeTempFile*(
+    text: string, pattern: string = "XXXXXXXXXXX"): AbsFile =
+  result = getTempDir().getTempFile(pattern)
+  result.writeFile(text)
 
 template withDir*(dir: AnyDir, body: untyped): untyped =
   ## Changes the current directory temporarily.
