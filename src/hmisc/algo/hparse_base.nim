@@ -179,6 +179,9 @@ proc newHTree*[R, T](kind: R, token: T): HsTokTree[R, T] =
 proc newHTree*[R, T](lexer: HsLexer[T], kind: R): HsTokTree[R, T] =
   HsTokTree[R, T](isToken: false, kind: kind)
 
+proc wrap*[R, T](tree: sink HsTokTree[R, T], wrap: R): HsTokTree[R, T] =
+  HsTokTree[R, T](isToken: false, kind: wrap, subnodes: @[tree])
+
 proc initEof*[K](str: var PosStr, kind: K): HsTok[K] =
   HsTok[K](kind: kind, line: str.line, column: str.column, isSlice: false)
 

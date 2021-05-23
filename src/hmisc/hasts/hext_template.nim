@@ -83,6 +83,7 @@ type
     hnoContent
     hnoStmtList
     hnoExpr
+    hnoStmt
     hnoFor
     hnoWhile
     hnoIf, hnoElifBranch
@@ -282,7 +283,7 @@ proc parseSetStmt(lexer: var HxLexer): HxTree =
 
 proc parseHxExpr(lexer: var HxLexer): HxTree =
   lexer.skip(hxExprFirst)
-  result = parseExpr(lexer)
+  result = newHTree(hnoExpr, @[parseExpr(lexer)])
   lexer.skip(hxExprLast)
 
 proc parseHxStmtList(lexer: var HxLexer): HxTree =
@@ -291,10 +292,10 @@ proc parseHxStmtList(lexer: var HxLexer): HxTree =
     case lexer[].kind:
       of htoStmtOpen, htoStmtOpenStrip:
         case lexer[+1].kind:
-          of htoForKwd: result.add parseForStmt(lexer)
-          of htoIfKwd: result.add parseIfStmt(lexer)
-          of htoCaseKwd: result.add parseCaseStmt(lexer)
-          of htoSetKwd: result.add parseSetStmt(lexer)
+          of htoForKwd: result.add parseForStmt(lexer).wrap(hnoStmt)
+          of htoIfKwd: result.add parseIfStmt(lexer).wrap(hnoStmt)
+          of htoCaseKwd: result.add parseCaseStmt(lexer).wrap(hnoStmt)
+          of htoSetKwd: result.add parseSetStmt(lexer).wrap(hnoStmt)
           of htoEndKinds, htoElseKwd: break
           else:
             lexer.advance()
@@ -559,7 +560,7 @@ type
 
 const
   opPairs = {
-    hnoStmtList: hopStmtList,
+    hnoStmtList, hnoStmt: hopStmtList,
     hnoIdent: hopLoadIdentFromCtx
   }
 
@@ -567,15 +568,30 @@ const
   mappedOp = toKeySet(opPairs)
 
 
+proc write*[T](stream: Stream, value: HextValue[T]) =
+  case value.kind:
+    of hvkStr: stream.write value.strVal
+    of hvkInt: stream.write $value.intVal
+    of hvkFloat: stream.write $value.floatVal
+    of hvkBool: stream.write $value.boolVal
+    of hvkSeq:
+      for item in value.seqVal:
+        stream.write item
+
+    of hvkRecord:
+      stream.write value.recordVal
+
 
 proc evalAst*[V, UC](node: HxTree, ctx: var HextAstCtx[V, UC]): HextValue[V] =
   case node.kind:
     of hnoContent:
-      echo node.strVal()
       ctx.uc.write(node.strVal())
 
     of mappedOp:
       result = evalAst(node, opMap[node.kind], ctx)
+
+    of hnoExpr:
+      ctx.uc.write(evalAst(node[0], ctx))
 
     of hnoFor:
       let expr = evalAst(node[1], ctx)
