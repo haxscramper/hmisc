@@ -66,6 +66,9 @@ template raiseLogicError*(errMsg: string) {.dirty.} =
 template raiseArgumentError*(errMsg: string) {.dirty.} =
   raise newException(ArgumentError, errMsg)
 
+proc newArgumentError*(msg: string): ref ArgumentError =
+  newException(ArgumentError, msg)
+
 template assertKind*(expr, expected: typed) {.dirty.} =
   when expr is enum:
     let kind = expr
@@ -95,9 +98,11 @@ template assertKind*(expr, expected: typed) {.dirty.} =
       raise newException(UnexpectedKindError, msg)
 
 
+proc newImplementError*(msg: string = ""): ref ImplementError =
+  newException(ImplementError, msg)
+
 template raiseImplementError*(errMsg: string) {.dirty.} =
-  raise newException(
-    ImplementError, errMsg & " @" & $instantiationInfo())
+  raise newImplementError(errMsg & " @" & $instantiationInfo())
 
 
 proc prepareMsg*(userMsg: string): string =
@@ -113,15 +118,16 @@ template kindToStr*(expr: typed): untyped =
   when expr is enum: $expr else: $expr.kind
 
 
+proc newImplementKindError*[T](
+    node: T, msg: string = ""): ref ImplementKindError =
+  newException(ImplementKindError,
+    "\nUnhandled entry kind: \e[32m" & kindToStr(node) & "\e[39m" &
+      prepareMsg(msg) & " @" & $instantiationInfo() & "\n"
+  )
+
 template raiseImplementKindError*(
   node: untyped, userMsg: string = "") {.dirty.} =
-
-  raise newException(ImplementKindError,
-    "\nUnhandled entry kind: " &
-      astToStr(node) &
-      " has kind \e[32m" & kindToStr(node) & "\e[39m" &
-      prepareMsg(userMsg) & " @" & $instantiationInfo() & "\n"
-  )
+  raise newImplementKindError(node, userMsg)
 
 
 template raiseUnexpectedKindError*(

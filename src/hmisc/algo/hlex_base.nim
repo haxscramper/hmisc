@@ -36,7 +36,7 @@ type
     sliceBuffer*: seq[seq[PosStrSlice]]
 
 
-  HLexerError = ref object of CatchableError
+  HLexerError* = ref object of CatchableError
     pos*, line*, column*: int
 
 

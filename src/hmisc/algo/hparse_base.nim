@@ -7,6 +7,7 @@ import std/[
 import
   ../base_errors,
   ../hdebug_misc,
+  ../helpers,
   ../types/colorstring,
   ./hlex_base,
   ./hstring_algo,
@@ -19,6 +20,7 @@ type
     case isToken*: bool
       of true:
         token*: Tok
+        str: string
 
       of false:
         subnodes*: seq[HsTokTree[Rule, Tok]]
@@ -123,6 +125,50 @@ proc newLexerState*[F](startFlag: F): HsLexerState[F] =
   result = HsLexerState[F](flagStack: @[startFlag])
   inc result.flagSet[startFlag]
 
+proc newUnexpectedChar*[F](
+    str: var PosStr, state: var HsLexerState[F]): HLexerError =
+  HLexerError(
+    msg: &[
+      "Unexpected character encountered while parsing: '",
+      $str[0], "' at ", $str.line, ":", $str.column, ". Current state is: ",
+      $state.topFlag()
+    ],
+    column: str.column, line: str.line, pos: str.pos)
+
+proc unexpectedTokenError*[K](
+    lexer: var HsLexer[HsTok[K]],
+    expected: set[K] = {}
+  ): UnexpectedTokenError =
+  ## - TODO :: Support optional coloring for both displayed tokens
+  ##   (via color map and line ranges) and displayed annotations.
+  ## - TODO :: Support visualization mapping for tokens using
+  ##   `array[K, string]` to display more human-friendly display.
+
+  let (line, linePos) = lexer.str[].lineAround(lexer[].offset)
+  result = UnexpectedTokenError(
+    line: lexer[].line,
+    column: lexer[].column,
+    lineText: line,
+    linePos: linePos,
+    gotToken: $lexer[],
+    expected: mapIt(expected, $it)
+  )
+
+  var buf = initRuneGrid()
+
+  var pos = &"{result.line}:{result.column}"
+
+  buf[0, 0] = &"Unexpected token: expected {expected}, but got"
+  buf[1, 0] = pos
+  buf[1, pos.len + 1] = result.lineText
+  let arrow = pos.len + 1 + linePos
+  buf[2, arrow] = "^"
+  buf[3, arrow] = "|"
+  buf[4, arrow] = result.gotToken
+
+  result.msg = $buf
+
+
 proc skipIndent*[F](state: var HsLexerState[F], str: var PosStr): LexerIndentKind =
   if str[Newline]:
     str.advance()
@@ -178,6 +224,14 @@ proc newHTree*[R, T](kind: R, token: T): HsTokTree[R, T] =
 
 proc newHTree*[R, T](lexer: HsLexer[T], kind: R): HsTokTree[R, T] =
   HsTokTree[R, T](isToken: false, kind: kind)
+
+proc newHTree*[R, T](
+    lexer: HsLexer[HsTok[T]], kind: R, tok: HsTok[T]): HsTokTree[R, HsTok[T]] =
+  HsTokTree[R, HsTok[T]](isToken: true, token: tok)
+
+proc newHTree*[R, T](
+    lexer: HsLexer[T], kind: R, str: string): HsTokTree[R, T] =
+  HsTokTree[R, T](isToken: true, str: str)
 
 proc wrap*[R, T](tree: sink HsTokTree[R, T], wrap: R): HsTokTree[R, T] =
   HsTokTree[R, T](isToken: false, kind: wrap, subnodes: @[tree])
@@ -408,7 +462,14 @@ proc setStr*[T](lexer: var HsLexer[T], str: var PosStr) =
   lexer.str = addr str
 
 proc skip*[T, En](lexer: var HsLexer[T], kind: En) =
-  assertKind(lexer[], kind)
+  when kind is set:
+    if lexer[].kind notin kind:
+      raise unexpectedTokenError(lexer, kind)
+
+  else:
+    if lexer[].kind != kind:
+      raise unexpectedTokenError(lexer, {kind})
+
   lexer.advance()
 
 proc skip*[T, En](
@@ -441,32 +502,6 @@ proc getAll*[T](lex: var HsLexer[T]): seq[T] =
   while not lex.finished():
     result.add lex.pop()
 
-proc unexpectedTokenError*[K](
-    lexer: var HsLexer[HsTok[K]],
-    expected: set[K] = {}
-  ): UnexpectedTokenError =
-
-  let (line, linePos) = lexer.str[].lineAround(lexer[].offset)
-  result = UnexpectedTokenError(
-    line: lexer[].line,
-    column: lexer[].column,
-    lineText: line,
-    linePos: linePos,
-    gotToken: $lexer[],
-    expected: mapIt(expected, $it)
-  )
-
-  var buf = initRuneGrid()
-
-  var pos = &"{result.line}:{result.column}"
-  buf[1, 0] = pos
-  buf[1, pos.len + 1] = result.lineText
-  let arrow = pos.len + 1 + linePos
-  buf[2, arrow] = "^"
-  buf[3, arrow] = "|"
-  buf[4, arrow] = result.gotToken
-
-  result.msg = $buf
 
 
 

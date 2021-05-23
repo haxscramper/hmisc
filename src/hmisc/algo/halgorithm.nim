@@ -774,6 +774,10 @@ func toMapArray*[K, V](map: openarray[(K, V)]): array[K, V] =
   for (k, v) in map:
     result[k] = v
 
+func toRevMapArray*[K, V](map: openarray[(K, V)]): array[V, K] =
+  for (k, v) in map:
+    result[v] = k
+
 func toMapArray*[K, V](map: openarray[(set[K], V)]): array[K, V] =
   for (keySet, v) in map:
     for k in items(keySet):

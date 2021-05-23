@@ -5,7 +5,7 @@ import
   ../base_errors,
   ../hdebug_misc,
   ../types/colorstring,
-  ../algo/[hlex_base, hparse_base, halgorithm],
+  ../algo/[hlex_base, hparse_base, hparse_common, halgorithm],
   fusion/matching
 
 export hparse_base, colorstring
@@ -40,7 +40,7 @@ type
     htoFloatLit
     htoBoolLit
 
-    htoDot,
+    htoDot
     htoLPar
     htoRPar
     htoLCurly
@@ -83,6 +83,7 @@ type
     hnoContent
     hnoStmtList
     hnoExpr
+    hnoDotExpr
     hnoStmt
     hnoFor
     hnoWhile
@@ -93,6 +94,8 @@ type
     hnoIdent
     hnoSym
 
+    hnoCall
+
   HxTok* = HsTok[HxTokenKind]
   HxLexer* = HsLexer[HxTok]
   HxTree* = HsTokTree[HxNodeKind, HxTok]
@@ -102,7 +105,7 @@ type
     elsPossibleRaw ## Potential start of `raw` statement
     elsRawText ## Inside of the raw block
     elsPossibleEndraw ## Potential start of `endraw` statement
-    elsLogic ## Expression content
+    elsExpr ## Expression content
 
   HxNode* = ref HxNodeObj
   HxNodeObj* = object
@@ -135,7 +138,7 @@ proc newHextLexer*(): HxLexer =
 
     else:
       case state.topFlag()
-        of elsLogic, elsPossibleRaw, elsPossibleEndRaw:
+        of elsExpr, elsPossibleRaw, elsPossibleEndRaw:
           case str[]:
             of '-':
               result = some (
@@ -187,27 +190,32 @@ proc newHextLexer*(): HxLexer =
               str.skipWhile(HorizontalSpace)
               return heLex(str)
 
+            of '.':
+              result = some initCharTok(str, {
+                '.': htoDot
+              })
+
             else:
-              str.raiseUnexpectedChar()
+              raise newUnexpectedChar(str, state)
 
         of elsContent, elsRawText:
           case str[]:
             of '{':
               if str[+1, "%-"]:
                 result = some initTok(str, str.popNext(3), htoStmtOpenStrip)
-                state.toFlag(elsLogic)
+                state.toFlag(elsExpr)
 
               elif str[+1, '%']:
                 result = some initTok(str, str.popNext(2), htoStmtOpen)
-                state.toFlag(elsLogic)
+                state.toFlag(elsExpr)
 
               elif str[+1, '{']:
                 result = some initTok(str, str.popNext(2), htoExprOpen)
-                state.toFlag(elsLogic)
+                state.toFlag(elsExpr)
 
               elif str[+1, '#']:
                 result = some initTok(str, str.popNext(2), htoCommentOpen)
-                state.toFlag(elsLogic)
+                state.toFlag(elsExpr)
 
               else:
                 result = some initTok(str, str.popUntil('{'), htoContent)
@@ -235,14 +243,23 @@ const
 
 
 
+const
+  hextExprContext = initCommonExprContext[HxNodeKind, HxTokenKind]({
+    htoDot: etkDot,
+    htoIdent: etkIdentName,
+    htoLBrace: etkLBRack,
+    htoStmtClose, htoExprClose: etkExprClose
+  }, {
+    enkCall: hnoCall,
+    enkIdent: hnoIdent,
+    enkDotExpr: hnoDotExpr
+  }, commonPrecLevel[HXNodeKind, HxTokenKind])
+
+
 
 proc parseExpr(lexer: var HxLexer): HxTree =
-  case lexer[].kind:
-    of htoIdent:
-      result = newHTree(hnoIdent, lexer.pop())
-
-    else:
-      raiseImplementKindError(lexer[])
+  result = parseCommonExpr(lexer, hextExprContext)
+  echo result.treeRepr()
 
 
 proc parseHxStmtList(lexer: var HxLexer): HxTree
@@ -251,13 +268,8 @@ proc parseForStmt(lexer: var HxLexer): HxTree =
   lexer.skip(hxStmtFirst)
   result = lexer.newHTree(hnoFor)
   lexer.skip(htoForKwd)
-  let vars = parseDelimitedStar(
-    toHsParse[HxTokenKind, HxTree](parseExpr, exprFirst),
-    parseTokenKind(htoComma)
-  )(lexer)
 
-  result.add vars.value[0]
-
+  result.add lexer.parseIdent(hnoIdent)
 
   lexer.skip(htoInKwd)
   result.add parseExpr(lexer)
@@ -338,6 +350,8 @@ type
 
 
   HextBaseType = int|string|float|bool
+  HextTypeIdRange* = range[0 .. high(int)]
+  HextUserTypeIdRange* = range[hextMinTypeId .. high(int)]
 
   HextValue*[T] = object
     case kind*: HextValueKind
@@ -354,7 +368,7 @@ type
         boolVal*: bool
 
       of hvkRecord:
-        recordTypeId: range[hextMinTypeId .. high(int)]
+        recordTypeId: HextUserTypeIdRange
         recordVal*: T
 
       of hvkSeq:
@@ -432,13 +446,27 @@ proc boxValue*[T, V](
   for item in value:
     result.seqVal.add boxValue(HextValue[T], item)
 
+proc boxValue*[T](
+    target: typedesc[HextValue[T]], value: T, boxId: HextTypeIdRange
+  ): HextValue[T] =
+
+  result = HextValue[T](
+    kind: hvkRecord, recordVal: value,
+    recordTypeId: boxId + hextMinTypeId)
+
 
 proc boxedType*[T, UC](map: HextProcMap[T, UC]): T = discard
 proc contextType*[T, UC](map: HextProcMap[T, UC]): UC = discard
 
 iterator items*[T](val: HextValue[T]): HextValue[T] =
-  for item in items(val.seqVal):
-    yield item
+  mixin boxedItems
+  if val.kind == hvkSeq:
+    for item in items(val.seqVal):
+      yield item
+
+  elif val.kind == hvkRecord:
+    for item in boxedItems(HextValue[T], val.recordVal):
+      yield item
 
 proc getStrVal(nn: NimNode): string =
   case nn.kind:
@@ -516,7 +544,8 @@ proc `[]`*[T, UC](ctx: var HextAstCtx[T, UC], varname: string): HextValue[T] =
     if varname in scope:
       return scope[varname]
 
-  raiseArgumentError(&"Cannot get var '{varname}' from context")
+  raise newArgumentError(
+    &"Cannot get var '{varname}' from context")
 
 
 proc evalAst*[T, V, UC](
@@ -539,9 +568,6 @@ proc evalAst*[T, V, UC](
 
     of hopLoadIdentFromCtx:
       result = ctx[ast.strVal]
-
-    else:
-      discard
 
 
 proc newHextAstCtx*[V, UC](
@@ -583,6 +609,7 @@ proc write*[T](stream: Stream, value: HextValue[T]) =
 
 
 proc evalAst*[V, UC](node: HxTree, ctx: var HextAstCtx[V, UC]): HextValue[V] =
+  mixin getField
   case node.kind:
     of hnoContent:
       ctx.uc.write(node.strVal())
@@ -607,11 +634,19 @@ proc evalAst*[V, UC](node: HxTree, ctx: var HextAstCtx[V, UC]): HextValue[V] =
 
       ctx.popScope()
 
-    else:
-      raiseImplementKindError(node)
+    of hnoDotExpr:
+      let head = ctx[node[0].strVal]
+      when V is object or V is tuple:
+        return getField(HextValue[V], head.recordVal, node[1].strVal)
 
-proc evalHext*(
-    node: HxTree, stream: Stream,
-    initValues: openarray[(string, HextValue[int])] = @[]) =
-  var ctx = newHextAstCtx[int, Stream](stream, initValues)
+      else:
+        raise newImplementError()
+
+    else:
+      raise newImplementKindError(node)
+
+proc evalHext*[T, Uc](
+    node: HxTree, stream: Uc,
+    initValues: openarray[(string, HextValue[T])] = @[]) =
+  var ctx = newHextAstCtx[T, Uc](stream, initValues)
   discard evalAst(node, ctx)
