@@ -20,6 +20,7 @@ import ../hexceptions
 import ../base_errors
 
 import ../algo/hlex_base
+import ../algo/htemplates
 
 from std/os import quoteShell
 
@@ -1149,6 +1150,7 @@ proc shellResult*(
     stdin: string = "",
     options: set[ProcessOption] = {poEvalCommand},
     maxErrorLines: int = 12,
+    maxOutLines: int = high(int),
     discardOut: bool = false
   ): ShellResult {.tags: [
     ShellExecEffect,
@@ -1173,18 +1175,33 @@ proc shellResult*(
       let outStream = pid.outputStream
       var line = ""
 
+      var outLineCount = 0
       while pid.running:
         try:
           let streamRes = outStream.readLine(line)
           if streamRes:
-            result.execResult.stdout &= line & "\n"
+            if outLineCount > maxOutLines:
+              discard
+
+            else:
+              result.execResult.stdout &= line & "\n"
+              inc outLineCount
             # WARNING remove trailing newline on the stdout
         except IOError, OSError:
           assert outStream.isNil
           echo "process died" # NOTE possible place to raise exception
 
-      result.execResult.stdout &= outStream.readAll()
-      result.execResult.stderr = pid.errorStream.readAll()
+      while outLineCount < maxOutLines and outStream.readLine(line):
+        result.execResult.stdout.add line & "\n"
+        inc outLineCount
+
+      var errLineCount = 0
+      while errLineCount < maxErrorLines and pid.errorStream.readLine(line):
+        result.execResult.stderr.add line & "\n"
+        inc errLineCount
+
+      # result.execResult.stdout &= outStream.readAll()
+      # result.execResult.stderr = pid.errorStream.readAll()
     else:
       while pid.running():
         discard
@@ -1200,8 +1217,36 @@ proc shellResult*(
       let (res, code) = gorgeEx(nscmd, "", "")
 
       if not discardOut:
-        result.execResult.stdout = res
+        if maxOutLines == high(int):
+          result.execResult.stdout = res
+
+        else:
+          for idx, line in enumerate(lines(res)):
+            if idx > maxOutLines:
+              break
+
+            else:
+              result.execResult.stdout.add line & "\n"
+
         result.execResult.code = code
+
+
+
+  withResIt result.execResult.stderr:
+    var idx = 1
+    if it.len > 0:
+      while it[^idx] == '\n':
+        inc idx
+
+      it.setLen(it.len - idx)
+
+  withResIt result.execResult.stdout:
+    var idx = 1
+    if it.len > 0:
+      while it[^idx] == '\n':
+        inc idx
+
+      it.setLen(it.len - idx)
 
 
   updateException(result, cmd, maxErrorLines)
@@ -1215,6 +1260,7 @@ proc runShell*(
     stdin: string = "",
     options: set[ProcessOption] = {poEvalCommand},
     maxErrorLines: int = 12,
+    maxOutLines: int = high(int),
     discardOut: bool = false
   ): ShellExecResult =
   ## Execute shell command and return it's output. `stdin` - optional
@@ -1225,7 +1271,12 @@ proc runShell*(
   ## :maxErrorLines: max number of stderr lines that would be appended to
   ##   exception. Any stderr beyond this range will be truncated
   let output = shellResult(
-    cmd, stdin, options, maxErrorLines, discardOut)
+    cmd, stdin, options,
+    maxErrorLines = maxErrorLines,
+    maxOutLines = maxOutLines,
+    discardOut
+  )
+
   result = output.execResult
 
   if (not output.resultOk) and doRaise:
@@ -1289,11 +1340,22 @@ proc evalShellStdout*(cmd: ShellCmd, stdin: string = ""): string =
 proc evalShell*(cmd: ShellCmd, stdin: string = ""): auto =
   runShell(cmd, stdin = stdin, options = {poEvalCommand, poUsePath})
 
-proc execShell*(cmd: ShellCmd, doRaise: bool = true): void =
+proc execShell*(
+    cmd: ShellCmd, doRaise: bool = true,
+    limitErr: int = high(int), limitOut: int = high(int),
+  ): void =
   ## Execute shell command with stdout/stderr redirection into parent
   ## streams. To capture output use `runShell`, `eval` or `evalShellStdout`
-  discard runShell(cmd, doRaise = doRaise, discardOut = true, options = {
-    poParentStreams, poUsePath, poEvalCommand})
+  if limitOut < high(int) or limitErr < high(int):
+    let res = runShell(
+      cmd, doRaise = doRaise,
+      maxOutLines = limitOut,
+      maxErrorLines = limitErr
+    )
+
+  else:
+    discard runShell(cmd, doRaise = doRaise, discardOut = true, options = {
+      poParentStreams, poUsePath, poEvalCommand})
 
 proc eval*(expr: ShellExpr): string =
   shellResult(expr).execResult.stdout.strip()
