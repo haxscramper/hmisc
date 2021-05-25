@@ -1373,6 +1373,13 @@ proc execShell*(
   ): void =
   ## Execute shell command with stdout/stderr redirection into parent
   ## streams. To capture output use `runShell`, `eval` or `evalShellStdout`
+  ##
+  ## - @arg{limitErr}, @arg{limitOut} :: Some command-line applications
+  ##   (line nim compiler for example) can't limit amount of garbage they
+  ##   dump to end user, so you might only want to show first `N` lines
+  ##   (for example when running `nim check` and you don't want to drown
+  ##   in overload candidate messages it make sense to put something like
+  ##   `limitErr = 30`).
   if limitOut < high(int) or limitErr < high(int):
     let res = runShell(
       cmd,
