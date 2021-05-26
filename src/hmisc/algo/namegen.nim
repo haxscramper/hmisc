@@ -157,6 +157,9 @@ func isReservedNimIdent*(str: string): bool =
 
   return nimNorm(str) in reserved
 
+func isReservedNimWord*(str: string): bool =
+  isReservedNimIdent(str) or isReservedNimType(str)
+
 # func isValidNimIdent*(str: string): bool =
 #   str.len > 0 and isRevered
 
@@ -171,10 +174,10 @@ proc keepNimIdentChars*(str: string): string =
 proc fixIdentName*(str: string, prefix: string): string =
   ## Convert possibly reserved identifier `str` to save identfier by
   ## prepending `prefix`.
-  if not str.isReservedNimIdent():
+  if not str.isReservedNimWord():
     assert prefix.len > 0
     result = keepNimIdentChars(str)
-    while result.isReservedNimIdent():
+    while result.isReservedNimWord():
       result = prefix & capitalizeAscii(result)
 
   else:
@@ -190,10 +193,10 @@ proc fixIdentName*(
   if cache.knownRename(str):
     return cache.getRename(str)
 
-  if str.isReservedNimIdent():
+  if str.isReservedNimWord():
     assert prefix.len > 0
     result = prefix & keepNimIdentChars(str).capitalizeAscii()
-    while result.isReservedNimIdent():
+    while result.isReservedNimWord():
       result = prefix & result
 
   elif requirePrefix:

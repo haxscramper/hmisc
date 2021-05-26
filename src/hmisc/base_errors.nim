@@ -130,19 +130,21 @@ template raiseImplementKindError*(
   raise newImplementKindError(node, userMsg)
 
 
-template raiseUnexpectedKindError*(
-  node: untyped, userMsg: string = "") {.dirty.} =
+proc newUnexpectedKindError*[T](
+    expr: T, userMsg: string = ""): ref UnexpectedKindError =
   var msg: string
   if userMsg.len > 0: msg &= " "
   if '\n' in userMsg: msg &= "\n"
   msg &= userMsg
 
-
-  raise newException(UnexpectedKindError,
-    "\nUnexpected entry kind: " &
-      astToStr(node) &
-      " has kind \e[32m" & kindToStr(node) & "\e[39m" & prepareMsg(userMsg)
+  newException(UnexpectedKindError,
+    "\nUnexpected entry kind: \e[32m" & kindToStr(expr) &
+      "\e[39m" & prepareMsg(userMsg)
   )
+
+template raiseUnexpectedKindError*(
+  node: untyped, userMsg: string = "") {.dirty.} =
+  raise newUnexpectedKindError(node, userMsg)
 
 
 template canImport*(x: untyped): untyped =

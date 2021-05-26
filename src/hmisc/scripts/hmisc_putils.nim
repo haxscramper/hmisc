@@ -20,7 +20,7 @@ proc dockertest*(
                   cdMainProject &&
                   &&preTestCmds &&
                   cdMainProject &&
-                  shCmd("nimble", "test")
+                  shellCmd("nimble", "test")
   )
 
 proc installtest*(
@@ -30,7 +30,7 @@ proc installtest*(
   let cmd = shAnd:
     makeLocalDevel(tmpd, localDeps)
     cdMainProject
-    shCmd("nimble", install, -y)
+    shellCmd("nimble", install, -y)
     shAsgn($$PATH, "$PATH:$HOME/.nimble/bin")
 
   runDockerTest(projectDir, tmpd, cmd)
@@ -54,9 +54,9 @@ proc dockerDocGen*(
   let cmd = shAnd:
     makeLocalDevel(tmpd, localDeps)
     cdMainProject
-    shCmd(nimble, install, -y)
+    shellCmd(nimble, install, -y)
     shAsgn($$PATH, "$PATH:$HOME/.nimble/bin")
-    shCmd(nimble, docgen)
+    shellCmd(nimble, docgen)
 
   var conf: TaskRunConfig
   withDir projectDir:

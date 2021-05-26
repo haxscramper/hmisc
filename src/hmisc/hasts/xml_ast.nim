@@ -979,6 +979,35 @@ proc loadXml*[T](stream: var HXmlParser, target: var seq[T], tag: string) =
     loadXml(stream, tmp, tag)
     target.add tmp
 
+
+template loadXml*[T](
+    stream: var HXmlParser, target: var seq[T],
+    tag: string, mixedStr: T, fieldAsgn: untyped
+  ) =
+  mixin loadXml
+  while stream.kind in {
+    xmlElementOpen, xmlElementStart, xmlCharData, xmlWhitespace
+  }:
+    case stream.kind:
+      of xmlElementOpen, xmlElementStart:
+        if stream.elementName() == tag:
+          var tmp: T
+          loadXml(stream, tmp, tag)
+          target.add tmp
+
+        else:
+          break
+
+      of xmlElementCharData, xmlWhitespace:
+        var next {.inject.} = mixedStr
+        var str: string
+        loadXml(stream, str, "")
+        fieldAsgn = str
+        target.add next
+
+      else:
+        break
+
 proc loadXml*[A, B](
   stream: var HXmlParser, target: var Table[A, B], tag: string) =
 
@@ -1048,6 +1077,8 @@ proc loadXml*(reader; target: var Slice[int], tag: string) =
       skipClose()
 
 
+proc loadXml*(reader; target: var XmlNode, tag: string) =
+  parseXsdAnyType(target, reader, tag)
 
 
 when isMainModule:

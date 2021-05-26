@@ -179,7 +179,7 @@ template fatal*(args: varargs[string, `$`]) =
 
 template logDefer*(logCmd: untyped, args: varargs[string, `$`]): untyped =
   log(`lvl logCmd`, @[$instantiationInfo()] & toSeqFix(args))
-  identLog()
+  indentLog()
   defer: dedentLog()
 
 

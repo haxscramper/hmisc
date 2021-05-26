@@ -387,7 +387,7 @@ when cbackend:
       return makeGnuShellCmd("true").toShellAst
 
     info "Copying local development versions"
-    identLog()
+    indentLog()
     let home = getHomeDir()
     for pkg in pkgs:
       let version = getNimbleDump(pkg)["", "version"]
@@ -432,8 +432,8 @@ when cbackend:
 
       result = shAnd(
         result,
-        shCmd(cd, &"/project/{pkg}"),
-        shCmd(nimble, develop, -y)
+        shellCmd(cd, &"/project/{pkg}"),
+        shellCmd(nimble, develop, -y)
       )
 
     result &&= cdMainProject

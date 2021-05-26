@@ -379,6 +379,11 @@ type
 
 type
   DotEdge* = object
+    lhead*: Option[string]
+    rhead*: Option[string]
+    ltail*: Option[string]
+    rtail*: Option[string]
+
     fontname*: string
     style*: DotEdgeStyle
     arrowSpec*: Arrow
@@ -405,6 +410,8 @@ type
 
   DotGraph* = object
     # spline*: SplineStyle
+    compound*: Option[bool] ## If true, allow edges between clusters. Must
+                            ## be specified if `lhead` or `ltais` is used
     rankdir*: DotGraphRankDir
     styleNode*: DotNode
     styleEdge*: DotEdge
@@ -424,6 +431,8 @@ type
     labelOnBottom*: bool
     fontsize*: int
     fontcolor*: Color
+    fontname*: string
+    color*: Option[Color]
     splines*: DotSplineStyle
 
     subgraphs*: seq[DotGraph]
@@ -483,7 +492,8 @@ func makeDotGraph*(
     nodes: nodes,
     edges: edges,
     styleNode: styleNode,
-    styleEdge: styleEdge
+    styleEdge: styleEdge,
+    fontname: "Consolas"
   )
 
 func makeDotGraph*(style: DotGraphPresets, name: string = "G"): DotGraph =
@@ -505,6 +515,9 @@ func add*(graph: var DotGraph, node: DotNode): void =
   graph.nodes.add node
   if node.shape in {nsaPlaintext}:
     graph.recordIds.incl node.id
+
+func add*(graph: var DotGraph, sub: DotGraph): void =
+  graph.subgraphs.add sub
 
 func add*(graph: var DotGraph, edge: DotEdge): void =
   var edge = edge
@@ -780,6 +793,10 @@ func toTree(edge: DotEdge, idshift: int, level: int = 0): DotTree =
   if edge.label.isSome(): attrs["label"] = edge.label.get().quoteGraphviz()
   if edge.style != edsDefault: attrs["style"] = ($edge.style)
   if edge.fontname.len > 0: attrs["fontname"] = edge.fontname.quoteGraphviz()
+  if edge.lhead.isSome(): attrs["lhead"] = "cluster_" & edge.lhead.get()
+  if edge.rhead.isSome(): attrs["rhead"] = "cluster_" & edge.rhead.get()
+  if edge.ltail.isSome(): attrs["ltail"] = "cluster_" & edge.ltail.get()
+  if edge.rtail.isSome(): attrs["rtail"] = "cluster_" & edge.rtail.get()
 
   result.origin = edge.src.addIdShift(idshift)
   result.targets = edge.to.mapIt(it.addIdShift(idshift))
@@ -818,6 +835,10 @@ func toTree(graph: DotGraph, idshift: int, level: int = 0): DotTree =
   if graph.splines != spsDefault: attrs["splines"] = $graph.splines
   if graph.noderank != gnrDefault: attrs["rank"] = $graph.noderank
   if graph.rankdir != grdDefault: attrs["rankdir"] = $graph.rankdir
+  if graph.label.len > 0: attrs["label"] = graph.label
+  if graph.color.isSome(): attrs["color"] = &"\"{$graph.color.get()}\""
+  if graph.fontname.len > 0: attrs["fontname"] = graph.fontname
+  if graph.compound.isSome(): attrs["compound"] = $graph.compound.get()
 
   result.elements &= toTree(attrs)
   block:

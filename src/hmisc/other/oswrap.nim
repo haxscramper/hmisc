@@ -142,6 +142,7 @@ type
   AnyDir* = AbsDir | RelDir | FsDir
   AnyFile* = AbsFile | RelFile | FsFile
 
+
 func newPathError*(
   entry: FsEntry, kind: PathErrorKind, msg: string): PathError =
   PathError(msg: msg & " (" & $kind & ")", kind: kind, entry: entry)
@@ -1593,11 +1594,11 @@ template withNewStreamFile*(inFile: AnyFile, body: untyped) =
     withStreamFile(inFile):
       body
 
-iterator xPatterns(pattern: string): string =
+iterator xPatterns(pattern: string, pattChar: char = '?'): string =
   while true:
     var next: string
     for ch in pattern:
-      if ch == 'X':
+      if ch == pattChar:
         next.add sample({'a' .. 'z', 'A' .. 'Z'})
 
       else:
@@ -1607,19 +1608,22 @@ iterator xPatterns(pattern: string): string =
 
 
 proc getNewTempDir*(
-    dir: string | AbsDir = getTempDir(),
-    dirPatt: string = "XXXXXXXX",
-    createDir: bool = true
+    dirPatt: string = "????????",
+    dir: AbsDir = getTempDir(),
+    createDir: bool = true,
+    pattChar: char = '?'
   ): AbsDir =
 
   ## Get name for new temporary directory
-  if not anyIt(dirPatt, it == 'X'):
+  if not anyIt(dirPatt, it == pattChar):
     # To avoid infinite search for non-existent directory in case
     # pattern does not contain necessary placeholders
-    return AbsDir(dir / RelDir(dirPatt))
+    result = AbsDir(dir / RelDir(dirPatt))
+    if createDir:
+      mkDir result
 
   else:
-    for next in xPatterns(dirPatt):
+    for next in xPatterns(dirPatt, pattChar):
       if not dirExists(dir / RelDir(next)):
         result = AbsDir(dir / RelDir(next))
         break
@@ -1670,9 +1674,9 @@ template withTempDir*(clean: bool, setup, body: untyped): untyped =
   ## `body` and remove it afterwards if `clean` is true
   let curDir = cwd()
   var tempRoot {.inject.} = getTempDir()
-  var tempPatt {.inject.} = "XXXXXXXXX"
+  var tempPatt {.inject.} = "????????"
   setup
-  let tempDir {.inject.} = getNewTempDir(tempRoot, tempPatt)
+  let tempDir {.inject.} = getNewTempDir(tempPatt, tempRoot)
 
   if dirExists(tempDir):
     rmDir(tempDir)
@@ -1777,26 +1781,31 @@ DSL for creating directory structures
 - @inject{currentFile: string} :: for file blocks
 
 ]##
+  let file = ident("file")
   proc aux(node: NimNode): NimNode =
     case node.kind:
       of nnkCommand:
         if node[0].eqIdent("file"):
-          result = newCall("writeFile", ident "currentFile")
+          result = newStmtList()
 
           if node.len == 3:
             if node[2].kind != nnkStmtList:
-              result.add node[2]
+              result.add newCall("write", file, node[2])
 
             else:
-              result.add node[2][0]
+              for sub in node[2]:
+                result.add aux(sub)
 
           else:
-            result.add newLit("")
+            result.add newCall("write", file, newLit(""))
 
           result = newBlockStmt(
             newStmtList(
-              newLetStmt(ident "currentFile", node[1]),
-              result
+              newVarStmt(
+                file,
+                newCall("open", node[1], ident"fmWrite")),
+              result,
+              newCall("close", file)
             )
           )
 
@@ -1813,11 +1822,19 @@ DSL for creating directory structures
         for subnode in node:
           result.add aux(subnode)
 
+      of nnkCharLit .. nnkTripleStrLit:
+        result = newCall("write", file, node)
+
       else:
         result = node
 
 
   result = aux(body)
+
+template mkWithDirStructure*(dir: AbsDir, body: untyped): untyped =
+  mkDir dir
+  withDir dir:
+    mkDirStructure(body)
 
 type
   CmdLineKind* = enum
@@ -2325,6 +2342,9 @@ proc newFileStream*(
     assertExists(filename, "Cannot open file for stream reading")
 
   return newFileStream(filename.string, mode, bufSize)
+
+proc newWriteStream*(file: AbsFile|RelFile): FileStream =
+  newFileStream(file, fmWrite)
 
 type
   OutStringStream* = ref object of StreamObj

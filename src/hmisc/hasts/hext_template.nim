@@ -1,5 +1,13 @@
 ## Extendable templating framework
 
+#[
+
+- Pass information about syntactical context in to writer. I want to at
+  least access indentation information, but it might be possible to expand
+  this into things like 'surrounding blocks' or 'file names' later on.
+
+]#
+
 import
   std/[tables, options, macros, streams, strformat],
   ../base_errors,
@@ -259,7 +267,6 @@ const
 
 proc parseExpr(lexer: var HxLexer): HxTree =
   result = parseCommonExpr(lexer, hextExprContext)
-  echo result.treeRepr()
 
 
 proc parseHxStmtList(lexer: var HxLexer): HxTree
@@ -522,8 +529,6 @@ macro wrap*[T, UC](map: HextProcMap[T, UC], sig, name: untyped): untyped =
             `setResult`
       )
 
-  echo result.repr
-
 var map: HextProcMap[int, int]
 wrap(map, proc(a, b: int): float, `+`)
 
@@ -648,5 +653,13 @@ proc evalAst*[V, UC](node: HxTree, ctx: var HextAstCtx[V, UC]): HextValue[V] =
 proc evalHext*[T, Uc](
     node: HxTree, stream: Uc,
     initValues: openarray[(string, HextValue[T])] = @[]) =
+  var ctx = newHextAstCtx[T, Uc](stream, initValues)
+  discard evalAst(node, ctx)
+
+
+proc evalHext*[T, Uc](
+    text: string, stream: Uc,
+    initValues: openarray[(string, HextValue[T])] = @[]) =
+  let node = parseHext(text)
   var ctx = newHextAstCtx[T, Uc](stream, initValues)
   discard evalAst(node, ctx)

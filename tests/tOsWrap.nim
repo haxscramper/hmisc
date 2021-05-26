@@ -53,19 +53,20 @@ suite "Pathwrap":
     check relativeUpCount(AbsFile("/a.txt"), AbsFile("/b.txt")) == 0
     check relativeUpCount(AbsFile("/tmp/a.txt"), AbsFile("/tmp/b.txt")) == 0
 
-    # check relativeUpCount(AbsDir("/b.txt"), AbsDir("/a/b")) == -2
-    # check relativeUpCount(AbsDir("/a/b/c.txt"), AbsDir("/b.txt")) == 3
-
-
   test "Mkdir structure":
     let name = "hello"
     proc generateText(): string = "input text test"
     withTempDir(false):
-      mkdirStructure:
+      mkDirStructure:
         file "hello", "content"
         file "test-1", generateText()
         file &"{name}.nimble":
-          "author = haxscramper"
+          "author = haxscramper\n"
+          "second line"
+
+        file "loop":
+          for i in 0 ..< 10:
+            file.write i
 
         dir "src":
           file &"{name}.nim"
@@ -83,8 +84,6 @@ Not that is looks particulatly pretty though
           file "config.nims":
             """switch("path", "$projectDir/../src")"""
 
-            doAssert currentFile() == "config.nims"
-
 
       try:
         execShell(ShelLExpr "ls -R")
@@ -92,7 +91,8 @@ Not that is looks particulatly pretty though
       except ShellError:
         discard
 
-      doAssert readFile(&"{name}.nimble") == "author = haxscramper"
+      doAssert readFile(&"{name}.nimble") == "author = haxscramper\nsecond line"
+      doAssert readFile("loop") == "0123456789"
 
 
 suite "Shell":

@@ -481,16 +481,16 @@ proc levenshteinDistance*(str1, str2: seq[char]): tuple[
 
 
 type
-  Align[T] = seq[AlignElem[T]]
-  AlignSeq[T] = tuple[align1, align2: Align[T], score: int]
-  AlignGroup[T] = seq[tuple[idx: int8, align: Align[T]]]
-  AlignElem[T] = object
-    case isGap: bool
+  Align*[T] = seq[AlignElem[T]]
+  AlignSeq*[T] = tuple[align1, align2: Align[T], score: int]
+  AlignGroup*[T] = seq[tuple[idx: int8, align: Align[T]]]
+  AlignElem*[T] = object
+    case isGap*: bool
       of true:
         discard
       of false:
-        idx: int
-        item: T
+        idx*: int
+        item*: T
 
 func initAlignElem[T](idx: int, item: T): AlignElem[T] =
   AlignElem[T](idx: idx, isGap: false, item: item)
@@ -900,13 +900,6 @@ proc alignToGroup*[T](
   when seqN is seq[T]:
     let seqN = toAlignSeq(seqN)
 
-  defer:
-    echo &"\n<- {seqN.toString()}"
-    for (_, elem) in group:
-      echo &"-- {elem.toString()}"
-
-    echo &"-> {result.toString()}"
-
   var bestScore: int = 0
   for idx, align in group:
     let tmp = firstAlign(
@@ -1222,161 +1215,16 @@ proc gitignoreGlobMatch*(
   return globPos >= m;
 
 
+type
+  GitGlob* = object
+    patt: string
+    ign: bool
 
-when isMainModule:
-  if true:
-    for (text, patt) in {
-      "a", "b":                             ("/*", true),
-      "x/b", "a/a/b":                       ("/*", false),
-      "--":                                 ("--", true),
-      "123", "1234", "12345":               ("???*", true),
-      "axb", "ayb":                         ("a[xy]b", true),
-      "aab", "abb", "acb", "azb":           ("a[a-z]b", true),
-      "aab", "abb", "acb", "azb":           ("a[^xy]b", true),
-      "a3b", "aAb", "a3b", "aAb", "aZb":    ("a[^a-z]b", true),
-      "a", "b", "x/a", "x/y/b":             ("*", true),
-      "a", "x/a", "x/y/a":                  ("a", true),
-      "a", "b", "x/a", "x/y/b":             ("*", true),
-      "a", "x/a", "x/y/a":                  ("a", true),
-      "a":                                  ("/a", true),
-      "axb", "ayb":                         ("a?b", true),
-      "a/x/b", "a/y/b":                     ("a/*/b", true),
-      "a", "x/a", "x/y/a":                  ("**/a", true),
-      "a/b", "a/x/b", "a/x/y/b":            ("a/**/b", true),
-      "a/x", "a/y", "a/x/y":                ("a/**", true),
-      "a?b":                                ("a\\?b", true),
+proc `**`*(str: string): GitGlob = GitGlob(patt: str, ign: true)
+proc `*!`*(str: string): GitGlob = GitGlob(patt: str, ign: false)
 
-      "x/a", "x/b", "x/y/a":                ("/a", false),
-      "x/a", "x/y/a":                       ("a?b", false),
-      "a", "b", "ab", "a/b":                ("a[xy]b", false),
-      "a", "b":                             ("a[a-z]b", false),
-      "a", "b":                             ("a[^xy]b", false),
-      "a", "b", "axb", "ayb":               ("a[^a-z]b", false),
-      "a", "b", "aab", "abb", "acb", "azb": ("a/*/b", false),
-      "a/b", "a/x/y/b":                     ("a/*/b", false),
-      "b", "x/b":                           ("**/a", false),
-      "a", "b/x":                           ("a/**", false),
-      "a", "b", "ab", "axb", "a/b":         ("a\\?b", false),
-      "x/a/b", "a/b/x":                     ("a/**/b", false),
-    }:
-      let res = gitignoreGlobMatch(text, patt[0])
-      if res != patt[1]:
-        echo &"{text:<8} ~ {patt[0]:<8} {res == patt[1]:<5} (got {res:<5}, expected {patt[1]})"
-
-    echo "finished test"
-
-
-  if false:
-    const
-      gapPenalty = -1
-      match_award = 1
-      mismatchPenalty = -1
-
-    let (a, b, _) = needlemanWunschAlign(
-      "ATGTAGTGTATAGTACATGCA".toSeq(),
-      "ATGTAGTACATGCA".toSeq(),
-      gapPenalty
-    ) do(alpha, beta: char) -> int:
-      if alpha == beta:
-        match_award
-      elif alpha == '-' or beta == '-':
-        gapPenalty
-      else:
-        mismatchPenalty
-
-    echo a.mapIt(if it.isGap: '-' else: it.item).join("")
-    echo b.mapIt(if it.isGap: '-' else: it.item).join("")
-
-
-  if false:
-    let
-      seq1 = "ATGTAGTGTATAGTACATGCA".toSeq()
-      seq2 = "ATGTAGTACATGCA".toSeq()
-    let paths = affineGapAlign(
-      seq1, seq2,
-      matchScore = proc(a, b: char): int =
-                       if a == b:
-                         if a in {'(', ')', ':', '='}:
-                           4
-                         else:
-                           0
-                       else:
-                         -1
-
-    )
-
-    let aligns = sortAlignments(
-      seq1, seq2, paths,
-      scoreFunc = proc(align1: AlignSeq[char]): int =
-                    1
-    )
-
-    for (a, b, _) in aligns:
-      echo a.mapIt(if it.isGap: ' ' else: it.item).join("")
-      echo b.mapIt(if it.isGap: ' ' else: it.item).join("")
-      echo "---"
-
-  if false:
-    let gapCost = proc(a: char): int =
-      if a == '=':
-        -2
-      else:
-        -1
-
-    let cmp = proc(a, b: char): int =
-      if a == b:
-        if a in {'(', '=', ':', ')'}:
-          10
-        elif a in {'0' .. '9'}:
-          8
-        else:
-          0
-      else:
-        if a == '=' or b == '=':
-          -6
-        else:
-          -2
-
-    block:
-      let (al1, al2, _) = align(
-        "let a = 12", "let nice = 90", matchScore = cmp)
-
-      echo al1.toString()
-      echo al2.toString()
-      echo "---"
-
-    if false:
-      var group: AlignGroup[char] = AlignGroup[char](@[
-          (idx: 2'i8, align: "let nice = 12".toAlignSeq()),
-          (idx: 0'i8, align: "let   a = 12".toAlignSeq()),
-          (idx: 1'i8, align: "let qwe = 12".toAlignSeq()),
-        ])
-
-      for _ in 0 ..< 1:
-        for i in 0 .. group.high:
-          let align = alignToGroup(
-            group[0 ..< i] & group[i + 1 .. ^1],
-            group[i].align,
-            gapToItemPenalty = gapCost,
-            matchScore = cmp
-          )
-
-          group[i] = (idx: group[i].idx, align: align)
-
-
-
-    echo "\e[31m-------------------------------------\e[39m"
-    if true:
-      let seqs = @["let a = 12", "let nice = 90", "let qwe = 2"]
-      discard bartonSternbergAlign(
-        seqs.mapIt(it.toSeq()), cmp,
-        gapToItemPenalty = gapCost,
-        realignIterations = 1
-      )
-
-    # let strs = strs.sorted()
-    # for i in 0 ..< min(strs[0].len, strs[^1].len):
-    #   if strs[0][i] == strs[^1][i]:
-    #     result.add strs[0][i]
-    #   else:
-    #     return
+proc accept*(str: string, globs: seq[GitGlob]): bool =
+  result = true
+  for glob in globs:
+    if gitignoreGlobMatch(str, glob.patt):
+      result = not glob.ign
