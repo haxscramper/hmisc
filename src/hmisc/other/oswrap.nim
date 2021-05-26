@@ -1817,19 +1817,40 @@ DSL for creating directory structures
 
           result = newCall("withNewDir", newCall("RelDir", node[1]), result)
 
+        else:
+          result = node
+
       of nnkStmtList:
         result = newStmtList()
         for subnode in node:
           result.add aux(subnode)
 
-      of nnkCharLit .. nnkTripleStrLit:
+      of nnkCharLit .. nnkTripleStrLit, nnkPrefix, nnkIdent, nnkSym:
         result = newCall("write", file, node)
 
       else:
         result = node
 
+        case node.kind:
+          of nnkForStmt:
+            result[2] = aux(node[2])
+
+          of nnkIfStmt, nnkIfExpr:
+            for idx, sub in node:
+              result[idx] = aux(node[idx])
+
+          of nnkCaseStmt:
+            for idx, sub in node[1..^1]:
+              result[idx] = aux(sub)
+
+          of nnkElifBranch, nnkOfBranch:
+            result[^1] = aux(node[^1])
+
+          else:
+            discard
 
   result = aux(body)
+  # echo result.repr
 
 template mkWithDirStructure*(dir: AbsDir, body: untyped): untyped =
   mkDir dir

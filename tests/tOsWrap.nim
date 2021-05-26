@@ -65,8 +65,7 @@ suite "Pathwrap":
           "second line"
 
         file "loop":
-          for i in 0 ..< 10:
-            file.write i
+          for i in 0 ..< 10: i
 
         dir "src":
           file &"{name}.nim"
