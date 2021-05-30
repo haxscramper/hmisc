@@ -14,6 +14,7 @@ export xmltree
 import ./xml_ast
 
 type
+  RawHtml* = distinct string
   Xml* = XmlNode
   HtmlElemKind* = enum
     hekTable
@@ -24,6 +25,7 @@ type
     hekImage
     hekOther
     hekText
+    hekRaw
 
   HtmlTextProp* = enum
     htpNone
@@ -55,6 +57,10 @@ type
         dotPort*: int
       of hekOther:
         tagname*: string
+
+      of hekRaw:
+        rawstr*: RawHtml
+
       else:
         discard
 
@@ -102,6 +108,9 @@ func newHtmlText*(text: string): HtmlElem =
            textColorBg: colNoColor,
            # textPre: pre
   )
+
+func newHtmlRaw*(text: string | RawHtml): HtmlElem =
+  HtmlElem(kind: hekRaw, rawstr: RawHtml(text))
 
 # func newHtmlPre*(subitems: seq[HtmlElem]): HtmlElem =
 #   HtmlElem(kind: hekPre, elements: subitems)
@@ -366,7 +375,7 @@ template add2Aux(xmm: untyped) {.dirty.} =
       result.add(';')
 
     of xmm.xnVerbatimText:
-      result.add(n.text)
+      result.add($n)
 
 
 func add2*(result: var string, n: XmlNode, level = 0, indWidth = 2,
@@ -423,11 +432,13 @@ func toXml*(html: HtmlElem): seq[XmlNode] =
             of htpNone: tmpres
     of hekOther:
       tmpres = newElement(html.tagname)
+
     of hekElemList:
       return html.elements.mapIt(it.toXML()).concat()
-    # of hekPre:
-    #   let text = html.elements.mapIt(toFlatStr(it, false)).join("")
-    #   # tmpres = newText(text).wrap("pre")
+
+    of hekRaw:
+      return @[newVerbatimText(html.rawStr.string)]
+
     else:
       tmpres = newElement(html.tagname)
 

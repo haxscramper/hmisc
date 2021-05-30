@@ -381,7 +381,8 @@ const
     "xclip",
     "pdflatex",
     "java",
-    "wmctrl"
+    "wmctrl",
+    "sqlite3"
   ]
 
 func makeShellCmd*(bin: string): ShellCmd =

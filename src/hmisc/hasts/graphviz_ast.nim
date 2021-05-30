@@ -9,6 +9,8 @@ import hmisc/types/[hprimitives, colorstring]
 import hmisc/algo/halgorithm
 import hmisc/other/hshell
 
+export RawHtml
+
 #================================  TODO  =================================#
 
 ##[
@@ -41,6 +43,7 @@ type
     path: seq[int]
     record: seq[int]
     port: DotPortPosition
+
 
 func `hash`*(id: DotNodeId): Hash =
   !$(hash(id.path) !& hash(id.record))
@@ -82,9 +85,17 @@ converter toDotNodeId*(ids: seq[int]): seq[DotNodeId] =
   ## Create multiple node ids
   ids.mapIt(DotNodeId(path: @[it]))
 
+
 func toDotPath*(
   top: int, sub: int, port: DotPortPosition = dppNone): DotNodeId =
   DotNodeId(path: @[top], record: @[sub], port: port)
+
+
+converter toDotNodeId*(path: tuple[top, sub: int]): DotNodeId =
+  toDotPath(path.top, path.sub)
+
+converter toDotNodeId*(path: tuple[top, sub: int, port: DotPortPosition]): DotNodeId =
+  toDotPath(path.top, path.sub, path.port)
 
 func toDotPath*(
   top, sub: DotNodeId, port: DotPortPosition = dppNone): DotNodeId =
@@ -398,6 +409,7 @@ type
   DotGraphPresets* = enum
     dgpAutomata
     dgpAutomataAccept
+    dgpRecords
 
   DotGraphNodeRank* = enum
     gnrDefault = ""
@@ -459,20 +471,23 @@ func makeCircleConsolasNode*(): DotNode =
   result.shape = nsaCircle
 
 func makeDotNode*(style: DotGraphPresets): DotNode =
+  result.fontname = "Consolas"
   case style:
+    of dgpRecords:
+      discard
+
     of dgpAutomata:
-      result.fontname = "Consolas"
       result.shape = nsaCircle
 
     of dgpAutomataAccept:
-      result.fontname = "Consolas"
       result.shape = nsaDoubleCircle
 
 
 func makeDotEdge*(style: DotGraphPresets): DotEdge =
+  result.fontname = "Consolas"
   case style:
-    of dgpAutomata, dgpAutomataAccept:
-      result.fontname = "Consolas"
+    else:
+      discard
 
 func setProps*(node: sink DotNode, id: DotNodeId, label: string): DotNode =
   result = node
@@ -505,6 +520,9 @@ func makeDotGraph*(style: DotGraphPresets, name: string = "G"): DotGraph =
 
   case style:
     of dgpAutomata:
+      result.rankdir = grdLeftRight
+
+    of dgpRecords:
       result.rankdir = grdLeftRight
 
     else:
@@ -575,8 +593,20 @@ func makeDotNode*(
   result.label = some(label)
   # result.color = some(color)
 
+func makeDotNode*(id: DotNodeId, text: RawHtml): DotNode =
+  DotNode(id: id, shape: nsaPlaintext, htmlLabel: newHtmlRaw(text))
+
 func makeDotNode*(id: DotNodeId, html: HtmlElem): DotNode =
   DotNode(id: id, shape: nsaPlaintext, htmlLabel: html)
+
+func add*(
+    node: var DotNode, other: DotNode,
+    attrs: openarray[(string, string)] = @[]
+  ) =
+  var attrs = toSeq(attrs)
+  attrs.add ("port", $other.id)
+  node.htmlLabel.add newTree(
+    "tr", @[newTree("td", @[other.htmlLabel], attrs)])
 
 const defaultDotBackgroundMap*: array[BackgroundColor, Color] =
   block:
@@ -647,6 +677,9 @@ func makeDotRecord*(
 func makeRecordDotNode*(id: DotNodeId, records: seq[RecordField]): DotNode =
   DotNode(shape: nsaRecord, id: id, flds: records, labelAlign: nlaLeft)
 
+func add*(node: var DotNode, field: RecordField) =
+  node.flds.add field
+
 func makeColoredDotNode*(
     id: DotNodeId, label: string,
     tableAttrs: openarray[(string, string)] = {"border": "1"},
@@ -669,6 +702,21 @@ func makeColoredDotNode*(
     id: id,
     shape: nsaPlaintext,
     htmlLabel: makeHtmlDotNodeContents(escaped, tableAttrs, cellAttrs)
+  )
+
+
+func makeTableDotNode*(
+    id: DotNodeId, label: RawHtml | string,
+    tableAttrs: openarray[(string, string)] = {"border": "1"},
+    cellAttrs: openarray[(string, string)] = {"balign": "left", "border": "0"},
+    style: DotNodeStyle = nstDefault,
+  ): DotNode =
+
+  DotNode(
+    id: id,
+    shape: nsaPlaintext,
+    htmlLabel: makeHtmlDotNodeContents(
+      @[newHtmlRaw(label)], tableAttrs, cellAttrs)
   )
 
 type
