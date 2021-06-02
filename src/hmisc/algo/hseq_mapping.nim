@@ -120,7 +120,7 @@ macro mapPairs*(
   injectNames: untyped): untyped =
   ## `mapIt` for object with `pairs`. `lhs`, `rhs` and `idx` are
   ## injected into scope
-  assert injectNames.kind == nnkPar
+  assert injectNames.kind in {nnkPar, nnkTupleConstr}
   var inj: tuple[lhs, rhs, idx: string] = ("lhs", "rhs", "idx")
   for pair in injectNames:
     case $pair[0]:
