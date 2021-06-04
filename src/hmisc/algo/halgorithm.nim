@@ -63,7 +63,12 @@ iterator rpairs*[T](s: T): auto =
   for idx in countdown(s.len - 1, 0):
     yield (idx, s[idx])
 
-iterator ritems*[T](s: T): auto =
+iterator ritems*[T](s: seq[T]): T =
+  ## Iterate over sequence starting from the right
+  for idx in countdown(s.len - 1, 0):
+    yield s[idx]
+
+iterator rmitems*[T](s: var seq[T]): var T =
   ## Iterate over sequence starting from the right
   for idx in countdown(s.len - 1, 0):
     yield s[idx]

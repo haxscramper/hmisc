@@ -305,18 +305,32 @@ converter toFsFileSeq*(fls: seq[RelFile]): seq[FsFile] =
   for f in fls:
     result.add f.toFsFile()
 
-converter toFsEntry*(path: AnyPath): FsEntry =
+func toFsEntry*(path: AnyPath, isLink: bool): FsEntry =
   when path is FsEntry:
     path
   elif path is FsDir:
-    FsEntry(kind: os.pcDir, dir: path)
-  elif path is FsFile:
-    FsEntry(kind: os.pcFile, file: path)
-  elif path is AbsFile or path is RelFile:
-    path.toFsFile().toFsEntry()
-  elif path is RelDir or path is AbsDir:
-    path.toFsDir().toFsEntry()
+    if isLink:
+      FsEntry(kind: os.pcLinkToDir, dir: path)
 
+    else:
+      FsEntry(kind: os.pcDir, dir: path)
+
+  elif path is FsFile:
+    if isLink:
+      FsEntry(kind: os.pcLinkToFile, file: path)
+
+    else:
+      FsEntry(kind: os.pcFile, file: path)
+
+  elif path is AbsFile or path is RelFile:
+    path.toFsFile().toFsEntry(isLink)
+
+  elif path is RelDir or path is AbsDir:
+    path.toFsDir().toFsEntry(isLink)
+
+
+converter toFsEntry*(path: AnyPath): FsEntry =
+  toFsEntry(path, false)
 
 # converter toAbsDir*(str: string): AbsDir =
 #   assert os.isAbsolute(str),
@@ -597,6 +611,13 @@ proc assertValid*(path: AnyPath): void =
 
     else:
       assertValid(path.absFile)
+
+  elif path is FsDir:
+    if path.isRelative:
+      assertValid(path.relDir)
+
+    else:
+      assertValid(path.absDir)
 
   else:
     static: raiseImplementError("Validation for " & $typeof(path))
@@ -1294,10 +1315,20 @@ proc listFiles*(dir: AnyDir): seq[AbsFile] =
       if kind == pcFile:
         result.add AbsFile(path)
 
+
+proc listAll*(dir: AbsDir): seq[FsEntry] =
+  for (kind, path) in os.walkDir(dir.getStr()):
+    case kind:
+      of os.pcFile: result.add toFsEntry(AbsFile(path))
+      of os.pcDir: result.add toFsEntry(AbsDir(path))
+      of os.pcLinkToFile: result.add toFsEntry(AbsFile(path), true)
+      of os.pcLinkToDir: result.add toFsEntry(AbsDir(path), true)
+
 func flatFiles*(tree: FsTree): seq[FsTree] =
   if tree.isDir:
     for sub in tree.sub:
       result.add sub.flatFiles()
+
   else:
     result = @[tree]
 
@@ -1470,8 +1501,16 @@ proc buildFsTree*(
 template readFile*(file: AnyFile): untyped =
   readFile(file.getStr())
 
+proc open*(file: AnyFile, mode: FileMode = fmRead): File =
+  open(file.getStr(), mode)
+
 template writeFile*(file: AnyFile, text: string): untyped =
   writeFile(file.getStr(), text)
+
+proc appendFile*(file: AnyFile, text: string) =
+  var file = open(file.getStr(), fmAppend)
+  file.write(text)
+  file.close()
 
 proc writeNewFile*(file: AnyFile, text: string) =
   if exists(file):

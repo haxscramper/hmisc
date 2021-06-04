@@ -1,4 +1,4 @@
-import std/macros
+import std/[macros, strutils]
 
 ## Commonly used exceptions definitions. More target-specific errors are
 ## implemented in respective submodules such as [[code:hshell.ShellError]]
@@ -66,8 +66,8 @@ template raiseLogicError*(errMsg: string) {.dirty.} =
 template raiseArgumentError*(errMsg: string) {.dirty.} =
   raise newException(ArgumentError, errMsg)
 
-proc newArgumentError*(msg: string): ref ArgumentError =
-  newException(ArgumentError, msg)
+proc newArgumentError*(msg: varargs[string, `$`]): ref ArgumentError =
+  newException(ArgumentError, msg.join(" "))
 
 template assertKind*(expr, expected: typed) {.dirty.} =
   when expr is enum:
@@ -98,8 +98,8 @@ template assertKind*(expr, expected: typed) {.dirty.} =
       raise newException(UnexpectedKindError, msg)
 
 
-proc newImplementError*(msg: string = ""): ref ImplementError =
-  newException(ImplementError, msg)
+proc newImplementError*(msgs: varargs[string, `$`]): ref ImplementError =
+  newException(ImplementError, join(msgs, " "))
 
 template raiseImplementError*(errMsg: string) {.dirty.} =
   raise newImplementError(errMsg & " @" & $instantiationInfo())
@@ -115,13 +115,20 @@ proc prepareMsg*(userMsg: string): string =
 
 
 template kindToStr*(expr: typed): untyped =
-  when expr is enum: $expr else: $expr.kind
+  when expr is enum:
+    "\e[32m" & $expr & "\e[0m"
+
+  elif expr is string:
+    "\e[34m\"" & expr & "\"\e[0m"
+
+  else:
+    "\e[32m" & $expr.kind & "\e[0m for type \e[33m" & $typeof(expr) & "\e[0m"
 
 
 proc newImplementKindError*[T](
     node: T, msg: string = ""): ref ImplementKindError =
   newException(ImplementKindError,
-    "\nUnhandled entry kind: \e[32m" & kindToStr(node) & "\e[39m" &
+    "Unhandled entry kind " & kindToStr(node) &
       prepareMsg(msg) & " @" & $instantiationInfo() & "\n"
   )
 
@@ -131,16 +138,10 @@ template raiseImplementKindError*(
 
 
 proc newUnexpectedKindError*[T](
-    expr: T, userMsg: string = ""): ref UnexpectedKindError =
-  var msg: string
-  if userMsg.len > 0: msg &= " "
-  if '\n' in userMsg: msg &= "\n"
-  msg &= userMsg
-
+    expr: T, userMsg: varargs[string, `$`]): ref UnexpectedKindError =
   newException(UnexpectedKindError,
-    "\nUnexpected entry kind: \e[32m" & kindToStr(expr) &
-      "\e[39m" & prepareMsg(userMsg)
-  )
+    "Unexpected entry kind " & kindToStr(expr) &
+      prepareMsg(userMsg.join(" ")))
 
 template raiseUnexpectedKindError*(
   node: untyped, userMsg: string = "") {.dirty.} =

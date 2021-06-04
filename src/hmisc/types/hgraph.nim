@@ -72,7 +72,7 @@ type
       of false:
         discard
 
-  HGraph*[N, E] = object
+  HGraph*[N: not void, E: not void] = object
     structure*: HGraphStructure
     edgeMap*: HEdgeMap[E]
     nodeMap*: HNodeMap[N]
@@ -194,6 +194,12 @@ func `[]`*[N, E](g: HGraph[N, E], node: HNode): N =
 func `[]`*[N, E](g: HGraph[N, E], edge: HEdge): E =
   g.edgeMap.valueMap[edge]
 
+func `[]`*[N, E](g: var HGraph[N, E], node: HNode): var N =
+  g.nodeMap.valueMap[node]
+
+func `[]`*[N, E](g: var HGraph[N, E], edge: HEdge): var E =
+  g.edgeMap.valueMap[edge]
+
 func target*[N, E](g: HGraph[N, E], edge: HEdge): HNode =
   g.structure.edgeMap[edge.id][1]
 
@@ -220,6 +226,9 @@ func `[]`*[N](map: HNodeMap[N], value: N): HNode =
   map.reverseMap[value][0]
 
 func `[]`*[N](map: HNodeMap[N], node: HNode): N =
+  map.valueMap[node]
+
+func `[]`*[N](map: var HNodeMap[N], node: HNode): var N =
   map.valueMap[node]
 
 func `[]=`*[N](map: var HNodeMap[N], node: HNode, value: N) =

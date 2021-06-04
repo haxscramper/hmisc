@@ -45,14 +45,22 @@ func hasExactName*(cache: StringNameCache, name: string): bool =
   name in cache.renames
 
 func newName*(
-    cache: var StringNameCache, str: string, normalize: bool = true): string =
+    cache: var StringNameCache, str: string,
+    normalize: bool = true,
+    extra: string = "",
+    forceRename: bool = false
+  ): string =
   ## Create new unique name for `str`
   ##
-  ## If *normalized* `str` has never been used as identifier in the cache
-  ## return it unmodified, otherwise return new name.
+  ## If *normalized* `str & extra` has never been used as identifier in the
+  ## cache return it unmodified, otherwise return new name.
   ##
   ## Rename `str -> result` is registered
-  let norm = nimNorm(str, normalize)
+  ##
+  ## - @arg{extra} :: Disambiguation string that will not be included in
+  ##   final name generation, but would participate in collision
+  ##   resolution.
+  let norm = nimNorm(str & extra, normalize)
   if norm notin cache.idents:
     result = str
     cache.idents[norm] = @[result]
@@ -61,7 +69,9 @@ func newName*(
     result = str & $cache.idents[norm].len
     cache.idents[norm].add result
 
-  cache.renames[str] = result
+  if extra.len == 0 or forceRename:
+    cache.renames[str] = result
+
   cache.genNormalized.inc nimNorm(result)
 
 func getName*(cache: var StringNameCache, str: string): string =
@@ -286,7 +296,8 @@ proc kindEnumName*(
 
   else:
     let prefix = enumPrefixForCamel(parent, cache)
-    let newName = cache.newName(capitalizeAscii(name))
+    let newName = cache.newName(
+      capitalizeAscii(name), extra = parent)
     if addPrefix:
       result = prefix
 
