@@ -1688,6 +1688,13 @@ proc getTempFile*(
     if not fileExists(dir / RelFile(next)):
       return dir / RelFile(next)
 
+when cbackend:
+  proc getAppTempDir*(): AbsDir =
+    getNewTempDir(getAppBaseName())
+
+  proc getAppTempFile*(filePattern: string): AbsFile =
+    getTempFile(getAppTempDir(), filePattern)
+
 proc writeTempFile*(
     text: string, pattern: string = "XXXXXXXXXXX"): AbsFile =
   result = getTempDir().getTempFile(pattern)

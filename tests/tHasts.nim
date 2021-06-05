@@ -179,7 +179,6 @@ suite "graphiz terminal node styling":
     except:
       discard
 
-suite "SQL schema visualization":
 import
     hmisc/hasts/graphviz_ast,
     hmisc/other/[oswrap, hshell, hjson],
@@ -187,26 +186,104 @@ import
     std/[strformat, parsesql, hashes],
     fusion/matching
 
+const sqlExample = """
+CREATE TABLE entries (
+    id INTEGER PRIMARY KEY UNIQUE NOT NULL,
+    parentId INTEGER references entries(id),
+    depth INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    kind INTEGER,
+    docRaw TEXT,
+    docParsed BLOB,
+    -- Optional type uses in different entries
+    typeUse INTEGER REFERENCES typeInstances(id),
+    declHead INTEGER REFERENCES locations(id),
+    -- procType INTEGER REFERENCES procedureSignatures(id)
+);
 
-let code = RelFile("haxdoc.sql").readFile() & "\n" & """
-SELECT * FROM sqlite_master;
+CREATE TABLE identParts (
+    id INTEGER PRIMARY KEY UNIQUE NOT NULL,
+    entry INTEGER NOT NULL REFERENCES entries(id),
+    partKind INTEGER NOT NULL
+);
+
+CREATE TABLE files (
+    id INTEGER PRIMARY KEY UNIQUE NOT NULL,
+    content TEXT
+);
+
+CREATE TABLE uses(
+    id INTEGER PRIMARY KEY UNIQUE NOT NULL,
+    kind INTEGER NOT NULL,
+    location INTEGER REFERENCES locations(id)
+);
+
+CREATE TABLE locations (
+    id INTEGER PRIMARY KEY UNIQUE NOT NULL,
+    fileId INTEGER REFERENCES files(id),
+    line INTEGER NOT NULL,
+    startCol INTEGER NOT NULL,
+    endCol INTEGER NOT NULL,
+    endLine INTEGER
+);
+
+CREATE TABLE typeInstances (
+    id INTEGER PRIMARY KEY UNIQUE NOT NULL,
+    -- Can be NULL when generating from `--fastdoc` or for DocType rows like
+    -- 'value'
+    usedType INTEGER REFERENCES entries(id),
+    -- Different variants of indirect type uses
+    kind INTEGER,
+    -- Unwrapping layers for indirection for pointers, references and other
+    --  aux helpers
+    useKind INTEGER REFERENCES indirectUses(id)
+);
+
+CREATE TABLE genericSpecializations (
+    baseType INTEGER NOT NULL REFERENCES entries(id),
+    paramPos INTEGER NOT NULL,
+    type INTEGER NOT NULL REFERENCES typeInstances(id)
+);
+
+CREATE TABLE argLists (
+    id INTEGER NOT NULL,                             -- Arg list id
+    pos INTEGER NOT NULL,                         -- Argument positin
+    name TEXT NOT NULL,                              -- Argument name
+    type INTEGER NOT NULL REFERENCES typeInstances(id) -- Arg type
+);
+
+CREATE TABLE pragmaLists (
+    id INTEGER UNIQUE PRIMARY KEY NOT NULL,
+    pragma INTEGER NOT NULL REFERENCES entries(id)
+);
+
+CREATE TABLE procedureSignatures (
+    id INTEGER UNIQUE PRIMARY KEY NOT NULL,
+    returnType INTEGER REFERENCES typeInstances(id),
+    argList INTEGER REFERENCES argLists(id),
+    pragmaList INTEGER REFERENCES pragmaLists(id)
+);
+
+CREATE TABLE indirectUses (
+    id INTEGER PRIMARY KEY UNIQUE NOT NULL,
+    serialized TEXT
+);
+
+CREATE TABLE nested (
+    parent INTEGER REFERENCES entries(id),
+    sub INTEGER REFERENCES entries(id)
+);
 """
 
-let dump = runShell(shellCmd(sqlite3, -json), stdin = code).stdout.parseJson()
+suite "SQL schema visualization":
+  var graph = makeDotGraph(dgpRecords)
 
-var graph = makeDotGraph(dgpRecords)
+  iterator items(sql: SqlNode): SqlNode =
+    for i in 0 ..< sql.len:
+      yield sql[i]
 
-iterator items*(sql: SqlNode): SqlNode =
-  for i in 0 ..< sql.len:
-    yield sql[i]
-
-for record in dump:
-  if record.matches({
-    "type": (getStr: "table"),
-    "sql": @expr
-  }):
-    let parsed = expr.asStr().parseSql()
-    parsed[0].assertMatch(CreateTable[
+  for parsed in parseSql(sqlExample):
+    parsed.assertMatch(CreateTable[
       (strVal: @tableName),
       all @columns
     ])
@@ -238,5 +315,5 @@ for record in dump:
 
     graph.add record
 
-
-graph.toPng(AbsFile("/tmp/schema.png"))
+  if hasCmd(shellCmd(dot)):
+    graph.toPng(getAppTempFile("sqlExample.png"))

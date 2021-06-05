@@ -1056,8 +1056,8 @@ proc toPng*(
     graph: DotGraph,
     resfile: AbsFile,
     resolution: int = 300,
-    tmpfile: AbsFile = AbsFile "/tmp/dot-file.dot",
-    tmpimage: AbsFile = AbsFile "/tmp/dot-image-tmp.png"
+    tmpfile: AbsFile = getAppTempFile("dotTmpFile.dot"),
+    tmpimage: AbsFile = getAPpTempFile("dotTmpImage.png")
   ): void =
   ## Generate file from graph
 
