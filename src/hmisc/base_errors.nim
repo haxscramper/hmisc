@@ -69,33 +69,6 @@ template raiseArgumentError*(errMsg: string) {.dirty.} =
 proc newArgumentError*(msg: varargs[string, `$`]): ref ArgumentError =
   newException(ArgumentError, msg.join(" "))
 
-template assertKind*(expr, expected: typed) {.dirty.} =
-  when expr is enum:
-    let kind = expr
-  else:
-    let kind = expr.kind
-
-  var msg: string
-  when compiles(kind notin expected):
-    var anyOf: string
-    when kind is set:
-      if len(kind) > 1:
-        anyOf = "any of "
-
-
-
-    if kind notin expected:
-      msg = "Unexpected kind - got " & $kind &
-        ", but expected " & anyOf & $expected
-
-  elif expected is enum:
-    if kind != expected:
-      msg = "Unexpected kind - got " & $kind &
-        ", but expected " & $expected
-
-  if msg.len > 0:
-    {.line: instantiationInfo(fullPaths = true).}:
-      raise newException(UnexpectedKindError, msg)
 
 
 proc newImplementError*(msgs: varargs[string, `$`]): ref ImplementError =
@@ -123,6 +96,41 @@ template kindToStr*(expr: typed): untyped =
 
   else:
     "\e[32m" & $expr.kind & "\e[0m for type \e[33m" & $typeof(expr) & "\e[0m"
+
+template assertKind*(inExpr, inExpected: typed) {.dirty.} =
+  block:
+    let
+      expr = inExpr
+      expected = inExpected
+
+    when expr is enum:
+       let kind = expr
+
+    else:
+      let kind = expr.kind
+
+    var msg: string
+    when compiles(kind notin expected):
+      var anyOf: string
+      when kind is set:
+        if len(kind) > 1:
+          anyOf = "any of "
+
+
+
+      if kind notin expected:
+        msg = "Unexpected kind - got " & kindToStr(expr) &
+          ", but expected " & anyOf & $expected
+
+    elif expected is enum:
+      if kind != expected:
+        msg = "Unexpected kind - got " & kindToStr(expr) &
+          ", but expected " & $expected
+
+    if msg.len > 0:
+      {.line: instantiationInfo(fullPaths = true).}:
+        raise newException(UnexpectedKindError, msg)
+
 
 
 proc newImplementKindError*[T](

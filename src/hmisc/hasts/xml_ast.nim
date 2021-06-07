@@ -1056,7 +1056,6 @@ proc loadXml*[T](stream: var HXmlParser, target: var Option[T], tag: string) =
 proc loadXml*(stream: var HXmlParser, target: var string, tag: string) =
   if stream.isAttribute():
     target = stream.strVal()
-    # if stream.attrKey() == "path": echov target
     stream.next()
 
   else:

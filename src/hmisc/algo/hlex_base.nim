@@ -189,8 +189,26 @@ proc `[]`*(str; idx: int = 0): char {.inline.} =
     return str.str[str.pos + idx]
 
 proc `[]`*(str; slice: HSlice[int, BackwardsIndex]): string {.inline.} =
-  fillNext(str, slice.a)
-  result = str.str[str.pos + slice.a .. ^1]
+  var next = 0
+  while str.hasNxt(next):
+    fillNext(str, next)
+    inc next
+
+  result = str.str[str.pos + slice.a .. (str.pos + next - slice.b.int)]
+
+proc `[]`*(str; slice: HSlice[int, int]): string {.inline.} =
+  fillNext(str, max(slice.a, slice.b))
+  if str.str.len == 0:
+    result = "<empty>"
+
+  else:
+    result = str.str[
+      min(str.str.high, str.pos + slice.a) ..
+      min(str.str.high, str.pos + slice.b)
+    ]
+
+    if slice.b > str.str.high:
+      result &= "\\0".repeat(slice.b - str.str.high)
 
 proc `[]`*(str; offset: int, patt: char | set[char] | string):
   bool {.inline.} =
@@ -223,9 +241,9 @@ proc `@`*(str): seq[char] =
   for ch in str.str[str.pos .. ^1]:
     result.add ch
 
-proc `[]`*(str; slice: Slice[int]): string =
-  for i in slice:
-    result.add str[i]
+# proc `[]`*(str; slice: Slice[int]): string =
+#   for i in slice:
+#     result.add str[i]
 
 proc `[]`*(str; slice: HSlice[int, char]): string =
   var pos = slice.a

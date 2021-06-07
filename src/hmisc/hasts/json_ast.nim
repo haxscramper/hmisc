@@ -60,7 +60,7 @@ proc dedent*(w) =
 
 proc writeInd*(w) = w.write(w.indentBuf)
 
-proc kind*(r): JsonTokenKind = r.tok.kind
+proc kind*(r: JsonReader): JsonTokenKind = r.tok.kind
 proc finished*(r): bool = r.str.finished()
 
 proc next*(r) =
