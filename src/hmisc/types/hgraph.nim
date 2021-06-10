@@ -1,10 +1,13 @@
 ## Generic implementation of graph data structure
 
-import std/[tables, deques, hashes, random, options, math, lenientops,
-            strformat, strutils, sequtils, algorithm, random]
+import std/[
+  tables, deques, hashes, random, options, math,
+  lenientops, strformat, strutils, sequtils, algorithm, random
+]
 
-import ../algo/htemplates
+import ../algo/[htemplates, halgorithm]
 import ../hasts/graphviz_ast
+import ../hdebug_misc, ../base_errors
 
 #[
 checklist
@@ -43,6 +46,7 @@ type
     gpDirected
     gpUndirected
     gpAllowSelfLoops
+    gpIgnoreSelfLoops
 
 
   HGraphStructure* = ref object
@@ -77,8 +81,10 @@ type
     edgeMap*: HEdgeMap[E]
     nodeMap*: HNodeMap[N]
 
-  HGraphPath* = seq[HEdge]
-
+  HGraphPath* = seq[HNode]
+  HNodeStack* = object
+    stack: seq[HNode]
+    inStack: HNodeSet
 
 type
   HGraphError* = ref object of CatchableError
@@ -143,11 +149,32 @@ func incl*(s: var HNodeSet, node: HNode) =
 func incl*(s: var HEdgeSet, edge: HEdge) =
   s.intSet.incl edge.id.int
 
+func incl*(s: var HNodeSet, node: HNodeSet) =
+  s.intSet.incl node.intSet
+
+func incl*(s: var HEdgeSet, edge: HEdgeSet) =
+  s.intSet.incl edge.intSet
+
 func excl*(s: var HNodeSet, node: HNode) =
   s.intSet.excl node.id.int
 
 func excl*(s: var HEdgeSet, edge: HEdge) =
   s.intSet.excl edge.id.int
+
+func `<`*[S: HEdgeSet | HNodeSet](s1, s2: S): bool = s1.intSet < s2.intSet
+
+func `+`*(s1, s2: HNodeSet): HNodeSet =
+  HNodeSet(intSet: s1.intSet + s2.intSet)
+func `*`*(s1, s2: HNodeSet): HNodeSet =
+  HNodeSet(intSet: s1.intSet * s2.intSet)
+func `+`*(s1, s2: HEdgeSet): HEdgeSet =
+  HEdgeSet(intSet: s1.intSet + s2.intSet)
+func `*`*(s1, s2: HEdgeSet): HEdgeSet =
+  HEdgeSet(intSet: s1.intSet * s2.intSet)
+
+func `<=`*[S: HEdgeSet | HNodeSet](s1, s2: S): bool = s1.intSet <= s2.intSet
+# func `<`*[S: HEdgeSet | HNodeSet](s1, s2: S): bool = s1.intSet < s2.intSet
+# func `<`*[S: HEdgeSet | HNodeSet](s1, s2: S): bool = s1.intSet < s2.intSet
 
 iterator items*(s: HEdgeSet): HEdge =
   for item in s.intSet:
@@ -159,6 +186,9 @@ func contains*(s: HNodeSet, id: HNodeId): bool = id.int in s.intSet
 func contains*(s: HNodeSet, node: HNode): bool = node.id.int in s.intSet
 func contains*(s: HEdgeSet, node: HEdge): bool = node.id.int in s.intSet
 func len*(s: HNodeSet | HEdgeSet): int = s.intSet.len
+func hash*(s: HNodeSet | HEdgeSet): Hash =
+  hashData(cast[pointer](unsafeAddr s.intSet), sizeof(s.intSet))
+
 func contains*[N, E](graph: HGraph[N, E], node: HNode): bool =
   node in graph.structure.nodeSet
 
@@ -179,11 +209,29 @@ iterator items*(s: HNodeSet): HNode =
     yield HNode(id: HNodeId(item))
 
 func `$`*(id: HNodeId | HEdgeId): string = $id.int
+func `$`*(id: HNodeSet | HEdgeSet): string = $id.intSet
 func `==`*(id1, id2: HNodeId | HEdgeId): bool = id1.int == id2.int
 func `==`*(n1, n2: NoProperty): bool = true
 func hash*(id: HNodeId | HEdgeId): Hash = hash(id.int)
 func hash*(node: HNode): Hash = hash(node.id)
 func hash*(edge: HEdge): Hash = hash(edge.id)
+
+func toSet*(path: HGraphPath): HNodeSet =
+  for node in path:
+    result.incl node
+
+func len*(stack: HNodeStack): int = stack.stack.len
+func top*(stack: HNodeStack): HNode = stack.stack[^1]
+func add*(stack: var HNodeStack, node: HNode) =
+  stack.stack.add node
+  stack.inStack.incl node
+
+func pop*(stack: var HNodeStack): HNode =
+  result = stack.stack.pop()
+  stack.inStack.excl result
+
+func contains*(stack: HNodeStack, node: HNode): bool =
+  node in stack.inStack
 
 # proc `$`*(node: HNode): string = $node.id
 # proc `$`*(edge: HEdge): string = $edge.id
@@ -206,11 +254,37 @@ func target*[N, E](g: HGraph[N, E], edge: HEdge): HNode =
 func source*[N, E](g: HGraph[N, E], edge: HEdge): HNode =
   g.structure.edgeMap[edge.id][0]
 
+func targetVal*[N, E](g: HGraph[N, E], edge: HEdge): N =
+  g[g.structure.edgeMap[edge.id][1]]
+
+func sourceVal*[N, E](g: HGraph[N, E], edge: HEdge): N =
+  g[g.structure.edgeMap[edge.id][0]]
+
+func targetVal*[N, E](g: var HGraph[N, E], edge: HEdge): var N =
+  g[g.structure.edgeMap[edge.id][1]]
+
+func sourceVal*[N, E](g: var HGraph[N, E], edge: HEdge): var N =
+  g[g.structure.edgeMap[edge.id][0]]
+
 func contains*[N](map: HNodeMap[N], value: N): bool =
   value in map.reverseMap
 
 func contains*[N](map: HNodeMap[N], node: HNode): bool =
   node in map.valueMap
+
+func contains*[N, E](graph: HGraph[N, E], edge: (HNode, HNode)): bool =
+  if edge[0].id in graph.structure.outgoingIndex:
+    for outEdge in graph.structure.outgoingIndex[edge[0].id]:
+      if graph.structure.edgeMap[outEdge.id] == edge:
+        return true
+
+func getEdge*[N, E](graph: HGraph[N, E], source, target: HNode): HEdge =
+  if source.id in graph.structure.outgoingIndex:
+    for outEdge in graph.structure.outgoingIndex[source.id]:
+      if graph.structure.edgeMap[outEdge.id][1] == target:
+        return outEdge
+
+  raise newArgumentError("No edge for source/target pair")
 
 func len*[N](map: HEdgeMap[N]): int = map.valueMap.len
 func len*[E](map: HNodeMap[E]): int = map.valueMap.len
@@ -224,6 +298,10 @@ func del*[N](map: var HEdgeMap[N], edge: HEdge) =
 func `[]`*[N](map: HNodeMap[N], value: N): HNode =
   ## Return fist node matching value `value`
   map.reverseMap[value][0]
+
+func `[]`*[N, E](graph: HGraph[N, E], value: N): HNode =
+  ## Return fist node matching value `value`
+  graph.nodeMap.reverseMap[value][0]
 
 func `[]`*[N](map: HNodeMap[N], node: HNode): N =
   map.valueMap[node]
@@ -345,7 +423,7 @@ proc addEdge*[N](
   HEdge {.discardable.} =
 
   addEdgeImpl(N, NoProperty):
-    discard
+    graph.edgeMap.add(NoProperty('z'), result)
 
 
 proc addEdge*[N, E](
@@ -378,6 +456,26 @@ proc addOrGetEdge*[N, E](
     graph.addOrGetNode(targetValue),
     edgeValue
   )
+
+proc addOrGetEdge*[N, NoProperty](
+    graph: var HGraph[N, NoProperty], source, target: HNode):
+  HEdge {.discardable.} =
+
+  if (source, target) notin graph:
+    return graph.addEdge(source, target, NoProperty('z'))
+
+  else:
+    return graph.getEdge(source, target)
+
+proc addOrGetEdge*[N, E](
+    graph: var HGraph[N, E], source, target: HNode, edge: E):
+  HEdge {.discardable.} =
+
+  if (source, target) notin graph:
+    return graph.addEdge(source, target, edge)
+
+  else:
+    return graph.getEdge(source, target)
 
 proc addOrGetEdge*[N, E](
     graph: var HGraph[N, E], sourceValue, targetValue: N):
@@ -695,10 +793,54 @@ proc minimalSpanningTree*[N, E](graph: HGraph[N, E]): HGraph[N, E] =
   ## Return minimal spanning tree for graph. IMPLEMENT
   discard
 
-proc findCycles*[N, E](graph: HGraph[N, E]): seq[HGraphPath] =
-  discard
+proc findCycles*[N, E](
+    graph: HGraph[N, E], ignoreSelf: bool = false): seq[HGraphPath] =
+  var
+    visited: HNodeSet
+    stack: HNodeStack
+    resCycles: seq[HGraphpath]
 
-proc connectedComponents*[N, E](graph: HGraph[N, E]): seq[seq[HNode]] =
+  proc printCycle(vertex: HNode) =
+    var stack2: HNodeStack
+    stack2.add(stack.pop())
+
+    while stack2.top() != vertex:
+      stack2.add(stack.pop())
+
+    var path: HGraphPath
+    while stack2.len > 0:
+      path.add stack2.top()
+      stack.add(stack2.pop())
+
+    resCycles.add path
+
+  proc processDfs() =
+    let top = stack.top()
+    for vertex in outNodes(graph, top):
+      # echov top == vertex and ignoreSelf
+      if vertex == top and ignoreSelf:
+        discard
+
+      elif vertex in stack:
+        printCycle(vertex)
+
+      elif vertex notin visited:
+        stack.add vertex
+        processDFS()
+
+    visited.incl stack.pop()
+
+  for vertex in nodes(graph):
+    if vertex notin visited:
+      stack.add vertex
+      processDfs()
+
+  return resCycles
+
+
+
+
+proc connectedComponents*[N, E](graph: HGraph[N, E]): seq[HNodeSet] =
   ## Return nodes forming strongly connected components
   type
     Node = HNode
@@ -708,44 +850,107 @@ proc connectedComponents*[N, E](graph: HGraph[N, E]): seq[seq[HNode]] =
 
   proc aux(
     u: Node, disc: var IdTable, low: var IdTable,
-    st: var seq[Node], stackMember: var HNodeSet,
-    components: var seq[seq[Node]]
+    stack: var seq[Node], stackMember: var HNodeSet,
+    components: var seq[HNodeSet]
   ) =
 
     inc time
     disc[u] = time
     low[u] = time
-    st.add u
+    stack.add u
     stackMember.incl u
 
     for v in graph.adjacent(u):
       if v notin disc:
-        aux(v, disc, low, st, stackMember, components)
+        aux(v, disc, low, stack, stackMember, components)
         low[u] = min(low[u], low[v])
 
       elif v in stackMember:
         low[u] = min(low[u], disc[v])
 
     if (low[u] == disc[u]):
-      components.add @[]
-      while st[^1] != u:
-        let w = st.pop()
-        components[^1].add w
+      components.add HNodeSet()
+      while stack[^1] != u:
+        let w = stack.pop()
+        components[^1].incl w
         stackMember.excl w
 
-      let w = st.pop()
-      components[^1].add w
+      let w = stack.pop()
+      components[^1].incl w
       stackMember.excl w
 
   var
     disc = newHNodeMap[int](false)
     low = newHNodeMap[int](false)
     stackMember: HNodeSet
-    st = newSeq[Node]()
+    stack = newSeq[Node]()
 
   for node in nodes(graph):
     if node notin disc:
-      aux(node, disc, low, st, stackMember, result)
+      aux(node, disc, low, stack, stackMember, result)
+
+func extendOutgoing*[N, E](
+    graph: HGraph[N, E],
+    nodes: HNodeSet,
+    accept: proc(node: HNode): bool = nil
+  ): HNodeSet =
+
+  result = nodes
+  var
+    outVisited: HNodeSet
+    prev = result
+
+  while true:
+    var new = HNodeSet()
+    for item in prev:
+      if item notin outVisited:
+        outVisited.incl item
+        for node in outNodes(graph, item):
+          if isNil(accept) or accept(node):
+            new.incl node
+            result.incl node
+
+    if new.len == 0:
+      break
+
+    else:
+      prev = new
+
+proc extendOutgoing*[N, E, V](
+    graph: HGraph[N, E],
+    nodes: HNodeSet,
+    existingGroups: var Table[HNodeSet, V] | var TableRef[HNodeSet, V],
+    accept: proc(node: HNode): bool = nil
+  ): HNodeSet =
+
+  result = extendOutgoing(graph, nodes)
+
+  for group, _ in pairs(existingGroups):
+    if len(group * result) > 0:
+      result.incl group
+      existingGroups.del group
+
+
+proc extendOutgoing*[N, E, V](
+    graph: HGraph[N, E],
+    nodes: HNodeSet,
+    existingGroups: var seq[(HNodeSet, V)],
+    accept: proc(node: HNode): bool = nil
+  ): HNodeSet =
+
+  result = extendOutgoing(graph, nodes, accept)
+
+  var toDel: seq[int]
+  for idx, (group, _) in pairs(existingGroups):
+    echo group
+    if len(group * result) > 0:
+      result.incl group
+      toDel.add idx
+
+  for idx in ritems(toDel):
+    existingGroups.del idx
+
+
 
 type
   OrthoLayoutData = object
@@ -823,22 +1028,44 @@ proc drawOrthoLayout*(layoutData: OrthoLayoutData): seq[seq[string]] =
 
 proc dotRepr*[N, E](
     graph: HGraph[N, E],
-    nodeDotRepr: proc(node: N): DotNode,
-    edgeDotRepr: proc(edge: E): DotEdge = nil,
+    nodeDotRepr: proc(node: N, hnode: HNode): DotNode,
+    edgeDotRepr: proc(edge: E, hedge: HEdge): DotEdge = nil,
+    baseGraph: Option[DotGraph] = none(DotGraph),
+    clusters: seq[tuple[nodes: HNodeSet, name: string]] = @[]
   ): DotGraph =
 
-  result = DotGraph(
-    name: "G",
-    styleNode: DotNode(
-      shape: nsaBox, labelAlign: nlaLeft, fontname: "consolas"),
-    styleEdge: DotEdge(
-      fontname: "consolas")
-  )
+  if baseGraph.isSome():
+    result = baseGraph.get()
+
+  else:
+    result = DotGraph(
+      name: "G",
+      styleNode: DotNode(
+        shape: nsaBox, labelAlign: nlaLeft, fontname: "consolas"),
+      styleEdge: DotEdge(
+        fontname: "consolas")
+    )
+
+  var nodeClusters: seq[(HNodeSet, DotGraph)]
+  for (nodes, name) in clusters:
+    nodeClusters.add((
+      nodes,
+      makeDotGraph().withIt((it.label = name))
+    ))
 
   for node in nodes(graph):
-    var dotNode = nodeDotRepr(graph[node])
+    var dotNode = nodeDotRepr(graph[node], node)
     dotNode.id = node.id
-    result.nodes.add dotNode
+
+    var inSubgraph = false
+    for (nodes, graph) in mitems(nodeClusters):
+      if node in nodes:
+        graph.add dotNode
+        inSubgraph = true
+        break
+
+    if not inSubgraph:
+      result.nodes.add dotNode
 
   if edgeDotRepr.isNil:
     for edge in edges(graph):
@@ -849,17 +1076,23 @@ proc dotRepr*[N, E](
 
   else:
     for edge in edges(graph):
-      var dotEdge = edgeDotRepr(graph[edge])
+      var dotEdge = edgeDotRepr(graph[edge], edge)
       dotEdge.src = graph.source(edge)
       dotEdge.to = @[graph.target(edge)]
       result.edges.add dotEdge
 
+  for (nodes, graph) in nodeClusters:
+    result.add graph
 
-proc dotRepr*[N, E](graph: HGraph[N, E]): DotGraph =
+
+proc dotRepr*[N, E](
+    graph: HGraph[N, E]): DotGraph =
   ## Convert `graph` to graphviz representation, using stringification for
   ## node and edge values.
   return dotRepr(
     graph,
-    proc(node: N): DotNode = DotNode(shape: nsaRect, label: some $node),
-    proc(edge: E): DotEdge = DotEdge(label: some $edge),
+    proc(node: N, hnode: HNode): DotNode =
+      DotNode(shape: nsaRect, label: some $node),
+    proc(edge: E, hedge: HEdge): DotEdge =
+      DotEdge(label: some $edge),
   )

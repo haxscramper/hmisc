@@ -586,24 +586,25 @@ func hasExt*(file: AnyFile, ext: string): bool =
 func ext*(file: AnyFile): string = file.splitFile().ext
 func name*(file: AnyFile): string = file.splitFile().name
 
-proc assertValid*(path: AnyPath): void =
+proc assertValid*(
+    path: AnyPath, msg: string = ""): void =
   if path.getStr().len < 1:
     raise newPathError(
       path, pekInvalidEntry,
-      "Path validation failed - empty string is not a valid path"
+      "Path validation failed - empty string is not a valid path" & msg
     )
 
   when path is RelPath:
     if os.isAbsolute(path.getStr()):
       raise newPathError(path, pekExpectedRel): fmtJoin:
         "Path '{path.getStr()}' has type {$typeof(path)}, but"
-        "contains invalid string - expected relative path"
+        "contains invalid string - expected relative path. {msg}"
 
   elif path is AbsPath:
     if not os.isAbsolute(path.getStr()):
       raise newPathError(path, pekExpectedAbs): fmtJoin:
         "Path '{path.getStr()}' has type {$typeof(path)}, but"
-        "contains invalid string - expected absolute path"
+        "contains invalid string - expected absolute path {msg}"
 
   elif path is FsFile:
     if path.isRelative:
@@ -1305,14 +1306,15 @@ proc listDirs*(dir: AnyDir): seq[AbsDir] =
       if kind == pcDir:
         result.add AbsDir(path)
 
-proc listFiles*(dir: AnyDir): seq[AbsFile] =
+proc listFiles*(dir: AnyDir, exts: seq[string] = @[]): seq[AbsFile] =
   ## Lists all the files (non-recursively) in the directory dir.
   when defined(NimScript):
     return system.listFiles(dir)
 
   else:
     for (kind, path) in os.walkDir(dir.getStr()):
-      if kind == pcFile:
+      if kind == pcFile and
+         exts.len() == 0 or AbsFile(path).ext() in exts:
         result.add AbsFile(path)
 
 

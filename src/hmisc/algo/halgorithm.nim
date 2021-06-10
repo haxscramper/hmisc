@@ -1,6 +1,6 @@
 import std/[
   math, strutils, sequtils, random, macros, options, strformat,
-  parseutils, algorithm, sugar, wordwrap
+  parseutils, algorithm, sugar, wordwrap, tables
 ]
 
 import htemplates
@@ -774,6 +774,43 @@ template assertEq*(lhs, rhs: untyped): untyped =
   if not (lhsVal == rhsVal):
     echo lhs.astToStr(), " == ", rhs.astToStr()
     raiseAssert("Comparison failed on line " & $lInfo.line)
+
+func pop*[E](s: var set[E]): E =
+  if len(s) == 0:
+    raise newArgumentError("Cannot pop from empty set")
+
+  for val in s:
+    result = val
+    s.excl result
+    return
+
+type
+  MarkTable*[K, M] = object
+    used: set[M]
+    table: Table[K, M]
+
+func nextVal*[E](used: var set[E]): E =
+  var allowed: set[E] = { low(E) .. high(E) } - used
+  result = pop(allowed)
+  used.incl result
+
+func getMark*[K, E](marks: var MarkTable[K, E], value: K): E =
+  if value notin marks.table:
+    marks.table[value] = nextVal(marks.used)
+
+  result = marks.table[value]
+
+proc nextRandVal*[E](used: var set[E]): E =
+  var allowed: set[E] = { low(E) .. high(E) } - used
+  result = sample(allowed)
+  used.incl result
+
+proc getRandMark*[K, E](marks: var MarkTable[K, E], value: K): E =
+  if value notin marks.table:
+    marks.table[value] = nextRandVal(marks.used)
+
+  result = marks.table[value]
+
 
 func toMapArray*[K, V](map: openarray[(K, V)]): array[K, V] =
   for (k, v) in map:

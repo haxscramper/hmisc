@@ -1,6 +1,8 @@
 import std/[colors, options, strtabs, ropes, sequtils, sets,
             strutils, strformat, os, hashes, tables]
 
+export colors
+
 import hmisc/helpers
 # import ../halgorithm
 
@@ -281,7 +283,7 @@ type # Enumerations for arrows
 type
   DotEdgeStyle* = enum
     edsDefault = ""
-    edsSold = "solid"
+    edsSolid = "solid"
     edsDotted = "dotted"
     edsDashed = "dashed"
     edsBold = "bold"
@@ -338,6 +340,7 @@ type
     width*: float
     height*: float
     fontname*: string
+    penwidth*: Option[float]
     case style*: DotNodeStyle
       # NOTE not clear what happens with 'filled' node that uses color
       # list
@@ -350,6 +353,7 @@ type
         isRadial*: bool ## Two fill styles: linear and radial.
       else:
         color*: Option[Color] ## DotNode color
+        fillcolor*: Option[Color]
 
     labelAlign*: DotNodeLabelAlign
     case shape*: DotNodeShape
@@ -451,6 +455,7 @@ type
     nodes*: seq[DotNode]
     edges*: seq[DotEdge]
     recordIds*: HashSet[DotNodeId]
+    bgColor*: Option[Color]
 
 #============================  constructors  =============================#
 func initDotNode*(): DotNode = DotNode(style: nstDefault)
@@ -488,6 +493,11 @@ func makeDotEdge*(style: DotGraphPresets): DotEdge =
   case style:
     else:
       discard
+
+func makeDotEdge*(style: DotEdgeStyle): DotEdge =
+  result = DotEdge(style: style)
+  result.fontname = "Consolas"
+
 
 func setProps*(node: sink DotNode, id: DotNodeId, label: string): DotNode =
   result = node
@@ -534,8 +544,23 @@ func add*(graph: var DotGraph, node: DotNode): void =
   if node.shape in {nsaPlaintext}:
     graph.recordIds.incl node.id
 
+
 func add*(graph: var DotGraph, sub: DotGraph): void =
-  graph.subgraphs.add sub
+  var subg = sub
+  subg.isCluster = true
+  # if subg.name.len == 0:
+  #   subg.name = &"cluster_{graph.subgraphs.len}{graph.name}"
+
+  # else:
+  #   if not subg.name.startsWith("cluster_"):
+  #     subg.name = "cluster_" & subg.name
+
+  graph.subgraphs.add subg
+
+func addSubgraph*(graph: var DotGraph, subg: DotGraph)
+    {.deprecated: "Use `HGraph.add` instead".} =
+
+  graph.add subg
 
 func add*(graph: var DotGraph, edge: DotEdge): void =
   var edge = edge
@@ -573,9 +598,6 @@ func makeConstraintEdge*(idFrom, idTo: DotNodeId): DotEdge =
     # minlen: some(0.0)
   )
 
-func addSubgraph*(graph: var DotGraph, subg: DotGraph): void =
-  graph.subgraphs.add subg
-
 
 
 func makeDotNode*(
@@ -585,13 +607,23 @@ func makeDotNode*(
     color: Color = colNoColor,
     style: DotNodeStyle = nstDefault,
     width: float = -1.0,
-    height: float = -1.0
+    height: float = -1.0,
+    fillcolor: Color = colNoColor
   ): DotNode =
 
-  result = DotNode(shape: shape, style: style)
+  if fillcolor != colNoColor and shape == nsaDefault:
+    result = DotNode(shape: shape, style: nstFilled)
+
+  else:
+    result = DotNode(shape: shape, style: style)
+
   result.id = id
   result.label = some(label)
-  # result.color = some(color)
+  if style notin {nstStriped, nstWedged}:
+    result.color = some(color)
+    result.fillcolor = some(fillcolor)
+
+
 
 func makeDotNode*(id: DotNodeId, text: RawHtml): DotNode =
   DotNode(id: id, shape: nsaPlaintext, htmlLabel: newHtmlRaw(text))
@@ -639,6 +671,37 @@ const defaultDotForegroundMap*: array[ForegroundColor, Color] =
     res[fgBlue]    = Color(0x336A79) # colBlue
 
     res
+
+
+const lightDotForegroundMap*: array[ForegroundColor, Color] = toMapArray({
+  fgRed: Color(0xEA9999),
+  fgYellow: Color(0xFFE599),
+  fgGreen: Color(0xB6D7A8),
+  fgCyan: Color(0xA4C2F4),
+  fgBlue: Color(0x9FC5E8),
+  fgMagenta: Color(0xD5A6BD),
+  fgDefault: colNoColor,
+  fgBlack: colBlack,
+  fgWhite: colWhite
+})
+
+
+const brightDotForegroundMap*: array[ForegroundColor, Color] = toMapArray({
+  fgRed: Color(0xff0000),
+  fgYellow: Color(0xffff00),
+  fgGreen: Color(0x00ff00),
+  fgCyan: Color(0x00ffff),
+  fgBlue: Color(0x0000ff),
+  fgMagenta: Color(0xff00ff),
+  fgDefault: colNoColor,
+  fgBlack: colBlack,
+  fgWhite: colWhite
+})
+
+func dotColor*(
+    col: ForegroundColor,
+    map: array[ForegroundColor, Color] = defaultDotForegroundMap): Color =
+  map[col]
 
 func makeHtmlDotNodeContents*(
     cellItems: seq[HtmlElem],
@@ -765,6 +828,7 @@ func toTree(node: DotNode, idshift: int, level: int = 0): DotTree =
   if node.width > 0: attr["width"] = $node.width
   if node.height > 0: attr["height"] = $node.height
   if node.fontname.len > 0: attr["fontname"] = node.fontname.quoteGraphviz()
+  if node.penwidth.isSome(): attr["penwidth"] = $node.penWidth.get()
 
   case node.style:
     of nstStriped, nstWedged:
@@ -781,6 +845,9 @@ func toTree(node: DotNode, idshift: int, level: int = 0): DotTree =
       if node.shape != nsaPlaintext:
         if node.color.isSome():
           attr["color"] = ($node.color.get()).quoteGraphviz()
+
+        if node.fillcolor.isSome():
+          attr["fillcolor"] = ($node.fillcolor.get()).quoteGraphviz()
 
   case node.shape:
     of nsaRecord, nsaMRecord:
@@ -858,7 +925,11 @@ func toTree(attrs: StringTableRef): seq[DotTree] =
   for key, val in attrs:
     result.add DotTree(kind: dtkProperty, key: key, val: val)
 
-func toTree(graph: DotGraph, idshift: int, level: int = 0): DotTree =
+func toTree(
+    graph: DotGraph, idshift: int,
+    level: int = 0,
+    clusterIdx: int = 0
+  ): DotTree =
   result = DotTree(kind: dtkSubgraph)
   var attrs = newStringTable()
 
@@ -879,7 +950,9 @@ func toTree(graph: DotGraph, idshift: int, level: int = 0): DotTree =
   else:
     result.section.add "subgraph"
 
-  if graph.isCluster: result.section.add &"cluster_{graph.name}"
+  if graph.isCluster:
+    result.section.add &"cluster_{graph.name}_{level}_{clusterIdx}"
+
   if graph.splines != spsDefault: attrs["splines"] = $graph.splines
   if graph.noderank != gnrDefault: attrs["rank"] = $graph.noderank
   if graph.rankdir != grdDefault: attrs["rankdir"] = $graph.rankdir
@@ -887,6 +960,7 @@ func toTree(graph: DotGraph, idshift: int, level: int = 0): DotTree =
   if graph.color.isSome(): attrs["color"] = &"\"{$graph.color.get()}\""
   if graph.fontname.len > 0: attrs["fontname"] = graph.fontname
   if graph.compound.isSome(): attrs["compound"] = $graph.compound.get()
+  if graph.bgColor.isSome(): attrs["bgcolor"] = &"\"{graph.bgcolor.get()}\""
 
   result.elements &= toTree(attrs)
   block:
@@ -943,10 +1017,17 @@ func toTree(graph: DotGraph, idshift: int, level: int = 0): DotTree =
   # debugecho idshift
   result.elements.add graph.nodes.mapIt(toTree(it, idshift, level + 1))
   result.elements.add graph.edges.mapIt(toTree(it, idshift, level + 1))
-  result.elements.add graph.subgraphs.mapIt(
-    toTree(it,
-           idshift = (it.idshift != 0).tern(it.idshift, graph.idshift),
-           level = level + 1))
+  for idx, sub in graph.subgraphs:
+    result.elements.add toTree(
+      sub,
+      idshift = (sub.idshift != 0).tern(sub.idshift, graph.idshift),
+      level = level + 1,
+      clusterIdx = idx
+    )
+  # result.elements.add graph.subgraphs.mapIt(
+  #   toTree(it,
+  #          ,
+  #          level = level + 1))
 
 
 

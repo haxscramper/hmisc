@@ -1,5 +1,6 @@
 import hmisc/types/hgraph
-import hmisc/algo/hgraph_db
+import hmisc/algo/[hgraph_db, hseq_mapping]
+import hmisc/other/hshell
 import hmisc/hdebug_misc
 import hmisc/hasts/graphviz_ast
 import benchy
@@ -31,6 +32,23 @@ suite "Graph API":
 
     doAssert graph.connectedComponents()[0].mapIt(graph[it]).sorted() ==
       @[0, 1, 2, 3, 4]
+
+  test "Connected components other nodes":
+    var graph = newHGraph[int, string]()
+    discard graph.addOrGetEdge({
+      (0, 1): "0 -> 1",
+      (1, 0): "1 -> 0",
+      (1, 2): "1 -> 2",
+      (1, 1): "1 -> 1"
+    })
+
+    let components = graph.connectedComponents()
+    echo components
+
+    startHax()
+    let cycles = graph.findCycles(ignoreSelf = true)
+    stopHax()
+    echo cycles
 
   test "Iterations, graphviz repr":
     var graph = newHGraph[string, int]()
@@ -103,3 +121,53 @@ suite "Graph DB API":
   let resultNodes = query.start(start).outNodes().run(graph)
   for res in resultNodes:
     echo res.kind
+
+suite "Graph sets":
+  test "Hashing":
+    check hash(HNodeSet()) == hash(HNodeSet())
+
+  test "Outgoing extension":
+    var graph = newHGraph[int, int]()
+    graph.addOrGetEdge({
+      (0, 1): 0,
+      (1, 2): 0,
+      (2, 0): 0,
+      (2, 4): 0
+    })
+
+    for part in graph.connectedComponents():
+      let extended = graph.extendOutgoing(part)
+      echo extended
+
+    echo graph.dotRepr()
+
+  test "Extend outgoing with cluster merging":
+     var graph = newHGraph[int, int]()
+     graph.addOrGetEdge({
+       # First connected component
+       (0, 1): 0,
+       (1, 2): 1,
+       (2, 0): 2,
+
+       # Second connected component
+       (3, 4): 3,
+       (4, 5): 4,
+       (5, 3): 5,
+
+       # Link between first and second component
+       (2, 4): 6
+     })
+
+     var components: seq[(HNodeSet, bool)]
+     for component in graph.connectedComponents():
+       components.add((component, false))
+
+     let idx = components.findIt(graph[0] in it[0])
+     let extended = graph.extendOutgoing(
+       components[idx][0], components)
+
+     check components.len == 0
+
+     if hasCmd shellCmd(dot):
+       graph.dotRepr().toPng(
+         getAppTempFile("extendedMerger.png"))
