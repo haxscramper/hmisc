@@ -434,6 +434,7 @@ type
     topNodes*: seq[DotNode]
     attrs*: Table[string, string]
 
+    ranksep*: Option[float]
     noderank*: DotGraphNodeRank
     isUndirected*: bool
 
@@ -953,10 +954,11 @@ func toTree(
   if graph.isCluster:
     result.section.add &"cluster_{graph.name}_{level}_{clusterIdx}"
 
+  if graph.ranksep.isSome(): attrs["ranksep"] = $graph.ranksep.get()
   if graph.splines != spsDefault: attrs["splines"] = $graph.splines
   if graph.noderank != gnrDefault: attrs["rank"] = $graph.noderank
   if graph.rankdir != grdDefault: attrs["rankdir"] = $graph.rankdir
-  if graph.label.len > 0: attrs["label"] = graph.label
+  if graph.label.len > 0: attrs["label"] = quoteGraphviz(graph.label)
   if graph.color.isSome(): attrs["color"] = &"\"{$graph.color.get()}\""
   if graph.fontname.len > 0: attrs["fontname"] = graph.fontname
   if graph.compound.isSome(): attrs["compound"] = $graph.compound.get()
