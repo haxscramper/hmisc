@@ -61,6 +61,27 @@ macro dumpStr*(body: untyped): untyped =
 
 template notNil*(arg: untyped): bool = not isNil(arg)
 
+func nor*(args: varargs[bool]): bool =
+  for arg in args:
+    result = arg or result
+
+  result = not result
+
+func nand*(args: varargs[bool]): bool =
+  result = true
+  for arg in args:
+    result = arg and result
+
+  result = not result
+
+func `or`*(args: varargs[bool]): bool =
+  for arg in args:
+    result = arg and result
+
+func `and`*(args: varargs[bool]): bool =
+  result = true
+  for arg in args:
+    result = arg and result
 
 {.push inline.}
 

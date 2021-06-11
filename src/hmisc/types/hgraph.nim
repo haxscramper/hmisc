@@ -12,14 +12,17 @@ import ../hdebug_misc, ../base_errors
 #[
 checklist
 
-- All implementations work both at compile and run-time
-- Works on JS target
-- All iterator algorithms have both mutable and immutable implementations
-- As little side effects as possible
-- Make node and edge ID's distinct integers to avoid messing them up
+- [ ] All implementations work both at compile and run-time
+- [ ] Works on JS target
+- [ ] All iterator algorithms have both mutable and immutable implementations
+- [ ] As little side effects as possible
+- [ ] Make node and edge ID's distinct integers to avoid messing them up
 
 - IDEA :: Add `->` and `<-` as operators that would return `TempEdge`
   object that can be added via `graph.add source -> target`.
+
+- TODO :: Test if cycle detection works for graphs that contain overlapping
+  cycles (`0 -> 1 -> 0` and `1 -> 2 -> 1`)
 
 ]#
 
@@ -401,10 +404,9 @@ template addEdgeImpl(N, E, post: untyped): untyped {.dirty.} =
 
   graph.structure.edgeMap[result.id] = (source, target)
   graph.structure.outgoingIndex.mgetOrPut(source.id, HEdgeSet()).incl result
+  graph.structure.ingoingIndex.mgetOrPut(target.id, HEdgeSet()).incl result
 
-  if not graph.isDirected():
-    graph.structure.ingoingIndex.mgetOrPut(
-      target.id, HEdgeSet()).incl result
+  # if not graph.isDirected():
 
 
 
@@ -794,7 +796,11 @@ proc minimalSpanningTree*[N, E](graph: HGraph[N, E]): HGraph[N, E] =
   discard
 
 proc findCycles*[N, E](
-    graph: HGraph[N, E], ignoreSelf: bool = false): seq[HGraphPath] =
+    graph: HGraph[N, E],
+    ignoreSelf: bool = false,
+    overrideDirected: bool = false
+  ): seq[HGraphPath] =
+
   var
     visited: HNodeSet
     stack: HNodeStack
@@ -816,8 +822,7 @@ proc findCycles*[N, E](
 
   proc processDfs() =
     let top = stack.top()
-    for vertex in outNodes(graph, top):
-      # echov top == vertex and ignoreSelf
+    template body(vertex: untyped): untyped {.dirty.} =
       if vertex == top and ignoreSelf:
         discard
 
@@ -827,6 +832,14 @@ proc findCycles*[N, E](
       elif vertex notin visited:
         stack.add vertex
         processDFS()
+
+
+    for vertex in outNodes(graph, top):
+      body(vertex)
+
+    if overrideDirected:
+      for vertex in inNodes(graph, top):
+        body(vertex)
 
     visited.incl stack.pop()
 
@@ -838,9 +851,22 @@ proc findCycles*[N, E](
   return resCycles
 
 
+proc mergeCycleSets*(cycles: seq[HGraphPath]): seq[HNodeSet] =
+  for cycle in cycles:
+    let cycle = cycle.toSet()
+    var merged = false
+    for nodeSet in mitems(result):
+      if len(cycle * nodeSet) > 0:
+        nodeSet.incl cycle
+        merged = true
 
+    if not merged:
+      result.add cycle
 
-proc connectedComponents*[N, E](graph: HGraph[N, E]): seq[HNodeSet] =
+proc connectedComponents*[N, E](
+    graph: HGraph[N, E],
+    overrideDirected: bool = false
+  ): seq[HNodeSet] =
   ## Return nodes forming strongly connected components
   type
     Node = HNode
@@ -849,28 +875,36 @@ proc connectedComponents*[N, E](graph: HGraph[N, E]): seq[HNodeSet] =
   var time: int
 
   proc aux(
-    u: Node, disc: var IdTable, low: var IdTable,
+    vertex: Node, disc: var IdTable, low: var IdTable,
     stack: var seq[Node], stackMember: var HNodeSet,
     components: var seq[HNodeSet]
   ) =
 
     inc time
-    disc[u] = time
-    low[u] = time
-    stack.add u
-    stackMember.incl u
+    disc[vertex] = time
+    low[vertex] = time
+    stack.add vertex
+    stackMember.incl vertex
 
-    for v in graph.adjacent(u):
-      if v notin disc:
-        aux(v, disc, low, stack, stackMember, components)
-        low[u] = min(low[u], low[v])
+    template impl(outVertex: untyped): untyped =
+      if outVertex notin disc:
+        aux(outVertex, disc, low, stack, stackMember, components)
+        low[vertex] = min(low[vertex], low[outVertex])
 
-      elif v in stackMember:
-        low[u] = min(low[u], disc[v])
+      elif outVertex in stackMember:
+        low[vertex] = min(low[vertex], disc[outVertex])
 
-    if (low[u] == disc[u]):
+
+    for outVertex in graph.outNodes(vertex):
+      impl(outVertex)
+
+    if overrideDirected:
+      for outVertex in graph.inNodes(vertex):
+        impl(outVertex)
+
+    if (low[vertex] == disc[vertex]):
       components.add HNodeSet()
-      while stack[^1] != u:
+      while stack[^1] != vertex:
         let w = stack.pop()
         components[^1].incl w
         stackMember.excl w

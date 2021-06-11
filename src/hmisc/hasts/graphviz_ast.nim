@@ -621,8 +621,11 @@ func makeDotNode*(
   result.id = id
   result.label = some(label)
   if style notin {nstStriped, nstWedged}:
-    result.color = some(color)
-    result.fillcolor = some(fillcolor)
+    if color != colNoColor:
+      result.color = some(color)
+
+    if fillcolor != colNoColor:
+      result.fillcolor = some(fillcolor)
 
 
 

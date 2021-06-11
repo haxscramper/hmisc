@@ -1395,11 +1395,6 @@ func withBasePrefix*[F: AbsFile | RelFile | FsFile](
     else:
       result = toFsFile(withBasePrefix(f.absFile, prefix))
 
-    # result = toFsFile(
-    #   withBasePrefix((
-    #     if f.isRelative: f.relFile else: f.absFile
-    #   ), prefix))
-
   else:
     let (parent, file, ext) = os.splitFile(f.getStr())
     let res = os.joinpath(parent, prefix & file & ext)
