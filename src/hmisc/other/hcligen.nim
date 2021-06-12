@@ -1,7 +1,19 @@
-import oswrap, cligen
+import ./oswrap, cligen
+import ../algo/hseq_distance
 import std/[options, uri]
 
 export cligen
+
+# ~~~~ AbsDir ~~~~ #
+
+proc argHelp*(dfl: GitGlob, a: var ArgcvtParams): seq[string] =
+  @["--" & a.parNm, "GitGlob", ""]
+
+proc argParse*(
+  dst: var GitGlob, dfl: GitGlob, a: var ArgcvtParams): bool =
+  dst = toGitGlob(a.val)
+  result = true
+
 
 # ~~~~ AbsDir ~~~~ #
 

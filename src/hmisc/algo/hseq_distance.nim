@@ -1223,8 +1223,25 @@ type
 proc `**`*(str: string): GitGlob = GitGlob(patt: str, ign: true)
 proc `*!`*(str: string): GitGlob = GitGlob(patt: str, ign: false)
 
-proc accept*(str: string, globs: seq[GitGlob]): bool =
+func `$`*(glob: GitGlob): string =
+  if not glob.ign:
+    result &= "!"
+
+  result &= glob.patt
+
+func toGitGlob*(str: string): GitGlob =
+  if str[0] == '!':
+    GitGlob(patt: str[1..^1], ign: false)
+
+  else:
+    GitGlob(patt: str, ign: true)
+
+
+proc accept*(globs: seq[GitGlob], str: string): bool =
   result = true
   for glob in globs:
     if gitignoreGlobMatch(str, glob.patt):
       result = not glob.ign
+
+proc accept*(str: string, globs: seq[GitGlob]): bool {.deprecated.} =
+  globs.accept(str)

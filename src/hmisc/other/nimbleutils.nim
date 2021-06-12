@@ -1,8 +1,10 @@
 #!/usr/bin/env nim
 
-import strformat, strutils, sugar, sequtils, xmltree, macros
-import hshell, oswrap
-import colorlogger
+import
+  std/[strformat, strutils, sugar, sequtils, xmltree, macros],
+  ./hshell, ./oswrap, ./colorlogger,
+  ../algo/hseq_distance
+
 
 func format*(str: string, kvalues: openarray[(string, string)]): string =
   str % kvalues.mapIt(@[it[0], it[1]]).concat()
@@ -168,7 +170,7 @@ doc.body_toc_group = {makeBodyToc(linkList).wrap3QuoteNL()}
 """
 
 
-proc docgenBuild(conf: TaskRunConfig) =
+proc docgenBuild(conf: TaskRunConfig, ignored: seq[GitGlob]) =
   let curr = conf.projectDir.toFsTree()
   var rstfiles: seq[FsTree]
   var errMsg: seq[string]
@@ -190,7 +192,14 @@ proc docgenBuild(conf: TaskRunConfig) =
 
   notice "Wrote nimdoc configuration to", docConf
 
+  for glob in ignored:
+    debug "ignoring: ", glob
+
   for file in files.mapIt(it.flatFiles()).concat():
+    if not ignored.accept($file):
+      notice "Ignoring", $file
+      continue
+
     let dir = conf.outdir / file.parent[curr.pathLen() .. ^1]
     if conf.testRun:
       logcall mkDir(dir), true
@@ -221,9 +230,8 @@ proc docgenBuild(conf: TaskRunConfig) =
         else:
           let res = shellResult(cmd)
           if res.resultOk:
-            info $file & "\n" & $outfile
-          #   debug "ok:", cmd.toLogStr()
-          #   notice cmd.toLogStr()
+            info $file
+
           else:
             warn file
             debug res.exception.outstr
@@ -290,9 +298,9 @@ template initBuildConf*(): TaskRunConfig {.dirty.} =
 
     tmp
 
-proc runDocGen*(conf: TaskRunConfig): void =
+proc runDocGen*(conf: TaskRunConfig, ignored: seq[GitGlob] = @[]): void =
   logIndented:
-    docgenBuild(conf)
+    docgenBuild(conf, ignored)
 
 
 

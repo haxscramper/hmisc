@@ -538,6 +538,12 @@ func `$`*(colr: seq[seq[ColoredRune]]): string =
 func lispRepr*(colstr: ColoredString): string =
   fmt("(\"{colstr.str}\" :bg {colstr.bg} :fg {colstr.fg} :style {colstr.style})")
 
+func openLit*(color: ForegroundColor): string = &"\\033[{color.int}m"
+func closeLit*(color: ForegroundColor): string = "\\033[0m"
+func openLit*(color: BackgroundColor): string = &"\\033[{color.int}m"
+func closeLit*(color: BackgroundColor): string = "\\033[0m"
+
+
 func toStyled*(
   str: string,
   style: PrintStyling,

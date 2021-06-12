@@ -1,5 +1,6 @@
 #!/usr/bin/env -S nim r
 import ../other/[nimbleutils, oswrap, hcligen, hshell]
+import ../algo/hseq_distance
 import std/strformat
 
 startColorLogger()
@@ -35,12 +36,12 @@ proc installtest*(
 
   runDockerTest(projectDir, tmpd, cmd)
 
-proc docgen*() =
+proc docgen*(ignore: seq[GitGlob] = @[]) =
   ## Generate documentation for current project
   var conf = initBuildConf()
   conf.testRun = false
   conf.configureCI()
-  runDocgen(conf)
+  runDocgen(conf, ignore)
 
 proc dockerDocGen*(
     projectDir: AbsDir = cwd(),
