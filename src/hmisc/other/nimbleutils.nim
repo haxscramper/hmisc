@@ -196,7 +196,7 @@ proc docgenBuild(conf: TaskRunConfig, ignored: seq[GitGlob]) =
     debug "ignoring: ", glob
 
   for file in files.mapIt(it.flatFiles()).concat():
-    debug file
+    # debug file
     if not ignored.accept($file):
       notice "Ignoring", $file
       continue
@@ -230,13 +230,14 @@ proc docgenBuild(conf: TaskRunConfig, ignored: seq[GitGlob]) =
           notice cmd.toLogStr()
         else:
           debug "running shell command"
-          debug cmd.toLogStr()
+          # debug cmd.toLogStr()
           let res = shellResult(cmd)
           if res.resultOk:
             info $file
             debug "run ok"
 
           else:
+            debug "run failed for file"
             warn file
             debug res.exception.outstr
             errMsg.add @["-".repeat(80)].repeat(3).concat()
