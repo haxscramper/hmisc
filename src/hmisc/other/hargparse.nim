@@ -614,9 +614,9 @@ proc help(desc: CliDesc, level: int = 0): LytBlock =
     first = E[]
 
     for arg in desc.arguments:
-      args.add I[indent, argHelp(arg)]
+      args.add I[indent + 4, argHelp(arg)]
 
-    result.add args
+    result.add I[indent, args]
 
   if desc.subcommands.len > 0:
     var cmds = V[S[], T["SUBCOMMANDS:".toColored(section)], S[]]
@@ -685,6 +685,8 @@ if isMainModule:
   var app = newCliApp(
     "test", (1,2,3), "haxscramper", "Brief description")
 
+
+  app.add arg("main", "Required argumnet for main command")
   var sub = cmd("sub", "Example subcommand", alt = @["s"])
   sub.add arg("index", "Required argument for subcommand")
   app.add sub
