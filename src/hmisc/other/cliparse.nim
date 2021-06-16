@@ -23,6 +23,7 @@ type
 const
   coFlagKinds* = { coFlag .. coBracketFlag }
   coOptionKinds* = { coOpt .. coBracketOpt }
+  coBracketKinds* = { coBracketFlag, coBracketOpt }
   coDashedKinds* = coFlagKinds + coOptionKinds
 
 type
@@ -331,6 +332,38 @@ func cliParse*[En: enum](
 const defaulCliParseConfig* = CliParseConfig(
   seqSeparator: ","
 )
+
+func `$`*(cli: CliOpt): string =
+  case cli.kind:
+    of coDashedKinds:
+      if cli.keyPath.len == 1 and
+         cli.keyPath[0].len == 1:
+        result = "-"
+
+      else:
+        result = "--"
+
+      result &= cli.keyPath.join(".")
+
+    else:
+      result &= cli.keyPath[0]
+
+  if cli.kind in coBracketKinds:
+    result &= &"[{cli.keySelect}]"
+
+  if cli.kind in coOptionKinds:
+    case cli.addKind:
+      of caEqual: result &= "="
+      of caPlusEqual: result &= "+="
+      of caColon: result &= ":"
+      of caMinusEqual: result &= "-="
+      of caNoSep: result &= ""
+      of caCarentEqual: result &= "^="
+      of caEqualNone: result &= "="
+
+  if cli.valStr.len > 0:
+    result &= cli.valStr
+
 
 when isMainModule:
   let conf = CliParseConfig(shortOpts: {'W', 'q'})

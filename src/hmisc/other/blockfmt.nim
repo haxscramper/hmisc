@@ -6,6 +6,8 @@
 
 ## .. include:: blockfmt-doc.rst
 
+# TODO grid layout block
+
 import std/[
   strutils, sequtils, macros, tables, strformat,
   lenientops, options, hashes, math, sugar, streams
@@ -180,7 +182,11 @@ func treeRepr*(inBl: LytBlock): string =
         of bkVerb: "V"
         of bkEmpty: "E"
 
-    let pref = (name & " ").align(level * 2)
+    let pref = align(
+      name & &" {toCyan($bl.height)}x{toCyan($bl.width)} " & " ",
+      level * 2
+    )
+
     let pref2 = repeat(" ", level * 2 + 2)
 
     case bl.kind:
@@ -1244,10 +1250,12 @@ func join*(
         result.add sep
 
 
-func padSpaces(
+func padSpaces*(
     bl: var LytBlock,
     indent: int = 0
   ) =
+
+  let baseIndent = indent
 
   var indent = indent
 
@@ -1264,6 +1272,7 @@ func padSpaces(
         for toplevel in mitems(bl.elements):
           if toplevel.height > 1:
             if toplevel.kind == bkStack:
+              padSpaces(toplevel.elements[0], baseIndent)
               for idx in 1 .. toplevel.elements.high:
                 padSpaces(toplevel.elements[idx], indent)
 
@@ -1277,6 +1286,7 @@ func padSpaces(
       for idx, item in mpairs(bl.elements):
         # echov item.treeRepr()
         padSpaces(item, tern(idx == 0, 0, indent))
+
 
     of bkChoice:
       for item in mitems(bl.elements):

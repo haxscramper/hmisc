@@ -2,10 +2,12 @@
 
 import
   ./cliparse, ./blockfmt, ./oswrap,
-  ../algo/[lexcast, clformat],
+  ../algo/[lexcast, clformat, htemplates],
   ../types/colorstring,
   ../base_errors, ../hdebug_misc,
-  std/[tables, options, uri, sequtils, strformat, strutils]
+  std/[tables, options, uri, sequtils, strformat, strutils, algorithm]
+
+# import hpprint
 
 type
   CliCmdTree* = object
@@ -77,7 +79,7 @@ type
     name*: string
     defaultValue*: Option[string]
     defaultAsFlag*: Option[string]
-    check*: seq[CliCheck]
+    check*: CliCheck
 
     bracketSelectors: seq[string] ## Valid for `BracketFlag` and `BracketOpt`
 
@@ -85,8 +87,10 @@ type
     completeFor*: proc(): seq[CliCompletion]
 
     doc*: CliDoc
+    varname*: string
 
     groupKind*: CliOptKind
+    aliasof*: Option[CliOpt]
     case kind*: CliOptKind
       of coCommand:
         altNames*: seq[string]
@@ -230,10 +234,20 @@ func cmd*(
     doc: CliDoc(docBrief: docBrief)
   )
 
-func flag*(name, doc: string): CliDesc =
-  CliDesc(
-    kind: coFlag, name: name, startKeys: @[name],
-    doc: CliDoc(docBrief: doc))
+func flag*(
+    name, doc: string,
+    aliasof: CliOpt = CliOpt()
+  ): CliDesc =
+
+  result = CliDesc(
+    kind: coFlag,
+    name: name,
+    startKeys: @[name],
+    doc: CliDoc(docBrief: doc),
+  )
+
+  if aliasof.keyPath.len > 0:
+    result.aliasof = some aliasof
 
 proc cliValue*(val: string, doc: string): CliValue =
   CliValue(
@@ -250,15 +264,15 @@ proc checkValues*(values: openarray[(string, string)]): CliCheck =
 proc orCheck*(or1, or2: CliCheck, other: varargs[CliCheck]): CLiCheck =
   result = CliCheck(kind: cckOrCheck, subChecks: @[or1, or2])
   for check in other:
-    result.subChecks.add result
+    result.subChecks.add check
 
 proc andCheck*(and1, and2: CliCheck, other: varargs[CliCheck]): CLiCheck =
   result = CliCheck(kind: cckAndCheck, subChecks: @[and1, and2])
   for check in other:
-    result.subChecks.add result
+    result.subChecks.add check
 
 proc check*(kind: CliCheckKind): CliCheck =
-  CliCheck(kind: kind)
+  result = CliCheck(kind: kind)
 
 func cliComplete*(key, doc: string, docFull: string = ""): CliCompletion =
   CliCompletion(value: key, doc: CliDoc(docBrief: doc, docFull: docFull))
@@ -271,21 +285,29 @@ proc opt*(
     docFull: string = "",
     alt: seq[string] = @[],
     defaultAsFlag: string = "",
-    groupKind: CliOptKind = coOpt
+    groupKind: CliOptKind = coOpt,
+    varname: string = name,
+    maxRepeat: int = 1,
+    aliasof: CliOpt = CliOpt(),
   ): CliDesc =
 
   result = CliDesc(
     kind: coOpt,
     name: name,
-    startKeys: @[name] & alt,
+    startKeys: sortedByIt(@[name] & alt, it.len),
     doc: CliDoc(docBrief: doc, docFull: docFull),
     defaultValue: default.toOption(),
     defaultAsFlag: defaultAsFlag.toOption(),
-    groupKind: groupKind
+    groupKind: groupKind,
+    varname: varname,
+    allowedREpeat: 0 .. maxRepeat
   )
 
+  if aliasof.keyPath.len > 0:
+    result.aliasof = some aliasof
+
   if values.len > 0:
-    result.check.add checkValues(values)
+    result.check = checkValues(values)
     let completions = values.mapIt(cliComplete(it[0], it[1]))
     result.completeFor = (proc(): seq[CliCompletion] = completions)
 
@@ -294,7 +316,7 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
   if "help" notin ignored:
     result.add opt(
       "help",
-      alt = @["h", "?"],
+      alt = @["h"],
       doc = "Display help messsage",
       default = "off",
       defaultAsFlag = "on",
@@ -329,7 +351,7 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
   if "color" notin ignored:
     result.add opt(
       "color",
-      doc = "When to use color for the pattern match output.",
+      doc = "When to use color for the output.",
       default = "auto",
       groupKind = coFlag,
       values = {
@@ -341,7 +363,19 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
 
 
   if "quiet" notin ignored:
-    result.add flag("quiet", doc = "Do not print execution logs")
+    if "loglevel" notin ignored:
+      result.add flag(
+        "quiet",
+        doc = "Do not print execution logs",
+        aliasof = CliOpt(
+          kind: coOpt,
+          keyPath: @["loglevel"],
+          valStr: "none"
+        )
+      )
+
+    else:
+      result.add flag("quiet", doc = "Do not print execution logs")
 
   if "dry-run" notin ignored:
     result.add flag("dry-run", "Do not execute irreversible OS actions")
@@ -352,7 +386,8 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
   if "loglevel" notin ignored:
     result.add opt(
       "loglevel",
-      doc = "Configure logging level",
+      doc = "Configure minimal logging level to be shown.",
+      default = "info",
       values = @{
         "all":    "All levels active",
         "debug":  "Debugging information helpful only to developers",
@@ -379,10 +414,14 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
       }
     )
 
-    opt.check = @[
+    opt.check =
       orCheck(
-        opt.check[0],
-        check(cckIsWritable), check(cckIsCreatable))]
+        opt.check,
+        check(cckIsWritable),
+        check(cckIsCreatable)
+      )
+
+
 
     result.add opt
 
@@ -413,7 +452,7 @@ proc arg*(
     name: string,
     doc: string,
     required: bool = true,
-    check: seq[CliCheck] = @[],
+    check: CliCheck = nil,
     docFull: string = ""
   ): CliDesc =
 
@@ -460,6 +499,74 @@ func version*(app: CliApp): string =
     app.strVersion
 
 
+proc postLine(desc: CliDesc): LytBlock =
+  result = H[]
+
+  if desc.kind in coOptionKinds:
+    if desc.defaultAsFlag.isNone():
+      result.add T[&"={toCyan(desc.varname)}"]
+
+    else:
+      result.add T[&"[={toCyan(desc.varname)}]"]
+
+    if desc.defaultValue.isSome():
+      result.add T[&", defaults to {toCyan(desc.defaultValue.get())}"]
+
+    if desc.defaultAsFlag.isSome():
+      result.add T[&", as flag defaults to {toCyan(desc.defaultAsFlag.get())}"]
+
+  let rep = desc.allowedRepeat
+  if rep.b > 1:
+    result.add T[&", can be repeated {desc.allowedRepeat} times"]
+
+  if desc.aliasof.isSome():
+    result.add T[&", alias of '{toYellow($desc.aliasof.get())}'"]
+
+
+proc `$`*(val: CliValue): string =
+  case val.kind:
+    of cvkFloat: result = $val.floatVal
+    of cvkString: result = $val.strVal
+    else:
+      raise newImplementKindError(val)
+
+proc checkHelp(check: CliCheck, inNested: bool = false): LytBlock =
+  result = E[]
+  if isNil(check): return
+  let prefix = tern(inNested, "- ", "Value must ")
+
+  case check.kind:
+    of cckIsInSet:
+      result = V[]
+
+      var doc: seq[(string, string)]
+
+      for val in check.values:
+        doc.add ($val, val.desc.doc.docBrief)
+
+      let width = maxIt(doc, it[0].len) + 2
+
+      for (val, doc) in doc:
+        result.add H[T[alignLeft(val, width).toYellow()], T[doc]]
+
+      result = V[T[
+        prefix & "be one of the following: "
+      ], I[4, result], S[]]
+
+    of cckOrCheck:
+      result = V[T[prefix & "meet at least one of the following criteria:"]]
+      for sub in check.subChecks:
+        result.add I[4, checkHelp(sub, true)]
+
+    of cckIsWritable:
+      result = T[prefix & "be a writable file"]
+
+    of cckIsCreatable:
+      result = T[prefix & "be a path where can be created"]
+
+    else:
+      raise newImplementKindError(check)
+
 proc flagHelp(flag: CliDesc): LytBlock =
   result = V[]
   var flags: seq[string]
@@ -470,8 +577,9 @@ proc flagHelp(flag: CliDesc): LytBlock =
     else:
       flags.add toGreen("-" & key)
 
-  result.add T[flags.join(", ")]
+  result.add H[T[flags.join(", ")], postLine(flag)]
   result.add I[4, T[flag.doc.docBrief]]
+  result.add I[4, checkHelp(flag.check)]
 
 proc optHelp(opt: CliDesc): LytBlock =
   result = V[]
@@ -483,8 +591,9 @@ proc optHelp(opt: CliDesc): LytBlock =
     else:
       opts.add toGreen("-" & key)
 
-  result.add T[opts.join(", ")]
+  result.add H[T[opts.join(", ")], postLine(opt)]
   result.add I[4, T[opt.doc.docBrief]]
+  result.add I[4, checkHelp(opt.check)]
 
 
 proc argHelp(arg: CliDesc): LytBlock =
@@ -492,6 +601,7 @@ proc argHelp(arg: CliDesc): LytBlock =
 
   result.add T[&"<{toRed(arg.name)}>"]
   result.add I[4, T[arg.doc.docBrief]]
+  result.add I[4, checkHelp(arg.check)]
 
 import hpprint
 
@@ -504,7 +614,7 @@ proc help(desc: CliDesc, level: int = 0): LytBlock =
     first = E[]
 
     for arg in desc.arguments:
-      args.add I[indent + 4, argHelp(arg)]
+      args.add I[indent, argHelp(arg)]
 
     result.add args
 
