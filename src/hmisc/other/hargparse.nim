@@ -1,11 +1,11 @@
 ## Command-line argument parsing
 
 import
-  ./cliparse,
-  ./oswrap,
-  ../algo/lexcast,
-  ../base_errors,
-  std/[tables, options, uri, sequtils]
+  ./cliparse, ./blockfmt, ./oswrap,
+  ../algo/[lexcast, clformat],
+  ../types/colorstring,
+  ../base_errors, ../hdebug_misc,
+  std/[tables, options, uri, sequtils, strformat, strutils]
 
 type
   CliCmdTree* = object
@@ -86,8 +86,10 @@ type
 
     doc*: CliDoc
 
+    groupKind*: CliOptKind
     case kind*: CliOptKind
       of coCommand:
+        altNames*: seq[string]
         options*: seq[CliDesc]
         arguments*: seq[CliDesc]
         subcommands*: seq[CliDesc]
@@ -148,6 +150,11 @@ type
       of cvkRecord:
         recValues*: Table[string, CliValue]
 
+  CliExitCode = object
+    code*: range[0 .. 255]
+    onException*: Option[string]
+    doc*: CliDoc
+
   CliApp = object
     author*: string
     name*: string
@@ -156,6 +163,8 @@ type
     configPaths*: seq[FsEntry]
 
     rootCmd*: CliDesc
+
+    exitCodes*: seq[CliExitCode]
 
     case isSemVer*: bool
       of true:
@@ -198,17 +207,30 @@ proc add*(desc: var CliDesc, other: CliDesc) =
     of coSpecial:
       raise newUnexpectedKindError(desc)
 
-proc toOption(str: string): Option[string] =
+func toOption(str: string): Option[string] =
   if str.len > 0:
     return some str
 
-proc add*(app: var CliApp, cmd: CliDesc) =
+func add*(app: var CliApp, cmd: CliDesc) =
   app.rootCmd.add cmd
 
-proc cmd*(name, docBrief: string, subparts: varargs[CliDesc]): CliDesc =
-  CliDesc(kind: coCommand, doc: CliDoc(docBrief: docBrief))
+func root*(app: CliApp): CliDesc = app.rootCmd
+func root*(app: var CliApp): var CliDesc = app.rootCmd
 
-proc flag*(name, doc: string): CliDesc =
+func cmd*(
+    name, docBrief: string,
+    subparts: varargs[CliDesc],
+    alt: seq[string] = @[]
+  ): CliDesc =
+
+  CliDesc(
+    name: name,
+    altNames: @[name] & alt,
+    kind: coCommand,
+    doc: CliDoc(docBrief: docBrief)
+  )
+
+func flag*(name, doc: string): CliDesc =
   CliDesc(
     kind: coFlag, name: name, startKeys: @[name],
     doc: CliDoc(docBrief: doc))
@@ -248,14 +270,18 @@ proc opt*(
     values: openarray[(string, string)] = @[],
     docFull: string = "",
     alt: seq[string] = @[],
-    defaultAsFlag: string = ""
+    defaultAsFlag: string = "",
+    groupKind: CliOptKind = coOpt
   ): CliDesc =
 
   result = CliDesc(
-    kind: coOpt, name: name, startKeys: @[name] & alt,
+    kind: coOpt,
+    name: name,
+    startKeys: @[name] & alt,
     doc: CliDoc(docBrief: doc, docFull: docFull),
     defaultValue: default.toOption(),
-    defaultAsFlag: defaultAsFlag.toOption()
+    defaultAsFlag: defaultAsFlag.toOption(),
+    groupKind: groupKind
   )
 
   if values.len > 0:
@@ -272,6 +298,7 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
       doc = "Display help messsage",
       default = "off",
       defaultAsFlag = "on",
+      groupKind = coFlag,
       values = {
         "off": "Do not show help",
         "on": "Show help using default formatting",
@@ -286,10 +313,12 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
       doc = "Display version",
       default = "off",
       defaultAsFlag = "on",
+      groupKind = coFlag,
       values = {
         "off": "Do not show version",
         "on": "Show version",
-        "full": "Show full version information (compilation time, author etc.)",
+        "full": "Show full version information " &
+          "(compilation time, author etc.)",
         "json": "Output version informatin in json format"
       }
     )
@@ -302,6 +331,7 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
       "color",
       doc = "When to use color for the pattern match output.",
       default = "auto",
+      groupKind = coFlag,
       values = {
         "auto": "show colors if the output goes to an interactive console",
         "never": "do not use colorized output",
@@ -322,7 +352,19 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
   if "loglevel" notin ignored:
     result.add opt(
       "loglevel",
-      doc = "Configure logging level"
+      doc = "Configure logging level",
+      values = @{
+        "all":    "All levels active",
+        "debug":  "Debugging information helpful only to developers",
+        "info":   "Anything associated with normal " &
+          "operation and without any particular importance",
+        "notice": "More important information that " &
+          "users should be notified about",
+        "warn":   "Impending problems that require some attention",
+        "error":  "Error conditions that the application can recover from",
+        "fatal":  "Fatal errors that prevent the application from continuing",
+        "none":   "No levels active; nothing is logged"
+      }
     )
 
   if "log-output" notin ignored:
@@ -359,7 +401,7 @@ proc newCliApp*(
     isSemVer: true,
     semVersion: version,
     author: author,
-    rootCmd: CliDesc(name: name),
+    rootCmd: cmd(name, name),
     doc: CliDoc(docBrief: docBrief)
   )
 
@@ -369,11 +411,14 @@ proc newCliApp*(
 
 proc arg*(
     name: string,
+    doc: string,
     required: bool = true,
-    check: seq[CliCheck] = @[]
+    check: seq[CliCheck] = @[],
+    docFull: string = ""
   ): CliDesc =
 
   CliDesc(
+    doc: CliDoc(docBrief: doc, docFull: docFull),
     name: name,
     kind: coArgument,
     required: required,
@@ -393,6 +438,7 @@ proc toCliValue*(tree: CliCmdTree, log: var CliParseLogger): CliValue =
   ## Convert unchecked CLI tree into typed values, without executing
   ## checkers.
 
+initBlockFmtDsl()
 
 proc mergeConfigs*(
     tree: CliCmdTree,
@@ -402,8 +448,135 @@ proc mergeConfigs*(
 
   discard
 
-if isMainModule and false:
+
+let
+  section = initStyle(fgYellow)
+
+func version*(app: CliApp): string =
+  if app.isSemVer:
+    &"v{app.semVersion.major}.{app.semVersion.minor}.{app.semVersion.patch}"
+
+  else:
+    app.strVersion
+
+
+proc flagHelp(flag: CliDesc): LytBlock =
+  result = V[]
+  var flags: seq[string]
+  for key in flag.startKeys:
+    if key.len > 1:
+      flags.add toGreen("--" & key)
+
+    else:
+      flags.add toGreen("-" & key)
+
+  result.add T[flags.join(", ")]
+  result.add I[4, T[flag.doc.docBrief]]
+
+proc optHelp(opt: CliDesc): LytBlock =
+  result = V[]
+  var opts: seq[string]
+  for key in opt.startKeys:
+    if key.len > 1:
+      opts.add toGreen("--" & key)
+
+    else:
+      opts.add toGreen("-" & key)
+
+  result.add T[opts.join(", ")]
+  result.add I[4, T[opt.doc.docBrief]]
+
+
+proc argHelp(arg: CliDesc): LytBlock =
+  result = V[]
+
+  result.add T[&"<{toRed(arg.name)}>"]
+  result.add I[4, T[arg.doc.docBrief]]
+
+import hpprint
+
+proc help(desc: CliDesc, level: int = 0): LytBlock =
+  result = V[]
+  var first = S[]
+  let indent = level * 4
+  if desc.arguments.len > 0:
+    var args = V[first, T["ARGS:".toColored(section)]]
+    first = E[]
+
+    for arg in desc.arguments:
+      args.add I[indent + 4, argHelp(arg)]
+
+    result.add args
+
+  if desc.subcommands.len > 0:
+    var cmds = V[S[], T["SUBCOMMANDS:".toColored(section)], S[]]
+
+    for cmd in desc.subcommands:
+      let names = cmd.altNames.mapIt(it.toMagenta()).join("/")
+      cmds.add I[level + 4, T[&"{names} - {cmd.doc.docBrief}"]]
+      cmds.add I[level + 4, help(cmd, level + 1)]
+
+    result.add I[indent, cmds]
+
+  if desc.options.len > 0 and
+     desc.options.anyIt(it.groupKind in coFlagKinds):
+    var flags = V[S[], T["FLAGS:".toColored(section)], S[]]
+
+    for flag in desc.options:
+      if flag.groupKind in coFlagKinds:
+        let help = I[indent + 4, flagHelp(flag)]
+        flags.add help
+
+
+    result.add I[indent, flags]
+
+  if desc.options.len > 0 and
+     desc.options.anyIt(it.groupKind in coOptionKinds):
+    var opts = V[S[], T["OPTIONS:".toColored(section)], S[]]
+
+    for opt in desc.options:
+      if opt.groupKind in coOptionKinds:
+        opts.add I[indent + 4, optHelp(opt)]
+
+    result.add I[indent, opts]
+
+
+proc help(app: CliApp): LytBlock =
+  var res = V[
+    T["NAME:".toColored(section)],
+    S[],
+    I[4, T[&"{app.name} - {app.doc.docBrief}"]]
+  ]
+
+  if app.exitCodes.len > 0:
+    var codes = V[T["EXIT STATUS:".toColored(section)]]
+
+    for exit in app.exitCodes:
+      codes.add S[]
+      codes.add I[4, T[&"{exit.code} - {exit.doc.docBrief}"]]
+
+    res.add codes
+
+  res.add app.root.help()
+
+  res.add @[
+    S[], T["VERSION:".toColored(section)],
+    S[], I[4, T[&"{app.version} by {app.author}"]]
+  ]
+
+  return res
+
+
+proc helpStr(app: CliApp): string =
+  return app.help().toString()
+
+if isMainModule:
+  startHax()
   var app = newCliApp(
     "test", (1,2,3), "haxscramper", "Brief description")
 
-  app.add cmd("sub", "Example subcommand")
+  var sub = cmd("sub", "Example subcommand", alt = @["s"])
+  sub.add arg("index", "Required argument for subcommand")
+  app.add sub
+
+  echo app.helpStr()

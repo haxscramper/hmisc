@@ -555,6 +555,7 @@ type
     colored*: bool
     indent*: int
     maxDepth*: int
+    quoteIdents*: bool ## Add quotes around stings that are valid identifirers
     newlineBeforeMulti*: bool
     verbosity*: HDisplayVerbosity
     dropPrefix*: bool

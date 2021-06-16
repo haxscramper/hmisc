@@ -20,8 +20,12 @@ type
 
     coCommand
 
-    # coCmdOrArg
+const
+  coFlagKinds* = { coFlag .. coBracketFlag }
+  coOptionKinds* = { coOpt .. coBracketOpt }
+  coDashedKinds* = coFlagKinds + coOptionKinds
 
+type
   CliAddKind* = enum
     caEqual ## `--key=value`
     caPlusEqual ## `--key+=value`

@@ -11,10 +11,12 @@ import std/[
   lenientops, options, hashes, math, sugar, streams
 ]
 
-import ../base_errors
-import ../algo/[hmath, halgorithm, hseq_mapping]
-import ../hdebug_misc, ../hexceptions
-import colorlogger
+import
+  ../base_errors,
+  ../algo/[hmath, halgorithm, hseq_mapping],
+  ../types/colorstring,
+  ../hdebug_misc,
+  ../hexceptions
 
 const infty = 1024 * 1024 * 1024 * 1024
 
@@ -64,6 +66,7 @@ type
     bkStack ## Vertically stacked layouts
     bkWrap ## Mulitple blocks wrapped to create lowerst-cost layout
     bkVerb ## Multiple lines verbatim
+    bkEmpty ## Empty layout block - ignored by `add` etc.
 
   LytBlock* = ref object
     layout_cache: Table[Option[LytSolution], Option[LytSolution]]
@@ -76,14 +79,20 @@ type
       of bkVerb:
         textLines*: seq[string] ## Lines of text
         firstNl*: bool ## Insert newline at the block start
+
       of bkText:
         text*: string ## Line of text
+
       of bkWrap:
         prefix*: Option[string]
         sep*: string ## Separator for block wraps
         wrapElements*: seq[LytBlock]
+
       of bkStack, bkChoice, bkLine:
         elements*: seq[LytBlock]
+
+      of bkEmpty:
+        discard
 
   LytFormatPolicy = object
     breakElementLines: proc(blc: seq[seq[LytBlock]]): seq[seq[LytBlock]] ## Hook
@@ -154,18 +163,22 @@ proc `$`*(blc: LytBlock): string =
 
     of bkVerb:
       blc.textLines[0] & "..."
+
+    of bkEmpty:
+      "<empty>"
       # &""">>{blc.textLines.join("⮒")}<<"""
 
-func ptreeRepr*(inBl: LytBlock): string =
+func treeRepr*(inBl: LytBlock): string =
   func aux(bl: LytBlock, level: int): string =
     let name =
       case bl.kind:
-        of bkLine: "LB"
-        of bkChoice: "CB"
-        of bkText: "TB"
-        of bkWrap: "WB"
-        of bkStack: "SB"
-        of bkVerb: "VB"
+        of bkLine: "L"
+        of bkChoice: "C"
+        of bkText: "T"
+        of bkWrap: "W"
+        of bkStack: "S"
+        of bkVerb: "V"
+        of bkEmpty: "E"
 
     let pref = (name & " ").align(level * 2)
     let pref2 = repeat(" ", level * 2 + 2)
@@ -180,6 +193,10 @@ func ptreeRepr*(inBl: LytBlock): string =
 
       of bkText:
         result = &"{pref}{bl.text.escape()}"
+
+      of bkEmpty:
+        result = "<empty>"
+
       of bkVerb:
         for isLast, line in itemsIsLast(bl.textLines):
           result &= &"{pref}|  {line.escape()}" & (if isLast: "" else: "\n")
@@ -529,10 +546,6 @@ proc hPlusSolution(s1, s2: var LytSolution, opts: LytOptions): LytSolution =
   ## `s2`'s layouts may occupy multiple lines, in which case `s2`'s
   ## layout begins at the end of the last line of `s1`'s layout---the
   ## span in this case is the span of `s1`'s last line.
-  # debug "Horizontal stack solutions"
-  identLog()
-  defer: dedentLog()
-
   var col: LytSolutionFactory
   s1.reset()
   s2.reset()
@@ -598,8 +611,9 @@ func plusConst(self: LytSolution, val: float): LytSolution =
     a += val
 
 proc withRestOfLine(
-  self: var Option[LytSolution],
-  rest_of_line: var Option[LytSolution], opts: LytOptions): Option[LytSolution] =
+    self: var Option[LytSolution],
+    rest_of_line: var Option[LytSolution], opts: LytOptions
+  ): Option[LytSolution] =
   ## Return a LytSolution that joins the rest of the line right of this one.
 
   ## Args:
@@ -671,6 +685,12 @@ func makeBlock*(kind: LytBlockKind): LytBlock =
 func makeTextBlock*(text: string): LytBlock =
   LytBlock(kind: bkText, text: text, width: text.len, height: 1)
 
+func makeEmptyBlock*(): LytBlock =
+  LytBlock(kind: bkEmpty)
+
+func makeTextBlock*(text: ColoredString): LytBlock =
+  LytBlock(kind: bkText, text: $text, width: text.len, height: 1)
+
 proc makeTextBlocks*(text: openarray[string]): seq[LytBlock] =
   text.mapIt(makeTextBlock(it))
 
@@ -679,8 +699,9 @@ func makeIndentBlock*(blc: LytBlock, indent: int): LytBlock
 
 
 func makeLineBlock*(elems: openarray[LytBlock]): LytBlock =
-
-  result = LytBlock(kind: bkLine, elements: toSeq(elems))
+  result = LytBlock(
+    kind: bkLine,
+    elements: filterIt(elems, it.kind != bkEmpty))
   result.height = elems.maxIt(it.height)
   result.width = elems.sumIt(it.width)
 
@@ -688,16 +709,23 @@ func makeLineBlock*(elems: openarray[LytBlock]): LytBlock =
 func makeIndentBlock*(blc: LytBlock, indent: int): LytBlock =
   if indent == 0:
     blc
+
   else:
     makeLineBlock(@[makeTextBlock(" ".repeat(indent)), blc])
 
 func makeChoiceBlock*(elems: openarray[LytBlock]): LytBlock =
-  result = LytBlock(kind: bkChoice, elements: toSeq(elems))
+  result = LytBlock(
+    kind: bkChoice,
+    elements: filterIt(elems, it.kind != bkEmpty))
+
   result.width = elems.maxIt(it.width)
   result.height = elems.maxIt(it.height)
 
 func makeStackBlock*(elems: openarray[LytBlock]): LytBlock =
-  result = LytBlock(kind: bkStack, elements: toSeq(elems))
+  result = LytBlock(
+    kind: bkStack,
+    elements: filterIt(elems, it.kind != bkEmpty))
+
   result.height = elems.sumIt(it.height)
   result.width = elems.maxIt(it.width)
 
@@ -706,10 +734,14 @@ func makeWrapBlock*(elems: openarray[LytBlock]): LytBlock =
   LytBlock(kind: bkWrap, wrapElements: toSeq(elems))
 
 func makeVerbBlock*(
-  textLines: openarray[string], breaking: bool = true,
-  firstNl: bool = false): LytBlock =
-  LytBlock(kind: bkVerb, textLines: toSeq(textLines),
-        isBreaking: breaking, firstNl: firstNl)
+    textLines: openarray[string], breaking: bool = true,
+    firstNl: bool = false
+  ): LytBlock =
+
+  LytBlock(
+    kind: bkVerb, textLines: toSeq(textLines),
+    isBreaking: breaking, firstNl: firstNl
+  )
 
 func makeForceLinebreak*(text: string = ""): LytBlock =
   makeVerbBlock(@[text], true, false)
@@ -727,8 +759,25 @@ func makeLineCommentBlock*(
 
 func add*(target: var LytBlock, other: varargs[LytBlock]) =
   for bl in other:
-    target.elements.add bl
+    assert not isNil(bl)
+    if bl.kind != bkEmpty:
+      case target.kind:
+        of bkStack:
+          target.height += bl.height
+          target.width = max(target.width, bl.width)
 
+        of bkLine:
+          target.width += bl.width
+          target.height = max(target.height, bl.height)
+
+        else:
+          discard
+
+      if bl.kind == target.kind and bl.kind in {bkStack, bkLine}:
+        target.elements.add bl.elements
+
+      else:
+        target.elements.add bl
 
 #============================  Layout logic  =============================#
 
@@ -1000,19 +1049,19 @@ proc doOptVerbLayout(
   return some sf.makeSolution()
 
 proc doOptLayout*(
-  self: var LytBlock,
-  rest_of_line: var Option[LytSolution], opts: LytOptions): Option[LytSolution] =
+    self: var LytBlock,
+    rest_of_line: var Option[LytSolution],
+    opts: LytOptions
+  ): Option[LytSolution] =
 
-  # echov self
-  # info "Opt layout for ", self
-  # logIdented:
-  result = case self.kind:
-    of bkText: self.doOptTextLayout(restOfLine, opts)
-    of bkLine: self.doOptLineLayout(restOfLine, opts)
-    of bkChoice: self.doOptChoiceLayout(restOfLine, opts)
-    of bkStack: self.doOptStackLayout(restOfLine, opts)
-    of bkWrap: self.doOptWrapLayout(restOfLine, opts)
-    of bkVerb: self.doOptVerbLayout(restOfLine, opts)
+  case self.kind:
+    of bkText:   result = self.doOptTextLayout(restOfLine, opts)
+    of bkLine:   result = self.doOptLineLayout(restOfLine, opts)
+    of bkChoice: result = self.doOptChoiceLayout(restOfLine, opts)
+    of bkStack:  result = self.doOptStackLayout(restOfLine, opts)
+    of bkWrap:   result = self.doOptWrapLayout(restOfLine, opts)
+    of bkVerb:   result = self.doOptVerbLayout(restOfLine, opts)
+    of bkEmpty: discard
 
 const defaultFormatOpts* = LytOptions(
   leftMargin: 0,
@@ -1093,6 +1142,7 @@ type
     blkIndent
     blkSpace
     blkChoice
+    blkEmpty
 
 proc `[]`*(b: static[LytBuilderKind], s: seq[LytBlock]): LytBlock =
   static: assert b in {blkLine, blkStack, blkChoice}, $b
@@ -1114,22 +1164,32 @@ proc `[]`*(b: static[LytBuilderKind], s: seq[LytBlock]): LytBlock =
 proc `[]`*(b: static[LytBuilderKind], bl: LytBlock, args: varargs[LytBlock]): LytBlock =
   b[@[ bl ] & toSeq(args)]
 
-proc `[]`*(b: static[LytBuilderKind], a: string): LytBlock =
-  staticAssert(b == blkText,
-               "Single-argument block builder for string must use `T[\"somestring\"]`",
-               "Change builder kind to `T` (current kind is " & $b & ")",
-               hxInfo())
-
+proc `[]`*(b: static[LytBuilderKind], a: string | ColoredString): LytBlock =
+  staticAssert(
+    b == blkText,
+    "Single-argument block builder for string must use `T[\"somestring\"]`",
+    "Change builder kind to `T` (current kind is " & $b & ")",
+    hxInfo()
+  )
 
   return makeTextBlock(a)
 
 proc `[]`*(b: static[LytBuilderKind], tlen: int = 1): LytBlock =
-  staticAssert(b == blkSpace,
-               "Block builder without arguments must use `blkSpace`",
-               "Change builder kind (current is " & $b & ")",
-               hxInfo())
+  case b:
+    of blkSpace: result = makeTextBlock(" ".repeat(tlen))
+    of blkEmpty: result = makeEmptyBlock()
+    of blkLine: result = makeLineBlock(@[])
+    of blkChoice: result = makeChoiceBlock(@[])
+    of blkStack: result = makeStackBlock(@[])
+    else:
+      staticAssert(
+        b in {blkSpace, blkLine, blkChoice, blkStack, blkEmpty},
+        "Block builder without arguments must use space or " &
+          "combinator layouts",
+        "Unexpected builder kind",
+        hxInfo()
+      )
 
-  return makeTextBlock(" ".repeat(tlen))
 
 
 
@@ -1190,7 +1250,6 @@ func padSpaces(
   ) =
 
   var indent = indent
-  # echov indent, bl
 
   case bl.kind:
     of bkText:
@@ -1216,6 +1275,7 @@ func padSpaces(
 
     of bkStack:
       for idx, item in mpairs(bl.elements):
+        # echov item.treeRepr()
         padSpaces(item, tern(idx == 0, 0, indent))
 
     of bkChoice:
@@ -1245,6 +1305,7 @@ func codegenRepr*(inBl: LytBlock): string =
     let pref = repeat("  ", level)
     let name =
       case bl.kind:
+        of bkEmpty: "empty"
         of bkLine: "hsb"
         of bkChoice: "choice"
         of bkText: "txb"
@@ -1259,14 +1320,19 @@ func codegenRepr*(inBl: LytBlock): string =
           result &= elem.aux(level + 1) & (if isLast: "\n" else: ",\n")
 
         result &= pref & "])"
+
       of bkText:
         result = &"{pref}txb({bl.text.escape()})"
+
       of bkVerb:
         result = pref & name & "([\n"
         for isLast, line in itemsIsLast(bl.textLines):
           result &= &"{pref}  \"{line}\"" & (if isLast: "\n" else: ",\n")
 
         result &= pref & "])"
+
+      of bkEmpty:
+        result = "empty"
 
   return "str(" & aux(inBl, 0) & ")"
 
@@ -1279,6 +1345,7 @@ template initBlockFmtDSL*() {.dirty.} =
     I = blkIndent
     S = blkSpace
     C = blkChoice
+    E = blkEmpty
 
 
 
