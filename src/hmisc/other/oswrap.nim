@@ -22,7 +22,7 @@
 import std/[strutils, macros, random, hashes, json, math,
             strformat, sequtils, options, streams]
 
-import ../algo/hstring_algo
+import ../algo/[hstring_algo, hseq_distance, halgorithm]
 import ../base_errors
 import ../hdebug_misc
 
@@ -132,6 +132,11 @@ type
     entry*: FsEntry
     kind*: PathErrorKind
 
+  FileSearchError = object of OsError
+    directories*: seq[AbsDir]
+    basename*: string
+    extensions*: seq[GitGlob]
+
   EnvVarError* = ref object of OSError
     varname*: ShellVar
 
@@ -142,6 +147,30 @@ type
   AnyDir* = AbsDir | RelDir | FsDir
   AnyFile* = AbsFile | RelFile | FsFile
 
+
+func newFileSearchError*(
+    directories: seq[AbsDir],
+    name: string,
+    extensions: seq[GitGlob],
+    userMsg: string
+  ): ref FileSearchError =
+
+  let
+    dirs: seq[string] = directories.mapIt(it.string)
+    prefix = dirs.commonPrefix()
+    suffix = dirs.dropCommonPrefix().mapIt("'" & it & "'")
+    dirListing = prefix & "{" & suffix.join(",") & "}"
+
+
+  result = newException(
+    FileSearchError,
+    &"Could not find file with basename {name} and " &
+      &"extensions {extensions} in the following directories: {dirListing}."
+  )
+
+  result.directories = directories
+  result.basename = name
+  result.extensions = extensions
 
 func newPathError*(
   entry: FsEntry, kind: PathErrorKind, msg: string): PathError =
@@ -922,17 +951,17 @@ iterator walkDir*[T: AnyPath](
   when resType is AbsDir | RelDir | FsDir:
     resSet.incl pcDir
     if yieldLinks:
-      resSet.incl pcLinkToDir
+      resSet.incl os.pcLinkToDir
 
   elif resType is AbsFile | RelFile | FsFile:
-    resSet.incl pcFile
+    resSet.incl os.pcFile
     if yieldLinks:
-      resSet.incl pcLinkToFile
+      resSet.incl os.pcLinkToFile
 
   elif resType is FsEntry:
-    resSet.incl {pcFile, pcDir}
+    resSet.incl {os.pcFile, os.pcDir}
     if yieldLinks:
-      resSet.incl {pcLinkToFile, pcLinkToDir}
+      resSet.incl {os.pcLinkToFile, os.pcLinkToDir}
 
 
   if recurse:
@@ -1583,6 +1612,20 @@ proc findExe*(bin: string): AbsFile =
   ## directories listed in the PATH environment variable. Returns "" if
   ## the exe cannot be found.
   AbsFile(osAndNims(findExe(bin)))
+
+proc findFile*(
+    paths: seq[AbsDir], name: string,
+    extensions: seq[GitGlob],
+    onError: string = ""
+  ): AbsFile =
+
+  for path in paths:
+    for file in walkDir(path, AbsFile, recurse = false):
+      if file.name() == name and extensions.accept(
+        file.ext(), invert = true):
+        return file
+
+  raise newFileSearchError(paths, name, extensions, onError)
 
 
 func `&&`*(lhs, rhs: string): string =

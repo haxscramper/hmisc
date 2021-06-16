@@ -111,6 +111,13 @@ template findMaxIt*(s: untyped, op: untyped): untyped =
 
   res
 
+template getMaxIt*(s: untyped, op: untyped): untyped =
+  ## Maximize value for all elements in sequence
+  let idx = findMaxIt(s, op)
+  s[idx]
+
+
+
 template findMinIt*(s: untyped, op: untyped): untyped =
   var res: int = 0
   var idx {.inject.} = 0

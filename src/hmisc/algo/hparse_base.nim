@@ -862,9 +862,6 @@ func treeRepr*[R, T](
 
   return aux(tree, 0, @[])
 
-func dropLowerPrefix*(str: sink string): string =
-  result = str[str.skipWhile({'a' .. 'z'}) .. ^1]
-
 proc toColored*[K](
     toks: seq[HsTok[K]],
     colorMap: array[K, PrintStyling] = default(array[K, PrintStyling]),

@@ -268,6 +268,9 @@ func dropSubstr*(instr, substr: string): string =
 
   instr.dropSubseq(substr).join("")
 
+func dropLowerPrefix*(str: sink string): string =
+  result = str[str.skipWhile({'a' .. 'z'}) .. ^1]
+
 func dropCommonPrefix*(
   strs: seq[string], dropSingle: bool = true): seq[string] =
   ## Drop common prefix from sequence of strings. If `dropSingle` is
@@ -845,6 +848,70 @@ func mapChar*[Cat: enum](
       &"Unexpected input char: got '{ch}', but expected {chars}")
 
   return map[ch]
+
+type
+  StrNormalizationKind* = enum
+    snkNoNormalization
+    snkNimNormalize
+    snkFullNormalize
+    snkCaseNormalize
+
+  EnumParseError* = object of ParseError
+
+
+
+func normalize*(str: string, kind: StrNormalizationKind): string =
+  case kind:
+    of snkNoNormalization:
+      result = str
+
+    of snkNimNormalize, snkFullNormalize:
+      var start = 0
+      if kind == snkNimNormalize:
+        result.add str[0]
+        inc start
+
+      for ch in str[start ..^ 1]:
+        case ch:
+          of '_', '-': discard
+          of 'a'..'z': result.add ch
+          of 'A'..'Z': result.add char(ch.uint8 - 32)
+          else: result.add ch
+
+    of snkCaseNormalize:
+      for ch in str:
+        case ch:
+          of 'A'..'Z': result.add char(ch.uint8 - 32)
+          else: result.add ch
+
+
+func parseEnum*[E: enum](
+    map: array[E, string],
+    str: string,
+    normalize: StrNormalizationKind = snkNimNormalize,
+    optionalPrefix: bool = true
+  ): E =
+  if optionalPrefix:
+    let normalized = str.dropLowerPrefix().normalize(normalize)
+
+    for (key, val) in map:
+      if val == normalized:
+        return key
+
+    raise newException(
+      EnumParseError,
+      &"Could not parse enum value for {typeof(E)} from '{str}' (normalized to {normalized})")
+
+  let normalized = str.normalize(normalize)
+
+  for (key, val) in map:
+    if val == normalized:
+      return key
+
+  raise newException(
+    EnumParseError,
+    &"Could not parse enum value for {typeof(E)} from '{str}'")
+
 
 
 # func `&`*[T](s: seq[T], v: T): seq[T] = s & @[v]

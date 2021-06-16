@@ -1,6 +1,8 @@
 import std/[strutils, tables, enumerate, strformat]
 import hseq_mapping, htext_algo
 import ../base_errors
+import ../types/colorstring
+import ../algo/halgorithm
 
 
 
@@ -82,9 +84,16 @@ func toLatinNamedChar*(ch: char): seq[string] =
   ## Convert character `ch` to it's named for punctuation and control
   ## characters, othewise leave intactt. Conversion is (mostly) performed
   ## according to naming in basic latin unicode
+  # https://theasciicode.com.ar/
   case ch:
     of '[': @["left", "square", "bracket"]
     of ']': @["right", "square", "bracket"]
+    of '\a': @["bell"]
+    of '\n': @["newline"]
+    of '\v': @["vertical", "tab"]
+    # of char(0x1100_0000): @["utf8", "two", "byte", "lead"]
+    # of char(0x1110_0000): @["utf8", "three", "byte", "lead"]
+    # of char(0x1111_0000): @["utf8", "four", "byte", "lead"]
     else: @[$ch]
 
 func toLatinAbbrChar*(ch: char): string =
@@ -133,6 +142,10 @@ func toLatinAbbrChar*(ch: char): string =
     of ':': "Colon"
     of '\n': "Newline"
     of '\t': "Tab"
+    of '\a': "Bell"
+    of '\v': "VertTab"
+    of '\f': "FormFeed"
+    of '\r': "CarriageRet"
     else: $ch
 
 const subSuperMap: Table[char, (string, string)] = toTable({
@@ -530,6 +543,61 @@ func hFormat*[T](s: openarray[T]): string =
     result &= $item
 
   result &= "]"
+
+type
+  HDisplayVerbosity* = enum
+    dvNormal
+    dvMinimal
+    dvVerbose
+    dvDataDump
+
+  HDisplayOpts* = object
+    colored*: bool
+    indent*: int
+    maxDepth*: int
+    newlineBeforeMulti*: bool
+    verbosity*: HDisplayVerbosity
+    dropPrefix*: bool
+
+const defaultHDisplay* = HDisplayOpts(
+  colored: true,
+  dropPrefix: true,
+  newlineBeforeMulti: true,
+  maxDepth: -1,
+  verbosity: dvNormal,
+)
+
+func hShow*(ch: char, opts: HDisplayOpts = defaultHDisplay): string =
+  $ch
+
+func hShow*(ch: int, opts: HDisplayOpts = defaultHDisplay): string =
+  toCyan($ch, opts.colored)
+
+func hShow*[A, B](
+    slice: HSlice[A, B], opts: HDisplayOpts = defaultHDisplay): string =
+
+  "[" & hshow(slice.a, opts) & ":" & hshow(slice.b, opts) & "]"
+
+func hShow*(str: string, opts: HDisplayOpts = defaultHDisplay): string =
+  if str.len == 0:
+    result = toYellow("''", opts.colored) & " (" &
+      toItalic("empty string", opts.colored) & ")"
+
+  else:
+    let prefix = " ".repeat(opts.indent)
+    if '\n' in str:
+      for line in str.split('\n'):
+        result &= "\n" & prefix & toYellow(line, opts.colored)
+
+    else:
+      result = toYellow("\"" & str & "\"", opts.colored)
+
+func hShow*[E: enum](e: E, opts: HDisplayOpts = defaultHDisplay): string =
+  if opts.dropPrefix:
+    toGreen(dropLowerPrefix($e), opts.colored)
+
+  else:
+    toGreen($e, opts.colored)
 
 
 when isMainModule:

@@ -140,6 +140,8 @@ proc `@`*(p: ptr): string = $cast[int](p)
 template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
   # Store previous indentation echo and print next level indented or
   # unindented based on new column value.
+  #
+  # TODO wrap expression in `try-catch` and print exception messages
   {.noSideEffect.}:
     block:
       let iinfo = instantiationInfo()

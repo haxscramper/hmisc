@@ -10,6 +10,8 @@ type
   ArgumentError*       = object of CatchableError
     ## Invalid argument passed to a functions
 
+  ParseError* = object of ArgumentError
+
   LogicError*          = object of CatchableError
 
   UnexpectedKindError* = object of ArgumentError
@@ -97,7 +99,8 @@ template kindToStr*(expr: typed): untyped =
   else:
     "\e[32m" & $expr.kind & "\e[0m for type \e[33m" & $typeof(expr) & "\e[0m"
 
-template assertKind*(inExpr, inExpected: typed) {.dirty.} =
+template assertKind*(
+    inExpr, inExpected: typed, onFail: string = "") {.dirty.} =
   block:
     let
       expr = inExpr
@@ -120,12 +123,12 @@ template assertKind*(inExpr, inExpected: typed) {.dirty.} =
 
       if kind notin expected:
         msg = "Unexpected kind - got " & kindToStr(expr) &
-          ", but expected " & anyOf & $expected
+          ", but expected " & anyOf & $expected & onFail
 
     elif expected is enum:
       if kind != expected:
         msg = "Unexpected kind - got " & kindToStr(expr) &
-          ", but expected " & $expected
+          ", but expected " & $expected & onFail
 
     if msg.len > 0:
       {.line: instantiationInfo(fullPaths = true).}:
@@ -134,10 +137,10 @@ template assertKind*(inExpr, inExpected: typed) {.dirty.} =
 
 
 proc newImplementKindError*[T](
-    node: T, msg: string = ""): ref ImplementKindError =
+    node: T, msg: varargs[string, `$`]): ref ImplementKindError =
   newException(ImplementKindError,
-    "Unhandled entry kind " & kindToStr(node) &
-      prepareMsg(msg) & " @" & $instantiationInfo() & "\n"
+    "Unhandled entry kind " & kindToStr(node) & " " &
+      msg.join(" ")
   )
 
 template raiseImplementKindError*(

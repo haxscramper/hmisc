@@ -18,6 +18,10 @@ type
     coArgument
     coSpecial
 
+    coCommand
+
+    # coCmdOrArg
+
   CliAddKind* = enum
     caEqual ## `--key=value`
     caPlusEqual ## `--key+=value`
@@ -28,12 +32,16 @@ type
     caEqualNone ## `--key=`
 
   CliOpt* = object
-    rawStr*: string
+    globalPos*: int ## Absolute position in the input sequence of arguments
+    rawStr*: string ## Raw string value of the command (with all dashes etc)
     kind*: CliOptKind
     shortDash*: bool
-    keyPath: seq[string] ## Hello
-    keySelect*: string
-    valStr: string
+    keyPath*: seq[string] ## Full path to the key. `--cc.exe=json` has path
+                          ## `["cc", "exe"]`, regular `--help` has path
+                          ## `["help"]`
+    keySelect*: string ## Selector value used in bracket options -
+                       ## `--warn[Init]:on` has `keySelector = "Init"`
+    valStr*: string ## String value of the command
     addKind*: CliAddKind
     optKind*: CliOptKind
 
@@ -216,6 +224,9 @@ func parseArgument*(arg: string, config: CliParseConfig): CliOpt =
 func parseSpecial*(arg: string, config: CliParseConfig): CliOpt =
   result = CliOpt(kind: coSpecial, rawStr: arg)
 
+func parseCommand*(arg: string, config: CliParseConfig): CliOpt =
+  result = CliOpt(kind: coCommand, rawStr: arg, keyPath: @[arg])
+
 func parseCliOpts*(args: seq[string], config: CliParseConfig): tuple[
   parsed: seq[CliOpt], failed: seq[CliFail]
 ] =
@@ -241,6 +252,9 @@ func parseCliOpts*(args: seq[string], config: CliParseConfig): tuple[
 
       of coSpecial:
         result.parsed.add parseSpecial(args[pos], config)
+
+      of coCommand:
+        result.parsed.add parseCommand(args[pos], config)
 
     inc pos
 
