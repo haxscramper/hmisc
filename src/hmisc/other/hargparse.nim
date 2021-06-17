@@ -1,11 +1,22 @@
 ## Command-line argument parsing
 
 import
-  ./cliparse, ./blockfmt, ./oswrap,
-  ../algo/[lexcast, clformat, htemplates],
+  ./cliparse,
+  ./blockfmt,
+  ./oswrap,
+  ../hdebug_misc,
+  ../base_errors,
   ../types/colorstring,
-  ../base_errors, ../hdebug_misc,
-  std/[tables, options, uri, sequtils, strformat, strutils, algorithm]
+  ../algo/[lexcast, clformat, htemplates, hseq_mapping]
+
+import
+  ./hlogger
+
+import
+  std/[
+    tables, options, uri, sequtils, strformat,
+    strutils, algorithm, effecttraits, macros
+  ]
 
 # import hpprint
 
@@ -154,8 +165,10 @@ type
       of cvkRecord:
         recValues*: Table[string, CliValue]
 
+
+  CliExitValueRange = range[0 .. 255]
   CliExitCode = object
-    code*: range[0 .. 255]
+    code*: CliExitValueRange
     onException*: Option[string]
     doc*: CliDoc
 
@@ -447,6 +460,70 @@ proc newCliApp*(
   for opt in options:
     result.add opt
 
+proc exitException*(
+    code: CliExitValueRange,
+    name: string,
+    doc: string,
+    docFull: string = ""
+  ): CliExitCode =
+
+  CliExitCode(
+    code: code,
+    doc: CliDoc(docBrief: doc, docFull: docFull),
+    onException: some(name)
+  )
+
+func add*(app: var CliApp, code: CliExitCode) =
+  app.exitCodes.add code
+
+
+macro raisesAsExit*(
+    app: var CLiApp,
+    mainProc: typed,
+    exceptions: static[openarray[(string, (int, string))]],
+  ): untyped =
+
+  result = newStmtList()
+
+  for ex in getRaisesList(mainProc):
+    let name = ex.strVal()
+    let idx = exceptions.findIt(it[0] == name)
+    if idx != -1:
+      let it = exceptions[idx]
+      result.add newCall("add", app,
+        newCall(
+          "exitException",
+          newLit(it[1][0]), newLit(it[0]), newLit(it[1][1])))
+
+    else:
+      warning(
+        mainProc.repr() & " can raise " & name &
+          ", which does not have corresponding exit code handler.",
+          mainProc)
+
+proc exitWith*(app: CliApp, ex: ref Exception, logger: HLogger) =
+  for code in app.exitCodes:
+    if code.onException.isSome() and code.onException.get() == ex.name:
+      ex.log(logger)
+      logger.logStackTrace(ex)
+      quit code.code
+
+  ex.log(logger)
+  logger.logStackTrace(ex)
+  quit 1
+
+template runMain*(
+    app: CliApp,
+    mainProc: typed,
+    logger: HLogger
+  ): untyped =
+
+  {.line: instantiationInfo(fullPaths = true).}:
+    try:
+      mainProc()
+
+    except Exception as e:
+      app.exitWith(e, logger)
 
 proc arg*(
     name: string,
@@ -681,6 +758,11 @@ proc helpStr(app: CliApp): string =
   return app.help().toString()
 
 if isMainModule:
+
+  proc mainProc(arg: int = 10) =
+    if arg > 0: mainProc(arg - 1)
+    raise newException(OSError, "123123123")
+
   startHax()
   var app = newCliApp(
     "test", (1,2,3), "haxscramper", "Brief description")
@@ -691,4 +773,12 @@ if isMainModule:
   sub.add arg("index", "Required argument for subcommand")
   app.add sub
 
-  echo app.helpStr()
+  app.raisesAsExit(mainProc, {
+    "OSError": (1, "Example os error raise")
+  })
+
+  let logger = newTermLogger()
+
+  app.runMain(mainProc, logger)
+
+  # echo app.helpStr()

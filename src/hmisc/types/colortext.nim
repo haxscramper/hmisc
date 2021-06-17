@@ -19,11 +19,19 @@ func colorize*(map: StyleMap, text: string, lang: string): seq[ColoredString] =
   var toks: GeneralTokenizer
   initGeneralTokenizer(toks, text)
   let lang = getSourceLanguage(lang)
+  var prev = 0
   while true:
     getNextToken(toks, lang)
+    if prev + 1 < toks.start:
+      result.add initColoredString(
+        text[prev ..< toks.start], initPrintStyling())
+
+    prev = toks.start + toks.length - 1
+
     case toks.kind
       of gtEof:
         break
+
       else:
         let str = substr(text, toks.start, toks.length + toks.start - 1)
         result.add map.colorize((toks.kind, str))
@@ -136,7 +144,11 @@ proc colorizeToStr*(str: string, lang: string): string =
   var map: StyleMap
   if lang.eqIdent("C++"):
     map = cppStyleMap
+
   elif lang.eqIdent("nim"):
     map = nimStyleMap
+
+  else:
+    return str
 
   return map.colorize(str, lang).toString()

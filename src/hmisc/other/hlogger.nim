@@ -1,7 +1,12 @@
 import
-  std/[macros, strtabs, strutils, enumerate, options, sequtils],
   ../algo/[clformat, htemplates, halgorithm, hlex_base],
-  ../types/colorstring
+  ../types/[colorstring, colortext]
+
+import
+  std/[
+    macros, strtabs, strutils, enumerate,
+    options, sequtils, tables, parseutils
+  ]
 
 type
   HLogLevel* = enum
@@ -27,6 +32,7 @@ type
   HLogScopeKind = enum
     hskTask
     hskScope
+    hskIndent
 
   HLogScope = object
     file: string
@@ -37,7 +43,7 @@ type
   HLogFormat = object
     str: ColoredString
 
-  HLogger = ref object
+  HLogger* = ref object
     minLogLevel: HLogLevel
     lastLog: HLogLevel
     lastEvent: HLogEvent
@@ -83,8 +89,7 @@ proc prepareText*(logger: HLogger, text: varargs[string]): string =
   if '\n' in result:
     var res = ""
     for (idx, line) in result.split('\n').enumerate():
-      res.add "\n"
-      if idx == 0: res.add " "
+      res.add "\n "
       res.add repeat(" ", logger.scopes.len() * 2 + logger.prefixLen)
       res.add line
 
@@ -152,6 +157,14 @@ template thisScope*(
   let (file, line, column) = instantiationInfo(fullPaths = true)
   openScope(logger, kind, file, line, column, name)
   defer: closeScope(logger)
+
+proc indent*(logger: HLogger) =
+  openScope(logger, hskIndent, "", 0, 0, "")
+
+
+proc dedent*(logger: HLogger) =
+  closeScope(logger)
+
 
 template openScope*(logger: HLogger, kind: HLogScopeKind, name: string) =
   let (file, line, column) = instantiationInfo(fullPaths = true)
@@ -225,7 +238,7 @@ template dump*(logger: HLogger, expr: untyped, other: varargs[string, `$`]): unt
 template pdump*(logger: HLogger, expr: untyped, other: varargs[string, `$`]): untyped =
   var args: seq[string]
   args.add astToStr(expr)
-  args.add "\n"
+  args.add "\n="
   args.add pstring(expr)
   for arg in other:
     args.add arg
@@ -234,68 +247,79 @@ template pdump*(logger: HLogger, expr: untyped, other: varargs[string, `$`]): un
 
 
 
-proc debug*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+proc debug*(
+  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
   log(logger, logDebug, logEvNone, pos, args)
-
-proc trace*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
-  log(logger, logTrace, logEvNone, pos, args)
-
-proc info*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
-  log(logger, logInfo, logEvNone, pos, args)
-
-proc notice*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
-  log(logger, logNotice, logEvNone, pos, args)
-
-proc warn*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
-  log(logger, logWarn, logEvNone, pos, args)
-
-proc error*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
-  log(logger, logError, logEvNone, pos, args)
-
-proc fatal*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
-  log(logger, logFatal, logEvNone, pos, args)
-
-proc wait*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
-  log(logger, logNone, logEvWaitStart, pos, args)
-
-proc done*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
-  log(logger, logNone, logEvWaitDone, pos, args)
-
-proc fail*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
-  log(logger, logNone, logEvFail, pos, args)
-
-proc success*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
-  log(logger, logNone, logEvSuccess, pos, args)
 
 template debug*(logger: HLogger, args: varargs[string, `$`]): untyped =
   debug(logger, instantiationInfo(), args)
 
+proc trace*(
+  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+  log(logger, logTrace, logEvNone, pos, args)
+
 template trace*(logger: HLogger, args: varargs[string, `$`]): untyped =
   trace(logger, instantiationInfo(), args)
+
+proc info*(
+  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+  log(logger, logInfo, logEvNone, pos, args)
 
 template info*(logger: HLogger, args: varargs[string, `$`]): untyped =
   info(logger, instantiationInfo(), args)
 
+proc notice*(
+  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+  log(logger, logNotice, logEvNone, pos, args)
+
 template notice*(logger: HLogger, args: varargs[string, `$`]): untyped =
   notice(logger, instantiationInfo(), args)
+
+proc warn*(
+  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+  log(logger, logWarn, logEvNone, pos, args)
 
 template warn*(logger: HLogger, args: varargs[string, `$`]): untyped =
   warn(logger, instantiationInfo(), args)
 
-template error*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  error(logger, instantiationInfo(), args)
+proc err*(
+  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+  log(logger, logError, logEvNone, pos, args)
+
+template err*(logger: HLogger, args: varargs[string, `$`]): untyped =
+  err(logger, instantiationInfo(), args)
+
+proc fatal*(
+  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+  log(logger, logFatal, logEvNone, pos, args)
 
 template fatal*(logger: HLogger, args: varargs[string, `$`]): untyped =
   fatal(logger, instantiationInfo(), args)
 
+proc wait*(
+  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+  log(logger, logNone, logEvWaitStart, pos, args)
+
 template wait*(logger: HLogger, args: varargs[string, `$`]): untyped =
   wait(logger, instantiationInfo(), args)
+
+proc done*(
+  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+  log(logger, logNone, logEvWaitDone, pos, args)
 
 template done*(logger: HLogger, args: varargs[string, `$`]): untyped =
   done(logger, instantiationInfo(), args)
 
+proc fail*(
+  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+  log(logger, logNone, logEvFail, pos, args)
+
 template fail*(logger: HLogger, args: varargs[string, `$`]): untyped =
   fail(logger, instantiationInfo(), args)
+
+proc success*(
+  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+  log(logger, logNone, logEvSuccess, pos, args)
 
 template success*(logger: HLogger, args: varargs[string, `$`]): untyped =
   success(logger, instantiationInfo(), args)
@@ -303,6 +327,166 @@ template success*(logger: HLogger, args: varargs[string, `$`]): untyped =
 template waitFor*(logger: HLogger, name: string): untyped =
   log(logger, logNone, logEvWaitStart, instantiationInfo(),
       "Waiting for " & name & " to finish...")
+
+
+func findLineRange*(
+    base: string,
+    start: Slice[int],
+    around: (int, int) = (0, 0)
+  ): Slice[int] =
+  result = start
+
+  var
+    before = around[0]
+    after = around[1]
+
+  while result.a > 0 and base[result.a] != '\n':
+    dec result.a
+
+  while before > 0:
+    dec result.a
+    while result.a > 0 and base[result.a] != '\n':
+      dec result.a
+
+    dec before
+
+  if base[result.a] == '\n':
+    inc result.a
+
+
+  while result.b < base.len and base[result.b] != '\n':
+    inc result.b
+
+  while after > 0:
+    inc result.b
+    while result.b > 0 and base[result.b] != '\n':
+      inc result.b
+
+    dec after
+
+  if result.b >= base.len or base[result.b] == '\n':
+    dec result.b
+
+
+func lineTextAround*(
+    base: string, charRange: Slice[int], around: (int, int) = (1, 1)):
+  tuple[text: string, startPos, endPos: int] =
+  var slice = base.findLineRange(charRange, around)
+  result.text = base[slice]
+  result.startPos = charRange.a - slice.a
+  result.endPos = result.startPos + (charRange.b - charRange.a)
+
+func linesAround*(
+    base: string, line: int, around: (int, int) = (1, 1)):
+  seq[string] =
+
+  var
+    currLine = 1
+    pos = 0
+
+  while pos < base.len and currLine < line:
+    if base[pos] == '\n': inc currLine
+    inc pos
+
+  let (text, _, _) = lineTextAround(base, pos .. pos, around)
+  return text.split('\n')
+
+
+proc logLines*(
+    logger: HLogger, base: string, center: int, lang: string) =
+
+  var lineIdx = center - 1
+  for line in base.linesAround(center, (1, 1)):
+    logger.debug(alignLeft($lineIdx, 3), colorizeToStr(line, lang))
+    inc lineIdx
+
+
+import os
+
+proc logStackTrace*(logger: HLogger, e: ref Exception) =
+  let stackEntries =
+    if e != nil:
+      e.getStackTraceEntries()
+    else:
+      getStackTraceEntries()
+
+  let choosenim = getHomeDir() & ".choosenim"
+
+  var fileW = 0
+  for tr in stackEntries:
+    let (_, name, ext) = splitFile($tr.filename)
+    fileW = max(name.len, fileW)
+
+  var
+    files: Table[string, string]
+    foundErr: bool = false
+    lastPos: (string, int)
+    repeated = -1
+
+  let maxIdx = stackEntries.high()
+  for idx, tr in stackEntries:
+    let filename: string = $tr.filename
+    let prefix =
+      if not filename.startsWith(choosenim):
+        if ($tr.procname).startsWith(@["expect", "assert"]):
+          "(asr) ".toBlue()
+        else:
+          "(usr) ".toGreen()
+      else:
+        "(sys) "
+
+    var (_, name, ext) = filename.splitFile()
+    ext = ext[1 ..^ 1]
+    var filePref = $name.alignLeft(fileW)
+    if (not foundErr) and idx + 1 < stackEntries.len:
+      let next = stackEntries[idx + 1]
+      let nextFile = $next.filename
+      if nextFile.startsWith(choosenim) or startsWith(
+        $next.procname, @["expect", "assert"]):
+        filePref = filePref.toRed()
+        foundErr = true
+
+    logger.debug prefix & (filePref) & " :" &
+      $(($tr.line).alignLeft(4)) &
+      " " &
+      $($tr.procname).toYellow()
+
+    proc logEntry(idx: int) =
+      let
+        filename = $stackEntries[idx].filename
+        line = stackEntries[idx].line
+
+      let fileText =
+        block:
+          if filename notin files:
+            files[filename] = filename.readFile()
+
+          files[filename]
+
+      logger.debug("")
+      logger.indent()
+      logger.logLines(fileText, line, ext)
+      logger.dedent()
+      logger.debug("")
+
+
+    let nowPos = (filename, tr.line)
+    if lastPos[0].len == 0:
+      lastPos = nowPos
+      logEntry(idx)
+      repeated = 0
+
+    elif lastPos != nowPos and idx < maxIdx:
+      lastPos = nowPos
+      logEntry(idx)
+      repeated = 0
+
+    elif idx == maxIdx:
+      logEntry(idx)
+
+    else:
+      lastPos = nowPos
+      inc repeated
 
 
 import ./hshell
@@ -319,10 +503,17 @@ proc loggerErrConverter*(
 
   state.get().warn(stream.readLine())
 
+method log*(ex: ref Exception, logger: HLogger) {.base.} =
+  logger.err ex.msg
+
+method log*(ex: ShellError, logger: HLogger) =
+  logger.err ex.msg
+
 proc runShell*(
     logger: HLogger, pos: (string, int, int), shellCmd: ShellCmd,
     outLog: StreamConverter[ShellCmd, bool, HLogger] = loggerOutConverter,
-    errLog: StreamConverter[ShellCmd, bool, HLogger] = loggerErrConverter
+    errLog: StreamConverter[ShellCmd, bool, HLogger] = loggerErrConverter,
+    logRaised: bool = true
   ) =
   info(logger, pos, "Running shell", "'" & shellCmd.bin & "'")
   debug(logger, pos, shellCmd.toLogStr())
@@ -330,11 +521,25 @@ proc runShell*(
   let (outIter, errIter) = makeShellRecordIter(
     shellCmd, outLog, errLog, state = some logger)
 
-  for _ in outIter:
-    discard
+  if logRaised:
+    try:
+      for _ in outIter:
+        discard
 
-  for _ in errIter:
-    discard
+      for _ in errIter:
+        discard
+
+    except ShellError as e:
+      log(e, logger)
+      e.wasLogged = true
+      raise e
+
+  else:
+    for _ in outIter:
+      discard
+
+    for _ in errIter:
+      discard
 
   done(logger)
 
@@ -346,7 +551,7 @@ template runShell*(logger: HLogger, shellCmd: ShellCmd): untyped =
 
 
 
-import hpprint
+# import hpprint
 
 when isMainModule:
   proc task(log: HLogger) {.logScope(log).} =
@@ -361,9 +566,11 @@ when isMainModule:
   l.done("Successfully ran 4 tests")
   l.done("Teardown ok")
 
-  l.dump 90 + 2
+  # l.dump 90 + 2
 
   l.pdump [(0 + 90), (3)]
   l.trace "Test"
 
   l.runShell shellCmd(ls, "/tmp")
+
+  l.runShell shellCmd(ls, "/;skldfj;aslkdffjj;alskdjjf;")

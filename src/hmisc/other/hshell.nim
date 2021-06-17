@@ -91,6 +91,7 @@ export ShellVar, ShellExpr
 type
   ShellExecEffect = object of IOEffect
   ShellError* = ref object of OSError
+    wasLogged*: bool
     cmd*: string ## Command that returned non-zero exit code
     cwd*: AbsDir ## Absolute path of initial command execution directory
     retcode*: int ## Exit code
