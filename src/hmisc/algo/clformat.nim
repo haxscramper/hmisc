@@ -571,6 +571,13 @@ const defaultHDisplay* = HDisplayOpts(
 func hShow*(ch: char, opts: HDisplayOpts = defaultHDisplay): string =
   $ch
 
+func hshow*(b: bool, opts: HDisplayOpts = defaultHDisplay): string =
+  if b:
+    toGreen($b, opts.colored)
+
+  else:
+    toRed($b, opts.colored)
+
 func hShow*(ch: int, opts: HDisplayOpts = defaultHDisplay): string =
   toCyan($ch, opts.colored)
 

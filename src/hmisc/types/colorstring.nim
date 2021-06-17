@@ -545,9 +545,11 @@ func closeLit*(color: BackgroundColor): string = "\\033[0m"
 
 
 func toStyled*(
-  str: string,
-  style: PrintStyling,
-  colorize: bool = not defined(plainStdout)): string =
+    str: string,
+    style: PrintStyling,
+    colorize: bool = not defined(plainStdout)
+  ): string =
+
   if colorize:
     $ColoredString(str: str, styling: style)
   else:
@@ -1262,6 +1264,14 @@ func termAlignLeft*(str: string, length: int, padding: char = ' '): string =
     str & padding.repeat(lendiff)
   else:
     str
+
+func alignLeft*(str: ColoredString, length: int, padding: char = ' '): string =
+  result &= $str
+  result &= padding.repeat(clamp(length - str.len, 0, high(int)))
+
+func alignRight*(str: ColoredString, length: int, padding: char = ' '): string =
+  result &= padding.repeat(clamp(length - str.len, 0, high(int)))
+  result &= $str
 
 func changeStyle(ps: var PrintStyling, code: int): void =
   # NOTE copy-pasted table from https://en.wikipedia.org/wiki/ANSI_escape_code
