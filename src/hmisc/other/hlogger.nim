@@ -1,6 +1,6 @@
 import
-  std/[macros, strtabs, strutils, enumerate],
-  ../algo/[clformat, htemplates, halgorithm],
+  std/[macros, strtabs, strutils, enumerate, options, sequtils],
+  ../algo/[clformat, htemplates, halgorithm, hlex_base],
   ../types/colorstring
 
 type
@@ -17,6 +17,7 @@ type
 
   HLogEvent* = enum
     logEvNone
+    logEvPass
     logEvSuccess
     logEvFail
     logEvWaitStart
@@ -81,8 +82,9 @@ proc prepareText*(logger: HLogger, text: varargs[string]): string =
   result = text.join(" ")
   if '\n' in result:
     var res = ""
-    for line in result.split('\n'):
+    for (idx, line) in result.split('\n').enumerate():
       res.add "\n"
+      if idx == 0: res.add " "
       res.add repeat(" ", logger.scopes.len() * 2 + logger.prefixLen)
       res.add line
 
@@ -99,7 +101,10 @@ proc log*(
   ) =
 
   let prefix =
-    if (event == logEvExprDump):
+    if (event == logEvPass):
+      repeat(" ", logger.prefixLen)
+
+    elif (event == logEvExprDump):
       align($position[1] & ":", logger.prefixLen)
 
     elif (level == logTrace):
@@ -228,42 +233,118 @@ template pdump*(logger: HLogger, expr: untyped, other: varargs[string, `$`]): un
   log(logger, logNone, logEvExprDump, instantiationInfo(), args)
 
 
+
+proc debug*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+  log(logger, logDebug, logEvNone, pos, args)
+
+proc trace*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+  log(logger, logTrace, logEvNone, pos, args)
+
+proc info*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+  log(logger, logInfo, logEvNone, pos, args)
+
+proc notice*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+  log(logger, logNotice, logEvNone, pos, args)
+
+proc warn*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+  log(logger, logWarn, logEvNone, pos, args)
+
+proc error*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+  log(logger, logError, logEvNone, pos, args)
+
+proc fatal*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+  log(logger, logFatal, logEvNone, pos, args)
+
+proc wait*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+  log(logger, logNone, logEvWaitStart, pos, args)
+
+proc done*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+  log(logger, logNone, logEvWaitDone, pos, args)
+
+proc fail*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+  log(logger, logNone, logEvFail, pos, args)
+
+proc success*(logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
+  log(logger, logNone, logEvSuccess, pos, args)
+
 template debug*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  log(logger, logDebug, logEvNone, instantiationInfo(), args)
+  debug(logger, instantiationInfo(), args)
 
 template trace*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  log(logger, logTrace, logEvNone, instantiationInfo(), args)
+  trace(logger, instantiationInfo(), args)
 
 template info*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  log(logger, logInfo, logEvNone, instantiationInfo(), args)
+  info(logger, instantiationInfo(), args)
 
 template notice*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  log(logger, logNotice, logEvNone, instantiationInfo(), args)
+  notice(logger, instantiationInfo(), args)
 
 template warn*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  log(logger, logWarn, logEvNone, instantiationInfo(), args)
+  warn(logger, instantiationInfo(), args)
 
 template error*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  log(logger, logError, logEvNone, instantiationInfo(), args)
+  error(logger, instantiationInfo(), args)
 
 template fatal*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  log(logger, logFatal, logEvNone, instantiationInfo(), args)
+  fatal(logger, instantiationInfo(), args)
 
 template wait*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  log(logger, logNone, logEvWaitStart, instantiationInfo(), args)
+  wait(logger, instantiationInfo(), args)
+
+template done*(logger: HLogger, args: varargs[string, `$`]): untyped =
+  done(logger, instantiationInfo(), args)
+
+template fail*(logger: HLogger, args: varargs[string, `$`]): untyped =
+  fail(logger, instantiationInfo(), args)
+
+template success*(logger: HLogger, args: varargs[string, `$`]): untyped =
+  success(logger, instantiationInfo(), args)
 
 template waitFor*(logger: HLogger, name: string): untyped =
   log(logger, logNone, logEvWaitStart, instantiationInfo(),
       "Waiting for " & name & " to finish...")
 
-template done*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  log(logger, logNone, logEvWaitDone, instantiationInfo(), args)
 
-template fail*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  log(logger, logNone, logEvFail, instantiationInfo(), args)
+import ./hshell
 
-template success*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  log(logger, logNone, logEvSuccess, instantiationInfo(), args)
+proc loggerOutConverter*(
+    stream: var PosStr,
+    cmd: ShellCmd, state: var Option[HLogger]): Option[bool] =
+
+  state.get().debug(stream.readLine())
+
+proc loggerErrConverter*(
+    stream: var PosStr,
+    cmd: ShellCmd, state: var Option[HLogger]): Option[bool] =
+
+  state.get().warn(stream.readLine())
+
+proc runShell*(
+    logger: HLogger, pos: (string, int, int), shellCmd: ShellCmd,
+    outLog: StreamConverter[ShellCmd, bool, HLogger] = loggerOutConverter,
+    errLog: StreamConverter[ShellCmd, bool, HLogger] = loggerErrConverter
+  ) =
+  info(logger, pos, "Running shell", "'" & shellCmd.bin & "'")
+  debug(logger, pos, shellCmd.toLogStr())
+
+  let (outIter, errIter) = makeShellRecordIter(
+    shellCmd, outLog, errLog, state = some logger)
+
+  for _ in outIter:
+    discard
+
+  for _ in errIter:
+    discard
+
+  done(logger)
+
+template runShell*(logger: HLogger, shellCmd: ShellCmd): untyped =
+  runShell(logger, instantiationInfo(), shellCmd)
+
+
+
+
+
 
 import hpprint
 
@@ -284,3 +365,5 @@ when isMainModule:
 
   l.pdump [(0 + 90), (3)]
   l.trace "Test"
+
+  l.runShell shellCmd(ls, "/tmp")

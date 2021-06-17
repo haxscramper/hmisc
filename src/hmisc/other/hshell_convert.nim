@@ -5,7 +5,6 @@ import ./hshell, ./hjson
 import ../algo/[tscanf, hstring_algo, halgorithm, hlex_base, hparse_base]
 import ../base_errors, ../hdebug_misc, ../helpers
 import std/[
-  # strscans,
   strutils, sequtils, deques, macros, streams,
   options, segfaults, strformat, parseutils
 ]

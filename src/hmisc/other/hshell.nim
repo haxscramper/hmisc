@@ -262,6 +262,7 @@ func getStderr*(shellRes: ShellResult): string =
 func `[]`*(sa: ShellAst, idx: int): ShellAst = sa.subnodes[idx]
 func len*(sa: ShellAst): int = sa.subnodes.len
 func toJson*(v: ShellGlob): JsonNode = newJString(v.string)
+func bin*(v: ShellCmd): string = v.bin
 
 converter toShellCmd*(a: ShellExpr): ShellCmd =
   ## Implicit conversion of string to command
@@ -1107,7 +1108,8 @@ when cbackend:
       errConvert: StreamConverter[Cmd, ErrRec, State],
       options: set[ProcessOption] = {poEvalCommand, poUsePath},
       maxErrorLines: int = 12,
-      doRaise: bool = true
+      doRaise: bool = true,
+      state: Option[State] = none(State)
     ): tuple[stdout: iterator(): OutRec, stderr: iterator(): ErrRec] =
     ## Iterate over output of the shell command converted to json
     let
@@ -1122,7 +1124,7 @@ when cbackend:
       block:
         iterator resIter(): OutRec =
           var str = initPosStr(inStream)
-          var state: Option[State]
+          var state: Option[State] = state
           while process.running:
             let res = convert(str, cmd, state)
             if res.isSome():
