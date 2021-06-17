@@ -6,12 +6,16 @@ export toString
 
 type StyleMap* = Table[TokenClass, PrintStyling]
 
+import hpprint
 
 func colorize*(
-  map: StyleMap,
-  tok: tuple[class: TokenClass, text: string]): ColoredString =
+    map: StyleMap,
+    tok: tuple[class: TokenClass, text: string]
+  ): ColoredString =
+
   if tok.class in map:
     initColoredString(tok.text, map[tok.class])
+
   else:
     initColoredString(tok.text, initPrintStyling())
 
@@ -56,8 +60,8 @@ let cppStyleMap* = {
   gtOperator           : initStyle(),
   gtPunctuation        : initStyle(),
 
-  gtComment            : initStyle(),
-  gtLongComment        : initStyle(),
+  gtComment            : initStyle(tcGrey62),
+  gtLongComment        : initStyle(tcGrey62),
   gtRegularExpression  : initStyle(),
   gtTagStart           : initStyle(),
   gtTagEnd             : initStyle(),
@@ -98,8 +102,8 @@ let nimStyleMap* = {
   gtOperator           : initStyle(),
   gtPunctuation        : initStyle(),
 
-  gtComment            : initStyle(),
-  gtLongComment        : initStyle(),
+  gtComment            : initStyle(tcGrey62),
+  gtLongComment        : initStyle(tcGrey62),
   gtRegularExpression  : initStyle(),
   gtTagStart           : initStyle(),
   gtTagEnd             : initStyle(),

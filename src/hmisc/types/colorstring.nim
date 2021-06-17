@@ -387,6 +387,12 @@ macro initStyle*(args: varargs[typed]): PrintStyling =
       elif `fld` is set[Style]:
         `tmp`.style = `fld`
 
+      elif `fld` is TermColor8Bit:
+        let old = `tmp`.style
+        `tmp` = PrintStyling(use8bit: true)
+        `tmp`.fg8 = `fld`
+        `tmp`.style = old
+
   result.add quote do:
     `tmp`
 
@@ -458,12 +464,28 @@ func wrapcode*(str: string, start, finish: int): string =
 func ansiEsc*(code: int): string = fmt("\e[{code}m")
 func reEsc*(str: string): string = str.replace("\e", "\\e")
 
-func ansiDiff*(s1, s2: PrintStyling): string =
-  if s2.fg != s1.fg:
-    result &= ansiEsc(s2.fg.int)
+func ansiEsc*(bit8: TermColor8Bit, fg: bool): string =
+  if fg: fmt("\e[38;5;{bit8.ord}m")
+  else: fmt("\e[48;5;{bit8.ord}m")
 
-  if s2.bg != s1.bg:
-    result &= ansiEsc(s2.bg.int)
+func ansiDiff*(s1, s2: PrintStyling): string =
+  if s1.use8Bit != s2.use8bit:
+    if s2.use8bit:
+      if s2.fg8.int != 0: result &= ansiEsc(s2.fg8, true)
+      if s2.bg8.int != 0: result &= ansiEsc(s2.bg8, false)
+
+    else:
+      if s2.fg != fgDefault: result &= ansiEsc(s2.fg.int)
+      if s2.bg != bgDefault: result &= ansiEsc(s2.bg.int)
+
+  else:
+    if s1.use8bit:
+      if s1.fg8 != s2.fg8: result &= ansiEsc(s2.fg8, true)
+      if s1.bg8 != s2.bg8: result &= ansiEsc(s2.bg8, true)
+
+    else:
+      if s2.fg != s1.fg: result &= ansiEsc(s2.fg.int)
+      if s2.bg != s1.bg: result &= ansiEsc(s2.bg.int)
 
 func toString*(runes: seq[ColoredRune], color: bool = true): string =
   if color:

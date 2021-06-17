@@ -760,7 +760,8 @@ proc helpStr(app: CliApp): string =
 if isMainModule:
 
   proc mainProc(arg: int = 10) =
-    if arg > 0: mainProc(arg - 1)
+    if arg > 0:
+      mainProc(arg - 1) # Comment
     raise newException(OSError, "123123123")
 
   startHax()
