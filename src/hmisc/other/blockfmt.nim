@@ -152,10 +152,10 @@ proc `$`*(blc: LytBlock): string =
       (if blc.is_breaking: "*" else: "") & &"\"{blc.text}\""
 
     of bkStack:
-      blc.elements.mapIt("SB[" & $it & "]").join(" ↕ ")
+      "V[" & blc.elements.mapIt($it).join(" ↕ ") & "]"
 
     of bkLine:
-      blc.elements.mapIt("LB[" & $it & "]").join(" ↔ ")
+      "H[" & blc.elements.mapIt($it).join(" ↔ ") & "]"
 
     of bkChoice:
       blc.elements.mapIt($it).join(" ? ").wrap("()")
@@ -719,21 +719,50 @@ func makeIndentBlock*(blc: LytBlock, indent: int): LytBlock =
   else:
     makeLineBlock(@[makeTextBlock(" ".repeat(indent)), blc])
 
-func makeChoiceBlock*(elems: openarray[LytBlock]): LytBlock =
-  result = LytBlock(
-    kind: bkChoice,
-    elements: filterIt(elems, it.kind != bkEmpty))
+template findSingle*(elems: typed, targetKind: typed): untyped =
+  var
+    countEmpty = 0
+    countFull = 0
+    idx = -1
 
-  result.width = elems.maxIt(it.width)
-  result.height = elems.maxIt(it.height)
+  for item in elems:
+    if item.kind == bkEmpty: inc countEmpty
+    if item.kind == targetKind:
+      if idx != -1:
+        idx = -1
+        break
+
+      else:
+        idx = countFull
+
+    inc countFull
+
+  idx
+
+
+func makeChoiceBlock*(elems: openarray[LytBlock]): LytBlock =
+  if (let idx = findSingle(elems, bkChoice); idx != -1):
+    result = elems[idx]
+
+  else:
+    result = LytBlock(
+      kind: bkChoice,
+      elements: filterIt(elems, it.kind != bkEmpty))
+
+    result.width = elems.maxIt(it.width)
+    result.height = elems.maxIt(it.height)
 
 func makeStackBlock*(elems: openarray[LytBlock]): LytBlock =
-  result = LytBlock(
-    kind: bkStack,
-    elements: filterIt(elems, it.kind != bkEmpty))
+  if (let idx = findSingle(elems, bkStack); idx != -1):
+    result = elems[idx]
 
-  result.height = elems.sumIt(it.height)
-  result.width = elems.maxIt(it.width)
+  else:
+    result = LytBlock(
+      kind: bkStack,
+      elements: filterIt(elems, it.kind != bkEmpty))
+
+    result.height = elems.sumIt(it.height)
+    result.width = elems.maxIt(it.width)
 
 
 func makeWrapBlock*(elems: openarray[LytBlock]): LytBlock =
@@ -1250,50 +1279,49 @@ func join*(
         result.add sep
 
 
-func padSpaces*(
-    bl: var LytBlock,
-    indent: int = 0
-  ) =
+func padSpaces*(bl: var LytBlock) =
+  func aux(bl: var LytBlock, indent: var int, first: bool) =
+    let baseIndent = indent
+    if first and bl.height == 1: return
 
-  let baseIndent = indent
+    case bl.kind:
+      of bkText:
+        if indent > 0 and not first:
+          bl.text = repeat(" ", indent) & bl.text
 
-  var indent = indent
+      of bkLine:
+        if bl.height == 1 and indent > 0:
+          aux(bl.elements[0], indent, first)
 
-  case bl.kind:
-    of bkText:
-      if indent > 0:
-        bl.text = " ".repeat(indent) & bl.text
+        else:
+          for toplevel in mitems(bl.elements):
+            aux(toplevel, indent, first)
+            indent += toplevel.width
+            # if toplevel.height > 1:
+            #   if toplevel.kind == bkStack:
 
-    of bkLine:
-      if bl.height == 1 and indent > 0:
-        padSpaces(bl.elements[0], indent)
+            #   elif toplevel.kind == bkChoice:
+            #     for choice in mitems(toplevel.elements):
+            #       var indent = indent
+            #       aux(choice, indent, first)
+
+
+      of bkStack:
+        for idx, item in mpairs(bl.elements):
+          var indent = indent
+          aux(item, indent, idx == 0)
+
+
+      of bkChoice:
+        for item in mitems(bl.elements):
+          var indent = baseIndent
+          aux(item, indent, first)
 
       else:
-        for toplevel in mitems(bl.elements):
-          if toplevel.height > 1:
-            if toplevel.kind == bkStack:
-              padSpaces(toplevel.elements[0], baseIndent)
-              for idx in 1 .. toplevel.elements.high:
-                padSpaces(toplevel.elements[idx], indent)
+        raiseImplementError(&"For kind {bl.kind} {instantiationInfo()}")
 
-            elif toplevel.kind == bkChoice:
-              for choice in mitems(toplevel.elements):
-                padSpaces(choice, tern(choice.height == 1, 0, indent))
-
-          indent += toplevel.width
-
-    of bkStack:
-      for idx, item in mpairs(bl.elements):
-        # echov item.treeRepr()
-        padSpaces(item, tern(idx == 0, 0, indent))
-
-
-    of bkChoice:
-      for item in mitems(bl.elements):
-        padSpaces(item, indent)
-
-    else:
-      raiseImplementError(&"For kind {bl.kind} {instantiationInfo()}")
+  var indent = 0
+  aux(bl, indent, true)
 
 proc toString*(
   bl: LytBlock,

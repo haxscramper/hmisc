@@ -66,19 +66,26 @@ const
 template `[]`(selector, idx: int): untyped =
   when selector == t:
     paragraph[idx].kind
+
   elif selector == w:
     paragraph[idx].width
+
   elif selector == l:
     # WARNING FIXME find out what `l` refers to
     999
+
   elif selector == p:
     paragraph[idx].penalty
+
   elif selector == f:
     paragraph[idx].flaggedPenalty
+
   elif selector == y:
     paragraph[idx].stretchability
+
   elif selector == z:
     paragraph[idx].shrinkability
+
   else:
     error("IANAL" & selector.astToStr())
 

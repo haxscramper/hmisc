@@ -35,7 +35,12 @@ type
   MarkStyling = object
     wrap: char
 
+
+  OrgStyling = object
+    mark: char
+
   MarkWord = Word[string, MarkStyling]
+  OrgWord = Word[string, OrgStyling]
 
 func initTextWord*[A](
     text: string, attr: A, kind: WordKind = wkText): TextWord[A] =
@@ -44,10 +49,9 @@ func initTextWord*[A](
 func isMarkup*[T, A](w: Word[T, A]): bool = w.kind == wkMarkup
 
 func splitMark*(str: string): seq[MarkWord] =
-  @[
-    MarkWord(text: "hello", attr: MarkStyling(wrap: '*')),
-    MarkWord(text: "world", attr: MarkStyling(wrap: '`'))
-  ]
+  for word in str.split(' '):
+    result.add MarkWord(
+      text: word, attr: MarkStyling(wrap: word[0]))
 
 func splitText*[T](str: string): seq[TextWord[T]] =
   for text in str.splitTokenize({',', '.', ' ', '?', '!'}):
@@ -74,64 +78,67 @@ func wrapTextImpl[T, A](
   for w in words:
     offsets.add(offsets[^1] + len(w))
 
-  var minima: seq[int] = @[0] & (@[10 ** 12].repeat count).concat()
-  var breaks: seq[int] = @[0].repeat(count + 1).concat()
+  var minima: seq[int] = @[0] & repeat(10 ** 12, count) # repeat(0, count + 1) #  .concat()
+  var breaks: seq[int] = repeat(0, count + 1) # @[0].repeat(count + 1).concat()
 
   proc cost(i, j: int): auto =
-      let w = offsets[j] - offsets[i] + j - i - 1
-      if w > width:
-          return 10 ** 10 * (w - width)
+    let w = offsets[j] - offsets[i] + j - i - 1
+    if w > width:
+      return (10 ^ 10) * (w - width)
 
-      return minima[i] + (width - w) ** 2
+    return minima[i] + (width - w) ** 2
 
   proc smawk(rows, columns: seq[int]) =
-      var
-        stack: seq[int]
-        i = 0
-
-      var rows = rows
-      var columns = columns
-
-      while i < len(rows):
-          if stack.len > 0:
-              let c = columns[len(stack) - 1]
-              if cost(stack[^1], c) < cost(rows[i], c):
-                  if len(stack) < len(columns):
-                      stack.add(rows[i])
-                  i += 1
-              else:
-                  discard stack.pop()
-          else:
-              stack.add(rows[i])
-              i += 1
-      rows = stack
-
-      if len(columns) > 1:
-        smawk(rows) do:
-          collect(newSeq):
-            for idx, it in columns:
-              if idx mod 2 == 0:
-                it
-
+    var
+      stack: seq[int]
       i = 0
 
-      var j = 0
+    var rows = rows
+    var columns = columns
 
-      while j < len(columns):
-        let finish =
-          if j + 1 < len(columns):
-            breaks[columns[j + 1]]
-          else:
-            rows[^1]
+    while i < len(rows):
+      if stack.len > 0:
+        let c = columns[len(stack) - 1]
+        if cost(stack[^1], c) < cost(rows[i], c):
+          if len(stack) < len(columns):
+            stack.add(rows[i])
+          i += 1
 
-        let c = cost(rows[i], columns[j])
-        if c < minima[columns[j]]:
-            minima[columns[j]] = c
-            breaks[columns[j]] = rows[i]
-        if rows[i] < finish:
-            i += 1
         else:
-            j += 2
+          discard stack.pop()
+
+      else:
+        stack.add(rows[i])
+        i += 1
+
+    rows = stack
+
+    if len(columns) > 1:
+      smawk(rows) do:
+        collect(newSeq):
+          for idx, it in columns:
+            if idx mod 2 == 1:
+              it
+
+    i = 0
+
+    var j = 0
+
+    while j < len(columns):
+      let finish =
+        if j + 1 < len(columns):
+          breaks[columns[j + 1]]
+        else:
+          rows[^1]
+
+      let c = cost(rows[i], columns[j])
+      if c < minima[columns[j]]:
+        minima[columns[j]] = c
+        breaks[columns[j]] = rows[i]
+      if rows[i] < finish:
+        i += 1
+      else:
+        j += 2
 
   var
     n = count + 1
@@ -170,6 +177,7 @@ func wrapTextImpl[T, A](
 
 func `$`*(mw: MarkWord): string = mw.text
 func `$`*(mw: TextWord): string = mw.text
+func `$`*(mw: OrgWord): string = mw.text
 
 func prevTextWordIdx*[T, A](
   words: seq[Word[T, A]], idx: int): int =
@@ -208,6 +216,16 @@ func joinText*[T, A](
 
 func wrapMarkLines*(str: string, width: int): seq[string] =
   let buf = str.splitMark().wrapText(width)
+  for line in buf:
+    result.add line.mapIt($it).join(" ")
+
+func splitOrg*(str: string): seq[OrgWord] =
+  # TODO implement better org-mode split handling
+  for word in str.split(' '):
+    result.add OrgWord(text: word)
+
+func wrapOrgLines*(str: string, width: int): seq[string] =
+  let buf = str.splitOrg().wrapText(width)
   for line in buf:
     result.add line.mapIt($it).join(" ")
 
@@ -322,5 +340,7 @@ func hyphenate*(strs: openarray[string]): seq[seq[string]] =
     result.add str.hyphenate
 
 when isMainModule:
-  let text = "*hello* `world`".splitMark().wrapTextImpl(10)
+  let text = splitMark("Anything associated with normal " &
+    "operation and without any particular importance").wrapTextImpl(40)
+
   echo text

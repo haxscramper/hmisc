@@ -475,8 +475,8 @@ func ansiDiff*(s1, s2: PrintStyling): string =
       if s2.bg8.int != 0: result &= ansiEsc(s2.bg8, false)
 
     else:
-      if s2.fg != fgDefault: result &= ansiEsc(s2.fg.int)
-      if s2.bg != bgDefault: result &= ansiEsc(s2.bg.int)
+      result &= ansiEsc(s2.fg.int)
+      result &= ansiEsc(s2.bg.int)
 
   else:
     if s1.use8bit:

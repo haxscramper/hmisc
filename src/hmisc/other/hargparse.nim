@@ -7,7 +7,9 @@ import
   ../hdebug_misc,
   ../base_errors,
   ../types/colorstring,
-  ../algo/[lexcast, clformat, htemplates, hseq_mapping]
+  ../algo/[
+    lexcast, clformat, htemplates, hseq_mapping, htext_algo
+  ]
 
 import
   ./hlogger
@@ -326,75 +328,75 @@ proc opt*(
 
 
 proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
-  if "help" notin ignored:
-    result.add opt(
-      "help",
-      alt = @["h"],
-      doc = "Display help messsage",
-      default = "off",
-      defaultAsFlag = "on",
-      groupKind = coFlag,
-      values = {
-        "off": "Do not show help",
-        "on": "Show help using default formatting",
-        "json": "Output help in machine-readable json format",
-        "verbose": "Show full documentation for each command",
-      })
+  # if "help" notin ignored:
+  #   result.add opt(
+  #     "help",
+  #     alt = @["h"],
+  #     doc = "Display help messsage",
+  #     default = "off",
+  #     defaultAsFlag = "on",
+  #     groupKind = coFlag,
+  #     values = {
+  #       "off": "Do not show help",
+  #       "on": "Show help using default formatting",
+  #       "json": "Output help in machine-readable json format",
+  #       "verbose": "Show full documentation for each command",
+  #     })
 
-  if "version" notin ignored:
-    result.add opt(
-      "version",
-      alt = @["v"],
-      doc = "Display version",
-      default = "off",
-      defaultAsFlag = "on",
-      groupKind = coFlag,
-      values = {
-        "off": "Do not show version",
-        "on": "Show version",
-        "full": "Show full version information " &
-          "(compilation time, author etc.)",
-        "json": "Output version informatin in json format"
-      }
-    )
+  # if "version" notin ignored:
+  #   result.add opt(
+  #     "version",
+  #     alt = @["v"],
+  #     doc = "Display version",
+  #     default = "off",
+  #     defaultAsFlag = "on",
+  #     groupKind = coFlag,
+  #     values = {
+  #       "off": "Do not show version",
+  #       "on": "Show version",
+  #       "full": "Show full version information " &
+  #         "(compilation time, author etc.)",
+  #       "json": "Output version informatin in json format"
+  #     }
+  #   )
 
-  if "json" notin ignored:
-    result.add flag("json", doc = "Use json output")
+  # if "json" notin ignored:
+  #   result.add flag("json", doc = "Use json output")
 
-  if "color" notin ignored:
-    result.add opt(
-      "color",
-      doc = "When to use color for the output.",
-      default = "auto",
-      groupKind = coFlag,
-      values = {
-        "auto": "show colors if the output goes to an interactive console",
-        "never": "do not use colorized output",
-        "always": "always use colorized output"
-      }
-    )
+  # if "color" notin ignored:
+  #   result.add opt(
+  #     "color",
+  #     doc = "When to use color for the output.",
+  #     default = "auto",
+  #     groupKind = coFlag,
+  #     values = {
+  #       "auto": "show colors if the output goes to an interactive console",
+  #       "never": "do not use colorized output",
+  #       "always": "always use colorized output"
+  #     }
+  #   )
 
 
-  if "quiet" notin ignored:
-    if "loglevel" notin ignored:
-      result.add flag(
-        "quiet",
-        doc = "Do not print execution logs",
-        aliasof = CliOpt(
-          kind: coOpt,
-          keyPath: @["loglevel"],
-          valStr: "none"
-        )
-      )
+  # if "quiet" notin ignored:
+  #   if "loglevel" notin ignored:
+  #     result.add flag(
+  #       "quiet",
+  #       doc = "Do not print execution logs",
+  #       aliasof = CliOpt(
+  #         kind: coOpt,
+  #         keyPath: @["loglevel"],
+  #         valStr: "none"
+  #       )
+  #     )
 
-    else:
-      result.add flag("quiet", doc = "Do not print execution logs")
+  #   else:
+  #     result.add flag("quiet", doc = "Do not print execution logs")
 
-  if "dry-run" notin ignored:
-    result.add flag("dry-run", "Do not execute irreversible OS actions")
+  # if "dry-run" notin ignored:
+  #   result.add flag("dry-run", "Do not execute irreversible OS actions")
 
-  if "force" notin ignored:
-    result.add flag("force", "Force actions")
+  # if "force" notin ignored:
+  #   result.add flag("force", "Force actions")
 
   if "loglevel" notin ignored:
     result.add opt(
@@ -402,41 +404,41 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
       doc = "Configure minimal logging level to be shown.",
       default = "info",
       values = @{
-        "all":    "All levels active",
-        "debug":  "Debugging information helpful only to developers",
+        # "all":    "All levels active",
+        # "debug":  "Debugging information helpful only to developers",
         "info":   "Anything associated with normal " &
           "operation and without any particular importance",
         "notice": "More important information that " &
           "users should be notified about",
-        "warn":   "Impending problems that require some attention",
-        "error":  "Error conditions that the application can recover from",
-        "fatal":  "Fatal errors that prevent the application from continuing",
-        "none":   "No levels active; nothing is logged"
+        # "warn":   "Impending problems that require some attention",
+        # "error":  "Error conditions that the application can recover from",
+        # "fatal":  "Fatal errors that prevent the application from continuing",
+        # "none":   "No levels active; nothing is logged"
       }
     )
 
-  if "log-output" notin ignored:
-    var opt = opt(
-      "log-output",
-      doc = "Configure logging output target",
-      default = "/dev/stderr", # Does explicitly writing to `/dev/stderr`
-                               # differ from `stderr.write`?
-      values = @{
-        "/dev/stderr": "Output logs to stderr",
-        "/dev/stdout": "Output logs to stdout"
-      }
-    )
+  # if "log-output" notin ignored:
+  #   var opt = opt(
+  #     "log-output",
+  #     doc = "Configure logging output target",
+  #     default = "/dev/stderr", # Does explicitly writing to `/dev/stderr`
+  #                              # differ from `stderr.write`?
+  #     values = @{
+  #       "/dev/stderr": "Output logs to stderr",
+  #       "/dev/stdout": "Output logs to stdout"
+  #     }
+  #   )
 
-    opt.check =
-      orCheck(
-        opt.check,
-        check(cckIsWritable),
-        check(cckIsCreatable)
-      )
+  #   opt.check =
+  #     orCheck(
+  #       opt.check,
+  #       check(cckIsWritable),
+  #       check(cckIsCreatable)
+  #     )
 
 
 
-    result.add opt
+  #   result.add opt
 
 
 
@@ -624,7 +626,12 @@ proc checkHelp(check: CliCheck, inNested: bool = false): LytBlock =
       let width = maxIt(doc, it[0].len) + 2
 
       for (val, doc) in doc:
-        result.add H[T[alignLeft(val, width).toYellow()], T[doc]]
+        let doc = doc.wrapOrgLines(30).mapIt(T[it])
+        var item = H[T[alignLeft(val, width).toYellow()], V[doc]]
+        echo item.treeRepr()
+        result.add item
+        padSpaces(item)
+        echo item.treeRepr()
 
       result = V[T[
         prefix & "be one of the following: "
@@ -757,9 +764,10 @@ proc help(app: CliApp): LytBlock =
 proc helpStr(app: CliApp): string =
   return app.help().toString()
 
+
 if isMainModule:
 
-  proc mainProc(arg: int = 10) =
+  proc mainProc(arg: int = 2) =
     if arg > 0:
       mainProc(arg - 1) # Comment
     raise newException(OSError, "123123123")
@@ -780,6 +788,5 @@ if isMainModule:
 
   let logger = newTermLogger()
 
-  app.runMain(mainProc, logger)
-
-  # echo app.helpStr()
+  echo app.helpStr()
+  # app.runMain(mainProc, logger)

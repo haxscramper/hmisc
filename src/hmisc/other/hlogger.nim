@@ -359,7 +359,7 @@ func findLineRange*(
 
   while after > 0:
     inc result.b
-    while result.b > 0 and base[result.b] != '\n':
+    while result.b < base.len and base[result.b] != '\n':
       inc result.b
 
     dec after
@@ -397,8 +397,18 @@ proc logLines*(
 
   var lineIdx = center - 1
   for line in base.linesAround(center, (1, 1)):
-    logger.debug(alignLeft($lineIdx, 3), colorizeToStr(line, lang))
+    let arrow = if lineIdx == center: toGreen("#>") else: "  "
+    logger.debug(alignLeft($lineIdx, 3), arrow, colorizeToStr(line, lang))
     inc lineIdx
+
+    # REVIEW maybe also raw arrow from `#>` and annotate it:
+    #
+    # 763        if arg > 0:
+    # 764 #>       mainProc(arg - 1) # Comment
+    # 765 |      raise newException(OSError, "123123123")
+    #     |
+    #     +- Annotation for an arrow?
+
 
 
 import os
@@ -566,11 +576,7 @@ when isMainModule:
   l.done("Successfully ran 4 tests")
   l.done("Teardown ok")
 
-  # l.dump 90 + 2
-
   l.pdump [(0 + 90), (3)]
   l.trace "Test"
-
   l.runShell shellCmd(ls, "/tmp")
-
   l.runShell shellCmd(ls, "/;skldfj;aslkdffjj;alskdjjf;")
