@@ -1,4 +1,4 @@
-import std/[strutils, tables, strformat]
+import std/[strutils, tables, enumerate, strformat]
 import hseq_mapping, htext_algo
 import ../base_errors
 import ../types/colorstring
@@ -490,9 +490,7 @@ func toNamedMulticharJoin*(
 
 func fromTexToUnicode*(
   str: string, isSub: bool = false, isSup: bool = false): string =
-  var idx = -1
-  for ch in split(str, " "):
-    inc idx
+  for idx, ch in enumerate(split(str, " ")):
     if idx != 0:
       result &= " "
 
