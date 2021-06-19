@@ -7,12 +7,13 @@ packageName   = "hmisc"
 bin           = @["hmisc/scripts/hmisc_putils"]
 installExt    = @["nim"]
 binDir        = "bin"
-namedBin      = {
-  "hmisc/scripts/hmisc_putils" : "hmisc-putils"
-}.toTable()
 
+when (1, 2, 2) < (NimMajor, NimMinor, NimPatch):
+  namedBin      = {
+    "hmisc/scripts/hmisc_putils" : "hmisc-putils"
+  }.toTable()
 
-requires "nim >= 1.4.0", "cligen"
+requires "nim >= 1.2.2", "cligen"
 requires "fusion"
 requires "benchy"
 # requires "https://github.com/haxscramper/fusion.git#matching-fixup"

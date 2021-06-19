@@ -6,8 +6,6 @@ export toString
 
 type StyleMap* = Table[TokenClass, PrintStyling]
 
-import hpprint
-
 func colorize*(
     map: StyleMap,
     tok: tuple[class: TokenClass, text: string]

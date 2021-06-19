@@ -1,5 +1,5 @@
 import std/[
-  sequtils, strformat, strutils, unicode, enumerate, colors,
+  sequtils, strformat, strutils, unicode, colors,
   lenientops, macros, strscans, algorithm, math, options
 ]
 
@@ -342,11 +342,16 @@ func isValid*(style: PrintStyling): bool =
   style.use8Bit or (style.fg.int != 0 and style.bg.int != 0)
 
 func `==`*(s1, s2: PrintStyling): bool =
+  let check =
+    if s1.use8Bit:
+      s1.fg8 == s2.fg8 and s1.bg8 == s2.bg8
+
+    else:
+      s1.fg == s2.fg and s1.bg == s2.bg
+
+
   s1.style == s2.style and
-  s1.use8Bit == s2.use8Bit and (
-    if s1.use8Bit: s1.fg8 == s2.fg8 and s1.bg8 == s2.bg8
-    else: s1.fg == s2.fg and s1.bg == s2.bg
-  )
+  s1.use8Bit == s2.use8Bit and check
 
 func contains*(ps: PrintStyling, s: Style): bool =
   ps.style.contains(s)
@@ -1626,15 +1631,20 @@ func `[]=`*[R1, R2: openarray[int] | Slice[int] | int](
       aux(row, col, buf, ch)
 
 func `[]=`*(buf: var ColoredRuneGrid, row, col: int, str: ColoredString) =
-  for rowIdx, line in enumerate(split(str.str, '\n')):
+  var rowIdx = 0
+  for line in split(str.str, '\n'):
     for colIdx, ch in line:
       buf[row + rowIdx, col + colIdx] = toColored(ch, str.styling)
+    inc rowIdx
 
 func `[]=`*(buf: var ColoredRuneGrid, row, col: int, str: string) =
   let style = initPrintStyling()
-  for rowIdx, line in enumerate(split(str, '\n')):
+  var rowIdx = 0
+  for line in split(str, '\n'):
     for colIdx, ch in line:
       buf[row + rowIdx, col + colIdx] = toColored(ch, style)
+
+    inc rowIdx
 
 func `[]`*(buf: ColoredRuneGrid, row, col: int): ColoredRune =
   buf[row][col]

@@ -90,7 +90,6 @@ func `[]`*(ins: string, beg: StrPart, final: StrPartConv): bool =
 func `[]`*(ins: string, beg: StrPart, final: openarray[string]): bool =
   ins[beg, toSeq(final)]
 
-{.pop inline.}
 
 iterator items*(part: StrPart): StrPart =
   case part.kind:
@@ -101,7 +100,7 @@ iterator items*(part: StrPart): StrPart =
       for s in part.strs:
         yield toStrPart(s)
 
-func len*(part: StrPart): int =
+func len*(part: StrPart): int {.inline.} =
   case part.kind:
     of spkSet:
       if part.chars.len == 0:
