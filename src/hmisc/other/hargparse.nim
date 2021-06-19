@@ -626,12 +626,13 @@ proc checkHelp(check: CliCheck, inNested: bool = false): LytBlock =
       let width = maxIt(doc, it[0].len) + 2
 
       for (val, doc) in doc:
-        let doc = doc.wrapOrgLines(30).mapIt(T[it])
+        let doc = T[doc.wrapOrgLines(40).join("\n")]
         var item = H[T[alignLeft(val, width).toYellow()], V[doc]]
-        echo item.treeRepr()
+        # echo item.treeRepr()
+        # echo item
         result.add item
-        padSpaces(item)
-        echo item.treeRepr()
+        # padSpaces(item)
+        # echo item.treeRepr()
 
       result = V[T[
         prefix & "be one of the following: "

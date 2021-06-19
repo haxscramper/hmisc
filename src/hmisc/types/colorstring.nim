@@ -356,6 +356,9 @@ func `==`*(s1, s2: PrintStyling): bool =
 func contains*(ps: PrintStyling, s: Style): bool =
   ps.style.contains(s)
 
+func contains*(s: ColoredString, c: char): bool =
+  contains(s.str, c)
+
 func initPrintStyling*(
     fg: ForegroundColor = fgDefault,
     bg: BackgroundColor = bgDefault,

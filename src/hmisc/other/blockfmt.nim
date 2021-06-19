@@ -36,7 +36,7 @@ func get[T](inseq: seq[Option[T]]): seq[T] =
 #*************************************************************************#
 #===========================  Type definition  ===========================#
 type
-  LayoutElement = object
+  LayoutElement = ref object
     ## An element of a layout object - a directive to the console.
     ##
     ## This class sports a collection of static methods, each of which
@@ -49,16 +49,28 @@ type
     debug: string ## Textual reprsentation of layout element for
                   ## pretty-printing
 
-  Layout* = object
+  Layout* = ref object
     ## An object containing a sequence of directives to the console.
     elements: seq[LayoutElement]
 
   LytSolution* = ref object
-    knots: seq[int]
-    spans: seq[int]
-    intercepts: seq[float]
-    gradients: seq[float]
-    layouts*: seq[Layout]
+    ## A Solution object effectively maps an integer (the left margin at
+    ## which the solution is placed) to a layout notionally optimal for
+    ## that margin, together with cost information used to evaluate the
+    ## layout. For compactness, the map takes the form of a
+    ## piecewise-linear cost function, with associated layouts.
+
+    knots: seq[int] ## a list of ints, specifying the margin settings at
+    ## which the layout changes. Note that the first knot is required to be
+    ## 0.
+    spans: seq[int] ## a list of ints, giving for each knot, the width of
+                    ## the corresponding layout in characters.
+    intercepts: seq[float] ## constant cost associated with each knot.
+    gradients: seq[float] ## at each knot, the rate with which the layout
+                          ## cost increases with an additional margin
+                          ## indent of 1 character.
+    layouts*: seq[Layout] ## the Layout objects expressing the optimal
+                          ## layout between each knot.
     index: int
 
   LytBlockKind* = enum
@@ -71,19 +83,20 @@ type
     bkEmpty ## Empty layout block - ignored by `add` etc.
 
   LytBlock* = ref object
-    layout_cache: Table[Option[LytSolution], Option[LytSolution]]
+    layoutCache: Table[Option[LytSolution], Option[LytSolution]]
     isBreaking*: bool ## Whether or not this block should end the line
-    breakMult*: int
+    breakMult* {.requiresinit.}: int ## Local line break cost change
     width*: int ## Number of characters on the longest line in the block
     height*: int ## Number of lines in block
 
     case kind*: LytBlockKind
       of bkVerb:
-        textLines*: seq[string] ## Lines of text
+        textLines*: seq[string] ## Multiple lines of text
         firstNl*: bool ## Insert newline at the block start
 
       of bkText:
-        text*: string ## Line of text
+        text*: string ## A single line of text, free of carriage returs
+                      ## etc.
 
       of bkWrap:
         prefix*: Option[string]
@@ -149,7 +162,7 @@ proc `$`*(sln: Option[LytSolution]): string =
 proc `$`*(blc: LytBlock): string =
   case blc.kind:
     of bkText:
-      (if blc.is_breaking: "*" else: "") & &"\"{blc.text}\""
+      (if blc.isBreaking: "*" else: "") & &"\"{blc.text}\""
 
     of bkStack:
       "V[" & blc.elements.mapIt($it).join(" ↕ ") & "]"
@@ -189,23 +202,21 @@ func treeRepr*(inBl: LytBlock): string =
 
     let pref2 = repeat(" ", level * 2 + 2)
 
+    result = pref2 & pref & "\n"
     case bl.kind:
       of bkLine, bkChoice, bkStack, bkWrap:
         for isFirst, isLast, elem in itemsIsFirstLast(bl.elements):
-          result &=
-            (if isFirst: pref & "\n" & pref2 else: pref2) &
-            elem.aux(level + 1) &
-            (if isLast: "" else: "\n")
+          result &= elem.aux(level + 1) 
 
       of bkText:
-        result = &"{pref}{bl.text.escape()}"
+        result &= bl.text.escape()
 
       of bkEmpty:
-        result = "<empty>"
+        result &= "<empty>"
 
       of bkVerb:
         for isLast, line in itemsIsLast(bl.textLines):
-          result &= &"{pref}|  {line.escape()}" & (if isLast: "" else: "\n")
+          result &= pref2 & "  " & line.escape() & "\n"
 
   return aux(inBl, 0)
 
@@ -252,19 +263,19 @@ func hash(sln: Option[LytSolution]): Hash =
       hash(sln.index)
     )
 
+import hpprint
 
 #*************************************************************************#
 #*******************************  Layout  ********************************#
 #*************************************************************************#
 func lytString(s: string): LayoutElement =
-  result.debug = s
-  result.text = s
+  LayoutElement(debug: s, text: s)
 
 func lytNewline(indent: bool = true): LayoutElement =
-  result.text = "\n"
-  result.debug = "\\n"
+  LayoutElement(text: "\n", debug: "\\n")
 
 proc lytPrint(lyt: Layout): LayoutElement =
+  new(result)
   result.debug = &"[{lyt}]"
   lyt.printOn(result.text)
 
@@ -285,6 +296,7 @@ func getStacked(layouts: seq[Layout]): Layout =
   return Layout(elements: l_elts[0 .. ^2])  # Drop the last NewLine()
 
 func initLayout(elems: openarray[LayoutElement]): Layout =
+  new(result)
   result.elements = toSeq(elems)
 
 #*************************************************************************#
@@ -618,20 +630,20 @@ func plusConst(self: LytSolution, val: float): LytSolution =
 
 proc withRestOfLine(
     self: var Option[LytSolution],
-    rest_of_line: var Option[LytSolution], opts: LytOptions
+    rest: var Option[LytSolution], opts: LytOptions
   ): Option[LytSolution] =
   ## Return a LytSolution that joins the rest of the line right of this one.
 
   ## Args:
-  ##   rest_of_line: a LytSolution object representing the code laid out on the
+  ##   rest: a LytSolution object representing the code laid out on the
   ##     remainder of the line, or None, if the rest of the line is empty.
   ## Returns:
   ##   A new LytSolution object juxtaposing the layout represented by this
   ##   LytSolution to the immediate right of the remainder of the line.
-  if restOfLine.isNone():
+  if rest.isNone():
     self
   else:
-    some self.get().hplusSolution(restOfLine.get(), opts)
+    some self.get().hplusSolution(rest.get(), opts)
 
 
 #*************************************************************************#
@@ -685,34 +697,44 @@ iterator items*(blc: LytBlock): LytBlock =
 #         line 3   line 3
 # ```
 
-func makeBlock*(kind: LytBlockKind): LytBlock =
-  LytBlock(kind: kind)
+func makeBlock*(kind: LytBlockKind, breakMult: int = 1): LytBlock =
+  LytBlock(kind: kind, breakMult: breakMult)
 
-func makeTextBlock*(text: string): LytBlock =
-  LytBlock(kind: bkText, text: text, width: text.len, height: 1)
+func makeTextBlock*(text: string, breakMult: int = 1): LytBlock =
+  LytBlock(
+    kind: bkText, text: text, breakMult: breakMult,
+    width: text.len, height: 1)
 
 func makeEmptyBlock*(): LytBlock =
-  LytBlock(kind: bkEmpty)
+  LytBlock(kind: bkEmpty, breakMult: 1)
 
-func makeTextBlock*(text: ColoredString): LytBlock =
-  LytBlock(kind: bkText, text: $text, width: text.len, height: 1)
+func makeTextBlock*(text: ColoredString, breakMult: int = 1): LytBlock =
+  LytBlock(
+    kind: bkText, text: $text, width: text.len, height: 1,
+    breakMult: breakMult)
 
 proc makeTextBlocks*(text: openarray[string]): seq[LytBlock] =
   text.mapIt(makeTextBlock(it))
 
 
-func makeIndentBlock*(blc: LytBlock, indent: int): LytBlock
+func makeIndentBlock*(
+  blc: LytBlock, indent: int, breakMult: int = 1): LytBlock
 
 
-func makeLineBlock*(elems: openarray[LytBlock]): LytBlock =
+func makeLineBlock*(
+    elems: openarray[LytBlock], breakMult: int = 1): LytBlock =
   result = LytBlock(
+    breakMult: breakMult,
     kind: bkLine,
     elements: filterIt(elems, it.kind != bkEmpty))
+
   result.height = elems.maxIt(it.height)
   result.width = elems.sumIt(it.width)
 
 
-func makeIndentBlock*(blc: LytBlock, indent: int): LytBlock =
+func makeIndentBlock*(
+    blc: LytBlock, indent: int, breakMult: int = 1): LytBlock =
+
   if indent == 0:
     blc
 
@@ -740,43 +762,72 @@ template findSingle*(elems: typed, targetKind: typed): untyped =
   idx
 
 
-func makeChoiceBlock*(elems: openarray[LytBlock]): LytBlock =
+func makeChoiceBlock*(
+    elems: openarray[LytBlock], breakMult: int = 1): LytBlock =
+
   if (let idx = findSingle(elems, bkChoice); idx != -1):
     result = elems[idx]
 
   else:
     result = LytBlock(
+      breakMult: breakMult,
       kind: bkChoice,
       elements: filterIt(elems, it.kind != bkEmpty))
 
     result.width = elems.maxIt(it.width)
     result.height = elems.maxIt(it.height)
 
-func makeStackBlock*(elems: openarray[LytBlock]): LytBlock =
+func makeStackBlock*(
+    elems: openarray[LytBlock], breakMult: int = 1): LytBlock =
   if (let idx = findSingle(elems, bkStack); idx != -1):
     result = elems[idx]
 
   else:
     result = LytBlock(
-      kind: bkStack,
+      breakMult: breakMult, kind: bkStack,
       elements: filterIt(elems, it.kind != bkEmpty))
 
     result.height = elems.sumIt(it.height)
     result.width = elems.maxIt(it.width)
 
 
-func makeWrapBlock*(elems: openarray[LytBlock]): LytBlock =
-  LytBlock(kind: bkWrap, wrapElements: toSeq(elems))
+func makeWrapBlock*(
+    elems: openarray[LytBlock], breakMult: int = 1): LytBlock =
+  LytBlock(
+    kind: bkWrap, wrapElements: toSeq(elems), breakMult: breakMult)
 
-func makeVerbBlock*(
-    textLines: openarray[string], breaking: bool = true,
-    firstNl: bool = false
+func makeVerbBlock*[S: string | ColoredString](
+    textLines: openarray[S], breaking: bool = true,
+    firstNl: bool = false,
+    breakMult: int = 1
   ): LytBlock =
 
-  LytBlock(
-    kind: bkVerb, textLines: toSeq(textLines),
-    isBreaking: breaking, firstNl: firstNl
+  result = LytBlock(
+    breakMult: breakMult,
+    kind: bkVerb,
+    textLines: mapIt(textLines, $it),
+    isBreaking: breaking,
+    firstNl: firstNl,
+    height: len(textLines)
   )
+
+  for line in textLines:
+    result.width = max(result.width, line.len)
+
+
+func makeTextOrVerbBlock*(
+    text: string | ColoredString,
+    breaking: bool = false,
+    firstNl: bool = false,
+    breakMult: int = 1
+  ): LytBlock =
+  if '\n' in text:
+    result = makeVerbBlock(
+      text.split("\n"), breaking, firstNl, breakMult)
+
+  else:
+    result = makeTextBlock(text, breakMult)
+    result.isBreaking = breaking
 
 func makeForceLinebreak*(text: string = ""): LytBlock =
   makeVerbBlock(@[text], true, false)
@@ -818,31 +869,27 @@ func add*(target: var LytBlock, other: varargs[LytBlock]) =
 
 proc doOptLayout*(
   self: var LytBlock,
-  rest_of_line: var Option[LytSolution], opts: LytOptions): Option[LytSolution]
+  rest: var Option[LytSolution], opts: LytOptions): Option[LytSolution]
 
 proc optLayout(
-  self: var LytBlock,
-  rest_of_line: var Option[LytSolution], opts: LytOptions): Option[LytSolution] =
+    self: var LytBlock,
+    rest: var Option[LytSolution], 
+    opts: LytOptions
+  ): Option[LytSolution] =
   ## Retrieve or compute the least-cost (optimum) layout for this block.
-  ##
-  ## Args:
-  ##   rest_of_line: a LytSolution object representing the text to the
-  ##     right of this block.
-  ##
-  ## Returns:
-  ##   A LytSolution object representing the optimal layout for this
-  ##   block and the rest of the line.
+  ## - @arg{rest} :: text to the right of this block.
+  ## - @ret{} :: Optimal layout for this block and the rest of the line.
   # Deeply-nested choice block may result in the same continuation
   # supplied repeatedly to the same block. Without memoisation, this
   # may result in an exponential blow-up in the layout algorithm.
-  if rest_of_line notin self.layout_cache:
-    self.layout_cache[rest_of_line] = self.doOptLayout(rest_of_line, opts)
+  if rest notin self.layoutCache:
+    self.layoutCache[rest] = self.doOptLayout(rest, opts)
 
-  return self.layout_cache[rest_of_line]
+  return self.layoutCache[rest]
 
 proc doOptTextLayout(
   self: LytBlock,
-  rest_of_line: var Option[LytSolution], opts: LytOptions): Option[LytSolution] =
+  rest: var Option[LytSolution], opts: LytOptions): Option[LytSolution] =
 
   let
     span = len(self.text)
@@ -878,77 +925,81 @@ proc doOptTextLayout(
       @[layout, layout, layout] # XXXX
     )
 
-  return result.withRestOfLine(rest_of_line, opts)
+  return result.withRestOfLine(rest, opts)
 
 
 proc doOptLineLayout(
-  self: var LytBlock,
-  rest_of_line: var Option[LytSolution], opts: LytOptions): Option[LytSolution] =
-  # echov "doOptLineLayout"
-  assert self != nil
-  # echov self
-  if self.elements.len == 0:
-    return rest_of_line
+    self: var LytBlock,
+    rest: var Option[LytSolution],
+    opts: LytOptions
+  ): Option[LytSolution] =
 
-  var element_lines: seq[seq[LytBlock]] = @[]
-  element_lines.add @[]
+  assert self != nil
+  if self.elements.len == 0:
+    return rest
+
+  var elementLines: seq[seq[LytBlock]] = @[]
+  elementLines.add @[]
 
   for i, elt in self.elements:
-    element_lines[^1].add elt
+    elementLines[^1].add elt
 
-    if i < len(self.elements) - 1 and elt.is_breaking:
-      element_lines.add @[]
+    if i < self.elements.high() and elt.isBreaking:
+      elementLines.add @[]
 
-  if len(element_lines) > 1:
+  if len(elementLines) > 1:
     assert opts.format_policy.breakElementLines != nil
-    element_lines = opts.format_policy.breakElementLines(element_lines)
+    elementLines = opts.format_policy.breakElementLines(elementLines)
 
-  var line_solns: seq[Option[LytSolution]]
+  var lineSolns: seq[Option[LytSolution]]
 
-  # echov element_lines
-  # pprintStackTrace()
-  for i, ln in rmpairs(element_lines):
-    var ln_layout = none(LytSolution)
+  # pprint elementLines
 
-    if i == element_lines.high:
-      ln_layout = rest_of_line
-      # if i < len(element_lines) - 1:
-      #   none(LytSolution)
-      # else:
-      #   rest_of_line
+  for i, ln in mpairs(elementLines):
+    var lnLayout = if i == elementLines.high: rest else: none(LytSolution)
 
     for idx, elt in rmpairs(ln):
-      # echov "--", elt
-      ln_layout = elt.optLayout(ln_layout, opts)
+      lnLayout = elt.optLayout(lnLayout, opts)
 
-    line_solns.add ln_layout
+    lineSolns.add lnLayout
 
-  let soln = vSumSolution(line_solns.filterIt(it.isSome()).mapIt(it.get()))
 
-  return some soln.plusConst(float(opts.linebreakCost * (len(line_solns) - 1)))
+  # pprint lineSolns
+
+  let soln = vSumSolution(lineSolns.filterIt(it.isSome()).mapIt(it.get()))
+
+  result = some soln.plusConst(float(opts.linebreakCost * (len(lineSolns) - 1)))
+  # echov "----"
+  # pprint self
+  # echov "-----"
+  # pprint result.get()
+
 
 
 proc doOptChoiceLayout(
-  self: var LytBlock, rest_of_line: var Option[LytSolution],
+  self: var LytBlock, rest: var Option[LytSolution],
   opts: LytOptions): Option[LytSolution] =
   # The optimum layout of this block is simply the piecewise minimum of its
   # elements' layouts.
   return minSolution(
     self.elements.mutMapIt(
-      it.optLayout(rest_of_line, opts)
+      it.optLayout(rest, opts)
     ).get()
   )
 
 
 proc doOptStackLayout(
-  self: var LytBlock,
-  rest_of_line: var Option[LytSolution], opts: LytOptions): Option[LytSolution] =
+    self: var LytBlock,
+    rest: var Option[LytSolution], 
+    opts: LytOptions
+  ): Option[LytSolution] =
+
   # The optimum layout for this block arranges the elements vertically. Only
   # the final element is composed with the continuation provided---all the
   # others see an empty continuation ("None"), since they face the end of
   # a line.
   if self.elements.len == 0:
-    return rest_of_line
+    return rest
 
   let soln = vSumSolution: get: collect(newSeq):
     for idx, elem in mpairs(self.elements):
@@ -956,18 +1007,14 @@ proc doOptStackLayout(
         none(LytSolution).withResIt do:
           optLayout(elem, it, opts)
       else:
-      # if idx == self.elements.len - 1:
-        elem.optLayout(restOfLine, opts)
-      # else:
+        elem.optLayout(rest, opts)
 
 
   # Under some odd circumstances involving comments, we may have a
   # degenerate solution.
   # WARNING
   if soln.layouts.len == 0:
-    return rest_of_line
-  # if soln.isNone():
-
+    return rest
 
   # Add the cost of the line breaks between the elements.
   return some soln.plusConst float(
@@ -977,7 +1024,7 @@ proc doOptStackLayout(
 
 proc doOptWrapLayout(
   self: var LytBlock,
-  rest_of_line: var Option[LytSolution], opts: LytOptions): Option[LytSolution] =
+  rest: var Option[LytSolution], opts: LytOptions): Option[LytSolution] =
   # Computing the optimum layout for this class of block involves
   # finding the optimal packing of elements into lines, a problem
   # which we address using dynamic programming.
@@ -1026,7 +1073,7 @@ proc doOptWrapLayout(
       else:
         prefix_layout.withRestOfLine(elt_layouts[i], opts)
 
-    var last_breaking: bool = self.wrapElements[i].is_breaking
+    var last_breaking: bool = self.wrapElements[i].isBreaking
     for j in i ..< self.len - 1: # XXXX
       let full_soln = vSumSolution(
         @[line_layout, wrap_solutions[j + 1]].get())
@@ -1046,10 +1093,10 @@ proc doOptWrapLayout(
         elt_layouts[j + 1], opts)
 
       line_layout = line_layout.withRestOfLine(sep_elt_layout, opts)
-      last_breaking = self.wrapElements[j + 1].is_breaking
+      last_breaking = self.wrapElements[j + 1].isBreaking
 
     if not last_breaking:
-      solutions_i.add line_layout.withRestOfLine(rest_of_line, opts).get()
+      solutions_i.add line_layout.withRestOfLine(rest, opts).get()
 
     wrap_solutions[i] = minSolution(solutions_i)
   # Once wrap_solutions is complete, the optimum layout for the entire
@@ -1057,8 +1104,12 @@ proc doOptWrapLayout(
   return wrap_solutions[0]
 
 proc doOptVerbLayout(
-  self: var LytBlock,
-  rest_of_line: var Option[LytSolution], opts: LytOptions): Option[LytSolution] =
+    self: var LytBlock,
+    rest: var Option[LytSolution], 
+    opts: LytOptions
+  ): Option[LytSolution] =
+
+
   # The solution for this block is essentially that of a TextBlock(''), with
   # an abberant layout calculated as follows.
   var l_elts: seq[LayoutElement]
@@ -1081,21 +1132,21 @@ proc doOptVerbLayout(
     (opts.rightMargin - opts.leftMargin) * opts.leftMarginCost,
     opts.leftMarginCost + opts.rightMarginCost, layout)
 
-  return some sf.makeSolution()
+  result = some sf.makeSolution()
 
 proc doOptLayout*(
     self: var LytBlock,
-    rest_of_line: var Option[LytSolution],
+    rest: var Option[LytSolution],
     opts: LytOptions
   ): Option[LytSolution] =
 
   case self.kind:
-    of bkText:   result = self.doOptTextLayout(restOfLine, opts)
-    of bkLine:   result = self.doOptLineLayout(restOfLine, opts)
-    of bkChoice: result = self.doOptChoiceLayout(restOfLine, opts)
-    of bkStack:  result = self.doOptStackLayout(restOfLine, opts)
-    of bkWrap:   result = self.doOptWrapLayout(restOfLine, opts)
-    of bkVerb:   result = self.doOptVerbLayout(restOfLine, opts)
+    of bkText:   result = self.doOptTextLayout(rest, opts)
+    of bkLine:   result = self.doOptLineLayout(rest, opts)
+    of bkChoice: result = self.doOptChoiceLayout(rest, opts)
+    of bkStack:  result = self.doOptStackLayout(rest, opts)
+    of bkWrap:   result = self.doOptWrapLayout(rest, opts)
+    of bkVerb:   result = self.doOptVerbLayout(rest, opts)
     of bkEmpty: discard
 
 const defaultFormatOpts* = LytOptions(
@@ -1109,7 +1160,6 @@ const defaultFormatOpts* = LytOptions(
   formatPolicy: LytFormatPolicy(
     breakElementLines: (
       proc(blc: seq[seq[LytBlock]]): seq[seq[LytBlock]] =
-        echov blc
         let spaceText = makeTextBlock(" ")
         func strippedLine(line: seq[LytBlock]): LytBlock =
           var leftSpaces, rightSpaces: int
@@ -1199,7 +1249,12 @@ proc `[]`*(b: static[LytBuilderKind], s: seq[LytBlock]): LytBlock =
 proc `[]`*(b: static[LytBuilderKind], bl: LytBlock, args: varargs[LytBlock]): LytBlock =
   b[@[ bl ] & toSeq(args)]
 
-proc `[]`*(b: static[LytBuilderKind], a: string | ColoredString): LytBlock =
+proc `[]`*(
+    b: static[LytBuilderKind], 
+    a: string | ColoredString,
+    breaking: bool = false
+  ): LytBlock =
+
   staticAssert(
     b == blkText,
     "Single-argument block builder for string must use `T[\"somestring\"]`",
@@ -1207,7 +1262,7 @@ proc `[]`*(b: static[LytBuilderKind], a: string | ColoredString): LytBlock =
     hxInfo()
   )
 
-  return makeTextBlock(a)
+  return makeTextOrVerbBlock(a, breaking)
 
 proc `[]`*(b: static[LytBuilderKind], tlen: int = 1): LytBlock =
   case b:
@@ -1280,7 +1335,13 @@ func join*(
 
 
 func padSpaces*(bl: var LytBlock) =
+  type
+    Indent = object
+      afterLine: int
+      spaces: int
+
   func aux(bl: var LytBlock, indent: var int, first: bool) =
+
     let baseIndent = indent
     if first and bl.height == 1: return
 
@@ -1288,6 +1349,10 @@ func padSpaces*(bl: var LytBlock) =
       of bkText:
         if indent > 0 and not first:
           bl.text = repeat(" ", indent) & bl.text
+
+      of bkVerb:
+        for line in mitems(bl.textLines):
+          line = repeat(" ", indent) & line
 
       of bkLine:
         if bl.height == 1 and indent > 0:
@@ -1297,14 +1362,6 @@ func padSpaces*(bl: var LytBlock) =
           for toplevel in mitems(bl.elements):
             aux(toplevel, indent, first)
             indent += toplevel.width
-            # if toplevel.height > 1:
-            #   if toplevel.kind == bkStack:
-
-            #   elif toplevel.kind == bkChoice:
-            #     for choice in mitems(toplevel.elements):
-            #       var indent = indent
-            #       aux(choice, indent, first)
-
 
       of bkStack:
         for idx, item in mpairs(bl.elements):
@@ -1323,9 +1380,14 @@ func padSpaces*(bl: var LytBlock) =
   var indent = 0
   aux(bl, indent, true)
 
+
+
 proc toString*(
-  bl: LytBlock,
-  rightMargin: int = 80, fixLyt: bool = true): string =
+    bl: LytBlock,
+    rightMargin: int = 80, 
+    fixLyt: bool = true
+  ): string =
+
   var bl = bl
   if fixLyt:
     padSpaces(bl)

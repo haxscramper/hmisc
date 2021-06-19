@@ -63,3 +63,18 @@ But layout algorithm does not operate on multiline blocks, and originally,
 Layout correction is enabled by default, and you should not be concerned
 about it most of the time, but if needed it can be turned off via
 `fixLayout = false` argument to variuous `make<block-kind>` procedures.
+
+**Note**
+
+Horizontal layout combinator attaches topmost line in the block to the
+lowest part of the preceding block, so arrangement ``H[V[T["[#]"],
+T["[#]"]], V[T["[#]"], T["[#]"]]]`` would result in
+
+.. code-block ::
+
+  [#]
+  [#][#]
+     [#]
+
+   
+

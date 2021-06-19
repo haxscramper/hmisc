@@ -89,7 +89,28 @@ suite "Block formatting":
 
 
 suite "Line layouts":
-  echo H[T["//"], V[H[T["--"], V[T["()"], T["<>"]]]]].toString()
+  # echo H[T["//"], V[H[T["--"], V[T["()"], T["<>"]]]]].toString()
+  # let bl = H[
+  #   V[T["[1.1]\n[1.2]"], T["[1.3]\n[1.4]"]],
+  #   V[T["[2.1]\n[2.2]"], T["[2.3]\n[2.4]"]],
+  #   # V[T["[3.1]\n[3.2]"], T["[3.3]\n[3.4]"]],
+  # ]
+
+  let sep = "\n"
+
+  let bl = H[
+    V[T[&"[1.1]{sep}[1.2]"], T[&"[1.3]{sep}[1.4]"]],
+    V[T[&"[2.1]{sep}[2.2]"], T[&"[2.3]{sep}[2.4]"]],
+    # V[T["[3.1]\n[3.2]"], T["[3.3]\n[3.4]"]],
+  ]
+
+  startHax()
+  echo bl.treeRepr()
+  echo bl
+
+  echo bl.toString()
+  echo bl.treeRepr()
+  stopHax()
 
 
 suite "Edge case layouts":
