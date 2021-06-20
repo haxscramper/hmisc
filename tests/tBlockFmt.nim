@@ -98,18 +98,29 @@ suite "Line layouts":
 
   let sep = "\n"
 
-  let bl = H[
-    V[T[&"[1.1]{sep}[1.2]"], T[&"[1.3]{sep}[1.4]"]],
-    V[T[&"[2.1]{sep}[2.2]"], T[&"[2.3]{sep}[2.4]"]],
-    # V[T["[3.1]\n[3.2]"], T["[3.3]\n[3.4]"]],
-  ]
+  let bl =
+    V[
+      H[
+        T["\x1B[33minfo    \x1B[39m"],
+        T["Anything associated with\nnormal"]
+      ],
+      H[
+        T["\x1B[33mnotice  \x1B[39m"],
+        T["More important information that\nusers"]
+      ]
+    ]
+  # let bl = H[
+  #   V[T[&"[1.1]{sep}[1.2]"], T[&"[1.3]{sep}[1.4]"]],
+  #   V[T[&"[2.1]{sep}[2.2]"], T[&"[2.3]{sep}[2.4]"]],
+  #   # V[T["[3.1]\n[3.2]"], T["[3.3]\n[3.4]"]],
+  # ]
 
   startHax()
-  echo bl.treeRepr()
+  # echo bl.treeRepr()
   echo bl
 
   echo bl.toString()
-  echo bl.treeRepr()
+  # echo bl.treeRepr()
   stopHax()
 
 

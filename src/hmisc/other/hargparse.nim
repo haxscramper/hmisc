@@ -733,7 +733,11 @@ proc help(desc: CliDesc, level: int = 0): LytBlock =
       if opt.groupKind in coOptionKinds:
         opts.add I[indent + 4, optHelp(opt)]
 
-    result.add I[indent, opts]
+    let res = I[indent, opts]
+    result.add res
+    echo treeRepr(res)
+    echo codegenRepr(res, 1)
+
 
 
 proc help(app: CliApp): LytBlock =

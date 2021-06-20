@@ -76,5 +76,7 @@ T["[#]"]], V[T["[#]"], T["[#]"]]]`` would result in
   [#][#]
      [#]
 
-   
+**Bugs**
 
+- ``H[V[T, T], V[T, T]`` layout with multiline verbatim text blocks drops
+  second ``V[T, T]``.

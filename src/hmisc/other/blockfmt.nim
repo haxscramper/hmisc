@@ -202,19 +202,21 @@ func treeRepr*(inBl: LytBlock): string =
 
     let pref2 = repeat(" ", level * 2 + 2)
 
-    result = pref2 & pref & "\n"
+    result = pref2 & pref
     case bl.kind:
       of bkLine, bkChoice, bkStack, bkWrap:
+        result &= "\n"
         for isFirst, isLast, elem in itemsIsFirstLast(bl.elements):
-          result &= elem.aux(level + 1) 
+          result &= elem.aux(level + 1)
 
       of bkText:
-        result &= bl.text.escape()
+        result &= bl.text.escape() & "\n"
 
       of bkEmpty:
         result &= "<empty>"
 
       of bkVerb:
+        result &= "\n"
         for isLast, line in itemsIsLast(bl.textLines):
           result &= pref2 & "  " & line.escape() & "\n"
 
@@ -873,7 +875,7 @@ proc doOptLayout*(
 
 proc optLayout(
     self: var LytBlock,
-    rest: var Option[LytSolution], 
+    rest: var Option[LytSolution],
     opts: LytOptions
   ): Option[LytSolution] =
   ## Retrieve or compute the least-cost (optimum) layout for this block.
@@ -990,7 +992,7 @@ proc doOptChoiceLayout(
 
 proc doOptStackLayout(
     self: var LytBlock,
-    rest: var Option[LytSolution], 
+    rest: var Option[LytSolution],
     opts: LytOptions
   ): Option[LytSolution] =
 
@@ -1105,7 +1107,7 @@ proc doOptWrapLayout(
 
 proc doOptVerbLayout(
     self: var LytBlock,
-    rest: var Option[LytSolution], 
+    rest: var Option[LytSolution],
     opts: LytOptions
   ): Option[LytSolution] =
 
@@ -1250,7 +1252,7 @@ proc `[]`*(b: static[LytBuilderKind], bl: LytBlock, args: varargs[LytBlock]): Ly
   b[@[ bl ] & toSeq(args)]
 
 proc `[]`*(
-    b: static[LytBuilderKind], 
+    b: static[LytBuilderKind],
     a: string | ColoredString,
     breaking: bool = false
   ): LytBlock =
@@ -1351,8 +1353,9 @@ func padSpaces*(bl: var LytBlock) =
           bl.text = repeat(" ", indent) & bl.text
 
       of bkVerb:
-        for line in mitems(bl.textLines):
-          line = repeat(" ", indent) & line
+        for isFirst, line in mitemsIsFirst(bl.textLines):
+          if not isFirst:
+            line = repeat(" ", indent) & line
 
       of bkLine:
         if bl.height == 1 and indent > 0:
@@ -1384,7 +1387,7 @@ func padSpaces*(bl: var LytBlock) =
 
 proc toString*(
     bl: LytBlock,
-    rightMargin: int = 80, 
+    rightMargin: int = 80,
     fixLyt: bool = true
   ): string =
 
@@ -1400,41 +1403,43 @@ proc toString*(
 
   sln.layouts[0].printOn(result)
 
-func codegenRepr*(inBl: LytBlock): string =
+func codegenRepr*(inBl: LytBlock, indent: int = 0): string =
   func aux(bl: LytBlock, level: int): string =
     let pref = repeat("  ", level)
     let name =
       case bl.kind:
-        of bkEmpty: "empty"
-        of bkLine: "hsb"
-        of bkChoice: "choice"
-        of bkText: "txb"
-        of bkWrap: "wrap"
-        of bkStack: "vsb"
-        of bkVerb: "verb"
+        of bkEmpty: "E"
+        of bkLine: "H"
+        of bkChoice: "C"
+        of bkText: "T"
+        of bkWrap: "W"
+        of bkStack: "V"
+        of bkVerb: "T"
 
     case bl.kind:
       of bkLine, bkChoice, bkStack, bkWrap:
-        result = pref & name & "([\n"
+        result = pref & name & "[\n"
         for isLast, elem in itemsIsLast(bl.elements):
           result &= elem.aux(level + 1) & (if isLast: "\n" else: ",\n")
 
-        result &= pref & "])"
+        result &= pref & "]"
 
       of bkText:
-        result = &"{pref}txb({bl.text.escape()})"
+        result = &"{pref}T[{bl.text.escape()}]"
 
       of bkVerb:
-        result = pref & name & "([\n"
-        for isLast, line in itemsIsLast(bl.textLines):
-          result &= &"{pref}  \"{line}\"" & (if isLast: "\n" else: ",\n")
+        result = pref & name & "["
+        for isFirst, isLast, line in itemsIsFirstLast(bl.textLines):
+          if isFirst: result &= "\""
+          result &= line
+          if isLast: result &= "\"" else: result &= "\\n"
 
-        result &= pref & "])"
+        result &= "]"
 
       of bkEmpty:
-        result = "empty"
+        result = "E[]"
 
-  return "str(" & aux(inBl, 0) & ")"
+  return aux(inBl, indent)
 
 
 template initBlockFmtDSL*() {.dirty.} =
