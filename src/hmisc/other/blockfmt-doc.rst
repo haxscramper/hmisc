@@ -38,31 +38,7 @@ And should be used like this:
     ]
 
 This describes layut for nim proc declarations, and provides to
-alternatives - put arguments either horizontally or veritcally. By default
-necessary spacing is inserted for stacked layots, meaning `I[2, S[T["line
-1"], T["line 2"]]]` will yield following output, as one might normally
-expect -
-
-.. code-block::
-
-   | column 0
-     | column 2
-     line1
-     line2
-
-But layout algorithm does not operate on multiline blocks, and originally,
-(without any fixes), you would get following output:
-
-.. code-block::
-
-   | column 0
-     | column 2
-     line1
-   line2
-
-Layout correction is enabled by default, and you should not be concerned
-about it most of the time, but if needed it can be turned off via
-`fixLayout = false` argument to variuous `make<block-kind>` procedures.
+alternatives - put arguments either horizontally or veritcally.
 
 **Note**
 
@@ -75,8 +51,3 @@ T["[#]"]], V[T["[#]"], T["[#]"]]]`` would result in
   [#]
   [#][#]
      [#]
-
-**Bugs**
-
-- ``H[V[T, T], V[T, T]`` layout with multiline verbatim text blocks drops
-  second ``V[T, T]``.

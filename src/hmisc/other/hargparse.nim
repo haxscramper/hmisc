@@ -758,8 +758,6 @@ proc help(app: CliApp): LytBlock =
 
   result = res
 
-  # "/tmp/a".writeFile result.codegenRepr(2)
-
 
 
 proc helpStr(app: CliApp): string =
@@ -790,4 +788,3 @@ if isMainModule:
   let logger = newTermLogger()
 
   echo app.helpStr()
-  # app.runMain(mainProc, logger)

@@ -98,8 +98,6 @@ type
     layoutCache: Table[Option[LytSolution], Option[LytSolution]]
     isBreaking*: bool ## Whether or not this block should end the line
     breakMult* {.requiresinit.}: int ## Local line break cost change
-    width*: int ## Number of characters on the longest line in the block
-    height*: int ## Number of lines in block
 
     case kind*: LytBlockKind
       of bkVerb:
@@ -268,7 +266,7 @@ func treeRepr*(inBl: LytBlock): string =
         of bkEmpty: "E"
 
     let pref = align(
-      name & &" {toCyan($bl.height)}x{toCyan($bl.width)} " & " ",
+      name & " ",
       level * 2
     )
 
@@ -472,8 +470,6 @@ proc makeSolution(self: LytSolutionFactory): LytSolution =
   ## Construct and return a new LytSolution with the data in this
   ## object
   new(result)
-  # debug "Constructing solution with", self.entries.len, "elements"
-  # debug self.entries.mapIt(it.lyt)
   for (k, s, i, g, l) in self.entries:
     result.knots.add k
     result.spans.add s
@@ -756,38 +752,18 @@ iterator items*(blc: LytBlock): LytBlock =
 
 
 #============================  Constructors  =============================#
-# TODO support reassembling horizontal lines of stacks in different forms,
-# in any of tese forms
-#
-# ```
-#   proc (line 1
-#         line 2
-#         line 3 = line 1
-#                  line 2
-#                  line 3)
-# ```
-#
-# ```
-#   proc (line 1 = line 1)
-#         line 2   line 2
-#         line 3   line 3
-# ```
 
 func makeBlock*(kind: LytBlockKind, breakMult: int = 1): LytBlock =
   LytBlock(kind: kind, breakMult: breakMult)
 
 func makeTextBlock*(text: string, breakMult: int = 1): LytBlock =
-  LytBlock(
-    kind: bkText, text: text.lytStr(), breakMult: breakMult,
-    width: text.len, height: 1)
+  LytBlock(kind: bkText, text: text.lytStr(), breakMult: breakMult)
 
 func makeEmptyBlock*(): LytBlock =
   LytBlock(kind: bkEmpty, breakMult: 1)
 
 func makeTextBlock*(text: ColoredString, breakMult: int = 1): LytBlock =
-  LytBlock(
-    kind: bkText, text: text.lytStr(), width: text.len, height: 1,
-    breakMult: breakMult)
+  LytBlock(kind: bkText, text: text.lytStr(), breakMult: breakMult)
 
 proc makeTextBlocks*(text: openarray[string]): seq[LytBlock] =
   text.mapIt(makeTextBlock(it))
@@ -824,8 +800,6 @@ template findSingle*(elems: typed, targetKind: typed): untyped =
 func convertBlock*(bk: LytBlock, newKind: LytBlockKind): LytBlock =
   result = LytBlock(breakMult: bk.breakMult, kind: newKind)
   result.elements = bk.elements
-  result.height = bk.height
-  result.width = bk.width
 
 
 func makeChoiceBlock*(
@@ -840,13 +814,9 @@ func makeChoiceBlock*(
       kind: bkChoice,
       elements: filterIt(elems, it.kind != bkEmpty))
 
-    result.width = elems.maxIt(it.width)
-    result.height = elems.maxIt(it.height)
-
 func makeLineBlock*(
     elems: openarray[LytBlock], breakMult: int = 1): LytBlock =
   if (let idx = findSingle(elems, bkLine); idx != -1):
-    echov "find single"
     result = elems[idx]
 
   elif elems.len == 1 and elems[0].len == 1:
@@ -857,9 +827,6 @@ func makeLineBlock*(
       breakMult: breakMult,
       kind: bkLine,
       elements: filterIt(elems, it.kind != bkEmpty))
-
-    result.height = elems.maxIt(it.height)
-    result.width = elems.sumIt(it.width)
 
 
 
@@ -888,9 +855,6 @@ func makeStackBlock*(
       breakMult: breakMult, kind: bkStack,
       elements: filterIt(elems, it.kind != bkEmpty))
 
-    result.height = elems.sumIt(it.height)
-    result.width = elems.maxIt(it.width)
-
 
 func makeWrapBlock*(
     elems: openarray[LytBlock], breakMult: int = 1): LytBlock =
@@ -909,11 +873,7 @@ func makeVerbBlock*[S: string | ColoredString](
     textLines: mapIt(textLines, lytStr(it)),
     isBreaking: breaking,
     firstNl: firstNl,
-    height: len(textLines)
   )
-
-  for line in textLines:
-    result.width = max(result.width, line.len)
 
 
 func makeTextOrVerbBlock*(
@@ -933,13 +893,6 @@ func makeTextOrVerbBlock*(
 func makeForceLinebreak*(text: string = ""): LytBlock =
   makeVerbBlock(@[text], true, false)
 
-# func makeIndentBlock*(element: LytBlock, indent: int = 0): LytBlock =
-#   ## Create line block with `indent` leading whitespaces
-#   makeLineBlock(@[
-#     makeTextBlock(" ".repeat(indent)),
-#     element
-#   ])
-
 func makeLineCommentBlock*(
   text: string, prefix: string = "# "): LytBlock =
   makeVerbBlock(@[prefix & text])
@@ -948,18 +901,6 @@ func add*(target: var LytBlock, other: varargs[LytBlock]) =
   for bl in other:
     assert not isNil(bl)
     if bl.kind != bkEmpty:
-      case target.kind:
-        of bkStack:
-          target.height += bl.height
-          target.width = max(target.width, bl.width)
-
-        of bkLine:
-          target.width += bl.width
-          target.height = max(target.height, bl.height)
-
-        else:
-          discard
-
       if bl.kind == target.kind and bl.kind in {bkStack, bkLine}:
         target.elements.add bl.elements
 
@@ -1067,15 +1008,9 @@ proc doOptLineLayout(
     lineSolns.add lnLayout
 
 
-  # pprint lineSolns
-
   let soln = vSumSolution(lineSolns.filterIt(it.isSome()).mapIt(it.get()))
 
-  result = some soln.plusConst(float(opts.linebreakCost * (len(lineSolns) - 1)))
-  # echov "----"
-  # pprint self
-  # echov "-----"
-  # pprint result.get()
+  return some soln.plusConst(float(opts.linebreakCost * (len(lineSolns) - 1)))
 
 
 
@@ -1296,31 +1231,6 @@ const defaultFormatOpts* = LytOptions(
 
 
 
-# proc layoutBlock*(blc: LytBlock, opts: LytOptions = defaultFormatOpts): string =
-#   ## Perform search optimal block layout and return string
-#   ## reprsentation of the most cost-effective one
-#   var blocks = blc
-#   let sln = none(LytSolution).withResIt do:
-#     blocks.doOptLayout(it, opts).get()
-
-#   sln.layouts[0].printOn(result)
-
-# proc wrapBlocks*(blocks: seq[LytBlock],
-#                  opts: LytOptions = defaultFormatOpts,
-#                  margin: int = opts.rightMargin
-#                 ): string =
-#   ## Create wrap block and return most optimal layout for it
-#   var opts = opts
-#   opts.rightMargin = margin
-#   layoutBlock(makeWrapBlock(blocks), opts)
-
-# proc stackBlocks*(
-#   blocks: seq[LytBlock], opts: LytOptions = defaultFormatOpts): string =
-#   ## Return string representation of the most optimal layout for
-#   ## vertically stacked blocks.
-#   layoutBlock(makeStackBlock(blocks), opts)
-
-
 
 type
   LytBuilderKind* = enum
@@ -1405,27 +1315,6 @@ func join*(
     "Only stack or line layouts can be joined"
 
   result = makeBlock(blocks.kind)
-
-  case blocks.kind:
-    of bkLine:
-      result.height = max(blocks.elements.maxIt(it.height), sep.height)
-      result.width = blocks.sumIt(it.width) + (blocks.len - 1) * sep.width
-
-    of bkStack:
-      if vertLines:
-        result.height = blocks.sumIt(it.height)
-        result.width = max(blocks.maxIt(it.width), sep.width)
-
-      else:
-        result.height = blocks.sumIt(it.height) + (blocks.len - 1) * sep.height
-        result.width = blocks.maxIt(it.width) + sep.width
-
-    else:
-      discard
-
-
-
-
 
   for isLast, item in itemsIsLast(blocks):
     if blocks.kind == bkStack and vertLines:
