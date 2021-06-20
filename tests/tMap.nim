@@ -1,9 +1,17 @@
-# Copied from fusion tests and modified to inse `init*Map` procs. Used only
-# to ensure there is no name clashes during compilation.
+import
+  std/[sequtils, unittest, tables],
+  hmisc/types/hmap
 
-import sequtils, unittest
-import hmisc/types/hmap
-import std/tables
+suite "Values from/before":
+  test "Values before":
+    let map = toMap({1: 1, 2: 2, 3: 3})
+    echo "before 2: ", toSeq(map.valuesBefore(2))
+    echo "from 2: ", toSeq(map.valuesFrom(2))
+    echo "before -1: ", toSeq(map.valuesBefore(-1))
+    echo "before 3: ", toSeq(map.valuesBefore(3))
+    echo "before 3 with key: ", toSeq(map.valuesBefore(3, true))
+    echo "before 4: ", toSeq(map.valuesBefore(4))
+    echo "from -2: ", toSeq(map.valuesFrom(-2))
 
 suite "std/tMap tests":
   # smaller tables

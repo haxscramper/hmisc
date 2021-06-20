@@ -1,9 +1,21 @@
-import fusion/btreetables
+import ./tables_reexport as btreetables
 
 export btreetables except
-  Table, TableRef, initTable, toTable, newTable, newTableFrom,
-  CountTable, CountTableRef, initCountTable, toCountTable, newCountTable,
-  OrderedTable, OrderedTableRef, initOrderedTable, toOrderedTable,
+  Table,
+  TableRef,
+  initTable,
+  toTable,
+  newTable,
+  newTableFrom,
+  CountTable,
+  CountTableRef,
+  initCountTable,
+  toCountTable,
+  newCountTable,
+  OrderedTable,
+  OrderedTableRef,
+  initOrderedTable,
+  toOrderedTable,
   newOrderedTable
 
 type

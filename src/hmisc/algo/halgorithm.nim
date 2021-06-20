@@ -84,6 +84,11 @@ iterator mitemsIsFirst*[T](s: var seq[T]): (bool, var T) =
   for idx in 0 .. s.len - 1:
     yield (idx == 0, s[idx])
 
+iterator mitemsIsLast*[T](s: var seq[T]): (bool, var T) =
+  mixin `[]`
+  for idx in 0 .. s.len - 1:
+    yield (idx == s.high, s[idx])
+
 iterator itemsIsLast*[T](s: T): auto =
   let sLen = s.len - 1
   var idx = 0

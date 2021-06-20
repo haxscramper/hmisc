@@ -736,7 +736,7 @@ proc help(desc: CliDesc, level: int = 0): LytBlock =
     let res = I[indent, opts]
     result.add res
     echo treeRepr(res)
-    echo codegenRepr(res, 1)
+    echo codegenRepr(res, 2)
 
 
 
@@ -763,7 +763,10 @@ proc help(app: CliApp): LytBlock =
     S[], I[4, T[&"{app.version} by {app.author}"]]
   ]
 
-  return res
+  result = res
+
+  # "/tmp/a".writeFile result.codegenRepr(2)
+
 
 
 proc helpStr(app: CliApp): string =

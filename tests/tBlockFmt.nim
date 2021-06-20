@@ -89,40 +89,67 @@ suite "Block formatting":
 
 
 suite "Line layouts":
-  # echo H[T["//"], V[H[T["--"], V[T["()"], T["<>"]]]]].toString()
-  # let bl = H[
-  #   V[T["[1.1]\n[1.2]"], T["[1.3]\n[1.4]"]],
-  #   V[T["[2.1]\n[2.2]"], T["[2.3]\n[2.4]"]],
-  #   # V[T["[3.1]\n[3.2]"], T["[3.3]\n[3.4]"]],
-  # ]
+  test "1":
+    # echo H[T["//"], V[H[T["--"], V[T["()"], T["<>"]]]]].toString()
+    # let bl = H[
+    #   V[T["[1.1]\n[1.2]"], T["[1.3]\n[1.4]"]],
+    #   V[T["[2.1]\n[2.2]"], T["[2.3]\n[2.4]"]],
+    #   # V[T["[3.1]\n[3.2]"], T["[3.3]\n[3.4]"]],
+    # ]
 
-  let sep = "\n"
+    let sep = "\n"
 
-  let bl =
-    V[
-      H[
-        T["\x1B[33minfo    \x1B[39m"],
-        T["Anything associated with\nnormal"]
-      ],
-      H[
-        T["\x1B[33mnotice  \x1B[39m"],
-        T["More important information that\nusers"]
-      ]
+    let bl =
+      V[H[V[H[V[
+        T["Value must be one of the following: "],
+        H[V[H[T["info    "],
+              V[T["Anything associated with\nnormal " &
+                "operation and without\nany particular importance"]]]]]]]]]]
+      # V[
+      #   H[
+      #     T["info    "],
+      #     T["Anything associated with\nnormal"]
+      #   ],
+      #   H[
+      #     T["notice  "],
+      #     T["More important information that\nusers"]
+      #   ]
+      # ]
+    # let bl = H[
+    #   V[T[&"[1.1]{sep}[1.2]"], T[&"[1.3]{sep}[1.4]"]],
+    #   V[T[&"[2.1]{sep}[2.2]"], T[&"[2.3]{sep}[2.4]"]],
+    #   # V[T["[3.1]\n[3.2]"], T["[3.3]\n[3.4]"]],
+    # ]
+
+    echo bl.toString()
+
+  test "2":
+    let bl =
+      V[H[V[H[
+        T["    "],
+        V[T["Value must be one of the following: "],
+          H[V[H[T["info    "],
+                V[T["Anything with\nnormal and without\nany importance"]]],
+              H[T["notice  "],
+                V[T["More information that\nusers"]]]]],
+          T[" "]]]]]]
+
+    startHax()
+    echo bl.toString()
+    stopHax()
+
+
+suite "Paper examples":
+  test "6.2 function name wrap":
+    startHax()
+    let bl = H[
+      H[T["FnName"], T["("]],
+      W[mapIt(1 .. 10, T[&"argument{it}, "])],
+      T[")"]
     ]
-  # let bl = H[
-  #   V[T[&"[1.1]{sep}[1.2]"], T[&"[1.3]{sep}[1.4]"]],
-  #   V[T[&"[2.1]{sep}[2.2]"], T[&"[2.3]{sep}[2.4]"]],
-  #   # V[T["[3.1]\n[3.2]"], T["[3.3]\n[3.4]"]],
-  # ]
 
-  startHax()
-  # echo bl.treeRepr()
-  echo bl
-
-  echo bl.toString()
-  # echo bl.treeRepr()
-  stopHax()
-
+    echo bl
+    echo toString2(bl, 50)
 
 suite "Edge case layouts":
   test "Stack of lines in braces":
