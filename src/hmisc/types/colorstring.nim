@@ -403,6 +403,9 @@ func impl(args: seq[NimNode], selector: NimNode): NimNode =
         `tmp`.fg8 = `fld`
         `tmp`.style = old
 
+      elif `fld` is PrintStyling:
+        `tmp` = `fld`
+
     if not isNil(selector):
       result.add quote do:
         when `fld` is bool:
@@ -438,9 +441,11 @@ func toColored*(rune: Rune): ColoredRune = ColoredRune(
   rune: rune, styling: initPrintStyling())
 
 func toColored*(
-  ch: char,
-  styling: PrintStyling = initPrintStyling(),
-  colorize: bool = true): ColoredRune =
+    ch: char,
+    styling: PrintStyling = initPrintStyling(),
+    colorize: bool = true
+  ): ColoredRune =
+
   ColoredRune(
     rune: Rune(ch),
     styling: (if not colorize: initPrintStyling() else: styling))
@@ -450,25 +455,67 @@ func toColored*(rune: ColoredRune, styling: PrintStyling): ColoredRune =
   result.styling = styling
 
 func toColored*(
-  ch: Rune,
-  styling: PrintStyling = initPrintStyling(),
-  colorize: bool = true): ColoredRune =
+    ch: Rune,
+    styling: PrintStyling = initPrintStyling(),
+    colorize: bool = true
+  ): ColoredRune =
   ColoredRune(
     rune: ch,
     styling: (if not colorize: initPrintStyling() else: styling))
 
-func initColoredString*(str: string,
-                        bg: BackgroundColor = bgDefault,
-                        fg: ForegroundColor = fgDefault,
-                        style: set[Style] = {}): ColoredString =
+func initColoredString*(
+    str: string,
+    bg: BackgroundColor = bgDefault,
+    fg: ForegroundColor = fgDefault,
+    style: set[Style] = {}
+  ): ColoredString =
+
   ColoredString(str: str, styling: PrintStyling(
     use8Bit: false, fg: fg, bg: bg, style: style))
+
+func `+`*(bg: BackgroundColor, fg: ForegroundColor): PrintStyling =
+  PrintStyling(use8bit: false, fg: fg, bg: bg)
+
+func `+`*(fg: ForegroundColor, bg: BackgroundColor): PrintStyling =
+  PrintStyling(use8bit: false, fg: fg, bg: bg)
+
+func `+`*(style: sink PrintStyling, bg: BackgroundColor): PrintStyling =
+  result = style
+  result.bg = bg
+
+func `+`*(style: sink PrintStyling, fg: ForegroundColor): PrintStyling =
+  result = style
+  result.fg = fg
+
+func `+`*(style: sink PrintStyling, s: Style): PrintStyling =
+  result = style
+  result.style.incl s
+
+
+converter toPrintStyling*(bg: BackgroundColor): PrintStyling =
+  PrintStyling(use8bit: false, bg: bg)
+
+converter toPrintStyling*(fg: ForegroundColor): PrintStyling =
+  PrintStyling(use8bit: false, fg: fg)
 
 func initColoredString*(str: string, styling: PrintStyling): ColoredString =
   ColoredString(str: str, styling: styling)
 
-func toColored*(str: string, styling: PrintStyling): ColoredString =
+func toColored*(
+    str: string, styling: PrintStyling = initPrintStyling()
+  ): ColoredString =
+
   ColoredString(str: str, styling: styling)
+
+func `&`*(col: ColoredString, str: string): ColoredLine =
+  @[col, toColored(str)]
+
+func `&`*(str: string, col: ColoredString): ColoredLine =
+  @[toColored(str), col]
+
+func `&`*(col: sink ColoredLine, str: string): ColoredLine =
+  result = col
+  result.add toColored(str)
 
 # func initColoredString*(str: str)
 
@@ -1317,13 +1364,27 @@ func termAlignLeft*(str: string, length: int, padding: char = ' '): string =
   else:
     str
 
-func alignLeft*(str: ColoredString, length: int, padding: char = ' '): string =
-  result &= $str
-  result &= padding.repeat(clamp(length - str.len, 0, high(int)))
+func alignLeft*(
+    str: sink ColoredString, length: int, padding: char = ' '
+  ): ColoredLine =
 
-func alignRight*(str: ColoredString, length: int, padding: char = ' '): string =
-  result &= padding.repeat(clamp(length - str.len, 0, high(int)))
-  result &= $str
+  @[str, toColored(repeat(padding, clamp(length - str.len, 0, high(int))))]
+
+func alignRight*(
+    str: sink ColoredString, length: int, padding: char = ' '
+  ): ColoredLine =
+
+  @[toColored(repeat(padding, clamp(length - str.len, 0, high(int)))), str]
+
+func join*(
+    strs: openarray[ColoredString], sep: ColoredString): ColoredLine =
+  for idx, val in strs:
+    if idx > 0:
+      result.add sep
+    result.add val
+
+
+
 
 func changeStyle(ps: var PrintStyling, code: int): void =
   # NOTE copy-pasted table from https://en.wikipedia.org/wiki/ANSI_escape_code

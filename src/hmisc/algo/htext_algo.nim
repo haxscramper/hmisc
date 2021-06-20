@@ -78,8 +78,9 @@ func wrapTextImpl[T, A](
   for w in words:
     offsets.add(offsets[^1] + len(w))
 
-  var minima: seq[int] = @[0] & repeat(10 ** 12, count) # repeat(0, count + 1) #  .concat()
-  var breaks: seq[int] = repeat(0, count + 1) # @[0].repeat(count + 1).concat()
+  var
+    minima: seq[int] = @[0] & repeat(10 ^ 12, count)
+    breaks: seq[int] = repeat(0, count + 1)
 
   proc cost(i, j: int): auto =
     let w = offsets[j] - offsets[i] + j - i - 1
@@ -146,32 +147,33 @@ func wrapTextImpl[T, A](
     offset = 0
 
   while true:
-      let
-        r = min(n, 2 ** (i + 1))
-        edge = 2 ** i + offset
+    let
+      r = min(n, 2 ^ (i + 1))
+      edge = 2 ^ i + offset
 
-      smawk(toSeq(0 + offset ..< edge), toSeq(edge ..< r + offset))
-      let x = minima[r - 1 + offset]
+    smawk(toSeq(0 + offset ..< edge), toSeq(edge ..< r + offset))
+    let x = minima[r - 1 + offset]
 
-      var hadBreak: bool = false
-      for j in (2 ** i) ..< (r - 1):
-          let y = cost(j + offset, r - 1 + offset)
-          if y <= x:
-              n -= j
-              i = 0
-              offset += j
-              hadBreak = true
+    var hadBreak: bool = false
+    for j in (2 ^ i) ..< (r - 1):
+      let y = cost(j + offset, r - 1 + offset)
+      if y <= x:
+        n -= j
+        i = 0
+        offset += j
+        hadBreak = true
+        break
 
-      if not hadBreak:
-          if r == n:
-              break
-          i = i + 1
+    if not hadBreak:
+      if r == n:
+        break
+      i = i + 1
 
   var j = count
   while j > 0:
-      i = breaks[j]
-      result.add(words[i ..< j])
-      j = i
+    i = breaks[j]
+    result.add(words[i ..< j])
+    j = i
 
   result.reverse()
 
@@ -202,6 +204,18 @@ func wrapText*[T, A](
   words: seq[Word[T, A]], width: int): seq[seq[Word[T, A]]] =
   wrapTextImpl(words, width)
 
+func wrapTextSimple*[T, A](
+  words: seq[Word[T, A]], width: int): seq[seq[Word[T, A]]] =
+  result.add @[]
+  var current = 0
+  for word in words:
+    if current + word.len > width:
+      result.add @[word]
+      current = word.len
+
+    else:
+      result[^1].add word
+
 func joinText*[T, A](
   wrapped: seq[seq[Word[T, A]]],
   toStr: proc(w: Word[T, A]): string =
@@ -224,8 +238,14 @@ func splitOrg*(str: string): seq[OrgWord] =
   for word in str.split(' '):
     result.add OrgWord(text: word)
 
-func wrapOrgLines*(str: string, width: int): seq[string] =
-  let buf = str.splitOrg().wrapText(width)
+func wrapOrgLines*(
+    str: string, width: int, simple: bool = false): seq[string] =
+  let buf = if simple:
+              str.splitOrg().wrapTextSimple(width)
+
+            else:
+              str.splitOrg().wrapText(width)
+
   for line in buf:
     result.add line.mapIt($it).join(" ")
 

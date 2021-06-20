@@ -328,75 +328,75 @@ proc opt*(
 
 
 proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
-  # if "help" notin ignored:
-  #   result.add opt(
-  #     "help",
-  #     alt = @["h"],
-  #     doc = "Display help messsage",
-  #     default = "off",
-  #     defaultAsFlag = "on",
-  #     groupKind = coFlag,
-  #     values = {
-  #       "off": "Do not show help",
-  #       "on": "Show help using default formatting",
-  #       "json": "Output help in machine-readable json format",
-  #       "verbose": "Show full documentation for each command",
-  #     })
+  if "help" notin ignored:
+    result.add opt(
+      "help",
+      alt = @["h"],
+      doc = "Display help messsage",
+      default = "off",
+      defaultAsFlag = "on",
+      groupKind = coFlag,
+      values = {
+        "off": "Do not show help",
+        "on": "Show help using default formatting",
+        "json": "Output help in machine-readable json format",
+        "verbose": "Show full documentation for each command",
+      })
 
-  # if "version" notin ignored:
-  #   result.add opt(
-  #     "version",
-  #     alt = @["v"],
-  #     doc = "Display version",
-  #     default = "off",
-  #     defaultAsFlag = "on",
-  #     groupKind = coFlag,
-  #     values = {
-  #       "off": "Do not show version",
-  #       "on": "Show version",
-  #       "full": "Show full version information " &
-  #         "(compilation time, author etc.)",
-  #       "json": "Output version informatin in json format"
-  #     }
-  #   )
+  if "version" notin ignored:
+    result.add opt(
+      "version",
+      alt = @["v"],
+      doc = "Display version",
+      default = "off",
+      defaultAsFlag = "on",
+      groupKind = coFlag,
+      values = {
+        "off": "Do not show version",
+        "on": "Show version",
+        "full": "Show full version information " &
+          "(compilation time, author etc.)",
+        "json": "Output version informatin in json format"
+      }
+    )
 
-  # if "json" notin ignored:
-  #   result.add flag("json", doc = "Use json output")
+  if "json" notin ignored:
+    result.add flag("json", doc = "Use json output")
 
-  # if "color" notin ignored:
-  #   result.add opt(
-  #     "color",
-  #     doc = "When to use color for the output.",
-  #     default = "auto",
-  #     groupKind = coFlag,
-  #     values = {
-  #       "auto": "show colors if the output goes to an interactive console",
-  #       "never": "do not use colorized output",
-  #       "always": "always use colorized output"
-  #     }
-  #   )
+  if "color" notin ignored:
+    result.add opt(
+      "color",
+      doc = "When to use color for the output.",
+      default = "auto",
+      groupKind = coFlag,
+      values = {
+        "auto": "show colors if the output goes to an interactive console",
+        "never": "do not use colorized output",
+        "always": "always use colorized output"
+      }
+    )
 
 
-  # if "quiet" notin ignored:
-  #   if "loglevel" notin ignored:
-  #     result.add flag(
-  #       "quiet",
-  #       doc = "Do not print execution logs",
-  #       aliasof = CliOpt(
-  #         kind: coOpt,
-  #         keyPath: @["loglevel"],
-  #         valStr: "none"
-  #       )
-  #     )
+  if "quiet" notin ignored:
+    if "loglevel" notin ignored:
+      result.add flag(
+        "quiet",
+        doc = "Do not print execution logs",
+        aliasof = CliOpt(
+          kind: coOpt,
+          keyPath: @["loglevel"],
+          valStr: "none"
+        )
+      )
 
-  #   else:
-  #     result.add flag("quiet", doc = "Do not print execution logs")
+    else:
+      result.add flag("quiet", doc = "Do not print execution logs")
 
-  # if "dry-run" notin ignored:
-  #   result.add flag("dry-run", "Do not execute irreversible OS actions")
+  if "dry-run" notin ignored:
+    result.add flag("dry-run", "Do not execute irreversible OS actions")
 
-  # if "force" notin ignored:
-  #   result.add flag("force", "Force actions")
+  if "force" notin ignored:
+    result.add flag("force", "Force actions")
 
   if "loglevel" notin ignored:
     result.add opt(
@@ -404,41 +404,41 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
       doc = "Configure minimal logging level to be shown.",
       default = "info",
       values = @{
-        # "all":    "All levels active",
-        # "debug":  "Debugging information helpful only to developers",
+        "all":    "All levels active",
+        "debug":  "Debugging information helpful only to developers",
         "info":   "Anything associated with normal " &
           "operation and without any particular importance",
         "notice": "More important information that " &
           "users should be notified about",
-        # "warn":   "Impending problems that require some attention",
-        # "error":  "Error conditions that the application can recover from",
-        # "fatal":  "Fatal errors that prevent the application from continuing",
-        # "none":   "No levels active; nothing is logged"
+        "warn":   "Impending problems that require some attention",
+        "error":  "Error conditions that the application can recover from",
+        "fatal":  "Fatal errors that prevent the application from continuing",
+        "none":   "No levels active; nothing is logged"
       }
     )
 
-  # if "log-output" notin ignored:
-  #   var opt = opt(
-  #     "log-output",
-  #     doc = "Configure logging output target",
-  #     default = "/dev/stderr", # Does explicitly writing to `/dev/stderr`
-  #                              # differ from `stderr.write`?
-  #     values = @{
-  #       "/dev/stderr": "Output logs to stderr",
-  #       "/dev/stdout": "Output logs to stdout"
-  #     }
-  #   )
+  if "log-output" notin ignored:
+    var opt = opt(
+      "log-output",
+      doc = "Configure logging output target",
+      default = "/dev/stderr", # Does explicitly writing to `/dev/stderr`
+                               # differ from `stderr.write`?
+      values = @{
+        "/dev/stderr": "Output logs to stderr",
+        "/dev/stdout": "Output logs to stdout"
+      }
+    )
 
-  #   opt.check =
-  #     orCheck(
-  #       opt.check,
-  #       check(cckIsWritable),
-  #       check(cckIsCreatable)
-  #     )
+    opt.check =
+      orCheck(
+        opt.check,
+        check(cckIsWritable),
+        check(cckIsCreatable)
+      )
 
 
 
-  #   result.add opt
+    result.add opt
 
 
 
@@ -626,7 +626,7 @@ proc checkHelp(check: CliCheck, inNested: bool = false): LytBlock =
       let width = maxIt(doc, it[0].len) + 2
 
       for (val, doc) in doc:
-        let doc = T[doc.wrapOrgLines(40).join("\n")]
+        let doc = T[doc.wrapOrgLines(40, simple = true).join("\n")]
         var item = H[T[initColored(alignLeft(val, width), fgYellow)], V[doc]]
         result.add item
 
@@ -680,38 +680,38 @@ proc optHelp(opt: CliDesc): LytBlock =
 proc argHelp(arg: CliDesc): LytBlock =
   result = V[]
 
-  result.add T[&"<{toRed(arg.name)}>"]
+  result.add T["<" & toColored(arg.name, fgRed) & ">"]
   result.add I[4, T[arg.doc.docBrief]]
   result.add I[4, checkHelp(arg.check)]
-
-import hpprint
 
 proc help(desc: CliDesc, level: int = 0): LytBlock =
   result = V[]
   var first = S[]
   let indent = level * 4
   if desc.arguments.len > 0:
-    var args = V[first, T["ARGS:".toColored(section)]]
-    first = E[]
+    var args = V[S[], T[initColored("ARGS:", section)], S[]]
 
     for arg in desc.arguments:
-      args.add I[indent + 4, argHelp(arg)]
+      args.add I[4, argHelp(arg)]
 
     result.add I[indent, args]
 
   if desc.subcommands.len > 0:
-    var cmds = V[S[], T["SUBCOMMANDS:".toColored(section)], S[]]
+    var cmds = V[S[], T[initColored("SUBCOMMANDS:", section)], S[]]
 
     for cmd in desc.subcommands:
-      let names = cmd.altNames.mapIt(it.toMagenta()).join("/")
-      cmds.add I[level + 4, T[&"{names} - {cmd.doc.docBrief}"]]
+      let names =
+        cmd.altNames.mapIt(toColored(it, fgMagenta)).join(toColored("/")) &
+          " - " & cmd.doc.docBrief
+
+      cmds.add I[level + 4, T[names]]
       cmds.add I[level + 4, help(cmd, level + 1)]
 
     result.add I[indent, cmds]
 
   if desc.options.len > 0 and
      desc.options.anyIt(it.groupKind in coFlagKinds):
-    var flags = V[S[], T["FLAGS:".toColored(section)], S[]]
+    var flags = V[S[], T[toColored("FLAGS:", section)], S[]]
 
     for flag in desc.options:
       if flag.groupKind in coFlagKinds:
@@ -723,7 +723,7 @@ proc help(desc: CliDesc, level: int = 0): LytBlock =
 
   if desc.options.len > 0 and
      desc.options.anyIt(it.groupKind in coOptionKinds):
-    var opts = V[S[], T["OPTIONS:".toColored(section)], S[]]
+    var opts = V[S[], T[toColored("OPTIONS:", section)], S[]]
 
     for opt in desc.options:
       if opt.groupKind in coOptionKinds:
@@ -735,7 +735,7 @@ proc help(desc: CliDesc, level: int = 0): LytBlock =
 
 proc help(app: CliApp): LytBlock =
   var res = V[
-    T["NAME:".toColored(section)],
+    T[toColored("NAME:", section)],
     S[],
     I[4, T[&"{app.name} - {app.doc.docBrief}"]]
   ]

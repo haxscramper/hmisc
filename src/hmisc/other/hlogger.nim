@@ -113,7 +113,7 @@ proc log*(
       align($position[1] & ":", logger.prefixLen)
 
     elif (level == logTrace):
-      logger.logPrefix[level].str.alignRight(logger.prefixLen) & " " &
+      $logger.logPrefix[level].str.alignRight(logger.prefixLen) & " " &
         $position[1]
 
     elif (level == logger.lastLog and event == logEvNone) or
@@ -121,10 +121,10 @@ proc log*(
       repeat(" ", logger.prefixLen)
 
     elif event != logEvNone:
-      logger.eventPrefix[event].str.alignRight(logger.prefixLen)
+      $logger.eventPrefix[event].str.alignRight(logger.prefixLen)
 
     else:
-      logger.logPrefix[level].str.alignRight(logger.prefixLen)
+      $logger.logPrefix[level].str.alignRight(logger.prefixLen)
 
   let indent = repeat("  ", logger.scopes.len())
 

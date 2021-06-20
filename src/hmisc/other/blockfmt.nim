@@ -157,6 +157,10 @@ func len(s: LytStr): int = sumIt(s.text, it.len)
 func lytStr(s: string): LytStr =
   LytStr(text: @[toColored(s, initStyle())])
 
+func lytStr(s: ColoredLine): LytStr =
+  LytStr(text: s)
+
+
 func lytStr(s: ColoredString): LytStr = LytStr(text: @[s])
 
 
@@ -566,12 +570,7 @@ proc vSumSolution(solutions: seq[LytSolution]): LytSolution =
   ##   A LytSolution object that lays out the solutions vertically, separated by
   ##   newlines, with the same left margin.
 
-  # echov "vSumSolutions"
-  # for s in solutions:
-  #   echov s
-
   assert solutions.len > 0
-  # debug "Vertical stack #", solutions.len, "solution"
 
   if len(solutions) == 1:
     return solutions[0]
@@ -762,7 +761,11 @@ func makeTextBlock*(text: string, breakMult: int = 1): LytBlock =
 func makeEmptyBlock*(): LytBlock =
   LytBlock(kind: bkEmpty, breakMult: 1)
 
-func makeTextBlock*(text: ColoredString, breakMult: int = 1): LytBlock =
+func makeTextBlock*(
+    text: ColoredString | ColoredLine,
+    breakMult: int = 1
+  ): LytBlock =
+
   LytBlock(kind: bkText, text: text.lytStr(), breakMult: breakMult)
 
 proc makeTextBlocks*(text: openarray[string]): seq[LytBlock] =
@@ -861,7 +864,7 @@ func makeWrapBlock*(
   LytBlock(
     kind: bkWrap, wrapElements: toSeq(elems), breakMult: breakMult)
 
-func makeVerbBlock*[S: string | ColoredString](
+func makeVerbBlock*[S: string | ColoredString | ColoredLine](
     textLines: openarray[S], breaking: bool = true,
     firstNl: bool = false,
     breakMult: int = 1
@@ -877,18 +880,41 @@ func makeVerbBlock*[S: string | ColoredString](
 
 
 func makeTextOrVerbBlock*(
-    text: string | ColoredString,
+    text: string | ColoredString | ColoredLine,
     breaking: bool = false,
     firstNl: bool = false,
     breakMult: int = 1
   ): LytBlock =
-  if '\n' in text:
-    result = makeVerbBlock(
-      text.split("\n"), breaking, firstNl, breakMult)
+  when text is ColoredLine:
+    var lines: seq[seq[ColoredString]]
+    lines.add @[]
+    for chunk in text:
+      let split = chunk.split("\n")
+      if split.len > 1:
+        lines[^1].add split[0]
+        for part in split[1..^1]:
+          lines.add @[part]
+
+      else:
+        lines[^1].add split
+        if '\n' in chunk:
+          lines.add @[]
+
+    if lines.len > 1:
+      result = makeVerbBlock(lines, breaking, firstNl, breakMult)
+
+    else:
+      result = makeTextBlock(lines[0], breakMult)
+      result.isBreaking = breaking
 
   else:
-    result = makeTextBlock(text, breakMult)
-    result.isBreaking = breaking
+    if '\n' in text:
+      result = makeVerbBlock(
+        text.split("\n"), breaking, firstNl, breakMult)
+
+    else:
+      result = makeTextBlock(text, breakMult)
+      result.isBreaking = breaking
 
 func makeForceLinebreak*(text: string = ""): LytBlock =
   makeVerbBlock(@[text], true, false)
@@ -1268,7 +1294,7 @@ proc `[]`*(b: static[LytBuilderKind], bl: LytBlock, args: varargs[LytBlock]): Ly
 
 proc `[]`*(
     b: static[LytBuilderKind],
-    a: string | ColoredString,
+    a: string | ColoredString | ColoredLine,
     breaking: bool = false
   ): LytBlock =
 
@@ -1391,32 +1417,3 @@ template initBlockFmtDSL*() {.dirty.} =
     C = blkChoice
     E = blkEmpty
     W = blkWrap
-
-
-
-when isMainModule:
-  block:
-    let content = (0 .. 10).mapIt(makeTextBlock &"[ {it} ]")
-
-    for blocks in @[
-      makeLineBlock(content), makeStackBlock(content), makeWrapBlock(content)]:
-      var blocks = blocks
-      let sln = none(LytSolution).withResIt do:
-        blocks.doOptLayout(it, defaultFormatOpts).get()
-
-      var c = LytConsole()
-      sln.layouts[0].printOn(c)
-      echo c.text
-
-  block:
-    let content = (0 .. 5).mapIt(makeTextBlock &"[ {it} ]") & @[
-      makeVerbBlock(@["hello", "world"], firstNl = true)
-    ] & (5 .. 10).mapIt(makeTextBlock &"[ {it} ]")
-
-    var blocks = makeWrapBlock(content)
-    let sln = none(LytSolution).withResIt do:
-      blocks.doOptLayout(it, defaultFormatOpts).get()
-
-    var c = LytConsole()
-    sln.layouts[0].printOn(c)
-    echo c.text

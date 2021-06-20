@@ -105,21 +105,6 @@ suite "Line layouts":
         H[V[H[T["info    "],
               V[T["Anything associated with\nnormal " &
                 "operation and without\nany particular importance"]]]]]]]]]]
-      # V[
-      #   H[
-      #     T["info    "],
-      #     T["Anything associated with\nnormal"]
-      #   ],
-      #   H[
-      #     T["notice  "],
-      #     T["More important information that\nusers"]
-      #   ]
-      # ]
-    # let bl = H[
-    #   V[T[&"[1.1]{sep}[1.2]"], T[&"[1.3]{sep}[1.4]"]],
-    #   V[T[&"[2.1]{sep}[2.2]"], T[&"[2.3]{sep}[2.4]"]],
-    #   # V[T["[3.1]\n[3.2]"], T["[3.3]\n[3.4]"]],
-    # ]
 
     echo bl.toString()
 

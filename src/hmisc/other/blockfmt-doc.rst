@@ -20,6 +20,8 @@ layout kinds -
 - ``I`` for **I** ndent
 - ``S`` for **S** pace
 - ``C`` for **C** hoice
+- ``W`` for **W** rap
+- ``E`` for **E** mpty
 
 And should be used like this:
 
