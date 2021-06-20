@@ -119,11 +119,12 @@ func `<`[L, V](id1, id2: NodeId[L, V]): bool =
   id1.level < id2.level
 
 proc makeIndex*[T, L, V](
-  tree: T,
-  isSource: bool,
-  getValue: proc(t: T): V,
-  getLabel: proc(t: T): L,
-                      ): TreeIndex[L, V] =
+    tree: T,
+    isSource: bool,
+    getValue: proc(t: T): V,
+    getLabel: proc(t: T): L,
+  ): TreeIndex[L, V] =
+
   var index = TreeIndex[L, V]()
   var m: Table[NodeId[L, V], seq[NodeId[L, V]]]
   if false: echo m.len
@@ -160,10 +161,6 @@ proc makeIndex*[T, L, V](
     index.idValues[result.id] = getValue(tree)
     index.idLabels[result.id] = getLabel(tree)
     index.idLevels[result.id] = result.level
-    # static:
-    #   echo typeof(index.subnodes)
-    #   echo typeof(result.id)
-    #   echo typeof(id)
 
     index.subnodes[result.id] = id
 
@@ -260,13 +257,16 @@ proc targetPartner[L, V](n: NodeId[L, V], m: Mapping): NodeId[L, V] =
 proc `==`[L, V](n: NodeId[L, V], other: typeof(nil)): bool =
   n.id < 0
 
-proc opt[L, V](t1, t2: NodeId[L, V]): Mapping =
+proc isNil[L, V](n: NodeId[L, V]): bool =
+  n.id < 0
+
+proc opt[L, V](t1, t2: NodeId[L, V]): Mapping[L, V] =
   ## ? Wtf is this shit
   discard
 
-iterator items[L, V](m: Mapping): (NodeId[L, V], NodeId[L, V]) =
+iterator items[L, V](m: Mapping[L, V]): (NodeId[L, V], NodeId[L, V]) =
   ## iterate over all pairs in mapping
-  for key, val in m.table:
+  for key, val in pairs(m.table):
     yield (key, val)
 
 
@@ -303,7 +303,8 @@ proc contains*[L, V](
     if node == pair.subnode:
       return true
 
-proc contains*[L, V](mapping: Mapping, pair: (NodeId[L, V], NodeId[L, V])): bool =
+proc contains*[L, V](
+    mapping: Mapping, pair: (NodeId[L, V], NodeId[L, V])): bool =
   ## Return true if mapping between `pair[0]` and `pair[1]` exists in
   ## tree
   pair[0] in mapping.table and mapping.table[pair[0]] == pair[1]
@@ -317,7 +318,7 @@ proc notinImpl(lhs, rhs: NimNode): NimNode =
       let lhIn = lhs[1]
       result = quote do:
         var found = false
-        for lh, rh in `rhs`.table: # NOTE `O(n)` complexity
+        for lh, rh in pairs(`rhs`.table): # NOTE `O(n)` complexity
           if rh == `lhIn`:
             found = true
             break
@@ -326,7 +327,8 @@ proc notinImpl(lhs, rhs: NimNode): NimNode =
     elif lhs[1] == ident "_":
       let lh = lhs[0]
       result = quote do:
-        `lh` notin `rhs`.table
+        tables.contains(`rhs`.table, `lh`)
+        # `lh` notin `rhs`.table
     else:
       let lh1 = lhs[0]
       let lh2 = lhs[1]
@@ -336,7 +338,8 @@ proc notinImpl(lhs, rhs: NimNode): NimNode =
         # `lh1` notin `rhs`.table or `rhs`.table[`lh1`] != `lh2`
 
 
-macro `notin`[L, V](lhs: untyped, rhs: (Mapping[L, V], Mapping[L, V])): untyped =
+macro `notin`[L, V](
+    lhs: untyped, rhs: (Mapping[L, V], Mapping[L, V])): untyped =
   ## For lhs in form of `(source, _)` determine if there is a pair if any
   ## of two mappings that maps `source` to something. For `(_, target)`
   ## check if anything maps to `target`.
@@ -448,7 +451,11 @@ proc pop[L, V](que: var NodeQue[L, V]): seq[NodeId[L, V]] =
       result.add que[que.len - 1]
       que.del(que.len - 1)
 
+proc `<`[L, V](n1, n2: NodeId[L, V]): bool =
+  n1.level() < n2.level()
+
 proc push[L, V](node: NodeId[L, V], que: var NodeQue[L, V]) =
+  bind `<`
   ## Insert node `node` in que
   que.push(node)
 
@@ -491,7 +498,7 @@ proc dice[L, V](t1, t2: NodeId[L, V], m: Mapping[L, V]): float =
              ⟦ s(t₂) ⟧ + ⟦ s(t₁) ⟧
 
   var cntTop: int
-  for node in t1:
+  for node in items(t1):
     if (t1, t2) in m:
       inc cntTop
 
@@ -503,10 +510,13 @@ proc dice[L, V](t1, t2: NodeId[L, V], m: Mapping[L, V]): float =
     float(t1.len + t2.len)
   )
 
-proc topDown[L, V](
-  sourceTree: NodeId[L, V],
-  targetTree: NodeId[L, V],
-  minHeight: int, minDice: float): Mapping[L, V] =
+proc topDown*[L, V](
+    sourceTree: NodeId[L, V],
+    targetTree: NodeId[L, V],
+    minHeight: int = 2,
+    minDice: float = 0.5
+  ): Mapping[L, V] =
+
   var
     sourceQue: NodeQue[L, V]
     targetQue: NodeQue[L, V]
@@ -597,7 +607,11 @@ proc topDown[L, V](
   ## mappings are sorted using ration of similarity between their parent
   ## nodes. For two mappings, one with higher `dice` is located in tree are
   ## where surrounding nodes have better 'overall mapping'
-  let orderedMap = sorted(toSeq(tmpMap)) do(
+  var orderedMap: seq[tuple[it1, it2: NodeId[L, V]]]
+  for it1, it2 in pairs(tmpMap.table):
+    orderedMap.add((it1, it2))
+
+  sort(orderedMap) do(
     it1, it2: (NodeId[L, V], NodeId[L, V])) -> int:
     # Paper says 'sort (t₁, t₂) ∈ A using dice(parent(t₁), parent(t₂),
     # M)' which is not a lot
@@ -611,18 +625,22 @@ proc topDown[L, V](
       add(resMap, (sourceId, targetId))
 
     ## Remove mappings from temporary list `A`
-    for source, tar in tmpMap.table:
+    for source, tar in pairs(tmpMap.table):
       if source == sourceId or tar == targetId:
         tmpMap.table.del(source)
 
   return resMap
 
-proc bottomUp[L, V](
-  sourceTree: NodeId[L, V],
-  targetTree: NodeId[L, V],
-  map: Mapping[L, V], minDice: float, maxSize: int): Mapping[L, V] =
+proc bottomUp*[L, V](
+    sourceTree: NodeId[L, V],
+    targetTree: NodeId[L, V],
+    map: Mapping[L, V],
+    minDice: float = 0.5,
+    maxSize: int = 100
+  ): Mapping[L, V] =
+
   var map = map
-  for source in sourceTree:
+  for source in items(sourceTree):
     ## for all nodes in left, if node itself is not matched, but
     ## has any children matched
     if not source.matched() and source.subnodes.anyOfIt(it.matched()):
@@ -630,13 +648,13 @@ proc bottomUp[L, V](
       let target = candidate(source, map)
       ## if it is a valid candidate and matches criteria for
       ## minimum number of shares subnodes
-      if target != nil and dice(source, target, map) > minDice:
+      if not isNil(target) and dice(source, target, map) > minDice:
         ## add node to mapping
         add(map, (source, target))
         ## if max of number of subnodes does not exceed threshold
         if max(source.len, target.len) < maxSize:
           let R = opt(source, target)
-          for (ta, tb) in R:
+          for (ta, tb) in items(R):
             if ((ta, tb) notin map) and (label(ta) == label(tb)):
               add(map, (ta, tb))
 
@@ -810,12 +828,12 @@ proc editScript*[L, V](
     updatedSource: TreeIndex[L, V]
   ] =
 
-  var script: EditScript[L, V]
-
-  var sourceTree  = sourceTree
-  var map         = map
-  var sourceIndex = sourceTree.index
-  var targetIndex = targetTree.index
+  var
+    script: EditScript[L, V]
+    sourceTree  = sourceTree
+    map         = map
+    sourceIndex = sourceTree.index
+    targetIndex = targetTree.index
 
   for targetSubn in targetTree.bfsIterate():
     ## Iterate all nodes in tree in BFS order
@@ -917,9 +935,11 @@ proc editScript*[L, V](
   return (script, map, sourceIndex)
 
 proc simpleMatch*[L, V](
-  sourceNode, targetNode: NodeId[L, V],
-  valueScore: ScoreCmpProc[V],
-  similarityTreshold: int = 60): Mapping[L, V] =
+    sourceNode, targetNode: NodeId[L, V],
+    valueScore: ScoreCmpProc[V],
+    similarityTreshold: int = 60
+  ): Mapping[L, V] =
+
   if sourceNode.path != targetNode.path:
     return
 

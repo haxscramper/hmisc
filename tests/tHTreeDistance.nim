@@ -1,11 +1,11 @@
-import std/[xmlparser, xmltree, strformat]
-import unittest
-import hmisc/base_errors
-import hmisc/algo/[htree_distance, hseq_distance, halgorithm]
-import hmisc/types/hprimitives
-import hmisc/hdebug_misc
+import
+  std/[xmlparser, xmltree, strformat, unittest],
+  hmisc/base_errors,
+  hmisc/algo/[htree_distance, hseq_distance, halgorithm],
+  hmisc/types/hprimitives,
+  hmisc/hdebug_misc,
+  hmisc/other/oswrap
 
-import hmisc/other/oswrap
 # when $$CI == true:
 # static:
   # I have absolutely no idea why this thing fails compilation on github
@@ -186,6 +186,24 @@ suite "Tree diff":
     let res = editScript(mapping, sourceIndex.root, targetIndex.root)
     assert res.script.len == 1
     assert res.script[0].kind == ekUpd
+
+  test "top/bottom diff":
+    let
+       source = parseXml("<a>a</a>")
+       target = parseXml("<a>b</a>")
+       sourceIndex = makeIndex(source, true)
+       targetIndex = makeIndex(target, false)
+
+    let
+      topMap = topDown(sourceIndex.root, targetIndex.root)
+      bottomMap = bottomUp(sourceIndex.root, targetIndex.root, topMap)
+
+    let
+      script = editScript(bottomMap, sourceIndex.root, targetIndex.root)
+
+    echo script
+
+
 
   test "Value update":
     let res = diff("<a>hello</a>", "<a>hallo</a>")[0]
