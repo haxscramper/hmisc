@@ -583,10 +583,10 @@ proc postLine(desc: CliDesc): LytBlock =
 
   if desc.kind in coOptionKinds:
     if desc.defaultAsFlag.isNone():
-      result.add T[&"={toCyan(desc.varname)}"]
+      result.add T[&"={initColored(desc.varname, fgCyan)}"]
 
     else:
-      result.add T[&"[={toCyan(desc.varname)}]"]
+      result.add T[&"[={initColored(desc.varname, fgCyan)}]"]
 
     if desc.defaultValue.isSome():
       result.add T[&", defaults to {toCyan(desc.defaultValue.get())}"]
@@ -627,12 +627,8 @@ proc checkHelp(check: CliCheck, inNested: bool = false): LytBlock =
 
       for (val, doc) in doc:
         let doc = T[doc.wrapOrgLines(40).join("\n")]
-        var item = H[T[alignLeft(val, width).toYellow()], V[doc]]
-        # echo item.treeRepr()
-        # echo item
+        var item = H[T[initColored(alignLeft(val, width), fgYellow)], V[doc]]
         result.add item
-        # padSpaces(item)
-        # echo item.treeRepr()
 
       result = V[T[
         prefix & "be one of the following: "
@@ -733,10 +729,7 @@ proc help(desc: CliDesc, level: int = 0): LytBlock =
       if opt.groupKind in coOptionKinds:
         opts.add I[indent + 4, optHelp(opt)]
 
-    let res = I[indent, opts]
-    result.add res
-    echo treeRepr(res)
-    echo codegenRepr(res, 2)
+    result.add I[indent, opts]
 
 
 

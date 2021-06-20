@@ -53,9 +53,7 @@ type
     ## Refer to the corresponding methods of the LytConsole class for
     ## descriptions of the methods involved.
     kind: LayoutElementKind
-    text: string ## Layout element text
-    debug: string ## Textual reprsentation of layout element for
-                  ## pretty-printing
+    text: LytStr ## Layout element text
     indent: bool
     spaceNum: int
     layout: Layout
@@ -93,6 +91,9 @@ type
     bkVerb ## Multiple lines verbatim
     bkEmpty ## Empty layout block - ignored by `add` etc.
 
+  LytStr* = object
+    text*: ColoredLine
+
   LytBlock* = ref object
     layoutCache: Table[Option[LytSolution], Option[LytSolution]]
     isBreaking*: bool ## Whether or not this block should end the line
@@ -102,12 +103,12 @@ type
 
     case kind*: LytBlockKind
       of bkVerb:
-        textLines*: seq[string] ## Multiple lines of text
+        textLines*: seq[LytStr] ## Multiple lines of text
         firstNl*: bool ## Insert newline at the block start
 
       of bkText:
-        text*: string ## A single line of text, free of carriage returs
-                      ## etc.
+        text*: LytStr ## A single line of text, free of carriage
+                      ## returs etc.
 
       of bkWrap:
         prefix*: Option[string]
@@ -153,8 +154,16 @@ type
 
 proc margin(buf: OutConsole): int = buf.margins[^1]
 
-proc printStr(buf: var OutConsole, str: string) =
-  buf.outStr &= str
+func `$`(s: LytStr): string = $s.text
+func len(s: LytStr): int = sumIt(s.text, it.len)
+func lytStr(s: string): LytStr =
+  LytStr(text: @[toColored(s, initStyle())])
+
+func lytStr(s: ColoredString): LytStr = LytStr(text: @[s])
+
+
+proc printStr(buf: var OutConsole, str: ColoredString | string | LytStr) =
+  buf.outStr &= $str
   buf.hPos += str.len
 
 proc printSpace(buf: var OutConsole, n: int) =
@@ -181,10 +190,6 @@ proc printOn*(self: Layout, buf: var OutConsole) =
 
   discard buf.margins.pop()
 
-proc printOn*(self: Layout, buf: var string): void =
-  for elem in self.elements:
-    buf &= elem.text
-
 proc write*(stream: Stream | File, self: Layout, indent: int = 0) =
   if indent == 0:
     for elem in self.elements:
@@ -201,10 +206,9 @@ proc write*(stream: Stream | File, self: Layout, indent: int = 0) =
 
 proc debugOn*(self: Layout, buf: var string): void =
   for elem in self.elements:
-    buf &= elem.debug
+    buf &= $elem.text
 
-proc `$`*(le: LayoutElement): string = le.text
-
+proc `$`*(le: LayoutElement): string = $le.text
 
 proc `$`*(lt: Layout): string =
   lt.debugOn(result)
@@ -245,7 +249,7 @@ proc `$`*(blc: LytBlock): string =
       blc.wrapElements.mapIt($it).join(" ").wrap("[]")
 
     of bkVerb:
-      blc.textLines[0] & "..."
+      $blc.textLines[0].text & "..."
 
     of bkEmpty:
       "<empty>"
@@ -278,7 +282,7 @@ func treeRepr*(inBl: LytBlock): string =
           result &= elem.aux(level + 1)
 
       of bkText:
-        result &= bl.text.escape() & "\n"
+        result &= $bl.text.text & "\n"
 
       of bkEmpty:
         result &= "<empty>"
@@ -286,7 +290,7 @@ func treeRepr*(inBl: LytBlock): string =
       of bkVerb:
         result &= "\n"
         for isLast, line in itemsIsLast(bl.textLines):
-          result &= pref2 & "  " & line.escape() & "\n"
+          result &= pref2 & "  " & $line & "\n"
 
   return aux(inBl, 0)
 
@@ -298,7 +302,9 @@ func treeRepr*(inBl: LytBlock): string =
 #************************  LytOptions configuration  ************************#
 #*************************************************************************#
 
-func hash(elem: LayoutElement): Hash = hash(elem.text)
+
+func hash(s: ColoredString): Hash = hash(s.str)
+func hash(elem: LayoutElement): Hash = hash(elem.text.text)
 func hash(lyt: Layout): Hash = hash(lyt.elements)
 
 func hash(sln: Option[LytSolution]): Hash =
@@ -320,24 +326,25 @@ import hpprint
 #*************************************************************************#
 #*******************************  Layout  ********************************#
 #*************************************************************************#
+
+func lytString(s: ColoredString): LayoutElement =
+  LayoutElement(text: LytStr(text: @[s]), kind: lekString)
+
 func lytString(s: string): LayoutElement =
-  LayoutElement(debug: s, text: s, kind: lekString)
+  LayoutElement(text: LytStr(
+    text: @[toColored(s, initStyle())]), kind: lekString)
+
+func lytString(s: LytStr): LayoutElement =
+  LayoutElement(text: s, kind: lekString)
 
 func lytNewline(indent: bool = true): LayoutElement =
   LayoutElement(indent: indent, kind: lekNewline)
 
 func lytNewlineSpace(n: int): LayoutElement =
-  LayoutElement(text: "\n", debug: "\\n",
-                spaceNum: n, kind: lekNewlineSpace)
+  LayoutElement(spaceNum: n, kind: lekNewlineSpace)
 
 proc lytPrint(lyt: Layout): LayoutElement =
-  LayoutElement(
-    kind: lekLayoutPrint,
-    layout: lyt
-  )
-  # new(result)
-  # result.debug = &"[{lyt}]"
-  # lyt.printOn(result.text)
+  LayoutElement(kind: lekLayoutPrint, layout: lyt)
 
 func getStacked(layouts: seq[Layout]): Layout =
   ## Return the vertical composition of a sequence of layouts.
@@ -771,7 +778,7 @@ func makeBlock*(kind: LytBlockKind, breakMult: int = 1): LytBlock =
 
 func makeTextBlock*(text: string, breakMult: int = 1): LytBlock =
   LytBlock(
-    kind: bkText, text: text, breakMult: breakMult,
+    kind: bkText, text: text.lytStr(), breakMult: breakMult,
     width: text.len, height: 1)
 
 func makeEmptyBlock*(): LytBlock =
@@ -779,7 +786,7 @@ func makeEmptyBlock*(): LytBlock =
 
 func makeTextBlock*(text: ColoredString, breakMult: int = 1): LytBlock =
   LytBlock(
-    kind: bkText, text: $text, width: text.len, height: 1,
+    kind: bkText, text: text.lytStr(), width: text.len, height: 1,
     breakMult: breakMult)
 
 proc makeTextBlocks*(text: openarray[string]): seq[LytBlock] =
@@ -899,7 +906,7 @@ func makeVerbBlock*[S: string | ColoredString](
   result = LytBlock(
     breakMult: breakMult,
     kind: bkVerb,
-    textLines: mapIt(textLines, $it),
+    textLines: mapIt(textLines, lytStr(it)),
     isBreaking: breaking,
     firstNl: firstNl,
     height: len(textLines)
@@ -996,7 +1003,9 @@ proc doOptTextLayout(
     result = some initSolution(
       @[0],
       @[span],
-      @[float((span - opts.leftMargin) * opts.leftMarginCost + (span - opts.rightMargin) * opts.rightMargin)],
+      @[float(
+        (span - opts.leftMargin) * opts.leftMarginCost +
+        (span - opts.rightMargin) * opts.rightMargin)],
       @[float(opts.leftMarginCost + opts.rightMarginCost)],
       @[layout]
     )
@@ -1249,7 +1258,7 @@ const defaultFormatOpts* = LytOptions(
   rightMargin: 80,
   leftMarginCost: 0.05,
   rightMarginCost: 100,
-  linebreakCost: 2,
+  linebreakCost: 5,
   indentSpaces: 2,
   cpack: 0.001,
   formatPolicy: LytFormatPolicy(
@@ -1287,29 +1296,29 @@ const defaultFormatOpts* = LytOptions(
 
 
 
-proc layoutBlock*(blc: LytBlock, opts: LytOptions = defaultFormatOpts): string =
-  ## Perform search optimal block layout and return string
-  ## reprsentation of the most cost-effective one
-  var blocks = blc
-  let sln = none(LytSolution).withResIt do:
-    blocks.doOptLayout(it, opts).get()
+# proc layoutBlock*(blc: LytBlock, opts: LytOptions = defaultFormatOpts): string =
+#   ## Perform search optimal block layout and return string
+#   ## reprsentation of the most cost-effective one
+#   var blocks = blc
+#   let sln = none(LytSolution).withResIt do:
+#     blocks.doOptLayout(it, opts).get()
 
-  sln.layouts[0].printOn(result)
+#   sln.layouts[0].printOn(result)
 
-proc wrapBlocks*(blocks: seq[LytBlock],
-                 opts: LytOptions = defaultFormatOpts,
-                 margin: int = opts.rightMargin
-                ): string =
-  ## Create wrap block and return most optimal layout for it
-  var opts = opts
-  opts.rightMargin = margin
-  layoutBlock(makeWrapBlock(blocks), opts)
+# proc wrapBlocks*(blocks: seq[LytBlock],
+#                  opts: LytOptions = defaultFormatOpts,
+#                  margin: int = opts.rightMargin
+#                 ): string =
+#   ## Create wrap block and return most optimal layout for it
+#   var opts = opts
+#   opts.rightMargin = margin
+#   layoutBlock(makeWrapBlock(blocks), opts)
 
-proc stackBlocks*(
-  blocks: seq[LytBlock], opts: LytOptions = defaultFormatOpts): string =
-  ## Return string representation of the most optimal layout for
-  ## vertically stacked blocks.
-  layoutBlock(makeStackBlock(blocks), opts)
+# proc stackBlocks*(
+#   blocks: seq[LytBlock], opts: LytOptions = defaultFormatOpts): string =
+#   ## Return string representation of the most optimal layout for
+#   ## vertically stacked blocks.
+#   layoutBlock(makeStackBlock(blocks), opts)
 
 
 
@@ -1431,131 +1440,7 @@ func join*(
       if not isLast:
         result.add sep
 
-
-func padSpaces*(bl: var LytBlock) =
-  type
-    Indents = Map[int, int] # Line number and intentation for that line an
-                            # all subsequent lines
-
-  proc addIndentAfter(map: var Indents, line, indent: int) =
-    let line = line + 1
-    echov "Adding indent", indent, "for line", line, "and after"
-    if line notin map:
-      map[line] = indent
-
-    else:
-      for line, lineInd in map.mpairsFrom(line):
-        lineInd += indent
-
-  proc getIndent(map: Indents, line: int): int =
-    echov map, line, toSeq(map.pairsBefore(line))
-    for key, value in map.pairsBefore(line, true):
-      echov "before", line, ":", (key, value)
-      result = value
-      break
-
-    echov "Indent for line", line, "is", result
-
-  var fixed: IntSet
-
-  func aux2(bl: var LytBlock, indent: var Indents, line: int) =
-    case bl.kind:               #
-      of bkText:
-        let ind = indent.getIndent(line)
-        if ind > 0 and line notin fixed:
-          fixed.incl line
-          bl.text = repeat(" ", ind) & bl.text
-
-      of bkVerb:
-        echov indent
-        var line = line
-        for text in mitems(bl.textLines):
-          if line notin fixed:
-            fixed.incl line
-            let ind = indent.getIndent(line)
-            text = repeat(" ", ind) & text
-          inc line
-
-      of bkLine:
-        var line = line
-        for last, chunk in mitemsIsLast(bl.elements):
-          aux2(chunk, indent, line)
-          if not last:
-            indent.addIndentAfter(line, chunk.width)
-
-          line = line + chunk.height - 1
-
-
-      of bkStack:
-        var line = line
-        echov "stack starts with map", indent
-        for chunk in mitems(bl.elements):
-          var indent = indent # toMap({line: indent.getIndent(line)})
-          echov "stack entry starts at line", line, "indents:", indent
-          aux2(chunk, indent, line)
-          line += chunk.height
-
-
-      of bkChoice:
-        discard
-
-      of bkWrap:
-        discard
-
-      of bkEmpty:
-        discard
-
-
-
-  func aux(bl: var LytBlock, indent: var int, first: bool) =
-
-    let baseIndent = indent
-    if first and bl.height == 1: return
-
-    case bl.kind:
-      of bkText:
-        if indent > 0 and not first:
-          bl.text = repeat(" ", indent) & bl.text
-
-      of bkVerb:
-        for isFirst, line in mitemsIsFirst(bl.textLines):
-          if not isFirst:
-            line = repeat(" ", indent) & line
-
-      of bkLine:
-        if bl.height == 1 and indent > 0:
-          aux(bl.elements[0], indent, first)
-
-        else:
-          for toplevel in mitems(bl.elements):
-            aux(toplevel, indent, first)
-            indent += toplevel.width
-
-      of bkStack:
-        for idx, item in mpairs(bl.elements):
-          var indent = indent
-          aux(item, indent, idx == 0)
-
-
-      of bkChoice:
-        for item in mitems(bl.elements):
-          var indent = baseIndent
-          aux(item, indent, first)
-
-      else:
-        raiseImplementError(&"For kind {bl.kind} {instantiationInfo()}")
-
-  block:
-    var indent = 0
-    # aux(bl, indent, true)
-
-  block:
-    var indent: Indents
-    # aux2(bl, indent, 0)
-
-
-
-proc toString2*(bl: LytBlock, rightMargin: int = 80): string =
+proc toString*(bl: LytBlock, rightMargin: int = 80): string =
   var bl = bl
   let opts = defaultFormatOpts.withIt do:
     it.rightMargin = rightMargin
@@ -1567,24 +1452,6 @@ proc toString2*(bl: LytBlock, rightMargin: int = 80): string =
   sln.layouts[0].printOn(console)
   return console.outStr
 
-
-proc toString*(
-    bl: LytBlock,
-    rightMargin: int = 80,
-    fixLyt: bool = true
-  ): string =
-
-  var bl = bl
-  if fixLyt:
-    padSpaces(bl)
-
-  let opts = defaultFormatOpts.withIt do:
-    it.rightMargin = rightMargin
-
-  let sln = none(LytSolution).withResIt do:
-    bl.doOptLayout(it, opts).get()
-
-  sln.layouts[0].printOn(result)
 
 func codegenRepr*(inBl: LytBlock, indent: int = 0): string =
   func aux(bl: LytBlock, level: int): string =
@@ -1608,13 +1475,13 @@ func codegenRepr*(inBl: LytBlock, indent: int = 0): string =
         result &= pref & "]"
 
       of bkText:
-        result = &"{pref}T[{bl.text.escape()}]"
+        result = &"{pref}T[{bl.text}]"
 
       of bkVerb:
         result = pref & name & "["
         for isFirst, isLast, line in itemsIsFirstLast(bl.textLines):
           if isFirst: result &= "\""
-          result &= line
+          result &= $line
           if isLast: result &= "\"" else: result &= "\\n"
 
         result &= "]"

@@ -123,6 +123,9 @@ suite "Line layouts":
 
     echo bl.toString()
 
+
+
+suite "Paper examples":
   test "2":
     let bl =
       V[H[V[H[
@@ -134,22 +137,40 @@ suite "Line layouts":
                 V[T["More information that\nusers"]]]]],
           T[" "]]]]]]
 
-    startHax()
     echo bl.toString()
-    stopHax()
 
 
-suite "Paper examples":
   test "6.2 function name wrap":
-    startHax()
-    let bl = H[
+    echo toString(H[
       H[T["FnName"], T["("]],
       W[mapIt(1 .. 10, T[&"argument{it}, "])],
       T[")"]
-    ]
+    ], 50)
 
-    echo bl
-    echo toString2(bl, 50)
+    echo toString(H[
+      H[T["FnName"], T["("]],
+      W[mapIt(1 .. 10, T[&"argument{it}, "])],
+      T[")"]
+    ], 30)
+
+    echo toString(H[
+      H[T["AVeryLongAndDescriptiveFunctionName"], T["("]],
+      W[mapIt(1 .. 10, T[&"argument{it}, "])],
+      T[")"]
+    ], 50)
+
+    echo toString(C[
+      H[
+        H[T["AVeryLongAndDescriptiveFunctionName"], T["("]],
+        W[mapIt(1 .. 10, T[&"argument{it}, "])],
+        T[")"]
+      ],
+      V[
+        H[T["AVeryLongAndDescriptiveFunctionName"], T["("]],
+        I[4, W[mapIt(1 .. 10, T[&"argument{it}, "])]],
+        T[")"]
+      ]
+    ], 50)
 
 suite "Edge case layouts":
   test "Stack of lines in braces":
@@ -169,7 +190,6 @@ suite "Edge case layouts":
       T[")"]
     ]
 
-    echo toString(deepCopy(bl), fixLyt = false)
     echo toString(bl)
 
 

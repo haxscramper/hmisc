@@ -331,6 +331,8 @@ type
     str*: string
     styling*: PrintStyling
 
+  ColoredLine* = seq[ColoredString]
+
   ColoredRune* = object
     styling* {.requiresinit.}: PrintStyling
     rune*: Rune
@@ -375,7 +377,7 @@ func initStyleFg*(term: TermColor8Bit): PrintStyling {.inline.} =
 func initStyle*(fg, bg: TermColor8Bit): PrintStyling {.inline.} =
   PrintStyling(use8Bit: true, fg8: fg, bg8: bg)
 
-macro initStyle*(args: varargs[typed]): PrintStyling =
+func impl(args: seq[NimNode], selector: NimNode): NimNode =
   let tmp = genSym(nskVar, "tmp")
   result = newStmtList()
   result.add quote do:
@@ -401,9 +403,26 @@ macro initStyle*(args: varargs[typed]): PrintStyling =
         `tmp`.fg8 = `fld`
         `tmp`.style = old
 
+    if not isNil(selector):
+      result.add quote do:
+        when `fld` is bool:
+          `selector` = `fld`
+
   result.add quote do:
     `tmp`
 
+macro initStyle*(args: varargs[typed]): PrintStyling =
+  impl(args.toSeq(), nil)
+
+macro initColored*(str: string, args: varargs[typed]): untyped =
+  var selector = genSym(nskVar, "colored")
+  result = impl(args.toSeq(), selector)
+  result = quote do:
+    var `selector` = true
+    let ok = `result`
+    toColored(
+      `str`,
+      (if `selector`: ok else: initPrintStyling()))
 
 func uc*(s: static[string]): Rune = runeAt(s, 0)
 const coloredWhitespaceRune*: ColoredRune = ColoredRune(
@@ -555,6 +574,9 @@ func `$`*(colored: ColoredString | ColoredRune): string =
   if styleItalic in colored.styling.style:
     result = result.wrapcode(3, 23)
 
+func `$`*(line: ColoredLine): string =
+  for e in line:
+    result &= $e
 
 func `$`*(colr: seq[ColoredRune]): string = colr.toString()
 func `$`*(colr: seq[seq[ColoredRune]]): string =
