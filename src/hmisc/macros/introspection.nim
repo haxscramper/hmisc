@@ -31,7 +31,7 @@ Return list of all enum names.
 
     prefix = commonPrefix(names)
 
-  mixin dropPrefix
+  bind dropPrefix
   for enval in En:
     var names: seq[string]
     if withDirectName:
@@ -39,7 +39,7 @@ Return list of all enum names.
       names.add name
 
       if withDroppedPrefix:
-        names.add name.dropPrefix(prefix)
+        names.add name.dropPrefix(toStrPart(prefix))
 
 
     names.add $enval

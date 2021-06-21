@@ -460,6 +460,9 @@ proc initLexer*[T](
     explicitEof: bool = false): HsLexer[T] =
   HsLexer[T](str: addr str, cb: lexCb, explicitEof: explicitEof)
 
+proc initLexer*[T](tokens: seq[T]): HsLexer[T] =
+  HsLexer[T](tokens: tokens)
+
 proc initLexer*[T](
     lexCb: HsLexCallback[T], explicitEof: bool = false): HsLexer[T] =
   HsLexer[T](cb: lexCb, explicitEof: explicitEof)

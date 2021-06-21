@@ -1,9 +1,13 @@
-import sugar, strutils, sequtils, strformat, heapqueue, tables,
-       macros, algorithm, hashes, deques, sets, std/[enumerate, options]
+import std/[
+  sugar, strutils, sequtils, strformat, heapqueue,
+  tables, macros, algorithm, hashes, deques, sets,
+  enumerate, options
+]
 
-import hmisc/algo/[halgorithm, hseq_distance, htree_mapping]
-import hmisc/hdebug_misc
-import hmisc/types/hprimitives
+import
+  hmisc/algo/[halgorithm, hseq_distance, htree_mapping],
+  hmisc/hdebug_misc,
+  hmisc/types/[hprimitives, seq2d]
 
 export hash, Hash
 
@@ -260,10 +264,6 @@ proc `==`[L, V](n: NodeId[L, V], other: typeof(nil)): bool =
 proc isNil[L, V](n: NodeId[L, V]): bool =
   n.id < 0
 
-proc opt[L, V](t1, t2: NodeId[L, V]): Mapping[L, V] =
-  ## ? Wtf is this shit
-  discard
-
 iterator items[L, V](m: Mapping[L, V]): (NodeId[L, V], NodeId[L, V]) =
   ## iterate over all pairs in mapping
   for key, val in pairs(m.table):
@@ -489,6 +489,50 @@ proc root*[L, V](idx: TreeIndex[L, V]): NodeId[L, V] =
     # Just return root for any node
     return node.root
 
+type
+  Strat = enum
+    rtsLeft
+    rtsRight
+    rtsHeavy
+    rtsBoth
+    rtsRevLeft
+    rtsRefRight
+    rtsRevHeavy
+
+  RtedStrat[L, V] = object
+    map: Table[NodeId[L, V], Table[NodeId[L, V], Strat]]
+
+proc `[]`[L, V](strat: RTedStrat[L, V], src, dst: NodeId[L, V]): Strat =
+  strat.map[src][dst]
+
+proc rtedStrategy*[L, V](src, dst: NodeId[L, V]): RtedStrat[L, V] =
+  discard
+
+proc computeDist*[L, V](src, dst: NodeId[L, V], strat: RtedStrat[L, V]): float =
+  discard
+  # let step = strat[src, dst]
+  # var
+  #   tmpPostorder: NodeId[L, V]
+  #   heavyPath: seq[NodeId[L, V]]
+
+  # case step:
+  #   of rtsLeft:
+  #     tmpPostorder = src
+
+
+proc rtedMapping*[L, V](src, dst: NodeId[L, V], strat: RtedStrat[L, V]): Mapping[L, V] =
+  discard
+
+
+proc rtedMatch*[L, V](src, dst: NodeId[L, V]): Mapping[L, V] =
+  echov src
+  let
+    strat = rtedStrategy(src, dst)
+    dist = computeDist(src, dst, strat)
+
+  return rtedMapping(src, dst, strat)
+
+
 proc dice[L, V](t1, t2: NodeId[L, V], m: Mapping[L, V]): float =
   ## ratio of common descendants between two nodes given a set of
   ## mappings M
@@ -653,7 +697,7 @@ proc bottomUp*[L, V](
         add(map, (source, target))
         ## if max of number of subnodes does not exceed threshold
         if max(source.len, target.len) < maxSize:
-          let R = opt(source, target)
+          let R = rtedMatch(source, target)
           for (ta, tb) in items(R):
             if ((ta, tb) notin map) and (label(ta) == label(tb)):
               add(map, (ta, tb))

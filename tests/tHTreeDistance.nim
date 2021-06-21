@@ -198,10 +198,10 @@ suite "Tree diff":
       topMap = topDown(sourceIndex.root, targetIndex.root)
       bottomMap = bottomUp(sourceIndex.root, targetIndex.root, topMap)
 
-    let
-      script = editScript(bottomMap, sourceIndex.root, targetIndex.root)
+    # let
+    #   script = editScript(bottomMap, sourceIndex.root, targetIndex.root)
 
-    echo script
+    # echo script
 
 
 

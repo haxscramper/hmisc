@@ -4,15 +4,17 @@ import
   ./cliparse,
   ./blockfmt,
   ./oswrap,
+  ./hlogger,
   ../hdebug_misc,
   ../base_errors,
   ../types/colorstring,
   ../algo/[
-    lexcast, clformat, htemplates, hseq_mapping, htext_algo
+    lexcast, clformat, htemplates, hseq_mapping, htext_algo,
+    hparse_base
   ]
 
-import
-  ./hlogger
+export cliparse, hlogger
+
 
 import
   std/[
@@ -174,7 +176,7 @@ type
     onException*: Option[string]
     doc*: CliDoc
 
-  CliApp = object
+  CliApp* = object
     author*: string
     name*: string
     url*: Url
@@ -191,11 +193,6 @@ type
 
       of false:
         strVersion*: string
-
-type
-  CliParseLogger = object
-    ## Initiall logger configuration
-
 
 
 
@@ -447,7 +444,8 @@ proc newCliApp*(
     version: (int, int, int),
     author: string,
     docBrief: string,
-    options: seq[CliDesc] = getDefaultCliConfig()
+    noDefault: seq[string] = @[],
+    options: seq[CliDesc] = getDefaultCliConfig(noDefault),
   ): CliApp =
 
   result = CliApp(
@@ -543,16 +541,24 @@ proc arg*(
     check: check
   )
 
+proc parseArg(
+    lexer: var HsLexer[CliOpt], desc: CliDesc, log: var HLogger): CliCmdTree =
+  if lexer[].kind == coArgument:
+    result = CliCmdTree(kind: coArgument, opt: lexer.pop())
+
+  else:
+    log.err "fuck off"
 
 
 proc structureSplit*(
-  opts: seq[CliOpt], desc: CliDesc, log: var CliParseLogger): CliCmdTree =
+  opts: seq[CliOpt], desc: CliDesc, log: var HLogger): CliCmdTree =
   ## Convert unstructured sequence of CLI commands/options into structured
   ## unchecked tree.
 
-  discard
+  var lexer = initLexer(opts)
+  result = parseArg(lexer, desc, log)
 
-proc toCliValue*(tree: CliCmdTree, log: var CliParseLogger): CliValue =
+proc toCliValue*(tree: CliCmdTree, log: var HLogger): CliValue =
   ## Convert unchecked CLI tree into typed values, without executing
   ## checkers.
 
@@ -560,7 +566,7 @@ initBlockFmtDsl()
 
 proc mergeConfigs*(
     tree: CliCmdTree,
-    log: var CliParseLogger,
+    log: var HLogger,
     configs: seq[CliValue]
   ) =
 
@@ -760,7 +766,7 @@ proc help(app: CliApp): LytBlock =
 
 
 
-proc helpStr(app: CliApp): string =
+proc helpStr*(app: CliApp): string =
   return app.help().toString()
 
 

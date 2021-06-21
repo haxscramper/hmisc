@@ -36,6 +36,10 @@ type
     caCarentEqual ## `--key^=value`
     caEqualNone ## `--key=`
 
+  CliSpecialKind* = enum
+    cskVerbatimNext
+    cskStdinAlias
+
   CliOpt* = object
     globalPos*: int ## Absolute position in the input sequence of arguments
     rawStr*: string ## Raw string value of the command (with all dashes etc)
@@ -49,6 +53,7 @@ type
     valStr*: string ## String value of the command
     addKind*: CliAddKind
     optKind*: CliOptKind
+    specialKind*: CliSpecialKind
 
   CliErrPolicy* = enum
     ceColorDiagnostics
@@ -118,7 +123,10 @@ macro scanpFull*(str: typed, pattern: varargs[untyped]): untyped =
 func classifyCliArg*(arg: string, config: CliParseConfig): CliOptKind =
   var start = 0
   if scanp(arg, start, '-'{1, 2}):
-    if start == 1 and arg[start] in config.shortOpts:
+    if arg in ["--", "-"]:
+      result = coSpecial
+
+    elif start == 1 and arg[start] in config.shortOpts:
       if start == arg.high:
         result = coFlag
 
@@ -155,6 +163,9 @@ func classifyCliArg*(arg: string, config: CliParseConfig): CliOptKind =
 func splitCliArgs*(args: seq[string], config: CliParseConfig): seq[string] =
   for arg in args:
     if arg["--"] or not arg["-"]:
+      result.add arg
+
+    elif arg in ["--", "-"]:
       result.add arg
 
     else:
@@ -228,13 +239,19 @@ func parseArgument*(arg: string, config: CliParseConfig): CliOpt =
 
 func parseSpecial*(arg: string, config: CliParseConfig): CliOpt =
   result = CliOpt(kind: coSpecial, rawStr: arg)
+  case arg:
+    of "--": result.specialKind = cskVerbatimNext
+    of "-": result.specialKind = cskStdinAlias
+    else:
+     raise newUnexpectedKindError(arg)
 
 func parseCommand*(arg: string, config: CliParseConfig): CliOpt =
   result = CliOpt(kind: coCommand, rawStr: arg, keyPath: @[arg])
 
-func parseCliOpts*(args: seq[string], config: CliParseConfig): tuple[
-  parsed: seq[CliOpt], failed: seq[CliFail]
-] =
+func parseCliOpts*(
+    args: seq[string], 
+    config: CliParseConfig = CliParseConfig()
+  ): tuple[parsed: seq[CliOpt], failed: seq[CliFail]] =
 
   let args = splitCliArgs(args, config)
   var pos: int = 0
@@ -346,7 +363,7 @@ func `$`*(cli: CliOpt): string =
       result &= cli.keyPath.join(".")
 
     else:
-      result &= cli.keyPath[0]
+      result &= cli.value
 
   if cli.kind in coBracketKinds:
     result &= &"[{cli.keySelect}]"
@@ -365,37 +382,3 @@ func `$`*(cli: CliOpt): string =
     result &= cli.valStr
 
 
-when isMainModule:
-  let conf = CliParseConfig(shortOpts: {'W', 'q'})
-  type
-    Test = enum
-      tNone
-      tFirst = "ovewrite"
-      tSecond = "overwrite2"
-
-  var res: Test
-  let err = cliParse("First", res, conf)
-
-  let strs = @[
-    "--flag",
-    "--flag.sub",
-    "--flag[Bracket]",
-    "--opt=value",
-    "--opt:123",
-    "--opt.sub=val",
-    "--opt.sub[Selector]=value",
-    "--top[Switch1]:argument",
-    "Sub1",
-    "--field1:'str-argument'",
-    "--field2:0.3",
-    "/tmp/test.txt",
-    "-Wnone",
-    "-qWnone"
-  ]
-
-  for arg in strs:
-    echo &"{arg:<30}{classifyCliArg(arg, conf)}"
-
-  startHax()
-  for opt in parseCliOpts(strs, conf).parsed:
-    echo &"{opt.keyPath:<20}{opt.keySelect:<10}{opt.valStr:20} [{opt.rawStr}]"
