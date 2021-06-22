@@ -15,6 +15,8 @@ type
   Var3*[T0, T1, T2] = Var4[T0, T1, T2, void]
   Var2*[T0, T1] = Var4[T0, T1, void, void]
 
+  Var = Var2 | Var3 | Var4
+
 func getTypeName*[T0, T1, T2, T3](v: Var4[T0, T1, T2, T3]): string =
   case v.idx:
     of 0: $typeof(T0)
@@ -89,6 +91,16 @@ template `&=`*[T0, T1, T2, T3](
   for item in val:
     v.add item
 
+func toVar3*[T0, T1, T2](val: T0): Var3[T0, T1, T2] =
+  Var3[T0, T1, T2](idx: 0, f0: val)
+
+func toVar3*[T0, T1, T2](val: T1): Var3[T0, T1, T2] =
+  Var3[T0, T1, T2](idx: 1, f1: val)
+
+func toVar3*[T0, T1, T2](val: T2): Var3[T0, T1, T2] =
+  Var3[T0, T1, T2](idx: 2, f2: val)
+
+
 func toVar2*[T0, T1](val: T0): Var2[T0, T1] = Var2[T0, T1](idx: 0, f0: val)
 func toVar2*[T0, T1](val: T1): Var2[T0, T1] = Var2[T0, T1](idx: 1, f1: val)
 
@@ -99,6 +111,19 @@ func toVar2*[T0, T1](val: seq[T0] | seq[T1]): seq[Var2[T0, T1]] =
     val.mapIt(Var2[T0, T1](idx: 0, f0: it))
   else:
     val.mapIt(Var2[T0, T1](idx: 1, f1: it))
+
+func typeTuple*[T0, T1, T2, T3](v: Var4[T0, T1, T2, T3]): auto =
+  when T3 is void and T2 is void:
+    var tmp: (T0, T1)
+    return tmp
+
+  elif T3 is void:
+    var tmp: (T0, T1, T2)
+    return tmp
+
+  else:
+    var tmp: (T0, T1, T2, T3)
+    return tmp
 
 
 # TODO function to concatenate two sequences

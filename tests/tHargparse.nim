@@ -4,6 +4,8 @@ import
   hmisc/other/hargparse,
   hmisc/hdebug_misc
 
+import hpprint
+
 startHax()
 
 suite "Classify command line arguments":
@@ -104,6 +106,16 @@ suite "Argument structuring":
     check tree.kind == coBracketOpt
     check tree.select() == "Sel"
     check tree.strVal() == "val"
+
+  test "Option with repetitions":
+    let (err, tree) = checkOpts(
+      @["--results", "output", "raw"],
+      opt("results", "", maxRepeat = 2))
+
+    pprint err
+    pprint tree
+
+
 
 suite "Error reporting":
   test "Flag mismatches":

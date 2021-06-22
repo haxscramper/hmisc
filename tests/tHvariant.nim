@@ -1,6 +1,6 @@
 import hmisc/types/hvariant
 
-import unittest, strutils
+import std/[unittest, strutils]
 
 suite "Variant":
   test "Set value":
@@ -64,3 +64,10 @@ suite "Variant":
   test "{toVar2}":
     block:
       let v = toVar2[int, float](12)
+
+  test "IterTypes":
+    for field in fields(typeTuple(toVar2[int, float](12))):
+      echo typeof field
+
+    for field in fields(typeTuple(toVar3[int, float, string](12))):
+      echo typeof field

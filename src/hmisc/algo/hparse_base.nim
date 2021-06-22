@@ -395,7 +395,8 @@ proc `[]`*[T](lex: var HSlexer[T], offset: int = 0): T =
   if not hasNxt(lex, offset):
     fillNext(lex, offset)
 
-  lex.tokens[lex.pos + offset]
+  result = lex.tokens[lex.pos + offset]
+  echov result
 
 
 proc `[]`*[T](lex: var HsLexer[T], slice: Slice[int]): seq[T] =

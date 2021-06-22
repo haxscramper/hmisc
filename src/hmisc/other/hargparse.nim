@@ -29,6 +29,7 @@ type
   CliCmdTree* = object
     desc* {.requiresinit.}: CliDesc
     head*: CliOpt
+    args*: seq[CliOpt]
     case kind*: CliOptKind
       of coCommand:
         subnodes*: seq[CliCmdTree]
@@ -258,48 +259,6 @@ func add*(app: var CliApp, cmd: CliDesc) =
 func root*(app: CliApp): CliDesc = app.rootCmd
 func root*(app: var CliApp): var CliDesc = app.rootCmd
 
-func cmd*(
-    name, docBrief: string,
-    subparts: openarray[CliDesc],
-    alt: seq[string] = @[],
-  ): CliDesc =
-
-  result = CliDesc(
-    name: name,
-    altNames: @[name] & alt,
-    kind: coCommand,
-    doc: CliDoc(docBrief: docBrief)
-  )
-
-  for part in subparts:
-    case part.kind:
-      of coDashedKinds:
-        result.options.add part
-
-      of coArgument:
-        result.arguments.add part
-
-      of coCommand:
-        result.subcommands.add part
-
-      else:
-        discard
-
-func flag*(
-    name, doc: string,
-    aliasof: CliOpt = CliOpt()
-  ): CliDesc =
-
-  result = CliDesc(
-    kind: coFlag,
-    name: name,
-    altNames: @[name],
-    doc: CliDoc(docBrief: doc),
-  )
-
-  if aliasof.keyPath.len > 0:
-    result.aliasof = some aliasof
-
 proc cliValue*(val: string, doc: string): CliValue =
   CliValue(
     kind: cvkString,
@@ -380,6 +339,56 @@ proc opt*(
 
     else:
       result.check = allOfCheck(result.check, 0 .. maxRepeat)
+
+  if isNil(result.check):
+    result.check = allOfCheck(acceptAllCheck(), 1 .. 1)
+
+
+func cmd*(
+    name, docBrief: string,
+    subparts: openarray[CliDesc],
+    alt: seq[string] = @[],
+  ): CliDesc =
+
+  result = CliDesc(
+    name: name,
+    altNames: @[name] & alt,
+    kind: coCommand,
+    doc: CliDoc(docBrief: docBrief)
+  )
+
+  for part in subparts:
+    case part.kind:
+      of coDashedKinds:
+        result.options.add part
+
+      of coArgument:
+        result.arguments.add part
+
+      of coCommand:
+        result.subcommands.add part
+
+      else:
+        discard
+
+func flag*(
+    name, doc: string,
+    aliasof: CliOpt = CliOpt()
+  ): CliDesc =
+
+  result = CliDesc(
+    kind: coFlag,
+    name: name,
+    altNames: @[name],
+    doc: CliDoc(docBrief: doc),
+  )
+
+  if aliasof.keyPath.len > 0:
+    result.aliasof = some aliasof
+
+  if isNil(result.check):
+    result.check = allOfCheck(acceptAllCheck(), 1 .. 1)
+
 
 
 proc docTree*(
@@ -651,11 +660,25 @@ proc parseArg(
     errors.add CliError(
       kind: cekFailedParse, desc: desc, msg: "Failed")
 
+proc matches(opt: CliOpt, check: CliCheck): bool = true
+
 proc parseOptOrFlag(
     lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
 
+  var cnt = 0
   if lexer[].key in desc.altNames:
     result = CliCmdTree(kind: lexer[].kind, head: lexer.pop(), desc: desc)
+    inc cnt
+    if ?lexer:
+      while cnt in desc.check.allowedRepeat and
+        lexer[].matches(desc.check): # NOTE entry might be indented as an
+                                     # argument for an option but failed to
+                                     # pass due to syntax errors. `while
+                                     # ok()` would make it harder to provide
+                                     # adequate error diagnostics when such
+                                     # error is encoutered.
+        result.args.add lexer.pop()
+        inc cnt
 
   else:
     errors.add CliError(
