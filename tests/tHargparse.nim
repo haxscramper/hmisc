@@ -64,7 +64,7 @@ suite "Classify command line arguments":
       check parseCliOpts(@[val]).parsed[0].specialKind == kind
 
 proc newApp(
-    name: string = "a", 
+    name: string = "a",
     ignore: seq[string] = @["quiet", "dry-run", "help", "verbose",
                             "version", "loglevel", "log-output", "json",
                             "color", "force"]
@@ -75,13 +75,47 @@ proc newApp(
     noDefault = ignore
   )
 
-var logger = newTermLogger()
+proc checkOpts(opts: seq[string], desc: CliDesc):
+    (seq[CliError], CliCmdTree) =
+  result[1] = parseCliOpts(opts).parsed.structureSplit(desc, result[0])
 
 suite "Argument structuring":
   test "Positional argument":
-    let
-      arg = arg("test", "Documentation for test")
-      tree = parseCliOpts(@["zzz"]).parsed.structureSplit(arg, logger)
+    let (_, tree) = checkOpts(
+      @["zz0"], arg("test", "documentation for test"))
 
-    echov tree
+    doAssert tree.kind == coArgument
 
+  test "Switch":
+    let (_, tree) = checkOpts(@["--tset"], flag("tset", "Doc"))
+    doAssert tree.kind == coFlag
+
+  test "Option":
+    let (_, tree) = checkOpts(@["--opt:val"], opt("opt", "Doc"))
+    check tree.kind == coOpt
+    check tree.name == "opt"
+    check tree.strVal() == "val"
+
+  test "Selector option":
+    let (_, tree) = checkOpts(
+      @["--opt[Sel]:val"],
+      opt("opt", "", selector = checkValues({"Sel": "select one"})))
+
+    check tree.kind == coBracketOpt
+    check tree.select() == "Sel"
+    check tree.strVal() == "val"
+
+suite "Error reporting":
+  test "Flag mismatches":
+    let (err, _) = checkOpts(@["--za"], flag("aa", "doc"))
+    doAssert err.len == 1
+    echo err[0].helpStr()
+
+  test "Multiple flag mismatches":
+    let (err, _) = checkOpts(@["--zzz"], cmd(
+      "main", "doc", [
+        flag("zzzq", ""),
+        flag("zzze", "")
+    ]))
+
+    echo err[0].helpStr()

@@ -5,6 +5,7 @@ import
   ./blockfmt,
   ./oswrap,
   ./hlogger,
+  ../hexceptions,
   ../hdebug_misc,
   ../base_errors,
   ../types/colorstring,
@@ -26,14 +27,17 @@ import
 
 type
   CliCmdTree* = object
-    desc*: CliDesc
+    desc* {.requiresinit.}: CliDesc
+    head*: CliOpt
     case kind*: CliOptKind
       of coCommand:
-        name*: string
         subnodes*: seq[CliCmdTree]
 
+      of coDashedKinds:
+        subPaths*: Table[string, CliOpt]
+
       else:
-        opt*: CliOpt
+        discard
 
   CliCheckKind = enum
     cckIsFile
@@ -53,15 +57,27 @@ type
     cckAndCheck
     cckOrCheck
 
+    cckAllOf
+    cckNoneOf
+    cckAnyOf
+
+    cckAcceptAll
+
+
   CliErrorKind = enum
     cekUserFailure
+    cekMissingEntry
+    cekFailedParse
+    cekUnexpectedEntry
 
-  CliCheckError = object of CatchableError
-    case kind*: CliErrorKind:
-      of cekUserFailure:
-        discard
 
-  CliCheck = ref object
+  CliError* = object of CatchableError
+    origin*: CliOrigin
+    got*: CliOpt
+    desc*: CliDesc
+    kind*: CliErrorKind
+
+  CliCheck* = ref object
     case kind*: CliCheckKind
       of cckIsInRange:
         valueRange*: Slice[float64]
@@ -73,32 +89,40 @@ type
         subChecks*: seq[CliCheck]
 
       of cckUser:
-        userCheck*: proc(value: CliValue): Option[CliCheckError]
+        userCheck*: proc(value: CliValue): Option[CliError]
+
+      of cckAllOf, cckNoneOf, cckAnyOf:
+        allowedRepeat*: Slice[int] ## Allowed range of value repetitions
+        itemCheck*: CliCheck
 
       else:
         discard
 
-  CliOrigin = object
+  CliOrigin* = object
     ## Where particular CLI value came from (configuration file, default
     ## value or it was passed directled as an argument)
 
-  CliCompletion = object
+  CliCompletion* = object
     value*: string
     doc*: CliDoc
 
-  CliDoc = object
+  CliDoc* = object
     docBrief*: string
     docFull*: string
 
-  CliDesc = ref object
+  CliDocTree* = object
+    level*: Table[string, CliDocTree]
+    doc*: CliDoc
+
+  CliDesc* = ref object
     name*: string
+    altNames*: seq[string]
     defaultValue*: Option[string]
     defaultAsFlag*: Option[string]
     check*: CliCheck
 
     bracketSelectors: seq[string] ## Valid for `BracketFlag` and `BracketOpt`
 
-    allowedRepeat*: Slice[int] ## Allowed range of value repetitions
     completeFor*: proc(): seq[CliCompletion]
 
     doc*: CliDoc
@@ -108,7 +132,6 @@ type
     aliasof*: Option[CliOpt]
     case kind*: CliOptKind
       of coCommand:
-        altNames*: seq[string]
         options*: seq[CliDesc]
         arguments*: seq[CliDesc]
         subcommands*: seq[CliDesc]
@@ -117,11 +140,12 @@ type
         required*: bool
 
       of coFlag .. coBracketOpt:
-        startKeys*: seq[string]
+        # startKeys*: seq[string]
         subKeys*: seq[CliDesc] ## For `Dot*` fields and options, contains
         ## list of possible continuations - `--cc.exe` and `--cc.ld` will
         ## be represented as `--cc` option with `--exe` and `--ld`
         ## suboptions
+        selector*: Option[CliCheck]
 
       of coSpecial:
         discard
@@ -196,6 +220,7 @@ type
 
 
 
+
 proc add*(desc: var CliDesc, other: CliDesc) =
   case desc.kind:
     of coCommand:
@@ -235,16 +260,30 @@ func root*(app: var CliApp): var CliDesc = app.rootCmd
 
 func cmd*(
     name, docBrief: string,
-    subparts: varargs[CliDesc],
-    alt: seq[string] = @[]
+    subparts: openarray[CliDesc],
+    alt: seq[string] = @[],
   ): CliDesc =
 
-  CliDesc(
+  result = CliDesc(
     name: name,
     altNames: @[name] & alt,
     kind: coCommand,
     doc: CliDoc(docBrief: docBrief)
   )
+
+  for part in subparts:
+    case part.kind:
+      of coDashedKinds:
+        result.options.add part
+
+      of coArgument:
+        result.arguments.add part
+
+      of coCommand:
+        result.subcommands.add part
+
+      else:
+        discard
 
 func flag*(
     name, doc: string,
@@ -254,7 +293,7 @@ func flag*(
   result = CliDesc(
     kind: coFlag,
     name: name,
-    startKeys: @[name],
+    altNames: @[name],
     doc: CliDoc(docBrief: doc),
   )
 
@@ -283,6 +322,15 @@ proc andCheck*(and1, and2: CliCheck, other: varargs[CliCheck]): CLiCheck =
   for check in other:
     result.subChecks.add check
 
+proc anyOfCheck*(sub: CliCheck, repeated: Slice[int]): CliCheck =
+  CliCheck(kind: cckAnyOf, itemCheck: sub, allowedRepeat: repeated)
+
+proc allOfCheck*(sub: CliCheck, repeated: Slice[int]): CliCheck =
+  CliCheck(kind: cckAllOf, itemCheck: sub, allowedRepeat: repeated)
+
+proc acceptAllCheck*(): CLiCheck =
+  CliCheck(kind: cckAcceptAll)
+
 proc check*(kind: CliCheckKind): CliCheck =
   result = CliCheck(kind: kind)
 
@@ -301,19 +349,22 @@ proc opt*(
     varname: string = name,
     maxRepeat: int = 1,
     aliasof: CliOpt = CliOpt(),
+    selector: CliCheck = nil
   ): CliDesc =
 
   result = CliDesc(
     kind: coOpt,
     name: name,
-    startKeys: sortedByIt(@[name] & alt, it.len),
+    altNames: sortedByIt(@[name] & alt, it.len),
     doc: CliDoc(docBrief: doc, docFull: docFull),
     defaultValue: default.toOption(),
     defaultAsFlag: defaultAsFlag.toOption(),
     groupKind: groupKind,
-    varname: varname,
-    allowedREpeat: 0 .. maxRepeat
+    varname: varname
   )
+
+  if not isNiL(selector):
+    result.selector = some selector
 
   if aliasof.keyPath.len > 0:
     result.aliasof = some aliasof
@@ -323,6 +374,40 @@ proc opt*(
     let completions = values.mapIt(cliComplete(it[0], it[1]))
     result.completeFor = (proc(): seq[CliCompletion] = completions)
 
+  if maxRepeat > 1:
+    if isNil(result.check):
+      result.check = allOfCheck(acceptAllCheck(), 0 .. maxRepeat)
+
+    else:
+      result.check = allOfCheck(result.check, 0 .. maxRepeat)
+
+
+proc docTree*(
+    doc: string,
+    sub: openarray[(string, CliDocTree)]): CliDocTree =
+
+  CliDocTree(doc: CliDoc(docBrief: doc), level: toTable(sub))
+
+proc docTree*(doc: string): CliDocTree =
+  CliDocTree(doc: CliDoc(docBrief: doc))
+
+proc docFor(docTree: CliDocTree, name: string): CliDoc =
+  docTree.level[name].doc
+
+proc docTreeFor(docTree: CliDocTree, name: string): CliDocTree =
+  docTree.level[name]
+
+template exprType(e: untyped): untyped =
+  proc res(): auto = a
+  typeof(res())
+
+proc cliCheckFor*[T](value: typedesc[seq[T]]): CliCheck =
+  var tmp: exprType
+  result = anyOfCheck(cliCheckFor(
+    typeof(tmp[0])), 0 .. high(int))
+
+proc cliCheckFor*(str: typedesc[string]): CliCheck =
+  acceptAllCheck()
 
 proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
   if "help" notin ignored:
@@ -338,6 +423,7 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
         "on": "Show help using default formatting",
         "json": "Output help in machine-readable json format",
         "verbose": "Show full documentation for each command",
+        "cmd": "Display command tree-based help"
       })
 
   if "version" notin ignored:
@@ -453,7 +539,7 @@ proc newCliApp*(
     isSemVer: true,
     semVersion: version,
     author: author,
-    rootCmd: cmd(name, name),
+    rootCmd: cmd(name, name, @[]),
     doc: CliDoc(docBrief: docBrief)
   )
 
@@ -541,24 +627,109 @@ proc arg*(
     check: check
   )
 
+using errors: var seq[CliError]
+
+
+proc strVal*(tree: CliCmdTree): string =
+  case tree.kind:
+    of coOptionKinds, coArgument:
+      result = tree.head.valStr
+
+    else:
+      raise newUnexpectedKindError(tree, "string value")
+
+proc name*(tree: CliCmdTree): string = tree.desc.name
+proc select*(tree: CliCmdTree): string = tree.head.keySelect
+
 proc parseArg(
-    lexer: var HsLexer[CliOpt], desc: CliDesc, log: var HLogger): CliCmdTree =
+    lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
   if lexer[].kind == coArgument:
-    result = CliCmdTree(kind: coArgument, opt: lexer.pop())
+    result = CliCmdTree(kind: coArgument, head: lexer.pop(), desc: desc)
 
   else:
-    log.err "fuck off"
+    lexer.advance()
+    errors.add CliError(
+      kind: cekFailedParse, desc: desc, msg: "Failed")
+
+proc parseOptOrFlag(
+    lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
+
+  if lexer[].key in desc.altNames:
+    result = CliCmdTree(kind: lexer[].kind, head: lexer.pop(), desc: desc)
+
+  else:
+    errors.add CliError(
+      kind: cekFailedParse,
+      desc: desc,
+      got: lexer.pop(),
+      msg: "Failed"
+    )
 
 
-proc structureSplit*(
-  opts: seq[CliOpt], desc: CliDesc, log: var HLogger): CliCmdTree =
+proc parseCli(lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
+  var
+    argIdx = 0 # Current index of the parsed argument group (for arguments
+               # that accept multiple values)
+    argParsed: seq[int] # Number of argument group elemens parsed for each
+                        # group for `<arg-with two repeats> <arg>`
+
+    optTree: Table[string, CliCmdTree]
+
+  while ?lexer:
+    case lexer[].kind:
+      of coArgument:
+        case desc.kind:
+          of coArgument:
+            result = parseArg(lexer, desc, errors)
+
+          of coCommand:
+            result = parseArg(lexer, desc.arguments[argIdx], errors)
+
+          else:
+            raise newImplementError("")
+
+      of coDashedKinds:
+        case desc.kind:
+          of coDashedKinds:
+            result = parseOptOrFlag(lexer, desc, errors)
+
+          of coCommand:
+            let subIdx = desc.options.findIt(
+              lexer[].key in it.altNames)
+
+            if subIdx == -1:
+              errors.add CliError(
+                kind: cekUnexpectedEntry,
+                desc: desc,
+                got: lexer.pop(),
+                msg: "Failed"
+              )
+
+            else:
+              let key = lexer[].key
+              result = parseOptOrFlag(lexer, desc.options[subIdx], errors)
+
+          else:
+            raise newUnexpectedKindError(desc)
+
+      of coCommand:
+        raise newImplementKindError(lexer[])
+
+      of coSpecial:
+        raise newImplementKindError(lexer[])
+
+
+
+
+
+proc structureSplit*(opts: seq[CliOpt], desc: CliDesc, errors): CliCmdTree =
   ## Convert unstructured sequence of CLI commands/options into structured
   ## unchecked tree.
 
   var lexer = initLexer(opts)
-  result = parseArg(lexer, desc, log)
+  result = parseCli(lexer, desc, errors)
 
-proc toCliValue*(tree: CliCmdTree, log: var HLogger): CliValue =
+proc toCliValue*(tree: CliCmdTree, errors): CliValue =
   ## Convert unchecked CLI tree into typed values, without executing
   ## checkers.
 
@@ -600,9 +771,9 @@ proc postLine(desc: CliDesc): LytBlock =
     if desc.defaultAsFlag.isSome():
       result.add T[&", as flag defaults to {toCyan(desc.defaultAsFlag.get())}"]
 
-  let rep = desc.allowedRepeat
+  let rep = desc.check.allowedRepeat
   if rep.b > 1:
-    result.add T[&", can be repeated {desc.allowedRepeat} times"]
+    result.add T[&", can be repeated {desc.check.allowedRepeat} times"]
 
   if desc.aliasof.isSome():
     result.add T[&", alias of '{toYellow($desc.aliasof.get())}'"]
@@ -657,7 +828,7 @@ proc checkHelp(check: CliCheck, inNested: bool = false): LytBlock =
 proc flagHelp(flag: CliDesc): LytBlock =
   result = V[]
   var flags: seq[string]
-  for key in flag.startKeys:
+  for key in flag.altNames:
     if key.len > 1:
       flags.add toGreen("--" & key)
 
@@ -671,7 +842,7 @@ proc flagHelp(flag: CliDesc): LytBlock =
 proc optHelp(opt: CliDesc): LytBlock =
   result = V[]
   var opts: seq[string]
-  for key in opt.startKeys:
+  for key in opt.altNames:
     if key.len > 1:
       opts.add toGreen("--" & key)
 
@@ -769,6 +940,29 @@ proc help(app: CliApp): LytBlock =
 proc helpStr*(app: CliApp): string =
   return app.help().toString()
 
+proc help(err: CliError): LytBlock =
+  case err.kind:
+    of cekFailedParse:
+      let split = stringMismatchMessage(
+        err.got.key, err.desc.altNames, showAll = true).
+        splitSgrSep()
+
+      result = T[split]
+
+    of cekUnexpectedEntry:
+      let alts = err.desc.options.mapIt(it.altNames).concat()
+
+      let split = stringMismatchMessage(
+        err.got.key, alts, showAll = true).splitSgrSep()
+
+      result = T[split]
+
+    else:
+      raise newImplementKindError(err)
+
+proc helpStr*(err: CliError): string =
+  return err.help().toString()
+
 
 if isMainModule:
 
@@ -783,7 +977,7 @@ if isMainModule:
 
 
   app.add arg("main", "Required argumnet for main command")
-  var sub = cmd("sub", "Example subcommand", alt = @["s"])
+  var sub = cmd("sub", "Example subcommand", @[], alt = @["s"])
   sub.add arg("index", "Required argument for subcommand")
   app.add sub
 

@@ -249,7 +249,7 @@ func parseCommand*(arg: string, config: CliParseConfig): CliOpt =
   result = CliOpt(kind: coCommand, rawStr: arg, keyPath: @[arg])
 
 func parseCliOpts*(
-    args: seq[string], 
+    args: seq[string],
     config: CliParseConfig = CliParseConfig()
   ): tuple[parsed: seq[CliOpt], failed: seq[CliFail]] =
 
@@ -363,7 +363,8 @@ func `$`*(cli: CliOpt): string =
       result &= cli.keyPath.join(".")
 
     else:
-      result &= cli.value
+      discard
+      # result &= cli.value
 
   if cli.kind in coBracketKinds:
     result &= &"[{cli.keySelect}]"
@@ -380,5 +381,3 @@ func `$`*(cli: CliOpt): string =
 
   if cli.valStr.len > 0:
     result &= cli.valStr
-
-

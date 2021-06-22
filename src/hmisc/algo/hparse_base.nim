@@ -367,7 +367,7 @@ func hasNxt*[T](lex: HsLexer[T], offset: int): bool =
   lex.pos + offset < lex.tokens.len
 
 proc finished*[T](lex: HsLexer[T]): bool =
-  not hasNxt(lex, 0) and lex.str[].finished()
+  not hasNxt(lex, 0) and (isNil(lex.str) or lex.str[].finished())
 
 proc `?`*[T](lex: HsLexer[T]): bool =
   lex.explicitEof or not lex.finished()

@@ -880,25 +880,28 @@ func makeVerbBlock*[S: string | ColoredString | ColoredLine](
 
 
 func makeTextOrVerbBlock*(
-    text: string | ColoredString | ColoredLine,
+    text: string | ColoredString | ColoredLine | seq[ColoredLine],
     breaking: bool = false,
     firstNl: bool = false,
     breakMult: int = 1
   ): LytBlock =
-  when text is ColoredLine:
-    var lines: seq[seq[ColoredString]]
-    lines.add @[]
-    for chunk in text:
-      let split = chunk.split("\n")
-      if split.len > 1:
-        lines[^1].add split[0]
-        for part in split[1..^1]:
-          lines.add @[part]
+  when text is seq[ColoredLine] or text is ColoredLine:
+    when text is ColoredLine:
+      var lines: seq[seq[ColoredString]]
+      lines.add @[]
+      for chunk in text:
+        let split = chunk.split("\n")
+        if split.len > 1:
+          lines[^1].add split[0]
+          for part in split[1..^1]:
+            lines.add @[part]
 
-      else:
-        lines[^1].add split
-        if '\n' in chunk:
-          lines.add @[]
+        else:
+          lines[^1].add split
+          if '\n' in chunk:
+            lines.add @[]
+    else:
+      let lines = text
 
     if lines.len > 1:
       result = makeVerbBlock(lines, breaking, firstNl, breakMult)
@@ -1294,7 +1297,7 @@ proc `[]`*(b: static[LytBuilderKind], bl: LytBlock, args: varargs[LytBlock]): Ly
 
 proc `[]`*(
     b: static[LytBuilderKind],
-    a: string | ColoredString | ColoredLine,
+    a: string | ColoredString | ColoredLine | seq[ColoredLine],
     breaking: bool = false
   ): LytBlock =
 
