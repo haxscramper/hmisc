@@ -11,7 +11,7 @@ import
   ../types/colorstring,
   ../algo/[
     lexcast, clformat, htemplates, hseq_mapping, htext_algo,
-    hparse_base
+    hparse_base, hstring_algo, halgorithm
   ]
 
 export cliparse, hlogger
@@ -28,14 +28,16 @@ import
 type
   CliCmdTree* = object
     desc* {.requiresinit.}: CliDesc
-    head*: CliOpt
+    head* {.requiresinit.}: CliOpt
     args*: seq[CliOpt]
+    mainIdx*: int ## Cmd tree entry index in the main input (to compute
+                  ## origin information later)
     case kind*: CliOptKind
       of coCommand:
         subnodes*: seq[CliCmdTree]
 
       of coDashedKinds:
-        subPaths*: Table[string, CliOpt]
+        subPaths*: Table[string, CliCmdTree]
 
       else:
         discard
@@ -64,6 +66,12 @@ type
 
     cckAcceptAll
 
+    cckIsStrValue
+    cckIsIntValue
+    cckIsFloatValue
+    cckIsBoolValue
+    cckIsListValue
+
 
   CliErrorKind = enum
     cekUserFailure
@@ -74,11 +82,18 @@ type
 
   CliError* = object of CatchableError
     origin*: CliOrigin
-    got*: CliOpt
-    desc*: CliDesc
+    got* {.requiresinit.}: CliOpt
+    case isDesc*: bool
+      of true:
+        desc* {.requiresinit.}: CliDesc
+
+      of false:
+        check* {.requiresinit.}: CliCheck
+
     kind*: CliErrorKind
 
   CliCheck* = ref object
+    allowedRepeat*: Slice[int] ## Allowed range of value repetitions
     case kind*: CliCheckKind
       of cckIsInRange:
         valueRange*: Slice[float64]
@@ -93,7 +108,6 @@ type
         userCheck*: proc(value: CliValue): Option[CliError]
 
       of cckAllOf, cckNoneOf, cckAnyOf:
-        allowedRepeat*: Slice[int] ## Allowed range of value repetitions
         itemCheck*: CliCheck
 
       else:
@@ -166,7 +180,7 @@ type
 
   CliValue* = ref object
     origin*: CliOrigin
-    desc*: CliDesc
+    desc* {.requiresinit.}: CliDesc
     case kind*: CliValueKind
       of cvkCommand:
         name*: string
@@ -219,6 +233,30 @@ type
       of false:
         strVersion*: string
 
+
+func treeRepr*(tree: CliCmdTree): string =
+  func aux(t: CliCmdTree, res: var string, level: int) =
+    res &= getIndent(level) & hshow(t.kind) & " " & hshow($t.head) & "\n"
+
+    for arg in t.args:
+      res &= getIndent(level + 1) & hshow($arg) & "\n"
+
+    case t.kind:
+      of coCommand, coArgument:
+        for sub in t.subnodes:
+          aux(sub, res, level + 1)
+
+      of coDashedKinds:
+        for key, path in t.subPaths:
+          res &= getIndent(level + 1) & hshow(key) & ": " & $path & "\n"
+          # aux(path, res, level + 2)
+
+      else:
+        raise newImplementError()
+
+
+
+  aux(tree, result, 0)
 
 
 
@@ -346,7 +384,7 @@ proc opt*(
 
 func cmd*(
     name, docBrief: string,
-    subparts: openarray[CliDesc],
+    subparts: openarray[CliDesc] = @[],
     alt: seq[string] = @[],
   ): CliDesc =
 
@@ -417,6 +455,20 @@ proc cliCheckFor*[T](value: typedesc[seq[T]]): CliCheck =
 
 proc cliCheckFor*(str: typedesc[string]): CliCheck =
   acceptAllCheck()
+
+proc cliCheckFor*(str: typedesc[int]): CliCheck =
+  CliCheck(kind: cckIsIntValue)
+
+export toMapArray
+
+proc cliCheckFor*[En: enum](
+    en: typedesc[En], docs: array[En, string]): CliCheck =
+
+  var values: seq[(string, string)]
+  for val in { low(en) .. high(en) }:
+    values.add ($val, docs[val])
+
+  return checkValues(values)
 
 proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
   if "help" notin ignored:
@@ -571,6 +623,29 @@ proc exitException*(
 func add*(app: var CliApp, code: CliExitCode) =
   app.exitCodes.add code
 
+func add*(tree: var CliCmdTree, other: CliCmdTree, pathLevel: int = 0) =
+  case tree.kind:
+    of coCommand:
+      tree.subnodes.add other
+
+    of coDashedKinds:
+      tree.subPaths[other.head.keyPath[pathLevel]] = other
+
+    else:
+      raise newUnexpectedKindError(tree)
+
+func len*(tree: CliCmdTree): int =
+  case tree.kind:
+    of coCommand:
+      result = tree.subnodes.len
+
+    else:
+      discard
+
+iterator items*(tree: CliCmdTree): CliCmdTree =
+  if tree.kind == coCommand:
+    for sub in tree.subnodes:
+      yield sub
 
 macro raisesAsExit*(
     app: var CLiApp,
@@ -596,21 +671,31 @@ macro raisesAsExit*(
           ", which does not have corresponding exit code handler.",
           mainProc)
 
-proc exitWith*(app: CliApp, ex: ref Exception, logger: HLogger) =
+proc exitWith*(
+    app: CliApp, ex: ref Exception,
+    logger: HLogger, doQuit: bool = true
+  ) =
+
   for code in app.exitCodes:
     if code.onException.isSome() and code.onException.get() == ex.name:
       ex.log(logger)
       logger.logStackTrace(ex)
-      quit code.code
+      if doQuit:
+        quit code.code
+
+      else:
+        return
 
   ex.log(logger)
   logger.logStackTrace(ex)
-  quit 1
+  if doQuit:
+    quit 1
 
 template runMain*(
     app: CliApp,
     mainProc: typed,
-    logger: HLogger
+    logger: HLogger,
+    doQuit: bool = true
   ): untyped =
 
   {.line: instantiationInfo(fullPaths = true).}:
@@ -618,7 +703,7 @@ template runMain*(
       mainProc()
 
     except Exception as e:
-      app.exitWith(e, logger)
+      app.exitWith(e, logger, doQuit)
 
 proc arg*(
     name: string,
@@ -656,38 +741,45 @@ proc parseArg(
     result = CliCmdTree(kind: coArgument, head: lexer.pop(), desc: desc)
 
   else:
-    lexer.advance()
     errors.add CliError(
-      kind: cekFailedParse, desc: desc, msg: "Failed")
+      kind: cekFailedParse, desc: desc, got: lexer.pop(),
+      msg: "Failed", isDesc: true,
+    )
 
 proc matches(opt: CliOpt, check: CliCheck): bool = true
 
 proc parseOptOrFlag(
     lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
 
-  var cnt = 0
   if lexer[].key in desc.altNames:
     result = CliCmdTree(kind: lexer[].kind, head: lexer.pop(), desc: desc)
-    inc cnt
-    if ?lexer:
-      while cnt in desc.check.allowedRepeat and
-        lexer[].matches(desc.check): # NOTE entry might be indented as an
-                                     # argument for an option but failed to
-                                     # pass due to syntax errors. `while
-                                     # ok()` would make it harder to provide
-                                     # adequate error diagnostics when such
-                                     # error is encoutered.
-        result.args.add lexer.pop()
-        inc cnt
+    if ?lexer and result.head.needsValue():
+      result.args.add lexer.pop()
 
   else:
     errors.add CliError(
       kind: cekFailedParse,
-      desc: desc,
+      desc: desc, isDesc: true,
       got: lexer.pop(),
       msg: "Failed"
     )
 
+proc parseCli(lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree
+
+
+proc parseCmd(lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
+  if lexer[].kind in {coArgument, coCommand} and lexer[].key in desc.altNames:
+    result = CliCmdTree(kind: coCommand, head: lexer.pop(), desc: desc)
+    while ?lexer:
+      result.add parseCli(lexer, desc, errors)
+
+  else:
+    errors.add CliError(
+      got: lexer.pop(), isDesc: true,
+      kind: cekFailedParse, desc: desc, msg: "Failed")
+
+
+import hpprint
 
 proc parseCli(lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
   var
@@ -698,48 +790,58 @@ proc parseCli(lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
 
     optTree: Table[string, CliCmdTree]
 
-  while ?lexer:
-    case lexer[].kind:
-      of coArgument:
-        case desc.kind:
-          of coArgument:
-            result = parseArg(lexer, desc, errors)
+  case lexer[].kind:
+    of coArgument:
+      case desc.kind:
+        of coArgument:
+          result = parseArg(lexer, desc, errors)
 
-          of coCommand:
-            result = parseArg(lexer, desc.arguments[argIdx], errors)
+        of coCommand:
+          if lexer[].key in desc.altNames:
+            result = parseCmd(lexer, desc, errors)
 
           else:
-            raise newImplementError("")
-
-      of coDashedKinds:
-        case desc.kind:
-          of coDashedKinds:
-            result = parseOptOrFlag(lexer, desc, errors)
-
-          of coCommand:
-            let subIdx = desc.options.findIt(
-              lexer[].key in it.altNames)
-
-            if subIdx == -1:
-              errors.add CliError(
-                kind: cekUnexpectedEntry,
-                desc: desc,
-                got: lexer.pop(),
-                msg: "Failed"
-              )
+            let cmdIdx = desc.subcommands.findIt(lexer[].key in it.altNames)
+            if cmdIdx == -1:
+              raise newImplementError()
+              # result = parseArg(lexer, desc.arguments[argIdx], errors)
 
             else:
-              let key = lexer[].key
-              result = parseOptOrFlag(lexer, desc.options[subIdx], errors)
+              result = parseCmd(lexer, desc.subcommands[cmdIdx], errors)
+
+        else:
+          raise newImplementError("")
+
+    of coDashedKinds:
+      case desc.kind:
+        of coDashedKinds:
+          result = parseOptOrFlag(lexer, desc, errors)
+
+        of coCommand:
+          let subIdx = desc.options.findIt(
+            lexer[].key in it.altNames)
+
+          if subIdx == -1:
+            errors.add CliError(
+              isDesc: true,
+              kind: cekUnexpectedEntry,
+              desc: desc,
+              got: lexer.pop(),
+              msg: "Failed"
+            )
 
           else:
-            raise newUnexpectedKindError(desc)
+            let key = lexer[].key
+            result = parseOptOrFlag(lexer, desc.options[subIdx], errors)
 
-      of coCommand:
-        raise newImplementKindError(lexer[])
+        else:
+          raise newUnexpectedKindError(desc)
 
-      of coSpecial:
-        raise newImplementKindError(lexer[])
+    of coCommand:
+      raise newImplementKindError(lexer[])
+
+    of coSpecial:
+      raise newImplementKindError(lexer[])
 
 
 
@@ -750,18 +852,87 @@ proc structureSplit*(opts: seq[CliOpt], desc: CliDesc, errors): CliCmdTree =
   ## unchecked tree.
 
   var lexer = initLexer(opts)
-  result = parseCli(lexer, desc, errors)
+  if desc.kind in {coCommand}:
+    result = parseCmd(lexer, desc, errors)
+
+  else:
+    result = parseCli(lexer, desc, errors)
+
+func `==`*(str: string, val: CliValue): bool =
+  case val.kind:
+    of cvkInt:
+      try:
+        result = (parseInt(str) == val.intVal)
+
+      except ValueError:
+        result = false
+
+    of cvkString:
+      result = str == val.strVal
+
+    else:
+      raise newImplementKindError(val)
+
+
+proc checkedConvert(tree: CliCmdTree, check: CliCheck, errors): CliValue =
+  case check.kind:
+    of cckIsIntValue:
+      try:
+        let val = tree.head.value.parseInt()
+        result = CliValue(
+          kind: cvkInt,
+          intVal: val,
+          desc: tree.desc)
+
+      except ValueError:
+        errors.add CliError(
+          isDesc: false,
+          check: check,
+          got: tree.head)
+
+    of cckIsInSet:
+      let strVal = tree.head.value
+      for val in check.values:
+        if strVal == val:
+          return val
+
+      raise newImplementError()
+
+    of cckOrCheck:
+      var tmpErrs: seq[CliError]
+
+      for alt in check.subChecks:
+        result = checkedConvert(tree, alt, tmpErrs)
+        if not isNil(result):
+          break
+
+      if isNil(result):
+        errors.add tmpErrs
+
+
+    else:
+      raise newImplementKindError(check)
 
 proc toCliValue*(tree: CliCmdTree, errors): CliValue =
   ## Convert unchecked CLI tree into typed values, without executing
   ## checkers.
+  case tree.kind:
+    of coCommand:
+      result = CliValue(desc: tree.desc, kind: cvkCommand)
+
+    of coArgument:
+      result = checkedConvert(tree, tree.desc.check, errors)
+
+
+    else:
+      raise newImplementKindError(tree)
 
 initBlockFmtDsl()
 
 proc mergeConfigs*(
     tree: CliCmdTree,
-    log: var HLogger,
-    configs: seq[CliValue]
+    configs: seq[CliValue],
+    errors
   ) =
 
   discard
@@ -985,29 +1156,3 @@ proc help(err: CliError): LytBlock =
 
 proc helpStr*(err: CliError): string =
   return err.help().toString()
-
-
-if isMainModule:
-
-  proc mainProc(arg: int = 2) =
-    if arg > 0:
-      mainProc(arg - 1) # Comment
-    raise newException(OSError, "123123123")
-
-  startHax()
-  var app = newCliApp(
-    "test", (1,2,3), "haxscramper", "Brief description")
-
-
-  app.add arg("main", "Required argumnet for main command")
-  var sub = cmd("sub", "Example subcommand", @[], alt = @["s"])
-  sub.add arg("index", "Required argument for subcommand")
-  app.add sub
-
-  app.raisesAsExit(mainProc, {
-    "OSError": (1, "Example os error raise")
-  })
-
-  let logger = newTermLogger()
-
-  echo app.helpStr()

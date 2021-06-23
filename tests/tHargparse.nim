@@ -2,7 +2,8 @@ import std/[unittest, strformat, sequtils]
 
 import
   hmisc/other/hargparse,
-  hmisc/hdebug_misc
+  hmisc/hdebug_misc,
+  fusion/matching
 
 import hpprint
 
@@ -112,9 +113,50 @@ suite "Argument structuring":
       @["--results", "output", "raw"],
       opt("results", "", maxRepeat = 2))
 
-    pprint err
-    pprint tree
+    echo tree.treeRepr()
 
+  test "Subcommand":
+    let (err, tree) = checkOpts(
+      @["ip", "--test", "addr"],
+      cmd("ip", "", [
+        flag("test", ""),
+        cmd("addr", "")
+    ]))
+
+    tree.assertMatch:
+      Command:
+        Flag(head: (key: "test"), desc: (name: "test"))
+        Command()
+
+
+suite "Convet to cli value":
+  test "Integer positional":
+    var (err, tree) = checkOpts(
+      @["12"], arg("i", "", check = cliCheckFor(int)))
+
+    Argument(head: (value: "12")) := tree
+    Int(intVal: 12) := tree.toCliValue(err)
+
+  test "Integer or enum positional":
+    type Special = enum spec1, spec2
+
+    let arg = arg("i", "", check = orCheck(
+      cliCheckFor(int),
+      cliCheckFor(Special, toMapArray {
+        spec1: "Documentation for enum value 1",
+        spec2: "Documentation for enum value 2"
+      })
+    ))
+
+    block:
+      var (err, tree) = checkOpts(@["12"], arg)
+      Argument(head: (value: "12")) := tree
+      Int(intVal: 12) := tree.toCliValue(err)
+
+    block:
+      var (err, tree) = checkOpts(@["spec1"], arg)
+      Argument(head: (value: "spec1")) := tree
+      String(strVal: "spec1") := tree.toCliValue(err)
 
 
 suite "Error reporting":
@@ -124,10 +166,53 @@ suite "Error reporting":
     echo err[0].helpStr()
 
   test "Multiple flag mismatches":
-    let (err, _) = checkOpts(@["--zzz"], cmd(
+    let (err, _) = checkOpts(@["main", "--zzz"], cmd(
       "main", "doc", [
         flag("zzzq", ""),
         flag("zzze", "")
     ]))
 
     echo err[0].helpStr()
+
+suite "Full app":
+  test "Execute with exception":
+    proc mainProc(arg: int = 2) =
+      if arg > 0:
+        mainProc(arg - 1) # Comment
+      raise newException(OSError, "123123123")
+
+    startHax()
+    var app = newCliApp(
+      "test", (1,2,3), "haxscramper", "Brief description")
+
+
+    app.add arg("main", "Required argumnet for main command")
+    var sub = cmd("sub", "Example subcommand", @[], alt = @["s"])
+    sub.add arg("index", "Required argument for subcommand")
+    app.add sub
+
+    app.raisesAsExit(mainProc, {
+      "OSError": (1, "Example os error raise")
+    })
+
+    let logger = newTermLogger()
+
+    app.runMain(mainProc, logger, false)
+
+  test "Positional enum arguments":
+    type
+      En1 = enum en11, en12
+      En2 = enum en21, en22
+
+    var app = newApp()
+    app.add arg("pos1", "", check = cliCheckFor(En1, toMapArray {
+      en11: "Doc for en 1",
+      en12: "Doc for en 2"
+    }))
+
+    app.add arg("pos2", "", check = cliCheckFor(En2, toMapArray {
+      en21: "Doc for en 1",
+      en22: "Doc for en 2"
+    }))
+
+    echo app.helpStr()

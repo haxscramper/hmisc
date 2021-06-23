@@ -93,8 +93,17 @@ type
     jsonMsg*: JsonNode
     strMsg*: string
 
-func key*(opt: CliOpt): string = opt.keyPath[0]
+func key*(opt: CliOpt): string =
+  if opt.kind in {coArgument, coCommand}:
+    opt.valStr
+
+  else:
+    assert opt.keyPath.len > 0, $opt.kind
+    opt.keyPath[0]
+
 func value*(opt: CliOpt): string = opt.valStr
+func needsValue*(opt: CliOpt): bool =
+  opt.kind in coOptionKinds and opt.valStr == ""
 
 macro scanpFull*(str: typed, start: int, pattern: varargs[untyped]): untyped =
   result = nnkStmtList.newTree()

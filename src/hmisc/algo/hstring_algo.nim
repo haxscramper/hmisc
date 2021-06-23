@@ -247,6 +247,25 @@ func filterPrefix*(str: seq[string], pref: StrPart): seq[string] =
     if s.startsWith(pref):
       result.add s
 
+func getIndent*(level: int, sep: int = 2, prefix: char = ' '): string =
+  if sep == 2 and prefix == ' ':
+    case level:
+      of 0: result = ""
+      of 1: result = "  "
+      of 2: result = "    "
+      of 3: result = "      "
+      of 4: result = "        "
+      of 5: result = "          "
+      of 6: result = "            "
+      of 7: result = "              "
+      of 8: result = "                "
+      of 9: result = "                  "
+      of 10: result = "                    "
+      else: result = repeat(prefix, level * sep)
+
+  else:
+    result = repeat(prefix, level * sep)
+
 func msgjoinImpl*(args: seq[string]): string =
   # FIXME `text __next`
   # FIXME `text /dir/file.tmp`
