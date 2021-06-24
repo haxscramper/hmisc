@@ -502,10 +502,16 @@ func initColoredString*(str: string, styling: PrintStyling): ColoredString =
   ColoredString(str: str, styling: styling)
 
 func toColored*(
-    str: string, styling: PrintStyling = initPrintStyling()
+    str: string,
+    styling: PrintStyling = initPrintStyling(),
+    doColor: bool = true
   ): ColoredString =
 
-  ColoredString(str: str, styling: styling)
+  if doColor:
+    ColoredString(str: str, styling: styling)
+
+  else:
+    ColoredString(str: str, styling: initPrintStyling())
 
 func `&`*(col: ColoredString, str: string): ColoredLine =
   @[col, toColored(str)]

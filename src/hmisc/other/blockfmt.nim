@@ -323,8 +323,6 @@ func hash(sln: Option[LytSolution]): Hash =
       hash(sln.index)
     )
 
-import hpprint
-
 #*************************************************************************#
 #*******************************  Layout  ********************************#
 #*************************************************************************#
@@ -1338,6 +1336,12 @@ func `&?`*(bl: LytBlock, added: tuple[condOk: bool, bl: LytBlock]): LytBlock =
   if added.condOk:
     result.add added.bl
 
+func `??`*(bl: LytBlock, condOk: bool): LytBlock =
+  if condOk: bl else: makeEmptyBlock()
+
+func `??`*(blocks: tuple[ok, fail: LytBlock], condOk: bool): LytBlock =
+  if condOk: blocks.ok else: blocks.fail
+
 func join*(
   blocks: LytBlock, sep: LytBlock, vertLines: bool = true): LytBlock =
   assert blocks.kind in {bkLine, bkStack},
@@ -1358,9 +1362,14 @@ func join*(
       if not isLast:
         result.add sep
 
-proc toString*(bl: LytBlock, rightMargin: int = 80): string =
+proc toString*(
+    bl: LytBlock,
+    rightMargin: int = 80,
+    opts: LytOptions = defaultFormatOpts
+  ): string =
+
   var bl = bl
-  let opts = defaultFormatOpts.withIt do:
+  let opts = opts.withIt do:
     it.rightMargin = rightMargin
 
   let sln = none(LytSolution).withResIt do:

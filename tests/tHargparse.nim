@@ -5,8 +5,6 @@ import
   hmisc/hdebug_misc,
   fusion/matching
 
-import hpprint
-
 startHax()
 
 suite "Classify command line arguments":

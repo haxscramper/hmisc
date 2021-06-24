@@ -46,8 +46,6 @@ proc prev[A, B](cursor: var Cursor[A, B]): bool =
 
   return cursor.len > 0 and cursor.current.node.m > 0
 
-import hpprint
-
 proc searchOrBefore[A, B](b: Table[A, B], key: A): Cursor[A, B] =
   ## Calculates the cursor pointing to the given key.
   var a = b.root
