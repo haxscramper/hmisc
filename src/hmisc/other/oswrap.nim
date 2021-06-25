@@ -648,8 +648,11 @@ func hasExt*(file: AnyFile, ext: string): bool =
   let (_, _, fileExt) = file.splitFile()
   return ext == fileExt
 
-func ext*(file: AnyFile): string = file.splitFile().ext
-func name*(file: AnyFile): string = file.splitFile().name
+func ext*(file: AnyFile, multidot: bool = true): string =
+  file.splitFile(multidot).ext
+
+func name*(file: AnyFile, multidot: bool = true): string =
+  file.splitFile(multidot).name
 
 proc assertValid*(
     path: AnyPath, msg: string = ""): void =
@@ -966,7 +969,10 @@ iterator walkDir*[T: AnyPath](
 
   template optYield(entry: untyped): untyped =
     if exts.len == 0 or
-      (exts.len > 0 and ext(entry) in exts):
+      (exts.len > 0 and
+        (ext(entry, true) in exts or
+         ext(entry, false) in exts)
+      ):
       yield entry
 
 
@@ -1473,7 +1479,10 @@ func withExt*[F: AbsFile | RelFIle](
     let (parent, file, ext) = f.splitFile()
     let exts = ext.split(".")
 
-    let resExt = join(exts[0..^2] & newExt.dropPrefix("."), ".")
+    var resExt = join(exts[0..^2], ".")
+    if newExt.len > 0:
+      resExt &= hstring_algo.addprefix(newExt, ".")
+
     parent /. (file & (if resExt.len > 0: "." & resExt else: ""))
 
   else:

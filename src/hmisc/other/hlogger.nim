@@ -1,5 +1,6 @@
 import
   ../algo/[clformat, htemplates, halgorithm, hlex_base],
+  ../other/[hpprint, oswrap],
   ../types/[colorstring, colortext],
   ../hdebug_misc
 
@@ -34,6 +35,7 @@ type
     hskTask
     hskScope
     hskIndent
+    hskChDir
 
   HLogScope = object
     file: string
@@ -82,8 +84,6 @@ proc newTermLogger*(): HLogger =
     result.logPrefix.maxIt(it.str.len),
     result.eventPrefix.maxIt(it.str.len)
   )
-
-import hpprint
 
 proc prepareText*(logger: HLogger, text: varargs[string]): string =
   result = text.join(" ")
@@ -181,6 +181,7 @@ macro logScope*(varname: untyped, pr: untyped): untyped =
     pr[^1],
     newCall("closeScope", varname)
   )
+
 
 template check*(
     logger: HLogger, expr: bool, desc: string,
@@ -329,6 +330,16 @@ template waitFor*(logger: HLogger, name: string): untyped =
   log(logger, logNone, logEvWaitStart, instantiationInfo(),
       "Waiting for " & name & " to finish...")
 
+template changeDir*(logger: HLogger, dir: AbsDir, body: untyped): untyped =
+  let (file, line, column) = instantiationInfo()
+  openScope(logger, hskChDir, file, line, column, "")
+  withDir dir:
+    trace(l, (file, line, column), "Changed dir to ", dir)
+    body
+
+  closeScope(logger)
+
+
 
 func findLineRange*(
     base: string,
@@ -412,7 +423,7 @@ proc logLines*(
 
 
 
-import os
+from os import nil
 
 proc logStackTrace*(logger: HLogger, e: ref Exception) =
   let stackEntries =
@@ -421,11 +432,11 @@ proc logStackTrace*(logger: HLogger, e: ref Exception) =
     else:
       getStackTraceEntries()
 
-  let choosenim = getHomeDir() & ".choosenim"
+  let choosenim = os.getHomeDir() & ".choosenim"
 
   var fileW = 0
   for tr in stackEntries:
-    let (_, name, ext) = splitFile($tr.filename)
+    let (_, name, ext) = os.splitFile($tr.filename)
     fileW = max(name.len, fileW)
 
   var
@@ -446,7 +457,7 @@ proc logStackTrace*(logger: HLogger, e: ref Exception) =
       else:
         "(sys) "
 
-    var (_, name, ext) = filename.splitFile()
+    var (_, name, ext) = os.splitFile(filename)
     if ext.len > 0:
       ext = ext[1 ..^ 1]
 
@@ -570,6 +581,7 @@ proc runShell*(
   info(logger, pos, "Running shell", "'" & shellCmd.bin & "'")
   debug(logger, pos, shellCmd.toLogStr())
   result = runShell(shellCmd)
+  done(logger)
 
 template runShell*(logger: HLogger, shellCmd: ShellCmd): ShellExecResult =
   runShell(logger, instantiationInfo(), shellCmd)
@@ -577,8 +589,6 @@ template runShell*(logger: HLogger, shellCmd: ShellCmd): ShellExecResult =
 
 
 
-
-# import hpprint
 
 when isMainModule:
   proc task(log: HLogger) {.logScope(log).} =

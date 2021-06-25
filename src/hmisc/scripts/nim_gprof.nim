@@ -1,11 +1,4 @@
-import
-  ../other/[hshell, hlogger, hargparse, hpprint, oswrap],
-  ../types/[colorstring],
-  ../algo/[htemplates, hstring_algo, hlex_base, clformat],
-  ../hdebug_misc
-
-import
-  std/[strutils, tables, macros, parseutils, strformat]
+import ../preludes/cli_app
 
 startHax()
 
