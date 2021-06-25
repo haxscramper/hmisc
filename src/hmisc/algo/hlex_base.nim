@@ -1,7 +1,8 @@
 import std/[streams, strscans, strutils, strformat,
             macros, segfaults]
+
 import ../base_errors, ../hdebug_misc
-import ./halgorithm
+import ./halgorithm, ../other/oswrap
 
 
 ##[
@@ -91,6 +92,9 @@ func initPosStr*(str: string): PosStr =
 func initPosStr*(stream: Stream): PosStr =
   ## Create new string with empty buffer and non-nil input stream.
   PosStr(stream: stream, isSlice: false)
+
+proc initPosStr*(file: AbsFile): PosStr =
+  PosStr(stream: newFileStream(file.getStr()), isSlice: false)
 
 func initPosStr*(str): PosStr =
   ## Pop one layer of slices from slice buffer and create new sub-string
@@ -369,6 +373,12 @@ proc skipIndent*(str; maxIndent = high(int)): int =
     if result >= maxIndent:
       break
 
+proc skipSpace*(str) {.inline.} =
+  str.skipWhile(HorizontalSpace)
+
+proc space*(str) {.inline.} =
+  str.skipWhile(HorizontalSpace)
+
 proc popWhile*(str; chars: set[char]): string {.inline.} =
   str.pushRange()
   str.skipWhile(chars)
@@ -440,7 +450,7 @@ proc popDigit*(str: var PosStr): string {.inline.} =
     str.skipWhile(HexDigits + {'-'})
 
   else:
-    str.skipWhile(Digits + {'-'})
+    str.skipWhile(Digits + {'-', '.'})
 
   return str.popRange()
 

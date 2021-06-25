@@ -87,6 +87,19 @@ suite "Block formatting":
   #     ])
   #   ]))
 
+suite "Block compaction":
+  let r = codegenRepr
+
+  echo r H[T["qwe"], T["1111"]]
+
+  echo r H[
+    H[T["name: "]],
+    T["nim_gprof"],
+    T[", "],
+    H[T["altNames: "]]]
+
+  echo r H[T["123"]]
+
 
 suite "Line layouts":
   test "1":

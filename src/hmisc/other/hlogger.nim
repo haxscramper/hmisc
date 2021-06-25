@@ -1,6 +1,7 @@
 import
   ../algo/[clformat, htemplates, halgorithm, hlex_base],
-  ../types/[colorstring, colortext]
+  ../types/[colorstring, colortext],
+  ../hdebug_misc
 
 import
   std/[
@@ -446,7 +447,9 @@ proc logStackTrace*(logger: HLogger, e: ref Exception) =
         "(sys) "
 
     var (_, name, ext) = filename.splitFile()
-    ext = ext[1 ..^ 1]
+    if ext.len > 0:
+      ext = ext[1 ..^ 1]
+
     var filePref = $name.alignLeft(fileW)
     if (not foundErr) and idx + 1 < stackEntries.len:
       let next = stackEntries[idx + 1]
@@ -456,10 +459,14 @@ proc logStackTrace*(logger: HLogger, e: ref Exception) =
         filePref = filePref.toRed()
         foundErr = true
 
+
     logger.debug prefix & (filePref) & " :" &
       $(($tr.line).alignLeft(4)) &
       " " &
       $($tr.procname).toYellow()
+
+    if filename == "":
+      continue
 
     proc logEntry(idx: int) =
       let
@@ -519,11 +526,11 @@ method log*(ex: ref Exception, logger: HLogger) {.base.} =
 method log*(ex: ShellError, logger: HLogger) =
   logger.err ex.msg
 
-proc runShell*(
+proc execShell*(
     logger: HLogger, pos: (string, int, int), shellCmd: ShellCmd,
     outLog: StreamConverter[ShellCmd, bool, HLogger] = loggerOutConverter,
     errLog: StreamConverter[ShellCmd, bool, HLogger] = loggerErrConverter,
-    logRaised: bool = true
+    logRaised: bool = false
   ) =
   info(logger, pos, "Running shell", "'" & shellCmd.bin & "'")
   debug(logger, pos, shellCmd.toLogStr())
@@ -553,9 +560,19 @@ proc runShell*(
 
   done(logger)
 
-template runShell*(logger: HLogger, shellCmd: ShellCmd): untyped =
-  runShell(logger, instantiationInfo(), shellCmd)
+template execShell*(logger: HLogger, shellCmd: ShellCmd): untyped =
+  execShell(logger, instantiationInfo(), shellCmd)
 
+
+proc runShell*(
+    logger: HLogger, pos: (string, int, int), shellCmd: ShellCmd,
+  ): ShellExecResult =
+  info(logger, pos, "Running shell", "'" & shellCmd.bin & "'")
+  debug(logger, pos, shellCmd.toLogStr())
+  result = runShell(shellCmd)
+
+template runShell*(logger: HLogger, shellCmd: ShellCmd): ShellExecResult =
+  runShell(logger, instantiationInfo(), shellCmd)
 
 
 
@@ -578,5 +595,5 @@ when isMainModule:
 
   l.pdump [(0 + 90), (3)]
   l.trace "Test"
-  l.runShell shellCmd(ls, "/tmp")
-  l.runShell shellCmd(ls, "/;skldfj;aslkdffjj;alskdjjf;")
+  l.execShell shellCmd(ls, "/tmp")
+  l.execShell shellCmd(ls, "/;skldfj;aslkdffjj;alskdjjf;")

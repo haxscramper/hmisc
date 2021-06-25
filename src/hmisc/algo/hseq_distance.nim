@@ -1236,17 +1236,21 @@ func toGitGlob*(str: string): GitGlob =
   else:
     GitGlob(patt: str, ign: true)
 
+proc accept*(glob: GitGlob, str: string, invert: bool = false): bool =
+  result = not invert
+  if gitignoreGlobMatch(str, glob.patt):
+    if invert:
+      result = glob.ign
+
+    else:
+      result = not glob.ign
+
 
 proc accept*(
     globs: seq[GitGlob], str: string, invert: bool = false): bool =
   result = not invert
   for glob in globs:
-    if gitignoreGlobMatch(str, glob.patt):
-      if invert:
-        result = glob.ign
-
-      else:
-        result = not glob.ign
+    result = glob.accept(str, invert)
 
 proc accept*(str: string, globs: seq[GitGlob]): bool {.deprecated.} =
   globs.accept(str)

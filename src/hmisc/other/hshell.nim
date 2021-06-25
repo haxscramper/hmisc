@@ -304,9 +304,10 @@ func flag*(cmd: var ShellCmd, fl: string) =
   ## Add flag for command
   cmd.opts.add ShellCmdPart(kind: cpkFlag, flag: fl)
 
-func opt*(cmd: var ShellCmd, inKey, val: string) =
+func opt*[T](cmd: var ShellCmd, inKey: string, val: T) =
   ## Add option (key-value pairs) for command
-  cmd.opts.add ShellCmdPart(kind: cpkOption, key: inKey, val: val)
+  cmd.opts.add ShellCmdPart(
+    kind: cpkOption, key: inKey, val: $val)
 
 func env*(cmd: var ShellCmd, key, val: string): void =
   ## Add environment variable configuration for command
@@ -946,8 +947,7 @@ proc updateException(res: var ShellResult, cmd: ShellCmd, maxErrorLines: int) =
       else:
         ""
 
-    var msg = &"Command '{command}'\nExecuted in directory " &
-      $cwd() & &"\n{envAdd}Exited with non-zero code:\n"
+    var msg = &"Command exited with non-zero code:\n"
 
     let split = res.execResult.stderr.split("\n") &
       res.execResult.stdout.split("\n")
@@ -1139,6 +1139,9 @@ when cbackend:
 
           var res = ShellResult()
           res.execResult.code = process.peekExitCode()
+          res.execResult.stderr = stderrStream.readAll()
+          res.execResult.stdout = stdoutStream.readAll()
+
           updateException(res, cmd, maxErrorLines)
 
           if not res.resultOk and doRaise:
@@ -1183,6 +1186,8 @@ proc shellResult*(
         "from options"
     )
 
+  const nl = "\n"
+
   when not defined(NimScript):
     let pid = startShell(cmd, options, stdin)
     if discardOut and not reprintOut:
@@ -1203,10 +1208,10 @@ proc shellResult*(
 
             else:
               if reprintOut:
-                stdout.write line, "\n"
+                stdout.write line, nl
 
               else:
-                result.execResult.stdout &= line & "\n"
+                result.execResult.stdout &= line & nl
 
               inc outLineCount
             # WARNING remove trailing newline on the stdout
@@ -1216,20 +1221,20 @@ proc shellResult*(
 
       while outLineCount < maxOutLines and outStream.readLine(line):
         if reprintOut:
-          stdout.write line, "\n"
+          stdout.write line, nl
 
         else:
-          result.execResult.stdout.add line & "\n"
+          result.execResult.stdout.add line & nl
 
         inc outLineCount
 
       var errLineCount = 0
       while errLineCount < maxErrorLines and pid.errorStream.readLine(line):
         if reprintOut:
-          stderr.write line, "\n"
+          stderr.write line, nl
 
         else:
-          result.execResult.stderr.add line & "\n"
+          result.execResult.stderr.add line & nl
 
         inc errLineCount
 
@@ -1257,7 +1262,7 @@ proc shellResult*(
                 echo line
 
               else:
-                result.execResult.stdout.add line & "\n"
+                result.execResult.stdout.add line & nl
 
         result.execResult.code = code
 

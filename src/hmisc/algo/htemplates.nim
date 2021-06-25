@@ -45,6 +45,12 @@ template withResIt*(val, body: untyped): untyped =
     var it {.inject.} = val
     body
 
+template withMutIt*[T](val: var T, body: untyped): untyped =
+  block:
+    var tmp: ptr T = addr(val)
+    template it(): untyped {.inject.} = tmp[]
+    body
+
 template splitOnIt*[T](s: seq[T], op: untyped): tuple[
   before, after: seq[T]] =
   var res: tuple[before, after: seq[T]]

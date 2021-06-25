@@ -247,6 +247,11 @@ func filterPrefix*(str: seq[string], pref: StrPart): seq[string] =
     if s.startsWith(pref):
       result.add s
 
+func findEnd*(str: string, sub: string, start: Natural = 0, last = 0): int =
+  result = str.find(sub, start, last)
+  if result >= 0:
+    result += sub.len
+
 func getIndent*(level: int, sep: int = 2, prefix: char = ' '): string =
   if sep == 2 and prefix == ' ':
     case level:

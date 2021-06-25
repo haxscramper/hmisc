@@ -313,15 +313,16 @@ func hash(sln: Option[LytSolution]): Hash =
   if sln.isNone():
     return
   else:
-    let sln = sln.get()
-    result = !$(
-      hash(sln.knots) !&
-      hash(sln.spans) !&
-      hash(sln.intercepts) !&
-      hash(sln.gradients) !&
-      hash(sln.layouts) !&
-      hash(sln.index)
-    )
+    return cast[int](sln.get())
+    # let sln = sln.get()
+    # result = !$(
+    #   hash(sln.knots) !&
+    #   hash(sln.spans) !&
+    #   hash(sln.intercepts) !&
+    #   hash(sln.gradients) !&
+    #   hash(sln.layouts) !&
+    #   hash(sln.index)
+    # )
 
 #*************************************************************************#
 #*******************************  Layout  ********************************#
@@ -362,9 +363,8 @@ func getStacked(layouts: seq[Layout]): Layout =
 
   return Layout(elements: lElts[0 .. ^2])  # Drop the last NewLine()
 
-func initLayout(elems: openarray[LayoutElement]): Layout =
-  new(result)
-  result.elements = toSeq(elems)
+func initLayout(elems: seq[LayoutElement]): Layout =
+  Layout(elements: elems)
 
 #*************************************************************************#
 #******************************  LytSolution  *******************************#
@@ -653,7 +653,10 @@ proc hPlusSolution(s1, s2: var LytSolution, opts: LytOptions): LytSolution =
     # for s2 at the end of the last line printed for s1.
     col.add(
       s1_margin, s1.curSpan() + s2.curSpan(), i_cur, g_cur,
-      initLayout([lytPrint(s1.curLayout()), lytPrint(s2.curLayout())]))
+      initLayout(@[
+        lytPrint(s1.curLayout()),
+        lytPrint(s2.curLayout())
+    ]))
 
     # Move to the knot closest to the margin of the corresponding
     # component.
@@ -773,6 +776,11 @@ proc makeTextBlocks*(text: openarray[string]): seq[LytBlock] =
 func makeIndentBlock*(
   blc: LytBlock, indent: int, breakMult: int = 1): LytBlock
 
+
+func isEmpty*(bl: LytBlock): bool {.inline.} =
+  bl.kind == bkEmpty or
+  (bl.kind in {bkStack, bkLine, bkChoice} and bl.len == 0)
+
 template findSingle*(elems: typed, targetKind: typed): untyped =
   var
     countEmpty = 0
@@ -780,8 +788,15 @@ template findSingle*(elems: typed, targetKind: typed): untyped =
     idx = -1
 
   for item in elems:
-    if item.kind == bkEmpty: inc countEmpty
-    if item.kind == targetKind:
+    if item.isEmpty():
+      inc countEmpty
+
+    elif (
+      when targetKind is set:
+        item.kind in targetKind
+      else:
+        item.kind == targetKind
+    ):
       if idx != -1:
         idx = -1
         break
@@ -803,6 +818,15 @@ func convertBlock*(bk: LytBlock, newKind: LytBlockKind): LytBlock =
   result.elements = bk.elements
 
 
+func flatten*(bl: LytBlock, kind: set[LytBlockKind]): LytBlock =
+  if bl.kind in kind and
+     (let idx = findSingle(bl.elements, {
+    low(LytBlockKind) .. high(LytBlockKind) } - { bkEmpty }); idx != -1):
+    result = bl.elements[idx]
+
+  else:
+    result = bl
+
 func makeChoiceBlock*(
     elems: openarray[LytBlock], breakMult: int = 1): LytBlock =
 
@@ -813,7 +837,8 @@ func makeChoiceBlock*(
     result = LytBlock(
       breakMult: breakMult,
       kind: bkChoice,
-      elements: filterIt(elems, it.kind != bkEmpty))
+      elements: filterIt(elems, not it.isEmpty()).mapIt(it.flatten({
+        bkLine, bkChoice, bkStack})))
 
 func makeLineBlock*(
     elems: openarray[LytBlock], breakMult: int = 1): LytBlock =
@@ -824,10 +849,41 @@ func makeLineBlock*(
     result = elems[0][0].convertBlock(bkLine)
 
   else:
-    result = LytBlock(
-      breakMult: breakMult,
-      kind: bkLine,
-      elements: filterIt(elems, it.kind != bkEmpty))
+    result = LytBlock(breakMult: breakMult, kind: bkLine)
+
+    var filter: seq[LytBlock]
+    for it in elems:
+      if not isEmpty(it):
+        filter.add it.flatten({bkLine})
+
+
+    if filter.len == 1:
+      result.elements = move(filter)
+
+    elif filter.len > 1:
+      var prev {.cursor.}: LytBlock = filter[0]
+
+
+      for item in filter[1..^1]:
+        let (pk, nk) = (prev.kind, item.kind)
+
+        if pk == bkText and nk == bkText:
+          prev.text.text.add item.text.text
+
+        elif pk == bkText:
+          result.elements.add prev
+          # result.elements.add item
+          prev = item
+
+        else:
+          result.elements.add prev
+          # result.elements.add item
+          prev = item
+
+      result.elements.add prev
+
+
+
 
 
 
@@ -854,7 +910,8 @@ func makeStackBlock*(
   else:
     result = LytBlock(
       breakMult: breakMult, kind: bkStack,
-      elements: filterIt(elems, it.kind != bkEmpty))
+      elements: filterIt(elems, not it.isEmpty()).mapIt(
+        it.flatten({bkStack, bkLine})))
 
 
 func makeWrapBlock*(
@@ -926,10 +983,18 @@ func makeLineCommentBlock*(
 
 func add*(target: var LytBlock, other: varargs[LytBlock]) =
   for bl in other:
+    let bl = bl.flatten({bkLine})
     assert not isNil(bl)
     if bl.kind != bkEmpty:
       if bl.kind == target.kind and bl.kind in {bkStack, bkLine}:
         target.elements.add bl.elements
+
+      elif target.kind == bkLine and
+           target.elements.len > 0 and
+           target.elements[^1].kind == bkText and
+           bl.kind == bkText:
+
+        target.elements[^1].text.text.add bl.text.text
 
       else:
         target.elements.add bl
@@ -962,7 +1027,7 @@ proc doOptTextLayout(
 
   let
     span = len(self.text)
-    layout = initLayout([lytString(self.text)])
+    layout = initLayout(@[lytString(self.text)])
   # The costs associated with the layout of this block may require 1, 2 or 3
   # knots, depending on how the length of the text compares with the two
   # margins (leftMargin and rightMargin) in opts. Note that we assume
@@ -1362,6 +1427,26 @@ func join*(
       if not isLast:
         result.add sep
 
+# proc setCache(bl: LytBlock) =
+#   let table = newTable[Option[LytSolution], Option[LytSolution]]()
+
+#   proc aux(bl: LytBlock) =
+#     bl.layoutCache = table
+#     case bl.kind:
+#       of bkWrap:
+#         for elem in mitems(bl.wrapElements):
+#           aux(elem)
+
+#       of bkStack, bkChoice, bkLine:
+#         for elem in mitems(bl.elements):
+#           aux(elem)
+
+#       else:
+#         discard
+
+#   aux(bl)
+
+
 proc toString*(
     bl: LytBlock,
     rightMargin: int = 80,
@@ -1369,6 +1454,7 @@ proc toString*(
   ): string =
 
   var bl = bl
+  # setCache(bl)
   let opts = opts.withIt do:
     it.rightMargin = rightMargin
 
@@ -1402,7 +1488,8 @@ func codegenRepr*(inBl: LytBlock, indent: int = 0): string =
         result &= pref & "]"
 
       of bkText:
-        result = &"{pref}T[{bl.text}]"
+        let text = bl.text.text.mapIt(it.str).join("")
+        result = &"{pref}T[\"{text}\"]"
 
       of bkVerb:
         result = pref & name & "["
@@ -1417,6 +1504,75 @@ func codegenRepr*(inBl: LytBlock, indent: int = 0): string =
         result = "E[]"
 
   return aux(inBl, indent)
+
+
+func pyCodegenRepr*(inBl: LytBlock, indent: int = 0): string =
+  func aux(bl: LytBlock, level: int): string =
+    let pref = repeat("  ", level)
+    let name =
+      case bl.kind:
+        of bkEmpty: "E"
+        of bkLine: "LineBlock("
+        of bkChoice: "ChoiceBlock("
+        of bkText: "TB()"
+        of bkWrap: "W"
+        of bkStack: "StackBlock("
+        of bkVerb: "T"
+
+    case bl.kind:
+      of bkLine, bkChoice, bkStack, bkWrap:
+        result = pref & name & "[\n"
+        for isLast, elem in itemsIsLast(bl.elements):
+          result &= elem.aux(level + 1) & (if isLast: "\n" else: ",\n")
+
+        result &= pref & "])"
+
+      of bkText:
+        let text = bl.text.text.mapIt(it.str).join("").
+          replace("\"", "\\\"")
+
+        result = &"{pref}TextBlock(\"{text}\")"
+
+      of bkVerb:
+        result = pref & name & "["
+        for isFirst, isLast, line in itemsIsFirstLast(bl.textLines):
+          if isFirst: result &= "\""
+          result &= $line
+          if isLast: result &= "\"" else: result &= "\\n"
+
+        result &= "]"
+
+      of bkEmpty:
+        result = "E[]"
+
+  result &= """
+#!/usr/bin/env python2
+from blocks import *
+import base, re
+import cStringIO
+
+"""
+
+  result &= "blc = " & aux(inBl, indent)
+  result &= """
+
+
+opts = base.Options()
+
+opts.m0 = 0
+opts.m1 = 50
+opts.cpack = 1e-3
+
+opts.c0 = 0.05
+opts.c1 = 100
+opts.cb = 2
+
+lyt = blc.DoOptLayout(None)
+
+outp = cStringIO.StringIO()
+blc.PrintOn(outp)
+print re.sub(r' *$', '', outp.getvalue(), flags=re.MULTILINE)
+"""
 
 
 template initBlockFmtDSL*() {.dirty.} =

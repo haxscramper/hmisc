@@ -85,9 +85,11 @@ type
 
 type
   FsFile* = object
+    info*: Option[os.FileInfo]
     case isRelative*: bool
       of true:
         relFile*: RelFile
+
       of false:
         absFile*: AbsFile
 
@@ -95,6 +97,7 @@ type
     case isRelative*: bool
       of true:
         relDir*: RelDir
+
       of false:
         absDir*: AbsDir
 
@@ -155,17 +158,19 @@ func newFileSearchError*(
     userMsg: string
   ): ref FileSearchError =
 
-  let
+  var
     dirs: seq[string] = directories.mapIt(it.string)
     prefix = dirs.commonPrefix()
     suffix = dirs.dropCommonPrefix().mapIt("'" & it & "'")
     dirListing = prefix & "{" & suffix.join(",") & "}"
 
+  if prefix == "" or dirs.len == 1:
+    dirListing = dirs.mapIt("'" & it & "'").join(", ")
 
   result = newException(
     FileSearchError,
-    &"Could not find file with basename {name} and " &
-      &"extensions {extensions} in the following directories: {dirListing}."
+    &"Could not find file '{name}' and " &
+      &"extensions {extensions} in {dirListing}."
   )
 
   result.directories = directories
@@ -290,15 +295,20 @@ macro osAndNims*(code: untyped): untyped =
 macro osOrNims(osCode, nimsCode: untyped): untyped =
   when cbackend:
     result = osCode
+
   else:
     result = nimsCode
 
 
 converter toFsFile*(absFile: AbsFile): FsFile =
-  FsFile(isRelative: false, absFile: absFile)
+  result = FsFile(isRelative: false, absFile: absFile)
+  if os.fileExists(absFile.string):
+    result.info = some os.getFileInfo(absFile.string)
 
 converter toFsFile*(relFile: RelFile): FsFile =
-  FsFile(isRelative: true, relFile: relFile)
+  result = FsFile(isRelative: true, relFile: relFile)
+  if os.fileExists(relFile.string):
+    result.info = some os.getFileInfo(relFile.string)
 
 converter toFsFile*(optFile: Option[AnyFile]): Option[FsFile] =
   if optFile.isSome():
@@ -309,6 +319,13 @@ converter toFsDir*(relDir: RelDir): FsDir =
 
 converter toFsDir*(absDir: AbsDir): FsDir =
   FsDir(isRelative: false, absDir: absDir)
+
+converter toFsDir*(dir: string): FsDir =
+  if os.isAbsolute(dir):
+    FsDir(isRelative: false, absDir: AbsDir(dir))
+
+  else:
+    FsDir(isRelative: true, relDir: RelDir(dir))
 
 converter toFsDirOption*(absDir: Option[AbsDir]): Option[FsDir] =
   if absDir.isSome():
@@ -334,9 +351,10 @@ converter toFsFileSeq*(fls: seq[RelFile]): seq[FsFile] =
   for f in fls:
     result.add f.toFsFile()
 
-func toFsEntry*(path: AnyPath, isLink: bool): FsEntry =
+proc toFsEntry*(path: AnyPath, isLink: bool): FsEntry =
   when path is FsEntry:
     path
+
   elif path is FsDir:
     if isLink:
       FsEntry(kind: os.pcLinkToDir, dir: path)
@@ -357,6 +375,24 @@ func toFsEntry*(path: AnyPath, isLink: bool): FsEntry =
   elif path is RelDir or path is AbsDir:
     path.toFsDir().toFsEntry(isLink)
 
+proc toFsEntry*(path: string): FsEntry =
+  var
+    info = os.getFileInfo(path)
+    link = info.kind in { os.pcLinkToDir, os.pcLinkToFile }
+
+  if info.kind in { os.pcDir, os.pcLinkToDir }:
+    if os.isAbsolute(path):
+      toFsEntry(AbsDir(path), link)
+
+    else:
+      toFsEntry(RelDir(path), link)
+
+  else:
+    if os.isAbsolute(path):
+      toFsEntry(AbsFile(path), link)
+
+    else:
+      toFsEntry(RelFile(path), link)
 
 converter toFsEntry*(path: AnyPath): FsEntry =
   toFsEntry(path, false)
@@ -857,19 +893,26 @@ iterator walkDir*(
     dir: AnyDir;
     relative: bool = false,
     yieldFilter = {os.pcFile},
+    globs: seq[GitGlob] = @[]
   ): FsEntry =
 
   for (comp, path) in os.walkDir(dir.getStr(), relative = relative):
     let comp = comp
     if comp in yieldFilter:
-      walkYieldImpl()
+      if globs.len > 0:
+        if globs.accept(path, true):
+          walkYieldImpl()
+
+      else:
+        walkYieldImpl()
 
 iterator walkDirRec*(
     dir: AnyDir,
     yieldFilter = {os.pcFile},
     followFilter = {os.pcDir},
     relative = false,
-    checkDir = false
+    checkDir = false,
+    globs: seq[GitGlob] = @[]
   ): FsEntry =
 
   for path in os.walkDirRec(
@@ -887,7 +930,12 @@ iterator walkDirRec*(
         path
     ).kind
 
-    walkYieldImpl()
+    if globs.len > 0:
+      if globs.accept(path, true):
+        walkYieldImpl()
+
+    else:
+      walkYieldImpl()
 
 iterator walkDir*[T: AnyPath](
     dir: AnyDir,
@@ -895,6 +943,7 @@ iterator walkDir*[T: AnyPath](
     recurse: bool = false,
     yieldLinks: bool = true,
     exts: seq[string] = @[],
+    globs: seq[GitGlob] = @[],
     assertExists: bool = true
   ): T =
 
@@ -966,13 +1015,16 @@ iterator walkDir*[T: AnyPath](
 
   if recurse:
     for entry in walkDirRec(
-      dir, relative = relative, yieldFilter = resSet):
+      dir, relative = relative, yieldFilter = resSet,
+      globs = globs):
 
       yieldImpl()
 
+
   else:
     for entry in walkDir(
-      dir, relative = relative, yieldFilter = resSet):
+      dir, relative = relative, yieldFilter = resSet,
+      globs = globs):
 
       yieldImpl()
 
@@ -1256,6 +1308,36 @@ proc exists*(path: AnyPath): bool =
 
   else:
     fileExists(path)
+
+proc exists*(fs: FsFile): bool =
+  if fs.isRelative:
+    fs.relFile.exists()
+
+  else:
+    fs.absFile.exists()
+
+proc fsEntryExists*(e: string): bool =
+  os.fileExists(e) or os.dirExists(e)
+
+proc exists*(fs: FsDir): bool =
+  if fs.isRelative:
+    fs.relDir.exists()
+
+  else:
+    fs.absDir.exists()
+
+proc exists*(fs: FsEntry): bool =
+  if fs.kind in { os.pcDir, os.pcLinkToDir }:
+    fs.dir.exists()
+
+  else:
+    fs.file.exists()
+
+proc getPermissions*(file: AnyFile): set[os.FilePermission] =
+  os.getFilePermissions(file.getStr())
+
+proc getPermissions*(file: FsFile): set[os.FilePermission] =
+  file.info.get().permissions
 
 # proc fileExists*(filename: AnyFile): bool =
 #   ## An alias for fileExists.
@@ -1613,6 +1695,8 @@ proc findExe*(bin: string): AbsFile =
   ## the exe cannot be found.
   AbsFile(osAndNims(findExe(bin)))
 
+export `**`, `*!`
+
 proc findFile*(
     paths: seq[AbsDir], name: string,
     extensions: seq[GitGlob],
@@ -1625,7 +1709,14 @@ proc findFile*(
         file.ext(), invert = true):
         return file
 
-  raise newFileSearchError(paths, name, extensions, onError)
+  raise newFileSearchError(paths, $name, extensions, onError)
+
+proc findFile*(dir: AbsDir, name: GitGlob, onError: string = ""): AbsFile =
+  for file in walkDir(dir, AbsFile, recurse = false):
+    if name.accept(file.splitFile2.file, true):
+      return file
+
+  raise newFileSearchError(@[dir], $name, @[], onError)
 
 
 func `&&`*(lhs, rhs: string): string =

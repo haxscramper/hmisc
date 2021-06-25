@@ -105,6 +105,9 @@ func value*(opt: CliOpt): string = opt.valStr
 func needsValue*(opt: CliOpt): bool =
   opt.kind in coOptionKinds and opt.valStr == ""
 
+func canAddValue*(opt: CliOpt): bool =
+  opt.valStr == ""
+
 macro scanpFull*(str: typed, start: int, pattern: varargs[untyped]): untyped =
   result = nnkStmtList.newTree()
   let tmp = genSym(nskVar, "tmp")
