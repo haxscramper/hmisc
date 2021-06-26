@@ -13,7 +13,6 @@ nimble install hmisc
 - [[https://nimble.directory/pkg/hmisc][nimble package]]
 - [[https://haxscramper.github.io/hmisc/src/hmisc.html][documentation]]
 - [[https://github.com/haxscramper/hmisc][github]]
-- [[https://discord.gg/hjfYJCU][discord server]]
 
 * CI, testing and documentation
 
@@ -502,13 +501,9 @@ and some logging functions.
 * Contribution & development
 
 Most of the features in this library were implemented on
-/do-it-when-I-need-it/ basis. Some of them are tested quite
-extensively (sequence and tree mappings, colored strings), but more
-unit test are always welcome. If you consider contributing and have
-any questions about implementation or just want to clarify some things
-(documentation might need more attention) feel free to join my
-[[https://discord.gg/hjfYJCU][discord server]] and ask questions
-there.
+/do-it-when-I-need-it/ basis. Some of them are tested quite extensively
+(sequence and tree mappings, colored strings), but more unit test are
+always welcome.
 
 * References
 

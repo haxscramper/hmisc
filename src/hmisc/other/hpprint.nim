@@ -478,6 +478,11 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
             toPPrintBlock(value, conf)
           ]
 
+        # stack.add V[
+        #   H[T[name], T[": "]] ?? hasFields,
+        #   I[2, toPPrintBlock(value, conf)]
+        # ]
+
         stack.add H[
           H[T[name], T[": "]] ?? hasFields,
           toPPrintBlock(value, conf)

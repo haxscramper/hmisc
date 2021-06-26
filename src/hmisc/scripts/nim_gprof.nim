@@ -105,7 +105,7 @@ proc mainProc(l: var HLogger, conf: RunConf) =
     it.opt "out", binfile
     it.arg conf.nimfile
 
-  withDir conf.nimcache:
+  l.changeDir conf.nimcache:
     l.execShell cmd
 
   let gmonFile = conf.nimcache.findFile(**"gmon.out")
@@ -130,6 +130,8 @@ proc mainProc(l: var HLogger, conf: RunConf) =
 
     profileHeader = "Flat profile:"
     profileColumnHeader = "/call  name"
+
+  getAppTempFile("gprof.stdout").writeFile(res.stdout)
 
   let indexStart = res.stdout.find(indexHeader) - 1
 

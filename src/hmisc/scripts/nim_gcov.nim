@@ -2,11 +2,65 @@ import
   ../preludes/cli_app,
   ../other/hjson
 
+import jsony
+import std/[sequtils]
 
 type
   RunConf = object
     nimfile: AbsFile
     nimcache: AbsDir
+
+  GCovGroup = object
+    gcc_version: string
+    files: seq[GCovFile]
+
+  GCovFile = object
+    file: string
+    functions: seq[GCovFunction]
+    lines: seq[GCovLine]
+
+  GCovFunction = object
+    blocks: int ## number of blocks that are in the function
+    blocks_executed: int ## number of executed blocks of the function
+    demangled_name: string ## demangled name of the function
+    end_column: int ## column in the source file where the function ends
+    end_line: int ## line in the source file where the function ends
+    execution_count: int ## number of executions of the function
+    name: string ## name of the function
+    start_column: int ## column in the source file where the function begins
+    start_line: int ## line in the source file where the function begins
+
+  GCovLine = object
+    branches: seq[GCovBranch]
+    count: int ## number of executions of the line
+    line_number: int ## line number
+    unexecuted_block: bool ## flag whether the line contains an unexecuted
+                           ## block (not all statements on the line are
+                           ## executed)
+    function_name: string ## a name of a function this line belongs to (for
+                          ## a line with an inlined statements can be not
+                          ## set)
+
+    lineText: string
+    inFile: bool
+
+  GCovBranch = object
+    count: int ## number of executions of the branch
+    fallthrough: bool ## true when the branch is a fall through branch
+    throw: bool ## true when the branch is an exceptional branch
+
+
+proc loadGcovGroup(file: AbsFile, l: var HLogger): GCovGroup =
+  result = file.readFile().fromJson(GCovGroup)
+
+  for file in mitems(result.files):
+    if exists(AbsFile(file.file)):
+      let text = toSeq(lines file.file)
+
+      for line in mitems(file.lines):
+        if line.lineNumber - 1 in 0 .. text.high:
+          line.lineText = text[line.lineNumber - 1]
+          line.inFile = true
 
 proc mainProc(l: var HLogger, conf: RunConf) =
   l.info "Started"
@@ -28,6 +82,8 @@ proc mainProc(l: var HLogger, conf: RunConf) =
 
   var gcov = shellCmd(gcov).withIt do:
     it.flag "json-format"
+    it.flag "function-summaries"
+
     l.debug conf.nimcache
     for file in walkDir(conf.nimcache, AbsFile, exts = @["o"]):
       l.debug file
@@ -50,10 +106,14 @@ proc mainProc(l: var HLogger, conf: RunConf) =
 
     l.execShell cmd
 
-  for file in walkDir(
-    conf.nimcache, AbsFile, globs = @[**".json"]):
-
-    let json = parseJson(file)
+  for file in walkDir(conf.nimcache, AbsFile, globs = @[**"*.json"]):
+    let cov = file.loadGCovGroup(l)
+    for file in cov.files:
+      if AbsFile(file.file).name() == "file":
+        for line in file.lines:
+          if line.inFile:
+            let text = toColored(line.lineText, fgRed + bgDefault ?? line.unexecutedBlock)
+            echo &"{line.count:<3} {text}"
 
 when isMainModule:
   let
@@ -63,17 +123,16 @@ when isMainModule:
   mkdir cache
 
   file.writeFile("""
-proc te(a: int, b: string) =
-  echo a
-  echo b
+proc a(i: int) =
+  case i:
+    of 10: echo 10
+    of 20: echo 12312
+    else:
+      echo 900
 
-te(12, "faskdfasd;kf")
-te(12, "faskdfasd;kf")
-te(12, "faskdfasd;kf")
-te(12, "faskdfasd;kf")
-te(12, "faskdfasd;kf")
-te(12, "faskdfasd;kf")
-te(12, "faskdfasd;kf")
+a(20)
+a(10)
+
 """)
 
   var logger = newTermLogger()

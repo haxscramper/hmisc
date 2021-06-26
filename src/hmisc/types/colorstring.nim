@@ -491,6 +491,12 @@ func `+`*(style: sink PrintStyling, s: Style): PrintStyling =
   result = style
   result.style.incl s
 
+func `??`*(style: sink PrintStyling, expr: bool): PrintStyling =
+  if expr:
+    result = style
+
+  else:
+    result = initPrintStyling()
 
 converter toPrintStyling*(bg: BackgroundColor): PrintStyling =
   PrintStyling(use8bit: false, bg: bg)

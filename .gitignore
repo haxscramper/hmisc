@@ -24,3 +24,4 @@ callgrind.out.*
 public/*
 **/cache
 **/hmisc-*
+**/*.out

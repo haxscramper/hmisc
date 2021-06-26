@@ -333,8 +333,8 @@ template waitFor*(logger: HLogger, name: string): untyped =
 template changeDir*(logger: HLogger, dir: AbsDir, body: untyped): untyped =
   let (file, line, column) = instantiationInfo()
   openScope(logger, hskChDir, file, line, column, "")
-  withDir dir:
-    trace(l, (file, line, column), "Changed dir to ", dir)
+  withNewDir dir:
+    trace(l, (file, line, column), "Changed dir to", dir)
     body
 
   closeScope(logger)
@@ -523,7 +523,9 @@ proc loggerOutConverter*(
     stream: var PosStr,
     cmd: ShellCmd, state: var Option[HLogger]): Option[bool] =
 
-  state.get().debug(stream.readLine())
+  let line = stream.readLine()
+  if ?stream or line notin ["", "\n"]:
+    state.get().debug("|", line)
 
 proc loggerErrConverter*(
     stream: var PosStr,
