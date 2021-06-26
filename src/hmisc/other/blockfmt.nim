@@ -99,6 +99,9 @@ type
     isBreaking*: bool ## Whether or not this block should end the line
     breakMult* {.requiresinit.}: int ## Local line break cost change
 
+    minWidth*: int
+    hasInnerChoice*: bool
+
     case kind*: LytBlockKind
       of bkVerb:
         textLines*: seq[LytStr] ## Multiple lines of text
@@ -746,10 +749,24 @@ func len*(blc: LytBlock): int =
 func `[]`*(blc: LytBlock, idx: int): LytBlock =
   blc.elements[idx]
 
+func `[]`*(blc: var LytBlock, idx: int): var LytBlock =
+  blc.elements[idx]
+
 iterator items*(blc: LytBlock): LytBlock =
   for item in blc.elements:
     yield item
 
+iterator pairs*(blc: LytBlock): (int, LytBlock) =
+  for idx, item in blc.elements:
+    yield (idx, item)
+
+iterator mitems*(blc: var LytBlock): var LytBlock =
+  for item in mitems(blc.elements):
+    yield item
+
+iterator mpairs*(blc: var LytBlock): (int, var LytBlock) =
+  for idx, item in mpairs(blc.elements):
+    yield (idx, item)
 
 #============================  Constructors  =============================#
 
@@ -757,7 +774,9 @@ func makeBlock*(kind: LytBlockKind, breakMult: int = 1): LytBlock =
   LytBlock(kind: kind, breakMult: breakMult)
 
 func makeTextBlock*(text: string, breakMult: int = 1): LytBlock =
-  LytBlock(kind: bkText, text: text.lytStr(), breakMult: breakMult)
+  LytBlock(
+    kind: bkText, text: text.lytStr(),
+    breakMult: breakMult, minWidth: text.len())
 
 func makeEmptyBlock*(): LytBlock =
   LytBlock(kind: bkEmpty, breakMult: 1)
@@ -767,7 +786,9 @@ func makeTextBlock*(
     breakMult: int = 1
   ): LytBlock =
 
-  LytBlock(kind: bkText, text: text.lytStr(), breakMult: breakMult)
+  LytBlock(
+    kind: bkText, text: text.lytStr(),
+    breakMult: breakMult, minWidth: text.len())
 
 proc makeTextBlocks*(text: openarray[string]): seq[LytBlock] =
   text.mapIt(makeTextBlock(it))
@@ -840,6 +861,9 @@ func makeChoiceBlock*(
       elements: filterIt(elems, not it.isEmpty()).mapIt(it.flatten({
         bkLine, bkChoice, bkStack})))
 
+  result.hasInnerChoice = true
+  result.minWidth = result.elements.minIt(it.minWidth)
+
 func makeLineBlock*(
     elems: openarray[LytBlock], breakMult: int = 1): LytBlock =
   if (let idx = findSingle(elems, bkLine); idx != -1):
@@ -882,6 +906,9 @@ func makeLineBlock*(
 
       result.elements.add prev
 
+  result.hasInnerChoice = result.elements.anyIt(it.hasInnerChoice)
+  result.minWidth = result.elements.sumIt(it.minWidth)
+
 
 
 
@@ -912,6 +939,9 @@ func makeStackBlock*(
       breakMult: breakMult, kind: bkStack,
       elements: filterIt(elems, not it.isEmpty()).mapIt(
         it.flatten({bkStack, bkLine})))
+
+  result.hasInnerChoice = result.elements.anyIt(it.hasInnerChoice)
+  result.minWidth = result.elements.maxIt(it.minWidth)
 
 
 func makeWrapBlock*(

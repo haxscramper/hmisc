@@ -212,13 +212,14 @@ import hmisc/other/[hargparse, hpprint, blockfmt]
 
 var app = newCliApp(
   "nim_gprof", (0, 1, 0), "haxscramper",
-  "pretty-print gprof data for nim program"
-)
+  "pretty-print gprof data for nim program",
+  noDefault = @["help", "log-output", "loglevel", "version", "color",
+                "force", "dry-run", "quiet"])
 
 let (tree, errors) = app.acceptParams(@[])
-let bl = ppblock(tree)
 
-"/tmp/out".writeFile(bl.codegenRepr())
+let bl = ppblock(tree)
+# "/tmp/out".writeFile(bl.codegenRepr())
 
 proc countBlock(bl: LytBlock): int =
   result = bl.len()
@@ -232,7 +233,15 @@ proc countBlock(bl: LytBlock): int =
 
 echo countBlock(bl)
 
-# pprint tree
+pprint tree, 100
+
+pprint @[
+ @[1,233,3,4,543,5,6,7,7,8],
+ @[1,233,33,4,543,5,6,337,7,8],
+ @[1,233,33,4,543,5,6,33337,7,8],
+ @[1,233,33,4,543,5,6,33337,7,8],
+ @[1,2,3,43,54,5,6,37,337,8],
+]
 
 """)
 

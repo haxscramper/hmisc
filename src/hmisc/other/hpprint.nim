@@ -1,12 +1,15 @@
 import
   ./blockfmt,
-  std/[typetraits, options, unicode, sets,
-       json, strformat, tables],
+  std/[
+    typetraits, options, unicode, sets,
+    json, strformat, tables, strutils, sequtils
+  ],
   ".."/[
     hexceptions,
     hdebug_misc,
     types/colorstring,
-    macros/introspection
+    macros/introspection,
+    algo/hseq_mapping
   ]
 
 type
@@ -37,7 +40,7 @@ type
     treeId*: int
     styling* {.requiresinit.}: PrintStyling
     treeType*: PPrintType
-    subCount*: int
+    size*: int
     height*: int
 
 
@@ -58,9 +61,14 @@ type
   PPrintConf* = object
     idCounter: int
     visited: HashSet[int]
-    maxHeightChoice*: int
-    rightMargin*: int
+    maxStackHeightChoice*: int
+    minLineHeightChoice*: int
+    minLineSizeChoice*: int
+    formatOpts*: LytOptions
     colored*: bool
+    sortBySize*: bool
+    alignSmallFields*: bool
+    alignSmallGrids*: bool
 
 
 proc newPPrintTree*(
@@ -69,29 +77,37 @@ proc newPPrintTree*(
 
   PPrintTree(kind: kind, path: path, treeId: id, styling: styling)
 
-func updateCounts*(tree: var PPrintTree) =
+func updateCounts*(tree: var PPrintTree, conf: PPrintConf) =
   case tree.kind:
     of ptkConst, ptkVisited, ptkIgnored:
       tree.height = 1
 
     of ptkObject, ptkNamedTuple, ptkTuple, ptkList:
       for (_, val) in tree.elements:
-        tree.height = max(tree.height, val.height) + 1
-        tree.subCount += val.subCount + 1
+        tree.height = max(tree.height, val.height)
+        tree.size += val.size + 1
 
       inc tree.height
+
+      if conf.sortBySize:
+        sortIt(tree.elements, it.value.size)
 
     of ptkMapping:
       for (key, val) in tree.mappings:
         tree.height = max(max(tree.height, key.height), val.height)
-        tree.subCount += val.subCount + key.subCount
+        tree.size += val.size + key.size
 
       inc tree.height
 
+      if conf.sortBySize:
+        sortIt(tree.mappings, max(it[0].size, it[1].size))
 
-func updateCounts*(tree: sink PPrintTree): PPrintTree =
+
+
+
+func updateCounts*(tree: sink PPrintTree, conf: PPrintConf): PPrintTree =
   result = tree
-  updateCounts(result)
+  updateCounts(result, conf)
 
 proc newPPrintConst*(
     value, constType: string, id: int,
@@ -184,18 +200,18 @@ proc toPprintTree*(
         for name, item in pairs(val.getFields()):
           result.elements.add(($name, toPPrintTree(item, conf, path)))
 
-  result.updateCounts()
+  result.updateCounts(conf)
 
 proc toPprintTree*[T](
     entry: T, conf: var PPrintConf, path: PPrintPath): PPrintTree =
 
   if conf.isVisited(entry):
     return newPPrintTree(
-      ptkVisited, conf.getId(entry), path, fgRed + bgDefault).updateCounts()
+      ptkVisited, conf.getId(entry), path, fgRed + bgDefault).updateCounts(conf)
 
   elif conf.ignoredBy(path):
     return newPPrintTree(
-      ptkVisited, conf.getId(entry), path, fgYellow + bgDefault).updateCounts()
+      ptkVisited, conf.getId(entry), path, fgYellow + bgDefault).updateCounts(conf)
 
   else:
     conf.visit(entry)
@@ -204,7 +220,7 @@ proc toPprintTree*[T](
 
     when entry is typeof(nil):
       return newPPrintConst(
-        "nil", "nil", conf.getId(entry), fgBlue + bgDefault, path).updateCounts()
+        "nil", "nil", conf.getId(entry), fgBlue + bgDefault, path).updateCounts(conf)
 
     elif not ( # key-value pairs (tables etc.)
         (entry is seq) or
@@ -446,7 +462,7 @@ proc toPprintTree*[T](
         path
       )
 
-  updateCounts(result)
+  updateCounts(result, conf)
 
 proc toPPrintTree*[T](obj: T): PPrintTree =
   var conf = PPrintConf()
@@ -454,9 +470,22 @@ proc toPPrintTree*[T](obj: T): PPrintTree =
 
 initBlockFmtDSL()
 
+proc layouts(tree: PPrintTree, conf: PPrintConf):
+    tuple[asLine, asStack: bool] =
+
+  result =
+    if tree.height >= conf.maxStackHeightChoice:
+      (false, true)
+
+    elif tree.height < conf.minLineHeightChoice and
+         tree.size < conf.minLineSizeChoice:
+      (true, false)
+
+    else:
+      (true, true)
+
 proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
-  let choose = tree.height < conf.maxHeightChoice
-  # echo tree.height, " ", choose
+  let (hasLine, hasStack) = tree.layouts(conf)
 
   case tree.kind:
     of ptkConst:
@@ -470,39 +499,54 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
         line = H[]
         stack = V[]
 
+
+      var maxName = 0
       for idx, (name, value) in tree.elements:
-        if choose:
+        if conf.alignSmallFields and value.size < 6:
+          maxName = max(name.len, maxName)
+
+
+      for idx, (name, value) in tree.elements:
+        if hasLine:
           line.add H[
             T[", "] ?? idx > 0,
-            H[T[name], T[": "]] ?? hasFields,
+            T[name & ": "] ?? hasFields,
             toPPrintBlock(value, conf)
           ]
 
-        # stack.add V[
-        #   H[T[name], T[": "]] ?? hasFields,
-        #   I[2, toPPrintBlock(value, conf)]
-        # ]
+        if hasStack:
+          let name = strutils.alignLeft(name & ": ", maxName + 2)
+          if value.height > 3:
+            stack.add V[
+              T[name] ?? hasFields,
+              I[2, toPPrintBlock(value, conf)]
+            ]
 
-        stack.add H[
-          H[T[name], T[": "]] ?? hasFields,
-          toPPrintBlock(value, conf)
-        ]
+          else:
+            stack.add H[
+              T[name] ?? hasFields,
+              toPPrintBlock(value, conf)
+            ]
 
-      if choose:
+      if hasLine:
         line = H[
           (T[tree.treeType.head & "("], T["("]) ?? hasName,
           line,
           T[")"]
         ]
 
-      stack = V[
-        (T[tree.treeType.head & "("], T["("]) ?? hasName,
-        I[2, stack],
-        T[")"]
-      ]
+      if hasStack:
+        stack = V[
+          (T[tree.treeType.head & "("], T["("]) ?? hasName,
+          I[2, stack],
+          # T[")"] # NOTE potentially configurable
+        ]
 
-      if choose:
+      if hasLine and hasStack:
         result = C[line, stack]
+
+      elif hasLine:
+        result = line
 
       else:
         result = stack
@@ -514,17 +558,79 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
       var
         line = H[T["["]]
         stack = V[]
+        stackLines: seq[seq[LytBlock]]
+
+      var doAlign: bool = conf.alignSmallGrids
+      if doAlign:
+        for idx, (name, value) in tree.elements:
+          doAlign = value.size <= 3 and value.height <= 2
+          if not doAlign:
+            break
+
+
+
 
       for idx, (name, value) in tree.elements:
-        if choose:
+        if hasLine:
           line.add T[", "] ?? idx > 0
           line.add toPprintBlock(value, conf)
 
-        stack.add H[T["- "], toPPrintBlock(value, conf)]
+        if hasStack:
+          if conf.alignSmallGrids:
+            var line: seq[LytBlock]
+            case value.kind:
+              of ptkConst:
+                line.add toPPrintTree(value)
 
-      if choose:
+              of ptkTuple, ptkNamedTuple, ptkObject:
+
+
+          else:
+            stackLines.add toPPrintBlock(value, conf)
+
+      if hasLine:
         line.add T["]"]
+
+      if hasStack and conf.alignSmallGrids:
+        var doAlign: bool = true
+        var alignLens: seq[tuple[target, extended: int]]
+
+        for line in stackLines:
+          if line.allIt(
+            it.kind == bkLine and
+            it.minWidth <= 6 and
+            it.hasInnerChoice.not
+          ):
+
+            for idx, cell in line[1]:
+              if idx > alignLens.high:
+                alignLens.setLen idx
+
+              alignLens[idx].target = max(alignLens[idx].target, cell.minWidth)
+
+          else:
+            doAlign = false
+
+        if doAlign:
+          for line in mitems(stackLines):
+            for idx, cell in mpairs(line):
+              if cell.minWidth < alignLens[idx].target:
+                alignLens[idx].extended = alignLens[idx].target - cell.minWidth
+
+                cell.add T[repeat(" ", alignLens[idx].target)]
+
+
+
+      if conf.alignSmallGrids:
+        for line in stackLines:
+          stack.add H[T["- "], line]
+
+
+      if hasLine and hasStack:
         result = C[line, stack]
+
+      elif hasLine:
+        result = line
 
       else:
         result = stack
@@ -535,7 +641,7 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
         stack = V[]
 
       for idx, (key, val) in tree.mappings:
-        if choose:
+        if hasLine:
           line.add H[
             T[", "] ?? idx > 0,
             toPPrintBlock(key, conf),
@@ -543,14 +649,20 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
             toPPrintBlock(val, conf)
           ]
 
-        stack.add V[
-          H[toPPrintBlock(key, conf), T[" ="]],
-          I[2, toPPrintBlock(val, conf)]
-        ]
+        if hasStack:
+          stack.add V[
+            H[toPPrintBlock(key, conf), T[" ="]],
+            I[2, toPPrintBlock(val, conf)]
+          ]
 
-      if choose:
+      if hasLine:
         line.add T["}"]
+
+      if hasLine and hasStack:
         result = C[line, stack]
+
+      elif hasLine:
+        result = line
 
       else:
         result = stack
@@ -560,9 +672,14 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
       raise newImplementKindError(tree)
 
 const defaultPPrintConf* = PPrintConf(
-  rightMargin: 80,
-  maxHeightChoice: 5,
-  colored: true
+  formatOpts: defaultFormatOpts,
+  maxStackHeightChoice: 5,
+  minLineHeightChoice: 2,
+  minLineSizeChoice: 6,
+  colored: true,
+  sortBySize: true,
+  alignSmallFields: true,
+  alignSmallGrids: true
 )
 
 proc pptree*[T](obj: T, conf: PPrintConf = defaultPPrintConf): PPrintTree =
@@ -578,16 +695,14 @@ proc pstring*[T](
   conf: PPrintConf = defaultPPrintConf): string =
 
   var conf = conf
-  if conf.rightMargin == defaultPPrintConf.rightMargin:
-    conf.rightMargin = rightMargin
+  if conf.formatOpts.rightMargin !=
+     defaultPPrintConf.formatOpts.rightMargin:
 
-
-  var opts = defaultFormatOpts
-  opts.rightMargin = conf.rightMargin
+    conf.formatOpts.rightMargin = rightMargin
 
   return toPPrintTree(obj, conf, @[]).
     toPPrintBlock(conf).
-    toString(opts.rightMargin, opts = opts)
+    toString(conf.formatOpts.rightMargin, opts = conf.formatOpts)
 
 
 proc pprint*[T](
