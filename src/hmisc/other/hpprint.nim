@@ -9,7 +9,8 @@ import
     hdebug_misc,
     types/colorstring,
     macros/introspection,
-    algo/hseq_mapping
+    algo/hseq_mapping,
+    algo/hseq_distance
   ]
 
 type
@@ -30,8 +31,19 @@ type
     ptkObject
     ptkNamedTuple
 
+  PPrintPathKind = enum
+    ppkField
+    ppkObject
+    ppkIndex
+    ppkKey
+
   PPrintPathElem = object
-    name*: string
+    case kind*: PPrintPathKind
+      of ppkIndex:
+        idx*: int
+
+      else:
+        name*: string
 
   PPrintPath* = seq[PPrintPathElem]
 
@@ -42,6 +54,7 @@ type
     treeType*: PPrintType
     size*: int
     height*: int
+    forceLayout*: Option[tuple[line, stack: bool]]
 
 
     case kind*: PprintTreeKind
@@ -57,10 +70,28 @@ type
       of ptkMapping:
         mappings*: seq[tuple[key, val: PPrintTree]]
 
+  PPrintGlobPart = object
+    case kind*: GenGlobPartKind
+      of ggkWord:
+        name*: string
+
+      else:
+        discard
+
+  PPrintLytChoice = tuple[line, stack: bool]
+  PPrintGlob = seq[PPrintGlobPart]
+
+  PPrintMatch = object
+    globs*: seq[PPrintGlob]
 
   PPrintConf* = object
     idCounter: int
     visited: HashSet[int]
+
+    ignorePaths*: PPrintMatch
+    forceLayouts*: seq[tuple[match: PprintMatch,
+                             force: PPrintLytChoice]]
+
     maxStackHeightChoice*: int
     minLineHeightChoice*: int
     minLineSizeChoice*: int
@@ -70,12 +101,80 @@ type
     alignSmallFields*: bool
     alignSmallGrids*: bool
 
+proc globKind*(pprintGlob: PPrintGlobPart): GenGlobPartKind = pprintGlob.kind
+proc globKind*(pprintGlob: PPrintPathElem): GenGlobPartKind = ggkWord
+
+func globAnyParent*(): PPrintGlob =
+  @[
+    PPrintGlobPart(kind: ggkAnyStar),
+    PPrintGlobPart(kind: ggkAnyStar)
+  ]
+
+
+func globAnyTrail*(main: sink PPrintGlob): PPrintGlob =
+  result = main
+  result.add @[
+    PPrintGlobPart(kind: ggkAnyStar),
+    PPrintGlobPart(kind: ggkAnyStar)
+  ]
+
+
+
+func globAny*(): PPrintGlob =
+  @[PPrintGlobPart(kind: ggkAnyStar)]
+
+func globAny*(main: sink PPrintGlob): PPrintGlob =
+  result = main
+  result.add @[PPrintGlobPart(kind: ggkAnyStar)]
+
+func globField*(main: sink PPrintGlob, field: string): PPrintGlob =
+  result = main
+  result.add PPrintGlobPart(kind: ggkWord, name: field)
+
+func globMatch*(globs: varargs[PPrintGlob]): PPrintMatch =
+  PPrintMatch(globs: toSeq(globs))
+
+func forceLine*(): PPrintLytChoice = (true, false)
+func forceStack*(): PPrintLytChoice = (false, true)
+func forceChoice*(): PPrintLytChoice = (true, true)
+
+proc pathElem*(kind: PPrintPathKind, name: string): PPrintPathElem =
+  result = PprintPathElem(kind: kind)
+  result.name = name
+
+proc pathElem*(idx: int): PPrintPathElem =
+  PPrintPathElem(kind: ppkIndex, idx: idx)
+
+func `$`*(part: PPrintGlobPart): string =
+  "[" & ($part.kind)[3..^1] & " " & (if part.kind == ggkWord: part.name else: "") & "]"
+
+func `$`*(part: PPrintGlob): string =
+  for p in part:
+    result &= $p
+
+
+func globEqCmp*(path: PPrintPathElem, glob: PPrintGlobPart): bool =
+  let k = (path.kind, glob.kind)
+  if k == (ppkField, ggkWord):
+    result = path.name == glob.name
+
+func matches*(match: PPrintMatch, path: PPrintPath): bool =
+  for glob in match.globs:
+    if gitignoreGlobMatch(path, glob, globEqCmp):
+      return true
+
 
 proc newPPrintTree*(
     kind: PPrintTreeKind, id: int, path: PPrintPath,
+    conf: PprintConf,
     styling: PrintStyling = initPrintStyling()): PPrintTree =
 
-  PPrintTree(kind: kind, path: path, treeId: id, styling: styling)
+  result = PPrintTree(kind: kind, path: path, treeId: id, styling: styling)
+
+  for (patt, force) in conf.forceLayouts:
+    if patt.matches(path):
+      result.forceLayout = some force
+
 
 func updateCounts*(tree: var PPrintTree, conf: PPrintConf) =
   case tree.kind:
@@ -120,7 +219,7 @@ proc newPPrintConst*(
 
 
 proc ignoredBy*(conf: PPrintConf, path: PPrintPath): bool =
-  discard
+  conf.ignorePaths.matches(path)
 
 proc isVisited*[T](conf: PPrintConf, obj: T): bool =
   when obj is ref or obj is ptr:
@@ -191,14 +290,16 @@ proc toPprintTree*(
           conf.getId(val), fgYellow + bgDefault, path)
 
       of JArray:
-        result = newPPrintTree(ptkList, conf.getId(val), path)
+        result = newPPrintTree(ptkList, conf.getId(val), path, conf)
         for idx, item in val.getElems():
-          result.elements.add(($idx, toPPrintTree(item, conf, path)))
+          result.elements.add(($idx, toPPrintTree(
+            item, conf, path & pathElem(idx))))
 
       of JObject:
-        result = newPPrintTree(ptkObject, conf.getId(val), path)
+        result = newPPrintTree(ptkObject, conf.getId(val), path, conf)
         for name, item in pairs(val.getFields()):
-          result.elements.add(($name, toPPrintTree(item, conf, path)))
+          result.elements.add(($name, toPPrintTree(
+            item, conf, path & pathElem(ppkField, name))))
 
   result.updateCounts(conf)
 
@@ -207,11 +308,13 @@ proc toPprintTree*[T](
 
   if conf.isVisited(entry):
     return newPPrintTree(
-      ptkVisited, conf.getId(entry), path, fgRed + bgDefault).updateCounts(conf)
+      ptkVisited, conf.getId(entry), path,
+      conf, fgRed + bgDefault).updateCounts(conf)
 
   elif conf.ignoredBy(path):
     return newPPrintTree(
-      ptkVisited, conf.getId(entry), path, fgYellow + bgDefault).updateCounts(conf)
+      ptkIgnored, conf.getId(entry), path,
+      conf, fgYellow + bgDefault).updateCounts(conf)
 
   else:
     conf.visit(entry)
@@ -230,7 +333,7 @@ proc toPprintTree*[T](
       ) and compiles(for k, v in pairs(entry): discard):
 
       result = newPPrintTree(
-        ptkMapping, conf.getId(entry), path)
+        ptkMapping, conf.getId(entry), path, conf)
 
       for key, val in pairs(entry):
         let res = toPPrintTree(val, conf, path)
@@ -255,20 +358,7 @@ proc toPprintTree*[T](
       mixin items
 
       result = newPPrintTree(
-        ptkMapping, conf.getId(entry), path)
-
-      # result = ObjTree(
-      #   styling: conf.sconf.getStyling($typeof(entry)),
-      #   kind: okTable,
-      #   keyType: $typeof(ArrKey),
-      #   valType: $typeof(ArrValue),
-      #   path: path,
-      #   objId: (entry is ref).tern(
-      #     cast[int](unsafeAddr entry),
-      #     conf.idCounter.next()
-      #   ),
-      #   keyStyling: conf.sconf.getStyling($typeof(ArrKey), stpTableKey)
-      # )
+        ptkMapping, conf.getId(entry), path, conf)
 
       for key, val in pairs(entry):
         when ArrKey is (StaticParam[enum] or static[enum] or enum):
@@ -301,7 +391,8 @@ proc toPprintTree*[T](
         else:
           let keyName = $key
 
-        let res = toPPrintTree(val, conf, path)
+        let res = toPPrintTree(
+          val, conf, path & pathElem(ppkKey, keyName))
 
         if res.kind notin {ptkIgnored}:
           result.mappings.add((
@@ -325,7 +416,7 @@ proc toPprintTree*[T](
       const directItems = compiles(for i in items(entry): discard)
 
       result = newPPrintTree(
-        ptkList, conf.getId(entry), path)
+        ptkList, conf.getId(entry), path, conf)
 
       var idx: int = 0
       for it in (
@@ -335,7 +426,7 @@ proc toPprintTree*[T](
         else:
           items(entry[])
       ):
-        let res = toPPrintTree(it, conf, path)
+        let res = toPPrintTree(it, conf, path & pathElem(idx))
         if res.kind notin { ptkIgnored }:
           result.elements.add(($idx, res))
 
@@ -359,6 +450,8 @@ proc toPprintTree*[T](
            (entry is ptr object):
         let kind = ptkObject
 
+        let path = path & pathElem(ppkObject, $typeof(entry))
+
       elif isNamedTuple(T):
         let kind = ptkNamedTuple
 
@@ -368,7 +461,7 @@ proc toPprintTree*[T](
       when entry is ptr or entry is ref:
         if isNil(entry):
           result = newPPrintTree(
-            kind, conf.getId(entry, true), path)
+            kind, conf.getId(entry, true), path, conf)
 
           result.styling = fgRed + bgDefault
 
@@ -376,12 +469,12 @@ proc toPprintTree*[T](
 
         else:
           result = newPPrintTree(
-            kind, conf.getId(entry), path)
+            kind, conf.getId(entry), path, conf)
 
 
       else:
         result = newPPrintTree(
-          kind, conf.getId(entry), path)
+          kind, conf.getId(entry), path, conf)
 
       result.treeType = entryT
 
@@ -390,13 +483,17 @@ proc toPprintTree*[T](
            (entry is ptr object) or
            (entry is ptr tuple):
         for name, value in fieldPairs(entry[]):
-          let res = toPPrintTree(value, conf, path)
+          let res = toPPrintTree(
+            value, conf, path & pathElem(ppkField, name))
+
           if res.kind notin {ptkIgnored}:
             result.elements.add((name, res))
 
       else:
         for name, value in fieldPairs(entry):
-          let res = toPPrintTree(value, conf, path)
+          let res = toPPrintTree(
+            value, conf, path & pathElem(ppkField, name))
+
           if res.kind notin {ptkIgnored}:
             result.elements.add((name, res))
 
@@ -470,19 +567,21 @@ proc toPPrintTree*[T](obj: T): PPrintTree =
 
 initBlockFmtDSL()
 
-proc layouts(tree: PPrintTree, conf: PPrintConf):
-    tuple[asLine, asStack: bool] =
+proc layouts(tree: PPrintTree, conf: PPrintConf): PprintLytChoice =
+  if tree.forceLayout.isSome():
+    result = tree.forceLayout.get()
 
-  result =
-    if tree.height >= conf.maxStackHeightChoice:
-      (false, true)
+  else:
+    result =
+      if tree.height >= conf.maxStackHeightChoice:
+        (false, true)
 
-    elif tree.height < conf.minLineHeightChoice and
-         tree.size < conf.minLineSizeChoice:
-      (true, false)
+      elif tree.height < conf.minLineHeightChoice and
+           tree.size < conf.minLineSizeChoice:
+        (true, false)
 
-    else:
-      (true, true)
+      else:
+        (true, true)
 
 proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
   let (hasLine, hasStack) = tree.layouts(conf)
@@ -633,14 +732,20 @@ proc ppblock*[T](obj: T, conf: PPrintConf = defaultPPrintConf): LytBlock =
   return toPPrintTree(obj, conf, @[]).toPPrintBlock(conf)
 
 proc pstring*[T](
-  obj: T, rightMargin: int = 80,
-  conf: PPrintConf = defaultPPrintConf): string =
+    obj: T, rightMargin: int = 80,
+    force: openarray[(PPrintMatch, PPrintLytChoice)] = @[],
+    ignore: PPrintMatch = PPrintMatch(),
+    conf: PPrintConf = defaultPPrintConf,
+  ): string =
 
   var conf = conf
   if conf.formatOpts.rightMargin !=
      defaultPPrintConf.formatOpts.rightMargin:
 
     conf.formatOpts.rightMargin = rightMargin
+
+  conf.forceLayouts = toSeq(force)
+  conf.ignorePaths = ignore
 
   return toPPrintTree(obj, conf, @[]).
     toPPrintBlock(conf).
@@ -649,6 +754,9 @@ proc pstring*[T](
 
 proc pprint*[T](
     obj: T, rightMargin: int = 80,
-    conf: PPrintConf = defaultPPrintConf) =
+    force: openarray[(PPrintMatch, PPrintLytChoice)] = @[],
+    ignore: PPrintMatch = PPrintMatch(),
+    conf: PPrintConf = defaultPPrintConf
+  ) =
 
-  echo pstring(obj, rightMargin, conf)
+  echo pstring(obj, rightMargin, force, ignore, conf = conf)

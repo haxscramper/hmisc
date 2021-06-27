@@ -187,7 +187,7 @@ suite "Deeply nested types":
       @[5, 6, 7, 8],
       @[9, 1, 2, 3],
       @[4, 5, 6, 7],
-    ].pstring(80, op),
+    ].pstring(80, conf = op),
          "[[1, 2, 3, 4], [5, 6, 7, 8], [9, 1, 2, 3], [4, 5, 6, 7]]"
 
 
@@ -197,7 +197,7 @@ suite "Deeply nested types":
       @[5, 6, 7, 8],
       @[9, 1, 2, 3],
       @[4, 5, 6, 7],
-    ].pstring(20, op), """
+    ].pstring(20, conf = op), """
       - [1, 2, 3, 4]
       - [5, 6, 7, 8]
       - [9, 1, 2, 3]
@@ -208,7 +208,7 @@ suite "Deeply nested types":
     assertEq @[
       @[1, 2, 4],
       @[5, 6, 8],
-    ].pstring(7, op), """
+    ].pstring(7, conf = op), """
       - - 1
         - 2
         - 4
@@ -228,7 +228,12 @@ suite "Other tests":
     pprint %12
 
   test "Larger types colored":
-    pprint PPrintConf()
+    pprint PPrintConf(), force = {
+      globAny().
+        globField("format_policy").
+        globAny().
+        globMatch(): forceStack()
+    }, ignore = globAny().globField("cpack").globMatch()
 
   test "Cyclic objects":
     type
