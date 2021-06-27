@@ -22,6 +22,8 @@ import ../base_errors
 import ../algo/hlex_base
 import ../algo/htemplates
 
+import ../types/colorstring
+
 from std/os import quoteShell
 
 const hasStrtabs = cbackend or (NimMajor, NimMinor, NimPatch) > (1, 2, 6)
@@ -164,7 +166,7 @@ type
   ShellCmd* = object
     bin: string
     opts: seq[ShellCmdPart]
-    conf: ShellCmdConf
+    conf*: ShellCmdConf
     envVals: seq[tuple[key, val: string]]
 
 
@@ -457,7 +459,8 @@ func quoteShell*(str: string): string =
 
 func toStr*(inAst: ShellAst, oneline: bool = false): string
 
-func toStr*(part: ShellCmdPart, conf: ShellCmdConf): string =
+func toStr*(
+    part: ShellCmdPart, conf: ShellCmdConf, colored: bool = false): string =
   ## Convret shell command part to string representation
   let longPrefix =
     case conf.flagConf:
@@ -466,28 +469,37 @@ func toStr*(part: ShellCmdPart, conf: ShellCmdConf): string =
 
   case part.kind:
     of cpkRaw:
-      return part.rawstring
+      return toRed(part.rawstring, colored)
+
     of cpkSubCmd:
-      return part.subcommand
+      return toBlue(part.subcommand, colored)
+
     of cpkFlag:
       if part.flag.len > 1:
-        return longPrefix & part.flag
+        return longPrefix & toGreen(part.flag, colored)
+
       else:
-        return "-" & part.flag
+        return "-" & toGreen(part.flag, colored)
+
     of cpkOption:
       let kv = if part.overrideKv: part.kvSep else: conf.kvSep
       if part.key.len > 1:
-        return longPrefix & part.key & kv & part.val.quoteShell()
+        return longPrefix & toGreen(part.key, colored) &
+          kv & part.val.quoteShell()
+
       else:
-        return "-" & part.key & kv & part.val.quoteShell()
+        return "-" & toGreen(part.key, colored) & kv &
+          part.val.quoteShell()
+
     of cpkArgument:
-      return part.argument.quoteShell()
+      return toYellow(part.argument.quoteShell(), colored)
+
     of cpkSubExpr:
       if part.expr.kind != sakVar:
         return part.expr.toStr().quoteShell()
+
       else:
         return part.expr.toStr()
-
 
 func toStrSeq*(cmd: ShellCmd): seq[string] =
   result = @[ cmd.bin ]
@@ -623,6 +635,14 @@ func toStr*(inAst: ShellAst, oneline: bool = false): string =
   return aux(inAst, 0, false)
 
 
+
+iterator items*(cmd: ShellCmd): ShellCmdPart =
+  for item in items(cmd.opts):
+    yield item
+
+iterator pairs*(cmd: ShellCmd): (int, ShellCmdPart) =
+  for idx, item in pairs(cmd.opts):
+    yield (idx, item)
 
 func toLogStr*(cmd: ShellCmd): string =
   ## Convert shell command to pretty-printed shell representation

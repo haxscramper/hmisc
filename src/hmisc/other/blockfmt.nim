@@ -99,7 +99,7 @@ type
     isBreaking*: bool ## Whether or not this block should end the line
     breakMult* {.requiresinit.}: int ## Local line break cost change
 
-    minWidth*: int
+    minWidth* {.requiresinit.}: int
     hasInnerChoice*: bool
 
     case kind*: LytBlockKind
@@ -237,28 +237,33 @@ proc `$`*(sln: Option[LytSolution]): string =
   if sln.isSome(): return $sln.get()
 
 proc `$`*(blc: LytBlock): string =
-  case blc.kind:
-    of bkText:
-      "T[" & (if blc.isBreaking: "*" else: "") & &"\"{blc.text}\"]"
+  result = $blc.minWidth & " "
+  result &= (
+    case blc.kind:
+      of bkText:
+        "T[" & (if blc.isBreaking: "*" else: "") & &"\"{blc.text}\"]"
 
-    of bkStack:
-      "V[" & blc.elements.mapIt($it).join(" ↕ ") & "]"
+      of bkStack:
+        "V[" & blc.elements.mapIt($it).join(" ↕ ") & "]"
 
-    of bkLine:
-      "H[" & blc.elements.mapIt($it).join(" ↔ ") & "]"
+      of bkLine:
+        "H[" & blc.elements.mapIt($it).join(" ↔ ") & "]"
 
-    of bkChoice:
-      blc.elements.mapIt($it).join(" ? ").wrap("()")
+      of bkChoice:
+        blc.elements.mapIt($it).join(" ? ").wrap("()")
 
-    of bkWrap:
-      blc.wrapElements.mapIt($it).join(" ").wrap("[]")
+      of bkWrap:
+        blc.wrapElements.mapIt($it).join(" ").wrap("[]")
 
-    of bkVerb:
-      $blc.textLines[0].text & "..."
+      of bkVerb:
+        $blc.textLines[0].text & "..."
 
-    of bkEmpty:
-      "<empty>"
+      of bkEmpty:
+        "<empty>"
+  )
       # &""">>{blc.textLines.join("⮒")}<<"""
+
+
 
 func treeRepr*(inBl: LytBlock): string =
   func aux(bl: LytBlock, level: int): string =
@@ -273,9 +278,7 @@ func treeRepr*(inBl: LytBlock): string =
         of bkEmpty: "E"
 
     let pref = align(
-      name & " ",
-      level * 2
-    )
+      name & " ", level * 2) & &"[{bl.minWidth:<3}] "
 
     let pref2 = repeat(" ", level * 2 + 2)
 
@@ -771,7 +774,7 @@ iterator mpairs*(blc: var LytBlock): (int, var LytBlock) =
 #============================  Constructors  =============================#
 
 func makeBlock*(kind: LytBlockKind, breakMult: int = 1): LytBlock =
-  LytBlock(kind: kind, breakMult: breakMult)
+  LytBlock(kind: kind, breakMult: breakMult, minWidth: 0)
 
 func makeTextBlock*(text: string, breakMult: int = 1): LytBlock =
   LytBlock(
@@ -779,16 +782,18 @@ func makeTextBlock*(text: string, breakMult: int = 1): LytBlock =
     breakMult: breakMult, minWidth: text.len())
 
 func makeEmptyBlock*(): LytBlock =
-  LytBlock(kind: bkEmpty, breakMult: 1)
+  LytBlock(kind: bkEmpty, breakMult: 1, minWidth: 0)
 
 func makeTextBlock*(
     text: ColoredString | ColoredLine,
     breakMult: int = 1
   ): LytBlock =
 
-  LytBlock(
+  result = LytBlock(
     kind: bkText, text: text.lytStr(),
-    breakMult: breakMult, minWidth: text.len())
+    breakMult: breakMult, minWidth: 0)
+
+  result.minWidth = result.text.len()
 
 proc makeTextBlocks*(text: openarray[string]): seq[LytBlock] =
   text.mapIt(makeTextBlock(it))
@@ -834,9 +839,36 @@ template findSingle*(elems: typed, targetKind: typed): untyped =
     -1
 
 
+func updateSizes(bk: var LytBlock) =
+  # if bk.kind == bkChoice: echov bk
+
+  bk.minWidth =
+    case bk.kind:
+      of bkStack: bk.elements.maxIt(it.minWidth)
+      of bkLine: bk.elements.sumIt(it.minWidth)
+      of bkText: bk.text.len()
+      of bkChoice: bk.elements.minIt(it.minWidth)
+      else: 0
+
+
+  bk.hasInnerChoice =
+    case bk.kind:
+      of bkStack, bkLine: bk.elements.anyIt(it.hasInnerChoice)
+      of bkChoice: true
+      else: false
+
+  # if bk.kind == bkChoice: echov bk
+
+
 func convertBlock*(bk: LytBlock, newKind: LytBlockKind): LytBlock =
-  result = LytBlock(breakMult: bk.breakMult, kind: newKind)
+  result = LytBlock(
+    breakMult: bk.breakMult, kind: newKind,
+    minWidth: 0
+  )
+
   result.elements = bk.elements
+
+  updateSizes(result)
 
 
 func flatten*(bl: LytBlock, kind: set[LytBlockKind]): LytBlock =
@@ -858,11 +890,11 @@ func makeChoiceBlock*(
     result = LytBlock(
       breakMult: breakMult,
       kind: bkChoice,
+      minWidth: 0,
       elements: filterIt(elems, not it.isEmpty()).mapIt(it.flatten({
         bkLine, bkChoice, bkStack})))
 
-  result.hasInnerChoice = true
-  result.minWidth = result.elements.minIt(it.minWidth)
+  updateSizes(result)
 
 func makeLineBlock*(
     elems: openarray[LytBlock], breakMult: int = 1): LytBlock =
@@ -871,9 +903,8 @@ func makeLineBlock*(
 
   elif elems.len == 1 and elems[0].len == 1:
     result = elems[0][0].convertBlock(bkLine)
-
   else:
-    result = LytBlock(breakMult: breakMult, kind: bkLine)
+    result = LytBlock(breakMult: breakMult, kind: bkLine, minWidth: 0)
 
     var filter: seq[LytBlock]
     for it in elems:
@@ -895,25 +926,20 @@ func makeLineBlock*(
           prev.text.text.add item.text.text
 
         elif pk == bkText:
+          updateSizes(prev)
           result.elements.add prev
           # result.elements.add item
           prev = item
 
         else:
+          updateSizes(prev)
           result.elements.add prev
-          # result.elements.add item
           prev = item
 
+      updateSizes(prev)
       result.elements.add prev
 
-  result.hasInnerChoice = result.elements.anyIt(it.hasInnerChoice)
-  result.minWidth = result.elements.sumIt(it.minWidth)
-
-
-
-
-
-
+  updateSizes(result)
 
 func makeIndentBlock*(
     blc: LytBlock, indent: int, breakMult: int = 1): LytBlock =
@@ -936,18 +962,19 @@ func makeStackBlock*(
 
   else:
     result = LytBlock(
+      minWidth: 0,
       breakMult: breakMult, kind: bkStack,
       elements: filterIt(elems, not it.isEmpty()).mapIt(
         it.flatten({bkStack, bkLine})))
 
-  result.hasInnerChoice = result.elements.anyIt(it.hasInnerChoice)
-  result.minWidth = result.elements.maxIt(it.minWidth)
+    updateSizes(result)
 
 
 func makeWrapBlock*(
     elems: openarray[LytBlock], breakMult: int = 1): LytBlock =
   LytBlock(
-    kind: bkWrap, wrapElements: toSeq(elems), breakMult: breakMult)
+    kind: bkWrap, wrapElements: toSeq(elems), breakMult: breakMult,
+    minWidth: elems.maxIt(it.minWidth))
 
 func makeVerbBlock*[S: string | ColoredString | ColoredLine](
     textLines: openarray[S], breaking: bool = true,
@@ -961,6 +988,7 @@ func makeVerbBlock*[S: string | ColoredString | ColoredLine](
     textLines: mapIt(textLines, lytStr(it)),
     isBreaking: breaking,
     firstNl: firstNl,
+    minWidth: textLines.maxIt(it.len)
   )
 
 
@@ -1028,6 +1056,8 @@ func add*(target: var LytBlock, other: varargs[LytBlock]) =
 
       else:
         target.elements.add bl
+
+  updateSizes(target)
 
 #============================  Layout logic  =============================#
 

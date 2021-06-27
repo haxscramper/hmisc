@@ -50,14 +50,23 @@ suite "String matches":
   test "Gitignore glob accept tests":
     let tests = {
       ("a", false), ("b", true): @[**"a"],
+      ("a", true): @[**"*.*"],
       ("a.b", true), ("b", false): @[**"*", *!"*.*"]
     }
 
     for (test, filter) in tests:
       doAssert test[1] == accept(test[0], filter),
-        &"{test[0]} failed validation expected accept '{test[1]}', but " &
-        &"got '{not test[1]}'"
+        &"'{test[0]}' failed validation expected accept '{test[1]}', but " &
+        &"got '{not test[1]}', for filter '{filter}'"
 
+
+  test "Generic glob matches":
+    type W = tuple[t: string, globKind: GenGlobPartKind]
+    let
+      text: seq[W] = @[("w", ggkWord)]
+      glob: seq[W] = @[("", ggkAnyOne)]
+
+    echo gitignoreGlobMatch(text, glob, proc(t, g: W): bool = true)
 
 
   test "Sequence alignment":

@@ -507,40 +507,38 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
 
 
       for idx, (name, value) in tree.elements:
+        var valueBlock = toPPrintBlock(value, conf)
+        # echov  valueBlock.treeRepr()
         if hasLine:
           line.add H[
             T[", "] ?? idx > 0,
-            T[name & ": "] ?? hasFields,
-            toPPrintBlock(value, conf)
-          ]
+            T[name & ": "] ?? hasFields, valueBlock]
 
         if hasStack:
           let name = strutils.alignLeft(name & ": ", maxName + 2)
-          if value.height > 3:
-            stack.add V[
-              T[name] ?? hasFields,
-              I[2, toPPrintBlock(value, conf)]
-            ]
+          let toAdd =
+            if value.height > 3 or valueBlock.minWidth > 20:
+              V[T[name] ?? hasFields, I[2, valueBlock]]
 
-          else:
-            stack.add H[
-              T[name] ?? hasFields,
-              toPPrintBlock(value, conf)
-            ]
+            else:
+              H[T[name] ?? hasFields, valueBlock]
+
+          stack.add toAdd
+
+      let open = (T[@[
+        toColored(tree.treeType.head, fgGreen + bgDefault, conf.colored),
+        toColored("(")]], T["("]) ?? hasName
 
       if hasLine:
-        line = H[
-          (T[tree.treeType.head & "("], T["("]) ?? hasName,
-          line,
-          T[")"]
-        ]
+        line = H[open, line, T[")"]]
 
       if hasStack:
-        stack = V[
-          (T[tree.treeType.head & "("], T["("]) ?? hasName,
-          I[2, stack],
+        stack = V[open, I[2, stack],
           # T[")"] # NOTE potentially configurable
         ]
+
+      # line = H[T[$line.minWidth], line]
+      # stack = H[T[$stack.minWidth], stack]
 
       if hasLine and hasStack:
         result = C[line, stack]
@@ -558,17 +556,6 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
       var
         line = H[T["["]]
         stack = V[]
-        stackLines: seq[seq[LytBlock]]
-
-      var doAlign: bool = conf.alignSmallGrids
-      if doAlign:
-        for idx, (name, value) in tree.elements:
-          doAlign = value.size <= 3 and value.height <= 2
-          if not doAlign:
-            break
-
-
-
 
       for idx, (name, value) in tree.elements:
         if hasLine:
@@ -576,55 +563,10 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
           line.add toPprintBlock(value, conf)
 
         if hasStack:
-          if conf.alignSmallGrids:
-            var line: seq[LytBlock]
-            case value.kind:
-              of ptkConst:
-                line.add toPPrintTree(value)
-
-              of ptkTuple, ptkNamedTuple, ptkObject:
-
-
-          else:
-            stackLines.add toPPrintBlock(value, conf)
+          stack.add H[T["- "], toPPrintBlock(value, conf)]
 
       if hasLine:
         line.add T["]"]
-
-      if hasStack and conf.alignSmallGrids:
-        var doAlign: bool = true
-        var alignLens: seq[tuple[target, extended: int]]
-
-        for line in stackLines:
-          if line.allIt(
-            it.kind == bkLine and
-            it.minWidth <= 6 and
-            it.hasInnerChoice.not
-          ):
-
-            for idx, cell in line[1]:
-              if idx > alignLens.high:
-                alignLens.setLen idx
-
-              alignLens[idx].target = max(alignLens[idx].target, cell.minWidth)
-
-          else:
-            doAlign = false
-
-        if doAlign:
-          for line in mitems(stackLines):
-            for idx, cell in mpairs(line):
-              if cell.minWidth < alignLens[idx].target:
-                alignLens[idx].extended = alignLens[idx].target - cell.minWidth
-
-                cell.add T[repeat(" ", alignLens[idx].target)]
-
-
-
-      if conf.alignSmallGrids:
-        for line in stackLines:
-          stack.add H[T["- "], line]
-
 
       if hasLine and hasStack:
         result = C[line, stack]

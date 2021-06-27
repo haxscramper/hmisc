@@ -539,6 +539,28 @@ method log*(ex: ref Exception, logger: HLogger) {.base.} =
 method log*(ex: ShellError, logger: HLogger) =
   logger.err ex.msg
 
+proc prettyShellCmd(cmd: ShellCmd): string =
+  result = cmd.bin
+  let max = 60
+
+  var lineLen = cmd.bin.len
+
+  for arg in cmd:
+    let
+      str = arg.toStr(cmd.conf, true)
+      len = str.termLen()
+
+    if lineLen + len + 1 > max:
+      result &= repeat(" ", max - lineLen) & "\\\n    "
+      lineLen = 4
+
+    elif result.len > 0:
+      result &= " "
+      inc lineLen
+
+    result &= str
+    lineLen += len
+
 proc execShell*(
     logger: HLogger, pos: (string, int, int), shellCmd: ShellCmd,
     outLog: StreamConverter[ShellCmd, bool, HLogger] = loggerOutConverter,
@@ -546,7 +568,7 @@ proc execShell*(
     logRaised: bool = false
   ) =
   info(logger, pos, "Running shell", "'" & shellCmd.bin & "'")
-  debug(logger, pos, shellCmd.toLogStr())
+  debug(logger, pos, shellCmd.prettyShellCmd())
 
   let (outIter, errIter) = makeShellRecordIter(
     shellCmd, outLog, errLog, state = some logger)

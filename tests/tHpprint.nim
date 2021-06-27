@@ -9,7 +9,10 @@ import
 
 import
   hmisc/other/hpprint,
-  hmisc/algo/halgorithm
+  hmisc/algo/halgorithm,
+  hmisc/hdebug_misc
+
+startHax()
 
 proc ruler(step: int = 10) =
   for rep in countdown(

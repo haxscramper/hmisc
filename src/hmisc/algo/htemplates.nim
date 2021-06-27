@@ -107,7 +107,7 @@ template maxIt*(s: untyped, op: untyped): untyped =
 template minIt*(s: untyped, op: untyped): untyped =
   ## Maximize value for all elements in sequence
   type OutType = getIterOpType(s, op)
-  var res: OutType
+  var res: OutType = high(OutType)
   for it {.inject.} in s:
     let val = op
     if val < res:

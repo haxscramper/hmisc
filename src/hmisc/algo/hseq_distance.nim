@@ -2,6 +2,7 @@ import std/[sequtils, tables, strformat, strutils, math, algorithm]
 import ../hdebug_misc
 import ../macros/traceif
 import ../types/hprimitives
+import ../base_errors
 
 ## Sequence distance metrics
 
@@ -1045,8 +1046,8 @@ proc globmatch*(
     globPos = 0
     n = text.len()
     m = glob.len()
-    text_backup = -1
-    glob_backup = -1
+    textBackup = -1
+    globBackup = -1
 
   var nodot = not useDotGlob
   const pathSep = '/'
@@ -1059,8 +1060,8 @@ proc globmatch*(
         of '*':
           block caseBlock:
             if (nodot and text[txtPos] == '.'): break caseBlock
-            text_backup = txtPos
-            glob_backup = (inc globPos; globPos)
+            textBackup = txtPos
+            globBackup = (inc globPos; globPos)
             continue
 
         of '?':
@@ -1094,11 +1095,11 @@ proc globmatch*(
             inc globPos
             continue
 
-    if (glob_backup == -1 or text[text_backup] == pathSep):
+    if (globBackup == -1 or text[textBackup] == pathSep):
       return false
 
-    txtPos = (inc text_backup; text_backup)
-    globPos = glob_backup
+    txtPos = (inc textBackup; textBackup)
+    globPos = globBackup
 
   while (globPos < m and glob[globPos] == '*'):
     inc globPos
@@ -1120,10 +1121,10 @@ proc gitignoreGlobMatch*(
     globPos = 0
     n = text.len()
     m = glob.len()
-    text1_backup = -1
-    glob1_backup = -1
-    text2_backup = -1
-    glob2_backup = -1
+    text1Backup = -1
+    glob1Backup = -1
+    text2Backup = -1
+    glob2Backup = -1
 
 
   var nodot = useDotglob
@@ -1157,14 +1158,14 @@ proc gitignoreGlobMatch*(
               if (glob[globPos] != '/'):
                 return false;
 
-              text1_backup = -1
-              glob1_backup = -1
-              text2_backup = txtPos
-              glob2_backup = (inc globPos; globPos)
+              text1Backup = -1
+              glob1Backup = -1
+              text2Backup = txtPos
+              glob2Backup = (inc globPos; globPos)
               continue;
 
-            text1_backup = txtPos
-            glob1_backup = globPos
+            text1Backup = txtPos
+            glob1Backup = globPos
             continue;
 
         of '?':
@@ -1197,14 +1198,14 @@ proc gitignoreGlobMatch*(
             inc globPos
             continue
 
-    if (glob1_backup != -1 and text[text1_backup] != pathSep):
-      txtPos = (inc text1_backup; text1_backup)
-      globPos = glob1_backup
+    if (glob1Backup != -1 and text[text1Backup] != pathSep):
+      txtPos = (inc text1Backup; text1Backup)
+      globPos = glob1Backup
       continue
 
-    if (glob2_backup != -1):
-      txtPos = (inc text2_backup; text2_backup)
-      globPos = glob2_backup
+    if (glob2Backup != -1):
+      txtPos = (inc text2Backup; text2Backup)
+      globPos = glob2Backup
       continue
 
     return false
@@ -1237,7 +1238,6 @@ func toGitGlob*(str: string): GitGlob =
     GitGlob(patt: str, ign: true)
 
 proc accept*(glob: GitGlob, str: string, invert: bool = false): bool =
-  result = not invert
   if gitignoreGlobMatch(str, glob.patt):
     if invert:
       result = glob.ign
@@ -1245,12 +1245,124 @@ proc accept*(glob: GitGlob, str: string, invert: bool = false): bool =
     else:
       result = not glob.ign
 
+  else:
+    result = not invert
 
 proc accept*(
     globs: seq[GitGlob], str: string, invert: bool = false): bool =
   result = not invert
   for glob in globs:
-    result = glob.accept(str, invert)
+    if gitignoreGlobMatch(str, glob.patt):
+      if invert:
+        result = glob.ign
+
+      else:
+        result = not glob.ign
+
 
 proc accept*(str: string, globs: seq[GitGlob]): bool {.deprecated.} =
   globs.accept(str)
+
+
+type
+  GenGlobPartKind* = enum
+    ggkWord
+    ggkDotAnchor
+    ggkSeparator
+    ggkAnyStar
+    ggkAnyOne
+    ggkTest
+
+proc gitignoreGlobMatch*[B, G](
+    text: seq[B],
+    glob: seq[G],
+    eqCmp: proc(text: B, glob: G): bool,
+    useDotglob: bool = false,
+  ): bool =
+
+  var
+    txtPos = 0
+    globPos = 0
+    n = text.len()
+    m = glob.len()
+    text1Backup = -1
+    glob1Backup = -1
+    text2Backup = -1
+    glob2Backup = -1
+
+
+  var nodot = useDotglob
+
+  while (txtPos < n):
+    if (globPos < m):
+      case glob[globPos].globKind:
+        of ggkAnyStar:
+          block caseBlock:
+            if (nodot and text[txtPos].globKind == ggkDotAnchor):
+              break caseBlock
+
+            if ((inc globPos; globPos) < m and
+                glob[globPos].globKind == ggkAnyStar):
+
+              if ((inc globPos; globPos) >= m):
+                return true;
+
+              if (glob[globPos].globKind == ggkSeparator):
+                return false;
+
+              text1Backup = -1
+              glob1Backup = -1
+              text2Backup = txtPos
+              glob2Backup = (inc globPos; globPos)
+              continue;
+
+            text1Backup = txtPos
+            glob1Backup = globPos
+            continue;
+
+        of ggkAnyOne:
+          block caseBlock:
+            if (nodot and text[txtPos].globKind == ggkDotAnchor): break caseBlock
+            if (text[txtPos].globKind == ggkSeparator): break caseBlock
+
+            inc txtPos
+            inc globPos
+            continue
+
+        of ggkTest:
+          block caseBlock:
+            if (nodot and text[txtPos].globKind == ggkDotAnchor): break caseBlock
+            if (text[txtPos].globKind == ggkSeparator): break caseBlock
+
+          raise newImplementError()
+
+        else:
+          block caseBlock:
+            if (
+              not eqCmp(text[txtPos], glob[globPos]) and
+              not(glob[globPos].globKind == ggkSeparator and
+                  text[txtPos].globKind == ggkSeparator)):
+
+              break caseBlock
+
+            nodot = (not useDotglob) and glob[globPos].globKind == ggkSeparator;
+            inc txtPos
+            inc globPos
+            continue
+
+    if (glob1Backup != -1 and text[text1Backup].globKind != ggkSeparator):
+      txtPos = (inc text1Backup; text1Backup)
+      globPos = glob1Backup
+      continue
+
+    if (glob2Backup != -1):
+      txtPos = (inc text2Backup; text2Backup)
+      globPos = glob2Backup
+      continue
+
+    return false
+
+  while (globPos < m and glob[globPos].globKind == ggkAnyStar):
+    inc globPos
+
+  return globPos >= m;
