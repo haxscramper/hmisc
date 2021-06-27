@@ -1483,7 +1483,7 @@ func withExt*[F: AbsFile | RelFIle](
     if newExt.len > 0:
       resExt &= hstring_algo.addprefix(newExt, ".")
 
-    parent /. (file & (if resExt.len > 0: "." & resExt else: ""))
+    parent /. (file & resExt)
 
   else:
     let extAdd =

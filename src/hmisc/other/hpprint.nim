@@ -104,34 +104,19 @@ type
 proc globKind*(pprintGlob: PPrintGlobPart): GenGlobPartKind = pprintGlob.kind
 proc globKind*(pprintGlob: PPrintPathElem): GenGlobPartKind = ggkWord
 
-func globAnyParent*(): PPrintGlob =
-  @[
-    PPrintGlobPart(kind: ggkAnyStar),
-    PPrintGlobPart(kind: ggkAnyStar)
-  ]
+func pglob*(): PPrintGlob = discard
 
 
-func globAnyTrail*(main: sink PPrintGlob): PPrintGlob =
-  result = main
-  result.add @[
-    PPrintGlobPart(kind: ggkAnyStar),
-    PPrintGlobPart(kind: ggkAnyStar)
-  ]
-
-
-
-func globAny*(): PPrintGlob =
-  @[PPrintGlobPart(kind: ggkAnyStar)]
-
-func globAny*(main: sink PPrintGlob): PPrintGlob =
+func star*(main: sink PPrintGlob): PPrintGlob =
   result = main
   result.add @[PPrintGlobPart(kind: ggkAnyStar)]
 
-func globField*(main: sink PPrintGlob, field: string): PPrintGlob =
+
+func field*(main: sink PPrintGlob, field: string): PPrintGlob =
   result = main
   result.add PPrintGlobPart(kind: ggkWord, name: field)
 
-func globMatch*(globs: varargs[PPrintGlob]): PPrintMatch =
+func match*(globs: varargs[PPrintGlob]): PPrintMatch =
   PPrintMatch(globs: toSeq(globs))
 
 func forceLine*(): PPrintLytChoice = (true, false)
@@ -739,7 +724,7 @@ proc pstring*[T](
   ): string =
 
   var conf = conf
-  if conf.formatOpts.rightMargin !=
+  if conf.formatOpts.rightMargin ==
      defaultPPrintConf.formatOpts.rightMargin:
 
     conf.formatOpts.rightMargin = rightMargin

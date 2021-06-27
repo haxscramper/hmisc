@@ -174,9 +174,9 @@ suite "Error reporting":
 
 suite "Full app":
   test "Execute with exception":
-    proc mainProc(arg: int = 2) =
+    proc mainProc(l: HLogger, arg: int = 2) =
       if arg > 0:
-        mainProc(arg - 1) # Comment
+        mainProc(l, arg - 1) # Comment
       raise newException(OSError, "123123123")
 
     startHax()

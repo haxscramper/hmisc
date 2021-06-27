@@ -14,6 +14,7 @@ import
 
 startHax()
 
+
 proc ruler(step: int = 10) =
   for rep in countdown(
     ((terminalWidth() - 5) div step) * step, step, step):
@@ -229,11 +230,8 @@ suite "Other tests":
 
   test "Larger types colored":
     pprint PPrintConf(), force = {
-      globAny().
-        globField("format_policy").
-        globAny().
-        globMatch(): forceStack()
-    }, ignore = globAny().globField("cpack").globMatch()
+      pglob().star().field("format_policy").star().match(): forceStack()
+    }, ignore = pglob().star().field("cpack").match()
 
   test "Cyclic objects":
     type
@@ -244,11 +242,6 @@ suite "Other tests":
     a.next = a
 
     pprint a
-
-  # test "Glob ignore fields":
-  #   let val = (a: (b: (c: 10)))
-
-  #   pprint val, ignore = @["a/b/c"]
 
   test "Enum array":
     type
