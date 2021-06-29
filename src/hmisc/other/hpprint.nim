@@ -119,6 +119,9 @@ func field*(main: sink PPrintGlob, field: string): PPrintGlob =
 func match*(globs: varargs[PPrintGlob]): PPrintMatch =
   PPrintMatch(globs: toSeq(globs))
 
+func matchField*(name: varargs[string]): PPrintMatch =
+  mapIt(name, pglob().star().field(it).star()).match()
+
 func forceLine*(): PPrintLytChoice = (true, false)
 func forceStack*(): PPrintLytChoice = (false, true)
 func forceChoice*(): PPrintLytChoice = (true, true)

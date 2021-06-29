@@ -230,8 +230,8 @@ suite "Other tests":
 
   test "Larger types colored":
     pprint PPrintConf(), force = {
-      pglob().star().field("format_policy").star().match(): forceStack()
-    }, ignore = pglob().star().field("cpack").match()
+      matchField("format_policy"): forceStack()
+    }, ignore = matchField("cpack")
 
   test "Cyclic objects":
     type

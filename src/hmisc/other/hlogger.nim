@@ -1,14 +1,17 @@
 import
-  ../algo/[clformat, htemplates, halgorithm, hlex_base],
+  ../algo/[clformat, htemplates, halgorithm, hlex_base, htext_algo],
   ../other/[hpprint, oswrap],
   ../types/[colorstring, colortext],
   ../hdebug_misc
 
 import
   std/[
-    macros, strtabs, strutils, enumerate,
+    macros, strtabs, strutils, enumerate, strformat,
     options, sequtils, tables, parseutils
   ]
+
+# - TODO :: `traceIf` implementation for logger with dumps for all conditional
+#   expressions and maybe their subparts.
 
 type
   HLogLevel* = enum
@@ -409,8 +412,14 @@ proc logLines*(
 
   var lineIdx = center - 1
   for line in base.linesAround(center, (1, 1)):
-    let arrow = if lineIdx == center: toGreen("#>") else: "  "
-    logger.debug(alignLeft($lineIdx, 3), arrow, colorizeToStr(line, lang))
+    let arrow =
+      if lineIdx == center:
+        toGreen(&"{lineIdx:<4}#>")
+      else:
+        &"{lineIdx:<4}  "
+
+
+    logger.debug(arrow, colorizeToStr(line, lang))
     inc lineIdx
 
     # REVIEW maybe also raw arrow from `#>` and annotate it:
@@ -425,10 +434,30 @@ proc logLines*(
 
 from os import nil
 
-proc logStackTrace*(logger: HLogger, e: ref Exception) =
+method log*(ex: ref Exception, logger: HLogger) {.base.} =
+  if '\n' notin ex.msg:
+    for line in wrapOrgLines(ex.msg, 60, simple = true):
+      logger.err line
+
+  else:
+    logger.err ex.msg
+
+
+import ./hshell
+
+method log*(ex: ShellError, logger: HLogger) =
+  logger.err ex.msg
+
+proc logStackTrace*(
+    logger: HLogger, e: ref Exception, showError: bool = true) =
+  if not isNil(e) and showError:
+    e.log(logger)
+    # logger.err e.msg
+
   let stackEntries =
-    if e != nil:
+    if not isNil(e):
       e.getStackTraceEntries()
+
     else:
       getStackTraceEntries()
 
@@ -471,9 +500,7 @@ proc logStackTrace*(logger: HLogger, e: ref Exception) =
         foundErr = true
 
 
-    logger.debug prefix & (filePref) & " :" &
-      $(($tr.line).alignLeft(4)) &
-      " " &
+    logger.debug prefix & (filePref) & " " &
       $($tr.procname).toYellow()
 
     if filename == "":
@@ -517,8 +544,6 @@ proc logStackTrace*(logger: HLogger, e: ref Exception) =
       inc repeated
 
 
-import ./hshell
-
 proc loggerOutConverter*(
     stream: var PosStr,
     cmd: ShellCmd, state: var Option[HLogger]): Option[bool] =
@@ -532,12 +557,6 @@ proc loggerErrConverter*(
     cmd: ShellCmd, state: var Option[HLogger]): Option[bool] =
 
   state.get().warn(stream.readLine())
-
-method log*(ex: ref Exception, logger: HLogger) {.base.} =
-  logger.err ex.msg
-
-method log*(ex: ShellError, logger: HLogger) =
-  logger.err ex.msg
 
 proc prettyShellCmd(cmd: ShellCmd): string =
   result = cmd.bin

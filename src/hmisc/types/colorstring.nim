@@ -266,9 +266,16 @@ type
     tcGrey89            = 254
     tcGrey93            = 255
 
+  TermColor8BitBg = distinct TermColor8Bit
+  TermColor8BitFg = distinct TermColor8Bit
+
 const
   tcGreyColors* = { tcGrey3 .. tcGrey93 }
+  tcDefault* = tcBlack
 
+
+func bg*(color: TermColor8Bit): TermColor8BitBg = TermColor8BitBg(color)
+func fg*(color: TermColor8Bit): TermColor8BitFg = TermColor8BitFg(color)
 
 when defined(nimscript):
   type
@@ -473,6 +480,16 @@ func initColoredString*(
   ColoredString(str: str, styling: PrintStyling(
     use8Bit: false, fg: fg, bg: bg, style: style))
 
+func `+`*(bg: TermColor8BitBg, fg: TermColor8BitFg): PrintStyling =
+  PrintStyling(use8Bit: true,
+               fg8: fg.TermColor8Bit,
+               bg8: bg.TermColor8Bit)
+
+func `+`*(fg: TermColor8BitFg, bg: TermColor8BitBg): PrintStyling =
+  PrintStyling(use8Bit: true,
+               fg8: fg.TermColor8Bit,
+               bg8: bg.TermColor8Bit)
+
 func `+`*(bg: BackgroundColor, fg: ForegroundColor): PrintStyling =
   PrintStyling(use8bit: false, fg: fg, bg: bg)
 
@@ -600,38 +617,52 @@ func toString*(strs: seq[ColoredString], color: bool = true): string =
     for str in strs:
       result &= str.str
 
+func add*(outStr: var string, newStr: string, styling: PrintStyling) =
+  template push(expr: string): untyped = outStr.add expr
+  if styleUnderscore in styling.style: push ansiEsc(4)
+  if styleItalic in styling.style: push ansiEsc(3)
+
+  var added = false
+
+  if styling.use8Bit:
+    if styling.fg8.int != 0:
+      push &"\e[38;5;{styling.fg8.ord}m"
+      push newStr; added = true
+      push "\e[0m"
+
+    if styling.bg8.int != 0:
+      push &"\e[48;5;{styling.bg8.ord}m"
+      push newStr; added = true
+      push "\e[0m"
+
+  else:
+    if styling.fg.int != 0 and styling.fg != fgDefault:
+      push ansiEsc(int(styling.fg) + (
+        if styleBright in styling.style: 60 else: 0))
+
+      push newStr; added = true
+      push ansiEsc(39)
+
+    if styling.bg.int != 0 and styling.bg != bgDefault:
+      push ansiEsc(int(styling.bg) + (
+        if styleBright in styling.style: 60 else: 0))
+
+      push newStr; added =true
+      push ansiEsc(49)
+
+  if not added: push newStr
+
+  if styleUnderscore in styling.style: push ansiEsc(24)
+  if styleItalic in styling.style: push ansiEsc(23)
+
+
 func `$`*(colored: ColoredString | ColoredRune): string =
   when colored is ColoredString:
-    result = colored.str
+    result.add(colored.str, colored.styling)
 
   else:
-    result = $colored.rune
+    result.add($colored.rune, colored.styling)
 
-  if colored.styling.use8Bit:
-    if colored.styling.fg8.int != 0:
-      result = &"\e[38;5;{colored.styling.fg8.ord}m{result}\e[0m"
-
-    if colored.styling.bg8.int != 0:
-      result = &"\e[48;5;{colored.styling.bg8.ord}m{result}\e[0m"
-
-  else:
-    if colored.styling.fg.int != 0 and
-       colored.styling.fg != fgDefault:
-      result = result.wrapcode(
-        int(colored.styling.fg) + (
-          if styleBright in colored.styling.style: 60 else: 0), 39)
-
-    if colored.styling.bg.int != 0 and
-       colored.styling.bg != bgDefault:
-      result = result.wrapcode(
-        int(colored.styling.bg) + (
-          if styleBright in colored.styling.style: 60 else: 0), 49)
-
-  if styleUnderscore in colored.styling.style:
-    result = result.wrapcode(4, 24)
-
-  if styleItalic in colored.styling.style:
-    result = result.wrapcode(3, 23)
 
 func `$`*(line: ColoredLine): string =
   for e in line:
