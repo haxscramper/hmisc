@@ -125,7 +125,7 @@ type
     ccRegularFlags ## `-f` or `--flag`
     ccOneDashFlags ## `-f` or `-flag`
 
-  ShellCmdConf = object
+  ShellCmdConf* = object
     flagConf*: ShellCmdFlagConf
     kvSep*: string
 
@@ -255,6 +255,8 @@ const
   )
 
   sakListKinds* = {sakAndList, sakOrList, sakPipeList}
+
+func newShellCmdConf*(): ShellCmdConf = discard
 
 func getStdout*(shellRes: ShellResult): string =
   shellRes.execResult.stdout
