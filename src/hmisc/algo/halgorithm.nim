@@ -335,7 +335,7 @@ func splitTokenize*(str: string, seps: set[char]): seq[string] =
     else:
       inc curr
 
-  if prev == 0 and curr > 0:
+  if prev < curr:
     result.add str
 
 

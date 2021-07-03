@@ -785,7 +785,7 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
 
     of ptkMapping:
       var
-        line = H[T["{"]]
+        line = H[T["{ "]]
         stack = V[]
 
       for idx, (key, val) in tree.mappings:
@@ -803,8 +803,8 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
             I[2, toPPrintBlock(val, conf)]
           ]
 
-      if hasLine:
-        line.add T["}"]
+      # if hasLine:
+      #   line.add T["}"]
 
       if hasLine and hasStack:
         result = C[line, stack]
