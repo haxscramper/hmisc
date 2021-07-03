@@ -1,5 +1,5 @@
 # import libfswatch, libfswatch/fswatch
-import oswrap, rx
+import ../other/oswrap, ../other/rx
 import std/[bitops, strformat]
 import fusion/pointers
 import ../hdebug_misc

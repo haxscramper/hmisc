@@ -539,6 +539,8 @@ func toColored*(
 func `&`*(col: ColoredString, str: string): ColoredLine =
   @[col, toColored(str)]
 
+func `&`*(col1, col2: ColoredString): ColoredLine = @[col1, col2]
+
 func `&`*(str: string, col: ColoredString): ColoredLine =
   @[toColored(str), col]
 
@@ -1385,6 +1387,9 @@ func initStyleFg*(r, g, b: range[0 .. 5]): PrintStyling {.inline.} =
   PrintStyling(use8Bit: true, fg8: term8Bit(r, g, b))
 
 func len*(str: ColoredString): int = str.str.len
+func textLen*(str: ColoredLine): int =
+  for part in str:
+    result += part.len
 
 func termLen*(str: string): int =
   ## Get length of the string as visible if printed in terminal

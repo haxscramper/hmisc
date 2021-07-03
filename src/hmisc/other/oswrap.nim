@@ -1720,6 +1720,11 @@ proc findFile*(
 
   raise newFileSearchError(paths, $name, extensions, onError)
 
+proc findFilesWithExt*(dir: AbsDir, ext: seq[string]): seq[AbsFile] =
+  for file in walkDir(dir, AbsFile, recurse = false):
+    if file.ext() in ext:
+      result.add file
+
 proc findFile*(dir: AbsDir, name: GitGlob, onError: string = ""): AbsFile =
   for file in walkDir(dir, AbsFile, recurse = false):
     if name.accept(file.splitFile2.file, true):

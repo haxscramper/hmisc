@@ -169,6 +169,11 @@ proc indent*(logger: HLogger) =
 proc dedent*(logger: HLogger) =
   closeScope(logger)
 
+template indented*(logger: HLogger, body: untyped): untyped =
+  indent(logger)
+  body
+  dedent(logger)
+
 
 template openScope*(logger: HLogger, kind: HLogScopeKind, name: string) =
   let (file, line, column) = instantiationInfo(fullPaths = true)

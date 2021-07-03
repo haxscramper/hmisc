@@ -116,6 +116,7 @@ type
     case resultOk*: bool ## No failures (return code == 0)
       of true:
         nil
+
       of false:
         exception*: ShellError ## Addiional information in case of failure. Can
                                ## be raised or immediately inspected on return.
@@ -509,6 +510,8 @@ func toStrSeq*(cmd: ShellCmd): seq[string] =
     result &= op.toStr(cmd.conf)
 
 func toStr*(cmd: ShellCmd): string = cmd.toStrSeq().join(" ")
+func `$`*(cmd: ShellCmd): string = cmd.toStr()
+
 
 macro precompute(expr, varn: untyped, args: static[openarray[int]]): untyped =
   let inVarn = copyNimNode(varn)
@@ -641,6 +644,9 @@ func toStr*(inAst: ShellAst, oneline: bool = false): string =
 iterator items*(cmd: ShellCmd): ShellCmdPart =
   for item in items(cmd.opts):
     yield item
+
+func `[]`*(cmd: ShellCmd, idx: int): ShellCmdPart =
+  cmd.opts[idx]
 
 iterator pairs*(cmd: ShellCmd): (int, ShellCmdPart) =
   for idx, item in pairs(cmd.opts):
@@ -1032,11 +1038,12 @@ when cbackend:
 
   import std/[posix]
   import os
-  iterator runShellResult*(
-      cmds: seq[ShellCmd],
+  iterator runShellResult*[T](
+      cmds: seq[tuple[cmd: ShellCmd, data: T]],
       fullParams: set[ProcessOption] = {poEvalCommand},
-      maxPool: int = 8
-    ): ShellResult =
+      maxPool: int = 8,
+      beforeStart: proc(cmd: ShellCmd, data: T) = nil
+    ): tuple[res: ShellResult, data: T] =
 
     var processList: seq[Process] = newSeq[Process](maxPool)
     var commandMap: seq[int] = newSeq[int](maxPool)
@@ -1046,7 +1053,10 @@ when cbackend:
     var cmdIdx = 0
 
     while cmdIdx < maxPool:
-      processList[cmdIdx] = startShell(cmds[cmdIdx], fullParams)
+      if not isNil(beforeStart):
+        beforeStart(cmds[cmdIdx].cmd, cmds[cmdIdx].data)
+
+      processList[cmdIdx] = startShell(cmds[cmdIdx].cmd, fullParams)
       commandMap[cmdIdx] = cmdIdx
       inc(cmdIdx)
 
@@ -1090,12 +1100,17 @@ when cbackend:
         res.execResult.stdout = p.outputStream.readAll()
         res.execResult.stderr = p.errorStream.readAll()
         res.execResult.code = p.peekExitCode()
-        updateException(res, cmds[commandMap[exitedIdx]], 50)
-        yield res
+        updateException(res, cmds[commandMap[exitedIdx]].cmd, 50)
+        yield (res, cmds[commandMap[exitedIdx]].data)
 
         close(processList[exitedIdx])
         if cmdIdx < len(cmds):
-          processList[exitedIdx] = startShell(cmds[cmdIdx], fullParams)
+          if not isNil(beforeStart):
+            beforeStart(cmds[cmdIdx].cmd, cmds[cmdIdx].data)
+
+          processList[exitedIdx] = startShell(
+            cmds[cmdIdx].cmd, fullParams)
+
           commandMap[exitedIdx] = cmdIdx
           inc(cmdIdx)
 
