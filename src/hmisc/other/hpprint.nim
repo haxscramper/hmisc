@@ -189,7 +189,9 @@ proc newPPrintTree*(
       result.forceLayout = some force
 
 proc isCommonType*(t: PprintType): bool =
-  t.head in ["string", "int", "float", "char", "bool"]
+  t.head in ["string", "int", "float", "char", "bool"] or
+  t.head.startsWith("proc")
+
 
 proc `$`*(t: PPrintType): string =
   result = t.head
@@ -647,7 +649,7 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
               0
 
             else:
-              len($value.treeType) + 2
+              len($value.treeType) + 3
           ))
 
 
@@ -867,3 +869,14 @@ proc pprint*[T](
   ) =
 
   echo pstring(obj, rightMargin, force, ignore, conf = conf)
+
+
+func debugpprint*[T](
+    obj: T, rightMargin: int = 80,
+    force: openarray[(PPrintMatch, PPrintLytChoice)] = @[],
+    ignore: PPrintMatch = PPrintMatch(),
+    conf: PPrintConf = defaultPPrintConf
+  ) =
+
+  {.cast(noSideEffect).}:
+    echo pstring(obj, rightMargin, force, ignore, conf = conf)

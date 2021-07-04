@@ -101,12 +101,12 @@ proc prepareText*(logger: HLogger, text: varargs[string]): string =
 
 
 
-proc log*(
+proc logImpl*(
     logger: HLogger,
     level: HLogLevel,
     event: HLogEvent,
     position: (string, int, int),
-    args: varargs[string, `$`]
+    args: seq[string]
   ) =
 
   let prefix =
@@ -201,12 +201,12 @@ template check*(
   let exprRes = expr
 
   if exprRes == expected:
-    logger.log(onMatch, logEvSuccess, instantiationInfo(),
-               desc, "was", hshow(exprRes))
+    logger.logImpl(
+      onMatch, logEvSuccess, instantiationInfo(), desc, "was", hshow(exprRes))
 
   else:
-    logger.log(onFail, logEvFail, instantiationInfo(),
-               desc, "was", hshow(exprRes))
+    logger.logImpl(
+      onFail, logEvFail, instantiationInfo(), desc, "was", hshow(exprRes))
 
   exprRes
 
@@ -243,9 +243,10 @@ template dump*(logger: HLogger, expr: untyped, other: varargs[string, `$`]): unt
   for arg in other:
     args.add arg
 
-  log(logger, logNone, logEvExprDump, instantiationInfo(), args)
+  logImpl(logger, logNone, logEvExprDump, instantiationInfo(), args)
 
-template pdump*(logger: HLogger, expr: untyped, other: varargs[string, `$`]): untyped =
+template pdump*(
+    logger: HLogger, expr: untyped, other: varargs[string, `$`]): untyped =
   var args: seq[string]
   args.add astToStr(expr)
   args.add "\n="
@@ -253,90 +254,173 @@ template pdump*(logger: HLogger, expr: untyped, other: varargs[string, `$`]): un
   for arg in other:
     args.add arg
 
-  log(logger, logNone, logEvExprDump, instantiationInfo(), args)
+  logImpl(logger, logNone, logEvExprDump, instantiationInfo(), args)
 
+proc toStrSeq[T](s: T): seq[string] =
+  for item in items(s):
+    result.add $item
 
-
-proc debug*(
-  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
-  log(logger, logDebug, logEvNone, pos, args)
+proc debugImpl*(
+  logger: HLogger, pos: (string, int, int), args: seq[string]) =
+  logImpl(logger, logDebug, logEvNone, pos, args)
 
 template debug*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  debug(logger, instantiationInfo(), args)
+  debugImpl(logger, instantiationInfo(), toStrSeq(args))
 
-proc trace*(
-  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
-  log(logger, logTrace, logEvNone, pos, args)
+proc traceImpl*(
+  logger: HLogger, pos: (string, int, int), args: seq[string]) =
+  logImpl(logger, logTrace, logEvNone, pos, args)
 
 template trace*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  trace(logger, instantiationInfo(), args)
+  traceImpl(logger, instantiationInfo(), toStrSeq(args))
 
-proc info*(
-  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
-  log(logger, logInfo, logEvNone, pos, args)
+proc infoImpl*(
+  logger: HLogger, pos: (string, int, int), args: seq[string]) =
+  logImpl(logger, logInfo, logEvNone, pos, args)
 
 template info*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  info(logger, instantiationInfo(), args)
+  infoImpl(logger, instantiationInfo(), toStrSeq(args))
 
-proc notice*(
-  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
-  log(logger, logNotice, logEvNone, pos, args)
+proc noticeImpl*(
+  logger: HLogger, pos: (string, int, int), args: seq[string]) =
+  logImpl(logger, logNotice, logEvNone, pos, args)
 
 template notice*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  notice(logger, instantiationInfo(), args)
+  noticeImpl(logger, instantiationInfo(), toStrSeq(args))
 
-proc warn*(
-  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
-  log(logger, logWarn, logEvNone, pos, args)
+proc warnImpl*(
+  logger: HLogger, pos: (string, int, int), args: seq[string]) =
+  logImpl(logger, logWarn, logEvNone, pos, args)
 
 template warn*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  warn(logger, instantiationInfo(), args)
+  warnImpl(logger, instantiationInfo(), toStrSeq(args))
 
-proc err*(
-  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
-  log(logger, logError, logEvNone, pos, args)
+proc errImpl*(
+  logger: HLogger, pos: (string, int, int), args: seq[string]) =
+  logImpl(logger, logError, logEvNone, pos, args)
 
 template err*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  err(logger, instantiationInfo(), args)
+  errImpl(logger, instantiationInfo(), toStrSeq(args))
 
-proc fatal*(
-  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
-  log(logger, logFatal, logEvNone, pos, args)
+proc fatalImpl*(
+  logger: HLogger, pos: (string, int, int), args: seq[string]) =
+  logImpl(logger, logFatal, logEvNone, pos, args)
 
 template fatal*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  fatal(logger, instantiationInfo(), args)
+  fatalImpl(logger, instantiationInfo(), toStrSeq(args))
 
-proc wait*(
-  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
-  log(logger, logNone, logEvWaitStart, pos, args)
+proc waitImpl*(
+  logger: HLogger, pos: (string, int, int), args: seq[string]) =
+  logImpl(logger, logNone, logEvWaitStart, pos, args)
 
 template wait*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  wait(logger, instantiationInfo(), args)
+  waitImpl(logger, instantiationInfo(), toStrSeq(args))
 
-proc done*(
-  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
-  log(logger, logNone, logEvWaitDone, pos, args)
+proc doneImpl*(
+  logger: HLogger, pos: (string, int, int), args: seq[string]) =
+  logImpl(logger, logNone, logEvWaitDone, pos, args)
 
 template done*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  done(logger, instantiationInfo(), args)
+  doneImpl(logger, instantiationInfo(), toStrSeq(args))
 
-proc fail*(
-  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
-  log(logger, logNone, logEvFail, pos, args)
+proc failImpl*(
+  logger: HLogger, pos: (string, int, int), args: seq[string]) =
+  logImpl(logger, logNone, logEvFail, pos, args)
 
 template fail*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  fail(logger, instantiationInfo(), args)
+  failImpl(logger, instantiationInfo(), toStrSeq(args))
 
-proc success*(
-  logger: HLogger, pos: (string, int, int), args: varargs[string, `$`]) =
-  log(logger, logNone, logEvSuccess, pos, args)
+proc successImpl*(
+  logger: HLogger, pos: (string, int, int), args: seq[string]) =
+  logImpl(logger, logNone, logEvSuccess, pos, args)
 
 template success*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  success(logger, instantiationInfo(), args)
+  successImpl(logger, instantiationInfo(), toStrSeq(args))
 
 template waitFor*(logger: HLogger, name: string): untyped =
-  log(logger, logNone, logEvWaitStart, instantiationInfo(),
+  logImpl(logger, logNone, logEvWaitStart, instantiationInfo(),
       "Waiting for " & name & " to finish...")
+
+macro loggerField*(
+    T: typed, field: untyped,
+    doExport: static[bool] = false,
+    module: string = "hlogger"
+  ): untyped =
+
+  let
+    module = ident(module.strVal)
+    vas = nnkBracketExpr.newTree(ident"varargs", ident"string", ident"$")
+    iinfo = newCall("instantiationInfo")
+
+  let (successId, failId, doneId, waitId,
+       fatalId, errId, warnId, infoId,
+       traceId, debugId) =
+      (ident"successImpl",
+       ident"failImpl",
+       ident"doneImpl",
+       ident"waitImpl",
+       ident"fatalImpl",
+       ident"errImpl",
+       ident"warnImpl",
+       ident"infoImpl",
+       ident"traceImpl",
+       ident"debugImpl")
+
+  var (success, fail, done, wait, fatal, err, warn, info, trace, debug) =
+    if doExport:
+      (nnkPostfix.newTree(ident"*", successId),
+       nnkPostfix.newTree(ident"*", failId),
+       nnkPostfix.newTree(ident"*", doneId),
+       nnkPostfix.newTree(ident"*", waitId),
+       nnkPostfix.newTree(ident"*", fatalId),
+       nnkPostfix.newTree(ident"*", errId),
+       nnkPostfix.newTree(ident"*", warnId),
+       nnkPostfix.newTree(ident"*", infoId),
+       nnkPostfix.newTree(ident"*", traceId),
+       nnkPostfix.newTree(ident"*", debugId))
+
+    else:
+      (ident"success",
+       ident"fail",
+       ident"done",
+       ident"wait",
+       ident"fatal",
+       ident"err",
+       ident"warn",
+       ident"info",
+       ident"trace",
+       ident"debug")
+
+  result = quote do:
+    template `success`(o: `T`, args: `vas`): untyped =
+      `module`.`successId`(o.`field`, `iinfo`, toStrSeq(args))
+
+    template `fail`(o: `T`, args: `vas`): untyped =
+      `module`.`failId`(o.`field`, `iinfo`, toStrSeq(args))
+
+    template `done`(o: `T`, args: `vas`): untyped =
+      `module`.`doneId`(o.`field`, `iinfo`, toStrSeq(args))
+
+    template `wait`(o: `T`, args: `vas`): untyped =
+      `module`.`waitId`(o.`field`, `iinfo`, toStrSeq(args))
+
+    template `fatal`(o: `T`, args: `vas`): untyped =
+      `module`.`fatalId`(o.`field`, `iinfo`, toStrSeq(args))
+
+    template `err`(o: `T`, args: `vas`): untyped =
+      `module`.`errId`(o.`field`, `iinfo`, toStrSeq(args))
+
+    template `warn`(o: `T`, args: `vas`): untyped =
+      `module`.`warnId`(o.`field`, `iinfo`, toStrSeq(args))
+
+    template `info`(o: `T`, args: `vas`): untyped =
+      `module`.`infoId`(o.`field`, `iinfo`, toStrSeq(args))
+
+    template `trace`(o: `T`, args: `vas`): untyped =
+      `module`.`traceId`(o.`field`, `iinfo`, toStrSeq(args))
+
+    template `debug`(o: `T`, args: `vas`): untyped =
+      `module`.`debugId`(o.`field`, `iinfo`, toStrSeq(args))
 
 template changeDir*(logger: HLogger, dir: AbsDir, body: untyped): untyped =
   let (file, line, column) = instantiationInfo()

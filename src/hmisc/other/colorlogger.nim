@@ -1,5 +1,7 @@
 const cbackend = not (defined(nimscript) or defined(js))
 
+{.deprecated: "use `hlogger` instead".}
+
 import ../base_errors
 import ../types/colorstring
 import ../algo/hstring_algo
@@ -159,22 +161,22 @@ template toSeqFix(args: varargs[string]): seq[string] =
     res.add arg
   res
 
-template debug*(args: varargs[string, `$`]) =
+template debug*(args: varargs[string, `$`]) {.deprecated.} =
   log(lvlDebug, @[$instantiationInfo()] & toSeqFix(args))
 
-template info*(args: varargs[string, `$`]) =
+template info*(args: varargs[string, `$`]) {.deprecated.} =
   log(lvlInfo, @[$instantiationInfo()] & toSeqFix(args))
 
-template notice*(args: varargs[string, `$`]) =
+template notice*(args: varargs[string, `$`]) {.deprecated.} =
   log(lvlNotice, @[$instantiationInfo()] & toSeqFix(args))
 
-template warn*(args: varargs[string, `$`]) =
+template warn*(args: varargs[string, `$`]) {.deprecated.} =
   log(lvlWarn, @[$instantiationInfo()] & toSeqFix(args))
 
-template err*(args: varargs[string, `$`]) =
+template err*(args: varargs[string, `$`]) {.deprecated.} =
   log(lvlError, @[$instantiationInfo()] & toSeqFix(args))
 
-template fatal*(args: varargs[string, `$`]) =
+template fatal*(args: varargs[string, `$`]) {.deprecated.} =
   log(lvlFatal, @[$instantiationInfo()] & toSeqFix(args))
 
 template logDefer*(logCmd: untyped, args: varargs[string, `$`]): untyped =

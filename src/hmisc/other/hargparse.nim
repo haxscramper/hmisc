@@ -13,6 +13,7 @@ import
   ./blockfmt,
   ./oswrap,
   ./hlogger,
+  ./hpprint,
   ../hexceptions,
   ../hdebug_misc,
   ../base_errors,
@@ -148,6 +149,7 @@ type
     altNames*: seq[string]
     defaultValue*: Option[string]
     defaultAsFlag*: Option[string]
+    disabledFor*: string
     check*: CliCheck
 
     bracketSelectors: seq[string] ## Valid for `BracketFlag` and `BracketOpt`
@@ -195,11 +197,13 @@ type
   CliValue* = ref object
     origin*: CliOrigin
     desc* {.requiresinit.}: CliDesc
+    rawValue* {.requiresinit.}: string
     case kind*: CliValueKind
       of cvkCommand:
         name*: string
         positional*: seq[CliValue]
         options*: Table[string, CliValue]
+        subCmd*: Option[CliValue]
 
       of cvkUnparse:
         matches: seq[string]
@@ -220,6 +224,7 @@ type
         fsEntryVal*: FsEntry
 
       of cvkRecord:
+        recHead*: CLiValue
         recValues*: Table[string, CliValue]
 
 
@@ -237,6 +242,8 @@ type
     configPaths*: seq[FsEntry]
 
     rootCmd*: CliDesc
+    value*: CliValue
+    errors*: seq[CliError]
 
     exitCodes*: seq[CliExitCode]
 
@@ -311,17 +318,22 @@ func add*(app: var CliApp, cmd: CliDesc) =
 func root*(app: CliApp): CliDesc = app.rootCmd
 func root*(app: var CliApp): var CliDesc = app.rootCmd
 
-proc cliValue*(val: string, doc: string): CliValue =
+proc cliValue*(
+    val: string, doc: string, disabled: string = ""): CliValue =
   CliValue(
     kind: cvkString,
     strVal: val,
-    desc: CliDesc(kind: coSpecial, doc: CliDoc(docBrief: doc)))
+    rawValue: val,
+    desc: CliDesc(
+      disabledFor: disabled,
+      kind: coSpecial, doc: CliDoc(docBrief: doc)))
 
-proc checkValues*(values: openarray[(string, string)]): CliCheck =
+proc checkValues*(
+    values: openarray[(string, string)], disabled: string = ""): CliCheck =
   result = CliCheck(kind: cckIsInSet)
 
   for (name, desc) in values:
-    result.values.add cliValue(name, desc)
+    result.values.add cliValue(name, desc, disabled = disabled)
 
 func checkFileReadable*(): CliCheck =
   CliCheck(kind: cckIsReadable)
@@ -332,31 +344,31 @@ func checkDirExists*(): CliCheck =
 func checkDirCreatable*(): CliCheck =
   CliCheck(kind: cckIsCreatable)
 
-proc orCheck*(or1, or2: CliCheck, other: varargs[CliCheck]): CLiCheck =
+proc checkOr*(or1, or2: CliCheck, other: varargs[CliCheck]): CLiCheck =
   result = CliCheck(kind: cckOrCheck, subChecks: @[or1, or2])
   for check in other:
     result.subChecks.add check
 
-proc aliasedCheck*(): CliCheck =
+proc checkAliased*(): CliCheck =
   CliCheck(kind: cckAliasedCheck)
 
-proc repeatCheck*(minRepeat, maxRepeat: int): CliCheck =
+proc checkRepeat*(minRepeat, maxRepeat: int): CliCheck =
   CliCheck(kind: cckRepeatCheck, allowedRepeat: minRepeat .. maxRepeat)
 
-proc noCheck*(): CliCheck = CliCheck(kind: cckNoCheck)
+proc checkNo*(): CliCheck = CliCheck(kind: cckNoCheck)
 
-proc andCheck*(and1, and2: CliCheck, other: varargs[CliCheck]): CLiCheck =
+proc checkAnd*(and1, and2: CliCheck, other: varargs[CliCheck]): CLiCheck =
   result = CliCheck(kind: cckAndCheck, subChecks: @[and1, and2])
   for check in other:
     result.subChecks.add check
 
-proc anyOfCheck*(sub: CliCheck, repeated: Slice[int]): CliCheck =
+proc checkAnyOf*(sub: CliCheck, repeated: Slice[int]): CliCheck =
   CliCheck(kind: cckAnyOf, itemCheck: sub, allowedRepeat: repeated)
 
-proc allOfCheck*(sub: CliCheck, repeated: Slice[int]): CliCheck =
+proc checkAllOf*(sub: CliCheck, repeated: Slice[int]): CliCheck =
   CliCheck(kind: cckAllOf, itemCheck: sub, allowedRepeat: repeated)
 
-proc acceptAllCheck*(): CLiCheck =
+proc checkAcceptAll*(): CLiCheck =
   CliCheck(kind: cckAcceptAll)
 
 proc check*(kind: CliCheckKind): CliCheck =
@@ -364,6 +376,30 @@ proc check*(kind: CliCheckKind): CliCheck =
 
 func cliComplete*(key, doc: string, docFull: string = ""): CliCompletion =
   CliCompletion(value: key, doc: CliDoc(docBrief: doc, docFull: docFull))
+
+func setDisabled*(desc: CliDesc, disabled: string) =
+  desc.disabledFor = disabled
+  proc aux(check: CliCheck) =
+    case check.kind:
+      of cckIsInSet:
+        for val in mitems(desc.check.values):
+          val.desc.setDisabled(disabled)
+
+      of cckAndCheck, cckOrCheck:
+        for sub in mitems(check.subChecks):
+          aux(sub)
+
+      of cckAllOf, cckNoneOf, cckAnyOf:
+        aux(check.itemCheck)
+
+      else:
+        raise newImplementKindError(check)
+
+
+  if not isNil(desc.check):
+    static: {.warning: "Hack, ensure there are no nil checks later".}
+    aux(desc.check)
+
 
 proc opt*(
     name,
@@ -378,7 +414,8 @@ proc opt*(
     maxRepeat: int = 1,
     aliasof: CliOpt = CliOpt(),
     selector: CliCheck = nil,
-    check: CliCheck = nil
+    check: CliCheck = nil,
+    disabled: string = ""
   ): CliDesc =
 
   result = CliDesc(
@@ -389,7 +426,8 @@ proc opt*(
     defaultValue: default.toOption(),
     defaultAsFlag: defaultAsFlag.toOption(),
     groupKind: groupKind,
-    varname: varname
+    varname: varname,
+    disabledFor: disabled
   )
 
   if not isNiL(selector):
@@ -400,7 +438,7 @@ proc opt*(
 
   if values.len > 0:
     if not isNil(check):
-      result.check = andCheck(check, checkValues(values))
+      result.check = checkAnd(check, checkValues(values))
 
     else:
       result.check = checkValues(values)
@@ -413,16 +451,18 @@ proc opt*(
 
   if maxRepeat > 1:
     if isNil(result.check):
-      result.check = repeatCheck(0, maxRepeat)
+      result.check = checkRepeat(0, maxRepeat)
 
     else:
-      result.check = andCheck(
-        repeatCheck(0, maxRepeat),
+      result.check = checkAnd(
+        checkRepeat(0, maxRepeat),
         result.check
       )
 
   if isNil(result.check):
-    result.check = noCheck()
+    result.check = checkNo()
+
+  result.setDisabled(disabled)
 
 
 func cmd*(
@@ -454,7 +494,8 @@ func cmd*(
 
 func flag*(
     name, doc: string,
-    aliasof: CliOpt = CliOpt()
+    aliasof: CliOpt = CliOpt(),
+    disabled: string = ""
   ): CliDesc =
 
   result = CliDesc(
@@ -462,13 +503,14 @@ func flag*(
     name: name,
     altNames: @[name],
     doc: CliDoc(docBrief: doc),
+    disabledFor: disabled
   )
 
   if aliasof.keyPath.len > 0:
     result.aliasof = some aliasof
 
   if isNil(result.check):
-    result.check = noCheck()
+    result.check = checkNo()
 
 
 
@@ -493,11 +535,11 @@ template exprType(e: untyped): untyped =
 
 proc cliCheckFor*[T](value: typedesc[seq[T]]): CliCheck =
   var tmp: exprType
-  result = anyOfCheck(cliCheckFor(
+  result = checkAnyOf(cliCheckFor(
     typeof(tmp[0])), 0 .. high(int))
 
 proc cliCheckFor*(str: typedesc[string]): CliCheck =
-  acceptAllCheck()
+  checkAcceptAll()
 
 proc cliCheckFor*(str: typedesc[int]): CliCheck =
   CliCheck(kind: cckIsIntValue)
@@ -531,6 +573,7 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
       default = "off",
       defaultAsFlag = "on",
       groupKind = coFlag,
+      disabled = "off",
       check = cliCheckFor(CliHelpModes, toMapArray {
         chmOff: "Do not show help",
         chmOn: "Show help using default formatting",
@@ -549,6 +592,7 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
       default = "off",
       defaultAsFlag = "on",
       groupKind = coFlag,
+      disabled = "off",
       values = {
         "off": "Do not show version",
         "on": "Show version",
@@ -567,6 +611,7 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
       doc = "When to use color for the output.",
       default = "auto",
       groupKind = coFlag,
+      disabled = "never",
       values = {
         "auto": "show colors if the output goes to an interactive console",
         "never": "do not use colorized output",
@@ -628,7 +673,7 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
     )
 
     opt.check =
-      orCheck(
+      checkOr(
         opt.check,
         check(cckIsWritable),
         check(cckIsCreatable)
@@ -752,6 +797,7 @@ iterator items*(tree: CliCmdTree): CliCmdTree =
     for sub in tree.subnodes:
       yield sub
 
+
 iterator items*(desc: CliDesc): CliDesc =
   case desc.kind:
     of coCommand:
@@ -770,6 +816,38 @@ iterator items*(desc: CliDesc): CliDesc =
 
     else:
       discard
+
+func isDisabled*(val: CliValue): bool =
+  val.rawValue == val.desc.disabledFor
+
+func contains*(val: CliValue, key: string): bool =
+  case val.kind:
+    of cvkCommand:
+      if key in val.options:
+        result = not val.options[key].isDisabled()
+        if result:
+          debugpprint val.options[key]
+
+      else:
+        for arg in val.positional:
+          if key in arg.desc.altNames:
+            return not arg.isDisabled()
+
+    of cvkRecord:
+      result = key in val.recValues
+
+    else:
+      discard
+
+func getCmdName*(val: CliValue): string = val.subCmd.get().desc.name
+func getCmd*(val: CliValue): CliValue = val.subCmd.get()
+func getArg*(val: CliValue, pos: int = 0): CliValue = val.positional[pos]
+func getCmd*(app: CliApp): CliValue = app.value.getCmd()
+func getCmdName*(app: CliApp): string = app.value.getCmdName()
+func getArg*(app: CliApp, pos: int = 0): CliValue = app.value.getArg(pos)
+
+func hasCmd*(val: CliValue): bool =
+  val.kind in {cvkCommand} and val.subCmd.isSome()
 
 macro raisesAsExit*(
     app: var CLiApp,
@@ -824,6 +902,7 @@ macro runMain*(
   ): untyped =
 
   let mainCall = newCall(mainProc)
+  mainCall.add app
   mainCall.add logger
   for arg in args:
     mainCall.add arg
@@ -843,7 +922,7 @@ proc arg*(
     name: string,
     doc: string,
     required: bool = true,
-    check: CliCheck = nil,
+    check: CliCheck = checkAcceptAll(),
     docFull: string = ""
   ): CliDesc =
 
@@ -1011,11 +1090,21 @@ func `==`*(str: string, val: CliValue): bool =
 
 
 proc checkedConvert(tree: CliCmdTree, check: CliCheck, errors): CliValue =
+  assert not isNil(check),
+     "Cannot perform checked conversion with `nil` check"
+
+  let str = tree.head.value
   case check.kind:
+    of cckAcceptAll:
+      result = CliValue(
+        rawValue: str,
+        kind: cvkString, strVal: str, desc: tree.desc)
+
     of cckIsIntValue:
       try:
-        let val = tree.head.value.parseInt()
+        let val = str.parseInt()
         result = CliValue(
+          rawValue: str,
           kind: cvkInt,
           intVal: val,
           desc: tree.desc)
@@ -1028,30 +1117,30 @@ proc checkedConvert(tree: CliCmdTree, check: CliCheck, errors): CliValue =
           got: tree.head)
 
     of cckIsInSet:
-      let strVal = tree.head.value
       for val in check.values:
-        if strVal == val:
+        if str == val:
           return val
 
       raise newImplementError()
 
     of cckIsReadable:
-      let file = tree.head.value.toFsEntry()
-
-      if not file.exists():
+      if not fileExists(str):
         errors.add CliError(
           isDesc: false,
           check: check,
           kind: cekCheckExecFailure,
           got: tree.head,
           msg: "Could not validate requirements for " &
-            &"parameter, input file does not exist ({tree.head.value})")
+            &"<{tree.desc.name}>, input file does not exist ({tree.head.value})")
 
       else:
-        let permissions = file.file.getPermissions()
+        let
+          file = str.toFsEntry()
+          permissions = file.file.getPermissions()
 
         if fpUserRead in permissions:
           result = CliValue(
+            rawValue: str,
             kind: cvkFsEntry,
             fsEntryVal: file,
             desc: tree.desc)
@@ -1066,7 +1155,6 @@ proc checkedConvert(tree: CliCmdTree, check: CliCheck, errors): CliValue =
 
 
     of cckIsDirectory:
-      let str = tree.head.value
       if not str.fsEntryExists():
         errors.add CliError(
           isDesc: false,
@@ -1074,16 +1162,19 @@ proc checkedConvert(tree: CliCmdTree, check: CliCheck, errors): CliValue =
           kind: cekCheckExecFailure,
           got: tree.head,
           msg: "Could not validate requirements for " &
-            &"parameter, input directory does not exist ({tree.head.value})")
+            &"<{tree.desc.name}>, input directory does not exist ({tree.head.value})")
 
       else:
         let dir = str.toFsEntry()
-        result = CliValue(kind: cvkFsEntry, fsEntryVal: dir, desc: tree.desc)
+        result = CliValue(
+          rawValue: str,
+          kind: cvkFsEntry, fsEntryVal: dir, desc: tree.desc)
 
     of cckIsCreatable:
       let dir = tree.head.value.toFsDir()
       if dir.parentDir().exists():
         result = CliValue(
+          rawValue: str,
           kind: cvkFsEntry, fsEntryVal: dir.toFsEntry, desc: tree.desc)
 
       else:
@@ -1115,7 +1206,10 @@ proc toCliValue*(tree: CliCmdTree, errors): CliValue =
   case tree.kind:
     of coCommand:
       var converted: HashSet[string]
-      result = CliValue(desc: tree.desc, kind: cvkCommand)
+      result = CliValue(
+        rawValue: tree.head.value,
+        desc: tree.desc, kind: cvkCommand)
+
       for sub in tree:
         case sub.kind:
           of coArgument:
@@ -1124,6 +1218,10 @@ proc toCliValue*(tree: CliCmdTree, errors): CliValue =
 
           of coDashedKinds:
             result.options[sub.head.key] = toCliValue(sub, errors)
+            converted.incl sub.desc.name
+
+          of coCommand:
+            result.subCmd = some toCliValue(sub, errors)
             converted.incl sub.desc.name
 
           else:
@@ -1172,32 +1270,27 @@ proc mergeConfigs*(
     errors
   ) =
 
-  discard
+  raise newImplementError()
 
 
-proc acceptParams*(
+proc acceptArgs*(
     app: var CliApp,
-    params: seq[string] = paramStrs()
-  ): tuple[ok: CliValue, errors: seq[CliError]] =
+    params: seq[string] = paramStrs()): bool =
 
   var params = @[app.root.name] & params
-
-  var errors: seq[CliError]
   let (parsed, failed) = params.parseCliOpts()
   if failed.len > 0:
-    return (nil, errors)
+    return false
 
-  let tree = parsed.structureSplit(app.root, errors)
-  if errors.len > 0:
-    return (nil, errors)
+  let tree = parsed.structureSplit(app.root, app.errors)
+  if app.errors.len > 0:
+    return false
 
-  let value = tree.toCliValue(errors)
-  if errors.len > 0:
-    return (nil, errors)
+  app.value = tree.toCliValue(app.errors)
+  if app.errors.len > 0:
+    return false
 
-  return (value, @[])
-
-
+  return true
 
 let
   section = initStyle(fgYellow)
@@ -1437,3 +1530,28 @@ proc help(err: CliError): LytBlock =
 
 proc helpStr*(err: CliError): string =
   return err.help().toString()
+
+
+proc showErrors*(app: CliApp, logger: HLogger) =
+  ## Show accumulated errors using `logger`
+  for err in app.errors:
+    logger.err err.helpStr()
+
+proc builtinActionRequested*(app: CLiApp): bool =
+  ## Whether some of the built-in flags such as `--help` or version where
+  ## present in toplevel command-line.
+  assert not isNil(app.value),
+     "Check for builtin request should be performed after `acceptArgs`"
+
+  for builtin in ["help",  "version"]:
+    if builtin in app.value:
+      return true
+
+proc showBuiltin*(app: CliApp, logger: HLogger) =
+  ## Show output for one (or more) requested built-in entries such as
+  ## `--help`
+  if "help" in app.value:
+    echo app.helpStr()
+
+  if "version" in app.value:
+    echo app.version()

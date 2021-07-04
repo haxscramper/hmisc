@@ -1,4 +1,5 @@
-import std/[db_sqlite, sqlite3, options, sequtils, strutils, sugar]
+import std/[db_sqlite, sqlite3, options, sequtils,
+            strutils, sugar, strformat]
 
 import ./oswrap
 
@@ -30,6 +31,9 @@ proc sqlite3_expanded_sql(sqlite3_stmt: PStmt): cstring {.
 
 proc `$`*(pstmt: SqlPrepared): string =
   $sqlite3_expanded_sql(pstmt.PStmt)
+
+proc connError*(conn: DbConn): string =
+  &"connection error: {errmsg(conn)}, code: {errcode(conn)}"
 
 proc bindParam*[T](ps: SqlPrepared, idx: int, opt: Option[T]) =
   if opt.isSome():

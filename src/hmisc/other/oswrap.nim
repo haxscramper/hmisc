@@ -33,7 +33,8 @@ export os.PathComponent
 export os.FileInfo
 export os.FilePermission
 export os.ReadDirEffect, os.ReadEnvEffect,
-       os.WriteDirEffect, os.WriteEnvEffect
+       os.WriteDirEffect, os.WriteEnvEffect,
+       os.fileExists, os.dirExists
 
 export os.sleep, os.getCurrentProcessId
 export os.unixToNativePath
