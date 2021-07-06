@@ -1,7 +1,8 @@
 import std/[unittest, strformat, sequtils]
 
 import
-  hmisc/other/hargparse,
+  hmisc/other/[hargparse, oswrap, hpprint],
+  hmisc/algo/htemplates,
   hmisc/hdebug_misc,
   fusion/matching
 
@@ -181,6 +182,22 @@ suite "Default values":
     let opt = app.getOpt("test")
     doAssert opt.kind == cvkString
     doAssert opt.strVal == "false", opt.strVal
+
+  test "Based on positional":
+    var app = newApp()
+    app.add arg("file", "", check = cliCheckFor(FsFile).withIt((
+      it.fakeCheck = true)))
+
+    app.add opt("outfile", "", default = cliDefaultFromArg(
+      "file",
+      proc(val: CliValue): CliValue =
+        val.as(FsFile).withExt("bin").toCliValue()))
+
+    discard app.acceptArgs(@["file.nim"])
+    let opt = app.getOpt("outfile")
+    doAssert opt.kind == cvkFsEntry
+    doAssert opt.fsEntryVal.getStr() == "file.bin"
+
 
 suite "Full app":
   test "Execute with exception":

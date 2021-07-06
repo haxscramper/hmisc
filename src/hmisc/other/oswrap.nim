@@ -1499,6 +1499,14 @@ func withExt*[F: AbsFile | RelFIle](
     else:
       RelFile(f.getStr() & extAdd)
 
+func withExt*(fs: sink FsFile, ext: string, replace: bool = true): FsFile =
+  result = fs
+  if fs.isRelative:
+    result.relFile = fs.relFile.withExt(ext, replace)
+
+  else:
+    result.absFile = fs.absFile.withExt(ext, replace)
+
 proc `&.`*(file: AbsFile, ext: string): AbsFile = withExt(file, ext)
 
 func withoutExt*[F: AbsFile | RelFile](file: F): F =

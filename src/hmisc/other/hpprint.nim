@@ -59,10 +59,11 @@ type
     size*: int
     height*: int
     forceLayout*: Option[tuple[line, stack: bool]]
+    visitedAt*: int
 
 
     case kind*: PprintTreeKind
-      of ptkIgnored, ptkVisited, ptkNil:
+      of ptkIgnored, ptkNil, ptkVisited:
         discard
 
       of ptkConst:
@@ -90,12 +91,13 @@ type
 
   PPrintConf* = object
     idCounter: int
-    visited: HashSet[int]
+    visited: CountTable[int]
 
     ignorePaths*: PPrintMatch
     forceLayouts*: seq[tuple[match: PprintMatch,
                              force: PPrintLytChoice]]
 
+    showTypes*: bool
     maxStackHeightChoice*: int
     minLineHeightChoice*: int
     minLineSizeChoice*: int
@@ -104,6 +106,7 @@ type
     sortBySize*: bool
     alignSmallFields*: bool
     alignSmallGrids*: bool
+
 
 proc globKind*(pprintGlob: PPrintGlobPart): GenGlobPartKind = pprintGlob.kind
 proc globKind*(pprintGlob: PPrintPathElem): GenGlobPartKind = ggkWord
@@ -259,7 +262,7 @@ proc isVisited*[T](conf: PPrintConf, obj: T): bool =
 
 proc visit*[T](conf: var PprintConf, obj: T) =
   when obj is ref or obj is ptr:
-    conf.visited.incl cast[int](obj)
+    conf.visited.inc cast[int](obj)
 
 proc getId*[T](
     conf: var PPrintConf, entry: T, forceCounter: bool = false): int =
@@ -339,6 +342,8 @@ proc toPprintTree*[T](
     result = newPPrintTree(
       ptkVisited, conf.getId(entry), path,
       conf, fgRed + bgDefault).updateCounts(conf)
+
+    conf.visit(entry)
 
   elif conf.ignoredBy(path):
     result = newPPrintTree(
@@ -601,6 +606,9 @@ proc toPprintTree*[T](
 
   updateCounts(result, conf)
   result.treeType = newPPrintType(entry)
+  when entry is ref or entry is ptr:
+    result.visitedAt = cast[int](entry)
+
   # assert result.treeType.head.len > 0, $typeof(entry)
 
 proc toPPrintTree*[T](obj: T): PPrintTree =
@@ -627,6 +635,13 @@ proc layouts(tree: PPrintTree, conf: PPrintConf): PprintLytChoice =
 
 proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
   let (hasLine, hasStack) = tree.layouts(conf)
+  let visitedAt =
+    if (tree.visitedAt in conf.visited and
+        conf.visited[tree.visitedAt] > 1):
+      " @ " & $tree.visitedAt
+
+    else:
+      ""
 
   case tree.kind:
     of ptkConst:
@@ -645,7 +660,7 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
       for idx, (name, value) in tree.elements:
         if conf.alignSmallFields and value.size < 6:
           maxName = max(maxName, name.len + (
-            if value.treeType.isCommonType():
+            if value.treeType.isCommonType() or not conf.showTypes:
               0
 
             else:
@@ -666,7 +681,7 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
         if hasFields:
           resName.add toColored(name)
 
-        if value.treeType.isCommonType():
+        if value.treeType.isCommonType() or not conf.showTypes:
           if hasFields:
             resName.add toColored(": ")
 
@@ -679,7 +694,7 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
             T[", "] ?? idx > 0,
             T[resName] ?? hasFields, valueBlock]
 
-        if hasStack or line.minWidth > 100:
+        if hasStack:
           stack.add (
             if hasFields:
               # resName.add toColored(&"[{maxName}][{resName.textLen()}]")
@@ -695,54 +710,21 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
               valueBlock
           )
 
-
-          # let name = strutils.alignLeft(name & ": ", maxName + 2)
-          # let toAdd =
-
-          # stack.add toAdd
-
-        # if hasFields:
-        #   resName.add toColored(name)
-
-        # if value.treeType.isCommonType():
-        #   if hasFields:
-        #     resName.add toColored(": ")
-
-        # else:
-        #   resName.add toColored(
-        #     ": " & $value.treeType & " ", fgRed + bgDefault)
-
-        # var valueBlock = toPPrintBlock(value, conf)
-
-
-        # if hasLine:
-        #   line.add H[T[", "] ?? idx > 0, T[resName], valueBlock]
-
-        # if hasStack:
-
-        #   if value.height > 3 or valueBlock.minWidth > 20:
-        #     stack.add V[T[resName], I[2, valueBlock]]
-
-        #   else:
-        #     stack.add H[T[resName], valueBlock]
-
-
       let open = (T[@[
-        toColored(tree.treeType.head, fgGreen + bgDefault, conf.colored),
+        toColored(
+          tree.treeType.head & visitedAt,
+          fgGreen + bgDefault, conf.colored),
         toColored("(")]], T["("]) ?? hasName
+
+      let forceStack = false
 
       if hasLine:
         line = H[open, line, T[")"]]
 
-      if hasStack:
-        stack = V[open, I[2, stack],
-          # T[")"] # NOTE potentially configurable
-        ]
+      if hasStack or forceStack:
+        stack = V[open, I[2, stack]]
 
-      # line = H[T[$line.minWidth], line]
-      # stack = H[T[$stack.minWidth], stack]
-
-      if hasLine and hasStack:
+      if hasLine and (hasStack or forceStack):
         result = C[line, stack]
 
       elif hasLine:
@@ -752,7 +734,9 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
         result = stack
 
     of ptkVisited:
-      result = T[toColored("<visited>", fgRed + bgDefault, conf.colored)]
+      result = T[toColored(
+        "<visited>" & visitedAt,
+        fgRed + bgDefault, conf.colored)]
 
     of ptkNil:
       result = T[
@@ -829,7 +813,8 @@ const defaultPPrintConf* = PPrintConf(
   colored: true,
   sortBySize: true,
   alignSmallFields: true,
-  alignSmallGrids: true
+  alignSmallGrids: true,
+  showTypes: false
 )
 
 proc pptree*[T](obj: T, conf: PPrintConf = defaultPPrintConf): PPrintTree =

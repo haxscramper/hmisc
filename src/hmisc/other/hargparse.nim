@@ -109,6 +109,7 @@ type
 
   CliCheck* = ref object
     allowedRepeat*: Slice[int] ## Allowed range of value repetitions
+    fakeCheck*: bool
     case kind*: CliCheckKind
       of cckIsInRange:
         valueRange*: Slice[float64]
@@ -556,10 +557,79 @@ template exprType(e: untyped): untyped =
   proc res(): auto = a
   typeof(res())
 
+func getCmdName*(val: CliValue): string = val.subCmd.get().desc.name
+func getCmd*(val: CliValue): CliValue = val.subCmd.get()
+func getArg*(val: CliValue, pos: int = 0): CliValue = val.positional[pos]
+func getCmd*(app: CliApp): CliValue = app.value.getCmd()
+func getCmdName*(app: CliApp): string = app.value.getCmdName()
+func getArg*(app: CliApp, pos: int = 0): CliValue = app.value.getArg(pos)
+func getOpt*(val: CliValue, name: string): CliValue =
+  assertKind(val, {cvkCommand})
+  val.options[name]
+
+func getOpt*(app: CliApp, name: string): CliValue = app.value.getOpT(name)
+
+func getArg*(val: CliValue, name: string): CliValue =
+  assertKind(val, {cvkCommand})
+  for pos in val.positional:
+    if pos.desc.name == name:
+      return pos
+
+  {.warning: "Raise proper extensions for this crap".}
+  raise newImplementError("Argument not found")
+
+func getArg*(app: CliApp, name: string): CliValue = app.value.getArg(name)
+
+func hasCmd*(val: CliValue): bool =
+  val.kind in {cvkCommand} and val.subCmd.isSome()
+
+proc `as`*[T](val: CliValue, target: typedesc[T]): T =
+  when target is AbsFile:
+    case val.kind:
+      of cvkFsEntry:
+        assertKind(val.fsEntryVal, {pcFile, pcLinkToFile})
+        if val.fsEntryVal.file.isRelative:
+          result = val.fsEntryVal.file.relFile.toAbsFile()
+
+        else:
+          result = val.fsEntryVal.file.absFile
+
+      else:
+        raise newUnexpectedKindError(val)
+
+  elif target is FsFile:
+    case val.kind:
+      of cvkFsEntry:
+        assertKind(val.fsEntryVal, {pcFile, pcLinkToFile})
+        result = val.fsEntryVal.file
+
+      else:
+        raise newUnexpectedKindError(val)
+
+  else:
+    static:
+      {.error: "Implement type conversion for " & $typeof(T).}
+
+func toCliValue*[T](cli: T, desc: CliDesc = nil): CliValue =
+  when cli is FsEntry:
+    CliValue(kind: cvkFsEntry, fsEntryVal: cli,
+             desc: desc, rawValue: $cli)
+
+  elif cli is FsFile:
+    CliValue(kind: cvkFsEntry, fsEntryVal: cli.toFsEntry(),
+             desc: desc, rawValue: $cli)
+
+  else:
+    {.error: "Implement type conversion for " & $typeof(T).}
+
+
 proc cliCheckFor*[T](value: typedesc[seq[T]]): CliCheck =
   var tmp: exprType
   result = checkAnyOf(cliCheckFor(
     typeof(tmp[0])), 0 .. high(int))
+
+proc cliCheckFor*(f: typedesc[FsFile]): CLiCheck =
+  checkFileReadable()
 
 proc cliCheckFor*(str: typedesc[string]): CliCheck =
   checkAcceptAll()
@@ -580,6 +650,14 @@ proc cliCheckFor*[En: enum](
 
 func cliDefault*(str: string): CliDefault =
   CliDefault(kind: cdkConstString, strVal: str, defaultRepr: str)
+
+func cliDefaultFromArg*(
+    arg: string, convert: proc(val: CliValue): CliValue): CliDefault =
+
+  CliDefault(
+    kind: cdkCallback,
+    defaultRepr: "Convert " & arg,
+    impl: (proc(app: CliApp): CliValue = convert(app.getArg(arg))))
 
 type
   CliHelpModes* = enum
@@ -865,8 +943,6 @@ func contains*(val: CliValue, key: string): bool =
     of cvkCommand:
       if key in val.options:
         result = not val.options[key].isDisabled()
-        if result:
-          debugpprint val.options[key]
 
       else:
         for arg in val.positional:
@@ -879,37 +955,6 @@ func contains*(val: CliValue, key: string): bool =
     else:
       discard
 
-func getCmdName*(val: CliValue): string = val.subCmd.get().desc.name
-func getCmd*(val: CliValue): CliValue = val.subCmd.get()
-func getArg*(val: CliValue, pos: int = 0): CliValue = val.positional[pos]
-func getCmd*(app: CliApp): CliValue = app.value.getCmd()
-func getCmdName*(app: CliApp): string = app.value.getCmdName()
-func getArg*(app: CliApp, pos: int = 0): CliValue = app.value.getArg(pos)
-
-func getOpt*(val: CliValue, name: string): CliValue = val.options[name]
-func getOpt*(app: CliApp, name: string): CliValue = app.value.getOpT(name)
-
-
-func hasCmd*(val: CliValue): bool =
-  val.kind in {cvkCommand} and val.subCmd.isSome()
-
-proc `as`*[T](val: CliValue, target: typedesc[T]): T =
-  when target is AbsFile:
-    case val.kind:
-      of cvkFsEntry:
-        assertKind(val.fsEntryVal, {pcFile, pcLinkToFile})
-        if val.fsEntryVal.file.isRelative:
-          result = val.fsEntryVal.file.relFile.toAbsFile()
-
-        else:
-          result = val.fsEntryVal.file.absFile
-
-      else:
-        raise newUnexpectedKindError(val)
-
-  else:
-    static:
-      {.error: "Implement type conversion for" & $typeof(T).}
 
 macro raisesAsExit*(
     app: var CLiApp,
@@ -1191,7 +1236,20 @@ proc checkedConvert(tree: CliCmdTree, check: CliCheck, errors): CliValue =
       raise newImplementError()
 
     of cckIsReadable:
-      if not fileExists(str):
+      if check.fakeCheck:
+        result = CliValue(
+          rawValue: str,
+          kind: cvkFsEntry,
+          desc: tree.desc,
+          fsEntryVal: (
+            if isAbsolute(str):
+              AbsFile(str).toFsEntry(false)
+
+            else:
+              RelFile(str).toFsEntry(false)))
+
+
+      elif not fileExists(str):
         errors.add CliError(
           isDesc: false,
           check: check,
@@ -1317,11 +1375,16 @@ proc toCliValue*(tree: CliCmdTree, errors): CliValue =
 
 
             of cdkCallback:
-              result = CliValue(
+              let toDef = CliValue(
                 desc: tree.desc,
                 rawValue: "",
                 defaultFrom: def,
                 kind: cvkNotYetDefaulted)
+
+              case sub.kind:
+                of coArgument:    result.positional.add toDef
+                of coDashedKinds: result.options[sub.name] = toDef
+                else:             raise newUnexpectedKindError(sub)
 
 
     of coArgument:
@@ -1367,7 +1430,7 @@ proc finalizeDefaults*(app: var CliApp) =
       of cvkNotYetDefaulted:
         case tree.defaultFrom.kind:
           of cdkCallback:
-            tree = tree.defaultFrom.impl(app)
+            tree[] = tree.defaultFrom.impl(app)[]
 
           else:
             raise newImplementKindError(tree.defaultFrom)
