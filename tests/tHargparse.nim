@@ -138,7 +138,7 @@ suite "Convet to cli value":
   test "Integer or enum positional":
     type Special = enum spec1, spec2
 
-    let arg = arg("i", "", check = orCheck(
+    let arg = arg("i", "", check = checkOr(
       cliCheckFor(int),
       cliCheckFor(Special, toMapArray {
         spec1: "Documentation for enum value 1",
@@ -172,11 +172,21 @@ suite "Error reporting":
 
     echo err[0].helpStr()
 
+suite "Default values":
+  test "Option":
+    var app = newApp()
+    app.add opt("test", "", default = cliDefault("false"))
+    discard app.acceptArgs(@[])
+
+    let opt = app.getOpt("test")
+    doAssert opt.kind == cvkString
+    doAssert opt.strVal == "false", opt.strVal
+
 suite "Full app":
   test "Execute with exception":
-    proc mainProc(l: HLogger, arg: int = 2) =
+    proc mainProc(app: CliApp, l: HLogger, arg: int = 2) =
       if arg > 0:
-        mainProc(l, arg - 1) # Comment
+        mainProc(app, l, arg - 1) # Comment
       raise newException(OSError, "123123123")
 
     startHax()

@@ -57,6 +57,7 @@ type
 
     eventPrefix: array[HLogEvent, HLogFormat]
     logPrefix: array[HLogLevel, HLogFormat]
+    skipNl: int
 
     prefixLen: int
 
@@ -132,9 +133,24 @@ proc logImpl*(
 
   let indent = repeat("  ", logger.scopes.len())
 
-  echo indent, prefix, " ", logger.prepareText(args)
+  if logger.skipNl > 0:
+    dec logger.skipNl
+    stdout.write indent, prefix, " ", logger.prepareText(args)
+
+  else:
+    stdout.writeline indent, prefix, " ", logger.prepareText(args)
+
   logger.lastLog = level
   logger.lastEvent = event
+
+proc writeln*(logger: HLogger, text: varargs[string, `$`]) =
+  stdout.writeline join(text, " ")
+
+proc write*(logger: HLogger, text: varargs[string, `$`]) =
+  stdout.write join(text, " ")
+
+proc skipNl*(logger: HLogger, count: int = 1) =
+  logger.skipNl += count
 
 proc openScope*(
     logger: HLogger, kind: HLogScopeKind,

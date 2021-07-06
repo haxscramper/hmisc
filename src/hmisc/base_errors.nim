@@ -101,6 +101,7 @@ template kindToStr*(expr: typed): untyped =
 
 template assertKind*(
     inExpr, inExpected: typed, onFail: string = "") {.dirty.} =
+  bind kindToStr, UnexpectedKindError
   block:
     let
       expr = inExpr
@@ -132,7 +133,10 @@ template assertKind*(
 
     if msg.len > 0:
       {.line: instantiationInfo(fullPaths = true).}:
-        raise newException(UnexpectedKindError, msg)
+        var res: ref UnexpectedKindError
+        new(res)
+        res.msg = msg
+        raise res
 
 
 

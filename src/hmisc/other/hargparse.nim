@@ -144,11 +144,25 @@ type
     level*: Table[string, CliDocTree]
     doc*: CliDoc
 
+  CliDefaultKind = enum
+    cdkConstString
+    cdkCallback
+
+  CliDefault = ref object
+    defaultRepr*: string
+    defaultDesc*: string
+    case kind*: CliDefaultKind
+      of cdkConstString:
+        strVal*: string
+
+      of cdkCallback:
+        impl*: proc(app: CliApp): CliValue
+
   CliDesc* = ref object
     name*: string
     altNames*: seq[string]
-    defaultValue*: Option[string]
-    defaultAsFlag*: Option[string]
+    defaultValue*: Option[CliDefault]
+    defaultAsFlag*: Option[CliDefault]
     disabledFor*: string
     check*: CliCheck
 
@@ -193,6 +207,7 @@ type
     cvkUnparse ## Peg/regex-based unparsers
 
     cvkCommand
+    cvkNotYetDefaulted
 
   CliValue* = ref object
     origin*: CliOrigin
@@ -227,6 +242,9 @@ type
         recHead*: CLiValue
         recValues*: Table[string, CliValue]
 
+      of cvkNotYetDefaulted:
+        defaultFrom*: CliDefault
+
 
   CliExitValueRange = range[0 .. 255]
   CliExitCode = object
@@ -240,6 +258,7 @@ type
     url*: Url
     doc*: CliDoc
     configPaths*: seq[FsEntry]
+    rawArgs*: seq[string]
 
     rootCmd*: CliDesc
     value*: CliValue
@@ -311,6 +330,11 @@ proc add*(desc: var CliDesc, other: CliDesc) =
 func toOption(str: string): Option[string] =
   if str.len > 0:
     return some str
+
+func toOption[T](r: ref T): Option[ref T] =
+  if not isNil(r):
+    return some r
+
 
 func add*(app: var CliApp, cmd: CliDesc) =
   app.rootCmd.add cmd
@@ -393,8 +417,7 @@ func setDisabled*(desc: CliDesc, disabled: string) =
         aux(check.itemCheck)
 
       else:
-        raise newImplementKindError(check)
-
+        discard
 
   if not isNil(desc.check):
     static: {.warning: "Hack, ensure there are no nil checks later".}
@@ -404,18 +427,18 @@ func setDisabled*(desc: CliDesc, disabled: string) =
 proc opt*(
     name,
     doc: string,
-    default: string = "",
-    values: openarray[(string, string)] = @[],
-    docFull: string = "",
-    alt: seq[string] = @[],
-    defaultAsFlag: string = "",
-    groupKind: CliOptKind = coOpt,
-    varname: string = name,
-    maxRepeat: int = 1,
-    aliasof: CliOpt = CliOpt(),
-    selector: CliCheck = nil,
-    check: CliCheck = nil,
-    disabled: string = ""
+    default:       CliDefault                  = nil,
+    values:        openarray[(string, string)] = @[],
+    docFull:       string                      = "",
+    alt:           seq[string]                 = @[],
+    defaultAsFlag: CLiDefault                  = nil,
+    groupKind:     CliOptKind                  = coOpt,
+    varname:       string                      = name,
+    maxRepeat:     int                         = 1,
+    aliasof:       CliOpt                      = CliOpt(),
+    selector:      CliCheck                    = nil,
+    check:         CliCheck                    = nil,
+    disabled:      string                      = ""
   ): CliDesc =
 
   result = CliDesc(
@@ -555,6 +578,9 @@ proc cliCheckFor*[En: enum](
 
   return checkValues(values)
 
+func cliDefault*(str: string): CliDefault =
+  CliDefault(kind: cdkConstString, strVal: str, defaultRepr: str)
+
 type
   CliHelpModes* = enum
     chmOff = "off"
@@ -570,8 +596,8 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
       "help",
       alt = @["h"],
       doc = "Display help messsage",
-      default = "off",
-      defaultAsFlag = "on",
+      default = cliDefault("off"),
+      defaultAsFlag = cliDefault("on"),
       groupKind = coFlag,
       disabled = "off",
       check = cliCheckFor(CliHelpModes, toMapArray {
@@ -589,8 +615,8 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
       "version",
       alt = @["v"],
       doc = "Display version",
-      default = "off",
-      defaultAsFlag = "on",
+      default = cliDefault("off"),
+      defaultAsFlag = cliDefault("on"),
       groupKind = coFlag,
       disabled = "off",
       values = {
@@ -609,7 +635,7 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
     result.add opt(
       "color",
       doc = "When to use color for the output.",
-      default = "auto",
+      default = cliDefault("auto"),
       groupKind = coFlag,
       disabled = "never",
       values = {
@@ -645,7 +671,7 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
     result.add opt(
       "loglevel",
       doc = "Configure minimal logging level to be shown.",
-      default = "info",
+      default = cliDefault("info"),
       values = @{
         "all":    "All levels active",
         "debug":  "Debugging information helpful only to developers",
@@ -664,8 +690,9 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
     var opt = opt(
       "log-output",
       doc = "Configure logging output target",
-      default = "/dev/stderr", # Does explicitly writing to `/dev/stderr`
-                               # differ from `stderr.write`?
+      default = cliDefault("/dev/stderr"),
+        # Does explicitly writing to `/dev/stderr`
+        # differ from `stderr.write`?
       values = @{
         "/dev/stderr": "Output logs to stderr",
         "/dev/stdout": "Output logs to stdout"
@@ -820,6 +847,19 @@ iterator items*(desc: CliDesc): CliDesc =
 func isDisabled*(val: CliValue): bool =
   val.rawValue == val.desc.disabledFor
 
+func isEmpty*(val: CliValue): bool =
+  case val.kind:
+    of cvkCommand:
+      val.options.len == 0 and
+      val.positional.len == 0 and
+      val.subCmd.isNone()
+
+    of cvkRecord:
+      val.recValues.len == 0
+
+    else:
+      false
+
 func contains*(val: CliValue, key: string): bool =
   case val.kind:
     of cvkCommand:
@@ -846,8 +886,30 @@ func getCmd*(app: CliApp): CliValue = app.value.getCmd()
 func getCmdName*(app: CliApp): string = app.value.getCmdName()
 func getArg*(app: CliApp, pos: int = 0): CliValue = app.value.getArg(pos)
 
+func getOpt*(val: CliValue, name: string): CliValue = val.options[name]
+func getOpt*(app: CliApp, name: string): CliValue = app.value.getOpT(name)
+
+
 func hasCmd*(val: CliValue): bool =
   val.kind in {cvkCommand} and val.subCmd.isSome()
+
+proc `as`*[T](val: CliValue, target: typedesc[T]): T =
+  when target is AbsFile:
+    case val.kind:
+      of cvkFsEntry:
+        assertKind(val.fsEntryVal, {pcFile, pcLinkToFile})
+        if val.fsEntryVal.file.isRelative:
+          result = val.fsEntryVal.file.relFile.toAbsFile()
+
+        else:
+          result = val.fsEntryVal.file.absFile
+
+      else:
+        raise newUnexpectedKindError(val)
+
+  else:
+    static:
+      {.error: "Implement type conversion for" & $typeof(T).}
 
 macro raisesAsExit*(
     app: var CLiApp,
@@ -952,7 +1014,8 @@ proc select*(tree: CliCmdTree): string = tree.head.keySelect
 proc parseArg(
     lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
   if lexer[].kind == coArgument:
-    result = CliCmdTree(kind: coArgument, head: lexer.pop(), desc: desc)
+    result = CliCmdTree(
+      kind: coArgument, head: lexer.pop(), desc: desc)
 
   else:
     errors.add CliError(
@@ -966,7 +1029,9 @@ proc parseOptOrFlag(
     lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
 
   if lexer[].key in desc.altNames:
-    result = CliCmdTree(kind: lexer[].kind, head: lexer.pop(), desc: desc)
+    result = CliCmdTree(
+      kind: lexer[].kind, head: lexer.pop(), desc: desc)
+
     if ?lexer and result.head.needsValue():
       result.args.add lexer.pop()
 
@@ -983,7 +1048,9 @@ proc parseCli(lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree
 
 proc parseCmd(lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
   if lexer[].kind in {coArgument, coCommand} and lexer[].key in desc.altNames:
-    result = CliCmdTree(kind: coCommand, head: lexer.pop(), desc: desc)
+    result = CliCmdTree(
+      kind: coCommand, head: lexer.pop(), desc: desc)
+
     while ?lexer:
       result.add parseCli(lexer, desc, errors)
 
@@ -1095,7 +1162,7 @@ proc checkedConvert(tree: CliCmdTree, check: CliCheck, errors): CliValue =
 
   let str = tree.head.value
   case check.kind:
-    of cckAcceptAll:
+    of cckAcceptAll, cckNoCheck:
       result = CliValue(
         rawValue: str,
         kind: cvkString, strVal: str, desc: tree.desc)
@@ -1229,23 +1296,32 @@ proc toCliValue*(tree: CliCmdTree, errors): CliValue =
 
       for sub in tree.desc:
         if sub.name notin converted and sub.defaultValue.isSome():
-          var
-            val = sub.defaultValue.get()
-            default = CliCmdTree(
-              desc: sub,
-              head: CliOpt(
-                keyPath: @[sub.name],
-                kind: sub.kind, rawStr: val, valStr: val))
+          let def = sub.defaultValue.get()
+          case def.kind:
+            of cdkConstString:
+              var
+                default = CliCmdTree(
+                  desc: sub,
+                  head: CliOpt(keyPath: @[sub.name], kind: sub.kind,
+                               valStr: def.strVal))
 
-          case sub.kind:
-            of coArgument:
-              result.positional.add toCliValue(default, errors)
+              case sub.kind:
+                of coArgument:
+                  result.positional.add toCliValue(default, errors)
 
-            of coDashedKinds:
-              result.options[default.head.key] = toCliValue(default, errors)
+                of coDashedKinds:
+                  result.options[default.head.key] = toCliValue(default, errors)
 
-            else:
-              raise newUnexpectedKindError(sub)
+                else:
+                  raise newUnexpectedKindError(sub)
+
+
+            of cdkCallback:
+              result = CliValue(
+                desc: tree.desc,
+                rawValue: "",
+                defaultFrom: def,
+                kind: cvkNotYetDefaulted)
 
 
     of coArgument:
@@ -1255,9 +1331,22 @@ proc toCliValue*(tree: CliCmdTree, errors): CliValue =
       var tree = tree
       if tree.head.canAddValue() and
          tree.desc.defaultAsFlag.isSome():
-        tree.head.valStr = tree.desc.defaultAsFlag.get()
+        let def = tree.desc.defaultAsFlag.get()
 
-      result = checkedConvert(tree, tree.desc.check, errors)
+        case def.kind:
+          of cdkConstString:
+            tree.head.valStr = def.strVal
+            result = checkedConvert(tree, tree.desc.check, errors)
+
+          of cdkCallback:
+            result = CliValue(
+              desc: tree.desc,
+              rawValue: "",
+              defaultFrom: def,
+              kind: cvkNotYetDefaulted)
+
+      else:
+        result = checkedConvert(tree, tree.desc.check, errors)
 
     else:
       raise newImplementKindError(tree)
@@ -1272,12 +1361,37 @@ proc mergeConfigs*(
 
   raise newImplementError()
 
+proc finalizeDefaults*(app: var CliApp) =
+  proc aux(tree: var CliValue, app: var CliApp) =
+    case tree.kind:
+      of cvkNotYetDefaulted:
+        case tree.defaultFrom.kind:
+          of cdkCallback:
+            tree = tree.defaultFrom.impl(app)
+
+          else:
+            raise newImplementKindError(tree.defaultFrom)
+
+      of cvkCommand:
+        for pos in mitems(tree.positional): aux(pos, app)
+        for _, opt in mpairs(tree.options): aux(opt, app)
+        if tree.subCmd.isSome(): aux(tree.subCmd.get(), app)
+
+      else:
+        discard
+
+
+
+  aux(app.value, app)
 
 proc acceptArgs*(
     app: var CliApp,
     params: seq[string] = paramStrs()): bool =
+  app.rawArgs = params
 
   var params = @[app.root.name] & params
+
+
   let (parsed, failed) = params.parseCliOpts()
   if failed.len > 0:
     return false
@@ -1287,6 +1401,11 @@ proc acceptArgs*(
     return false
 
   app.value = tree.toCliValue(app.errors)
+  if app.errors.len > 0:
+    return false
+
+  app.finalizeDefaults()
+
   if app.errors.len > 0:
     return false
 
@@ -1314,10 +1433,10 @@ proc postLine(desc: CliDesc): LytBlock =
       result.add T[&"[={initColored(desc.varname, fgCyan)}]"]
 
     if desc.defaultValue.isSome():
-      result.add T[&", defaults to {toCyan(desc.defaultValue.get())}"]
+      result.add T[&", defaults to {toCyan(desc.defaultValue.get().defaultRepr)}"]
 
     if desc.defaultAsFlag.isSome():
-      result.add T[&", as flag defaults to {toCyan(desc.defaultAsFlag.get())}"]
+      result.add T[&", as flag defaults to {toCyan(desc.defaultAsFlag.get().defaultRepr)}"]
 
   let rep = desc.check.allowedRepeat
   if rep.b > 1:
@@ -1547,6 +1666,8 @@ proc builtinActionRequested*(app: CLiApp): bool =
     if builtin in app.value:
       return true
 
+  return app.rawArgs.len() == 0
+
 proc showBuiltin*(app: CliApp, logger: HLogger) =
   ## Show output for one (or more) requested built-in entries such as
   ## `--help`
@@ -1555,3 +1676,6 @@ proc showBuiltin*(app: CliApp, logger: HLogger) =
 
   if "version" in app.value:
     echo app.version()
+
+  if app.rawArgs.len() == 0:
+    echo "Empty args"
