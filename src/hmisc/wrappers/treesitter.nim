@@ -293,7 +293,6 @@ proc ts_language_version*(a1: ptr TSLanguage): uint32 {.apiProc.}
 
 
 import std/[macros, options, unicode, strutils]
-import hnimast
 export options
 
 macro tsInitScanner*(
@@ -316,88 +315,55 @@ macro tsInitScanner*(
     else:
       var scanner {.inject.} = `initCall`()
 
-  result.add newNProcDecl(
-    name = "tree_sitter_" & langname.strVal() & "_external_scanner_create",
-    rtyp = some newNType("pointer"),
-    exported = false,
-    pragma = newNPragma("exportc"),
-    impl = (
-      quote do:
-        result = addr scanner
-    )
-  ).toNNode()
+  let
+    scanCreate = ident(
+      "tree_sitter_" & langname.strVal() & "_external_scanner_create")
+    scanDestroy = ident(
+      "tree_sitter_" & langname.strVal() & "_external_scanner_destroy")
+    scanScan = ident(
+      "tree_sitter_" & langname.strVal() & "_external_scanner_scan")
+    scanSerialize = ident(
+      "tree_sitter_" & langname.strVal() & "_external_scanner_serialize")
+    scanDeserialize = ident(
+        "tree_sitter_" & langname.strVal() & "_external_scanner_deserialize")
 
-  result.add newNProcDecl(
-    name = "tree_sitter_" & langname.strVal() & "_external_scanner_destroy",
-    args = { "inScanner" : newNtype(scannerType.repr) },
-    exported = false,
-    pragma = newNPragma("exportc"),
-    impl = (
-      quote do:
-        discard
-    )
-  ).toNNode()
+  result.add quote do:
+    proc `scanCreate`(): pointer {.exportc.} =
+      addr scanner
 
+  result.add quote do:
+    proc `scanDestroy`(inScanner: `scannerType`) {.exportc.} =
+      discard
 
-  result.add newNProcDecl(
-    name = "tree_sitter_" & langname.strVal() & "_external_scanner_scan",
-    args = {
-      "payload" : newNtype("pointer"),
-      "lexer" : newNType("ptr", @["TSLexer"]),
-      "valid_symbols" : newNType("ptr", @["bool"])
-    },
-    rtyp = some newNType("bool"),
-    exported = false,
-    pragma = newNPragma("exportc"),
-    impl = (
-      quote do:
-        let res = scan(
-          cast[ptr `scannerType`](payload)[],
-          lexer[],
-          cast[ptr UncheckedArray[bool]](valid_symbols)
-        )
+  result.add quote do:
+    proc `scanScan`(
+        payload: pointer, lexer: ptr TsLexer, valid_symbols: ptr bool
+      ): bool {.exportc.} =
 
-        when res isnot Option:
-          static:
-            error "`scan` must return `Option[<external token kind>]`"
+      let res = scan(
+        cast[ptr `scannerType`](payload)[],
+        lexer[],
+        cast[ptr UncheckedArray[bool]](valid_symbols)
+      )
 
-        if res.isSome():
-          lexer[].setTokenKind(res.get())
-          return true
-        else:
-          return false
-    )
-  ).toNNode()
+      when res isnot Option:
+        static:
+          error "`scan` must return `Option[<external token kind>]`"
 
-  result.add newNProcDecl(
-    name = "tree_sitter_" & langname.strVal() & "_external_scanner_serialize",
-    args = {
-      "payload" : newNtype("pointer"),
-      "buffer" : newNType("cstring"),
-    },
-    exported = false,
-    pragma = newNPragma("exportc"),
-    impl = (
-      quote do:
-        discard
-    )
-  ).toNNode()
+      if res.isSome():
+        lexer[].setTokenKind(res.get())
+        return true
 
-  result.add newNProcDecl(
-    name = "tree_sitter_" & langname.strVal() & "_external_scanner_deserialize",
-    args = {
-      "payload" : newNtype("pointer"),
-      "buffer" : newNType("cstring"),
-      "length" : newNType("cuint")
-    },
-    exported = false,
-    pragma = newNPragma("exportc"),
-    impl = (
-      quote do:
-        discard
-    )
-  ).toNNode()
+      else:
+        return false
 
+  result.add quote do:
+    proc `scanSerialize`(payload: pointer, buffer: cstring) {.exportc.} =
+      discard
+
+  result.add quote do:
+    proc `scanDeserialize`(payload: pointer, buffer: cstring, length: cuint) {.exportc.} =
+      discard
 
   result = quote do:
     block:
