@@ -39,6 +39,7 @@ suite "Classify command line arguments":
       "--field2:0.3":       @[(coOpt, @["field2"], "", "0.3")],
       "/tmp/test.txt":      @[(coArgument, es, "", "/tmp/test.txt")],
       "-Wnone":             @[(coOpt, @["W"], "", "none")],
+      "--dry-run":          @[(coFlag, @["dry-run"], "", "")],
       "-qWnone":            @[
         (coFlag, @["q"], "", ""), (coOpt, @["W"], "", "none")],
 
@@ -127,6 +128,24 @@ suite "Argument structuring":
         Flag(head: (key: "test"), desc: (name: "test"))
         Command()
 
+  test "Subcommand after flag":
+    let (err, tree) = checkOpts(
+      @["haxdoc", "--dry-run", "nim", "trail"],
+      cmd("haxdoc", "", [
+        flag("dry-run", ""),
+        cmd("nim", "", [
+          cmd("trail", "")
+        ])
+      ])
+    )
+
+    tree.assertMatch:
+      Command(desc.name: "haxdoc"):
+        Flag(head.key: "dry-run", desc.name: "dry-run")
+        Command(desc.name: "nim"):
+          Command(desc.name: "trail")
+
+
 
 suite "Convet to cli value":
   test "Integer positional":
@@ -189,14 +208,35 @@ suite "Default values":
       it.fakeCheck = true)))
 
     app.add opt("outfile", "", default = cliDefaultFromArg(
-      "file",
+      "file", "",
       proc(val: CliValue): CliValue =
         val.as(FsFile).withExt("bin").toCliValue()))
 
-    discard app.acceptArgs(@["file.nim"])
+    doAssert app.acceptArgs(@["file.nim"])
     let opt = app.getOpt("outfile")
     doAssert opt.kind == cvkFsEntry
     doAssert opt.fsEntryVal.getStr() == "file.bin"
+
+  test "Based on positional subcommand":
+    var app = newApp()
+    var sub1 = cmd("sub1", "")
+    var sub2 = cmd("sub2", "")
+    sub2.add arg("file", "", check = cliCheckFor(FsFile).withIt((
+      it.fakeCheck = true)))
+
+    sub2.add opt("out", "", default =cliDefaultFromArg(
+      "file", "",
+      proc(val: CliValue): CliValue =
+        val.as(FsFile).withExt("bin").toCliValue()))
+
+    sub1.add sub2
+    app.add sub1
+
+    doAssert app.acceptArgs(@["sub1", "sub2", "file.nim"])
+    let opt = app.getCmd().getCmd().getOpt("out")
+    doAssert opt.kind == cvkFsEntry
+    doAssert opt.fsEntryVal.getStr() == "file.bin"
+
 
 
 suite "Full app":
@@ -241,3 +281,14 @@ suite "Full app":
     }))
 
     echo app.helpStr()
+
+  test "Full app dry-run":
+    var app = newApp()
+    app.add flag("dry-run", "")
+    app.add cmd("nim", "", [cmd("trail", "")])
+
+    if not app.acceptArgs(@["--dry-run", "nim", "trail"]):
+      app.showerrors(newtermLogger())
+      fail()
+
+    doAssert app.getOpt("dry-run") as bool

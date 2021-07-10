@@ -241,6 +241,17 @@ suite "Edit distance":
     impl("hello", "hello")
     impl("one", "two")
 
+  test "Myers diff":
+    let
+      oldText = @["apple","orange","pear", "text"]
+      newText =  @["apple","orange","blueberry", "potato", "text"]
+
+    let diff = myersDiff(oldText, newText)
+
+    let shifted = shiftDiffed(oldText, newtext, diff, "")
+
+    echo formatDiffed(shifted)
+
   test "Identifier mismatch":
     template mis(a, b: untyped, exp: bool = false): untyped =
       stringMismatchMessage(a, b, showAll = exp)

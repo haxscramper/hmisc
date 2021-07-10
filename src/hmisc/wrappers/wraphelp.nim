@@ -12,6 +12,10 @@ type
 
   CxxTemplateUndefined = object
 
+  cchar16* = uint16
+  cchar32* = uint32
+  cwchar* = uint32
+
 proc `as`*[T](undef: CxxTemplateUndefined, asTarget: typedesc[T]): T {.importcpp: "(#)"} =
 
 proc cxxInitList*[T](args: T) {.importcpp: "{@}", varargs.}

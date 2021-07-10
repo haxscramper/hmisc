@@ -223,3 +223,8 @@ template echove*(body: untyped): untyped =
   echov body.astToStr(), "=", res
   echov "@", instantiationInfo().line
   res
+
+template globalTick*(): untyped =
+  var tick {.global.}: int = -1
+  inc tick
+  tick

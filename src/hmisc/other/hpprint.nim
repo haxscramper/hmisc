@@ -1,4 +1,5 @@
-# - TODO runtime switching for `pairs`/`items` usee for objects
+# - TODO :: runtime switching for `pairs`/`items` usee for objects
+# - TODO :: rewrite `treeRepr` from hpprint_repr
 
 import
   ./blockfmt,
@@ -594,7 +595,12 @@ proc toPprintTree*[T](
           let val = $distinctBase(entry)
 
         else:
-          let val = $entry
+          when compiles($entry):
+            let val = $entry
+
+          else:
+            style = fgRed + bgDefault
+            let val = "<not convertible " & $typeof(entry) & ">"
 
       result = newPPrintCOnst(
         val,

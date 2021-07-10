@@ -22,7 +22,8 @@
 import std/[strutils, macros, random, hashes, json, math,
             strformat, sequtils, options, streams]
 
-import ../algo/[hstring_algo, hseq_distance, halgorithm]
+import ../algo/[hstring_algo, hseq_distance, halgorithm, clformat]
+import ../types/colorstring
 import ../base_errors
 import ../hdebug_misc
 
@@ -273,6 +274,12 @@ func parseFsDir*(dir: string): FsDir =
 
 func `$`*(path: AnyPath): string = path.getStr()
 func `$`*(entry: FsEntry): string = entry.getStr()
+
+func hshow*(file: AnyPath,
+            opts: HDisplayOpts = defaultHDisplay): string =
+  toGreen(file.getStr(), opts.colored)
+
+
 func toJson*(v: ShellVar): JsonNode = newJString(v.string)
 
 # func `==`*(pathA, pathB: AnyPath, str: string): bool = path.string == str
@@ -444,8 +451,18 @@ proc joinPath*(dir: FsDir, relFile: RelFile): FsFile =
 
   if dir.isRelative:
     toFsFile RelFile(file)
+
   else:
     toFsFile AbsFile(file)
+
+proc joinPath*(dir: FsDir, relDir: RelDir): FsDir =
+  let res = os.joinPath(dir.getStr(), relDir.string)
+
+  if dir.isRelative:
+    toFsDir RelDir(res)
+
+  else:
+    toFsDir AbsDir(res)
 
 
 template `/`*(head, tail: AnyPath | string): untyped =
@@ -570,10 +587,12 @@ proc parentDir*(path: FsDir): FsDir =
   else:
     parentDir(path.absDir).toFsDir()
 
+proc dir*(file: FsFile): FsDir = parentDir(file)
 proc dir*(file: AbsFile): AbsDir = parentDir(file)
 proc dir*(file: RelFile): RelDir = parentDir(file)
 proc dir*(dir: AbsDir): AbsDir = parentDir(dir)
 proc dir*(dir: RelDir): RelDir = parentDir(dir)
+proc dir*(dir: FsDir): FsDir = parentDir(dir)
 
 proc tailDir*(path: AnyDir): string = os.tailDir(path.string)
 

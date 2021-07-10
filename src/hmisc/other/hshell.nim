@@ -87,6 +87,8 @@ when hasStrtabs: # https://github.com/nim-lang/Nim/pull/15172
 ##   to parse arbitrary bash code, `80%` of things that are passed to
 ##   command execution are just `cmd1 && cmd2` and so on. Quite easy to
 ##   parse.
+## - TODO :: somehow enable to read from both output streams at once for
+##   long-running shell record iterators.
 
 export ShellVar, ShellExpr
 

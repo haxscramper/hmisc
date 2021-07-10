@@ -116,3 +116,20 @@ template timeIt*(name: string, body: untyped): untyped =
     echo &"  {total:<5} ms ", name
 
 proc toString*(x: enum): string {.magic: "EnumToStr", noSideEffect.}
+
+template byaddr1*(lhs, typ, ex) =
+  when typ is typeof(nil):
+    when compiles(addr(ex)):
+      let tmp = addr(ex)
+
+    else:
+      let tmp = unsafeAddr(ex)
+
+  else:
+    when compiles(addr(ex)):
+      let tmp: ptr typ = addr(ex)
+
+    else:
+      let tmp: ptr typ = unsafeaddr(ex)
+
+  template lhs: untyped = tmp[]

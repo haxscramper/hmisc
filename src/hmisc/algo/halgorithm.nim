@@ -627,6 +627,22 @@ func wrap*(str: string, delim: string): string =
 func wrap*(str: string, left, right: char): string {.inline.} =
   $left & str & $right
 
+proc `|<<`*(str: string, align: int): string = alignLeft(str, align)
+proc `|>>`*(str: string, align: int): string = align(str, align)
+
+proc `|<<`*(str: string, align: (int, char)): string =
+  alignLeft(str, align[0], align[1])
+proc `|>>`*(str: string, align: (int, char)): string =
+  align(str, align[0], align[1])
+
+proc `|<>`*(str: string, align: (int, char, char)): string =
+  result.add align[2]
+  result.add center(str, align[0] - 2, align[1])
+  result.add align[2]
+
+proc getKeys*[K, V](t: Table[K, V] | TableRef[K, V]): seq[K] =
+  for key, value in pairs(t):
+    result.add key
 
 func escapeHTML*(input: string): string =
   input.multiReplace([

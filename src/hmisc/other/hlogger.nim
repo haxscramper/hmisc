@@ -1,5 +1,6 @@
 import
-  ../algo/[clformat, htemplates, halgorithm, hlex_base, htext_algo],
+  ../algo/[clformat, htemplates, halgorithm,
+           hlex_base, htext_algo],
   ../other/[hpprint, oswrap],
   ../types/[colorstring, colortext],
   ../hdebug_misc
@@ -12,6 +13,8 @@ import
 
 # - TODO :: `traceIf` implementation for logger with dumps for all conditional
 #   expressions and maybe their subparts.
+# - TODO :: supports `raw` output to logger - immediately redirect to output
+
 
 type
   HLogLevel* = enum
@@ -53,6 +56,8 @@ type
     minLogLevel: HLogLevel
     lastLog: HLogLevel
     lastEvent: HLogEvent
+    lastLogFile: string
+    lastLogLine: int
     scopes: seq[HLogScope]
 
     eventPrefix: array[HLogEvent, HLogFormat]
@@ -61,10 +66,14 @@ type
 
     prefixLen: int
 
+    showFile*: bool
+    showLine*: bool
+    leftAlignFiles*: int
+
 proc format(str: ColoredString): HLogFormat =
   HLogFormat(str: str)
 
-proc newTermLogger*(): HLogger =
+proc newTermLogger*(file: bool = false, line: bool = false): HLogger =
   result = HLogger(
     logPrefix: toMapArray({
       logTrace:  toColored("trace:", initStyle(styleDim)).format(),
@@ -84,6 +93,9 @@ proc newTermLogger*(): HLogger =
     })
   )
 
+  result.showLine = line
+  result.showFile = file
+
   result.prefixLen = max(
     result.logPrefix.maxIt(it.str.len),
     result.eventPrefix.maxIt(it.str.len)
@@ -91,11 +103,15 @@ proc newTermLogger*(): HLogger =
 
 proc prepareText*(logger: HLogger, text: varargs[string]): string =
   result = text.join(" ")
+  var indent = logger.scopes.len() * 2 + logger.prefixLen
+  if logger.leftAlignFiles > 0:
+    indent += logger.leftAlignFiles + 2
+
   if '\n' in result:
     var res = ""
     for (idx, line) in result.split('\n').enumerate():
       res.add "\n "
-      res.add repeat(" ", logger.scopes.len() * 2 + logger.prefixLen)
+      res.add repeat(" ", indent)
       res.add line
 
     return res
@@ -110,12 +126,12 @@ proc logImpl*(
     args: seq[string]
   ) =
 
-  let prefix =
+  var prefix =
     if (event == logEvPass):
       repeat(" ", logger.prefixLen)
 
     elif (event == logEvExprDump):
-      align($position[1] & ":", logger.prefixLen)
+      " " |<< logger.prefixLen
 
     elif (level == logTrace):
       $logger.logPrefix[level].str.alignRight(logger.prefixLen) & " " &
@@ -131,7 +147,38 @@ proc logImpl*(
     else:
       $logger.logPrefix[level].str.alignRight(logger.prefixLen)
 
-  let indent = repeat("  ", logger.scopes.len())
+  var filePrefix = ""
+  if logger.showFile:
+    fileprefix &= AbsFile(position[0]).name
+    if logger.showLine:
+      fileprefix &= ":"
+
+  if logger.showLine:
+    fileprefix &= $position[1]
+
+
+  var indent = ""
+  if logger.leftAlignFiles > 0:
+    let lineRange =
+      logger.lastLogLine .. logger.lastLogLine + 1
+
+    # echo lineRange, " ", logger.lastLogLine
+    if logger.lastLogFile == position[0] and
+       position[1] in lineRange:
+
+      indent.add " " |<< logger.leftAlignFiles
+
+    else:
+      logger.lastLogFile = position[0]
+      indent.add filePrefix |<< logger.leftAlignFiles
+
+    logger.lastLogLine = position[1]
+
+  else:
+    prefix.add " "
+    prefix.add filePrefix
+
+  indent.add repeat("  ", logger.scopes.len())
 
   if logger.skipNl > 0:
     dec logger.skipNl
@@ -190,6 +237,17 @@ template indented*(logger: HLogger, body: untyped): untyped =
   body
   dedent(logger)
 
+template withPositions*(logger: untyped): untyped =
+  let (file, line) = (logger.showFile, logger.showLine)
+  logger.showFile = false
+  logger.showLine = false
+
+  body
+
+  logger.showFile = file
+  logger.showLine = line
+
+
 
 template openScope*(logger: HLogger, kind: HLogScopeKind, name: string) =
   let (file, line, column) = instantiationInfo(fullPaths = true)
@@ -226,8 +284,11 @@ template check*(
 
   exprRes
 
-proc prepareDump*[T](expr: T): string =
-  result =
+proc prepareDump*[T](
+  head: string, expr: T, other: sink seq[string]): seq[string] =
+
+  result.add toGreen(head & ":")
+  var tmp =
     when expr is NimNode:
       toGreen(($expr.kind)[3..^1]) "\n" &
         expr.toStrLit().strVal().multiReplace({
@@ -238,43 +299,55 @@ proc prepareDump*[T](expr: T): string =
       $expr
 
   when expr is string:
-    if '\n' notin result:
-      result = "\"" & result & "\""
+    if '\n' notin tmp:
+      tmp = "\"" & tmp & "\""
+
+    else:
+      tmp = "\n" & tmp
 
   elif (expr is char):
-    result =
+    tmp =
       case expr:
         of '\n': "\\n"
         of '\t': "\\t"
         of '\r': "\\r"
-        else: result
+        else: tmp
 
-    result = "'" & result & "'"
+    tmp = "'" & tmp & "'"
 
-
-template dump*(logger: HLogger, expr: untyped, other: varargs[string, `$`]): untyped =
-  var args: seq[string]
-  args.add astToStr(expr)
-  args.add prepareDump(expr)
-  for arg in other:
-    args.add arg
-
-  logImpl(logger, logNone, logEvExprDump, instantiationInfo(), args)
-
-template pdump*(
-    logger: HLogger, expr: untyped, other: varargs[string, `$`]): untyped =
-  var args: seq[string]
-  args.add astToStr(expr)
-  args.add "\n="
-  args.add pstring(expr)
-  for arg in other:
-    args.add arg
-
-  logImpl(logger, logNone, logEvExprDump, instantiationInfo(), args)
+  result.add tmp
+  result.add other
 
 proc toStrSeq[T](s: T): seq[string] =
   for item in items(s):
     result.add $item
+
+proc toStrSeq(s: varargs[string]): seq[string] =
+  for item in items(s):
+    result.add item
+
+
+proc preparePDump*[T](
+  head: string, expr: T, args: sink seq[string]): seq[string] =
+
+  result.add toGreen(head & ":")
+  result.add "\n="
+  result.add pstring(expr)
+  result.add args
+
+proc dumpImpl*(
+  logger: HLogger, pos: (string, int, int), args: seq[string]) =
+  logImpl(logger, logNone, logEvExprDump, pos, args)
+
+template dump*(
+  logger: HLogger, expr: untyped, args: varargs[string, `$`]): untyped =
+  dumpImpl(logger, instantiationInfo(),
+    prepareDump(astToStr(expr), expr, toStrSeq(args)))
+
+template pdump*(
+    logger: HLogger, expr: untyped, args: varargs[string, `$`]): untyped =
+  dumpImpl(logger, instantiationInfo(),
+           preparePDump(astToStr(expr), expr, toStrSeq(args)))
 
 proc debugImpl*(
   logger: HLogger, pos: (string, int, int), args: seq[string]) =
@@ -368,75 +441,45 @@ macro loggerField*(
     vas = nnkBracketExpr.newTree(ident"varargs", ident"string", ident"$")
     iinfo = newCall("instantiationInfo")
 
-  let (successId, failId, doneId, waitId,
-       fatalId, errId, warnId, infoId,
-       traceId, debugId) =
-      (ident"successImpl",
-       ident"failImpl",
-       ident"doneImpl",
-       ident"waitImpl",
-       ident"fatalImpl",
-       ident"errImpl",
-       ident"warnImpl",
-       ident"infoImpl",
-       ident"traceImpl",
-       ident"debugImpl")
+  result = newStmtList()
+  for name in ["success", "fail", "done", "wait", "notice",
+               "fatal", "err", "warn", "info", "trace", "debug"]:
 
-  var (success, fail, done, wait, fatal, err, warn, info, trace, debug) =
-    if doExport:
-      (nnkPostfix.newTree(ident"*", successId),
-       nnkPostfix.newTree(ident"*", failId),
-       nnkPostfix.newTree(ident"*", doneId),
-       nnkPostfix.newTree(ident"*", waitId),
-       nnkPostfix.newTree(ident"*", fatalId),
-       nnkPostfix.newTree(ident"*", errId),
-       nnkPostfix.newTree(ident"*", warnId),
-       nnkPostfix.newTree(ident"*", infoId),
-       nnkPostfix.newTree(ident"*", traceId),
-       nnkPostfix.newTree(ident"*", debugId))
+    let
+      implId = ident(name & "Impl")
+      nameId = if doExport:
+                 nnkPostfix.newTree(ident"*", ident(name))
 
-    else:
-      (ident"success",
-       ident"fail",
-       ident"done",
-       ident"wait",
-       ident"fatal",
-       ident"err",
-       ident"warn",
-       ident"info",
-       ident"trace",
-       ident"debug")
+               else:
+                 ident(name)
 
-  result = quote do:
-    template `success`(o: `T`, args: `vas`): untyped =
-      `module`.`successId`(o.`field`, `iinfo`, toStrSeq(args))
+    result.add quote do:
+      template `nameId`(o: `T`, args: `vas`): untyped =
+        `module`.`implId`(o.`field`, `iinfo`, toStrSeq(args))
 
-    template `fail`(o: `T`, args: `vas`): untyped =
-      `module`.`failId`(o.`field`, `iinfo`, toStrSeq(args))
+  let (dumpId, pdumpId) = (ident"dump", ident"pdump")
 
-    template `done`(o: `T`, args: `vas`): untyped =
-      `module`.`doneId`(o.`field`, `iinfo`, toStrSeq(args))
+  if doExport:
+    result.add quote do:
+      template `dumpId`*(o: `T`, expr: untyped, args: `vas`): untyped =
+        dumpImpl(o.`field`, `iinfo`,
+                 prepareDump(astToStr(expr), expr, toStrSeq(args)))
 
-    template `wait`(o: `T`, args: `vas`): untyped =
-      `module`.`waitId`(o.`field`, `iinfo`, toStrSeq(args))
+      template `pdumpId`*(o: `T`, expr: untyped, args: `vas`): untyped =
+        dumpImpl(o.`field`, `iinfo`,
+                 preparePDump(astToStr(expr), expr, toStrSeq(args)))
+          # @[astToStr(expr), "\n=", pstring(expr)] & toStrSeq(args))
 
-    template `fatal`(o: `T`, args: `vas`): untyped =
-      `module`.`fatalId`(o.`field`, `iinfo`, toStrSeq(args))
+  else:
+    result.add quote do:
+      template `dumpId`(o: `T`, expr: untyped, args: `vas`): untyped =
+        dumpImpl(o.`field`, args, `iinfo`,
+          prepareDump(astToStr(expr), expr, toStrSeq(args)))
 
-    template `err`(o: `T`, args: `vas`): untyped =
-      `module`.`errId`(o.`field`, `iinfo`, toStrSeq(args))
+      template `pdumpId`(o: `T`, expr: untyped, args: `vas`): untyped =
+        dumpImpl(o.`field`, args, `iinfo`,
+          @[astToStr(expr), "\n=", pstring(expr)] & toStrSeq(args))
 
-    template `warn`(o: `T`, args: `vas`): untyped =
-      `module`.`warnId`(o.`field`, `iinfo`, toStrSeq(args))
-
-    template `info`(o: `T`, args: `vas`): untyped =
-      `module`.`infoId`(o.`field`, `iinfo`, toStrSeq(args))
-
-    template `trace`(o: `T`, args: `vas`): untyped =
-      `module`.`traceId`(o.`field`, `iinfo`, toStrSeq(args))
-
-    template `debug`(o: `T`, args: `vas`): untyped =
-      `module`.`debugId`(o.`field`, `iinfo`, toStrSeq(args))
 
 template changeDir*(logger: HLogger, dir: AbsDir, body: untyped): untyped =
   let (file, line, column) = instantiationInfo()
@@ -470,6 +513,7 @@ func findLineRange*(
 
     dec before
 
+  if result.a < 0: result.a = 0
   if base[result.a] == '\n':
     inc result.a
 
@@ -486,6 +530,8 @@ func findLineRange*(
 
   if result.b >= base.len or base[result.b] == '\n':
     dec result.b
+
+  if result.b > base.high: result.b = base.high
 
 
 func lineTextAround*(
@@ -509,11 +555,16 @@ func linesAround*(
     inc pos
 
   let (text, _, _) = lineTextAround(base, pos .. pos, around)
-  return text.split('\n')
+  if line == 1 and around[0] > 0:
+    result &= @[""]
+
+  result &= text.split('\n')
 
 
 proc logLines*(
-    logger: HLogger, base: string, center: int, lang: string) =
+    logger: HLogger, base: string, center: int,
+    lang: string, column: int = -1
+  ) =
 
   var lineIdx = center - 1
   for line in base.linesAround(center, (1, 1)):
@@ -525,6 +576,9 @@ proc logLines*(
 
 
     logger.debug(arrow, colorizeToStr(line, lang))
+    if lineIdx == center and column > 0:
+      logger.debug "      " & repeat(" ", column) & "^"
+
     inc lineIdx
 
     # REVIEW maybe also raw arrow from `#>` and annotate it:
@@ -535,7 +589,11 @@ proc logLines*(
     #     |
     #     +- Annotation for an arrow?
 
+proc logLines*(
+  logger: HLogger, file: AbsFile, center: int,
+  lang: string, column: int = -1) =
 
+  logger.logLines(file.readFile(), center, lang, column)
 
 from os import nil
 
@@ -555,6 +613,14 @@ method log*(ex: ShellError, logger: HLogger) =
 
 proc logStackTrace*(
     logger: HLogger, e: ref Exception, showError: bool = true) =
+
+  let (showFile, showLine, leftAlignFiles) =
+    (logger.showFile, logger.showLine, logger.leftAlignFiles)
+
+  logger.showFile = false
+  logger.showLine = false
+  logger.leftAlignFiles = 0
+
   if not isNil(e) and showError:
     e.log(logger)
     # logger.err e.msg
@@ -648,6 +714,9 @@ proc logStackTrace*(
       lastPos = nowPos
       inc repeated
 
+  logger.showFile = showFile
+  logger.showLine = showLine
+  logger.leftAlignFiles = leftALignFiles
 
 proc loggerOutConverter*(
     stream: var PosStr,

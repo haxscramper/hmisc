@@ -132,6 +132,8 @@ macro scanpFull*(str: typed, pattern: varargs[untyped]): untyped =
     result[^1].add patt
 
 
+const CliIdent = IdentChars + {'-'}
+
 func classifyCliArg*(arg: string, config: CliParseConfig): CliOptKind =
   var start = 0
   if scanp(arg, start, '-'{1, 2}):
@@ -145,23 +147,23 @@ func classifyCliArg*(arg: string, config: CliParseConfig): CliOptKind =
       else:
         result = coOpt
 
-    elif scanpFull(arg, start, +`IdentChars`):
+    elif scanpFull(arg, start, +`CliIdent`):
       result = coFlag
 
-    elif scanpFull(arg, start, +`IdentChars` ^+ '.'):
+    elif scanpFull(arg, start, +`CliIdent` ^+ '.'):
       result = coDotFlag
 
-    elif scanpFull(arg, start, +`IdentChars` ^* '.', '[', +`IdentChars`, ']'):
+    elif scanpFull(arg, start, +`CliIdent` ^* '.', '[', +`CliIdent`, ']'):
       result = coBracketFlag
 
-    elif scanpFull(arg, start, +`IdentChars`, {':', '='}, +`AllChars`):
+    elif scanpFull(arg, start, +`CliIdent`, {':', '='}, +`AllChars`):
       result = coOpt
 
-    elif scanpFull(arg, start, +`IdentChars` ^+ '.', {':', '='}, +`AllChars`):
+    elif scanpFull(arg, start, +`CliIdent` ^+ '.', {':', '='}, +`AllChars`):
       result = coDotOpt
 
     elif scanpFull(arg, start,
-                   +`IdentChars` ^* '.', '[', +`IdentChars`, ']',
+                   +`CliIdent` ^* '.', '[', +`CliIdent`, ']',
                    {':', '='}, +`AllChars`
     ):
       result = coBracketOpt
@@ -203,7 +205,7 @@ func splitFlag*(arg: string, config: CliParseConfig): tuple[
     prefix: string
 
   discard scanp(arg, pos, '-'{1, 2} -> result.dashes.add($_))
-  discard scanp(arg, pos, (+`IdentChars` ^* '.') -> prefix.add($_))
+  discard scanp(arg, pos, (+`CliIdent` ^* '.') -> prefix.add($_))
   result.keyPath = split(prefix, ".")
 
   if result.dashes.len == 1 and prefix[0] in config.shortOpts:
@@ -211,7 +213,7 @@ func splitFlag*(arg: string, config: CliParseConfig): tuple[
     result.keyPath = @[$prefix[0]]
 
   else:
-    discard scanp(arg, pos, '[', +`IdentChars` -> result.keySelector.add($_), ']')
+    discard scanp(arg, pos, '[', +`CliIdent` -> result.keySelector.add($_), ']')
     discard scanp(arg, pos, {':', '='})
     if pos < arg.len:
       discard scanp(arg, pos, +`AllChars` -> result.value.add($_))

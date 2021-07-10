@@ -479,7 +479,118 @@ proc levenshteinDistance*(str1, str2: seq[char]): tuple[
         cur.t = "delete"
 
 
+type
+  DiffEditKind* = enum
+    dekDelete
+    dekInsert
+    dekKeep
 
+  DiffShiftKind* = enum
+    dskDelete
+    dskInsert
+    dskKeep
+    dskEmpty
+
+
+  DiffEdit* = object
+    kind*: DiffEditKind
+    oldpos*: int
+    newPos*: int
+
+proc myersDiff*[T](aSeq, bSeq: openarray[T]): seq[DiffEdit] =
+  # https://gist.github.com/adamnew123456/37923cf53f51d6b9af32a539cdfa7cc4
+  var front: Table[int, tuple[x: int, history: seq[DiffEdit]]]
+  front[1] = (0, @[])
+
+  template one(idx: int): int = idx - 1
+
+  let
+    aMax = len(aSeq)
+    bMax = len(bSeq)
+
+  for d in countup(0, aMax + bMax + 1):
+    for k in countup(-d, d + 1, 2):
+      let goDown =
+        (k == -d or (k != d and front[k - 1].x < front[k + 1].x))
+
+
+      var (x, history) =
+        if goDown:
+          (front[k + 1].x, front[k + 1].history)
+
+        else:
+          (front[k - 1].x + 1, front[k - 1].history)
+
+      var y = x - k
+
+      if 1 <= y and y <= bMax and goDown:
+        history.add DiffEdit(kind: dekInsert, newPos: one(y))
+
+      elif 1 <= x and x <= aMax:
+        history.add DiffEdit(kind: dekDelete, oldPos: one(x))
+
+      while x < aMax and y < bMax and aSeq[one(x + 1)] == bSeq[one(y + 1)]:
+        x += 1
+        y += 1
+        history.add DiffEdit(kind: dekKeep, oldPos: one(x), newPos: one(y))
+
+      if x >= aMax and y >= bMax:
+        return history
+
+      else:
+        front[k] = (x, history)
+
+
+type ShiftedDiff*[T] = tuple[oldShifted, newShifted: seq[(DiffShiftKind, T)]]
+
+proc shiftDiffed*[T](oldSeq, newSeq: openarray[T], diff: seq[DiffEdit], empty: T):
+  ShiftedDiff[T] =
+
+  for line in items(diff):
+    case line.kind:
+      of dekDelete:
+        result.oldShifted.add (dskDelete, oldSeq[line.oldPos])
+
+      of dekInsert:
+        result.newShifted.add (dskInsert, newSeq[line.newPos])
+
+      of dekKeep:
+        var (oldp, newp) = (line.oldPos, line.newPos)
+        while oldp < newp:
+          result.oldShifted.add (dskEmpty, empty)
+          inc oldp
+
+        while newp < oldp:
+          result.newShifted.add (dskEmpty, empty)
+          inc newp
+
+
+        result.oldShifted.add (dskKeep, oldSeq[line.oldPos])
+        result.newShifted.add (dskKeep, newSeq[line.newPos])
+
+proc formatDiffed*[T](shifted: ShiftedDiff[T]): string =
+  var oldText, newText: seq[string]
+
+  var lhsMax = 0
+
+  template editFmt(fmt: untyped): untyped =
+    case fmt:
+      of dskDelete: "- "
+      of dskInsert: "+ "
+      of dskKeep: "~ "
+      of dskEmpty: "? "
+
+
+  for (lhs, rhs) in zip(shifted.oldShifted, shifted.newShifted):
+    oldText.add editFmt(lhs[0]) & $lhs[1]
+    lhsMax = max(oldText[^1].len, lhsMax)
+    newText.add editFmt(rhs[0]) & $rhs[1]
+
+
+  for (lhs, rhs) in zip(oldtext, newtext):
+    result.add alignLeft(lhs, lhsMax + 3)
+    result.add rhs
+    result.add "\n"
 
 type
   Align*[T] = seq[AlignElem[T]]

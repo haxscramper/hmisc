@@ -6,7 +6,14 @@ import
 type
   LexcastError* = object of ParseError
 
-proc lcast*(s: string, t: var SomeInteger) = t.parseInt(s)
+proc lcast*(s: string, t: var SomeInteger) =
+  try:
+    t = parseInt(s)
+  except ValueError:
+    raise newException(
+      LexcastError,
+      &"Cannot parse '{s}' as integer value")
+
 proc lcast*(s: string, t: var SomeFloat) = t.parseFloat(s)
 proc lcast*(s: string, t: var bool) =
   let norm = normalize(s, snkFullNormalize)
@@ -36,5 +43,5 @@ proc lcast*[R1, R2](s: string, slice: var HSlice[R1, R2]) =
 proc lcastImpl[Target, Source](source: Source): Target =
   lcast(source, result)
 
-template lcast*[Target](base: typed): Target =
+template lexcast*[Target](base: untyped): Target =
   lcastImpl[Target, typeof(base)](base)

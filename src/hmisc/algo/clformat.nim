@@ -51,24 +51,42 @@ func toPluralNoun*(noun: string, count: int, addNum: bool = true): string =
   if addNum:
     result = $count & " " & result
 
-func joinWords*(words: seq[string], sepWord: string): string =
+func joinWords*(
+    words: seq[string], sepWord: string, quote: char = '\x00'): string =
+
+  template put(): untyped =
+    if quote != '\x00':
+      result.add quote
+
   case words.len:
     of 0: discard
-    of 1: result = words[0]
-    of 2: result = &"{words[0]} {sepWord} {words[1]}"
+    of 1: put(); result &= words[0]; put()
+    of 2:
+      put(); result.add words[0]; put()
+      result.add " "
+      result.add sepWord
+      result.add " "
+      put(); result.add words[1]; put()
+
     else:
       for idx, word in pairs(words):
-
         if idx == words.high:
-          result &= sepWord & " " & word
+          result &= sepWord & " "
+          put()
+          result &= word
+          put()
 
         else:
-          result &= word & ", "
+          put()
+          result &= word
+          put()
+          result &= ", "
 
 func namedItemListing*(
     name: string,
     words: seq[string],
-    sepWord: string
+    sepWord: string,
+    quote: char = '\x00'
   ): string =
 
   if words.len == 0:
@@ -76,7 +94,7 @@ func namedItemListing*(
 
   else:
     result = toPluralNoun(name, words.len) &
-      ": " & joinWords(words, sepWord)
+      ": " & joinWords(words, sepWord, quote)
 
 
 
@@ -581,10 +599,33 @@ func hshow*(b: bool, opts: HDisplayOpts = defaultHDisplay): string =
 func hShow*(ch: int, opts: HDisplayOpts = defaultHDisplay): string =
   toCyan($ch, opts.colored)
 
+func hShow*(ch: Slice[int], opts: HDisplayOpts = defaultHDisplay): string =
+  if ch.a == low(int):
+    result.add toCyan("low(int)", opts.colored)
+
+  else:
+    result.add toCyan($ch.a, opts.colored)
+
+  result.add ".."
+
+  if ch.b == high(int):
+    result.add toCyan("high(int)", opts.colored)
+
+  else:
+    result.add toCyan($ch.b, opts.colored)
+
 func hShow*[A, B](
     slice: HSlice[A, B], opts: HDisplayOpts = defaultHDisplay): string =
 
   "[" & hshow(slice.a, opts) & ":" & hshow(slice.b, opts) & "]"
+
+func hshow*[T](s: seq[T], opts: HDisplayOpts = defaultHDisplay): string =
+  result.add "["
+  for idx, item in pairs(s):
+    if idx > 0: result.add ", "
+    result.add hshow(item, opts)
+
+  result.add "]"
 
 func hShow*(str: string, opts: HDisplayOpts = defaultHDisplay): string =
   if str.len == 0:

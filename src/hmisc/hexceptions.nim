@@ -590,7 +590,7 @@ proc optFmt(arg: string): string = arg
 func stringMismatchMessage*(
     input: string,
     expected: openarray[string],
-    colorize: bool = true,
+    colored: bool = true,
     fixSuggestion: bool = true,
     showAll: bool = false,
   ): string =
@@ -621,7 +621,7 @@ func stringMismatchMessage*(
   let best = results[0]
 
   if best.edits.distance > int(input.len.float * 0.8):
-    result = &"No close matches to {toRed(input, colorize)}, possible " &
+    result = &"No close matches to {toRed(input, colored)}, possible " &
       namedItemListing(
         "alternative",
         results[0 .. min(results.high, 3)].mapIt(
@@ -630,7 +630,7 @@ func stringMismatchMessage*(
       )
 
   else:
-    result = &"Did you mean to use '{toYellow(best.target, colorize)}'?"
+    result = &"Did you mean to use '{toYellow(best.target, colored)}'?"
 
     if fixSuggestion:
       if best.edits.operations.len < min(3, input.len div 2):
@@ -641,7 +641,7 @@ func stringMismatchMessage*(
         ) & ")"
 
       else:
-        result &= &" ({toRed(input)} -> {toGreen(best.target)})"
+        result &= &" ({toRed(input, colored)} -> {toGreen(best.target, colored)})"
 
     if showAll and expected.len > 1:
       result &= " ("
@@ -649,6 +649,6 @@ func stringMismatchMessage*(
         if idx > 0:
           result &= " "
 
-        result &= to8Bit(toItalic(alt.target, colorize) & "?", tcGrey63)
+        result &= to8Bit(toItalic(alt.target, colored) & "?", tcGrey63)
 
       result &= ")"
