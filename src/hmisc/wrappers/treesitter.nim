@@ -221,6 +221,17 @@ proc ts_node_child_by_field_name*(
 proc ts_node_child_by_field_id*(
   a1: TSNode; a2: TSFieldId): TSNode {.apiProc.}
 
+proc ts_node_field_name_for_child*(
+    node: TSNode, idx: uint32): cstring {.apiProc.}
+
+proc childName*(node: TsNode, idx: int): string =
+  if idx.uint32 <= ts_node_child_count(node):
+     # not isNil(node.tree) and
+     # not isNil(node.id) and
+    let name = ts_node_field_name_for_child(node, idx.uint32)
+    if not isNil(name):
+      result = $name
+
 proc ts_node_next_sibling*(a1: TSNode): TSNode {.apiProc.}
 proc ts_node_prev_sibling*(a1: TSNode): TSNode {.apiProc.}
 proc ts_node_next_named_sibling*(a1: TSNode): TSNode {.apiProc.}
@@ -397,21 +408,63 @@ import std/[with]
 proc treeRepr*[N, K](
     node: N, base: string, langLen: int,
     kindMap: TsKindMap[K],
-    withUnnamed: bool = false
+    withUnnamed: bool = false,
+    indexed: bool = false,
+    maxdepth: int = high(int),
+    pathIndexed: bool = false
   ): string =
 
   mixin kind
 
 
   const numStyle = tcDefault.bg + tcGrey54.fg
-  proc aux(node: N, level: int, res: var string) =
+  proc aux(
+      node: N,
+      level: int,
+      res: var string,
+      name: string,
+      idx: int,
+      path: seq[int]
+    ) =
+
     let startPoint = ts_node_start_point(TsNode(node))
 
     if not(node.isNil()):
+
+      if pathIndexed:
+        for item in path:
+          with res:
+            add "["
+            add $item
+            add "]"
+
+        res.add " "
+
+      else:
+        res.add "  ".repeat(level)
+
+        if indexed:
+          with res:
+            add "["
+            add $idx
+            add "] "
+
       with res:
-        add "  ".repeat(level)
-        add ($node.kind())[langLen ..^ 1], fgGreen + bgDefault
+        add ($node.kind())[langLen ..^ 1], tern(
+          ts_node_is_named(TsNode(node)),
+          fgGreen + bgDefault,
+          fgYellow + bgDefault
+        )
+
         add " "
+
+      if name.len > 0:
+        with res:
+          add "<"
+          add name, fgCyan + bgDefault
+          add "> "
+
+      with res:
         add $startPoint.row, numStyle
         add ":"
         add $startPoint.column, numStyle
@@ -429,8 +482,22 @@ proc treeRepr*[N, K](
           add ":"
           add $endPoint.column, numStyle
 
-        for subn in items(node, withUnnamed):
-          res.add "\n"
-          subn.aux(level + 1, res)
+        if level + 1 < maxDepth:
+          var namedIdx = 0
+          for idx, subn in pairs(node, withUnnamed):
+            res.add "\n"
+            subn.aux(
+              level + 1, res, TsNode(node).childName(namedIdx),
+              idx, path & idx
+            )
 
-  aux(node, 0, result)
+            inc namedIdx
+
+        else:
+          with res:
+            add " ... ("
+            add $node.len()
+            add " subnodes)"
+
+
+  aux(node, 0, result, "", 0, @[])

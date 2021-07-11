@@ -140,12 +140,21 @@ template assertKind*(
 
 
 
+proc prepareMsg(msgs: varargs[string]): string =
+  for idx, msg in pairs(msgs):
+    if '\n' in msg:
+      result &= "\n"
+
+    else:
+      result &= " "
+
+    result &= msg
+
+
 proc newImplementKindError*[T](
     node: T, msg: varargs[string, `$`]): ref ImplementKindError =
   newException(ImplementKindError,
-    "Unhandled entry kind " & kindToStr(node) & " " &
-      msg.join(" ")
-  )
+    "Unhandled entry kind " & kindToStr(node) & prepareMsg(msg))
 
 template raiseImplementKindError*(
   node: untyped, userMsg: string = "") {.dirty.} =

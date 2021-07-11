@@ -20,6 +20,7 @@ import
   ../hexceptions,
   ../hdebug_misc,
   ../base_errors,
+  ../helpers,
   ../types/colorstring,
   ../algo/[
     lexcast, clformat, htemplates, hseq_mapping, htext_algo,
@@ -102,6 +103,7 @@ type
 
 
   CliError* = object of CatchableError
+    location*: typeof(instantiationInfo())
     origin*: CliOrigin
     case isDesc*: bool
       of true:
@@ -290,6 +292,17 @@ type
       of false:
         strVersion*: string
 
+const
+  cvkValidatorNames*: array[CliValueKind, seq[string]] = toMapArray {
+    cvkFsEntry: @[
+      "checkFileReadable",
+      "checkDirCratable",
+      "cliCheckFor(FsEntry/AbsDir/RelDir/AbsFile/RelFile)"
+    ],
+    cvkBool: @["cliCheckFor(bool)"],
+    cvkInt: @["cliCheckFor(int)"]
+  }
+
 const addErrors = true
 
 func addOrRaise(errors: var seq[CliError], err: CliError) =
@@ -304,13 +317,14 @@ func addOrRaise(errors: var seq[CliError], err: CliError) =
 
 func treeRepr*(tree: CliCmdTree): string =
   func aux(t: CliCmdTree, res: var string, level: int) =
-    res &= getIndent(level) & hshow(t.kind) & " " & hshow($t.head) & "\n"
+    res &= getIndent(level) & hshow(t.kind) & " " & toCyan(t.desc.name) &
+      " " & hshow($t.head) & "\n"
 
     for arg in t.args:
       res &= getIndent(level + 1) & hshow($arg) & "\n"
 
     case t.kind:
-      of coCommand, coArgument:
+      of coCommand:
         for sub in t.subnodes:
           aux(sub, res, level + 1)
 
@@ -320,7 +334,51 @@ func treeRepr*(tree: CliCmdTree): string =
           # aux(path, res, level + 2)
 
       else:
-        raise newImplementError()
+        discard
+
+
+
+  aux(tree, result, 0)
+
+
+func treeRepr*(tree: CliValue): string =
+  func aux(t: CliValue, res: var string, level: int) =
+
+    res &= getIndent(level) & hshow(t.kind)
+    case t.kind:
+      of cvkCommand:
+        res &= " " & toMagenta(t.desc.name) & "\n"
+        let level = level + 1
+        for arg in t.positional:
+          res &= getIndent(level) & "arg <" & toCyan(arg.desc.name) & ">\n"
+          aux(arg, res, level + 1)
+          res &= "\n"
+
+        for key, opt in t.options:
+          res &= getIndent(level) & "opt <" & toCyan(key) & ">\n"
+          aux(opt, res, level + 1)
+          res &= "\n"
+
+        if t.subCmd.isSome():
+          res &= getIndent(level) & "cmd\n"
+
+          aux(t.subCmd.get(), res, level + 1)
+          res &= "\n"
+
+
+      of cvkString:  res &= " " & hshow(t.strVal)
+      of cvkBool:    res &= " " & hshow(t.boolVal)
+      of cvkInt:     res &= " " & hshow(t.intVal)
+      of cvkFloat:   res &= " " & hshow(t.floatVal)
+      of cvkFsEntry: res &= " " & hshow(t.fsEntryVal.getStr())
+
+      of cvkSeq:
+        for item in t.seqVal:
+          aux(item, res, level + 1)
+          res &= "\n"
+
+      else:
+        raise newImplementKindError(t)
 
 
 
@@ -609,7 +667,7 @@ func getOpt*(val: CliValue, name: string): CliValue =
     raise newArgumentError(
       &"Could not find option '{name}' for command '{val.desc.name}'.",
       "Available options:",
-      val.options.getKeys().joinWords("or", '\'')
+      val.options.getKeys().joinWords("or")
     )
 
 func getOpt*(app: CliApp, name: string): CliValue = app.value.getOpT(name)
@@ -620,8 +678,13 @@ func getArg*(val: CliValue, name: string): CliValue =
     if pos.desc.name == name:
       return pos
 
-  {.warning: "Raise proper extensions for this crap".}
-  raise newImplementError("Argument not found")
+  raise newImplementError(
+    &"Could not find argument '{name}' for CLI value '{val.desc.name}'.",
+    joinAnyOf(
+      val.positional.mapIt(it.desc.name),
+      prefix = "Available words - ",
+      empty = "Command has no positional arguments")
+  )
 
 func getAtPath*(val: CliValue, path: seq[string]): CliValue =
   if path.len == 0:
@@ -657,6 +720,19 @@ func getArg*(app: CliApp, name: string): CliValue = app.value.getArg(name)
 
 func hasCmd*(val: CliValue): bool =
   val.kind in {cvkCommand} and val.subCmd.isSome()
+
+template assertKind(val: CliValue, target: set[CliValueKind]): untyped {.dirty.} =
+  var targetNames: seq[string]
+  for k in items(target):
+    targetNames.add cvkValidatorNames[k]
+
+  assertKind(
+    val, target,
+    ". In order to convert CLI string to value of this kind use " &
+      joinAnyOf(
+        targetNames,
+        prefix = "one of the converters ",
+        empty = "converters for target kind"))
 
 proc `as`*[T](val: CliValue, target: typedesc[T]): T =
   when target is AbsFile:
@@ -1215,6 +1291,30 @@ proc strVal*(tree: CliCmdTree): string =
 proc name*(tree: CliCmdTree): string = tree.desc.name
 proc select*(tree: CliCmdTree): string = tree.head.keySelect
 
+template newCliError*(
+    inMsg: string, inDesc: CliDesc, inGot: CliOpt,
+    inKind: CliErrorKind = cekFailedParse): CliError =
+
+  CliError(
+    msg: inMsg,
+    location: instantiationInfo(fullpaths = true),
+    isDesc: true,
+    desc: inDesc,
+    got: ingot,
+    kind: inKind
+  )
+
+
+template newCliError*(inMsg: string, inKind: CliErrorKind): CliError =
+
+  CliError(
+    msg: inMsg,
+    location: instantiationInfo(fullpaths = true),
+    isDesc: false,
+    kind: inKind
+  )
+
+
 proc parseArg(
     lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
   if lexer[].kind == coArgument:
@@ -1222,10 +1322,9 @@ proc parseArg(
       kind: coArgument, head: lexer.pop(), desc: desc)
 
   else:
-    errors.addOrRaise CliError(
-      kind: cekFailedParse, desc: desc, got: lexer.pop(),
-      msg: "Failed", isDesc: true,
-    )
+    errors.addOrRaise newCliError(
+      &"Failed to parse '{desc.name}' - expected argument, but found '{lexer[]}'",
+      desc, lexer.pop(), cekFailedParse)
 
 proc matches(opt: CliOpt, check: CliCheck): bool = true
 
@@ -1240,38 +1339,47 @@ proc parseOptOrFlag(
       result.args.add lexer.pop()
 
   else:
-    errors.addOrRaise CliError(
-      kind: cekFailedParse,
-      desc: desc, isDesc: true,
-      got: lexer.pop(),
-      msg: "Failed"
-    )
+    errors.addOrRaise newCliError(
+      &"Failed to parse '{desc.name}' - expected {joinAnyOf(desc.altNames)}, but found '{lexer[]}'",
+      desc, lexer.pop(), cekFailedParse)
 
-proc parseCli(lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree
+proc parseCli(
+    lexer: var HsLexer[CliOpt],
+    desc: CliDesc,
+    errors;
+    argIdx: var int,
+    argParsed: var seq[int]
+  ): CliCmdTree
 
 
 proc parseCmd(lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
+  var
+    argIdx: int
+    argParsed: seq[int]
+
   if lexer[].kind in {coArgument, coCommand} and lexer[].key in desc.altNames:
     result = CliCmdTree(
       kind: coCommand, head: lexer.pop(), desc: desc)
 
     while ?lexer:
-      result.add parseCli(lexer, desc, errors)
+      result.add parseCli(lexer, desc, errors, argIdx, argParsed)
 
   else:
-    errors.addOrRaise CliError(
-      got: lexer.pop(), isDesc: true,
-      kind: cekFailedParse, desc: desc, msg: "Failed")
+    errors.addOrRaise newCliError(
+      &"Failed to parse '{desc.name}' - expected 'argument' or 'command' with " &
+        &"names {joinWords(desc.altNames, \"or\")}, but found '{lexer[].key}' of kind '{lexer[].kind}'",
+      desc, lexer.pop(), cekFailedParse)
 
 
-proc parseCli(lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
-  var
-    argIdx = 0 # Current index of the parsed argument group (for arguments
-               # that accept multiple values)
-    argParsed: seq[int] # Number of argument group elemens parsed for each
+proc parseCli(
+    lexer: var HsLexer[CliOpt],
+    desc: CliDesc,
+    errors;
+    argIdx: var int, # Current index of the parsed argument group (for arguments
+                     # that accept multiple values)
+    argParsed: var seq[int] # Number of argument group elemens parsed for each
                         # group for `<arg-with two repeats> <arg>`
-
-    optTree: Table[string, CliCmdTree]
+  ): CliCmdTree =
 
   case lexer[].kind:
     of coArgument:
@@ -1286,7 +1394,16 @@ proc parseCli(lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
           else:
             let cmdIdx = desc.subcommands.findIt(lexer[].key in it.altNames)
             if cmdIdx == -1:
-              result = parseArg(lexer, desc.arguments[argIdx], errors)
+              if desc.arguments.high < argIdx:
+                errors.addOrRaise newCliError(
+                  &"'{desc.name}' does not have matching subcommand " &
+                    &"or positional argument, found unexpected '{lexer[]}'",
+                  desc, lexer.pop())
+
+              else:
+                result = parseArg(lexer, desc.arguments[argIdx], errors)
+                # TODO handle repeated arguments
+                inc argIdx
 
             else:
               result = parseCmd(lexer, desc.subcommands[cmdIdx], errors)
@@ -1304,14 +1421,13 @@ proc parseCli(lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
             lexer[].key in it.altNames)
 
           if subIdx == -1:
-            errors.addOrRaise CliError(
-              isDesc: true,
-              kind: cekUnexpectedEntry,
-              desc: desc,
-              msg: &"No matching option. Got '{lexer[]} ({lexer[].kind})', but expected " &
-                desc.options.mapIt(it.altNames.mapIt(&"'{it}'")).concat().join(", "),
-              got: lexer.pop(),
-            )
+            errors.addOrRaise newCliError(
+              &"No matching option. Got '{lexer[]} ({lexer[].kind})', but expected " &
+                desc.options.mapIt(it.altNames).concat().joinWords(
+                  "or", '\'', empty = "no options"),
+
+              desc, lexer.pop(),
+              cekUnexpectedEntry)
 
           else:
             let key = lexer[].key
@@ -1339,7 +1455,10 @@ proc structureSplit*(opts: seq[CliOpt], desc: CliDesc, errors): CliCmdTree =
     result = parseCmd(lexer, desc, errors)
 
   else:
-    result = parseCli(lexer, desc, errors)
+    var
+      argIdx: int
+      argParsed: seq[int]
+    result = parseCli(lexer, desc, errors, argIdx, argParsed)
 
 func `==`*(str: string, val: CliValue): bool =
   case val.kind:
@@ -1382,6 +1501,7 @@ proc checkedConvert(
   proc newCliError(
       kind: CliErrorKind, msg: varargs[string, `$`]): CliError =
     result = CliError(
+      location: currIInfo(),
       isDesc: false,
       check: check,
       kind: kind,
@@ -1619,7 +1739,7 @@ proc toCliValue*(tree: CliCmdTree, errors): CliValue =
     of coArgument:
       result = checkedConvert(tree, tree.desc.check, errors)
 
-    of coFlag:
+    of coFlag, coOpt:
       var tree = tree
       if tree.head.canAddValue() and
          tree.desc.defaultAsFlag.isSome():
@@ -1702,17 +1822,17 @@ proc acceptArgs*(
 
   let tree = parsed.structureSplit(app.root, app.errors)
   if app.errors.len > 0:
-    app.errors.addOrRaise CliError(
-      kind: cekErrorDescription,
-      msg: "Could not structure command-line options")
+    app.errors.addOrRaise newCliError(
+      "Could not structure command-line options",
+      cekErrorDescription)
 
     return false
 
   app.value = tree.toCliValue(app.errors)
   if app.errors.len > 0:
-    app.errors.addOrRaise CliError(
-      kind: cekErrorDescription,
-      msg: "Failure while validating command-line options")
+    app.errors.addOrRaise newCliError(
+      "Failure while validating command-line options",
+      cekErrorDescription)
 
     return false
 
@@ -1961,22 +2081,26 @@ proc helpStr*(app: CliApp): string =
   return app.help().toString()
 
 proc help(err: CliError): LytBlock =
+  let errmsg = err.msg & " in " & toLink(
+    err.location,
+    AbsFile(err.location[0]).name() & ":" & $err.location[1])
+
   case err.kind:
     of cekFailedParse:
       let split = stringMismatchMessage(
         err.got.key, err.desc.altNames, showAll = true, colored = false)
 
-      result = T[split]
+      result = V[T[split], T[errmsg]]
 
     of cekUnexpectedEntry:
       let alts = err.desc.options.mapIt(it.altNames).concat()
       let split = stringMismatchMessage(
         err.got.key, alts, showAll = true, colored = false)
 
-      result = T[split]
+      result = V[T[split], T[errmsg]]
 
     of cekCheckExecFailure, cekErrorDescription, cekCheckFailure:
-      result = T[err.msg]
+      result = T[errmsg]
 
     else:
       raise newImplementKindError(err)

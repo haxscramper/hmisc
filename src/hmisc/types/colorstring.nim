@@ -722,6 +722,15 @@ func toDefault*(
   $initColoredString(
     str, style = if colorize: style else: {}, fg = fgDefault)
 
+func toLink*(link: string, desc: string = link): string =
+  &"\e]8;;{link}\e\\{desc}\e]8;;\e\\"
+
+func toLink*(
+    pos: (string, int, int), 
+    desc: string = "file://" & pos[0] & ":" & $pos[1] & ":" & $pos[2]
+  ): string =
+
+  toLink(&"file://{pos[0]}:{pos[1]}:{pos[2]}", desc)
 
 func toBlue*(str: string, style: set[Style] = {}): string =
   $initColoredString(str, fg = fgBlue, style = style)

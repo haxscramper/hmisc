@@ -236,4 +236,9 @@ suite "Colored string":
       )
     ])
 
+  test "Link printing":
+    echo "https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda".toLink()
+
+    echo instantiationInfo().toLink("here")
+
     # echo err.toColorString()

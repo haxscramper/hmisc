@@ -325,6 +325,11 @@ func opt*(cmd: var ShellCmd, opts: openarray[tuple[key, val: string]]) =
   for (key, val) in opts:
     cmd.opt(key, val)
 
+func opt*(cmd: var ShellCmd, key, sep, val: string) =
+  cmd.opts.add ShellCmdPart(
+    kind: cpkOption, key: key, val: val, overrideKv: true,
+    kvSep: sep)
+
 func cmd*(cmd: var ShellCmd, sub: string) =
   ## Add subcommand
   cmd.opts.add ShellCmdPart(kind: cpkSubCmd, subcommand: sub)
@@ -372,9 +377,7 @@ func `-`*(cmd: var ShellCmd, kv: (string, string)) =
   cmd.opt(kv[0], kv[1])
 
 func `-`*(cmd: var ShellCmd, kv: tuple[key, sep, val: string]) =
-  cmd.opts.add ShellCmdPart(
-    kind: cpkOption, key: kv.key, val: kv.val, overrideKv: true,
-    kvSep: kv.sep)
+  cmd.opt(kv.key, kv.sep, kv.val)
 
 func makeShellCmd*(conf: ShellCmdConf, bin: string): ShellCmd =
   result.conf = conf

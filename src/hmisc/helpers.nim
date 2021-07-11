@@ -133,3 +133,10 @@ template byaddr1*(lhs, typ, ex) =
       let tmp: ptr typ = unsafeaddr(ex)
 
   template lhs: untyped = tmp[]
+
+proc toRef*[T](t: T): ref T =
+  new(result)
+  result[] = t
+
+template currIInfo*(): untyped =
+  instantiationInfo(fullpaths = true)

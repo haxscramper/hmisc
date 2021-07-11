@@ -661,7 +661,7 @@ proc logStackTrace*(
     if ext.len > 0:
       ext = ext[1 ..^ 1]
 
-    var filePref = $name.alignLeft(fileW)
+    var filePref = toLink(($tr.filename, tr.line, 0), $name.alignLeft(fileW))
     if (not foundErr) and idx + 1 < stackEntries.len:
       let next = stackEntries[idx + 1]
       let nextFile = $next.filename

@@ -17,9 +17,9 @@ import ../base_errors
 func zeroEqualCmp*[T](x, y: T): int = (if x == y: 0 else: -1)
 
 func longestCommonSubsequence*[T](
-  x, y: seq[T],
-  itemCmp: EqCmpProc[T] = (proc(x, y: T): bool = x == y)
-    ): seq[tuple[matches: seq[T], xIndex, yIndex: seq[int]]] =
+    x, y: seq[T],
+    itemCmp: EqCmpProc[T] = (proc(x, y: T): bool = x == y)
+  ): seq[tuple[matches: seq[T], xIndex, yIndex: seq[int]]] =
   ## Find longest common subsequence for `x` and `y`. Use `itemCmp` to
   ## compare for item equality. In case if there is more than one
   ## common subsequence of equal lenght return all. In most cases you
@@ -497,7 +497,17 @@ type
     oldpos*: int
     newPos*: int
 
-proc myersDiff*[T](aSeq, bSeq: openarray[T]): seq[DiffEdit] =
+proc myersDiff*[T](
+    aSeq, bSeq: openarray[T],
+    itemCmp: EqCmpProc[T] = (
+      when compiles(x == y):
+        proc cmpProc(x, y: T): bool = x == y
+        cmpProc
+
+      else:
+        nil
+    )
+  ): seq[DiffEdit] =
   # https://gist.github.com/adamnew123456/37923cf53f51d6b9af32a539cdfa7cc4
   var front: Table[int, tuple[x: int, history: seq[DiffEdit]]]
   front[1] = (0, @[])
@@ -529,7 +539,10 @@ proc myersDiff*[T](aSeq, bSeq: openarray[T]): seq[DiffEdit] =
       elif 1 <= x and x <= aMax:
         history.add DiffEdit(kind: dekDelete, oldPos: one(x))
 
-      while x < aMax and y < bMax and aSeq[one(x + 1)] == bSeq[one(y + 1)]:
+      while x < aMax and
+            y < bMax and
+            itemCmp(aSeq[x], bSeq[y]):
+
         x += 1
         y += 1
         history.add DiffEdit(kind: dekKeep, oldPos: one(x), newPos: one(y))

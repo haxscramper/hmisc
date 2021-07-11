@@ -800,6 +800,7 @@ proc newXmlWriter*(file: File): XmlWriter =
   newXmlWriter(newFileStream(file))
 
 proc newXmlWriter*(file: AbsFile): XmlWriter =
+  assertExists(file.dir())
   newXmlWriter(newFileStream(file, fmWrite))
 
 

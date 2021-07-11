@@ -52,14 +52,18 @@ func toPluralNoun*(noun: string, count: int, addNum: bool = true): string =
     result = $count & " " & result
 
 func joinWords*(
-    words: seq[string], sepWord: string, quote: char = '\x00'): string =
+    words: seq[string],
+    sepWord: string,
+    quote: char = '\'',
+    empty: string = ""
+  ): string =
 
   template put(): untyped =
     if quote != '\x00':
       result.add quote
 
   case words.len:
-    of 0: discard
+    of 0: result = empty
     of 1: put(); result &= words[0]; put()
     of 2:
       put(); result.add words[0]; put()
@@ -81,6 +85,30 @@ func joinWords*(
           result &= word
           put()
           result &= ", "
+
+func joinAnyOf*(
+    words: seq[string],
+    quote: char = '\'',
+    prefix: string = "any of ",
+    empty: string = "\x00",
+    sepWord: string = "or"
+  ): string =
+
+  case words.len:
+    of 0:
+      if empty == "\x00":
+        raise newArgumentError(
+          "Cannot join list for 'any of' - got empty word list, " &
+            "fallback was not specified")
+
+      else:
+        result = empty
+
+    of 1:
+      result = words[0]
+
+    else:
+      result = prefix & joinWords(words, sepWord, quote)
 
 func namedItemListing*(
     name: string,
@@ -598,6 +626,9 @@ func hshow*(b: bool, opts: HDisplayOpts = defaultHDisplay): string =
 
 func hShow*(ch: int, opts: HDisplayOpts = defaultHDisplay): string =
   toCyan($ch, opts.colored)
+
+func hshow*(ch: float, opts: HDisplayOpts = defaultHDisplay): string =
+  toMagenta($ch, opts.colored)
 
 func hShow*(ch: Slice[int], opts: HDisplayOpts = defaultHDisplay): string =
   if ch.a == low(int):
