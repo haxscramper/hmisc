@@ -544,7 +544,11 @@ proc fieldNames*[N: distinct](node: N): seq[string] =
 
 func `[]`*[N: distinct](node: N,
            idx: int, unnamed: bool = false): N =
-  assert 0 <= idx and idx < node.len(unnamed = unnamed)
+  assert 0 <= idx and idx < node.len(unnamed = unnamed),
+    "Cannot get subnode at index " & $idx & " - len is " &
+      $node.len(unnamed = unnamed)
+
+
   if unnamed:
     N(ts_node_child(TSNode(node), uint32(idx)))
   else:
@@ -753,6 +757,7 @@ type
   # zero-initialization gets to it somewhere, and thigs start to fall
   # apart.
   HtsNode*[N: distinct, K: enum] = ref object
+    base: ptr string
     case isGenerated*: bool
       of true:
         original: Option[N]
@@ -763,7 +768,6 @@ type
         names: Table[string, int]
 
       of false:
-        base: ptr string
         node: N
 
 func kind*[N, K](node: HtsNode[N, K]): K =
@@ -787,7 +791,6 @@ func toHtsNode*[N, K](
     storePtr: bool  = true
   ): HtsNode[N, K] =
   ## Convert single tree-sitter node to HtsNode
-  assertRef base
   assertRef node
   if generated:
     result = HtsNode[N, K](
@@ -796,18 +799,26 @@ func toHtsNode*[N, K](
       nodeKind: node.kind)
 
     if node.len == 0:
+      assertRef base,
+       "Attempt to convert Ts token (`node.len == 0`) to wrapped Ts tree " &
+         "using `nil` base string."
+
       result.tokenStr = base[][node.slice()]
 
     assertRef result.original.get()
+
+    result.origNamed = node.isNamed()
 
   else:
     result = HtsNode[N, K](
       isGenerated: false, node: node, base: base)
 
-    if storePtr:
-      result.base = base
+  if storePtr:
+    assertRef base,
+     "Attempt to save `nil` base string pointer to conveted Ts tree"
 
-  result.origNamed = node.isNamed()
+    result.base = base
+
 
 func isNamed*[N, K](node: HtsNode[N, K]): bool =
   if node.isGenerated:
@@ -870,7 +881,23 @@ func newTree*[N, K](
     nodeKind: kind,
     subnodes: toSeq(subnodes))
 
-func `$`*[N, K](node: HtsNode[N, K]): string = node.tokenStr
+func `$`*[N, K](node: HtsNode[N, K]): string =
+  if node.isGenerated:
+    if node.tokenStr.len > 0:
+      node.tokenStr
+
+    elif notNil(node.base) and node.original.isSome():
+      node.base[][node.original.get()]
+
+    else:
+      ""
+
+  elif notNil(node.base):
+    node.base[][node.node.slice()]
+
+  else:
+    node.node.nodeString()
+
 
 func isNil*[N, K](node: HtsNode[N, K]): bool = false
 
@@ -924,7 +951,12 @@ func add*[N, K](
   # echov "after add ... ", zzzz(node)
   # echov "----------------"
 
-func getTs*[N, K](node: HtsNode[N, K]): N = node.original.get()
+func getTs*[N, K](node: HtsNode[N, K]): N =
+  if node.isGenerated:
+    node.original.get()
+
+  else:
+    node.node
 
 func len*[N, K](
     node: HtsNode[N, K], unnamed: bool = false): int =
@@ -939,7 +971,11 @@ func has*[N, K](node: HtsNode[N, K], idx: int): bool =
   0 <= idx and idx < node.len()
 
 func has*[N, K](node: HtsNode[N, K], name: string): bool =
-  name in node.names
+  if node.isGenerated:
+    name in node.names
+
+  else:
+    node.node.has(name)
 
 func high*[N, K](node: HtsNode[N, K], unnamed: bool = false): int =
   node.len() - 1
@@ -952,10 +988,20 @@ func `[]`*[N, K](
   ): HtsNode[N, K] =
 
   if node.isGenerated:
-    node.subnodes[idx].toGenerated(generated)
+    if unnamed:
+      assertRef node.base,
+       "Converted tree must contain pointer to the underlying string in " &
+         "order to be able to create new wrapped nodes. Construct base tree " &
+         "with `storePtr` enabled. See [[code:toHtsTree]]"
+
+      toHtsNode[N, K](node.getTs()[idx, true], node.base)
+
+    else:
+      node.subnodes[idx].toGenerated(generated)
 
   else:
-    toHtsNode[N, K](node.node[idx], node.base, generated = generated)
+    toHtsNode[N, K](
+      node.node[idx, unnamed], node.base, generated = generated)
 
 func `[]`*[N, K](
     node: var HtsNode[N, K], slice: SliceTypes): var seq[HtsNode[N, K]] =
@@ -971,11 +1017,6 @@ func `[]`*[N, K](
   if node.isGenerated:
     assertOption node.original,
      "Cannot get unnamed subnodes index without origina tree-sitter node"
-    # assertArg(
-    #   unnamed, not unnamed,
-    #   "cannot iterate over generated tree using unnamed nodes")
-
-    # result = node.subnodes[slice].toGenerated(generated)
 
     if node.len > 0:
       for idx in clamp(slice, node.high):
@@ -991,18 +1032,24 @@ func `[]`*[N, K](
     node: HtsNode[N, K], name: string, generated: bool = false
   ): HtsNode[N, K] =
 
-  if name notin node.names:
-    var msg = "No subnode named '" & name & "' for node kind '" &
-      $node.kind & "'. Available names - "
+  if node.isGenerated:
+    if name notin node.names:
+      var msg = "No subnode named '" & name & "' for node kind '" &
+        $node.kind & "'. Available names - "
 
-    for name, _ in pairs(node.names):
-      msg.add " '" & name & "'"
+      for name, _ in pairs(node.names):
+        msg.add " '" & name & "'"
 
 
-    raise newGetterError(msg)
+      raise newGetterError(msg)
+
+    else:
+      result = node[node.names[name]]
 
   else:
-    result = node[node.names[name]]
+    assert node.node.has(name)
+    result = toHtsNode[N, K](
+      node.node[name], node.base, generated = generated)
 
 
 func `[]`*[N, K](
@@ -1114,17 +1161,20 @@ func toHtsTree*[N, K](
     storePtr: bool = true
   ): HtsNode[N, K] =
 
-
   proc aux(cursor: Cursor[N]): HtsNode[N, K] =
     ## Fully convert tree-sitter tree to `HtsNode[N, K]`.
     result = toHtsNode[N, K](
       cursor.node(), base, generated = true, storePtr = storePtr)
 
     if down(cursor):
+      var nodeIdx = 0
       for idx in items(cursor):
-        result.add aux(cursor)
-        if cursor.isField():
-          result.names[cursor.fieldName()] = idx
+        if cursor.node().isNamed() or unnamed:
+          result.add aux(cursor)
+          if cursor.isField():
+            result.names[cursor.fieldName()] = nodeIdx
+
+          inc nodeIdx
 
       discard up(cursor)
 
