@@ -1,6 +1,9 @@
-# {.push header: ""}
-import std/[unicode]
+import std/[unicode, sequtils]
 export unicode
+
+import
+  ../base_errors,
+  ../helpers
 
 {.pragma: apiStruct, importc, incompleteStruct,
   header: "<tree_sitter/api.h>".}
@@ -22,6 +25,33 @@ type
   PtsTree* = ptr TSTree
 
   TSLanguage* {.apiStruct.} = object
+    version*: uint32
+    symbol_count*: uint32
+    alias_count*: uint32
+    token_count*: uint32
+    external_token_count*: uint32
+    state_count*: uint32
+    large_state_count*: uint32
+    production_id_count*: uint32
+    field_count*: uint32
+    max_alias_sequence_length*: uint16
+    parse_table*: ptr uint16
+    small_parse_table*: ptr uint16
+    small_parse_table_map*: ptr uint32
+    # parse_actions*: ptr TSParseActionEntry
+    symbol_names*: cstringArray
+    field_names*: cstringArray
+    field_map_slices*: ptr UncheckedArray[TSFieldMapSlice]
+    field_map_entries*: ptr UncheckedArray[TSFieldMapEntry]
+    symbol_metadata*: ptr TSSymbolMetadata
+    public_symbol_map*: ptr TSSymbol
+    alias_map*: ptr uint16
+    alias_sequences*: ptr TSSymbol
+    # lex_modes*: ptr TSLexMode
+    # lex_fn*: proc (a1: ptr TSLexer; a2: TSStateId): bool
+    # keyword_lex_fn*: proc (a1: ptr TSLexer; a2: TSStateId): bool
+    # keyword_capture_token*: TSSymbol
+
   PtsLanguage* = ptr TSLanguage
 
   TSParser* {.apiStruct.} = object
@@ -118,6 +148,20 @@ type
     TSQueryErrorField
     TSQueryErrorCapture
     TSQueryErrorStructure
+
+  TSFieldMapEntry* {.parserStruct.} = object
+    field_id*: TSFieldId
+    child_index*: uint8
+    inherited*: bool
+
+  TSFieldMapSlice* {.parserStruct.} = object
+    index*: uint16
+    length*: uint16
+
+  TSSymbolMetadata* {.parserStruct.} = object
+    visible*: bool
+    named*: bool
+    supertype*: bool
 
 
 proc currRune*(lex: var TsLexer): Rune =
@@ -232,6 +276,10 @@ proc childName*(node: TsNode, idx: int): string =
     if not isNil(name):
       result = $name
 
+proc fieldNames*(node: TsNode): seq[string] =
+  for idx in 0 ..< ts_node_child_count(node):
+    result.add childName(node, idx.int)
+
 proc ts_node_next_sibling*(a1: TSNode): TSNode {.apiProc.}
 proc ts_node_prev_sibling*(a1: TSNode): TSNode {.apiProc.}
 proc ts_node_next_named_sibling*(a1: TSNode): TSNode {.apiProc.}
@@ -301,6 +349,31 @@ proc ts_language_field_name_for_id*(a1: ptr TSLanguage; a2: TSFieldId): cstring 
 proc ts_language_field_id_for_name*(a1: ptr TSLanguage; a2: cstring; a3: uint32): TSFieldId {.apiProc.}
 proc ts_language_symbol_type*(a1: ptr TSLanguage; a2: TSSymbol): TSSymbolType {.apiProc.}
 proc ts_language_version*(a1: ptr TSLanguage): uint32 {.apiProc.}
+
+
+import ./wraphelp
+
+type
+  TsFieldMap = object
+    fieldArray*: ptr UncheckedArray[TsFieldMapEntry]
+    maxIdx*: int
+
+
+
+proc fieldMap*(lang: PtsLanguage, productionId: uint32): TsFieldMap =
+  TsFieldMap(
+    fieldArray: lang.fieldMapEntries.subArrayPtr(productionId),
+    maxIdx: lang.fieldMapSlices[productionId].length.int)
+
+iterator pairs*(map: TsFieldMap): (int, TsFieldMapEntry) =
+  var idx = 0
+  while idx < map.maxIdx:
+    yield (idx, map.fieldArray[idx])
+
+
+iterator items*(map: TsFieldMap): TsFieldMapEntry =
+  for _, it in pairs(map):
+    yield it
 
 
 import std/[macros, options, unicode, strutils]
@@ -393,6 +466,7 @@ type
     tskIdent
     tskPrefixOp
     tskInfixOp
+    tskPrimitiveType
 
   TsKindMap*[TsKind: enum] = array[TsKind, TsBaseNodeKind]
   TsColorMap* = array[TsBaseNodeKind, PrintStyling]
@@ -401,36 +475,201 @@ let baseColorMap* = toMapArray {
   tskKeyword: bgDefault + fgCyan,
   tskComment: bgDefault + fgBlue,
   tskIdent, tskPrefixOp: bgDefault + styleItalic,
+  tskPrimitiveType: bgDefault + fgBlue
 }
 
 import std/[with]
 
+type
+  HtsNode[N, K] = object
+    base: ptr string
+    case isGenerated*: bool
+      of true:
+        original: Option[N]
+        isNamed: bool
+        nodeKind: K
+        subnodes: seq[HtsNode[N, K]]
+        tokenVal: string
+
+      of false:
+        node: N
+
+func kind*[N, K](node: HtsNode[N, K]): K =
+  if node.isGenerated:
+    node.nodeKind
+
+  else:
+    node.node.kind
+
+func strVal*[N, K](node: HtsNode[N, K]): K =
+  if node.isGenerated:
+    node.tokenVal
+
+  else:
+    node.base[][node.slice()]
+
+
+func toHtsNode*[N, K](node: N, base: ptr string, generated: bool = false): HtsNode[N, K] =
+  ## Convert single tree-sitter node to HtsNode
+  assertRef base
+  assertRef node
+  if generated:
+    HtsNode(
+      isGenerated: true,
+      original: some node,
+      base: base,
+      nodeKind: node.kind)
+
+  else:
+    HtsNode(isGenerated: false, node: node, base: base)
+
+func toGenerated*[N, K](
+    node: HtsNode[N, K], doConvert: bool = true): HtsNode[N, K] =
+
+  if node.isGenerated or not doConvert:
+    node
+
+  else:
+    toHtsNode(node.node, node.base, generated = true)
+
+func toHtsNode*[N, K](
+    node: N, base: var string, generated: bool = false): HtsNode[N, K] =
+  toHtsNode(node, addr base, generated)
+
+
+func newTree*[N, K](
+    kind: K, subnodes: varargs[HtsNode[N, K]]): HtsNode[N, K] =
+
+  HtsNode[N, K](
+    isGenerated: true,
+    nodeKind: kind,
+    subnodes: toSeq(subnodes))
+
+func add*[N, K](
+    node: var HtsNode[N, K],
+    other: HtsNode[N, K] | seq[HtsNode[N, K]]) =
+
+  node.subnodes.add other
+
+func len*[N, K](
+    node: HtsNode[N, K], unnamed: bool = false): int =
+
+  if node.isGenerated:
+    node.subnodes.len
+
+  else:
+    node.node.len(unnamed)
+
+func `[]`*[N, K](
+    node: HtsNode[N, K],
+    idx: IndexTypes,
+    unnamed: bool = false,
+    generated: bool = false
+  ): HtsNode[N, K] =
+
+  if node.isGenerated:
+    node.subnodes[idx].toGenerated(generated)
+
+  else:
+    toHtsNode(node.node[idx], node.base, generated = generated)
+
+func `[]`*[N, K](node: var HtsNode[N, K], slice: SliceTypes): var seq[HtsNode[N, K]] =
+  node.subnodes[slice]
+
+func `[]`*[N, K](
+    node: HtsNode[N, K],
+    slice: SliceTypes,
+    generated: bool = false,
+    unnamed: bool = false
+  ): seq[HtsNode[N, K]] =
+
+  if node.isGenerated:
+    assertArg(
+      unnamed, not unnamed,
+      "cannot iterate over generated tree using unnamed nodes")
+
+    result = node.subnodes[slice].toGenerated(generated)
+
+  else:
+    let
+      start = slice.startFor(node.len(unnamed))
+      finish = slice.endFor(node.len(unnamed))
+
+    for idx in start .. finish:
+      result.add toHtsNode(node[idx], node.base, generated)
+
+func `[]=`*[N, K](
+    node: var HtsNode[N, K], idx: IndexTypes, other: HtsNode[N, K]) =
+  node.subnodes[idx] = other
+
+iterator pairs*[N, K](
+    node: HtsNode[N, K],
+    slice: SliceTypes = 0 .. high(int),
+    generated: bool = false,
+    unnamed: bool = false
+  ): (int, HtsNode[N, K]) =
+
+  if node.isGenerated:
+    assertArg(
+      unnamed, not unnamed, "cannot iterate over generated tree using unnamed nodes")
+
+    for idx in clamp(slice, node.high):
+      yield (idx, node.subnodes[idx].toGenerated(generated))
+      inc idx
+
+  else:
+    for idx in clamp(slice, node.high):
+      yield (idx, toHtsNode(node[idx, unnamed], node.base, generated))
+      inc idx
+
+iterator items*[N, K](
+    node: HtsNode[N, K],
+    slice: SliceTypes = 0 .. high(int),
+    generated: bool = false,
+    unnamed: bool = false
+  ): HtsNode[N, K] =
+
+  for _, node in pairs(node, slice, generated, unnamed):
+    yield node
+
+
+func toHtsTree*[N, K](node: N, base: var string): HtsNode[N, K] =
+  ## Fully convert tree-sitter tree to `HtsNode[N, K]`.
+  result = toHtsNode(node, base, generated = true)
+
+func newHtsTree*[N, K](kind: K, val: string): HtsNode[N, K] =
+  HtsNode[N, K](isGenerated: true, nodeKind: kind, tokenVal: val)
+
 proc treeRepr*[N, K](
-    node: N, base: string, langLen: int,
+    node: N,
+    base: string = "",
+    langLen: int = 0,
     kindMap: TsKindMap[K],
-    withUnnamed: bool = false,
+    unnamed: bool = false,
     indexed: bool = false,
     maxdepth: int = high(int),
     pathIndexed: bool = false
   ): string =
 
   mixin kind
-
-
   const numStyle = tcDefault.bg + tcGrey54.fg
   proc aux(
-      node: N,
+      node: N or HtsNode[N, K],
       level: int,
       res: var string,
       name: string,
       idx: int,
-      path: seq[int]
+      path: seq[int],
+      nodeIdx: int
     ) =
 
     let startPoint = ts_node_start_point(TsNode(node))
+    if node.isNil():
+      with res:
+        add "  ".repeat(level)
+        add "<nil>", fgRed + bgDefault
 
-    if not(node.isNil()):
-
+    else:
       if pathIndexed:
         for item in path:
           with res:
@@ -444,60 +683,105 @@ proc treeRepr*[N, K](
         res.add "  ".repeat(level)
 
         if indexed:
+          if level > 0:
+            with res:
+              add "["
+              add $idx
+              add "] "
+
+          else:
+            res.add "   "
+
+        with res:
+          add ($node.kind())[langLen ..^ 1], tern(
+            ts_node_is_named(TsNode(node)),
+            fgGreen + bgDefault,
+            fgYellow + bgDefault
+          )
+
+          add " "
+
+        if name.len > 0:
           with res:
-            add "["
-            add $idx
-            add "] "
+            add "<"
+            add name, fgCyan + bgDefault
+            add "("
+            add $nodeIdx
+            add ")> "
 
-      with res:
-        add ($node.kind())[langLen ..^ 1], tern(
-          ts_node_is_named(TsNode(node)),
-          fgGreen + bgDefault,
-          fgYellow + bgDefault
-        )
-
-        add " "
-
-      if name.len > 0:
-        with res:
-          add "<"
-          add name, fgCyan + bgDefault
-          add "> "
-
-      with res:
-        add $startPoint.row, numStyle
-        add ":"
-        add $startPoint.column, numStyle
-
-      if node.len(withUnnamed) == 0:
-        res.add " "
-        res.add(base[node.slice()], baseColorMap[kindMap[node.kind]])
-
-      else:
-        let endPoint = ts_node_end_point(TsNode(node))
+        let
+          startPoint = ts_node_start_point(TsNode(node))
+          endPoint = ts_node_end_point(TsNode(node))
 
         with res:
-          add "-"
-          add $endPoint.row, numStyle
+          add $startPoint.row, numStyle
           add ":"
-          add $endPoint.column, numStyle
+          add $startPoint.column, numStyle
 
-        if level + 1 < maxDepth:
-          var namedIdx = 0
-          for idx, subn in pairs(node, withUnnamed):
-            res.add "\n"
-            subn.aux(
-              level + 1, res, TsNode(node).childName(namedIdx),
-              idx, path & idx
-            )
-
-            inc namedIdx
+        if endPoint.row == startPoint.row:
+          with res:
+            add ".."
+            add $endPoint.column, numStyle
+            add " "
 
         else:
           with res:
-            add " ... ("
-            add $node.len()
-            add " subnodes)"
+            add "-"
+            add $endPoint.row, numStyle
+            add ":"
+            add $endPoint.column, numStyle
 
 
-  aux(node, 0, result, "", 0, @[])
+        if node.len(unnamed) == 0:
+          let
+            text = base[node.slice()].split("\n")
+            style = baseColorMap[`kindMap`[node.kind]]
+
+          if text.len > 1:
+            for idx, line in text:
+              res.add "\n"
+              res.add getIndent(level + 1)
+              res.add line, style
+
+          else:
+            res.add text[0], style
+
+
+        else:
+          if level + 1 < `maxDepth`:
+            var namedIdx = 0
+            for idx, subn in pairs(node, unnamed = true):
+              if ts_node_is_named(TsNode(subn)) or unnamed:
+                res.add "\n"
+                subn.aux(
+                  level + 1, res, TsNode(node).childName(idx),
+                  namedIdx, path & namedIdx, idx)
+
+                inc namedIdx
+
+          else:
+            with res:
+              add " ... ("
+              add $node.len()
+              add " subnodes)"
+
+  aux(node, 0, result, "", 0, @[], 0)
+
+
+
+macro repassArgs*(other: varargs[untyped]): untyped =
+  let head = other[0]
+  if head.kind == nnkCall:
+    result = head
+
+  else:
+    result = newCall(head)
+
+  for arg in other[1..^1]:
+    if arg.kind == nnkIdent:
+      result.add nnkExprEqExpr.newTree(arg, arg)
+
+    else:
+      result.add arg
+
+  echo result.repr
