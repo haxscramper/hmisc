@@ -1,4 +1,5 @@
-import std/[unicode, sequtils]
+import std/[unicode, sequtils, options, strformat]
+export options
 export unicode
 
 import
@@ -268,22 +269,11 @@ proc ts_node_child_by_field_id*(
 proc ts_node_field_name_for_child*(
     node: TSNode, idx: uint32): cstring {.apiProc.}
 
-proc childName*(node: TsNode, idx: int): string =
-  if idx.uint32 <= ts_node_child_count(node):
-     # not isNil(node.tree) and
-     # not isNil(node.id) and
-    let name = ts_node_field_name_for_child(node, idx.uint32)
-    if not isNil(name):
-      result = $name
-
-proc fieldNames*(node: TsNode): seq[string] =
-  for idx in 0 ..< ts_node_child_count(node):
-    result.add childName(node, idx.int)
-
 proc ts_node_next_sibling*(a1: TSNode): TSNode {.apiProc.}
 proc ts_node_prev_sibling*(a1: TSNode): TSNode {.apiProc.}
 proc ts_node_next_named_sibling*(a1: TSNode): TSNode {.apiProc.}
 proc ts_node_prev_named_sibling*(a1: TSNode): TSNode {.apiProc.}
+
 proc ts_node_first_child_for_byte*(
   a1: TSNode; a2: uint32): TSNode {.apiProc.}
 
@@ -292,6 +282,7 @@ proc ts_node_first_named_child_for_byte*(
 
 proc ts_node_descendant_for_byte_range*(
   a1: TSNode; a2: uint32; a3: uint32): TSNode {.apiProc.}
+
 proc ts_node_descendant_for_point_range*(
   a1: TSNode; a2: TSPoint; a3: TSPoint): TSNode {.apiProc.}
 
@@ -302,53 +293,208 @@ proc ts_node_named_descendant_for_point_range*(
   a1: TSNode; a2: TSPoint; a3: TSPoint): TSNode {.apiProc.}
 
 
-proc ts_node_edit*(a1: ptr TSNode; a2: ptr TSInputEdit) {.apiProc.}
-proc ts_node_eq*(a1: TSNode; a2: TSNode): bool {.apiProc.}
-proc ts_tree_cursor_new*(a1: TSNode): TSTreeCursor {.apiProc.}
-proc ts_tree_cursor_delete*(a1: PtsTreeCursor) {.apiProc.}
-proc ts_tree_cursor_reset*(a1: PtsTreeCursor; a2: TSNode) {.apiProc.}
-proc ts_tree_cursor_current_node*(a1: PtsTreeCursor): TSNode {.apiProc.}
-proc ts_tree_cursor_current_field_name*(a1: PtsTreeCursor): cstring {.apiProc.}
-proc ts_tree_cursor_current_field_id*(a1: PtsTreeCursor): TSFieldId {.apiProc.}
-proc ts_tree_cursor_goto_parent*(a1: PtsTreeCursor): bool {.apiProc.}
-proc ts_tree_cursor_goto_next_sibling*(a1: PtsTreeCursor): bool {.apiProc.}
-proc ts_tree_cursor_goto_first_child*(a1: PtsTreeCursor): bool {.apiProc.}
-proc ts_tree_cursor_goto_first_child_for_byte*(a1: PtsTreeCursor; a2: uint32): int64 {.apiProc.}
-proc ts_tree_cursor_copy*(a1: PtsTreeCursor): TSTreeCursor {.apiProc.}
-proc ts_query_new*(language: ptr TSLanguage; source: cstring; source_len: uint32;
-                  error_offset: ptr uint32; error_type: ptr TSQueryError): ptr TSQuery {.
-    apiProc.}
-proc ts_query_delete*(a1: ptr TSQuery) {.apiProc.}
-proc ts_query_pattern_count*(a1: ptr TSQuery): uint32 {.apiProc.}
-proc ts_query_capture_count*(a1: ptr TSQuery): uint32 {.apiProc.}
-proc ts_query_string_count*(a1: ptr TSQuery): uint32 {.apiProc.}
-proc ts_query_start_byte_for_pattern*(a1: ptr TSQuery; a2: uint32): uint32 {.apiProc.}
-proc ts_query_predicates_for_pattern*(self: ptr TSQuery; pattern_index: uint32;
-                                     length: ptr uint32): ptr TSQueryPredicateStep {.
-    apiProc.}
-proc ts_query_capture_name_for_id*(a1: ptr TSQuery; id: uint32; length: ptr uint32): cstring {.
-    apiProc.}
-proc ts_query_string_value_for_id*(a1: ptr TSQuery; id: uint32; length: ptr uint32): cstring {.
-    apiProc.}
-proc ts_query_disable_capture*(a1: ptr TSQuery; a2: cstring; a3: uint32) {.apiProc.}
+proc ts_node_edit*(
+  a1: ptr TSNode; a2: ptr TSInputEdit) {.apiProc.}
+
+proc ts_node_eq*(
+  a1: TSNode; a2: TSNode): bool {.apiProc.}
+
+proc ts_tree_cursor_new*(
+  a1: TSNode): TSTreeCursor {.apiProc.}
+
+proc ts_tree_cursor_delete*(
+  a1: PtsTreeCursor) {.apiProc.}
+
+proc ts_tree_cursor_reset*(
+  a1: PtsTreeCursor; a2: TSNode) {.apiProc.}
+
+proc ts_tree_cursor_current_node*(
+  a1: PtsTreeCursor): TSNode {.apiProc.}
+
+proc ts_tree_cursor_current_field_name*(
+  a1: PtsTreeCursor): cstring {.apiProc.}
+
+proc ts_tree_cursor_current_field_id*(
+  a1: PtsTreeCursor): TSFieldId {.apiProc.}
+
+proc ts_tree_cursor_goto_parent*(
+  a1: PtsTreeCursor): bool {.apiProc.}
+
+proc ts_tree_cursor_goto_next_sibling*(
+  a1: PtsTreeCursor): bool {.apiProc.}
+
+proc ts_tree_cursor_goto_first_child*(
+  a1: PtsTreeCursor): bool {.apiProc.}
+
+proc ts_tree_cursor_goto_first_child_for_byte*(
+  a1: PtsTreeCursor; a2: uint32): int64 {.apiProc.}
+
+proc ts_tree_cursor_copy*(
+  a1: PtsTreeCursor): TSTreeCursor {.apiProc.}
+
+proc ts_query_new*(
+
+  language: ptr TSLanguage; source: cstring;
+  source_len: uint32; error_offset: ptr uint32;
+  error_type: ptr TSQueryError): ptr TSQuery {.apiProc.}
+
+proc ts_query_delete*(
+  a1: ptr TSQuery) {.apiProc.}
+
+proc ts_query_pattern_count*(
+  a1: ptr TSQuery): uint32 {.apiProc.}
+
+proc ts_query_capture_count*(
+  a1: ptr TSQuery): uint32 {.apiProc.}
+
+proc ts_query_string_count*(
+  a1: ptr TSQuery): uint32 {.apiProc.}
+
+proc ts_query_start_byte_for_pattern*(
+  a1: ptr TSQuery; a2: uint32): uint32 {.apiProc.}
+
+proc ts_query_predicates_for_pattern*(
+  self: ptr TSQuery; pattern_index: uint32;
+  length: ptr uint32): ptr TSQueryPredicateStep {.apiProc.}
+
+proc ts_query_capture_name_for_id*(
+  a1: ptr TSQuery; id: uint32; length: ptr uint32): cstring {.apiProc.}
+
+proc ts_query_string_value_for_id*(
+  a1: ptr TSQuery; id: uint32; length: ptr uint32): cstring {.apiProc.}
+
+proc ts_query_disable_capture*(
+  a1: ptr TSQuery; a2: cstring; a3: uint32) {.apiProc.}
+
 proc ts_query_cursor_new*(): ptr TSQueryCursor {.apiProc.}
-proc ts_query_cursor_delete*(a1: ptr TSQueryCursor) {.apiProc.}
-proc ts_query_cursor_exec*(a1: ptr TSQueryCursor; a2: ptr TSQuery; a3: TSNode) {.apiProc.}
-proc ts_query_cursor_set_byte_range*(a1: ptr TSQueryCursor; a2: uint32; a3: uint32) {.apiProc.}
-proc ts_query_cursor_set_point_range*(a1: ptr TSQueryCursor; a2: TSPoint; a3: TSPoint) {.apiProc.}
-proc ts_query_cursor_next_match*(a1: ptr TSQueryCursor; match: ptr TSQueryMatch): bool {.apiProc.}
-proc ts_query_cursor_remove_match*(a1: ptr TSQueryCursor; id: uint32) {.apiProc.}
-proc ts_query_cursor_next_capture*(a1: ptr TSQueryCursor; match: ptr TSQueryMatch;
-                                  capture_index: ptr uint32): bool {.apiProc.}
-proc ts_language_symbol_count*(a1: ptr TSLanguage): uint32 {.apiProc.}
-proc ts_language_symbol_name*(a1: ptr TSLanguage; a2: TSSymbol): cstring {.apiProc.}
-proc ts_language_symbol_for_name*(self: ptr TSLanguage; string: cstring;
-                                 length: uint32; is_named: bool): TSSymbol {.apiProc.}
-proc ts_language_field_count*(a1: ptr TSLanguage): uint32 {.apiProc.}
-proc ts_language_field_name_for_id*(a1: ptr TSLanguage; a2: TSFieldId): cstring {.apiProc.}
-proc ts_language_field_id_for_name*(a1: ptr TSLanguage; a2: cstring; a3: uint32): TSFieldId {.apiProc.}
-proc ts_language_symbol_type*(a1: ptr TSLanguage; a2: TSSymbol): TSSymbolType {.apiProc.}
-proc ts_language_version*(a1: ptr TSLanguage): uint32 {.apiProc.}
+
+proc ts_query_cursor_delete*(
+  a1: ptr TSQueryCursor) {.apiProc.}
+
+proc ts_query_cursor_exec*(
+  a1: ptr TSQueryCursor; a2: ptr TSQuery; a3: TSNode) {.apiProc.}
+
+proc ts_query_cursor_set_byte_range*(
+  a1: ptr TSQueryCursor; a2: uint32; a3: uint32) {.apiProc.}
+
+
+proc ts_query_cursor_set_point_range*(
+  a1: ptr TSQueryCursor; a2: TSPoint; a3: TSPoint) {.apiProc.}
+
+proc ts_query_cursor_next_match*(
+  a1: ptr TSQueryCursor; match: ptr TSQueryMatch): bool {.apiProc.}
+
+proc ts_query_cursor_remove_match*(
+  a1: ptr TSQueryCursor; id: uint32) {.apiProc.}
+
+proc ts_query_cursor_next_capture*(
+  a1: ptr TSQueryCursor; match: ptr TSQueryMatch;
+  capture_index: ptr uint32): bool {.apiProc.}
+
+proc ts_language_symbol_count*(
+  a1: ptr TSLanguage): uint32 {.apiProc.}
+
+proc ts_language_symbol_name*(
+  a1: ptr TSLanguage; a2: TSSymbol): cstring {.apiProc.}
+
+proc ts_language_symbol_for_name*(
+  self: ptr TSLanguage; string: cstring;
+  length: uint32; is_named: bool): TSSymbol {.apiProc.}
+
+proc ts_language_field_count*(
+  a1: ptr TSLanguage): uint32 {.apiProc.}
+
+proc ts_language_field_name_for_id*(
+  a1: ptr TSLanguage; a2: TSFieldId): cstring {.apiProc.}
+
+proc ts_language_field_id_for_name*(
+  a1: ptr TSLanguage; a2: cstring; a3: uint32): TSFieldId {.apiProc.}
+
+proc ts_language_symbol_type*(
+  a1: ptr TSLanguage; a2: TSSymbol): TSSymbolType {.apiProc.}
+
+proc ts_language_version*(
+  a1: ptr TSLanguage): uint32 {.apiProc.}
+
+func nodeString*[N: distinct](node: N): string =
+  $ts_node_string(TSNode(node))
+
+func isNull*[N: distinct](node: N): bool =
+  ts_node_is_null(TSNode(node))
+
+func isNamed*[N: distinct](node: N): bool =
+  ts_node_is_named(TSNode(node))
+
+func isMissing*[N: distinct](node: N): bool =
+  ts_node_is_missing(TSNode(node))
+
+func isExtra*[N: distinct](node: N): bool =
+  ts_node_is_extra(TSNode(node))
+
+func hasChanges*[N: distinct](node: N): bool =
+  ts_node_has_changes(TSNode(node))
+
+func hasError*[N: distinct](node: N): bool =
+  ts_node_has_error(TSNode(node))
+
+func parent*[N: distinct](node: N): N =
+  N(ts_node_parent(TSNode(node)))
+
+func child*[N: distinct](node: N; a2: int): N =
+  N(ts_node_child(TSNode(node), a2.uint32))
+
+func childCount*[N: distinct](node: N): int =
+  ## Number of subnodes (including tokens) for a tree
+  ts_node_child_count(TSNode(node)).int
+
+func namedChild*[N: distinct](node: N; a2: int): N =
+  ## named child at index
+  N(ts_node_named_child(TSNode(node), a2.uint32))
+
+func namedChildCount*[N: distinct](node: N): int =
+  ## Number of named (non-token) subnodes for a triee
+  ts_node_named_child_count(TSNode(node)).int
+
+func startPoint*[N: distinct](node: N): TSPoint =
+  ## Return start point for AST node (line and column)
+  ts_node_start_point(TSNode(node))
+
+func endPoint*[N: distinct](node: N): TSPoint =
+  ## Return end point for AST node (line and column)
+  ts_node_end_point(TSNode(node))
+
+func startLine*[N: distinct](node: N): int =
+  node.startPoint().row.int
+
+func endLine*[N: distinct](node: N): int =
+  node.endPoint().row.int
+
+func startColumn*[N: distinct](node: N): int =
+  node.startPoint().column.int
+
+func endColumn*[N: distinct](node: N): int =
+  node.endPoint().column.int
+
+
+proc childName*[N: distinct](node: N, idx: int): string =
+  if idx.uint32 <= ts_node_child_count(node.TsNode()):
+     # not isNil(node.tree) and
+     # not isNil(node.id) and
+    let name = ts_node_field_name_for_child(node.TsNode(), idx.uint32)
+    if not isNil(name):
+      result = $name
+
+proc fieldNames*[N: distinct](node: N): seq[string] =
+  for idx in 0 ..< ts_node_child_count(node.TsNode()):
+    result.add childName(node, idx.int)
+
+
+func childByFieldName*[N: distinct](
+  self: N; fieldName: string; fieldNameLength: int
+): TSNode =
+  ts_node_child_by_field_name(
+    TSNode(self), fieldName.cstring, fieldNameLength.uint32)
+
 
 
 import ./wraphelp
@@ -481,15 +627,15 @@ let baseColorMap* = toMapArray {
 import std/[with]
 
 type
-  HtsNode[N, K] = object
+  HtsNode*[N: distinct, K: enum] = object
     base: ptr string
     case isGenerated*: bool
       of true:
         original: Option[N]
-        isNamed: bool
+        origNamed: bool
         nodeKind: K
         subnodes: seq[HtsNode[N, K]]
-        tokenVal: string
+        tokenStr: string
 
       of false:
         node: N
@@ -501,27 +647,65 @@ func kind*[N, K](node: HtsNode[N, K]): K =
   else:
     node.node.kind
 
-func strVal*[N, K](node: HtsNode[N, K]): K =
+func strVal*[N, K](node: HtsNode[N, K]): string =
   if node.isGenerated:
-    node.tokenVal
+    node.tokenStr
 
   else:
-    node.base[][node.slice()]
+    node.base[][node.node.slice()]
 
 
-func toHtsNode*[N, K](node: N, base: ptr string, generated: bool = false): HtsNode[N, K] =
+func toHtsNode*[N, K](
+    node: N, base: ptr string,
+    generated: bool = false,
+    storePtr: bool  = true
+  ): HtsNode[N, K] =
   ## Convert single tree-sitter node to HtsNode
   assertRef base
   assertRef node
   if generated:
-    HtsNode(
+    result = HtsNode[N, K](
       isGenerated: true,
       original: some node,
-      base: base,
+      base: if storePtr: base else: nil,
       nodeKind: node.kind)
 
+    if node.len == 0:
+      result.tokenStr = base[][node.slice()]
+
   else:
-    HtsNode(isGenerated: false, node: node, base: base)
+    result = HtsNode[N, K](isGenerated: false, node: node, base: base)
+
+func isNamed*[N, K](node: HtsNode[N, K]): bool =
+  if node.isGenerated:
+    node.origNamed
+
+  else:
+    node.node.isNamed()
+
+template htsWrap(inNode: untyped, expr: untyped): untyped =
+  if inNode.isGenerated:
+    assertOption node.original,
+     "Node does not contain reference to the original tree-sitter node"
+
+    inNode.original.get().`expr`
+
+  else:
+    inNode.node.`expr`
+
+
+func startPoint*[N, K](node: HtsNode[N, K]): TsPoint = htsWrap(node, startPoint)
+func endPoint*[N, K](node: HtsNode[N, K]): TsPoint = htsWrap(node, endPoint)
+func childName*[N, K](node: HtsNode[N, K], idx: int): string =
+  if node.isGenerated:
+    assertOption node.original,
+     "Node does not contain reference to the original tree-sitter node"
+
+    node.original.get().childName(idx)
+
+  else:
+    node.node.childName(idx)
+
 
 func toGenerated*[N, K](
     node: HtsNode[N, K], doConvert: bool = true): HtsNode[N, K] =
@@ -530,11 +714,11 @@ func toGenerated*[N, K](
     node
 
   else:
-    toHtsNode(node.node, node.base, generated = true)
+    toHtsNode[N, K](node.node, node.base, generated = true)
 
-func toHtsNode*[N, K](
-    node: N, base: var string, generated: bool = false): HtsNode[N, K] =
-  toHtsNode(node, addr base, generated)
+# func toHtsNode*[N, K](
+#     node: N, base: var string, generated: bool = false): HtsNode[N, K] =
+#   toHtsNode[N, K](node, addr base, generated)
 
 
 func newTree*[N, K](
@@ -544,6 +728,8 @@ func newTree*[N, K](
     isGenerated: true,
     nodeKind: kind,
     subnodes: toSeq(subnodes))
+
+func isNil*[N, K](node: HtsNode[N, K]): bool = false
 
 func add*[N, K](
     node: var HtsNode[N, K],
@@ -560,6 +746,9 @@ func len*[N, K](
   else:
     node.node.len(unnamed)
 
+func high*[N, K](node: HtsNode[N, K], unnamed: bool = false): int =
+  node.len() - 1
+
 func `[]`*[N, K](
     node: HtsNode[N, K],
     idx: IndexTypes,
@@ -571,7 +760,7 @@ func `[]`*[N, K](
     node.subnodes[idx].toGenerated(generated)
 
   else:
-    toHtsNode(node.node[idx], node.base, generated = generated)
+    toHtsNode[N, K](node.node[idx], node.base, generated = generated)
 
 func `[]`*[N, K](node: var HtsNode[N, K], slice: SliceTypes): var seq[HtsNode[N, K]] =
   node.subnodes[slice]
@@ -602,25 +791,61 @@ func `[]=`*[N, K](
     node: var HtsNode[N, K], idx: IndexTypes, other: HtsNode[N, K]) =
   node.subnodes[idx] = other
 
+
+func lineIInfo(node: NimNode): NimNode =
+  ## Create tuple literal for `{.line: .}` pragma
+  let iinfo = node.lineInfoObj()
+  newLit((filename: iinfo.filename, line: iinfo.line))
+
+macro instFramed*(decl: untyped): untyped =
+  decl.expectKind {
+    nnkProcDef,
+    nnkFuncDef,
+    nnkIteratorDef,
+    nnkMethodDef,
+    nnkConverterDef
+  }
+
+  let
+    body = decl.body()
+    name = decl.name()
+    i = body.lineInfoObj()
+    (file, line, column) = (i.filename, i.line, i.column)
+
+  let
+    start = newLit(&"nimfr_(\"{name}\", \"{file}\")")
+    nimln = newLit(&"nimln_({line + 1}, \"{file}\")")
+    lineinfo = body.lineIInfo()
+
+  result = decl
+
+  # TODO check for stack tace, check for different backends
+  result.body = quote do:
+    {.line: instantiationInfo(fullpaths = true)}:
+      {.emit: `start`.}
+      {.emit: `nimln`.}
+      `body`
+      {.emit: "popFrame();"}
+
 iterator pairs*[N, K](
     node: HtsNode[N, K],
     slice: SliceTypes = 0 .. high(int),
     generated: bool = false,
     unnamed: bool = false
-  ): (int, HtsNode[N, K]) =
+  ): (int, HtsNode[N, K]) {.instFramed.} =
 
   if node.isGenerated:
     assertArg(
-      unnamed, not unnamed, "cannot iterate over generated tree using unnamed nodes")
+      unnamed, not unnamed,
+      "cannot iterate over generated tree using unnamed nodes")
 
     for idx in clamp(slice, node.high):
       yield (idx, node.subnodes[idx].toGenerated(generated))
-      inc idx
 
   else:
     for idx in clamp(slice, node.high):
-      yield (idx, toHtsNode(node[idx, unnamed], node.base, generated))
-      inc idx
+      yield (idx, toHtsNode[N, K](
+        node.node[idx, unnamed], base = node.base, generated = generated))
 
 iterator items*[N, K](
     node: HtsNode[N, K],
@@ -633,18 +858,41 @@ iterator items*[N, K](
     yield node
 
 
-func toHtsTree*[N, K](node: N, base: var string): HtsNode[N, K] =
+macro argpass*(other: varargs[untyped]): untyped =
+  let head = other[0]
+  if head.kind == nnkCall:
+    result = head
+
+  else:
+    result = newCall(head)
+
+  for arg in other[1..^1]:
+    if arg.kind == nnkIdent:
+      result.add nnkExprEqExpr.newTree(arg, arg)
+
+    else:
+      result.add arg
+
+
+func toHtsTree*[N, K](
+    node: N, base: ptr string,
+    unnamed: bool = false,
+    storePtr: bool = true
+  ): HtsNode[N, K] =
+
   ## Fully convert tree-sitter tree to `HtsNode[N, K]`.
-  result = toHtsNode(node, base, generated = true)
+  result = toHtsNode[N, K](node, base, generated = true, storePtr = storePtr)
+  for subnode in items(node, unnamed):
+    result.add argpass(toHtsTree[N, K](subnode, base), unnamed, storePtr)
 
 func newHtsTree*[N, K](kind: K, val: string): HtsNode[N, K] =
-  HtsNode[N, K](isGenerated: true, nodeKind: kind, tokenVal: val)
+  HtsNode[N, K](isGenerated: true, nodeKind: kind, tokenStr: val)
 
 proc treeRepr*[N, K](
     node: N,
     base: string = "",
     langLen: int = 0,
-    kindMap: TsKindMap[K],
+    kindMap: TsKindMap[K] = default(array[K, TsBaseNodeKind]),
     unnamed: bool = false,
     indexed: bool = false,
     maxdepth: int = high(int),
@@ -654,7 +902,7 @@ proc treeRepr*[N, K](
   mixin kind
   const numStyle = tcDefault.bg + tcGrey54.fg
   proc aux(
-      node: N or HtsNode[N, K],
+      node: N,
       level: int,
       res: var string,
       name: string,
@@ -663,7 +911,6 @@ proc treeRepr*[N, K](
       nodeIdx: int
     ) =
 
-    let startPoint = ts_node_start_point(TsNode(node))
     if node.isNil():
       with res:
         add "  ".repeat(level)
@@ -694,7 +941,7 @@ proc treeRepr*[N, K](
 
         with res:
           add ($node.kind())[langLen ..^ 1], tern(
-            ts_node_is_named(TsNode(node)),
+            node.isNamed(),
             fgGreen + bgDefault,
             fgYellow + bgDefault
           )
@@ -709,32 +956,44 @@ proc treeRepr*[N, K](
             add $nodeIdx
             add ")> "
 
-        let
-          startPoint = ts_node_start_point(TsNode(node))
-          endPoint = ts_node_end_point(TsNode(node))
+        const isHts = node is HtsNode
 
-        with res:
-          add $startPoint.row, numStyle
-          add ":"
-          add $startPoint.column, numStyle
+        let hasRange =
+          when isHts: node.original.isSome() else: true
 
-        if endPoint.row == startPoint.row:
+        if hasRange:
+          let
+            startPoint = startPoint(node)
+            endPoint = endPoint(node)
+
           with res:
-            add ".."
-            add $endPoint.column, numStyle
-            add " "
-
-        else:
-          with res:
-            add "-"
-            add $endPoint.row, numStyle
+            add $startPoint.row, numStyle
             add ":"
-            add $endPoint.column, numStyle
+            add $startPoint.column, numStyle
+
+          if endPoint.row == startPoint.row:
+            with res:
+              add ".."
+              add $endPoint.column, numStyle
+              add " "
+
+          else:
+            with res:
+              add "-"
+              add $endPoint.row, numStyle
+              add ":"
+              add $endPoint.column, numStyle
 
 
         if node.len(unnamed) == 0:
           let
-            text = base[node.slice()].split("\n")
+            text =
+              when isHts:
+                node.strVal().split("\n")
+
+              else:
+                base[node.slice()].split("\n")
+
             style = baseColorMap[`kindMap`[node.kind]]
 
           if text.len > 1:
@@ -744,17 +1003,17 @@ proc treeRepr*[N, K](
               res.add line, style
 
           else:
-            res.add text[0], style
+            res.add $text[0], style
 
 
         else:
           if level + 1 < `maxDepth`:
             var namedIdx = 0
             for idx, subn in pairs(node, unnamed = true):
-              if ts_node_is_named(TsNode(subn)) or unnamed:
+              if subn.isNamed() or unnamed:
                 res.add "\n"
                 subn.aux(
-                  level + 1, res, TsNode(node).childName(idx),
+                  level + 1, res, node.childName(idx),
                   namedIdx, path & namedIdx, idx)
 
                 inc namedIdx
@@ -766,22 +1025,3 @@ proc treeRepr*[N, K](
               add " subnodes)"
 
   aux(node, 0, result, "", 0, @[], 0)
-
-
-
-macro repassArgs*(other: varargs[untyped]): untyped =
-  let head = other[0]
-  if head.kind == nnkCall:
-    result = head
-
-  else:
-    result = newCall(head)
-
-  for arg in other[1..^1]:
-    if arg.kind == nnkIdent:
-      result.add nnkExprEqExpr.newTree(arg, arg)
-
-    else:
-      result.add arg
-
-  echo result.repr
