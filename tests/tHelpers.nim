@@ -119,3 +119,13 @@ suite "If let":
       inc cnt
 
     doAssert cnt == 0
+
+suite "Slice clamping":
+  test "test":
+    doAssert clamp(0 .. 2, 0 .. 2) == 0 .. 2
+    doAssert clamp(0 .. 90, 3) == 0 .. 3
+
+    block:
+      let s = @[0, 1, 3, 4]
+      doAssert clamp(0 .. 102, s.high) == 0 .. s.high
+      doAssert clamp(0 .. ^1, s.high) == 0 .. s.high

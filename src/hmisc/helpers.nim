@@ -13,6 +13,34 @@ export strutils
 import base_errors
 export base_errors
 
+type
+  SliceTypes* = Slice[int] | Slice[BackwardsIndex] | HSlice[int, BackwardsIndex]
+  IndexTypes* = int | BackwardsIndex
+
+
+proc startFor*(slice: SliceTypes, base: int): int =
+  when slice.a is int:
+    result = slice.a
+
+  else:
+    result = base - slice.a.int + 1
+
+proc endFor*(slice: SliceTypes, base: int): int =
+  when slice.b is int:
+    result = slice.b
+
+  else:
+    result = base - slice.b.int + 1
+
+proc clamp*(slice: SliceTypes, base: int): Slice[int] =
+  clamp(startFor(slice, base), 0, base) ..
+  clamp(endFor(slice, base), 0, base)
+
+
+proc clamp*(slice: SliceTypes, base: Slice[int]): Slice[int] =
+  clamp(startFor(slice, base.b), base.a, base.b) ..
+  clamp(endFor(slice, base.b), base.a, base.b)
+
 template subnodesEq*(lhs, rhs, field: untyped): untyped =
   ## Check if two objects `lhs` and `rhs` has identical field `field`
   ## by comparing all items in the field. Check if two object's fields
@@ -20,11 +48,11 @@ template subnodesEq*(lhs, rhs, field: untyped): untyped =
   lhs.field.len() == rhs.field.len() and
   zip(lhs.field, rhs.field).allOfIt(it[0] == it[1])
 
-template fail*(msg: string): untyped =
+template fail*(msg: string): untyped {.deprecated.} =
   debugecho "Fail on ", instantiationInfo()
   raiseAssert(msg)
 
-template nnil*(): untyped =
+template nnil*(): untyped {.deprecated.} =
   defer:
     let iinfo = instantiationInfo()
     when result is seq:
@@ -44,7 +72,7 @@ template nnil*(): untyped =
 
 
 type
-  SingleIt*[T] = object
+  SingleIt*[T] {.deprecated.} = object
     it: seq[T]
 
 func getIt*[T](it: SingleIt[T]): T = it.it[0]
@@ -56,7 +84,7 @@ converter toT*[T](it: SingleIt[T]): T = it.it[0]
 func takesOnlyMutable*[T](v: var T) = discard
 template isMutable*(v: typed): untyped = compiles(takesOnlyMutable(v))
 
-macro dumpStr*(body: untyped): untyped =
+macro dumpStr*(body: untyped): untyped {.deprecated.} =
   newCall(ident "echo", newLit(body.treeRepr()))
 
 template notNil*(arg: untyped): bool = not isNil(arg)

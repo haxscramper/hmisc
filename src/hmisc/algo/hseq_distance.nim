@@ -33,7 +33,7 @@ func longestCommonSubsequence*[T](
               xIndex: newSeq[int](),
               yIndex: newSeq[int]())]
 
-  var mem: CountTable[(int, int)]
+  var mem: Table[(int, int), int]
   proc lcs(i, j: int): int =
     if (i, j) notin mem:
       mem[(i, j)] =
@@ -56,6 +56,7 @@ func longestCommonSubsequence*[T](
   proc backtrack(i, j: int): seq[
     tuple[matches: seq[T], xIndex, yIndex: seq[int]]
   ] =
+    # echov (i, j), lcs(i, j)
     traceIf false:
       if lcs(i, j) == 0:
         result = @[]
@@ -107,7 +108,9 @@ func longestCommonSubsequence*[T](
       else: # both paths has valid subsequences. Can return all of them
         result = backtrack(i - 1, j) & backtrack(i - 1, j)
 
+  # ploc "Backtrack"
   result = backtrack(m, n)
+  # ploc "backgrack done"
 
   if result.len == 0:
     result = @[(matches: newSeq[T](),
@@ -500,7 +503,7 @@ type
 proc myersDiff*[T](
     aSeq, bSeq: openarray[T],
     itemCmp: EqCmpProc[T] = (
-      when compiles(x == y):
+      when compiles(proc(x, y: T): bool = x == y):
         proc cmpProc(x, y: T): bool = x == y
         cmpProc
 
@@ -554,10 +557,13 @@ proc myersDiff*[T](
         front[k] = (x, history)
 
 
-type ShiftedDiff*[T] = tuple[oldShifted, newShifted: seq[(DiffShiftKind, T)]]
+type ShiftedDiff*[T] = tuple[
+  oldShifted, newShifted: seq[tuple[kind: DiffShiftKind, item: T]]]
 
-proc shiftDiffed*[T](oldSeq, newSeq: openarray[T], diff: seq[DiffEdit], empty: T):
-  ShiftedDiff[T] =
+proc shiftDiffed*[T](
+    oldSeq, newSeq: openarray[T],
+    diff: seq[DiffEdit], empty: T
+  ): ShiftedDiff[T] =
 
   for line in items(diff):
     case line.kind:
@@ -568,23 +574,27 @@ proc shiftDiffed*[T](oldSeq, newSeq: openarray[T], diff: seq[DiffEdit], empty: T
         result.newShifted.add (dskInsert, newSeq[line.newPos])
 
       of dekKeep:
-        var (oldp, newp) = (line.oldPos, line.newPos)
-        while oldp < newp:
-          result.oldShifted.add (dskEmpty, empty)
-          inc oldp
+        var
+          oldLen = result.oldShifted.len
+          newLen = result.newShifted.len
 
-        while newp < oldp:
-          result.newShifted.add (dskEmpty, empty)
-          inc newp
+        if oldLen < newLen:
+          while oldLen < newLen:
+            result.oldShifted.add (dskEmpty, empty)
+            inc oldLen
 
+        elif newLen < oldLen:
+          while newLen < oldLen:
+            result.newShifted.add (dskEmpty, empty)
+            inc newLen
 
         result.oldShifted.add (dskKeep, oldSeq[line.oldPos])
         result.newShifted.add (dskKeep, newSeq[line.newPos])
 
 proc formatDiffed*[T](shifted: ShiftedDiff[T]): string =
-  var oldText, newText: seq[string]
-
-  var lhsMax = 0
+  var
+    oldText, newText: seq[string]
+    lhsMax = 0
 
   template editFmt(fmt: untyped): untyped =
     case fmt:

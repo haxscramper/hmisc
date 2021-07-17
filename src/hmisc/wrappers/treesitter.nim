@@ -1,4 +1,4 @@
-import std/[unicode, sequtils, options, strformat]
+import std/[unicode, sequtils, options, strformat, tables]
 export options
 export unicode
 
@@ -419,8 +419,6 @@ proc ts_language_version*(
 func nodeString*[N: distinct](node: N): string =
   $ts_node_string(TSNode(node))
 
-func isNil*[N: distinct](node: N): bool =
-  ts_node_is_null(TSNode(node))
 
 func isNamed*[N: distinct](node: N): bool =
   ts_node_is_named(TSNode(node))
@@ -460,6 +458,22 @@ func startPoint*[N: distinct](node: N): TSPoint =
   ## Return start point for AST node (line and column)
   assertRef node
   ts_node_start_point(TSNode(node))
+
+func startByte*[N: distinct](node: N): int =
+  ## Return start point for AST node (line and column)
+  assertRef node
+  ts_node_start_byte(TsNode(node)).int
+
+func endByte*[N: distinct](node: N): int =
+  ## Return start point for AST node (line and column)
+  assertRef node
+  ts_node_end_byte(TsNode(node)).int
+
+func slice*[N: distinct](node: N): Slice[int] =
+  assertRef node
+  {.cast(noSideEffect).}:
+    ## Get range of source code **bytes** for the node
+    startByte(node) ..< endByte(node)
 
 func endPoint*[N: distinct](node: N): TSPoint =
   ## Return end point for AST node (line and column)
@@ -699,7 +713,12 @@ let baseColorMap* = toMapArray {
 import std/[with]
 
 type
-  HtsNode*[N: distinct, K: enum] = object
+  # FIXME FIXME FIXME making this node a regular `object` causes misterious
+  # crashes due to `original` field being incorrectly copied - it is always
+  # `null`. Tree-sitter checks for that using `.id == 0`, so I assume nim's
+  # zero-initialization gets to it somewhere, and thigs start to fall
+  # apart.
+  HtsNode*[N: distinct, K: enum] = ref object
     case isGenerated*: bool
       of true:
         original: Option[N]
@@ -707,6 +726,7 @@ type
         nodeKind: K
         subnodes: seq[HtsNode[N, K]]
         tokenStr: string
+        names: Table[string, int]
 
       of false:
         base: ptr string
@@ -775,6 +795,14 @@ template htsWrap(inNode: untyped, expr: untyped): untyped =
 
 func startPoint*[N, K](node: HtsNode[N, K]): TsPoint = htsWrap(node, startPoint)
 func endPoint*[N, K](node: HtsNode[N, K]): TsPoint = htsWrap(node, endPoint)
+func startByte*[N, K](node: HtsNode[N, K]): int = htsWrap(node, startByte)
+func endByte*[N, K](node: HtsNode[N, K]): int = htsWrap(node, endByte)
+func slice*[N, K](node: HtsNode[N, K]): Slice[int] =
+  startByte(node) ..< endByte(node)
+
+func `[]`*[N, K](str: string, node: HtsNode[N, K]): string =
+  str[node.slice()]
+
 func childName*[N, K](node: HtsNode[N, K], idx: int): string =
   if node.isGenerated:
     assertOption node.original,
@@ -812,11 +840,55 @@ func `$`*[N, K](node: HtsNode[N, K]): string = node.tokenStr
 
 func isNil*[N, K](node: HtsNode[N, K]): bool = false
 
+func zzzz*[N, K](node: HtsNode[N, K]): string =
+  proc aux(res: var string, node: HtsNode[N, K], level: int) =
+    res.add "  ".repeat(level)
+    res.add &"[{node.kind}] "
+    if node.original.isSome():
+      res.add $node.original.get()
+
+    for sub in node.subnodes:
+      res.add "\n"
+      aux(res, sub, level + 1)
+
+  aux(result, node, 0)
+
+func asgn[T](target: var T, other: T) =
+  copyMem(
+    cast[pointer](addr target),
+    cast[pointer](unsafeAddr other),
+    sizeof(other)
+  )
+
+func asgn*(target: var Option[TsNode], other: Option[TsNode]) =
+  if other.isSome():
+    asgn(target, other)
+
 func add*[N, K](
     node: var HtsNode[N, K],
     other: HtsNode[N, K] | seq[HtsNode[N, K]]) =
-
+  # echov "adding ... ", zzzz(other)
   node.subnodes.add other
+  if other.original.isSome():
+    # echov other.original.get().isNil()
+    node.subnodes[^1].original.asgn other.original
+    # echov other.original.get().isNil()
+    # echov node.subnodes[^1].original.get().isNil()
+    # echov node.subnodes[^1].original.unsafeGet().isNil()
+    # node.subnodes[^1].original.get() = other.original.get()
+
+  # var base = node.subnodes[^1]
+  # echov base.original.get().isNil()
+  # base = other
+  # echov other.original.get().isNil()
+  # echov base.original.get().isNil()
+
+  # base.original.get() = other.original.get()
+  # echov other.original.get().isNil()
+  # echov base.original.get().isNil()
+
+  # echov "after add ... ", zzzz(node)
+  # echov "----------------"
 
 func len*[N, K](
     node: HtsNode[N, K], unnamed: bool = false): int =
@@ -826,6 +898,12 @@ func len*[N, K](
 
   else:
     node.node.len(unnamed)
+
+func has*[N, K](node: HtsNode[N, K], idx: int): bool =
+  0 <= idx and idx < node.len()
+
+func has*[N, K](node: HtsNode[N, K], name: string): bool =
+  name in node.names
 
 func high*[N, K](node: HtsNode[N, K], unnamed: bool = false): int =
   node.len() - 1
@@ -843,7 +921,8 @@ func `[]`*[N, K](
   else:
     toHtsNode[N, K](node.node[idx], node.base, generated = generated)
 
-func `[]`*[N, K](node: var HtsNode[N, K], slice: SliceTypes): var seq[HtsNode[N, K]] =
+func `[]`*[N, K](
+    node: var HtsNode[N, K], slice: SliceTypes): var seq[HtsNode[N, K]] =
   node.subnodes[slice]
 
 func `[]`*[N, K](
@@ -860,15 +939,44 @@ func `[]`*[N, K](
     #   unnamed, not unnamed,
     #   "cannot iterate over generated tree using unnamed nodes")
 
-    result = node.subnodes[slice].toGenerated(generated)
+    # result = node.subnodes[slice].toGenerated(generated)
+
+    if node.len > 0:
+      for idx in clamp(slice, node.high):
+        result.add node[idx, unnamed].toGenerated(generated)
 
   else:
-    let
-      start = slice.startFor(node.len(unnamed))
-      finish = slice.endFor(node.len(unnamed))
+    if node.len > 0:
+      for idx in clamp(slice, node.high(unnamed)):
+        result.add toHtsNode[N, K](
+          node.node[idx, unnamed], node.base, generated)
 
-    for idx in start .. finish:
-      result.add toHtsNode(node[idx, unnamed], node.base, generated)
+func `[]`*[N, K](
+    node: HtsNode[N, K], name: string, generated: bool = false
+  ): HtsNode[N, K] =
+
+  if name notin node.names:
+    var msg = "No subnode named '" & name & "' for node kind '" &
+      $node.kind & "'. Available names - "
+
+    for name, _ in pairs(node.names):
+      msg.add " '" & name & "'"
+
+
+    raise newGetterError(msg)
+
+  else:
+    result = node[node.names[name]]
+
+
+func `[]`*[N, K](
+    node: HtsNode[N, K], idx: int, kind: K | set[K]): HtsNode[N, K] =
+
+  assert 0 <= idx and idx < node.len
+  result = node[idx]
+  assertKind(
+    result, kind,
+    "Child node at index " & $idx & " for node kind " & $node.kind)
 
 func `{}`*[N, K](node: HtsNode[N, K], idx: IndexTypes): HtsNode[N, K] =
   `[]`(node, idx, unnamed = true)
@@ -927,13 +1035,15 @@ iterator pairs*[N, K](
   ): (int, HtsNode[N, K]) =
 
   if node.isGenerated:
-    for idx in clamp(slice, node.high):
-      yield (idx, node.subnodes[idx].toGenerated(generated))
+    if node.subnodes.len > 0:
+      for idx in clamp(slice, node.high):
+        yield (idx, node.subnodes[idx].toGenerated(generated))
 
   else:
-    for idx in clamp(slice, node.high):
-      yield (idx, toHtsNode[N, K](
-        node.node[idx, unnamed], base = node.base, generated = generated))
+    if node.len(unnamed) > 0:
+      for idx in clamp(slice, node.high):
+        yield (idx, toHtsNode[N, K](
+          node.node[idx, unnamed], base = node.base, generated = generated))
 
 iterator items*[N, K](
     node: HtsNode[N, K],
@@ -970,10 +1080,16 @@ func toHtsTree*[N, K](
 
   ## Fully convert tree-sitter tree to `HtsNode[N, K]`.
   result = toHtsNode[N, K](node, base, generated = true, storePtr = storePtr)
-  for subnode in items(node, unnamed):
-    let sub = argpass(toHtsTree[N, K](subnode, base), unnamed, storePtr)
-    assertRef sub.original.get()
-    result.add sub
+  var namedIdx = 0
+  for idx, subnode in pairs(node, true):
+    if subnode.isNamed() or unnamed:
+      result.add argpass(toHtsTree[N, K](subnode, base), unnamed, storePtr)
+      let name = node.childName(idx)
+      if name.len > 0:
+        result.names[name] = namedIdx
+
+      inc namedIdx
+
 
 func newHtsTree*[N, K](kind: K, val: string): HtsNode[N, K] =
   HtsNode[N, K](isGenerated: true, nodeKind: kind, tokenStr: val)
@@ -989,9 +1105,11 @@ proc treeRepr*[N, K](
     pathIndexed: bool = false
   ): string =
 
-  bind isNil
-  mixin kind
-  const numStyle = tcDefault.bg + tcGrey54.fg
+  mixin kind, isNil
+  const
+    numStyle = tcDefault.bg + tcGrey54.fg
+    isHts = node is HtsNode
+
   proc aux(
       node: N,
       level: int,
@@ -1001,6 +1119,10 @@ proc treeRepr*[N, K](
       path: seq[int],
       nodeIdx: int
     ) =
+
+    when isHts:
+      if node.original.isSome():
+        assertRef node.original.get(), $node.kind
 
     if node.isNil():
       with res:
@@ -1047,16 +1169,11 @@ proc treeRepr*[N, K](
             add $nodeIdx
             add ")> "
 
-        const isHts = node is HtsNode
 
         let hasRange =
           when isHts: node.original.isSome() else: true
 
         if hasRange:
-          when isHts:
-            echov node.kind
-            # assertRef node.original.get()
-
           let
             startPoint = startPoint(node)
             endPoint = endPoint(node)

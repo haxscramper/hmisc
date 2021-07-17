@@ -335,6 +335,15 @@ converter toFsDir*(dir: string): FsDir =
   else:
     FsDir(isRelative: true, relDir: RelDir(dir))
 
+
+converter toFsFileOption*(absFile: Option[AbsFile]): Option[FsFile] =
+  if absFile.isSome():
+    return some FsFile(isRelative: false, absFile: absFile.get())
+
+converter toFsFileOption*(relFile: Option[RelFile]): Option[FsFile] =
+  if relFile.isSome():
+    return some FsFile(isRelative: true, relFile: relFile.get())
+
 converter toFsDirOption*(absDir: Option[AbsDir]): Option[FsDir] =
   if absDir.isSome():
     return some FsDir(isRelative: false, absDir: absDir.get())

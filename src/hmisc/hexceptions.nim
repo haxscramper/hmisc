@@ -26,10 +26,13 @@ func toLineInfo*(arg: InstantiationInfo): LineInfo =
 func startpos*(node: NimNode): LineInfo =
   case node.kind:
     of nnkBracketExpr, nnkDotExpr, nnkAsgn, nnkCall,
-       nnkExprColonExpr, nnkObjConstr, nnkCommand:
+       nnkExprColonExpr, nnkObjConstr, nnkCommand,
+       nnkArgList:
       node[0].lineInfoObj()
+
     of nnkInfix:
       node[1].lineInfoObj()
+
     else:
       node.lineInfoObj()
 

@@ -612,7 +612,11 @@ method log*(ex: ShellError, logger: HLogger) =
   logger.err ex.msg
 
 proc logStackTrace*(
-    logger: HLogger, e: ref Exception, showError: bool = true) =
+    logger: HLogger,
+    e: ref Exception,
+    showError: bool = true,
+    ignoreAssert: bool = true
+  ) =
 
   let (showFile, showLine, leftAlignFiles) =
     (logger.showFile, logger.showLine, logger.leftAlignFiles)
@@ -670,6 +674,8 @@ proc logStackTrace*(
         filePref = filePref.toRed()
         foundErr = true
 
+    if $tr.procname == "failedAssertImpl" and ignoreAssert:
+      return
 
     logger.debug prefix & (filePref) & " " &
       $($tr.procname).toYellow()
@@ -677,42 +683,45 @@ proc logStackTrace*(
     if filename == "":
       continue
 
-    proc logEntry(idx: int) =
-      let
-        filename = $stackEntries[idx].filename
-        line = stackEntries[idx].line
+    # proc logEntry(idx: int) =
 
-      let fileText =
-        block:
-          if filename notin files:
-            files[filename] = filename.readFile()
+    let line = tr.line
 
-          files[filename]
+    let fileText =
+      block:
+        let
+          filename = $tr.filename
 
-      logger.debug("")
-      logger.indent()
-      logger.logLines(fileText, line, ext)
-      logger.dedent()
-      logger.debug("")
+        if filename notin files:
+          files[filename] = filename.readFile()
+
+        files[filename]
+
+    logger.debug("")
+    logger.indent()
+    logger.logLines(fileText, line, ext)
+    logger.dedent()
+    logger.debug("")
 
 
-    let nowPos = (filename, tr.line)
-    if lastPos[0].len == 0:
-      lastPos = nowPos
-      logEntry(idx)
-      repeated = 0
+    # logEntry(idx)
+    # let nowPos = (filename, tr.line)
+    # if lastPos[0].len == 0:
+    #   lastPos = nowPos
+    #   logEntry(idx)
+    #   repeated = 0
 
-    elif lastPos != nowPos and idx < maxIdx:
-      lastPos = nowPos
-      logEntry(idx)
-      repeated = 0
+    # elif lastPos != nowPos and idx < maxIdx:
+    #   # lastPos = nowPos
+    #   logEntry(idx)
+    #   repeated = 0
 
-    elif idx == maxIdx:
-      logEntry(idx)
+    # elif idx == maxIdx:
+    #   logEntry(idx)
 
-    else:
-      lastPos = nowPos
-      inc repeated
+    # else:
+    #   # lastPos = nowPos
+    #   inc repeated
 
   logger.showFile = showFile
   logger.showLine = showLine
@@ -734,7 +743,7 @@ proc loggerErrConverter*(
 
 proc prettyShellCmd(cmd: ShellCmd): string =
   result = cmd.bin
-  let max = 60
+  let max = 80
 
   var lineLen = cmd.bin.len
 
@@ -760,8 +769,8 @@ proc execShell*(
     errLog: StreamConverter[ShellCmd, bool, HLogger] = loggerErrConverter,
     logRaised: bool = false
   ) =
-  info(logger, pos, "Running shell", "'" & shellCmd.bin & "'")
-  debug(logger, pos, shellCmd.prettyShellCmd())
+  infoImpl(logger, pos, @["Running shell", "'" & shellCmd.bin & "'"])
+  debugImpl(logger, pos, @[shellCmd.prettyShellCmd()])
 
   let (outIter, errIter) = makeShellRecordIter(
     shellCmd, outLog, errLog, state = some logger)

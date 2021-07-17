@@ -252,24 +252,28 @@ func findEnd*(str: string, sub: string, start: Natural = 0, last = 0): int =
   if result >= 0:
     result += sub.len
 
-func getIndent*(level: int, sep: int = 2, prefix: char = ' '): string =
+func addIndent*(
+    res: var string, level: int, sep: int = 2, prefix: char = ' ') =
   if sep == 2 and prefix == ' ':
     case level:
-      of 0: result = ""
-      of 1: result = "  "
-      of 2: result = "    "
-      of 3: result = "      "
-      of 4: result = "        "
-      of 5: result = "          "
-      of 6: result = "            "
-      of 7: result = "              "
-      of 8: result = "                "
-      of 9: result = "                  "
-      of 10: result = "                    "
-      else: result = repeat(prefix, level * sep)
+      of 0: res &= ""
+      of 1: res &= "  "
+      of 2: res &= "    "
+      of 3: res &= "      "
+      of 4: res &= "        "
+      of 5: res &= "          "
+      of 6: res &= "            "
+      of 7: res &= "              "
+      of 8: res &= "                "
+      of 9: res &= "                  "
+      of 10: res &= "                    "
+      else: res &= repeat(prefix, level * sep)
 
   else:
-    result = repeat(prefix, level * sep)
+    res &= repeat(prefix, level * sep)
+
+func getIndent*(level: int, sep: int = 2, prefix: char = ' '): string =
+  result.addIndent(level, sep, prefix)
 
 func msgjoinImpl*(args: seq[string]): string =
   # FIXME `text __next`

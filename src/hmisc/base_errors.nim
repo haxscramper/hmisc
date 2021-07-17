@@ -1,4 +1,5 @@
-import std/[macros, strutils]
+import std/[macros, strutils, options]
+export options
 
 ## Commonly used exceptions definitions. More target-specific errors are
 ## implemented in respective submodules such as [[code:hshell.ShellError]]
@@ -10,6 +11,11 @@ type
   ArgumentError*       = object of CatchableError
     ## Invalid argument passed to a functions
 
+  GetterError* = object of ArgumentError
+  SetterError* = object of ArgumentError
+  NilArgumentError* = object of ArgumentError
+  NoneArgumentError* = object of ArgumentError
+
   ParseError* = object of ArgumentError
 
   LogicError*          = object of CatchableError
@@ -20,6 +26,8 @@ type
 
   ImplementError*      = object of CatchableError
     ## I use this error as a more active restrictive `TODO` tag.
+
+  ImplementBaseError* = object of ImplementError
 
   ImplementKindError*  = object of ImplementError
     ## Specialization of implementation placeholder for handling error
@@ -68,10 +76,25 @@ template raiseLogicError*(errMsg: string) {.dirty.} =
 template raiseArgumentError*(errMsg: string) {.dirty.} =
   raise newException(ArgumentError, errMsg)
 
+proc newLogicError*(msg: varargs[string, `$`]): ref LogicError =
+  newException(LogicError, msg.join(" "))
+
 proc newArgumentError*(msg: varargs[string, `$`]): ref ArgumentError =
   newException(ArgumentError, msg.join(" "))
 
+template assertArg*(arg: untyped, cond: bool, msg: string): untyped =
+  if not cond:
+    {.line: instantiationInfo(fullpaths = true).}:
+      raise newArgumentError(
+        "Invalid value for argument", astToStr(arg), "- " & msg &
+          ". Input value was '" & $arg & "', but check expected '" &
+          astToStr(cond) & "'")
 
+proc newGetterError*(msg: varargs[string, `$`]): ref GetterError =
+  newException(GetterError, msg.join(" "))
+
+proc newSetterError*(msg: varargs[string, `$`]): ref SetterError =
+  newException(SetterError, msg.join(" "))
 
 proc newImplementError*(msgs: varargs[string, `$`]): ref ImplementError =
   newException(ImplementError, join(msgs, " "))
@@ -98,6 +121,7 @@ template kindToStr*(expr: typed): untyped =
 
   else:
     "\e[32m" & $expr.kind & "\e[0m for type \e[33m" & $typeof(expr) & "\e[0m"
+
 
 template assertKind*(
     inExpr, inExpected: typed, onFail: string = "") {.dirty.} =
@@ -139,6 +163,45 @@ template assertKind*(
         raise res
 
 
+template assertRef*(expr: typed, onFail: string = ""): untyped {.dirty.} =
+  bind NilArgumentError
+  mixin isNil
+  when not defined(release):
+    if isNil(expr):
+      let msg = "expression '" & astToStr(expr) & "' of type '" &
+        $typeof(expr) & "' is nil. " & onFail
+      {.line: instantiationInfo(fullPaths = true)}:
+        raise (ref NilArgumentError)(msg: msg)
+
+template assertOption*(expr: untyped, onFail: string = ""): untyped {.dirty.} =
+  bind isNone, NoneArgumentError
+  when not defined(release):
+    if options.isNone(expr):
+      let msg = "expression '" & astToStr(expr) & "' of type '" &
+        $typeof(expr) & "' is `NONE`. " & onFail
+      {.line: instantiationInfo(fullPaths = true)}:
+        raise (ref NoneArgumentError)(msg: msg)
+
+template assertRefFields*[T](
+    item: T, onFail: string = "string") {.dirty.} =
+
+  for name, field in fieldPairs(
+    when item is ref or item is ptr:
+      assertRef item
+      item[]
+
+    else:
+      item
+  ):
+    {.line: instantiationInfo(fullPaths = true).}:
+      when field is ptr or
+           field is ref or
+           compiles(isNil(field)):
+        if isNil(field):
+          raise newException(
+            NilArgumentError, "Field '" & name &
+              "' of object type '" & $typeof(item) & "'. " & onFail)
+
 
 proc prepareMsg(msgs: varargs[string]): string =
   for idx, msg in pairs(msgs):
@@ -155,6 +218,12 @@ proc newImplementKindError*[T](
     node: T, msg: varargs[string, `$`]): ref ImplementKindError =
   newException(ImplementKindError,
     "Unhandled entry kind " & kindToStr(node) & prepareMsg(msg))
+
+proc newImplementBaseError*[T](
+    obj: T, name: string): ref ImplementBaseError =
+  newException(ImplementBaseError,
+    "Missing implementaiton for based method '" & name &
+      "' for object type '" & $typeof(obj) & "'")
 
 template raiseImplementKindError*(
   node: untyped, userMsg: string = "") {.dirty.} =

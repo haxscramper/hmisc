@@ -252,6 +252,34 @@ suite "Edit distance":
 
     echo formatDiffed(shifted)
 
+  test "Diff source code":
+    let
+      oldCode = """
+proc changeSideEffect() = discard
+proc changeRaiseAnnotation() = discard
+proc changeImplementation() = discard
+
+proc main() =
+  changeSideEffect()
+  changeRaiseAnnotation()
+  changeImplementation()""".split("\n")
+
+      newCode = """
+proc changeSideEffect() = echo "werwer"
+proc changeRaiseAnnotation() = raise newException(OsError, "w23423")
+proc changeImplementation() =
+  for i in [0, 1, 3]:
+    discard i
+
+proc main() =
+  changeSideEffect()
+  changeRaiseAnnotation()
+  changeImplementation()""".split("\n")
+
+    starthax()
+    echo formatDiffed(shiftDiffed(
+      oldCode, newCode, myersDiff(oldCode, newCode), "<empty>"))
+
   test "Identifier mismatch":
     template mis(a, b: untyped, exp: bool = false): untyped =
       stringMismatchMessage(a, b, showAll = exp)

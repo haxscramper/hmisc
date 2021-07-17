@@ -726,7 +726,7 @@ func toLink*(link: string, desc: string = link): string =
   &"\e]8;;{link}\e\\{desc}\e]8;;\e\\"
 
 func toLink*(
-    pos: (string, int, int), 
+    pos: (string, int, int),
     desc: string = "file://" & pos[0] & ":" & $pos[1] & ":" & $pos[2]
   ): string =
 
@@ -1788,6 +1788,9 @@ func `[]=`*(buf: var ColoredRuneGrid, row, col: int, str: string) =
       buf[row + rowIdx, col + colIdx] = toColored(ch, style)
 
     inc rowIdx
+
+func `[]=`*(buf: var ColoredRuneGrid, row, col: int, ch: char) =
+  buf[row, col] = toColored(ch, initPrintStyling())
 
 func `[]`*(buf: ColoredRuneGrid, row, col: int): ColoredRune =
   buf[row][col]

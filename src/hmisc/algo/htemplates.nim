@@ -1,8 +1,7 @@
 import sugar, sequtils, macros
 
-#===========================  implementation  ============================#
-
-#================================  tests  ================================#
+# TODO avoid unnecessary copying with these templates by checking whether
+# `let value = expr` can be optimized to `it[]` hack.
 
 template tern*(predicate: bool, tBranch: untyped, fBranch: untyped): untyped =
   ## Shorthand for inline if/else.
@@ -152,6 +151,11 @@ template findMinIt*(s: untyped, op: untyped): untyped =
     inc idx
 
   res
+
+template getMinIt*(s: untyped, op: untyped): untyped =
+  ## Maximize value for all elements in sequence
+  let idx = findMinIt(s, op)
+  s[idx]
 
 template sumIt*(s: untyped, op: untyped): untyped =
   type OutType = getIterOpType(s, op)

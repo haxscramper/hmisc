@@ -16,7 +16,8 @@ type
   cchar32* = uint32
   cwchar* = uint32
 
-proc `as`*[T](undef: CxxTemplateUndefined, asTarget: typedesc[T]): T {.importcpp: "(#)"} =
+proc `as`*[T](
+  undef: CxxTemplateUndefined, asTarget: typedesc[T]): T {.importcpp: "(#)"}
 
 proc cxxInitList*[T](args: T) {.importcpp: "{@}", varargs.}
 
@@ -24,3 +25,34 @@ type nullptr_t* = typeof(nil)
 
 proc newImportAux*() {.importc: "//", header: "<new>".} =
   discard
+
+type
+  UArray*[T] = UncheckedArray[T]
+  PUarray*[T] = ptr UncheckedArray[T]
+
+template `+`*[T](p: ptr T, offset: SomeInteger): ptr T =
+  cast[ptr type(p[])](cast[ByteAddress](p) +% int(offset) * sizeof(p[]))
+
+template `+=`*[T](p: ptr T, offset: SomeInteger) =
+  p = p + offset
+
+template `-`*[T](p: ptr T, offset: SomeInteger): ptr T =
+  cast[ptr type(p[])](cast[ByteAddress](p) -% int(offset) * sizeof(p[]))
+
+template `-=`*[T](p: ptr T, offset: SomeInteger) =
+  p = p - offset
+
+template `[]`*[T](p: ptr T, offset: SomeInteger): T =
+  (p + offset)[]
+
+template `[]=`*[T](p: ptr T, offset: SomeInteger, val: T) =
+  (p + offset)[] = val
+
+template toPUarray*[T](p: ptr T): PUarray[T] = cast[PUarray[T]](p)
+template toPtr*[T](p: PUArray[T]): ptr T = cast[ptr T](p)
+
+template toPtr*[T](r: ref T): ptr T = cast[ptr T](r)
+template toPUarray*[T](r: ref T): PUarray[T] = cast[PUarray[T]](r)
+
+template subArrayPtr*[T](arr: PUArray[T], idx: SomeInteger): PUarray[T] =
+  toPUarray(toPtr(arr) + idx)

@@ -210,6 +210,17 @@ template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
 
 
 
+template ploc*(msg: string = ""): untyped =
+  {.cast(noSideEffect).}:
+    let (filename, line, _) = instantiationInfo()
+    let text = filename & ":" & $line & " "& msg
+    when nimvm:
+      if doLog:
+        echo text
+
+    else:
+      if doLogRuntime:
+        echo text
 
 
 template plog*(body: untyped): untyped =
@@ -225,6 +236,7 @@ template echove*(body: untyped): untyped =
   res
 
 template globalTick*(): untyped =
-  var tick {.global.}: int = -1
-  inc tick
-  tick
+  block:
+    var tick {.global.}: int = -1
+    inc tick
+    tick

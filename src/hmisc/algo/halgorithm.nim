@@ -63,6 +63,13 @@ iterator rpairs*[T](s: T): auto =
   for idx in countdown(s.len - 1, 0):
     yield (idx, s[idx])
 
+proc rfind*[T, Q](s: T, item: Q): int =
+  for idx, pos in rpairs(s):
+    if pos == item:
+      return idx
+
+  return -1
+
 iterator ritems*[T](s: openarray[T]): T =
   ## Iterate over sequence starting from the right
   for idx in countdown(s.len - 1, 0):
@@ -923,23 +930,23 @@ func parseEnum*[E: enum](
   if optionalPrefix:
     let normalized = str.dropLowerPrefix().normalize(normalize)
 
-    for (key, val) in map:
+    for (key, val) in pairs(map):
       if val == normalized:
         return key
 
     raise newException(
       EnumParseError,
-      &"Could not parse enum value for {typeof(E)} from '{str}' (normalized to {normalized})")
+      &"Could not parse enum value for {$typeof(E)} from '{str}' (normalized to {normalized})")
 
   let normalized = str.normalize(normalize)
 
-  for (key, val) in map:
+  for (key, val) in pairs(map):
     if val == normalized:
       return key
 
   raise newException(
     EnumParseError,
-    &"Could not parse enum value for {typeof(E)} from '{str}'")
+    &"Could not parse enum value for {$typeof(E)} from '{str}'")
 
 
 
