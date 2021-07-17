@@ -419,7 +419,7 @@ proc ts_language_version*(
 func nodeString*[N: distinct](node: N): string =
   $ts_node_string(TSNode(node))
 
-func isNull*[N: distinct](node: N): bool =
+func isNil*[N: distinct](node: N): bool =
   ts_node_is_null(TSNode(node))
 
 func isNamed*[N: distinct](node: N): bool =
@@ -453,17 +453,21 @@ func namedChild*[N: distinct](node: N; a2: int): N =
 
 func namedChildCount*[N: distinct](node: N): int =
   ## Number of named (non-token) subnodes for a triee
+  assertRef node
   ts_node_named_child_count(TSNode(node)).int
 
 func startPoint*[N: distinct](node: N): TSPoint =
   ## Return start point for AST node (line and column)
+  assertRef node
   ts_node_start_point(TSNode(node))
 
 func endPoint*[N: distinct](node: N): TSPoint =
   ## Return end point for AST node (line and column)
+  assertRef node
   ts_node_end_point(TSNode(node))
 
 func startLine*[N: distinct](node: N): int =
+  assertRef node
   node.startPoint().row.int
 
 func endLine*[N: distinct](node: N): int =
@@ -488,6 +492,74 @@ proc fieldNames*[N: distinct](node: N): seq[string] =
   for idx in 0 ..< ts_node_child_count(node.TsNode()):
     result.add childName(node, idx.int)
 
+
+func `[]`*[N: distinct](node: N,
+           idx: int, unnamed: bool = false): N =
+  assert 0 <= idx and idx < node.len(unnamed = unnamed)
+  if unnamed:
+    N(ts_node_child(TSNode(node), uint32(idx)))
+  else:
+    N(ts_node_named_child(TSNode(node), uint32(idx)))
+
+func `[]`*[N: distinct](
+  node: N, slice: Slice[int],
+  unnamed: bool = false): seq[N] =
+
+  for i in slice:
+    result.add node[i, unnamed]
+
+func `[]`*[N: distinct](
+  node: N, slice: HSlice[int, BackwardsIndex],
+  unnamed: bool = false): seq[N] =
+
+  let maxIdx = node.len() - slice.b.int
+  for i in slice.a .. maxIdx:
+    result.add node[i, unnamed]
+
+func `{}`*[N: distinct](node: N, idx: int): N =
+  ## Retun node positioned at `idx` - count includes unnamed (token)
+  ## subnodes.
+  assert 0 <= idx and idx < node.len(unnamed = true)
+  N(ts_node_child(TSNode(node), uint32(idx)))
+
+
+func `[]`*[N: distinct](
+    node: N, name: string, check: bool = true): N =
+  result = N(ts_node_child_by_field_name(
+    TsNode(node), name.cstring, name.len.uint32))
+
+  if check and isNil(result):
+    raise newArgumentError(
+      "No field named '" & name & "' for AST node type",
+      typeof(N), ", kind",
+      $node.kind() & ". Possible field names:",
+      $fieldNames(node)
+    )
+
+func has*[N: distinct](node: N, name: string): bool =
+  ## Check if node contains field with `name`
+  not(ts_node_is_null(TsNode(node[name, false])))
+
+func contains*[N: distinct](node: N, name: string): bool =
+  ## Check if node contains field with `name`
+  not(ts_node_is_null(TsNode(node[name, check = false])))
+
+
+iterator items*[N: distinct](node: N,
+               unnamed: bool = false): N =
+  ## Iterate over subnodes. `unnamed` - also iterate over unnamed
+  ## nodes (usually things like punctuation, braces and so on).
+  for i in 0 ..< node.len(unnamed):
+    yield node[i, unnamed]
+
+iterator pairs*[N: distinct](node: N, unnamed: bool = false): (int, N) =
+  ## Iterate over subnodes. `unnamed` - also iterate over unnamed
+  ## nodes.
+  for i in 0 ..< node.len(unnamed):
+    yield (i, node[i, unnamed])
+
+func `[]`*[N: distinct](s: string, node: N): string =
+  s[node.slice()]
 
 func childByFieldName*[N: distinct](
   self: N; fieldName: string; fieldNameLength: int
@@ -628,7 +700,6 @@ import std/[with]
 
 type
   HtsNode*[N: distinct, K: enum] = object
-    base: ptr string
     case isGenerated*: bool
       of true:
         original: Option[N]
@@ -638,6 +709,7 @@ type
         tokenStr: string
 
       of false:
+        base: ptr string
         node: N
 
 func kind*[N, K](node: HtsNode[N, K]): K =
@@ -667,14 +739,21 @@ func toHtsNode*[N, K](
     result = HtsNode[N, K](
       isGenerated: true,
       original: some node,
-      base: if storePtr: base else: nil,
       nodeKind: node.kind)
 
     if node.len == 0:
       result.tokenStr = base[][node.slice()]
 
+    assertRef result.original.get()
+
   else:
-    result = HtsNode[N, K](isGenerated: false, node: node, base: base)
+    result = HtsNode[N, K](
+      isGenerated: false, node: node, base: base)
+
+    if storePtr:
+      result.base = base
+
+  result.origNamed = node.isNamed()
 
 func isNamed*[N, K](node: HtsNode[N, K]): bool =
   if node.isGenerated:
@@ -729,6 +808,8 @@ func newTree*[N, K](
     nodeKind: kind,
     subnodes: toSeq(subnodes))
 
+func `$`*[N, K](node: HtsNode[N, K]): string = node.tokenStr
+
 func isNil*[N, K](node: HtsNode[N, K]): bool = false
 
 func add*[N, K](
@@ -773,9 +854,11 @@ func `[]`*[N, K](
   ): seq[HtsNode[N, K]] =
 
   if node.isGenerated:
-    assertArg(
-      unnamed, not unnamed,
-      "cannot iterate over generated tree using unnamed nodes")
+    assertOption node.original,
+     "Cannot get unnamed subnodes index without origina tree-sitter node"
+    # assertArg(
+    #   unnamed, not unnamed,
+    #   "cannot iterate over generated tree using unnamed nodes")
 
     result = node.subnodes[slice].toGenerated(generated)
 
@@ -785,7 +868,13 @@ func `[]`*[N, K](
       finish = slice.endFor(node.len(unnamed))
 
     for idx in start .. finish:
-      result.add toHtsNode(node[idx], node.base, generated)
+      result.add toHtsNode(node[idx, unnamed], node.base, generated)
+
+func `{}`*[N, K](node: HtsNode[N, K], idx: IndexTypes): HtsNode[N, K] =
+  `[]`(node, idx, unnamed = true)
+
+func `{}`*[N, K](node: HtsNode[N, K], idx: SliceTypes): seq[HtsNode[N, K]] =
+  `[]`(node, idx, unnamed = true)
 
 func `[]=`*[N, K](
     node: var HtsNode[N, K], idx: IndexTypes, other: HtsNode[N, K]) =
@@ -798,11 +887,11 @@ func lineIInfo(node: NimNode): NimNode =
   newLit((filename: iinfo.filename, line: iinfo.line))
 
 macro instFramed*(decl: untyped): untyped =
+  ## Wrap iterator/procedure implementation in `{line: }` and emit
+  ## additional strack trace information. This allows to have correct
+  ## stacktrace information in the inlined iterators.
   decl.expectKind {
-    nnkProcDef,
-    nnkFuncDef,
-    nnkIteratorDef,
-    nnkMethodDef,
+    nnkProcDef, nnkFuncDef, nnkIteratorDef, nnkMethodDef,
     nnkConverterDef
   }
 
@@ -822,23 +911,22 @@ macro instFramed*(decl: untyped): untyped =
   # TODO check for stack tace, check for different backends
   result.body = quote do:
     {.line: instantiationInfo(fullpaths = true)}:
+      {.emit: "/* Additional stack trace for `instFramed` */"}
       {.emit: `start`.}
       {.emit: `nimln`.}
       `body`
       {.emit: "popFrame();"}
+      {.emit: "/* Pop of the additional stack frame */"}
+
 
 iterator pairs*[N, K](
     node: HtsNode[N, K],
     slice: SliceTypes = 0 .. high(int),
     generated: bool = false,
     unnamed: bool = false
-  ): (int, HtsNode[N, K]) {.instFramed.} =
+  ): (int, HtsNode[N, K]) =
 
   if node.isGenerated:
-    assertArg(
-      unnamed, not unnamed,
-      "cannot iterate over generated tree using unnamed nodes")
-
     for idx in clamp(slice, node.high):
       yield (idx, node.subnodes[idx].toGenerated(generated))
 
@@ -883,7 +971,9 @@ func toHtsTree*[N, K](
   ## Fully convert tree-sitter tree to `HtsNode[N, K]`.
   result = toHtsNode[N, K](node, base, generated = true, storePtr = storePtr)
   for subnode in items(node, unnamed):
-    result.add argpass(toHtsTree[N, K](subnode, base), unnamed, storePtr)
+    let sub = argpass(toHtsTree[N, K](subnode, base), unnamed, storePtr)
+    assertRef sub.original.get()
+    result.add sub
 
 func newHtsTree*[N, K](kind: K, val: string): HtsNode[N, K] =
   HtsNode[N, K](isGenerated: true, nodeKind: kind, tokenStr: val)
@@ -899,6 +989,7 @@ proc treeRepr*[N, K](
     pathIndexed: bool = false
   ): string =
 
+  bind isNil
   mixin kind
   const numStyle = tcDefault.bg + tcGrey54.fg
   proc aux(
@@ -962,6 +1053,10 @@ proc treeRepr*[N, K](
           when isHts: node.original.isSome() else: true
 
         if hasRange:
+          when isHts:
+            echov node.kind
+            # assertRef node.original.get()
+
           let
             startPoint = startPoint(node)
             endPoint = endPoint(node)
