@@ -23,6 +23,7 @@ import
 
 type
   TSTree* {.apiStruct.} = object
+
   PtsTree* = ptr TSTree
 
   TSLanguage* {.apiStruct.} = object
@@ -64,7 +65,7 @@ type
   TSSymbol* = distinct uint16
 
   PTsTreeCursor* = ptr TsTreeCursor
-  TsTreeCursor* {.apiStruct.} = object
+  TSTreeCursor* {.apiStruct, importc: "TSTreeCursor".} = object
     tree*: pointer
     id*: pointer
     context*: array[2, uint32]
@@ -323,6 +324,7 @@ proc ts_tree_cursor_goto_parent*(
 proc ts_tree_cursor_goto_next_sibling*(
   a1: PtsTreeCursor): bool {.apiProc.}
 
+
 proc ts_tree_cursor_goto_first_child*(
   a1: PtsTreeCursor): bool {.apiProc.}
 
@@ -331,6 +333,41 @@ proc ts_tree_cursor_goto_first_child_for_byte*(
 
 proc ts_tree_cursor_copy*(
   a1: PtsTreeCursor): TSTreeCursor {.apiProc.}
+
+type
+  Cursor*[N] = ref object
+    d: TsTreeCursor
+
+proc cursor*[N](node: N): Cursor[N] =
+  Cursor[N](d: ts_tree_cursor_new(TsNode(node)))
+
+proc node*[N](cursor: Cursor[N]): N =
+  N(ts_tree_cursor_current_node(addr cursor.d))
+
+proc next*[N](cursor: Cursor[N]): bool =
+  ts_tree_cursor_goto_next_sibling(addr cursor.d)
+
+iterator items*[N](cursor: Cursor[N]): int =
+  var idx = 0
+  yield idx
+  while next(cursor):
+    inc idx
+    yield idx
+
+proc down*[N](cursor: Cursor[N]): bool =
+  ts_tree_cursor_goto_first_child(addr cursor.d)
+
+proc up*[N](cursor: Cursor[N]): bool =
+  ts_tree_cursor_goto_parent(addr cursor.d)
+
+proc fieldName*[N](cursor: Cursor[N]): string =
+  let name = ts_tree_cursor_current_field_name(addr cursor.d)
+
+  if not isNil(name):
+    result = $name
+
+proc isField*[N](cursor: Cursor[N]): bool =
+  not isNil(ts_tree_cursor_current_field_name(addr cursor.d))
 
 proc ts_query_new*(
 
@@ -496,8 +533,6 @@ func endColumn*[N: distinct](node: N): int =
 
 proc childName*[N: distinct](node: N, idx: int): string =
   if idx.uint32 <= ts_node_child_count(node.TsNode()):
-     # not isNil(node.tree) and
-     # not isNil(node.id) and
     let name = ts_node_field_name_for_child(node.TsNode(), idx.uint32)
     if not isNil(name):
       result = $name
@@ -606,7 +641,6 @@ iterator pairs*(map: TsFieldMap): (int, TsFieldMapEntry) =
 iterator items*(map: TsFieldMap): TsFieldMapEntry =
   for _, it in pairs(map):
     yield it
-
 
 import std/[macros, options, unicode, strutils]
 export options
@@ -784,7 +818,7 @@ func isNamed*[N, K](node: HtsNode[N, K]): bool =
 
 template htsWrap(inNode: untyped, expr: untyped): untyped =
   if inNode.isGenerated:
-    assertOption node.original,
+    assertOption inNode.original,
      "Node does not contain reference to the original tree-sitter node"
 
     inNode.original.get().`expr`
@@ -889,6 +923,8 @@ func add*[N, K](
 
   # echov "after add ... ", zzzz(node)
   # echov "----------------"
+
+func getTs*[N, K](node: HtsNode[N, K]): N = node.original.get()
 
 func len*[N, K](
     node: HtsNode[N, K], unnamed: bool = false): int =
@@ -1078,17 +1114,22 @@ func toHtsTree*[N, K](
     storePtr: bool = true
   ): HtsNode[N, K] =
 
-  ## Fully convert tree-sitter tree to `HtsNode[N, K]`.
-  result = toHtsNode[N, K](node, base, generated = true, storePtr = storePtr)
-  var namedIdx = 0
-  for idx, subnode in pairs(node, true):
-    if subnode.isNamed() or unnamed:
-      result.add argpass(toHtsTree[N, K](subnode, base), unnamed, storePtr)
-      let name = node.childName(idx)
-      if name.len > 0:
-        result.names[name] = namedIdx
 
-      inc namedIdx
+  proc aux(cursor: Cursor[N]): HtsNode[N, K] =
+    ## Fully convert tree-sitter tree to `HtsNode[N, K]`.
+    result = toHtsNode[N, K](
+      cursor.node(), base, generated = true, storePtr = storePtr)
+
+    if down(cursor):
+      for idx in items(cursor):
+        result.add aux(cursor)
+        if cursor.isField():
+          result.names[cursor.fieldName()] = idx
+
+      discard up(cursor)
+
+  let cursor = node.cursor()
+  return aux(cursor)
 
 
 func newHtsTree*[N, K](kind: K, val: string): HtsNode[N, K] =
@@ -1104,6 +1145,11 @@ proc treeRepr*[N, K](
     maxdepth: int = high(int),
     pathIndexed: bool = false
   ): string =
+
+  when node is distinct:
+    let ts = TsNode(node)
+    let tree = ts.tree
+    let lang = tree.ts_tree_language()
 
   mixin kind, isNil
   const
@@ -1226,7 +1272,7 @@ proc treeRepr*[N, K](
                 res.add "\n"
                 subn.aux(
                   level + 1, res, node.childName(idx),
-                  namedIdx, path & namedIdx, idx)
+                  idx = namedIdx, path & namedIdx, nodeIdx = idx)
 
                 inc namedIdx
 
