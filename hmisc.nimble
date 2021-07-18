@@ -22,7 +22,7 @@ task docgen, "Generate documentation":
   if not fileExists("bin/hmisc-putils"):
     exec("nimble build")
 
-  exec("hmisc-putils docgen")
+  exec("""hmisc-putils docgen""")
 
 task dockertest, "Run tests in docker container":
   exec("hmisc-putils dockertest --projectDir:" & thisDir())
