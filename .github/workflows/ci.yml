@@ -9,7 +9,8 @@ jobs:
 
     strategy:
       matrix:
-        nim: ['devel', 'version-1-4']
+        nim: ['version-1-4' # , 'devel'
+        ]
 
     runs-on: ubuntu-latest
     steps:
