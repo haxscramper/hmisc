@@ -6,6 +6,11 @@ jobs:
   build:
     if: |
       !contains(github.event.head_commit.message, 'SKIP')
+
+    strategy:
+      matrix:
+        nim: ['devel', 'version-1-4']
+
     runs-on: ubuntu-latest
     steps:
       - run: sudo apt-get install graphviz
@@ -13,7 +18,7 @@ jobs:
       - uses: alaviss/setup-nim@master
         with:
           path: '../nim'
-          version: 'version-1-4'
+          version: ${{ matrix.nim }}
       - run: "nimble -y test && nimble install -y"
       - run: "hmisc-putils docgen"
       - uses: crazy-max/ghaction-github-pages@v1
