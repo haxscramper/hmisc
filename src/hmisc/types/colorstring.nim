@@ -482,8 +482,8 @@ func initColoredString*(
 
 func `+`*(bg: TermColor8BitBg, fg: TermColor8BitFg): PrintStyling =
   PrintStyling(use8Bit: true,
-               fg8: fg.TermColor8Bit,
-               bg8: bg.TermColor8Bit)
+               fg8: TermColor8Bit(fg.int),
+               bg8: TermColor8Bit(bg.int))
 
 func `+`*(fg: TermColor8BitFg, bg: TermColor8BitBg): PrintStyling =
   PrintStyling(use8Bit: true,

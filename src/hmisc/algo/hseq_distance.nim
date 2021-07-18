@@ -64,7 +64,7 @@ func longestCommonSubsequence*[T](
         var jRes = j
         while true:
           if (i, jRes - 1) in mem and
-             mem[(i, jRes - 1)] == mem[(i, j)]:
+             lcs(i, jRes - 1) == lcs(i, j):
             dec jRes
           else:
             break
@@ -79,7 +79,7 @@ func longestCommonSubsequence*[T](
         var iRes = i
         while true:
           if (iRes, j) in mem and
-             mem[(iRes - 1, j)] == mem[(i, j)]:
+             lcs(iRes - 1, j) == lcs(i, j):
             dec iRes
           else:
             break

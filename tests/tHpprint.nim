@@ -76,7 +76,7 @@ suite "Simple configuration":
 
   test "int-int table":
     assertEq {2: 3, 4: 5}.toOrderedTable().pstring(conf = op),
-        "{2: 3, 4: 5}"
+        "{ 2: 3, 4: 5"
 
   test "seq-seq table":
     let tbl = toOrderedTable {

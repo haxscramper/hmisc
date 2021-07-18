@@ -721,7 +721,8 @@ func getArg*(app: CliApp, name: string): CliValue = app.value.getArg(name)
 func hasCmd*(val: CliValue): bool =
   val.kind in {cvkCommand} and val.subCmd.isSome()
 
-template assertKind(val: CliValue, target: set[CliValueKind]): untyped {.dirty.} =
+template assertKind*(val: CliValue, target: set[CliValueKind]): untyped {.dirty.} =
+  bind joinAnyOf, assertKind
   var targetNames: seq[string]
   for k in items(target):
     targetNames.add cvkValidatorNames[k]
@@ -735,6 +736,7 @@ template assertKind(val: CliValue, target: set[CliValueKind]): untyped {.dirty.}
         empty = "converters for target kind"))
 
 proc `as`*[T](val: CliValue, target: typedesc[T]): T =
+  bind assertKind
   when target is AbsFile:
     assertKind(val, {cvkFsEntry})
     assertKind(val.fsEntryVal, {pcFile, pcLinkToFile})
@@ -786,7 +788,7 @@ proc `as`*[T](val: CliValue, target: typedesc[T]): T =
     result = val.floatVal
 
   elif target is bool:
-    val.assertKind({cvkBool})
+    assertKind(val, {cvkBool})
     result = val.boolVal
 
   else:

@@ -259,7 +259,7 @@ const
 
   sakListKinds* = {sakAndList, sakOrList, sakPipeList}
 
-func newShellCmdConf*(): ShellCmdConf = discard
+func initShellCmdConf*(): ShellCmdConf = discard
 
 func getStdout*(shellRes: ShellResult): string =
   shellRes.execResult.stdout

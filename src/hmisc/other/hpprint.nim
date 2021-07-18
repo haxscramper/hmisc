@@ -642,7 +642,7 @@ proc toPprintTree*[T](
         style = fgYellow + bgDefault
 
       elif entry is NimNode:
-        let val = entry.treeRepr()
+        let val = entry.repr
         style = fgDefault + styleItalic
 
       elif entry is (SomeNumber | bool):

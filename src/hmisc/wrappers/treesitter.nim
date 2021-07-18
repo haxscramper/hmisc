@@ -850,13 +850,17 @@ func `[]`*[N, K](str: string, node: HtsNode[N, K]): string =
 
 func childName*[N, K](node: HtsNode[N, K], idx: int): string =
   if node.isGenerated:
-    assertOption node.original,
-     "Node does not contain reference to the original tree-sitter node"
+    for name, fieldIdx in pairs(node.names):
+      if idx == fieldIdx:
+        return name
 
-    node.original.get().childName(idx)
+    # assertOption node.original,
+    #  "Node does not contain reference to the original tree-sitter node"
+
+    # node.original.get().childName(idx)
 
   else:
-    node.node.childName(idx)
+    result = node.node.childName(idx)
 
 
 func toGenerated*[N, K](

@@ -213,7 +213,7 @@ template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
 template ploc*(msg: string = ""): untyped =
   {.cast(noSideEffect).}:
     let (filename, line, _) = instantiationInfo()
-    let text = filename & ":" & $line & " "& msg
+    let text = filename & ":" & $line & " " & msg
     when nimvm:
       if doLog:
         echo text

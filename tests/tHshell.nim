@@ -70,7 +70,7 @@ suite "Hshell":
     assertEq runShell(ShellExpr "echo '1'").stdout.strip(), "1"
 
   test "Parallel process launch":
-    var cmds = repeat(shCmd(echo, "test"), 20)
+    var cmds = repeat((shCmd(echo, "test"), false), 20)
     for res in runShellResult(cmds):
       discard
 
