@@ -43,7 +43,7 @@ suite "Graph API":
     })
 
     let components = graph.connectedComponents()
-    echo components
+    echo $components
 
     startHax()
     let cycles = graph.findCycles(ignoreSelf = true)

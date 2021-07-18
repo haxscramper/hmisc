@@ -212,7 +212,8 @@ iterator items*(s: HNodeSet): HNode =
     yield HNode(id: HNodeId(item))
 
 func `$`*(id: HNodeId | HEdgeId): string = $id.int
-func `$`*(id: HNodeSet | HEdgeSet): string = $id.intSet
+func `$`*(id: HNodeSet): string = $id.intSet
+func `$`*(id: HEdgeSet): string = $id.intSet
 func `==`*(id1, id2: HNodeId | HEdgeId): bool = id1.int == id2.int
 func `==`*(n1, n2: NoProperty): bool = true
 func hash*(id: HNodeId | HEdgeId): Hash = hash(id.int)
