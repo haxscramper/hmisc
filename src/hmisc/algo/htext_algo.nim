@@ -211,10 +211,11 @@ func wrapTextSimple*[T, A](
   for word in words:
     if current + word.len > width:
       result.add @[word]
-      current += word.len
+      current = word.len
 
     else:
       result[^1].add word
+      current += word.len
 
 func joinText*[T, A](
   wrapped: seq[seq[Word[T, A]]],

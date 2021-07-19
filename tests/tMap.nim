@@ -13,6 +13,12 @@ suite "Values from/before":
     echo "before 4: ", toSeq(map.valuesBefore(4))
     echo "from -2: ", toSeq(map.valuesFrom(-2))
 
+suite "Smallest/largets pair":
+  test "main":
+    let map = toMap({2: 3, 3: 4, 1: 1})
+    doAssert map.firstPair() == (1, 1)
+    doAssert map.lastPair() == (3, 4)
+
 suite "std/tMap tests":
   # smaller tables
   test "init":

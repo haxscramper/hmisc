@@ -46,6 +46,37 @@ proc prev[A, B](cursor: var Cursor[A, B]): bool =
 
   return cursor.len > 0 and cursor.current.node.m > 0
 
+# import hmisc/other/hpprint
+
+proc firstPair*[A, B](table: Table[A, B]): tuple[key: A, val: B] =
+  var node {.cursor.} = table.root
+  assert node.m > 0
+  while true:
+    if isNil(node.e[0].p):
+      return (node.e[0].key, node.e[0].val)
+
+    else:
+      node = node.e[0].p
+
+
+proc lastPair*[A, B](table: Table[A, B]): tuple[key: A, val: B] =
+  var node {.cursor.} = table.root
+  assert node.m > 0
+  # pprint node
+  while true:
+    let idx = node.m - 1
+    if isNil(node.e[idx].p):
+      return (node.e[idx].key, node.e[idx].val)
+
+    else:
+      node = node.e[idx].p
+
+  # while node.m > 0:
+  #   node = node.e[node.m - 1].p
+
+  # return (node.e[0].key, node.e[0].val)
+
+
 proc searchOrBefore[A, B](b: Table[A, B], key: A): Cursor[A, B] =
   ## Calculates the cursor pointing to the given key.
   var a = b.root

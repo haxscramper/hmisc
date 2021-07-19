@@ -1337,7 +1337,7 @@ proc doOptLayout*(
     of bkStack:  result = self.doOptStackLayout(rest, opts)
     of bkWrap:   result = self.doOptWrapLayout(rest, opts)
     of bkVerb:   result = self.doOptVerbLayout(rest, opts)
-    of bkEmpty: discard
+    of bkEmpty:  assert false
 
 
 const defaultFormatOpts* = LytOptions(
@@ -1519,11 +1519,14 @@ proc toString*(
     it.rightMargin = rightMargin
 
   let sln = none(LytSolution).withResIt do:
-    bl.doOptLayout(it, opts).get()
+    bl.doOptLayout(it, opts)
+
+  assert sln.isSome(), "Could not perform layout for block " & $bl
 
   var console: OutConsole
-  sln.layouts[0].printOn(console)
+  sln.get().layouts[0].printOn(console)
   return console.outStr
+
 
 
 func codegenRepr*(inBl: LytBlock, indent: int = 0): string =

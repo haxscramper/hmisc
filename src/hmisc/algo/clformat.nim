@@ -323,17 +323,58 @@ const texIdents* = [
   "e",
 ]
 
+const AsciiMath* = (
+  sqrt: "√",
+  times: "×",
+  sqrt3: "∛",
+  sqrt4: "∜",
+  infty: "∞",
+  neq: "≔",
+  defeq: "≝",
+  subset: "⊂",
+  subseteq: "⊆",
+  subsetneq: "⊈",
+  supset: "⊃",
+  supseteq: "⊇",
+  supsetneq: "⊉",
+  setin: "∈",
+  setnotin: "∉",
+  integral: "∫",
+  integral2: "∬",
+  integral3: "∭",
+  integral4: "⨌",
+  lceil:"⌈",
+  rceil:"⌉",
+  lfloor: "⌊",
+  rfloor: "⌋",
+  land: "∧",
+  lor: "∨",
+  exists: "∃",
+  forall: "∀",
+  sum: "∑",
+  prod: "∏",
+  coprod: "∐",
+  mathN: "ℕ",
+  mathZ: "ℤ",
+  mathQ: "ℚ",
+  mathR: "ℝ",
+  mathC: "ℂ",
+  mathi: "ⅈ",
+  mathj: "ⅉ",
+  mathe: "ℯ",
+)
+
 func fromTexToUnicodeMath*(tex: string): string =
   let tex = if tex.startsWith("\\"): tex[1..^1] else: tex
   case tex:
-    of "sqrt": "√"
-    of "sqrt[3]": "∛"
-    of "sqrt[4]": "∜"
-    of "infty": "∞"
-    of "neq": "≔"
-    of "defeq": "≝"
-    of "subset": "⊂"
-    of "subseteq": "⊆"
+    of "sqrt": AsciiMath.sqrt
+    of "sqrt[3]": AsciiMath.sqrt3
+    of "sqrt[4]": AsciiMath.sqrt4
+    of "infty": AsciiMath.infty
+    of "neq": AsciiMath.neq
+    of "defeq": AsciiMath.defeq
+    of "subset": AsciiMath.subset
+    of "subseteq": AsciiMath.subseteq
     of "subsetneq": "⊈"
     of "supset": "⊃"
     of "supseteq": "⊇"
@@ -344,7 +385,7 @@ func fromTexToUnicodeMath*(tex: string): string =
     of "iint": "∬"
     of "iiint": "∭"
     of "iiiint": "⨌"
-    of "times": "×"
+    of "times": AsciiMath.times
     of "lceil": "⌈"
     of "rceil": "⌉"
     of "lfloor": "⌊"
@@ -368,7 +409,7 @@ func fromTexToUnicodeMath*(tex: string): string =
     of "e": "ℯ"
     else:
       raiseArgumentError("Unsupported latex to unicde conversion: '" & tex & "'")
-# ∜
+
 # ⅈ, ⅉ ℯ, ⅇ ℇ ∞ ⧜ ⧝ ⧞
 #  ∋  ∌ ⋶ ⋽ ⋲ ⋺ ⋳ ⋻
 #    ⊅⊄     ⊊ ⊋ ⫅ ⫆ ⫋ ⫌
@@ -384,7 +425,66 @@ func fromTexToUnicodeMath*(tex: string): string =
 # ⨀ ⨂ ∏ ∐ ⨉
 #     ⫍ ⫎
 
+   
+# ╓ ╥ ╖
+# ╟ ╫ ╢
+# ╙ ╨ ╜ 
+# ┍ ┯ ┑
+# ┝ ┿ ┥
+# ┕ ┷ ┙ 
 
+
+# ╆ ╅
+# ╄ ╃ 
+
+# ┲ ┱
+# ┺ ┹ 
+# ┢ ╈ ┪
+# ╊ ╋ ╉
+# ┡ ╇ ┩
+
+const AsciiBox* = (
+  regular: (
+    upLeft: "┌", downLeft: "└", downRight: "┘", upRight: "┐", center: "┼",
+    vertical: "│", horizontal: "─",
+    topCross: "┬", bottomCross: "┴", leftCross: "├", rightCross: "┤"
+  ),
+  bold: (
+    upLeft: "┏", downLeft: "┗", downRight: "┛", upRight: "┓", center: "╋",
+    vertical: "┃", horizontal: "━",
+    topCross: "┳", bottomCross: "┻", leftCross: "┣", rightCross: "┫"
+  ),
+  double: (
+    upLeft: "╔", downLeft: "╚", downRight: "╝", upRight: "╗", center: "╬",
+    vertical: "║", horizontal: "═",
+    topCross: "╦", bottomCross: "╩", leftCross: "╠", rightCross: "╣"
+  ),
+  doubleHoriz: (
+    upLeft: "╒", downLeft: "╘", downRight: "┘", upRight: "╕", center: "╪",
+    vertical: "│", horizontal: "─",
+    topCross: "╤", bottomCross: "╧", leftCross: "╞", rightCross: "╡"
+  ),
+  doubleVert: (
+    upLeft: "┌", downLeft: "└", downRight: "┘", upRight: "┐", center: "┼",
+    vertical: "│", horizontal: "─",
+    topCross: "┬", bottomCross: "┴", leftCross: "├", rightCross: "┤"
+  ),
+  wedged: (
+    upLeft: "┌", downLeft: "└", downRight: "┘", upRight: "┐", center: "┼",
+    vertical: "│", horizontal: "─",
+    topCross: "┬", bottomCross: "┴", leftCross: "├", rightCross: "┤"
+  ),
+  wedgedVert: (
+    upLeft: "┌", downLeft: "└", downRight: "┘", upRight: "┐", center: "┼",
+    vertical: "│", horizontal: "─",
+    topCross: "┬", bottomCross: "┴", leftCross: "├", rightCross: "┤"
+  ),
+  wedgedHoriz: (
+    upLeft: "┌", downLeft: "└", downRight: "┘", upRight: "┐", center: "┼",
+    vertical: "│", horizontal: "─",
+    topCross: "┬", bottomCross: "┴", leftCross: "├", rightCross: "┤"
+  )
+)
 
 
 
@@ -596,6 +696,11 @@ type
     dvMinimal
     dvVerbose
     dvDataDump
+
+  HDisplayFlags* = enum
+    dfColored
+    dfPositionIndexed
+    dfFlagIndexed
 
   HDisplayOpts* = object
     colored*: bool

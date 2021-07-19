@@ -599,7 +599,7 @@ from os import nil
 
 method log*(ex: ref Exception, logger: HLogger) {.base.} =
   if '\n' notin ex.msg:
-    for line in wrapOrgLines(ex.msg, 60, simple = true):
+    for line in wrapOrgLines(ex.msg, 80, simple = true):
       logger.err line
 
   else:

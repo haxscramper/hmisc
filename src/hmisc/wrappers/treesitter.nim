@@ -1221,7 +1221,8 @@ proc treeRepr*[N, K](
     ) =
 
     when isHts:
-      if node.original.isSome():
+      if node.isGenerated and
+         node.original.isSome():
         assertRef node.original.get(), $node.kind
 
     if node.isNil():
@@ -1271,7 +1272,11 @@ proc treeRepr*[N, K](
 
 
         let hasRange =
-          when isHts: node.original.isSome() else: true
+          when isHts:
+            node.isGenerated and node.original.isSome()
+
+          else:
+            true
 
         if hasRange:
           let
