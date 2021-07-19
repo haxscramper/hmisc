@@ -1,8 +1,12 @@
 #!/usr/bin/env nim
 
 import
-  std/[strformat, strutils, sugar, sequtils, xmltree, macros],
-  ./hshell, ./oswrap, ./colorlogger,
+  std/[strformat, strutils, sugar, sequtils, xmltree, macros]
+
+import
+  ./hshell,
+  ./oswrap,
+  ./hlogger,
   ../algo/hseq_distance
 
 
@@ -12,7 +16,7 @@ func format*(str: string, kvalues: openarray[(string, string)]): string =
 # export AbsDir, RelDir, AbsFile, RelFile, ShellExpr, ShellVar
 # export get, set, del, exists, `&&`
 # export info, warn, fatal, error, notice, startColorLogger
-export oswrap, colorlogger, hshell
+export oswrap, hshell
 
 import ../algo/[htemplates, hstring_algo]
 
@@ -37,6 +41,9 @@ type
     srcDir*: string
     binDir*: string
     cmdOptions*: seq[ShellCmdPart]
+    logger*: HLogger
+
+loggerField(TaskRunConfig, logger)
 
 func switch*(conf: var TaskRunConfig, val: string) =
   conf.cmdOptions.add initCmdFlag(val)
@@ -73,15 +80,16 @@ proc envOrParam*(
 
 proc configureCI*(conf: var TaskRunConfig) =
   if ShellVar("CI").exists():
-    info "Using CI configuration"
+    conf.info "Using CI configuration"
     conf.envOrParam(
       "git.url",
       ShellExpr "https://github.com/$GITHUB_REPOSITORY")
 
     conf.envOrParam("git.commit", ShellExpr "$GITHUB_SHA")
     conf.switch("git.devel", ShellVar("GITHUB_REF").get().split("/")[^1])
+
   else:
-    info "Using local file configuration"
+    conf.info "Using local file configuration"
     conf.hrefPref = "file://" & $(conf.projectDir / "docs")
 
 
@@ -190,22 +198,19 @@ proc docgenBuild(conf: TaskRunConfig, ignored: seq[GitGlob]) =
 
   # debug makeDocConf(tree)
 
-  notice "Wrote nimdoc configuration to", docConf
+  conf.notice "Wrote nimdoc configuration to", docConf
 
   for glob in ignored:
-    debug "ignoring: ", glob
+    conf.debug "ignoring: ", glob
 
   for file in files.mapIt(it.flatFiles()).concat():
     # debug file
     if not ignored.accept($file):
-      notice "Ignoring", $file
+      conf.notice "Ignoring", $file
       continue
 
     let dir = conf.outdir / file.parent[curr.pathLen() .. ^1]
-    if conf.testRun:
-      logcall mkDir(dir), true
-    else:
-      mkDir(dir)
+    conf.logger.execCode mkDir(dir), conf.testRun
 
     let outfile = dir /. $file.withoutParent().withExt("html")
     if (file.ext in @["nim", "rst"]) and ("tests" notin $file):
@@ -227,30 +232,30 @@ proc docgenBuild(conf: TaskRunConfig, ignored: seq[GitGlob]) =
 
       if not cmd.isEmpty():
         if conf.testRun:
-          notice cmd.toLogStr()
+          conf.notice cmd.toLogStr()
+
         else:
-          debug "running shell command"
-          # debug cmd.toLogStr()
+          conf.debug "running shell command"
           let res = shellResult(cmd)
           if res.resultOk:
-            info $file
-            debug "run ok"
+            conf.info $file
+            conf.debug "run ok"
 
           else:
-            debug "run failed for file"
-            warn file
-            debug res.exception.outstr
+            conf.debug "run failed for file"
+            conf.warn file
+            conf.debug res.exception.outstr
             errMsg.add @["-".repeat(80)].repeat(3).concat()
             errMsg.add cmd.toLogStr()
             errMsg.add res.exception.outstr
 
   if (errMsg.len > 0) and (conf.logFile.len > 0):
-    warn "Errors during documentation compilation"
+    conf.warn "Errors during documentation compilation"
     conf.logFile.writeFile(errMsg.join("\n"))
-    notice &"Log file saved to {conf.logFile}"
+    conf.notice &"Log file saved to {conf.logFile}"
   else:
-    notice "Documentation buid ok, no errors detected"
-    info &"Saved documentation at path {conf.outdir}"
+    conf.notice "Documentation buid ok, no errors detected"
+    conf.info &"Saved documentation at path {conf.outdir}"
     # logcall cpFile(conf.nimdocCss, dir /. "nimdoc.out.css"), conf.testRun
 
   # rmFile docConf
@@ -304,7 +309,7 @@ template initBuildConf*(): TaskRunConfig {.dirty.} =
     tmp
 
 proc runDocGen*(conf: TaskRunConfig, ignored: seq[GitGlob] = @[]): void =
-  logIndented:
+  conf.logger.indented:
     docgenBuild(conf, ignored)
 
 
@@ -322,9 +327,12 @@ proc thisAbsDir*(): AbsDir =
 const cdMainProject* = ShellExpr("cd /project/main")
 
 proc runDockerTest*(
-  projDir, tmpDir: AbsDir, cmd: ShellAst,
-  runCb: proc() = (proc() = discard),
-  envpass: openarray[tuple[key: ShellVar, val: string]] = @[]): void =
+    projDir, tmpDir: AbsDir,
+    cmd: ShellAst,
+    logger: HLogger,
+    runCb: proc() = (proc() = discard),
+    envpass: openarray[tuple[key: ShellVar, val: string]] = @[]
+  ): void =
   ## Copy project directory `projDir` into temporary `tmpDir` and
   ## execute command `cmd` inside new docker container based on
   ## `nim-base` image.
@@ -332,19 +340,17 @@ proc runDockerTest*(
   mkDir tmpDir
 
   for (v, val) in envpass:
-    notice &"Passing shell varaible {v.string}={val}"
+    logger.notice &"Passing shell varaible {v.string}={val}"
     cmd = ShellExpr(&"export {v.string}={val}") && cmd
 
-  # cmd &&= cdMainProject
-
-  echo cmd.toStr()
-  echo tmpDir
+  logger.info cmd.toStr()
+  logger.info tmpDir
   let mainDir = (tmpDir / "main")
   if mainDir.dirExists:
     rmDir (tmpDir / "main")
 
   cpDir projDir, (tmpDir / "main")
-  notice "copied", projDir, "to", mainDir
+  logger.notice "copied", projDir, "to", mainDir
   withDir tmpDir / "main":
     runCb()
 
@@ -360,16 +366,11 @@ proc runDockerTest*(
     it.expr cmd
 
 
-  info "Command for docker container"
-  debug dockerCmd.toStr().wrapShell()
-  notice "Started docker container"
-  try:
-    execShell(dockerCmd)
-  except:
-    fatal "Docker container run failed"
-    raise
-
-  notice "Docker container finished run"
+  logger.info "Command for docker container"
+  logger.debug dockerCmd.toStr().wrapShell()
+  logger.notice "Started docker container"
+  logger.execShell(dockerCmd)
+  logger.notice "Docker container finished run"
 
 proc pkgVersion*(pkg: string): string =
   let res = runShell(ShellExpr "nimble dump " & pkg)
@@ -384,7 +385,8 @@ when cbackend:
     return parseConfig(stats, pkg & ".nimble")
 
 
-  proc makeLocalDevel*(testDir: AbsDir, pkgs: seq[string]): ShellAst =
+  proc makeLocalDevel*(
+      testDir: AbsDir, pkgs: seq[string], l: HLogger): ShellAst =
     ## Copy local packages from host to docker container. Useful if you
     ## want to avoid redownloading all packages each time or want to
     ## test something with local version of the package *before* pushing
@@ -396,20 +398,20 @@ when cbackend:
     # TODO support nimble package syntax to explicitly specify version
     # to be copied to docker.
     if pkgs.len == 0:
-      debug "Empy list of local development packages; no setup"
+      l.debug "Empy list of local development packages; no setup"
       return makeGnuShellCmd("true").toShellAst
 
-    info "Copying local development versions"
-    indentLog()
+    l.info "Copying local development versions"
+    l.thisScope("copy local development version for a package")
     let home = getHomeDir()
     for pkg in pkgs:
       let version = getNimbleDump(pkg)["", "version"]
 
       if dirExists(~&".nimble/pkgs/{pkg}-#head"):
-        info "Using #head version for", pkg
+        l.info "Using #head version for", pkg
 
       elif dirExists(~&".nimble/pkgs/{pkg}-{version}"):
-        info "Using", version, "for", pkg
+        l.info "Using", version, "for", pkg
 
       else:
         raiseAssert(&"Could not find {pkg} in local installations " &
@@ -431,10 +433,10 @@ when cbackend:
           let nimble = AbsDir nimble
           if nimble.endsWith(&"{pkg}.nimble"): # XXX
             let dir = parentDir(nimble)
-            info pkg, "is developed locally, copying from", dir
+            l.info pkg, "is developed locally, copying from", dir
             cpDir dir, (testDir / pkg)
       elif versionedInstall.dirExists():
-        info pkg, "is installed locally, copying from", versionedInstall
+        l.info pkg, "is installed locally, copying from", versionedInstall
         cpDir versionedInstall, (testDir / pkg)
       else:
         assertionFail:
@@ -450,44 +452,50 @@ when cbackend:
       )
 
     result &&= cdMainProject
-    dedentLog()
 
   proc runDockerTestDevel*(
-    startDir, testDir: AbsDir, localDevel: seq[string],
-    cmd: ShellAst, cb: proc()) =
-    let develCmd = makeLocalDevel(testDir, localDevel)
+      startDir, testDir: AbsDir,
+      localDevel: seq[string],
+      cmd: ShellAst,
+      cb: proc(),
+      logger: HLogger
+    ) =
+
+    let develCmd = makeLocalDevel(testDir, localDevel, logger)
     let cmd = develCmd && ShellExpr("cd " & " /project/main") && cmd
 
-    info "executing docker container"
-    debug "command is"
-    echo cmd
+    logger.info "executing docker container"
+    logger.trace cmd
 
-    runDockerTest(thisAbsDir(), testDir, cmd) do:
+    runDockerTest(thisAbsDir(), testDir, cmd, logger) do:
       cb()
 
 
 proc writeTestConfig*(str: string): void =
   "tests/nim.cfg".writeFile(str.unindent())
 
-proc testAllImpl*(): void =
+proc testAllImpl*(logger: HLogger): void =
   try:
     execShell(ShellExpr "choosenim stable")
     execShell(ShellExpr "nimble test")
-    info "Stable test passed"
+    logger.info "Stable test passed"
   except:
-    err "Stable test failed"
+    logger.err "Stable test failed"
 
   try:
     execShell(ShellExpr "choosenim devel")
     execShell(ShellExpr "nimble test")
-    info "Devel test passed"
+    logger.info "Devel test passed"
+
   except:
-    err "Devel test failed"
+    logger.err "Devel test failed"
+
   finally:
     execShell(ShellExpr "choosenim stable")
 
   try:
     execShell(ShellExpr "nimble install")
-    info "Installation on stable OK"
+    logger.info "Installation on stable OK"
+
   except:
-    err "Installation on stable failed"
+    logger.err "Installation on stable failed"

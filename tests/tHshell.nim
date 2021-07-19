@@ -1,14 +1,21 @@
-import std/[strutils, sequtils, strformat, segfaults,
-            deques, options, parseutils, enumerate, unittest]
+import std/[
+  strutils, sequtils, strformat, segfaults,
+  deques, options, parseutils, enumerate, unittest
+]
 
-import hmisc/[helpers, hdebug_misc]
-import hmisc/other/[hshell, hshell_convert, oswrap, hjson, nimbleutils]
-import hmisc/algo/[hlex_base, hparse_base]
+import
+  hmisc/[helpers, hdebug_misc],
+  hmisc/other/[hshell, hshell_convert, oswrap, hjson, nimbleutils],
+  hmisc/algo/[hlex_base, hparse_base],
+  hmisc/scripts/hmisc_putils
 
-import hmisc/scripts/hmisc_putils
+import
+  hmisc/scripts/hmisc_putils
 
 if not toBool($$CI):
   startHax()
+
+
 
 suite "Shell output parser":
   test "Strace":
@@ -70,7 +77,7 @@ suite "Hshell":
     assertEq runShell(ShellExpr "echo '1'").stdout.strip(), "1"
 
   test "Parallel process launch":
-    var cmds = repeat((shCmd(echo, "test"), false), 20)
+    var cmds = repeat((shellCmd(echo, "test"), false), 20)
     for res in runShellResult(cmds):
       discard
 
@@ -97,14 +104,19 @@ suite "Hshell":
 
 
   test "Shell ast generation":
-    assertEq shAnd(shCmd ls, shCmd ls).toStr(), "ls && ls"
-    assertEq shOr(shCmd ls, shCmd ls, shAnd(shCmd ls, shCmd ls)).toStr(),
+    assertEq shAnd(
+      shellCmd ls,
+      shellCmd ls).toStr(), "ls && ls"
+
+    assertEq shOr(
+      shellCmd ls,
+      shellCmd ls, shAnd(shellCmd ls, shellCmd ls)).toStr(),
       "ls || ls || (ls && ls)"
 
-    assertEq shCmd(echo, -n, "hello").toStr(), "echo -n hello"
-    assertEq shCmd(echo, -n, "\"he llo\"").toStr(), "echo -n '\"he llo\"'"
-    assertEq shCmd(`dashed-name`).toStr(), "dashed-name"
-    assertEq shCmd("string-name").toStr(), "string-name"
+    assertEq shellCmd(echo, -n, "hello").toStr(), "echo -n hello"
+    assertEq shellCmd(echo, -n, "\"he llo\"").toStr(), "echo -n '\"he llo\"'"
+    assertEq shellCmd(`dashed-name`).toStr(), "dashed-name"
+    assertEq shellCmd("string-name").toStr(), "string-name"
     assertEq toStr($$hello < 12), "[ $hello -lt 12 ]"
 
   test "Shell ast execution":
@@ -113,29 +125,29 @@ suite "Hshell":
 
     assertEq evalShellStdout(cmd), "12"
 
-    execShell shAnd(shCmd "true", shCmd "true")
-    execShell shOr(shCmd "false", shCmd "true")
+    execShell shAnd(shellCmd "true", shellCmd "true")
+    execShell shOr(shellCmd "false", shellCmd "true")
 
     expect ShellError:
-      execShell shAnd(shCmd "false")
+      execShell shAnd(shellCmd "false")
 
-    assertEq evalShellStdout(shCmd(echo, -n, "hello")), "hello"
+    assertEq evalShellStdout(shellCmd(echo, -n, "hello")), "hello"
 
-    let cmd1: ShellCmd = shCmd("sh").withIt do:
+    let cmd1: ShellCmd = shellCmd("sh").withIt do:
       it - "c"
-      it.expr shCmd("sh").withIt do:
+      it.expr shellCmd("sh").withIt do:
         it - "c"
-        it.expr shAnd(shCmd(echo, 2), shCmd(echo, 1))
+        it.expr shAnd(shellCmd(echo, 2), shellCmd(echo, 1))
 
     assertEq cmd1.evalShellStdout(), "2\n1"
     execShell(cmd1)
 
   test "Operators":
     var cmd = &&[
-      shCmd(echo, -n, 0)
-    ] && shCmd(echo, -n, 2) && &&[
-      shCmd(echo, -n, 3),
-      shCmd(echo, -n, 4)
+      shellCmd(echo, -n, 0)
+    ] && shellCmd(echo, -n, 2) && &&[
+      shellCmd(echo, -n, 3),
+      shellCmd(echo, -n, 4)
     ]
 
     var more: seq[ShellExpr]
@@ -155,7 +167,7 @@ suite "Hshell":
         shAsgn($$i, "0"),
         shWhile(
           ($$i < 4),
-          shCmd(echo, "[hello]"),
+          shellCmd(echo, "[hello]"),
           shAsgn($$i, $$i + 1)
         )
       )
@@ -167,12 +179,12 @@ suite "Hshell":
 
   test "Shell ast & makeShellCmd":
     block:
-      let cmd = shCmd("nimble", "install")
+      let cmd = shellCmd("nimble", "install")
       # Nice side effect - you can now comment on different flags and use
       # checks/loops without worrying about correct
       # spacing/concatnation/prefixes etc.
       let doCleanup = true
-      let dockerCmd = shCmd("docker").withIt do:
+      let dockerCmd = shellCmd("docker").withIt do:
         it.cmd "run" # Add subcommand
         it - "i"
         it - "t"
@@ -184,7 +196,7 @@ suite "Hshell":
         it - "c"
         it.expr:
           shAnd:
-            shCmd(cd, "/project/main")
+            shellCmd(cd, "/project/main")
             cmd # Can easily build complicated commands from variables
 
 
@@ -206,9 +218,9 @@ suite "Hshell":
         it - "c"
         it.expr:
           shAnd:
-            shCmd cd, "/project"
-            shCmd cd, "/project"
+            shellCmd cd, "/project"
+            shellCmd cd, "/project"
             shOr:
-              shCmd ls, a
-              shCmd ls, a
-              shCmd ls, a
+              shellCmd ls, a
+              shellCmd ls, a
+              shellCmd ls, a

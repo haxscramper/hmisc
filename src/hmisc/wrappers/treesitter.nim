@@ -1143,21 +1143,6 @@ iterator items*[N, K](
     yield node
 
 
-macro argpass*(other: varargs[untyped]): untyped =
-  let head = other[0]
-  if head.kind == nnkCall:
-    result = head
-
-  else:
-    result = newCall(head)
-
-  for arg in other[1..^1]:
-    if arg.kind == nnkIdent:
-      result.add nnkExprEqExpr.newTree(arg, arg)
-
-    else:
-      result.add arg
-
 
 func toHtsTree*[N, K](
     node: N, base: ptr string,

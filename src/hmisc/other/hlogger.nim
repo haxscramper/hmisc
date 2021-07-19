@@ -1,9 +1,10 @@
 import
-  ../algo/[clformat, htemplates, halgorithm,
-           hlex_base, htext_algo],
+  ../algo/[
+    clformat, htemplates, halgorithm, hlex_base, htext_algo],
   ../other/[hpprint, oswrap],
   ../types/[colorstring, colortext],
-  ../hdebug_misc
+  ../hdebug_misc,
+  ../base_errors
 
 import
   std/[
@@ -36,8 +37,9 @@ type
     logEvWaitStart
     logEvWaitDone
     logEvExprDump
+    logEvProcCall
 
-  HLogScopeKind = enum
+  HLogScopeKind* = enum
     hskTask
     hskScope
     hskIndent
@@ -276,11 +278,11 @@ template check*(
 
   if exprRes == expected:
     logger.logImpl(
-      onMatch, logEvSuccess, instantiationInfo(), desc, "was", hshow(exprRes))
+      onMatch, logEvSuccess, instantiationInfo(), @[desc, "was", hshow(exprRes)])
 
   else:
     logger.logImpl(
-      onFail, logEvFail, instantiationInfo(), desc, "was", hshow(exprRes))
+      onFail, logEvFail, instantiationInfo(), @[desc, "was", hshow(exprRes)])
 
   exprRes
 
@@ -428,7 +430,7 @@ template success*(logger: HLogger, args: varargs[string, `$`]): untyped =
 
 template waitFor*(logger: HLogger, name: string): untyped =
   logImpl(logger, logNone, logEvWaitStart, instantiationInfo(),
-      "Waiting for " & name & " to finish...")
+    @["Waiting for " & name & " to finish..."])
 
 macro loggerField*(
     T: typed, field: untyped,
@@ -767,13 +769,17 @@ proc execShell*(
     logger: HLogger, pos: (string, int, int), shellCmd: ShellCmd,
     outLog: StreamConverter[ShellCmd, bool, HLogger] = loggerOutConverter,
     errLog: StreamConverter[ShellCmd, bool, HLogger] = loggerErrConverter,
-    logRaised: bool = false
+    logRaised: bool = false,
+    execTimeoutMs: int = high(int)
   ) =
   infoImpl(logger, pos, @["Running shell", "'" & shellCmd.bin & "'"])
   debugImpl(logger, pos, @[shellCmd.prettyShellCmd()])
 
   let (outIter, errIter) = makeShellRecordIter(
-    shellCmd, outLog, errLog, state = some logger)
+    shellCmd, outLog, errLog,
+    state = some logger,
+    execTimeoutMs = execTimeoutMs
+  )
 
   if logRaised:
     try:
@@ -814,22 +820,60 @@ template runShell*(logger: HLogger, shellCmd: ShellCmd): ShellExecResult =
 
 
 
+func typedArgs*(call: NimNode): seq[NimNode] =
+  for arg in call[1..^1]:
+    case arg.kind:
+      of nnkHiddenStdConv:
+        case arg[1].kind:
+          of nnkBracket:
+            for elem in arg[1]:
+              case elem.kind:
+                of nnkHiddenCallConv:
+                  result.add elem[1]
+                else:
+                  result.add elem
+          else:
+            raise newUnexpectedKindError(arg[1])
+
+      else:
+        result.add arg
+
+macro execCode*(
+    logger: HLogger,
+    inCall: typed,
+    dryRun: bool = false,
+    lvl: static[HLogLevel] = logInfo
+  ): untyped =
+
+  var args = newCall("logImpl")
+  let iinfo = inCall.lineInfoObj()
+
+  args.add logger
+  args.add newLit(lvl)
+  args.add newLit(logEvProcCall)
+  args.add newLit((iinfo.filename, iinfo.line, iinfo.column))
+
+  var strArgs = nnkBracket.newTree()
+  # echo inCall.treeRepr
+  for idx, arg in inCall.typedArgs():
+    var buf = if idx == 0: inCall[0].strVal() else: ", "
+
+    case arg.kind:
+      of nnkIdent, nnkSym:
+        buf.add arg.toStrLit().strVal() & " = "
+        strArgs.add newLit(buf)
+        strArgs.add nnkPrefix.newTree(ident "$", arg)
+
+      else:
+        if buf.len > 0:
+          strArgs.add newLit(buf)
+
+        strArgs.add arg
 
 
-when isMainModule:
-  proc task(log: HLogger) {.logScope(log).} =
-    if log.check(false, "test"): echo 123
-    if log.check(true, "test"): echo 123
-    log.info("hello")
+  args.add nnkPrefix.newTree(ident("@"), strArgs)
 
-  var l = newTermLogger()
-  task(l)
-
-  l.waitFor("test")
-  l.done("Successfully ran 4 tests")
-  l.done("Teardown ok")
-
-  l.pdump [(0 + 90), (3)]
-  l.trace "Test"
-  l.execShell shellCmd(ls, "/tmp")
-  l.execShell shellCmd(ls, "/;skldfj;aslkdffjj;alskdjjf;")
+  result = quote do:
+    `args`
+    if not `dryRun`:
+      `inCall`

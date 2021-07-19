@@ -1,16 +1,20 @@
-import sugar, strutils, sequtils, strformat
+import std/[sugar, strutils, sequtils, strformat, unittest]
+import hmisc/other/[hlogger, hshell]
 
-import unittest
+suite "HLogger":
+  proc task(log: HLogger) {.logScope(log).} =
+    if log.check(false, "test"): echo 123
+    if log.check(true, "test"): echo 123
+    log.info("hello")
 
-import hmisc/other/colorlogger
+  var l = newTermLogger()
+  task(l)
 
-startColorLogger()
+  l.waitFor("test")
+  l.done("Successfully ran 4 tests")
+  l.done("Teardown ok")
 
-suite "Colorlogger":
-  test "test":
-    debug "debug"
-    info "info"
-    notice "notice"
-    warn "warn"
-    err "err"
-    fatal "fatal"
+  l.pdump [(0 + 90), (3)]
+  l.trace "Test"
+  l.execShell shellCmd(ls, "/tmp")
+  l.execCode echo(12)

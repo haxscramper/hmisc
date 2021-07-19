@@ -25,9 +25,10 @@ import
   ../algo/[
     lexcast, clformat, htemplates, hseq_mapping, htext_algo,
     hparse_base, hstring_algo, halgorithm
-  ]
+  ],
+  ../macros/argpass
 
-export cliparse, hlogger
+export cliparse, hlogger, argpass
 
 
 import
@@ -221,6 +222,7 @@ type
               ## switches like `--clang.exe=emcc --clang.linkerexe=emcc`
 
     cvkUnparse ## Peg/regex-based unparsers
+    cvkSpecialString
 
     cvkCommand
     cvkNotYetDefaulted
@@ -239,7 +241,7 @@ type
       of cvkUnparse:
         matches: seq[string]
 
-      of cvkString:
+      of cvkString, cvkSpecialString:
         strVal*: string
 
       of cvkInt:
@@ -606,6 +608,103 @@ func cmd*(
       else:
         discard
 
+type
+  ProcArg = object
+    name: string
+    default: Option[NimNode]
+    argType: NimNode
+
+func splitProcArgs(node: NimNode): seq[ProcArg] =
+  for param in node.params()[1 ..^ 1]:
+    var default: Option[NimNode]
+    if param[2].kind != nnkEmpty:
+      default = some param[2]
+
+    result.add ProcArg(
+      name: param[0].strVal(),
+      argType: param[1],
+      default: default)
+
+type
+  IgnoredArgs* = object
+    args: seq[tuple[procname: string, args: seq[string]]]
+
+func ignoreArgs*(args: openarray[tuple[procname: string, args: seq[string]]]):
+  IgnoredArgs =
+  IgnoredArgs(args: toSeq(args))
+
+const defaultIgnored = IgnoredArgs(args: @[])
+
+macro cmdProc*(arg: varargs[typed]) =
+  discard
+
+macro cmd*(
+    procsym: typed,
+    docBrief: static[string],
+    argpass: untyped = nil,
+  ): untyped =
+  ## Generate CLI subcommand based in implementation of the procedure whose
+  ## symbol is passed as a @arg{procsym}.
+  let impl =
+    if procsym.kind == nnkSym:
+      procsym.getImpl()
+
+    else:
+      procsym[1].getImpl()
+
+  let other =
+    if procsym.kind != nnkSym:
+      procsym[2 ..^ 1]
+
+    else:
+      @[]
+
+  let ignored = other.mapIt(it.strVal())
+
+  result = newCall("cmd")
+  result.addArg "name", newLit("QQQ")
+  result.addArg "docBrief", newLit(docBrief)
+
+
+  if argpass.kind == nnkCall:
+    result = newCall("argpass", result)
+    result.add argpass[1 ..^ 1]
+
+
+  let args = splitProcArgs(impl)
+
+  if args.len > 0:
+    var cmdParams = newStmtList()
+
+    let tmpCmd = genSym(nskVar, "cmd")
+    for arg in args:
+      if arg.name in ignored:
+        continue
+
+      if arg.default.isSome():
+        var call = newCall("opt")
+        call.addArg "name", newLit(arg.name)
+        call.addArg "doc", newLit("")
+        call.addarg "default", newCall(
+          "cliDefault",
+          newCall(
+            nnkBracketExpr.newTree(ident"toCliValue", arg.argType),
+            arg.default.get()),
+          newLit(arg.default.get().repr()))
+
+        cmdParams.add newCall("add", tmpCmd, call)
+
+
+    result = quote do:
+      block:
+        var `tmpCmd` = `result`
+
+        `cmdParams`
+
+        `tmpCmd`
+
+  echo result.repr
+
 func flag*(
     name, doc: string,
     aliasof: CliOpt = CliOpt(),
@@ -652,10 +751,31 @@ template exprType(e: untyped): untyped =
   proc res(): auto = a
   typeof(res())
 
-func getCmdName*(val: CliValue): string = val.subCmd.get().desc.name
-func getCmd*(val: CliValue): CliValue = val.subCmd.get()
-func getArg*(val: CliValue, pos: int = 0): CliValue = val.positional[pos]
-func getCmd*(app: CliApp): CliValue = app.value.getCmd()
+func getCmdName*(val: CliValue): string =
+  ## Return currently selected command name
+  val.subCmd.get().desc.name
+
+func getCmd*(val: CliValue): CliValue =
+  ## Return currently selectd command
+  val.subCmd.get()
+
+func getArg*(val: CliValue, pos: int = 0): CliValue =
+  ## Return argument at index `pos` for command
+  val.positional[pos]
+
+func getCmd*(app: CliApp): CliValue =
+  ## Return currently selected active *subcommand*
+  app.value.getCmd()
+
+func getRootCmd*(app: CliApp): CliValue =
+  ## Return application root command. It is different from `getCmd` and
+  ## provides access to the always-present root of the processed
+  ## command-line options.
+  ##
+  ## - NOTE :: `app.getRootCmd().getCmd()` and `app.getCmd()` have the
+  ##   effect
+  app.value
+
 func getCmdName*(app: CliApp): string = app.value.getCmdName()
 func getArg*(app: CliApp, pos: int = 0): CliValue = app.value.getArg(pos)
 func getOpt*(val: CliValue, name: string): CliValue =
@@ -796,47 +916,57 @@ proc `as`*[T](val: CliValue, target: typedesc[T]): T =
       {.error: "Cannot convert CLI value to " & $typeof(T) &
         " - conversion not implemented yet.".}
 
-func toCliValue*[T](
-    cli: T, doc: string = "", desc: CliDesc = nil): CliValue =
-
+template updateCliValue*(value: CliValue, inDoc: string, inDesc: CliDesc) =
   let desc =
-    if isNil(desc):
-      CliDesc(doc: CliDoc(docBrief: doc))
+    if isNil(inDesc):
+      CliDesc(doc: CliDoc(docBrief: inDoc))
 
     else:
-      desc
+      inDesc
 
-  when cli is FsEntry:
-    result = CliValue(kind: cvkFsEntry, fsEntryVal: cli)
+  value.desc = desc
+  when compiles($cli):
+    value.rawValue = $cli
+ 
+func toCliValue*(
+    shell: ShellExpr, doc: string = "", desc: CliDesc = nil): CliValue =
+  result = CliValue(kind: cvkSpecialString, strVal: shell.string)
+  updateCliValue(result, doc, desc)
 
-  elif cli is FsFile or cli is FsDir:
-    result = CliValue(kind: cvkFsEntry, fsEntryVal: cli.toFsEntry())
+func toCliValue*(cli: FsEntry, doc: string = "", desc: CliDesc = nil): CliValue =
+  result = CliValue(kind: cvkFsEntry, fsEntryVal: cli)
+  updateCliValue(result, doc, desc)
 
-  elif cli is AbsFile or cli is RelFile:
-    result = CliValue(kind: cvkFsEntry,
-                      fsEntryVal: cli.toFsFile().toFsEntry())
+func toCliValue*(cli: FsFile or FsDir, doc: string = "", desc: CliDesc = nil): CliValue =
+  result = CliValue(kind: cvkFsEntry, fsEntryVal: cli.toFsEntry())
+  updateCliValue(result, doc, desc)
 
-  elif cli is AbsDir or cli is RelDir:
-    result = CliValue(kind: cvkFsEntry,
-                      fsEntryVal: cli.toFsDir().toFsEntry())
+func toCliValue*(cli: AbsFile or RelFile, doc: string = "", desc: CliDesc = nil): CliValue =
+  result = CliValue(kind: cvkFsEntry, fsEntryVal: cli.toFsFile().toFsEntry())
+  updateCliValue(result, doc, desc)
 
-  elif cli is seq:
-    result = CliValue(kind: cvkSeq)
-    for item in items(cli):
-      result.seqVal.add toCliValue(item)
+func toCliValue*(cli: AbsDir or RelDir, doc: string = "", desc: CliDesc = nil): CliValue =
+  result = CliValue(kind: cvkFsEntry, fsEntryVal: cli.toFsDir().toFsEntry())
+  updateCliValue(result, doc, desc)
 
-  elif cli is string:
-    result = CliValue(kind: cvkString, strVal: cli)
+func toCliValue*[T](cli: seq[T], doc: string = "", desc: CliDesc = nil): CliValue =
+  result = CliValue(kind: cvkSeq)
+  for item in items(cli):
+    result.seqVal.add toCliValue(item)
 
-  elif cli is bool:
-    result = CliValue(kind: cvkBool, boolVal: cli)
+  updateCliValue(result, doc, desc)
 
-  else:
-    {.error: "Cannot convert " & $typeof(T) &
-      " to CLI value - conversion not implemented yet".}
+func toCliValue*(cli: string, doc: string = "", desc: CliDesc = nil): CliValue =
+  result = CliValue(kind: cvkString, strVal: cli)
+  updateCliValue(result, doc, desc)
 
-  result.desc =desc
-  result.rawValue = $cli
+func toCliValue*(cli: bool, doc: string = "", desc: CliDesc = nil): CliValue =
+  result = CliValue(kind: cvkBool, boolVal: cli)
+  updateCliValue(result, doc, desc)
+
+    # {.error: "Cannot convert " & $typeof(T) &
+    #   " to CLI value - conversion not implemented yet".}
+
 
 
 proc cliCheckFor*[T](value: typedesc[seq[T]]): CliCheck =
@@ -867,10 +997,12 @@ proc cliCheckFor*[En: enum](
 func cliDefault*(str: string): CliDefault =
   CliDefault(kind: cdkConstString, strVal: str, defaultRepr: str)
 
-func cliDefault*(val: CliValue): CliDefault =
+func cliDefault*(val: CliValue, defaultRepr: string = ""): CliDefault =
   CliDefault(
     kind: cdkCliValue, value: val,
-    defaultRepr: val.rawValue, defaultDesc: val.docBrief())
+    defaultRepr: if defaultRepr.len > 0: defaultRepr else: val.rawValue,
+    defaultDesc: val.docBrief()
+  )
 
 func cliDefaultFromArg*(
     arg, convertRepr: string,
@@ -1024,6 +1156,14 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
 
 
     result.add opt
+
+
+const
+  cliNoLoggerConfig* = @[
+    "loglevel", "log-output", "quiet", "color", "json"]
+
+  cliNoDefaultOpts* = cliNoLoggerConfig & @[
+    "help", "version", "dry-run"]
 
 
 
@@ -1242,14 +1382,15 @@ macro runMain*(
     mainProc: typed,
     logger: HLogger,
     doQuit: bool,
-    args: varargs[untyped]
+    argpass: untyped{nkCall}
   ): untyped =
 
   let mainCall = newCall(mainProc)
-  mainCall.add app
-  mainCall.add logger
-  for arg in args:
-    mainCall.add arg
+  mainCall.addArgpass(argpass)
+  # # mainCall.add app
+  # # mainCall.add logger
+  # for arg in args:
+  #   mainCall.add arg
 
   let line = app.lineInfoObj()
   let iinfo = newLit((line.filename, line.line, line.column))
@@ -1261,6 +1402,32 @@ macro runMain*(
 
       except Exception as e:
         `app`.exitWith(e, `logger`, `doQuit`)
+
+template acceptArgsAndRunBody*(
+    app: CliApp,
+    logger: HLogger,
+    args, body: untyped
+  ): untyped =
+
+  if app.acceptArgs(args):
+    if app.builtinActionRequested():
+      app.showBuiltin(logger)
+
+    else:
+      body
+
+  else:
+    app.showErrors(logger)
+
+macro runDispatched*(
+    app: CliApp,
+    proclist: untyped{nkBracket},
+    logger: HLogger,
+    doQuit: bool,
+  ): untyped =
+
+  ## Dispatch one or more procedures based on subcommand arguments
+  discard
 
 proc arg*(
     name: string,
@@ -2002,15 +2169,19 @@ proc argHelp(arg: CliDesc): LytBlock =
   result.add I[4, T[arg.doc.docBrief]]
   result.add I[4, checkHelp(arg.check)]
 
-proc help(desc: CliDesc, level: int = 0): LytBlock =
+proc help(
+    desc: CliDesc, ignored: HashSet[string], level: int = 0): LytBlock =
+
   result = V[]
   var first = S[]
   let indent = level * 4
+  assertRef desc
   if desc.arguments.len > 0:
     var args = V[S[], T[initColored("ARGS:", section)], S[]]
 
     for arg in desc.arguments:
-      args.add I[4, argHelp(arg)]
+      if arg.name notin ignored:
+         args.add I[4, argHelp(arg)]
 
     result.add I[indent, args]
 
@@ -2018,12 +2189,13 @@ proc help(desc: CliDesc, level: int = 0): LytBlock =
     var cmds = V[S[], T[initColored("SUBCOMMANDS:", section)], S[]]
 
     for cmd in desc.subcommands:
-      let names =
-        cmd.altNames.mapIt(toColored(it, fgMagenta)).join(toColored("/")) &
-          " - " & cmd.doc.docBrief
+      if cmd.name notin ignored:
+        let names =
+          cmd.altNames.mapIt(toColored(it, fgMagenta)).join(toColored("/")) &
+            " - " & cmd.doc.docBrief
 
-      cmds.add I[4, T[names]]
-      cmds.add I[4, help(cmd, level + 1)]
+        cmds.add I[4, T[names]]
+        cmds.add I[4, help(cmd, ignored, level + 1)]
 
     result.add I[4, cmds]
 
@@ -2032,7 +2204,8 @@ proc help(desc: CliDesc, level: int = 0): LytBlock =
     var flags = V[S[], T[toColored("FLAGS:", section)], S[]]
 
     for flag in desc.options:
-      if flag.groupKind in coFlagKinds:
+      if flag.groupKind in coFlagKinds and
+         flag.name notin ignored:
         let help = I[4, flagHelp(flag)]
         flags.add help
 
@@ -2044,14 +2217,17 @@ proc help(desc: CliDesc, level: int = 0): LytBlock =
     var opts = V[S[], T[toColored("OPTIONS:", section)], S[]]
 
     for opt in desc.options:
-      if opt.groupKind in coOptionKinds:
+      if opt.groupKind in coOptionKinds and
+         opt.name notin ignored:
+
         opts.add I[4, optHelp(opt)]
 
     result.add I[indent, opts]
 
 
 
-proc help(app: CliApp): LytBlock =
+proc help(app: CliApp, ignored: HashSet[string]): LytBlock =
+  assertRef app.root
   var res = V[
     T[toColored("NAME:", section)],
     S[],
@@ -2068,7 +2244,7 @@ proc help(app: CliApp): LytBlock =
 
     res.add codes
 
-  res.add app.root.help()
+  res.add app.root.help(ignored)
 
   # res.add @[
   #   S[], T["VERSION:".toColored(section)],
@@ -2079,8 +2255,12 @@ proc help(app: CliApp): LytBlock =
 
 
 
-proc helpStr*(app: CliApp): string =
-  return app.help().toString()
+proc helpStr*(
+    app: CliApp,
+    ignored: seq[string] = @[]
+  ): string =
+
+  return app.help(toHashSet(ignored)).toString()
 
 proc help(err: CliError): LytBlock =
   let errmsg = err.msg & " in " & toLink(

@@ -14,7 +14,8 @@ else:
       poDaemon
 
 import oswrap
-import std/[strutils, strformat, sequtils, options, deques, json, macros]
+import std/[strutils, strformat, sequtils, options,
+            deques, json, macros, times]
 
 import ../hexceptions
 import ../base_errors
@@ -112,6 +113,7 @@ type
 
   ShellResult* = object
     # - REFACTOR :: move `execResult` into `true` branch for `resultOk`
+    wasTerminated*: bool
     execResult*: ShellExecResult ## Result of command execution
     hasBeenSet*: bool ## Whether or not result been set
     cmd*: ShellCmd
@@ -980,7 +982,8 @@ proc updateException(res: var ShellResult, cmd: ShellCmd, maxErrorLines: int) =
       else:
         ""
 
-    var msg = &"Command exited with non-zero code:\n"
+    var msg = &"Command '{command}' exited with " &
+        &"non-zero code {res.execresult.code}:\n"
 
     let split = res.execResult.stderr.split("\n") &
       res.execResult.stdout.split("\n")
@@ -1152,7 +1155,8 @@ when cbackend:
       options: set[ProcessOption] = {poEvalCommand, poUsePath},
       maxErrorLines: int = 12,
       doRaise: bool = true,
-      state: Option[State] = none(State)
+      state: Option[State] = none(State),
+      execTimeoutMs: int = high(int)
     ): tuple[stdout: iterator(): OutRec, stderr: iterator(): ErrRec] =
     ## Iterate over output of the shell command converted to json
     let
@@ -1167,8 +1171,16 @@ when cbackend:
       block:
         iterator resIter(): OutRec =
           var str = initPosStr(inStream)
-          var state: Option[State] = state
+          var
+            state: Option[State] = state
+            start = getTime()
+            hasTimeout = execTimeoutMs < high(int)
+
           while process.running:
+            if hasTimeout:
+              if inMilliseconds(getTime() - start) > execTimeoutMs:
+                kill(process)
+
             let res = convert(str, cmd, state)
             if res.isSome():
               yield res.get()
@@ -1196,11 +1208,12 @@ when cbackend:
 
 proc shellResult*(
     cmd: ShellCmd,
-    stdin: string = "",
+    stdin: string               = "",
     options: set[ProcessOption] = {poEvalCommand},
-    maxErrorLines: int = high(int),
-    maxOutLines: int = high(int),
-    discardOut: bool = false
+    maxErrorLines: int          = high(int),
+    maxOutLines: int            = high(int),
+    discardOut: bool            = false,
+    runTimeoutMs: int           = high(int)
   ): ShellResult {.tags: [
     ShellExecEffect,
     ExecIOEffect,
@@ -1230,11 +1243,14 @@ proc shellResult*(
 
   const nl = "\n"
 
+  let hasTimeout = runTimeoutMs < high(int)
+  let start = getTime()
+  var wasTerminated = false
+
   when not defined(NimScript):
     let pid = startShell(cmd, options, stdin)
     if discardOut and not reprintOut:
-      while pid.running():
-        discard
+      discard
 
     else:
       let outStream = pid.outputStream
@@ -1242,6 +1258,10 @@ proc shellResult*(
 
       var outLineCount = 0
       while pid.running:
+        if inMilliseconds(getTime() - start) > runTimeoutMs:
+          pid.kill()
+
+
         try:
           let streamRes = outStream.readLine(line)
           if streamRes:
@@ -1327,6 +1347,7 @@ proc shellResult*(
 
 
   updateException(result, cmd, maxErrorLines)
+  result.wasTerminated = wasTerminated
 
 
 

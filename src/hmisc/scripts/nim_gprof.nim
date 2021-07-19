@@ -180,82 +180,90 @@ proc mainProc(l: var HLogger, conf: RunConf) =
       echo " ".repeat(posAlign), entry.name
 
 
-
-if isMainModule:
-  var app = newCliApp(
+proc newApp(): CliApp =
+  result = newCliApp(
     "nim_gprof", (0, 1, 0), "haxscramper",
-    "pretty-print gprof data for nim program"
+    "pretty-print gprof data for nim program",
+    noDefault = cliNoLoggerConfig
   )
 
-  app.add arg(
+  result.add arg(
     "nimfile",
     "Input nim file",
     check = checkFileReadable()
   )
 
-  app.add opt(
+  result.add opt(
     "nimcache",
     "Nim compilation cache directory",
-    default = getStr(getAppTempDir() / "cache"),
-    check = orCheck(
+    default = getStr(getAppTempDir() / "cache").cliDefault(),
+    check = checkOr(
       checkDirExists(),
-      checkDirCreatable()
-    )
-  )
-
-  let file = "/tmp/a.nim"
-
-  file.writeFile("""
+      checkDirCreatable()))
 
 
-import hmisc/other/[hargparse, hpprint, blockfmt]
+if isMainModule:
+  var
+    app = newApp()
+    logger = newTermLogger()
 
-var app = newCliApp(
-  "nim_gprof", (0, 1, 0), "haxscramper",
-  "pretty-print gprof data for nim program",
-  noDefault = @["help", "log-output", "loglevel", "version", "color",
-                "force", "dry-run", "quiet"])
+  app.acceptArgsAndRunBody(logger, paramStrs()):
+    echo app.value.treeRepr()
 
-let (tree, errors) = app.acceptParams(@[])
+    var conf: RunConf
+    conf.fromCli(app.getRootCmd())
+    app.runMain(mainProc, logger, true, argpass(logger, conf))
 
-let bl = ppblock(tree)
-# "/tmp/out".writeFile(bl.codegenRepr())
+# else:
+#   let file = "/tmp/a.nim"
+#   file.writeFile("""
 
-proc countBlock(bl: LytBlock): int =
-  result = bl.len()
-  case bl.kind:
-    of bkStack, bkLine, bkChoice:
-      for sub in bl.elements:
-        result += countBlock(sub)
 
-    else:
-      inc result
+# import hmisc/other/[hargparse, hpprint, blockfmt]
 
-echo countBlock(bl)
+# var app = newCliApp(
+#   "nim_gprof", (0, 1, 0), "haxscramper",
+#   "pretty-print gprof data for nim program",
+#   noDefault = @["help", "log-output", "loglevel", "version", "color",
+#                 "force", "dry-run", "quiet"])
 
-pprint tree, 100
+# let (tree, errors) = app.acceptParams(@[])
 
-pprint @[
- @[1,233,3,4,543,5,6,7,7,8],
- @[1,233,33,4,543,5,6,337,7,8],
- @[1,233,33,4,543,5,6,33337,7,8],
- @[1,233,33,4,543,5,6,33337,7,8],
- @[1,2,3,43,54,5,6,37,337,8],
-]
+# let bl = ppblock(tree)
+# # "/tmp/out".writeFile(bl.codegenRepr())
 
-""")
+# proc countBlock(bl: LytBlock): int =
+#   result = bl.len()
+#   case bl.kind:
+#     of bkStack, bkLine, bkChoice:
+#       for sub in bl.elements:
+#         result += countBlock(sub)
 
-  let (tree, errors) = app.acceptParams(@[file])
+#     else:
+#       inc result
 
-  if errors.len > 0:
-    for err in errors:
-      echo err.helpStr()
+# echo countBlock(bl)
 
-  else:
-    echo tree.get("nimfile")
-    var obj: RunConf
-    obj.fromCli(tree)
+# pprint tree, 100
 
-    var logger = newTermLogger()
+# pprint @[
+#  @[1,233,3,4,543,5,6,7,7,8],
+#  @[1,233,33,4,543,5,6,337,7,8],
+#  @[1,233,33,4,543,5,6,33337,7,8],
+#  @[1,233,33,4,543,5,6,33337,7,8],
+#  @[1,2,3,43,54,5,6,37,337,8],
+# ]
 
-    app.runMain(mainProc, logger, true, obj)
+# """)
+
+#   let (tree, errors) = app.acceptParams(@[file])
+
+#   if errors.len > 0:
+#     for err in errors:
+#       echo err.helpStr()
+
+#   else:
+#     echo tree.get("nimfile")
+
+#     var logger = newTermLogger()
+#     app.runMain(mainProc, logger, true, obj)
