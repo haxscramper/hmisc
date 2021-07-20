@@ -1,0 +1,24 @@
+name:
+  docgen
+on:
+  push
+jobs:
+  docgen:
+    if: |
+      !contains(github.event.head_commit.message, 'WIP')
+
+    runs-on: ubuntu-latest
+    steps:
+      - run: sudo apt-get install graphviz
+      - uses: actions/checkout@v2
+      - uses: alaviss/setup-nim@master
+        with:
+          path: '../nim'
+          version: 'version-1-4'
+      - run: "nimble install -y"
+      - run: "hmisc-putils docgen"
+      - uses: crazy-max/ghaction-github-pages@v1
+        with:
+          build_dir: docs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
