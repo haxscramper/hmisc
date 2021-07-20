@@ -232,6 +232,7 @@ proc docgenBuild(conf: TaskRunConfig, ignored: seq[GitGlob]) =
           conf.notice cmd.toLogStr()
 
         else:
+          conf.logger.trace file
           let res = conf.logger.runShellResult(cmd)
           if not res.resultOk:
             conf.debug "run failed for file"
