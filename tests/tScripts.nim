@@ -18,6 +18,11 @@ suite "hmisc_putils":
       file "test1.nim":
         "proc test1proc*() = ##[ documentation ]## discard"
 
+      file "test2.nim": "proc test2*() = discard"
+      file "test3.nim": "proc test3*() = discard"
+      file "test4.nim": "proc test4*() = discard"
+      file "test5.nim": "proc test5*() = discard"
+
       file "package.nimble":
         """
 author = "haxscramper"
@@ -27,4 +32,4 @@ license = "Apache-2.0"
 """
 
     withDir dir:
-      hmisc_putils.main(@["docgen"])
+      hmisc_putils.main(@["docgen", "--ignore=**/test2.nim"])

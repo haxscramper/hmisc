@@ -40,18 +40,28 @@ import
 # import hpprint
 
 type
+  CliCmdTreeKind* = enum
+    cctFlag
+    cctOpt
+    cctArgument
+    cctCommand
+    cctGrouped
+
   CliCmdTree* = object
     desc* {.requiresinit.}: CliDesc
     head* {.requiresinit.}: CliOpt
     args*: seq[CliOpt]
     mainIdx*: int ## Cmd tree entry index in the main input (to compute
                   ## origin information later)
-    case kind*: CliOptKind
-      of coCommand:
+    case kind*: CliCmdTreeKind
+      of cctCommand:
         subnodes*: seq[CliCmdTree]
 
-      of coDashedKinds:
+      of cctFlag, cctOpt:
         subPaths*: Table[string, CliCmdTree]
+
+      of cctGrouped:
+        entries*: seq[CliCmdTree]
 
       else:
         discard
@@ -59,7 +69,6 @@ type
   CliCheckKind = enum
     cckNoCheck
     cckAliasedCheck
-    cckRepeatCheck
 
     cckIsFile
     cckIsDirectory
@@ -79,6 +88,7 @@ type
 
     cckAndCheck
     cckOrCheck
+    cckCheckRepeat
 
     cckAllOf
     cckNoneOf
@@ -119,7 +129,6 @@ type
 
 
   CliCheck* = ref object
-    allowedRepeat*: Slice[int] ## Allowed range of value repetitions
     fakeCheck*: bool
     case kind*: CliCheckKind
       of cckIsInRange:
@@ -130,6 +139,9 @@ type
 
       of cckAndCheck, cckOrCheck:
         subChecks*: seq[CliCheck]
+
+      of cckCheckRepeat:
+        allowedRepeat*: Slice[int] ## Allowed range of value repetitions
 
       of cckUser:
         userCheck*: proc(value: CliValue): Option[CliError]
@@ -302,6 +314,7 @@ type
         strVersion*: string
 
 const
+  cctDashedKinds* = { cctOpt, cctFlag }
   cvkValidatorNames*: array[CliValueKind, seq[string]] = toMapArray {
     cvkFsEntry: @[
       "checkFileReadable",
@@ -326,21 +339,30 @@ func addOrRaise(errors: var seq[CliError], err: CliError) =
 
 func treeRepr*(tree: CliCmdTree): string =
   func aux(t: CliCmdTree, res: var string, level: int) =
-    res &= getIndent(level) & hshow(t.kind) & " " & toCyan(t.desc.name) &
+    res.addIndent(level)
+    # if isNil(t):
+    #   res &= "<nil>", fgRed + bgDefault
+    #   return
+
+    res &= hshow(t.kind) & " " & toCyan(t.desc.name) &
       " " & hshow($t.head) & "\n"
 
     for arg in t.args:
-      res &= getIndent(level + 1) & hshow($arg) & "\n"
+      res.addIndent(level + 1)
+      res &= hshow($arg) & "\n"
 
     case t.kind:
-      of coCommand:
+      of cctCommand:
         for sub in t.subnodes:
           aux(sub, res, level + 1)
 
-      of coDashedKinds:
+      of cctDashedKinds:
         for key, path in t.subPaths:
           res &= getIndent(level + 1) & hshow(key) & ": " & $path & "\n"
-          # aux(path, res, level + 2)
+
+      of cctGrouped:
+        for entry in t.entries:
+          aux(entry, res, level + 1)
 
       else:
         discard
@@ -352,8 +374,12 @@ func treeRepr*(tree: CliCmdTree): string =
 
 func treeRepr*(tree: CliValue): string =
   func aux(t: CliValue, res: var string, level: int) =
+    res.addIndent(level)
+    if isNil(t):
+      res.add "<nil>", fgRed + bgDefault
+      return
 
-    res &= getIndent(level) & hshow(t.kind)
+    res &= hshow(t.kind)
     case t.kind:
       of cvkCommand:
         res &= " " & toMagenta(t.desc.name) & "\n"
@@ -383,8 +409,8 @@ func treeRepr*(tree: CliValue): string =
 
       of cvkSeq:
         for item in t.seqVal:
-          aux(item, res, level + 1)
           res &= "\n"
+          aux(item, res, level + 1)
 
       else:
         raise newImplementKindError(t)
@@ -477,7 +503,10 @@ proc checkAliased*(): CliCheck =
   CliCheck(kind: cckAliasedCheck)
 
 proc checkRepeat*(minRepeat, maxRepeat: int): CliCheck =
-  CliCheck(kind: cckRepeatCheck, allowedRepeat: minRepeat .. maxRepeat)
+  CliCheck(kind: cckCheckRepeat, allowedRepeat: minRepeat .. maxRepeat)
+
+proc checkRepeat*(repeat: Slice[int]): CliCheck =
+  CliCheck(kind: cckCheckRepeat, allowedRepeat: repeat)
 
 proc checkNo*(): CliCheck = CliCheck(kind: cckNoCheck)
 
@@ -486,11 +515,11 @@ proc checkAnd*(and1, and2: CliCheck, other: varargs[CliCheck]): CLiCheck =
   for check in other:
     result.subChecks.add check
 
-proc checkAnyOf*(sub: CliCheck, repeated: Slice[int]): CliCheck =
-  CliCheck(kind: cckAnyOf, itemCheck: sub, allowedRepeat: repeated)
+proc checkAnyOf*(sub: CliCheck): CliCheck =
+  CliCheck(kind: cckAnyOf, itemCheck: sub)
 
-proc checkAllOf*(sub: CliCheck, repeated: Slice[int]): CliCheck =
-  CliCheck(kind: cckAllOf, itemCheck: sub, allowedRepeat: repeated)
+proc checkAllOf*(sub: CliCheck): CliCheck =
+  CliCheck(kind: cckAllOf, itemCheck: sub)
 
 proc checkAcceptAll*(): CLiCheck =
   CliCheck(kind: cckAcceptAll)
@@ -682,6 +711,21 @@ func getDocComment(node: NimNode): string =
   aux(result, node, 0)
 
 
+func regenType(node: NimNode): NimNode =
+  case node.kind:
+    of nnkSym, nnkIdent:
+      result = ident(node.strVal())
+
+    of nnkBracketExpr:
+      result = nnkBracketExpr.newTree()
+      for sub in node:
+        result.add regenType(sub)
+
+    else:
+      raise newUnexpectedKindError(node)
+
+
+
 macro cmdImpl*(
     procSym: typed,
     argpass: untyped,
@@ -721,6 +765,9 @@ macro cmdImpl*(
       if arg.default.isSome():
         var call = newCall("opt")
         call.addArg "name", newLit(arg.name)
+        call.addArg "check", newCall(
+          "cliCheckFor", arg.argType.regenType())
+
         let doc = conf.getHelpStr(arg.name)
         if doc.len == 0:
           raise toCodeError(
@@ -1030,24 +1077,36 @@ func toCliValue*(
   result = CliValue(kind: cvkString, strVal: cli)
   updateCliValue(result, doc, desc)
 
+func toCliValue*(cli: int, doc: string = "", desc: CliDesc = nil): CliValue =
+  result = CliValue(kind: cvkInt, intVal: cli)
+  updateCliValue(result, doc, desc)
+
 func toCliValue*(
     cli: bool, doc: string = "", desc: CliDesc = nil): CliValue =
   result = CliValue(kind: cvkBool, boolVal: cli)
   updateCliValue(result, doc, desc)
 
 proc cliCheckFor*[T](value: typedesc[seq[T]]): CliCheck =
-  var tmp: exprType
-  result = checkAnyOf(cliCheckFor(
-    typeof(tmp[0])), 0 .. high(int))
+  mixin cliCheckFor
+  result = checkAnd(checkRepeat(0, high(int)), cliCheckFor(T))
 
 proc cliCheckFor*(f: typedesc[FsFile]): CLiCheck =
   checkFileReadable()
 
+proc cliCheckFor*(f: typedesc[AbsDir]): CLiCheck =
+  checkDirExists()
+
 proc cliCheckFor*(str: typedesc[string]): CliCheck =
+  checkAcceptAll()
+
+proc cliCheckFor*(shell: typedesc[ShellExpr]): CliCheck =
   checkAcceptAll()
 
 proc cliCheckFor*(str: typedesc[int]): CliCheck =
   CliCheck(kind: cckIsIntValue)
+
+proc cliCheckFor*(bol: typedesc[bool]): CliCheck =
+  CliCheck(kind: cckIsBoolValue)
 
 export toMapArray
 
@@ -1272,11 +1331,14 @@ func add*(app: var CliApp, code: CliExitCode) =
 
 func add*(tree: var CliCmdTree, other: CliCmdTree, pathLevel: int = 0) =
   case tree.kind:
-    of coCommand:
+    of cctCommand:
       tree.subnodes.add other
 
-    of coDashedKinds:
+    of cctDashedKinds:
       tree.subPaths[other.head.keyPath[pathLevel]] = other
+
+    of cctGrouped:
+      tree.entries.add other
 
     else:
       raise newUnexpectedKindError(tree)
@@ -1334,16 +1396,23 @@ proc fromCli*[T](obj: var T, cli: CliValue) =
 
 func len*(tree: CliCmdTree): int =
   case tree.kind:
-    of coCommand:
+    of cctCommand:
       result = tree.subnodes.len
+
+    of cctGrouped:
+      result = tree.entries.len
 
     else:
       discard
 
 iterator items*(tree: CliCmdTree): CliCmdTree =
-  if tree.kind == coCommand:
+  if tree.kind == cctCommand:
     for sub in tree.subnodes:
       yield sub
+
+  elif tree.kind == cctGrouped:
+    for entry in tree.entries:
+      yield entry
 
 
 iterator items*(desc: CliDesc): CliDesc =
@@ -1485,19 +1554,6 @@ template acceptArgsAndRunBody*(
   else:
     app.showErrors(logger)
 
-func regenType(node: NimNode): NimNode =
-  case node.kind:
-    of nnkSym, nnkIdent:
-      result = ident(node.strVal())
-
-    of nnkBracketExpr:
-      result = nnkBracketExpr.newTree()
-      for sub in node:
-        result.add regenType(sub)
-
-    else:
-      raise newUnexpectedKindError(node)
-
 macro runDispatchedProc*(
     app: CliApp,
     procsym: typed,
@@ -1603,7 +1659,7 @@ macro runDispatched*(
     let `cmd` = `app`.getCmd()
     `dispatch`
 
-  echo result.repr()
+  # echo result.repr()
 
 proc arg*(
     name: string,
@@ -1627,7 +1683,7 @@ using errors: var seq[CliError]
 
 proc strVal*(tree: CliCmdTree): string =
   case tree.kind:
-    of coOptionKinds, coArgument:
+    of cctOpt, cctArgument:
       result = tree.head.valStr
 
     else:
@@ -1671,7 +1727,7 @@ proc parseArg(
     lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
   if lexer[].kind == coArgument:
     result = CliCmdTree(
-      kind: coArgument, head: lexer.pop(), desc: desc)
+      kind: cctArgument, head: lexer.pop(), desc: desc)
 
   else:
     errors.addOrRaise newCliError(
@@ -1684,10 +1740,13 @@ proc parseOptOrFlag(
     lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
 
   if lexer[].key in desc.altNames:
+    var cnt = 1
     result = CliCmdTree(
-      kind: lexer[].kind, head: lexer.pop(), desc: desc)
+      kind: tern(lexer[].kind in coOptionKinds, cctOpt, cctFlag),
+      head: lexer.pop(), desc: desc)
 
     if ?lexer and result.head.needsValue():
+      # Handle separate `--opt value` case
       result.args.add lexer.pop()
 
   else:
@@ -1704,6 +1763,22 @@ proc parseCli(
   ): CliCmdTree
 
 
+proc groupRepeated(trees: seq[CliCmdTree]): seq[CliCmdTree] =
+  var table: Table[string, seq[CliCmdTree]]
+  for tree in trees:
+    table.mgetOrPut(tree.desc.name, @[]).add tree
+
+  for key, group in table:
+    if group.len == 1:
+      result.add group[0]
+
+    else:
+      result.add CliCmdTree(
+        desc: group[0].desc,
+        head: group[0].head,
+        kind: cctGrouped,
+        entries: group)
+
 proc parseCmd(lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
   var
     argIdx: int
@@ -1711,11 +1786,15 @@ proc parseCmd(lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
 
   if lexer[].kind in {coArgument, coCommand} and lexer[].key in desc.altNames:
     result = CliCmdTree(
-      kind: coCommand, head: lexer.pop(), desc: desc)
+      kind: cctCommand, head: lexer.pop(), desc: desc)
     argParsed.add 1
+    var arguments: seq[CliCmdTree]
 
     while ?lexer:
-      result.add parseCli(lexer, desc, errors, argIdx, argParsed)
+      arguments.add parseCli(lexer, desc, errors, argIdx, argParsed)
+
+    for arg in arguments.groupRepeated():
+      result.add arg
 
     let totalParsed = argParsed.sumIt(it)
     var minRequired =
@@ -1854,9 +1933,26 @@ func `==`*(str: string, val: CliValue): bool =
       raise newImplementKindError(val)
 
 
+func findRepeatRange(check: CLiCheck): Option[Slice[int]] =
+  case check.kind:
+    of cckCheckRepeat:
+      result = some(check.allowedRepeat)
+
+    of cckAndCheck:
+      for sub in check.subChecks:
+        result = findRepeatRange(sub)
+        if result.isSome():
+          return
+
+    else:
+      raise newUnexpectedKindError(check)
+
+
+
 proc checkedConvert(
     tree: CliCmdTree, check: CliCheck,
-    errors; prevValue: CliValue = nil
+    errors; prevValue: CliValue = nil,
+    isSingle: bool = true
   ): CliValue =
 
   assert not isNil(check),
@@ -1897,12 +1993,11 @@ proc checkedConvert(
 
     of cckIsIntValue:
       try:
-        let val = lexcast[int](str)
-        result = CliValue(
-          rawValue: str,
-          kind: cvkInt,
-          intVal: val,
-          desc: tree.desc)
+        if isSingle:
+          result = toCliValue(lexcast[int](str), desc = tree.desc)
+
+        else:
+          result = toCliValue(lexcast[seq[int]](str), desc = tree.desc)
 
       except LexcastError as ex:
         errors.addOrRaise newCliError(
@@ -1910,7 +2005,7 @@ proc checkedConvert(
           &"Could not parse '{hshow(str)}' as integer value")
 
     of cckIsBoolValue:
-      if str.len == 0 and tree.kind in coFlagKinds:
+      if str.len == 0 and tree.kind == cctFlag:
         result = CliValue(
           rawValue: str,
           kind: cvkBool,
@@ -2013,11 +2108,42 @@ proc checkedConvert(
           kind: cvkFsEntry, fsEntryVal: dir, desc: tree.desc)
 
     of cckAndCheck:
-      var errCount = errors.len()
-      for sub in check.subChecks:
-        result = checkedConvert(tree, sub, errors, result)
-        if errors.len() > errCount:
+      let repeat = check.findRepeatRange()
+      let isSingle = repeat.isNone() or repeat.get() == 1 .. 1
+      let errCount = errors.len()
+
+      if not isSingle and tree.kind == cctGrouped:
+        result = CliValue(kind: cvkSeq, desc: tree.desc)
+        if tree.len notin repeat.get():
+          errors.addOrRaise newCliError(
+            cekCheckFailure,
+            "Incorrect number of repetitions for ",
+            tree.desc.name,
+            &"expected count in range {check.allowedRepeat}, but got {tree.len}")
+
           return nil
+
+        else:
+          for value in tree:
+            var start: CLiValue = nil
+            for sub in check.subChecks:
+              if check.kind notin {cckCheckRepeat}:
+                start = checkedConvert(value, sub, errors, start)
+                if errors.len() > errCount:
+                  return nil
+
+            result.seqVal.add start
+
+      else:
+        for sub in check.subChecks:
+          if isSingle or sub.kind != cckCheckRepeat:
+            result = checkedConvert(
+              tree, sub, errors, result, isSingle = isSingle)
+            if errors.len() > errCount:
+              return nil
+
+        if not isSingle and result.kind != cvkSeq:
+          result = CliValue(kind: cvkSeq, seqVal: @[result], desc: tree.desc)
 
 
     of cckIsCreatable:
@@ -2050,6 +2176,16 @@ proc checkedConvert(
         for err in tmpErrs:
           errors.addOrRaise err
 
+    of cckCheckRepeat:
+      if tree.len notin check.allowedRepeat:
+        errors.addOrRaise newCliError(
+          cekCheckFailure,
+          "Incorrect number of repetitions for ",
+          tree.desc.name,
+          &"expected count in range {check.allowedRepeat}, but got {tree.len}")
+
+      else:
+        result = prevValue
 
     else:
       raise newImplementKindError(check)
@@ -2058,23 +2194,23 @@ proc toCliValue*(tree: CliCmdTree, errors): CliValue =
   ## Convert unchecked CLI tree into typed values, without executing
   ## checkers.
   case tree.kind:
-    of coCommand:
+    of cctCommand:
       var converted: HashSet[string]
       result = CliValue(
         rawValue: tree.head.value,
         desc: tree.desc, kind: cvkCommand)
 
       for sub in tree:
-        case sub.kind:
-          of coArgument:
+        case tern(sub.kind != cctGrouped, sub.kind, sub.entries[0].kind):
+          of cctArgument:
             result.positional.add toCliValue(sub, errors)
             converted.incl sub.desc.name
 
-          of coDashedKinds:
+          of cctDashedKinds:
             result.options[sub.head.key] = toCliValue(sub, errors)
             converted.incl sub.desc.name
 
-          of coCommand:
+          of cctCommand:
             result.subCmd = some toCliValue(sub, errors)
             converted.incl sub.desc.name
 
@@ -2114,10 +2250,13 @@ proc toCliValue*(tree: CliCmdTree, errors): CliValue =
 
 
 
-    of coArgument:
+    of cctArgument:
       result = checkedConvert(tree, tree.desc.check, errors)
 
-    of coFlag, coOpt:
+    of cctGrouped:
+      result = checkedConvert(tree, tree.desc.check, errors)
+
+    of cctFlag, cctOpt:
       var tree = tree
       if tree.head.canAddValue() and
          tree.desc.defaultAsFlag.isSome():
@@ -2248,9 +2387,10 @@ proc postLine(desc: CliDesc): LytBlock =
     if desc.defaultAsFlag.isSome():
       result.add T[&", as flag defaults to {toCyan(desc.defaultAsFlag.get().defaultRepr)}"]
 
-  let rep = desc.check.allowedRepeat
-  if rep.b > 1:
-    result.add T[&", can be repeated {desc.check.allowedRepeat} times"]
+
+  # let rep = desc.check.allowedRepeat
+  # if rep.b > 1:
+  #   result.add T[&", can be repeated {desc.check.allowedRepeat} times"]
 
   if desc.aliasof.isSome():
     result.add T[&", alias of '{toYellow($desc.aliasof.get())}'"]
@@ -2329,7 +2469,7 @@ proc checkHelp(check: CliCheck, inNested: bool = false): LytBlock =
     of cckIsDirectory:
       result = T[prefix & "be a directory"]
 
-    of cckRepeatCheck:
+    of cckCheckRepeat:
       result = T[
         prefix & &"be used from {check.allowedRepeat.a} to " &
           tern(

@@ -16,7 +16,7 @@ jobs:
           path: '../nim'
           version: 'version-1-4'
       - run: "nimble install -y"
-      - run: "hmisc-putils docgen"
+      - run: "nimble docgen"
       - uses: crazy-max/ghaction-github-pages@v1
         with:
           build_dir: docs

@@ -94,6 +94,9 @@ func fromCliValue*(value: CliValue, target: var GitGlob) =
   assertKind(value, {cvkString, cvkSpecialString})
   target = toGitGlob(value.strVal)
 
+func cliCheckFor*(glob: typedesc[GitGlob]): CliCheck =
+  checkAcceptAll()
+
 const
   common = @{
       "projectDir": "Override project directory",

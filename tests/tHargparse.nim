@@ -1,4 +1,4 @@
-import std/[unittest, strformat, sequtils]
+import std/[unittest, strformat, sequtils, tables]
 
 import
   hmisc/other/[hargparse, oswrap, hpprint],
@@ -87,15 +87,15 @@ suite "Argument structuring":
     let (_, tree) = checkOpts(
       @["zz0"], arg("test", "documentation for test"))
 
-    doAssert tree.kind == coArgument
+    doAssert tree.kind == cctArgument
 
   test "Switch":
     let (_, tree) = checkOpts(@["--tset"], flag("tset", "Doc"))
-    doAssert tree.kind == coFlag
+    doAssert tree.kind == cctFlag
 
   test "Option":
     let (_, tree) = checkOpts(@["--opt:val"], opt("opt", "Doc"))
-    check tree.kind == coOpt
+    check tree.kind == cctOpt
     check tree.name == "opt"
     check tree.strVal() == "val"
 
@@ -104,7 +104,7 @@ suite "Argument structuring":
       @["--opt[Sel]:val"],
       opt("opt", "", selector = checkValues({"Sel": "select one"})))
 
-    check tree.kind == coBracketOpt
+    check tree.kind == cctOpt
     check tree.select() == "Sel"
     check tree.strVal() == "val"
 
@@ -147,7 +147,7 @@ suite "Argument structuring":
 
 
 
-suite "Convet to cli value":
+suite "Convert to cli value":
   test "Integer positional":
     var (err, tree) = checkOpts(
       @["12"], arg("i", "", check = cliCheckFor(int)))
@@ -176,6 +176,43 @@ suite "Convet to cli value":
       Argument(head: (value: "spec1")) := tree
       String(strVal: "spec1") := tree.toCliValue(err)
 
+  test "Sequence of optional arguments":
+     let arg = cmd("main", "", [
+       opt("ignore", "", check = cliCheckFor(seq[string])),
+       opt("ranges", "", check = cliCheckFor(seq[int]))
+     ])
+
+     var (err, tree) = checkOpts(@[
+       "main",
+       "--ignore='**/zs_matcher.nim'",
+       "--ignore='**/nimble_aux.nim'",
+       "--ranges=1,2,3"], arg)
+
+     let value = tree.toCliValue(err)
+     echo value.treeRepr()
+
+     if err.len > 0:
+       for e in err:
+         echo helpStr(e)
+
+       fail()
+
+     value.assertMatch Command(
+       options: {
+         "ignore": Seq(
+           seqVal: [
+             String(strVal: "**/zs_matcher.nim"),
+             String(strVal: "**/nimble_aux.nim")]),
+         "ranges": Seq(
+           seqVal: [
+             Int(intVal: 1),
+             Int(intVal: 2),
+             Int(intVal: 3)])})
+
+     doAssert value.getOpt("ignore") as seq[string] == @[
+       "**/zs_matcher.nim", "**/nimble_aux.nim"]
+
+     doAssert value.getOpt("ranges") as seq[int] == @[1, 2, 3]
 
 suite "Error reporting":
   test "Flag mismatches":
@@ -246,7 +283,6 @@ suite "Full app":
         mainProc(app, l, arg - 1) # Comment
       raise newException(OSError, "123123123")
 
-    startHax()
     var app = newCliApp(
       "test", (1,2,3), "haxscramper", "Brief description")
 
