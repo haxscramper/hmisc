@@ -763,7 +763,7 @@ proc prettyShellCmd(cmd: ShellCmd): string =
       len = str.termLen()
 
     if lineLen + len + 1 > max:
-      result &= repeat(" ", max - lineLen) & "\\\n    "
+      result &= repeat(" ", clamp(max - lineLen, 0, high(int))) & "\\\n    "
       lineLen = 4
 
     elif result.len > 0:
