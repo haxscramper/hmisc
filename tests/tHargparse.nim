@@ -133,17 +133,16 @@ suite "Argument structuring":
       @["haxdoc", "--dry-run", "nim", "trail"],
       cmd("haxdoc", "", [
         flag("dry-run", ""),
-        cmd("nim", "", [
-          cmd("trail", "")
-        ])
-      ])
-    )
+        cmd("nim", "", [cmd("trail", "")])]))
+
+    # echo tree.treeRepr()
 
     tree.assertMatch:
       Command(desc.name: "haxdoc"):
-        Flag(head.key: "dry-run", desc.name: "dry-run")
         Command(desc.name: "nim"):
           Command(desc.name: "trail")
+
+        Flag(head.key: "dry-run", desc.name: "dry-run")
 
 
 

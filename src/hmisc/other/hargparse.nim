@@ -1739,6 +1739,7 @@ proc matches(opt: CliOpt, check: CliCheck): bool = true
 proc parseOptOrFlag(
     lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
 
+  assertRef desc
   if lexer[].key in desc.altNames:
     var cnt = 1
     result = CliCmdTree(
@@ -1790,11 +1791,18 @@ proc parseCmd(lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
     argParsed.add 1
     var arguments: seq[CliCmdTree]
 
+    let err = errors.len
     while ?lexer:
+      assertRef desc
       arguments.add parseCli(lexer, desc, errors, argIdx, argParsed)
 
-    for arg in arguments.groupRepeated():
-      result.add arg
+    if errors.len > err:
+      for arg in arguments:
+        result.add arg
+
+    else:
+      for arg in arguments.groupRepeated():
+        result.add arg
 
     let totalParsed = argParsed.sumIt(it)
     var minRequired =
@@ -1906,6 +1914,7 @@ proc parseCli(
 proc structureSplit*(opts: seq[CliOpt], desc: CliDesc, errors): CliCmdTree =
   ## Convert unstructured sequence of CLI commands/options into structured
   ## unchecked tree.
+  assertRef desc
 
   var lexer = initLexer(opts)
   if desc.kind in {coCommand}:
