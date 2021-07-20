@@ -1,6 +1,7 @@
 import
   ../algo/[
     clformat, htemplates, halgorithm, hlex_base, htext_algo],
+  ../macros/argpass,
   ../other/[hpprint, oswrap],
   ../types/[colorstring, colortext],
   ../hdebug_misc,
@@ -103,8 +104,13 @@ proc newTermLogger*(file: bool = false, line: bool = false): HLogger =
     result.eventPrefix.maxIt(it.str.len)
   )
 
-proc prepareText*(logger: HLogger, text: varargs[string]): string =
-  result = text.join(" ")
+proc prepareText*(
+    logger: HLogger,
+    text: varargs[string],
+    join: string
+  ): string =
+
+  result = text.join(join)
   var indent = logger.scopes.len() * 2 + logger.prefixLen
   if logger.leftAlignFiles > 0:
     indent += logger.leftAlignFiles + 2
@@ -125,9 +131,11 @@ proc logImpl*(
     level: HLogLevel,
     event: HLogEvent,
     position: (string, int, int),
-    args: seq[string]
+    args: seq[string],
+    join: string = " "
   ) =
 
+  assertRef logger
   var prefix =
     if (event == logEvPass):
       repeat(" ", logger.prefixLen)
@@ -184,10 +192,10 @@ proc logImpl*(
 
   if logger.skipNl > 0:
     dec logger.skipNl
-    stdout.write indent, prefix, " ", logger.prepareText(args)
+    stdout.write indent, prefix, " ", logger.prepareText(args, join)
 
   else:
-    stdout.writeline indent, prefix, " ", logger.prepareText(args)
+    stdout.writeline indent, prefix, " ", logger.prepareText(args, join)
 
   logger.lastLog = level
   logger.lastEvent = event
@@ -765,6 +773,12 @@ proc prettyShellCmd(cmd: ShellCmd): string =
     result &= str
     lineLen += len
 
+proc logShellCmd(
+    logger: HLogger, pos: (string, int, int), shellCmd: ShellCmd) =
+  infoImpl(logger, pos, @["Running shell", "'" & shellCmd.bin & "'"])
+  debugImpl(logger, pos, @[shellCmd.prettyShellCmd()])
+
+
 proc execShell*(
     logger: HLogger, pos: (string, int, int), shellCmd: ShellCmd,
     outLog: StreamConverter[ShellCmd, bool, HLogger] = loggerOutConverter,
@@ -772,8 +786,8 @@ proc execShell*(
     logRaised: bool = false,
     execTimeoutMs: int = high(int)
   ) =
-  infoImpl(logger, pos, @["Running shell", "'" & shellCmd.bin & "'"])
-  debugImpl(logger, pos, @[shellCmd.prettyShellCmd()])
+
+  logShellCmd(logger, pos, shellCmd)
 
   let (outIter, errIter) = makeShellRecordIter(
     shellCmd, outLog, errLog,
@@ -809,15 +823,34 @@ template execShell*(logger: HLogger, shellCmd: ShellCmd): untyped =
 
 proc runShell*(
     logger: HLogger, pos: (string, int, int), shellCmd: ShellCmd,
+    stdin: string = ""
   ): ShellExecResult =
-  info(logger, pos, "Running shell", "'" & shellCmd.bin & "'")
-  debug(logger, pos, shellCmd.toLogStr())
-  result = runShell(shellCmd)
+  logShellCmd(logger, pos, shellCmd)
+  result = argpass(runShell(shellCmd), stdin)
   done(logger)
 
-template runShell*(logger: HLogger, shellCmd: ShellCmd): ShellExecResult =
-  runShell(logger, instantiationInfo(), shellCmd)
+proc runShellResult*(
+    logger: HLogger, pos: (string, int, int), shellCmd: ShellCmd,
+    stdin: string = ""
+  ): ShellResult =
+  logShellCmd(logger, pos, shellCmd)
+  result = argpass(shellResult(shellCmd), stdin)
+  if result.resultOk:
+    done(logger)
 
+template runShell*(
+    logger: HLogger, shellCmd: ShellCmd,
+    stdin: string = ""
+  ): ShellExecResult =
+  argpass runShell(logger, instantiationInfo(), shellCmd),
+     stdin
+
+template runShellResult*(
+    logger: HLogger, shellCmd: ShellCmd,
+    stdin: string = ""
+  ): ShellResult =
+  argpass runShellResult(logger, instantiationInfo(), shellCmd),
+     stdin
 
 
 func typedArgs*(call: NimNode): seq[NimNode] =
@@ -854,13 +887,12 @@ macro execCode*(
   args.add newLit((iinfo.filename, iinfo.line, iinfo.column))
 
   var strArgs = nnkBracket.newTree()
-  # echo inCall.treeRepr
   for idx, arg in inCall.typedArgs():
-    var buf = if idx == 0: inCall[0].strVal() else: ", "
+    var buf = if idx == 0: inCall[0].strVal() & " " else: ", "
 
     case arg.kind:
       of nnkIdent, nnkSym:
-        buf.add arg.toStrLit().strVal() & " = "
+        buf.add arg.toStrLit().strVal() & " ="
         strArgs.add newLit(buf)
         strArgs.add nnkPrefix.newTree(ident "$", arg)
 

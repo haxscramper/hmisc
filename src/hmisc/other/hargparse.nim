@@ -174,6 +174,12 @@ type
       of cdkCliValue:
         value*: CliValue
 
+  CliShowLevel = enum
+    cslDefault
+    cslHidden
+    cslPartial
+    cslCommonAlreadyShown
+
   CliDesc* = ref object
     name*: string
     altNames*: seq[string]
@@ -196,6 +202,7 @@ type
         options*: seq[CliDesc]
         arguments*: seq[CliDesc]
         subcommands*: seq[CliDesc]
+        commonArguments*: HashSet[string]
 
       of coArgument:
         required*: bool
@@ -585,13 +592,16 @@ func cmd*(
     name, docBrief: string,
     subparts: openarray[CliDesc] = @[],
     alt: seq[string] = @[],
+    docFull: string = "",
+    commonArguments: seq[string] = @[]
   ): CliDesc =
 
   result = CliDesc(
     name: name,
     altNames: @[name] & alt,
     kind: coCommand,
-    doc: CliDoc(docBrief: docBrief)
+    doc: CliDoc(docBrief: docBrief, docFull: docFull),
+    commonArguments: toHashSet(commonArguments)
   )
 
   for part in subparts:
@@ -626,50 +636,77 @@ func splitProcArgs(node: NimNode): seq[ProcArg] =
       default: default)
 
 type
-  IgnoredArgs* = object
-    args: seq[tuple[procname: string, args: seq[string]]]
+  ProcConf* = object
+    ignore: seq[string]
+    help: seq[tuple[name, doc: string]]
+    commonArguments: seq[string]
+    alt: seq[string]
 
-func ignoreArgs*(args: openarray[tuple[procname: string, args: seq[string]]]):
-  IgnoredArgs =
-  IgnoredArgs(args: toSeq(args))
+func procConf*(
+    alt: seq[string] = @[],
+    ignore: seq[string] = @[],
+    help: openarray[tuple[name, doc: string]] = @[],
+    commonArguments: openarray[string] = @[]
+  ): ProcConf =
 
-const defaultIgnored = IgnoredArgs(args: @[])
+  ## - @arg{ignore} :: List of ignored procedure arguments - they won't be
+  ##   added as subcommand options, and must be defaulted or supplied for
+  ##   [[code:runDispatched]]
 
-macro cmdProc*(arg: varargs[typed]) =
-  discard
+  result = ProcConf(
+    ignore: ignore,
+    alt: alt,
+    help: toSeq(help),
+    commonArguments: toSeq(commonArguments)
+  )
 
-macro cmd*(
-    procsym: typed,
-    docBrief: static[string],
-    argpass: untyped = nil,
+func getHelpStr*(conf: ProcConf, arg: string): string =
+  for (name, doc) in conf.help:
+    if name == arg:
+      return doc
+
+func toValue*[T](arg: T): T = arg
+
+func getDocComment(node: NimNode): string =
+  proc aux(buf: var string, n: NimNode, depth: int = 0) =
+    if n.len > 1:
+      for sub in n:
+        aux(buf, sub, depth + 1)
+
+    else:
+      if n.kind == nnkCommentStmt and depth < 4:
+        if n.strVal.len != 0:
+          buf.add(" ")
+          buf.add(n.strVal)
+
+  aux(result, node, 0)
+
+
+macro cmdImpl*(
+    procSym: typed,
+    argpass: untyped,
+    conf: static[ProcConf]
   ): untyped =
-  ## Generate CLI subcommand based in implementation of the procedure whose
-  ## symbol is passed as a @arg{procsym}.
-  let impl =
-    if procsym.kind == nnkSym:
-      procsym.getImpl()
-
-    else:
-      procsym[1].getImpl()
-
-  let other =
-    if procsym.kind != nnkSym:
-      procsym[2 ..^ 1]
-
-    else:
-      @[]
-
-  let ignored = other.mapIt(it.strVal())
+  let
+    impl = procsym.getImpl()
+    doc = impl.body().getDocComment()
+    docBrief = doc.split("\n\n")[0].strip()
 
   result = newCall("cmd")
-  result.addArg "name", newLit("QQQ")
+  result.addArg "name", newLit($procsym)
   result.addArg "docBrief", newLit(docBrief)
 
-
+  result = newCall("argpass", result)
   if argpass.kind == nnkCall:
-    result = newCall("argpass", result)
     result.add argpass[1 ..^ 1]
 
+  if conf.commonArguments.len > 0:
+    result.addArg "commonArguments", newLit(conf.commonArguments)
+
+  if conf.alt.len > 0:
+    result.addArg "alt", newLit(conf.alt)
+
+  result.addArg "docFull", newLit(doc)
 
   let args = splitProcArgs(impl)
 
@@ -678,18 +715,29 @@ macro cmd*(
 
     let tmpCmd = genSym(nskVar, "cmd")
     for arg in args:
-      if arg.name in ignored:
+      if arg.name in conf.ignore:
         continue
 
       if arg.default.isSome():
         var call = newCall("opt")
         call.addArg "name", newLit(arg.name)
-        call.addArg "doc", newLit("")
+        let doc = conf.getHelpStr(arg.name)
+        if doc.len == 0:
+          raise toCodeError(
+            procsym,
+            &"Proc '{procsym}' has argument '{arg.name}' with missing or empty help string",
+            "Add it using `help` argument of the `procConf` parameter.\n" &
+              &"help = {{ \"{arg.name}\": \"...\" }}"
+          )
+
+        call.addArg "doc", newLit(doc)
         call.addarg "default", newCall(
           "cliDefault",
           newCall(
-            nnkBracketExpr.newTree(ident"toCliValue", arg.argType),
-            arg.default.get()),
+            "toCliValue",
+            newCall(
+              nnkBracketExpr.newTree(ident"toValue", arg.argType),
+              arg.default.get())),
           newLit(arg.default.get().repr()))
 
         cmdParams.add newCall("add", tmpCmd, call)
@@ -698,12 +746,20 @@ macro cmd*(
     result = quote do:
       block:
         var `tmpCmd` = `result`
-
         `cmdParams`
-
         `tmpCmd`
 
-  echo result.repr
+  # echo result.repr
+
+
+macro cmd*(
+    procsym: typed,
+    argpass: untyped = nil,
+    conf: ProcConf{`const`|lit|nkCall} = procConf()
+  ): untyped =
+  ## Generate CLI subcommand based in implementation of the procedure whose
+  ## symbol is passed as a @arg{procsym}.
+  newCall("cmdImpl", procsym, argpass, conf)
 
 func flag*(
     name, doc: string,
@@ -754,6 +810,9 @@ template exprType(e: untyped): untyped =
 func getCmdName*(val: CliValue): string =
   ## Return currently selected command name
   val.subCmd.get().desc.name
+
+func getName*(val: CliValue): string =
+  val.desc.name
 
 func getCmd*(val: CliValue): CliValue =
   ## Return currently selectd command
@@ -855,66 +914,68 @@ template assertKind*(val: CliValue, target: set[CliValueKind]): untyped {.dirty.
         prefix = "one of the converters ",
         empty = "converters for target kind"))
 
-proc `as`*[T](val: CliValue, target: typedesc[T]): T =
-  bind assertKind
-  when target is AbsFile:
-    assertKind(val, {cvkFsEntry})
-    assertKind(val.fsEntryVal, {pcFile, pcLinkToFile})
-    if val.fsEntryVal.file.isRelative:
-      result = val.fsEntryVal.file.relFile.toAbsFile()
-
-    else:
-      result = val.fsEntryVal.file.absFile
-
-  elif target is AbsDir:
-    assertKind(val, {cvkFsEntry})
-    assertKind(val.fsEntryVal, {pcDir, pcLinkToDir})
-
-    if val.fsEntryVal.dir.isRelative:
-      result = val.fsEntryVal.dir.relDir.toAbsDir()
-
-    else:
-      result = val.fsEntryVal.dir.absDir
-
-  elif target is FsFile:
-    case val.kind:
-      of cvkFsEntry:
-        assertKind(val.fsEntryVal, {pcFile, pcLinkToFile})
-        result = val.fsEntryVal.file
-
-      else:
-        raise newUnexpectedKindError(val)
-
-  elif target is seq:
-    type Item = typeof(result[0])
-    case val.kind:
-      of cvkSeq:
-        for item in val.seqVal:
-          result.add item as Item
-
-      else:
-        raise newUnexpectedKindError(val)
-
-  elif target is string:
-    val.assertKind({cvkString})
-    result = val.strVal
-
-  elif target is int:
-    val.assertKind({cvkInt})
-    result = val.intVal
-
-  elif target is float:
-    val.assertKind({cvkFloat})
-    result = val.floatVal
-
-  elif target is bool:
-    assertKind(val, {cvkBool})
-    result = val.boolVal
+proc fromCliValue*(val: CliValue, result: var AbsFile) =
+  assertKind(val, {cvkFsEntry})
+  assertKind(val.fsEntryVal, {pcFile, pcLinkToFile})
+  if val.fsEntryVal.file.isRelative:
+    result = val.fsEntryVal.file.relFile.toAbsFile()
 
   else:
-    static:
-      {.error: "Cannot convert CLI value to " & $typeof(T) &
-        " - conversion not implemented yet.".}
+    result = val.fsEntryVal.file.absFile
+
+proc fromCliValue*(val: CliValue, result: var AbsDir) =
+  assertKind(val, {cvkFsEntry})
+  assertKind(val.fsEntryVal, {pcDir, pcLinkToDir})
+  if val.fsEntryVal.dir.isRelative:
+    result = val.fsEntryVal.dir.relDir.toAbsDir()
+
+  else:
+    result = val.fsEntryVal.dir.absDir
+
+proc fromCliValue*(val: CliValue, result: var FsFile) =
+  case val.kind:
+    of cvkFsEntry:
+      assertKind(val.fsEntryVal, {pcFile, pcLinkToFile})
+      result = val.fsEntryVal.file
+
+    else:
+      raise newUnexpectedKindError(val)
+
+proc fromCliValue*[T](val: CliValue, result: var seq[T]) =
+  bind assertKind
+  case val.kind:
+    of cvkSeq:
+      result.setLen(val.seqVal.len)
+      for idx, item in val.seqVal:
+        fromCliValue(item, result[idx])
+
+    else:
+      raise newUnexpectedKindError(val)
+
+
+proc fromCliValue*(val: CliValue, result: var string) =
+  val.assertKind({cvkString})
+  result = val.strVal
+
+proc fromCliValue*(val: CliValue, result: var int) =
+  val.assertKind({cvkInt})
+  result = val.intVal
+
+proc fromCliValue*(val: CliValue, result: var float) =
+  val.assertKind({cvkFloat})
+  result = val.floatVal
+
+proc fromCliValue*(val: CliValue, result: var bool) =
+  assertKind(val, {cvkBool})
+  result = val.boolVal
+
+func fromCliValue*(val: CliValue, target: var ShellExpr) =
+  assertKind(val, {cvkString, cvkSpecialString})
+  target = ShellExpr(val.strVal)
+
+proc `as`*[T](val: CLiValue, target: typedesc[T]): T =
+  mixin fromCliValue
+  fromCliValue(val, result)
 
 template updateCliValue*(value: CliValue, inDoc: string, inDesc: CliDesc) =
   let desc =
@@ -927,47 +988,52 @@ template updateCliValue*(value: CliValue, inDoc: string, inDesc: CliDesc) =
   value.desc = desc
   when compiles($cli):
     value.rawValue = $cli
- 
-func toCliValue*(
-    shell: ShellExpr, doc: string = "", desc: CliDesc = nil): CliValue =
-  result = CliValue(kind: cvkSpecialString, strVal: shell.string)
+
+template specialStringCliValue*(value, inDoc: string, inDesc: CliDesc) =
+  result = CliValue(kind: cvkSpecialString, strVal: value)
   updateCliValue(result, doc, desc)
 
-func toCliValue*(cli: FsEntry, doc: string = "", desc: CliDesc = nil): CliValue =
+func toCliValue*(
+    shell: ShellExpr, doc: string = "", desc: CliDesc = nil): CliValue =
+  specialStringCliValue(shell.string, doc, desc)
+
+func toCliValue*(
+    cli: FsEntry, doc: string = "", desc: CliDesc = nil): CliValue =
   result = CliValue(kind: cvkFsEntry, fsEntryVal: cli)
   updateCliValue(result, doc, desc)
 
-func toCliValue*(cli: FsFile or FsDir, doc: string = "", desc: CliDesc = nil): CliValue =
+func toCliValue*(
+    cli: FsFile or FsDir, doc: string = "", desc: CliDesc = nil): CliValue =
   result = CliValue(kind: cvkFsEntry, fsEntryVal: cli.toFsEntry())
   updateCliValue(result, doc, desc)
 
-func toCliValue*(cli: AbsFile or RelFile, doc: string = "", desc: CliDesc = nil): CliValue =
+func toCliValue*(
+    cli: AbsFile or RelFile, doc: string = "", desc: CliDesc = nil): CliValue =
   result = CliValue(kind: cvkFsEntry, fsEntryVal: cli.toFsFile().toFsEntry())
   updateCliValue(result, doc, desc)
 
-func toCliValue*(cli: AbsDir or RelDir, doc: string = "", desc: CliDesc = nil): CliValue =
+func toCliValue*(
+    cli: AbsDir or RelDir, doc: string = "", desc: CliDesc = nil): CliValue =
   result = CliValue(kind: cvkFsEntry, fsEntryVal: cli.toFsDir().toFsEntry())
   updateCliValue(result, doc, desc)
 
-func toCliValue*[T](cli: seq[T], doc: string = "", desc: CliDesc = nil): CliValue =
+func toCliValue*[T](
+    cli: seq[T], doc: string = "", desc: CliDesc = nil): CliValue =
   result = CliValue(kind: cvkSeq)
   for item in items(cli):
     result.seqVal.add toCliValue(item)
 
   updateCliValue(result, doc, desc)
 
-func toCliValue*(cli: string, doc: string = "", desc: CliDesc = nil): CliValue =
+func toCliValue*(
+    cli: string, doc: string = "", desc: CliDesc = nil): CliValue =
   result = CliValue(kind: cvkString, strVal: cli)
   updateCliValue(result, doc, desc)
 
-func toCliValue*(cli: bool, doc: string = "", desc: CliDesc = nil): CliValue =
+func toCliValue*(
+    cli: bool, doc: string = "", desc: CliDesc = nil): CliValue =
   result = CliValue(kind: cvkBool, boolVal: cli)
   updateCliValue(result, doc, desc)
-
-    # {.error: "Cannot convert " & $typeof(T) &
-    #   " to CLI value - conversion not implemented yet".}
-
-
 
 proc cliCheckFor*[T](value: typedesc[seq[T]]): CliCheck =
   var tmp: exprType
@@ -1381,8 +1447,8 @@ macro runMain*(
     app: CliApp,
     mainProc: typed,
     logger: HLogger,
-    doQuit: bool,
-    argpass: untyped{nkCall}
+    doQuit: bool = true,
+    argpass: untyped{nkCall} = nil
   ): untyped =
 
   let mainCall = newCall(mainProc)
@@ -1419,6 +1485,58 @@ template acceptArgsAndRunBody*(
   else:
     app.showErrors(logger)
 
+func regenType(node: NimNode): NimNode =
+  case node.kind:
+    of nnkSym, nnkIdent:
+      result = ident(node.strVal())
+
+    of nnkBracketExpr:
+      result = nnkBracketExpr.newTree()
+      for sub in node:
+        result.add regenType(sub)
+
+    else:
+      raise newUnexpectedKindError(node)
+
+macro runDispatchedProc*(
+    app: CliApp,
+    procsym: typed,
+    logger: HLogger,
+    doQuit: bool,
+    argpass: untyped,
+    conf: static[ProcConf]
+  ): untyped =
+
+  var mainCall = newCall(procsym)
+
+  let args = procsym.getImpl().splitProcArgs()
+  let currentCmd = genSym(nskLet, "currentCmd")
+
+  var preCall = newStmtList()
+  for arg in args:
+    if arg.name notin conf.ignore:
+      let
+        argVar = ident(arg.name)
+        argType = arg.argType.regenType()
+        argName = newLit(arg.name)
+
+      preCall.add quote do:
+        let `argVar` = getOpt(`currentCmd`, `argName`) as `argType`
+
+      mainCall.addArg arg.name, argVar
+
+  mainCall.addArgpass(argpass)
+
+  result = quote do:
+    try:
+      let `currentCmd` = `app`.getCmd()
+      `preCall`
+      `mainCall`
+
+    except Exception as e:
+      `app`.exitWith(e, `logger`, `doQuit`)
+
+
 macro runDispatched*(
     app: CliApp,
     proclist: untyped{nkBracket},
@@ -1426,8 +1544,66 @@ macro runDispatched*(
     doQuit: bool,
   ): untyped =
 
+  let cmd = genSym(nskLet, "cmd")
+  let cmdName = newCall("getName", cmd)
+
+  var dispatch = nnkIfStmt.newTree()
+
+  for procname in proclist:
+    assertNodeKind(procname, {nnkIdent, nnkPar, nnkTupleConstr})
+    var call = newCall(
+        "runDispatchedProc",
+        newEqe("app", app),
+        newEqe("logger", logger),
+        newEqe("doQuit", doQuit),
+    )
+
+    case procname.kind:
+      of nnkIdent:
+        call.addArg "procsym", procname
+        call.addArg "conf", newCall("procConf")
+        call.addArg "argpass", newLit(false)
+
+        dispatch.add nnkElifBranch.newTree(
+          nnkInfix.newTree(ident("=="),
+                           cmdName,
+                           newLit(procname.strVal())),
+          call)
+      else:
+        let
+          name = procname[0]
+          conf = procname[1]
+
+        call.addArg "procsym", name
+        call.addArg "conf", conf
+
+        if procname.len == 3:
+          call.addArg "argpass", procname[2]
+
+        else:
+          call.addArg "argpass", newLit(false)
+
+
+        dispatch.add nnkElifBranch.newTree(
+          newCall("contains",
+                  nnkInfix.newTree(ident"&",
+                                   nnkDotExpr.newTree(conf, ident"alt"),
+                                   newLit(name.strVal())),
+                  cmdName),
+          call)
+
+  dispatch.add nnkElse.newTree(
+    quote do:
+      raise newLogicError(
+        "Subcommand name '" & `cmdName` &
+          "' not handled by auto-generated handlers."))
+
   ## Dispatch one or more procedures based on subcommand arguments
-  discard
+  result = quote do:
+    let `cmd` = `app`.getCmd()
+    `dispatch`
+
+  echo result.repr()
 
 proc arg*(
     name: string,
@@ -1475,7 +1651,6 @@ template newCliError*(
 
 
 template newCliError*(inMsg: string, inKind: CliErrorKind): CliError =
-
   CliError(
     msg: inMsg,
     location: instantiationInfo(fullpaths = true),
@@ -1483,6 +1658,14 @@ template newCliError*(inMsg: string, inKind: CliErrorKind): CliError =
     kind: inKind
   )
 
+template newCliError*(
+    inMsg: string, desc: CliDesc, inKind: CliErrorKind): CliError =
+  CliError(
+    msg: inMsg,
+    location: instantiationInfo(fullpaths = true),
+    desc: desc,
+    isDesc: true,
+    kind: inKind)
 
 proc parseArg(
     lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
@@ -1529,9 +1712,35 @@ proc parseCmd(lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
   if lexer[].kind in {coArgument, coCommand} and lexer[].key in desc.altNames:
     result = CliCmdTree(
       kind: coCommand, head: lexer.pop(), desc: desc)
+    argParsed.add 1
 
     while ?lexer:
       result.add parseCli(lexer, desc, errors, argIdx, argParsed)
+
+    let totalParsed = argParsed.sumIt(it)
+    var minRequired =
+      if desc.subcommands.len > 0:
+        1
+
+      else:
+        # TODO check for minimum number of required positional arguments
+        0
+
+    if totalParsed < minRequired:
+      errors.addOrRaise newCliError(&[
+        &"Failed to parse '{desc.name}' - missing one or more required subcommands or ",
+        "positional arguments",
+        joinAnyOf(
+          desc.subcommands.mapIt(it.name),
+          prefix = ". Required subcommands - ",
+          suffix = ". ",
+          empty = ""),
+        joinAnyOf(
+          desc.arguments.mapIt(it.name),
+          prefix = ". Required positional arguments - ",
+          suffix = ". ",
+          empty = ""),
+      ], desc, cekMissingEntry)
 
   else:
     errors.addOrRaise newCliError(
@@ -2133,7 +2342,7 @@ proc checkHelp(check: CliCheck, inNested: bool = false): LytBlock =
     else:
       raise newImplementKindError(check)
 
-proc flagHelp(flag: CliDesc): LytBlock =
+proc flagHelp(flag: CliDesc, level: CliShowLevel = cslDefault): LytBlock =
   result = V[]
   var flags: seq[string]
   for key in flag.altNames:
@@ -2147,7 +2356,7 @@ proc flagHelp(flag: CliDesc): LytBlock =
   result.add I[4, T[flag.doc.docBrief]]
   result.add I[4, checkHelp(flag.check)]
 
-proc optHelp(opt: CliDesc): LytBlock =
+proc optHelp(opt: CliDesc, level: CliShowLevel = cslDefault): LytBlock =
   result = V[]
   var opts: seq[string]
   for key in opt.altNames:
@@ -2158,11 +2367,16 @@ proc optHelp(opt: CliDesc): LytBlock =
       opts.add toGreen("-" & key)
 
   result.add H[T[opts.join(", ")], postLine(opt)]
-  result.add I[4, T[opt.doc.docBrief]]
+  if level == cslCommonAlreadyShown:
+    result.add I[4, T["(common option, see earlier)"]]
+
+  else:
+    result.add I[4, T[opt.doc.docBrief]]
+
   result.add I[4, checkHelp(opt.check)]
 
 
-proc argHelp(arg: CliDesc): LytBlock =
+proc argHelp(arg: CliDesc, level: CliShowLevel = cslDefault): LytBlock =
   result = V[]
 
   result.add T["<" & toColored(arg.name, fgRed) & ">"]
@@ -2170,7 +2384,11 @@ proc argHelp(arg: CliDesc): LytBlock =
   result.add I[4, checkHelp(arg.check)]
 
 proc help(
-    desc: CliDesc, ignored: HashSet[string], level: int = 0): LytBlock =
+    desc: CliDesc,
+    ignored: HashSet[string],
+    commonCount: var Table[string, int],
+    level: int = 0
+  ): LytBlock =
 
   result = V[]
   var first = S[]
@@ -2181,12 +2399,23 @@ proc help(
 
     for arg in desc.arguments:
       if arg.name notin ignored:
-         args.add I[4, argHelp(arg)]
+        if arg.name notin commonCount or commonCount[arg.name] < 1:
+          args.add I[4, argHelp(arg)]
+          if arg.name in commonCount:
+            inc commonCount[arg.name]
+
+        else:
+          args.add I[4, argHelp(arg, cslCommonAlreadyShown)]
 
     result.add I[indent, args]
 
   if desc.subcommands.len > 0:
     var cmds = V[S[], T[initColored("SUBCOMMANDS:", section)], S[]]
+
+    var commonArguments: Table[string, int]
+    for cmd in desc.subcommands:
+      for common in cmd.commonArguments:
+        commonArguments[common] = 0
 
     for cmd in desc.subcommands:
       if cmd.name notin ignored:
@@ -2195,7 +2424,7 @@ proc help(
             " - " & cmd.doc.docBrief
 
         cmds.add I[4, T[names]]
-        cmds.add I[4, help(cmd, ignored, level + 1)]
+        cmds.add I[4, help(cmd, ignored, commonArguments, level + 1)]
 
     result.add I[4, cmds]
 
@@ -2204,13 +2433,18 @@ proc help(
     var flags = V[S[], T[toColored("FLAGS:", section)], S[]]
 
     for flag in desc.options:
-      if flag.groupKind in coFlagKinds and
-         flag.name notin ignored:
-        let help = I[4, flagHelp(flag)]
-        flags.add help
+      if flag.groupKind in coFlagKinds and flag.name notin ignored:
 
+        if flag.name notin commonCount or commonCount[flag.name] < 1:
+          flags.add I[4, flagHelp(flag)]
+          if flag.name in commonCount:
+            inc commonCount[flag.name]
 
-    result.add I[indent, flags]
+        else:
+          flags.add I[4, flagHelp(flag, cslCommonAlreadyShown)]
+
+    if flags.len > 3:
+      result.add I[indent, flags]
 
   if desc.options.len > 0 and
      desc.options.anyIt(it.groupKind in coOptionKinds):
@@ -2220,7 +2454,13 @@ proc help(
       if opt.groupKind in coOptionKinds and
          opt.name notin ignored:
 
-        opts.add I[4, optHelp(opt)]
+        if opt.name notin commonCount or commonCount[opt.name] < 1:
+          opts.add I[4, optHelp(opt)]
+          if opt.name in commonCount:
+            inc commonCount[opt.name]
+
+        else:
+          opts.add I[4, optHelp(opt, cslCommonAlreadyShown)]
 
     result.add I[indent, opts]
 
@@ -2229,7 +2469,7 @@ proc help(
 proc help(app: CliApp, ignored: HashSet[string]): LytBlock =
   assertRef app.root
   var res = V[
-    T[toColored("NAME:", section)],
+    T[toColored("+", section)],
     S[],
     I[4, T[&"{app.name} - {app.doc.docBrief}, " &
            &"{app.version} by {app.author}"]]
@@ -2244,7 +2484,8 @@ proc help(app: CliApp, ignored: HashSet[string]): LytBlock =
 
     res.add codes
 
-  res.add app.root.help(ignored)
+  var commonCount: Table[string, int]
+  res.add app.root.help(ignored, commonCount)
 
   # res.add @[
   #   S[], T["VERSION:".toColored(section)],
@@ -2263,9 +2504,13 @@ proc helpStr*(
   return app.help(toHashSet(ignored)).toString()
 
 proc help(err: CliError): LytBlock =
-  let errmsg = err.msg & " in " & toLink(
-    err.location,
-    AbsFile(err.location[0]).name() & ":" & $err.location[1])
+  var errmsg: string
+
+  if '\n' notin err.msg:
+    errmsg &= wrapOrgLines(err.msg, 80).join("\n")
+
+  else:
+    errmsg &= err.msg
 
   case err.kind:
     of cekFailedParse:
@@ -2281,11 +2526,8 @@ proc help(err: CliError): LytBlock =
 
       result = V[T[split], T[errmsg]]
 
-    of cekCheckExecFailure, cekErrorDescription, cekCheckFailure:
-      result = T[errmsg]
-
     else:
-      raise newImplementKindError(err)
+      result = T[errmsg]
 
 proc helpStr*(err: CliError): string =
   return err.help().toString()
@@ -2295,6 +2537,11 @@ proc showErrors*(app: CliApp, logger: HLogger) =
   ## Show accumulated errors using `logger`
   for err in app.errors:
     logger.err err.helpStr()
+    logger.debug toLink(
+      err.location,
+      AbsFile(err.location[0]).name() & ":" & $err.location[1])
+
+
 
 proc builtinActionRequested*(app: CLiApp): bool =
   ## Whether some of the built-in flags such as `--help` or version where

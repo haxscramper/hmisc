@@ -19,6 +19,7 @@ import std/[strutils, strformat, sequtils, options,
 
 import ../hexceptions
 import ../base_errors
+import ../hdebug_misc
 
 import ../algo/hlex_base
 import ../algo/htemplates
@@ -1250,7 +1251,8 @@ proc shellResult*(
   when not defined(NimScript):
     let pid = startShell(cmd, options, stdin)
     if discardOut and not reprintOut:
-      discard
+      while pid.running:
+        discard
 
     else:
       let outStream = pid.outputStream
@@ -1258,9 +1260,9 @@ proc shellResult*(
 
       var outLineCount = 0
       while pid.running:
-        if inMilliseconds(getTime() - start) > runTimeoutMs:
-          pid.kill()
-
+        if hasTimeout:
+          if inMilliseconds(getTime() - start) > runTimeoutMs:
+            pid.kill()
 
         try:
           let streamRes = outStream.readLine(line)

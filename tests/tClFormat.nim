@@ -1,7 +1,17 @@
-import unittest
+import std/[unittest]
+
+import hmisc/algo/clformat
 
 template `==`(rhs, lhs: untyped): untyped =
   assertEq(rhs, lhs)
+
+
+suite "Clformat colored formatting":
+  test "hshow string":
+    echo hshow("")
+    echo hshow("test")
+    echo hshow("\n\n\n\n")
+    echo hshow("test\n\n\n\n")
 
 when false:
   suite "Parser correctness":

@@ -1,7 +1,7 @@
 #!/usr/bin/env -S nim r
 import ../other/[nimbleutils, oswrap, hcligen, hshell, hlogger]
 import ../other/hargparse
-import ../algo/hseq_distance
+import ../algo/[hseq_distance, halgorithm]
 import std/strformat
 
 
@@ -46,6 +46,7 @@ proc docgen*(
     ignore: seq[GitGlob] = @[], logger: HLogger = newTermLogger()) =
   ## Generate documentation for current project
   var conf = initBuildConf()
+  conf.logger = logger
   conf.testRun = false
   conf.configureCI()
   runDocgen(conf, ignore)
@@ -85,6 +86,59 @@ proc dockerDocGen*(
 
 import ../hexceptions
 
+func toCliValue*(
+    glob: GitGlob, doc: string = "", desc: CliDesc = nil): CliValue =
+  specialStringCliValue($glob, doc, desc)
+
+func fromCliValue*(value: CliValue, target: var GitGlob) =
+  assertKind(value, {cvkString, cvkSpecialString})
+  target = toGitGlob(value.strVal)
+
+const
+  common = @{
+      "projectDir": "Override project directory",
+      "localDeps":
+        """
+List of nimble packages that would be linked in the container
+instead of begin freshly installed.
+
+- NOTE :: `nimble develop` is used to install packages, so their
+  order is important (right now `nimble develop` installs dependencies
+  as well)
+"""}
+
+  commonArguments = toArrayKeys(common)
+  confDockertest = procConf(
+    alt = @["dockerTest"],
+    ignore = @["logger"],
+    commonArguments = commonArguments,
+    help = common & @{
+      "preTestCmds": "Sequence of shell commands to execute before main one"
+  })
+
+  confInstalltest = procConf(
+    alt = @["installTest"],
+    ignore = @["logger"],
+    commonArguments = commonArguments,
+    help = common & @{
+      "localDeps": ".",
+  })
+
+  confDocgen = procConf(
+    ignore = @["logger"],
+    commonArguments = commonArguments,
+    help = common & @{
+      "ignore": "List of git globs - " &
+        "files to ignore for documentation generation.",
+  })
+
+  confDockerDocGen = procConf(
+    ignore = @["logger"],
+    commonArguments = commonArguments,
+    help = common & @{
+      "simulateCI": "Declare environment variables present in github CI"
+  })
+
 proc newApp*(): CliApp =
   var app = newCliApp(
     "hmisc_putils", (0, 1, 1), "haxscramper",
@@ -92,30 +146,10 @@ proc newApp*(): CliApp =
     noDefault = cliNoLoggerConfig & "force"
   )
 
-  # TODO for tomorrow - make sure this thing compiles and runs. I wanted to
-  # use `cmdProc` to semcheck things, but in the end it looks like I'm
-  # going to need convoluted multistage with `static` instead
-  app.add cmd(
-    cmdProc(dockertest, "logger")
-    "Run tests in docker container",
-    argpass(alt = @["dockerTest"])
-  )
-
-  app.add cmd(
-    cmdProc(installtest, "logger"),
-    "Run installation in docker container",
-    argpass(alt = @["installTest"])
-  )
-
-  app.add cmd(
-    cmdProc(docgen, "logger"),
-    "Generate documentation for a whole project"
-  )
-
-  app.add cmd(
-    cmdProc(dockerDocGen, "logger"),
-    "Generate documentation in a docker container"
-  )
+  app.add cmd(dockertest, conf = confDockertest)
+  app.add cmd(installtest, conf = confInstalltest)
+  app.add cmd(docgen, conf = confDocgen)
+  app.add cmd(dockerDocGen, conf = confDockerDocGen)
 
   return app
 
@@ -123,7 +157,12 @@ proc main*(args: seq[string], logger: HLogger = newTermLogger()) =
   var app = newApp()
   app.acceptArgsAndRunBody(logger, args):
     app.runDispatched(
-      [dockertest, installtest, docgen, dockerDocGen],
+      [
+        (dockertest,   confDockertest,     argpass(logger = logger)),
+        (installtest,  confInstalltest,      argpass(logger = logger)),
+        (docgen,       confDocgen, argpass(logger = logger)),
+        (dockerDocGen, confDockerDocGen,       argpass(logger = logger))
+      ],
       logger, doQuit = true)
 
 

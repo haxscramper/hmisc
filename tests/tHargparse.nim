@@ -262,7 +262,7 @@ suite "Full app":
 
     let logger = newTermLogger()
 
-    app.runMain(mainProc, logger, false)
+    app.runMain(mainProc, logger, false, argpass(app, logger))
 
   test "Positional enum arguments":
     type

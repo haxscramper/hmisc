@@ -196,15 +196,12 @@ proc docgenBuild(conf: TaskRunConfig, ignored: seq[GitGlob]) =
   if not conf.testRun:
     docConf.writeFile makeDocConf(tree)
 
-  # debug makeDocConf(tree)
-
   conf.notice "Wrote nimdoc configuration to", docConf
 
   for glob in ignored:
     conf.debug "ignoring: ", glob
 
   for file in files.mapIt(it.flatFiles()).concat():
-    # debug file
     if not ignored.accept($file):
       conf.notice "Ignoring", $file
       continue
@@ -235,13 +232,8 @@ proc docgenBuild(conf: TaskRunConfig, ignored: seq[GitGlob]) =
           conf.notice cmd.toLogStr()
 
         else:
-          conf.debug "running shell command"
-          let res = shellResult(cmd)
-          if res.resultOk:
-            conf.info $file
-            conf.debug "run ok"
-
-          else:
+          let res = conf.logger.runShellResult(cmd)
+          if not res.resultOk:
             conf.debug "run failed for file"
             conf.warn file
             conf.debug res.exception.outstr
@@ -253,6 +245,7 @@ proc docgenBuild(conf: TaskRunConfig, ignored: seq[GitGlob]) =
     conf.warn "Errors during documentation compilation"
     conf.logFile.writeFile(errMsg.join("\n"))
     conf.notice &"Log file saved to {conf.logFile}"
+
   else:
     conf.notice "Documentation buid ok, no errors detected"
     conf.info &"Saved documentation at path {conf.outdir}"
@@ -337,7 +330,7 @@ proc runDockerTest*(
   ## execute command `cmd` inside new docker container based on
   ## `nim-base` image.
   var cmd = cmd
-  mkDir tmpDir
+  logger.execCode mkDir(tmpDir)
 
   for (v, val) in envpass:
     logger.notice &"Passing shell varaible {v.string}={val}"
@@ -345,9 +338,9 @@ proc runDockerTest*(
 
   logger.info cmd.toStr()
   logger.info tmpDir
-  let mainDir = (tmpDir / "main")
+  let mainDir = tmpDir / "main"
   if mainDir.dirExists:
-    rmDir (tmpDir / "main")
+    rmDir(tmpDir / "main")
 
   cpDir projDir, (tmpDir / "main")
   logger.notice "copied", projDir, "to", mainDir

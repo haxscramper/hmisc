@@ -91,7 +91,8 @@ func joinAnyOf*(
     quote: char = '\'',
     prefix: string = "any of ",
     empty: string = "\x00",
-    sepWord: string = "or"
+    sepWord: string = "or",
+    suffix: string = ""
   ): string =
 
   case words.len:
@@ -108,7 +109,7 @@ func joinAnyOf*(
       result = words[0]
 
     else:
-      result = prefix & joinWords(words, sepWord, quote)
+      result = prefix & joinWords(words, sepWord, quote) & suffix
 
 func namedItemListing*(
     name: string,
@@ -425,20 +426,20 @@ func fromTexToUnicodeMath*(tex: string): string =
 # ⨀ ⨂ ∏ ∐ ⨉
 #     ⫍ ⫎
 
-   
+
 # ╓ ╥ ╖
 # ╟ ╫ ╢
-# ╙ ╨ ╜ 
+# ╙ ╨ ╜
 # ┍ ┯ ┑
 # ┝ ┿ ┥
-# ┕ ┷ ┙ 
+# ┕ ┷ ┙
 
 
 # ╆ ╅
-# ╄ ╃ 
+# ╄ ╃
 
 # ┲ ┱
-# ┺ ┹ 
+# ┺ ┹
 # ┢ ╈ ┪
 # ╊ ╋ ╉
 # ┡ ╇ ┩
@@ -697,12 +698,15 @@ type
     dvVerbose
     dvDataDump
 
-  HDisplayFlags* = enum
+  HDisplayFlag* = enum
     dfColored
     dfPositionIndexed
     dfFlagIndexed
+    dfUnicodeNewlines
+    dfUnicodePPrint
 
   HDisplayOpts* = object
+    flags*: seq[HDisplayFlag]
     colored*: bool
     indent*: int
     maxDepth*: int
@@ -763,6 +767,19 @@ func hshow*[T](s: seq[T], opts: HDisplayOpts = defaultHDisplay): string =
 
   result.add "]"
 
+import std/sequtils
+
+func replaceTailNewlines(buf: var string, replaceWith: string = "⮒") =
+  var nlCount = 0
+  while nlCount < buf.len and buf[buf.high - nlCount] in {'\n'}:
+    inc nlCount
+
+  let base = buf.len
+  buf.setLen(buf.len - nlCount)
+
+  for nl in 0 ..< nlCount:
+    buf.add replaceWith
+
 func hShow*(str: string, opts: HDisplayOpts = defaultHDisplay): string =
   if str.len == 0:
     result = toYellow("''", opts.colored) & " (" &
@@ -771,8 +788,11 @@ func hShow*(str: string, opts: HDisplayOpts = defaultHDisplay): string =
   else:
     let prefix = " ".repeat(opts.indent)
     if '\n' in str:
-      for line in str.split('\n'):
-        result &= "\n" & prefix & toYellow(line, opts.colored)
+      var str = str
+      replaceTailNewlines(str, toRed("⮒", opts.colored))
+      for idx, line in enumerate(str.split('\n')):
+        if idx > 0: result &= "\n"
+        result &= prefix & toYellow(line, opts.colored)
 
     else:
       result = toYellow("\"" & str & "\"", opts.colored)

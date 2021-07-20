@@ -872,6 +872,14 @@ func toValSet*[K, V](map: openarray[(K, V)]): set[V] =
   for (k, v) in map:
     result.incl v
 
+func toArrayKeys*[K, V](
+    map: openarray[(K, V)], skipDefault: bool = true): seq[K] =
+  const def = default(K)
+  for (k, v) in map:
+    if not skipDefault or k != def:
+      result.add k
+
+
 func mapChar*[Cat: enum](
   ch: char, map: static[openarray[tuple[key: char, val: Cat]]]): Cat =
 

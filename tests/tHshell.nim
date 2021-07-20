@@ -125,8 +125,8 @@ suite "Hshell":
 
     assertEq evalShellStdout(cmd), "12"
 
-    execShell shAnd(shellCmd "true", shellCmd "true")
-    execShell shOr(shellCmd "false", shellCmd "true")
+    execShell shAnd(shellCmd(true), shellCmd(true))
+    execShell shOr(shellCmd "false", shellCmd(true))
 
     expect ShellError:
       execShell shAnd(shellCmd "false")

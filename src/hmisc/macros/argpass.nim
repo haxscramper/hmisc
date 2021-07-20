@@ -15,6 +15,8 @@ macro argpass*(other: varargs[untyped]): untyped =
     else:
       result.add arg
 
+func newEqE*(lhs, rhs: NimNode): NimNode = nnkExprEqExpr.newTree(lhs, rhs)
+func newEqE*(lhs: string, rhs: NimNode): NimNode = newEqE(ident(lhs), rhs)
 
 func addArg*(call: NimNode, name: string, value: NimNode) =
   call.add nnkExprEqExpr.newTree(ident(name), value)
