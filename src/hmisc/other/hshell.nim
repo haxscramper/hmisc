@@ -1214,7 +1214,7 @@ proc shellResult*(
     maxErrorLines: int          = high(int),
     maxOutLines: int            = high(int),
     discardOut: bool            = false,
-    runTimeoutMs: int           = high(int)
+    execTimeoutMs: int           = high(int)
   ): ShellResult {.tags: [
     ShellExecEffect,
     ExecIOEffect,
@@ -1244,10 +1244,9 @@ proc shellResult*(
 
   const nl = "\n"
 
-  let hasTimeout = runTimeoutMs < high(int)
+  let hasTimeout = execTimeoutMs < high(int)
   let start = getTime()
   var wasTerminated = false
-
   when not defined(NimScript):
     let pid = startShell(cmd, options, stdin)
     if discardOut and not reprintOut:
@@ -1261,8 +1260,9 @@ proc shellResult*(
       var outLineCount = 0
       while pid.running:
         if hasTimeout:
-          if inMilliseconds(getTime() - start) > runTimeoutMs:
+          if inMilliseconds(getTime() - start) > execTimeoutMs:
             pid.kill()
+            wasTerminated = true
 
         try:
           let streamRes = outStream.readLine(line)

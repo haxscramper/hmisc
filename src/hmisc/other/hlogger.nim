@@ -831,10 +831,12 @@ proc runShell*(
 
 proc runShellResult*(
     logger: HLogger, pos: (string, int, int), shellCmd: ShellCmd,
-    stdin: string = ""
+    stdin: string = "",
+    execTimeoutMs: int = high(int)
   ): ShellResult =
   logShellCmd(logger, pos, shellCmd)
-  result = argpass(shellResult(shellCmd), stdin)
+  result = argpass(shellResult(shellCmd), stdin, execTimeoutMs)
+
   if result.resultOk:
     done(logger)
 
@@ -847,10 +849,11 @@ template runShell*(
 
 template runShellResult*(
     logger: HLogger, shellCmd: ShellCmd,
-    stdin: string = ""
+    stdin: string = "",
+    execTimeoutMs: int = high(int)
   ): ShellResult =
   argpass runShellResult(logger, instantiationInfo(), shellCmd),
-     stdin
+     stdin, execTimeoutMs
 
 
 func typedArgs*(call: NimNode): seq[NimNode] =

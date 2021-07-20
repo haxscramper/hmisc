@@ -23,6 +23,13 @@ suite "hmisc_putils":
       file "test4.nim": "proc test4*() = discard"
       file "test5.nim": "proc test5*() = discard"
 
+      file "hangbomg.nim":
+        """
+# static:
+#   for i in 0 .. 20000:
+#     discard gorge("sleep 90000")
+"""
+
       file "package.nimble":
         """
 author = "haxscramper"

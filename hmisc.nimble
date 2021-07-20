@@ -24,7 +24,8 @@ task docgen, "Generate documentation":
 
   exec("""
 hmisc-putils docgen \
-  --ignore='**/zs_matcher.nim'
+  --ignore='**/zs_matcher.nim' \
+  --ignore='similarity_metrics.nim'
 """)
 
 task dockertest, "Run tests in docker container":
