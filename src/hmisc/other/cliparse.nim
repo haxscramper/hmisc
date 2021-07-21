@@ -1,4 +1,4 @@
-import ../algo/hstring_algo
+import ../algo/[hstring_algo, clformat]
 import ../hexceptions
 import ../hdebug_misc
 import std/[options, strutils, strscans, strformat, macros]
@@ -363,6 +363,26 @@ func cliParse*[En: enum](
 const defaulCliParseConfig* = CliParseConfig(
   seqSeparator: ","
 )
+
+func lispRepr*(cli: CliOpt): string =
+  result &= "("
+  result &= "k:" & hshow(cli.kind)
+
+  if cli.kind in coDashedKinds:
+    result &= " " & cli.keyPath.join"."
+
+  if cli.kind in coBracketKinds:
+    result &= &" [{cli.keySelect}]"
+
+  if cli.kind in coOptionKinds:
+    result &= " "
+    result &= hshow(cli.addKind)
+
+  if cli.valStr.len > 0:
+    result &= " "
+    result &= cli.valStr
+
+  result &= ")"
 
 func `$`*(cli: CliOpt): string =
   case cli.kind:

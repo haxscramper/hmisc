@@ -178,14 +178,26 @@ suite "Convert to cli value":
   test "Sequence of optional arguments":
      let arg = cmd("main", "", [
        opt("ignore", "", check = cliCheckFor(seq[string])),
-       opt("ranges", "", check = cliCheckFor(seq[int]))
+       opt("ranges", "", check = cliCheckFor(seq[int])),
+       opt("option", "", check = cliCheckFor(Option[int])),
+       opt("opthas", "", check = cliCheckFor(Option[int])),
+       opt("tuples", "", check = cliCheckFor((int, string))),
+       opt("tupseq", "", check = cliCheckFor(seq[(string, string)])),
+       opt("dirpair", "", check = cliCheckFor(seq[(AbsDir, AbsDir)]))
      ])
 
      var (err, tree) = checkOpts(@[
        "main",
        "--ignore='**/zs_matcher.nim'",
        "--ignore='**/nimble_aux.nim'",
-       "--ranges=1,2,3"], arg)
+       "--ranges=1,2,3",
+       "--opthas=1",
+       "--tuples=1:test",
+       "--tupseq=mnt:/tmp",
+       "--tupseq=/mnt:/tmp",
+       "--dirpair=/mnt:/mnt",
+       "--dirpair=/tmp:/tmp"
+     ], arg)
 
      let value = tree.toCliValue(err)
      echo value.treeRepr()
@@ -212,6 +224,15 @@ suite "Convert to cli value":
        "**/zs_matcher.nim", "**/nimble_aux.nim"]
 
      doAssert value.getOpt("ranges") as seq[int] == @[1, 2, 3]
+     doAssert value.getOpt("option", true) as Option[int] == none(int)
+     doAssert value.getOpt("opthas") as Option[int] == some(1)
+
+     doAssert value.getOpt("tuples") as (int, string) == (1, "test")
+     doAssert value.getOpt("tupseq") as seq[(string, string)] ==
+       @[("mnt", "/tmp"), ("/mnt", "/tmp")]
+
+     doAssert value.getOpt("dirpair") as seq[(AbsDir, AbsDir)] ==
+       @[(AbsDir("/mnt"), AbsDir("/mnt")), (AbsDir("/tmp"), AbsDir("/tmp"))]
 
 suite "Error reporting":
   test "Flag mismatches":

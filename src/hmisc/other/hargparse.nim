@@ -88,6 +88,7 @@ type
 
     cckAndCheck
     cckOrCheck
+    cckAndPosCheck
     cckCheckRepeat
 
     cckAllOf
@@ -137,7 +138,7 @@ type
       of cckIsInSet, cckFileExtMatches:
         values*: seq[CliValue]
 
-      of cckAndCheck, cckOrCheck:
+      of cckAndCheck, cckOrCheck, cckAndPosCheck:
         subChecks*: seq[CliCheck]
 
       of cckCheckRepeat:
@@ -515,6 +516,9 @@ proc checkAnd*(and1, and2: CliCheck, other: varargs[CliCheck]): CLiCheck =
   for check in other:
     result.subChecks.add check
 
+proc checkAndPos*(checks: varargs[CliCheck]): CliCheck =
+  CliCheck(kind: cckAndPosCheck, subChecks: toSeq(checks))
+
 proc checkAnyOf*(sub: CliCheck): CliCheck =
   CliCheck(kind: cckAnyOf, itemCheck: sub)
 
@@ -691,7 +695,7 @@ func procConf*(
 
 func getHelpStr*(conf: ProcConf, arg: string): string =
   for (name, doc) in conf.help:
-    if name == arg:
+    if name.eqIdent(arg):
       return doc
 
 func toValue*[T](arg: T): T = arg
@@ -716,14 +720,13 @@ func regenType(node: NimNode): NimNode =
     of nnkSym, nnkIdent:
       result = ident(node.strVal())
 
-    of nnkBracketExpr:
-      result = nnkBracketExpr.newTree()
-      for sub in node:
-        result.add regenType(sub)
+    of nnkEmpty:
+      result = newEmptyNode()
 
     else:
-      raise newUnexpectedKindError(node)
-
+      result = newTree(node.kind)
+      for sub in node:
+        result.add regenType(sub)
 
 
 macro cmdImpl*(
@@ -884,10 +887,18 @@ func getRootCmd*(app: CliApp): CliValue =
 
 func getCmdName*(app: CliApp): string = app.value.getCmdName()
 func getArg*(app: CliApp, pos: int = 0): CliValue = app.value.getArg(pos)
-func getOpt*(val: CliValue, name: string): CliValue =
+func getOpt*(
+    val: CliValue,
+    name: string,
+    optional: bool = false
+  ): CliValue =
+
   assertKind(val, {cvkCommand})
   if name in val.options:
     result = val.options[name]
+
+  elif optional:
+    result = CliValue(kind: cvkSeq)
 
   else:
     raise newArgumentError(
@@ -999,6 +1010,29 @@ proc fromCliValue*[T](val: CliValue, result: var seq[T]) =
     else:
       raise newUnexpectedKindError(val)
 
+proc fromCliValue*[A, B](val: CliValue, result: var (A, B)) =
+  assertKind(val, cvkSeq)
+  fromCliValue(val.seqVal[0], result[0])
+  fromCliValue(val.seqVal[1], result[1])
+
+proc fromCliValue*[T](val: CliValue, result: var Option[T]) =
+  bind assertKind
+  case val.kind:
+    of cvkSeq:
+      case val.seqVal.len:
+        of 0:
+          discard
+
+        of 1:
+          var tmp: T
+          fromCliValue(val.seqVal[0], tmp)
+          result = some(tmp)
+
+        else:
+          raise newImplementError()
+
+    else:
+      raise newUnexpectedKindError(val, "Convert to Option[T]")
 
 proc fromCliValue*(val: CliValue, result: var string) =
   val.assertKind({cvkString})
@@ -1072,6 +1106,12 @@ func toCliValue*[T](
 
   updateCliValue(result, doc, desc)
 
+func toCliValue*[T](
+    cli: Option[T], doc: string = "", desc: CliDesc = nil): CliValue =
+  result = CliValue(kind: cvkSeq)
+  if isSome(cli): result.seqVal.add toCliValue(cli.get())
+  updateCliValue(result, doc, desc)
+
 func toCliValue*(
     cli: string, doc: string = "", desc: CliDesc = nil): CliValue =
   result = CliValue(kind: cvkString, strVal: cli)
@@ -1090,17 +1130,19 @@ proc cliCheckFor*[T](value: typedesc[seq[T]]): CliCheck =
   mixin cliCheckFor
   result = checkAnd(checkRepeat(0, high(int)), cliCheckFor(T))
 
-proc cliCheckFor*(f: typedesc[FsFile]): CLiCheck =
-  checkFileReadable()
+proc cliCheckFor*[A, B](value: typedesc[(A, B)]): CliCheck =
+  mixin cliCheckFor
+  result = checkAndPos(cliCheckFor(A), cliCheckFor(B))
 
-proc cliCheckFor*(f: typedesc[AbsDir]): CLiCheck =
-  checkDirExists()
+proc cliCheckFor*[T](value: typedesc[Option[T]]): CliCheck =
+  mixin cliCheckFor
+  result = checkAnd(checkRepeat(0, 1), cliCheckFor(T))
 
-proc cliCheckFor*(str: typedesc[string]): CliCheck =
-  checkAcceptAll()
-
-proc cliCheckFor*(shell: typedesc[ShellExpr]): CliCheck =
-  checkAcceptAll()
+proc cliCheckFor*(f: typedesc[FsFile]): CLiCheck = checkFileReadable()
+proc cliCheckFor*(f: typedesc[AbsDir]): CLiCheck = checkDirExists()
+proc cliCheckFor*(f: typedesc[FsDir]): CLiCheck = checkDirExists()
+proc cliCheckFor*(str: typedesc[string]): CliCheck = checkAcceptAll()
+proc cliCheckFor*(shell: typedesc[ShellExpr]): CliCheck = checkAcceptAll()
 
 proc cliCheckFor*(str: typedesc[int]): CliCheck =
   CliCheck(kind: cckIsIntValue)
@@ -1956,7 +1998,17 @@ func findRepeatRange(check: CLiCheck): Option[Slice[int]] =
     else:
       raise newUnexpectedKindError(check)
 
+proc splitSeqVal*(tree: CliCmdTree): CliCmdTree =
+  # echo tree.treeRepr()
+  # echo tree.head.lispRepr()
+  if ':' in tree.head.valStr:
+    result = CliCmdTree(kind: cctGrouped, desc: tree.desc, head: tree.head)
+    let split = tree.head.valStr.split(':')
+    for part in split:
+      result.add tree.withIt do:
+        it.head.valStr = part
 
+  # echo treeREpr(result)
 
 proc checkedConvert(
     tree: CliCmdTree, check: CliCheck,
@@ -2154,6 +2206,18 @@ proc checkedConvert(
         if not isSingle and result.kind != cvkSeq:
           result = CliValue(kind: cvkSeq, seqVal: @[result], desc: tree.desc)
 
+    of cckAndPosCheck:
+      # TODO provide full error information about which element (at which
+      # positionl failed)
+      result = CliValue(kind: cvkSeq, desc: tree.desc)
+      if tree.kind == cctGrouped:
+        for (check, entry) in zip(check.subChecks, tree.entries):
+          result.seqVal.add checkedConvert(entry, check, errors)
+
+      else:
+        let tree = tree.splitSeqVal()
+        for (check, entry) in zip(check.subChecks, tree.entries):
+          result.seqVal.add checkedConvert(entry, check, errors)
 
     of cckIsCreatable:
       # REVIEW not all files supplied in the command-line must be
