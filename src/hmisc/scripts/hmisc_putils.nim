@@ -158,6 +158,9 @@ proc newApp*(): CliApp =
 
 proc main*(args: seq[string], logger: HLogger = newTermLogger()) =
   var app = newApp()
+  logger.showLine = true
+  logger.showFile = true
+  logger.leftAlignFiles = 15
   app.acceptArgsAndRunBody(logger, args):
     app.runDispatched(
       [

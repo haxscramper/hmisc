@@ -202,6 +202,9 @@ proc docgenBuild(conf: TaskRunConfig, ignored: seq[GitGlob]) =
     conf.debug "ignoring: ", glob
 
   for file in files.mapIt(it.flatFiles()).concat():
+    conf.trace file
+    conf.trace file.parent.len
+    conf.trace curr.pathLen()
     if not ignored.accept($file):
       conf.notice "Ignoring", $file
       continue
@@ -210,7 +213,8 @@ proc docgenBuild(conf: TaskRunConfig, ignored: seq[GitGlob]) =
     conf.logger.execCode mkDir(dir), conf.testRun
 
     let outfile = dir /. $file.withoutParent().withExt("html")
-    if (file.ext in @["nim", "rst"]) and ("tests" notin $file):
+    conf.trace outfile
+    if (file.ext in ["nim", "rst"]) and ("tests" notin $file):
       var cmd: ShellCmd
       case file.ext:
         of "rst":
@@ -244,9 +248,10 @@ proc docgenBuild(conf: TaskRunConfig, ignored: seq[GitGlob]) =
             errMsg.add res.exception.outstr
 
   if (errMsg.len > 0) and (conf.logFile.len > 0):
-    conf.warn "Errors during documentation compilation"
-    conf.logFile.writeFile(errMsg.join("\n"))
-    conf.notice &"Log file saved to {conf.logFile}"
+    discard
+    # conf.warn "Errors during documentation compilation"
+    # conf.logFile.writeFile(errMsg.join("\n"))
+    # conf.notice &"Log file saved to {conf.logFile}"
 
   else:
     conf.notice "Documentation buid ok, no errors detected"

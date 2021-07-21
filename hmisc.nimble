@@ -25,7 +25,8 @@ task docgen, "Generate documentation":
 
   exec("""
 hmisc-putils docgen \
-  --ignore='**/treediff/*.nim'
+  --ignore='**/treediff/*.nim' \
+  --ignore='**/hcligen.nim'
 """)
 
   # --ignore='**/zs_matcher.nim' \
