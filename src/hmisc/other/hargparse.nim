@@ -674,12 +674,14 @@ type
     help: seq[tuple[name, doc: string]]
     commonArguments: seq[string]
     alt: seq[string]
+    positional: seq[string]
 
 func procConf*(
-    alt: seq[string] = @[],
-    ignore: seq[string] = @[],
-    help: openarray[tuple[name, doc: string]] = @[],
-    commonArguments: openarray[string] = @[]
+    alt:             seq[string]                         = @[],
+    ignore:          seq[string]                         = @[],
+    help:            openarray[tuple[name, doc: string]] = @[],
+    commonArguments: openarray[string]                   = @[],
+    positional:      openarray[string]                   = @[]
   ): ProcConf =
 
   ## - @arg{ignore} :: List of ignored procedure arguments - they won't be
@@ -690,7 +692,8 @@ func procConf*(
     ignore: ignore,
     alt: alt,
     help: toSeq(help),
-    commonArguments: toSeq(commonArguments)
+    commonArguments: toSeq(commonArguments),
+    positional: toSeq(positional)
   )
 
 func getHelpStr*(conf: ProcConf, arg: string): string =
@@ -765,22 +768,27 @@ macro cmdImpl*(
       if arg.name in conf.ignore:
         continue
 
-      if arg.default.isSome():
-        var call = newCall("opt")
-        call.addArg "name", newLit(arg.name)
-        call.addArg "check", newCall(
-          "cliCheckFor", arg.argType.regenType())
+      let isArg = arg.default.isNone() or arg.name in conf.positional
 
-        let doc = conf.getHelpStr(arg.name)
-        if doc.len == 0:
-          raise toCodeError(
-            procsym,
-            &"Proc '{procsym}' has argument '{arg.name}' with missing or empty help string",
-            "Add it using `help` argument of the `procConf` parameter.\n" &
-              &"help = {{ \"{arg.name}\": \"...\" }}"
-          )
+      var call = if isArg: newCall("arg") else: newCall("opt")
 
-        call.addArg "doc", newLit(doc)
+      call.addArg "name", newLit(arg.name)
+      call.addArg "check", newCall(
+        "cliCheckFor", arg.argType.regenType())
+
+      let doc = conf.getHelpStr(arg.name)
+      if doc.len == 0:
+        raise toCodeError(
+          procsym,
+          &"Proc '{procsym}' has argument '{arg.name}' with missing or empty help string",
+          "Add it using `help` argument of the `procConf` parameter.\n" &
+            &"help = {{ \"{arg.name}\": \"...\" }}"
+        )
+
+      call.addArg "doc", newLit(doc)
+
+
+      if not isArg:
         call.addarg "default", newCall(
           "cliDefault",
           newCall(
@@ -790,8 +798,7 @@ macro cmdImpl*(
               arg.default.get())),
           newLit(arg.default.get().repr()))
 
-        cmdParams.add newCall("add", tmpCmd, call)
-
+      cmdParams.add newCall("add", tmpCmd, call)
 
     result = quote do:
       block:
@@ -990,6 +997,23 @@ proc fromCliValue*(val: CliValue, result: var AbsDir) =
   else:
     result = val.fsEntryVal.dir.absDir
 
+
+proc fromCliValue*(val: CliValue, result: var RelFile) =
+  assertKind(val, {cvkFsEntry})
+  assertKind(val.fsEntryVal, {pcFile, pcLinkToFile})
+  if val.fsEntryVal.file.isRelative:
+    result = val.fsEntryVal.file.relFile
+
+  else:
+    raise newUnexpectedKindError(
+      "Cannot convert absolute input directory to a relative",
+      "without base directory.")
+
+proc fromCliValue*(val: ClivAlue, result: var FsDir) =
+  assertKind(val, {cvkFsEntry})
+  assertKind(val.fsEntryVal, {pcDir, pcLinkToDir})
+  result = val.fsEntryVal.dir
+
 proc fromCliValue*(val: CliValue, result: var FsFile) =
   case val.kind:
     of cvkFsEntry:
@@ -1078,27 +1102,27 @@ func toCliValue*(
     shell: ShellExpr, doc: string = "", desc: CliDesc = nil): CliValue =
   specialStringCliValue(shell.string, doc, desc)
 
-func toCliValue*(
+proc toCliValue*(
     cli: FsEntry, doc: string = "", desc: CliDesc = nil): CliValue =
   result = CliValue(kind: cvkFsEntry, fsEntryVal: cli)
   updateCliValue(result, doc, desc)
 
-func toCliValue*(
+proc toCliValue*(
     cli: FsFile or FsDir, doc: string = "", desc: CliDesc = nil): CliValue =
   result = CliValue(kind: cvkFsEntry, fsEntryVal: cli.toFsEntry())
   updateCliValue(result, doc, desc)
 
-func toCliValue*(
+proc toCliValue*(
     cli: AbsFile or RelFile, doc: string = "", desc: CliDesc = nil): CliValue =
   result = CliValue(kind: cvkFsEntry, fsEntryVal: cli.toFsFile().toFsEntry())
   updateCliValue(result, doc, desc)
 
-func toCliValue*(
+proc toCliValue*(
     cli: AbsDir or RelDir, doc: string = "", desc: CliDesc = nil): CliValue =
   result = CliValue(kind: cvkFsEntry, fsEntryVal: cli.toFsDir().toFsEntry())
   updateCliValue(result, doc, desc)
 
-func toCliValue*[T](
+proc toCliValue*[T](
     cli: seq[T], doc: string = "", desc: CliDesc = nil): CliValue =
   result = CliValue(kind: cvkSeq)
   for item in items(cli):
@@ -1106,7 +1130,14 @@ func toCliValue*[T](
 
   updateCliValue(result, doc, desc)
 
-func toCliValue*[T](
+proc toCliValue*[A, B](
+    cli: (A, B), doc: string = "", desc: CliDesc = nil): CliValue =
+  result = CliValue(kind: cvkSeq, seqVal: @[
+    toCliValue(cli[0]), toCliValue(cli[1])])
+
+  updateCliValue(result, doc, desc)
+
+proc toCliValue*[T](
     cli: Option[T], doc: string = "", desc: CliDesc = nil): CliValue =
   result = CliValue(kind: cvkSeq)
   if isSome(cli): result.seqVal.add toCliValue(cli.get())
@@ -1139,6 +1170,8 @@ proc cliCheckFor*[T](value: typedesc[Option[T]]): CliCheck =
   result = checkAnd(checkRepeat(0, 1), cliCheckFor(T))
 
 proc cliCheckFor*(f: typedesc[FsFile]): CLiCheck = checkFileReadable()
+proc cliCheckFor*(f: typedesc[AbsFile]): CLiCheck = checkFileReadable()
+proc cliCheckFor*(f: typedesc[RelFile]): CLiCheck = checkFileReadable()
 proc cliCheckFor*(f: typedesc[AbsDir]): CLiCheck = checkDirExists()
 proc cliCheckFor*(f: typedesc[FsDir]): CLiCheck = checkDirExists()
 proc cliCheckFor*(str: typedesc[string]): CliCheck = checkAcceptAll()
@@ -1618,8 +1651,13 @@ macro runDispatchedProc*(
         argType = arg.argType.regenType()
         argName = newLit(arg.name)
 
-      preCall.add quote do:
-        let `argVar` = getOpt(`currentCmd`, `argName`) as `argType`
+      if arg.name in conf.positional or arg.default.isNone():
+        preCall.add quote do:
+          let `argVar` = getArg(`currentCmd`, `argName`) as `argType`
+
+      else:
+        preCall.add quote do:
+          let `argVar` = getOpt(`currentCmd`, `argName`) as `argType`
 
       mainCall.addArg arg.name, argVar
 
@@ -2549,7 +2587,16 @@ proc checkHelp(check: CliCheck, inNested: bool = false): LytBlock =
             check.allowedRepeat.b == high(int),
             "unlimited",
             $check.allowedRepeat.b
-          ) & " times"
+          ) & " times"]
+
+    of cckAndPosCheck:
+      result = V[]
+      for idx, sub in check.subChecks:
+        result.add H[T[&"{idx:<2}"], checkHelp(sub, false)]
+
+      result = V[
+        T[&"{prefix}be a tuple of {check.subChecks.len} colon-separated elements"],
+        I[4, result]
       ]
 
     else:

@@ -236,6 +236,10 @@ proc newUnexpectedKindError*[T](
     "Unexpected entry kind " & kindToStr(expr) &
       prepareMsg(userMsg.join(" ")))
 
+proc newUnexpectedKindError*(userMsg: varargs[string, `$`]):
+    ref UnexpectedKindError =
+  newException(UnexpectedKindError, prepareMsg(userMsg.join(" ")))
+
 template raiseUnexpectedKindError*(
   node: untyped, userMsg: string = "") {.dirty.} =
   raise newUnexpectedKindError(node, userMsg)
