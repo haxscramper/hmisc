@@ -13,9 +13,10 @@ when (1, 2, 2) < (NimMajor, NimMinor, NimPatch):
     "hmisc/scripts/hmisc_putils" : "hmisc-putils"
   }.toTable()
 
-requires "nim >= 1.4.0", "cligen"
+requires "nim >= 1.4.0"
 requires "fusion"
-requires "benchy"
+requires "benchy >= 0.0.1"
+requires "jsony >= 1.0.4"
 # requires "https://github.com/haxscramper/fusion.git#matching-fixup"
 
 task docgen, "Generate documentation":
@@ -35,5 +36,5 @@ hmisc-putils docgen \
 task dockertest, "Run tests in docker container":
   exec("hmisc-putils dockertest --projectDir:" & thisDir())
 
-after test:
-  exec("nim c --hints:off --verbosity:0 src/hmisc/scripts/hmisc_putils.nim")
+# after test:
+#   exec("nim c --hints:off --verbosity:0 src/hmisc/scripts/hmisc_putils.nim")

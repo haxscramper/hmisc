@@ -1396,10 +1396,13 @@ proc execShell*(cmd: ShellExpr): void =
 proc hasCmd*(cmd: ShellCmd): bool =
   for dir in get($$PATH).split(':'):
     let dir = AbsDir(dir)
-    if exists(dir):
-      for file in walkDir(dir, RelFile):
-        if file.name() == cmd.bin:
-          return true
+    if exists(dir /. cmd.bin):
+      return true
+    # if exists(dir):
+
+    #   for file in walkDir(dir, RelFile):
+    #     if file.name() == cmd.bin:
+    #       return true
 
   return false
 

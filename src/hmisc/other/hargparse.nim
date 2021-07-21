@@ -1288,7 +1288,7 @@ const
     "loglevel", "log-output", "quiet", "color", "json"]
 
   cliNoDefaultOpts* = cliNoLoggerConfig & @[
-    "help", "version", "dry-run"]
+    "help", "version", "dry-run", "force"]
 
 
 
@@ -2289,8 +2289,8 @@ proc toCliValue*(tree: CliCmdTree, errors): CliValue =
       else:
         result = checkedConvert(tree, tree.desc.check, errors)
 
-    else:
-      raise newImplementKindError(tree)
+    # else:
+    #   raise newImplementKindError(tree)
 
 initBlockFmtDsl()
 

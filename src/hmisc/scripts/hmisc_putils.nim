@@ -1,5 +1,5 @@
 #!/usr/bin/env -S nim r
-import ../other/[nimbleutils, oswrap, hcligen, hshell, hlogger]
+import ../other/[nimbleutils, oswrap, hshell, hlogger]
 import ../other/hargparse
 import ../algo/[hseq_distance, halgorithm]
 import std/strformat

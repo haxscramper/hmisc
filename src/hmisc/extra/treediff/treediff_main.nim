@@ -52,25 +52,6 @@ import
   ./zs_matcher,
   ./subtree_matcher
 
-import hnimast
-
-proc treeFromPNode*(node: PNode): Tree =
-  proc aux(node: PNode, parent: Tree): Tree =
-    result = newTree(newTreeType(($node.kind)[2 ..^ 1]), parent)
-    case node.kind:
-      of nkTokenKinds:
-        result.setLabel($node)
-
-      else:
-        for subnode in node:
-          result.addChild aux(subnode, result)
-
-    result.setMetadata("orig", cast[pointer](node))
-
-
-  result = aux(node, nil)
-  result.updateMetrics()
-
 
 import
   hmisc/other/[hpprint, hlogger]
@@ -79,6 +60,25 @@ proc heightPriority(tree: Tree): int =
   tree.getMetrics().height
 
 when isMainModule:
+  import hnimast
+
+  proc treeFromPNode*(node: PNode): Tree =
+    proc aux(node: PNode, parent: Tree): Tree =
+      result = newTree(newTreeType(($node.kind)[2 ..^ 1]), parent)
+      case node.kind:
+        of nkTokenKinds:
+          result.setLabel($node)
+
+        else:
+          for subnode in node:
+            result.addChild aux(subnode, result)
+
+      result.setMetadata("orig", cast[pointer](node))
+
+
+    result = aux(node, nil)
+    result.updateMetrics()
+
   for matcher in [
     newLcsMatcher(),
     # ,
