@@ -1023,6 +1023,9 @@ proc fromCliValue*(val: CliValue, result: var FsFile) =
     else:
       raise newUnexpectedKindError(val)
 
+proc fromCLiValue*[E: enum](val: CliValue, result: var E) =
+  result = parseEnum[E](val.strVal)
+
 proc fromCliValue*[T](val: CliValue, result: var seq[T]) =
   bind assertKind
   case val.kind:
@@ -1359,11 +1362,11 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
 
 
 const
-  cliNoLoggerConfig* = @[
-    "loglevel", "log-output", "quiet", "color", "json"]
+  cliNoLoggerConfig* = @["loglevel", "log-output", "quiet", "color", "json"]
+  cliDefaultHelpOnly* = cliNoLoggerConfig & @["version", "dry-run", "force"]
+  cliNoDefaultOpts* = cliDefaultHelpOnly & @["help"]
 
-  cliNoDefaultOpts* = cliNoLoggerConfig & @[
-    "help", "version", "dry-run", "force"]
+
 
 
 
