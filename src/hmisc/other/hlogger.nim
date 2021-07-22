@@ -5,7 +5,8 @@ import
   ../other/[hpprint, oswrap],
   ../types/[colorstring, colortext],
   ../hdebug_misc,
-  ../base_errors
+  ../base_errors,
+  ../helpers
 
 import
   std/[
@@ -173,6 +174,7 @@ proc logImpl*(
       logger.lastLogLine .. logger.lastLogLine + 1
 
     # echo lineRange, " ", logger.lastLogLine
+    # echo position
     if logger.lastLogFile == position[0] and
        position[1] in lineRange:
 
@@ -180,13 +182,14 @@ proc logImpl*(
 
     else:
       logger.lastLogFile = position[0]
-      indent.add filePrefix |<< logger.leftAlignFiles
+      indent.add toLink(
+        position, filePrefix |<< logger.leftAlignFiles)
 
     logger.lastLogLine = position[1]
 
   else:
     prefix.add " "
-    prefix.add filePrefix
+    prefix.add toLink(position, filePrefix)
 
   indent.add repeat("  ", logger.scopes.len())
 
@@ -286,11 +289,11 @@ template check*(
 
   if exprRes == expected:
     logger.logImpl(
-      onMatch, logEvSuccess, instantiationInfo(), @[desc, "was", hshow(exprRes)])
+      onMatch, logEvSuccess, instantiationInfo(fullPaths = true), @[desc, "was", hshow(exprRes)])
 
   else:
     logger.logImpl(
-      onFail, logEvFail, instantiationInfo(), @[desc, "was", hshow(exprRes)])
+      onFail, logEvFail, instantiationInfo(fullPaths = true), @[desc, "was", hshow(exprRes)])
 
   exprRes
 
@@ -351,12 +354,12 @@ proc dumpImpl*(
 
 template dump*(
   logger: HLogger, expr: untyped, args: varargs[string, `$`]): untyped =
-  dumpImpl(logger, instantiationInfo(),
+  dumpImpl(logger, instantiationInfo(fullPaths = true),
     prepareDump(astToStr(expr), expr, toStrSeq(args)))
 
 template pdump*(
     logger: HLogger, expr: untyped, args: varargs[string, `$`]): untyped =
-  dumpImpl(logger, instantiationInfo(),
+  dumpImpl(logger, instantiationInfo(fullPaths = true),
            preparePDump(astToStr(expr), expr, toStrSeq(args)))
 
 proc debugImpl*(
@@ -364,80 +367,80 @@ proc debugImpl*(
   logImpl(logger, logDebug, logEvNone, pos, args)
 
 template debug*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  debugImpl(logger, instantiationInfo(), toStrSeq(args))
+  debugImpl(logger, instantiationInfo(fullPaths = true), toStrSeq(args))
 
 proc traceImpl*(
   logger: HLogger, pos: (string, int, int), args: seq[string]) =
   logImpl(logger, logTrace, logEvNone, pos, args)
 
 template trace*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  traceImpl(logger, instantiationInfo(), toStrSeq(args))
+  traceImpl(logger, instantiationInfo(fullPaths = true), toStrSeq(args))
 
 proc infoImpl*(
   logger: HLogger, pos: (string, int, int), args: seq[string]) =
   logImpl(logger, logInfo, logEvNone, pos, args)
 
 template info*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  infoImpl(logger, instantiationInfo(), toStrSeq(args))
+  infoImpl(logger, instantiationInfo(fullPaths = true), toStrSeq(args))
 
 proc noticeImpl*(
   logger: HLogger, pos: (string, int, int), args: seq[string]) =
   logImpl(logger, logNotice, logEvNone, pos, args)
 
 template notice*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  noticeImpl(logger, instantiationInfo(), toStrSeq(args))
+  noticeImpl(logger, instantiationInfo(fullPaths = true), toStrSeq(args))
 
 proc warnImpl*(
   logger: HLogger, pos: (string, int, int), args: seq[string]) =
   logImpl(logger, logWarn, logEvNone, pos, args)
 
 template warn*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  warnImpl(logger, instantiationInfo(), toStrSeq(args))
+  warnImpl(logger, instantiationInfo(fullPaths = true), toStrSeq(args))
 
 proc errImpl*(
   logger: HLogger, pos: (string, int, int), args: seq[string]) =
   logImpl(logger, logError, logEvNone, pos, args)
 
 template err*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  errImpl(logger, instantiationInfo(), toStrSeq(args))
+  errImpl(logger, instantiationInfo(fullPaths = true), toStrSeq(args))
 
 proc fatalImpl*(
   logger: HLogger, pos: (string, int, int), args: seq[string]) =
   logImpl(logger, logFatal, logEvNone, pos, args)
 
 template fatal*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  fatalImpl(logger, instantiationInfo(), toStrSeq(args))
+  fatalImpl(logger, instantiationInfo(fullPaths = true), toStrSeq(args))
 
 proc waitImpl*(
   logger: HLogger, pos: (string, int, int), args: seq[string]) =
   logImpl(logger, logNone, logEvWaitStart, pos, args)
 
 template wait*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  waitImpl(logger, instantiationInfo(), toStrSeq(args))
+  waitImpl(logger, instantiationInfo(fullPaths = true), toStrSeq(args))
 
 proc doneImpl*(
   logger: HLogger, pos: (string, int, int), args: seq[string]) =
   logImpl(logger, logNone, logEvWaitDone, pos, args)
 
 template done*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  doneImpl(logger, instantiationInfo(), toStrSeq(args))
+  doneImpl(logger, instantiationInfo(fullPaths = true), toStrSeq(args))
 
 proc failImpl*(
   logger: HLogger, pos: (string, int, int), args: seq[string]) =
   logImpl(logger, logNone, logEvFail, pos, args)
 
 template fail*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  failImpl(logger, instantiationInfo(), toStrSeq(args))
+  failImpl(logger, instantiationInfo(fullPaths = true), toStrSeq(args))
 
 proc successImpl*(
   logger: HLogger, pos: (string, int, int), args: seq[string]) =
   logImpl(logger, logNone, logEvSuccess, pos, args)
 
 template success*(logger: HLogger, args: varargs[string, `$`]): untyped =
-  successImpl(logger, instantiationInfo(), toStrSeq(args))
+  successImpl(logger, instantiationInfo(fullPaths = true), toStrSeq(args))
 
 template waitFor*(logger: HLogger, name: string): untyped =
-  logImpl(logger, logNone, logEvWaitStart, instantiationInfo(),
+  logImpl(logger, logNone, logEvWaitStart, instantiationInfo(fullPaths = true),
     @["Waiting for " & name & " to finish..."])
 
 macro loggerField*(
@@ -449,7 +452,11 @@ macro loggerField*(
   let
     module = ident(module.strVal)
     vas = nnkBracketExpr.newTree(ident"varargs", ident"string", ident"$")
+
+  var
     iinfo = newCall("instantiationInfo")
+
+  iinfo.add nnkExprEqExpr.newTree(ident("fullPaths"), newLit(true))
 
   result = newStmtList()
   for name in ["success", "fail", "done", "wait", "notice",
@@ -492,7 +499,7 @@ macro loggerField*(
 
 
 template changeDir*(logger: HLogger, dir: AbsDir, body: untyped): untyped =
-  let (file, line, column) = instantiationInfo()
+  let (file, line, column) = instantiationInfo(fullPaths = true)
   openScope(logger, hskChDir, file, line, column, "")
   withNewDir dir:
     trace(l, (file, line, column), "Changed dir to", dir)
@@ -818,7 +825,7 @@ proc execShell*(
   done(logger)
 
 template execShell*(logger: HLogger, shellCmd: ShellCmd): untyped =
-  execShell(logger, instantiationInfo(), shellCmd)
+  execShell(logger, instantiationInfo(fullPaths = true), shellCmd)
 
 
 proc runShell*(
@@ -844,7 +851,7 @@ template runShell*(
     logger: HLogger, shellCmd: ShellCmd,
     stdin: string = ""
   ): ShellExecResult =
-  argpass runShell(logger, instantiationInfo(), shellCmd),
+  argpass runShell(logger, instantiationInfo(fullPaths = true), shellCmd),
      stdin
 
 template runShellResult*(
@@ -852,7 +859,7 @@ template runShellResult*(
     stdin: string = "",
     execTimeoutMs: int = high(int)
   ): ShellResult =
-  argpass runShellResult(logger, instantiationInfo(), shellCmd),
+  argpass runShellResult(logger, instantiationInfo(fullPaths = true), shellCmd),
      stdin, execTimeoutMs
 
 
