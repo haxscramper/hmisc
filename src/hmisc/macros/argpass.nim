@@ -1,4 +1,36 @@
-import std/macros
+import std/[macros]
+
+proc withFieldAssignsTo*(
+    target, body: NimNode,
+    withTmp: bool = false,
+    asExpr: bool = false
+  ): NimNode =
+
+  expectKind(body, {nnkStmtList, nnkArgList})
+
+  result = newStmtList()
+  let tmp = if withTmp: ident("tmp") else: target
+  proc addAsgn(re, part: NimNode) =
+    expectKind(part, {nnkAsgn, nnkExprEqExpr})
+    re.add nnkAsgn.newTree(
+      nnkDotExpr.newTree(tmp, part[0]), part[1])
+
+  proc convertAsgn(re: NimNode, entry: NimNode) =
+    if entry.kind in {nnkStmtList, nnkArgList}:
+      for part in entry:
+        convertAsgn(re, part)
+
+    else:
+      addAsgn(re, entry)
+
+  convertAsgn(result, body)
+
+  result = quote do:
+    block:
+      var `tmp` = `target`
+      `result`
+      `tmp`
+
 
 macro argpass*(other: varargs[untyped]): untyped =
   let head = other[0]

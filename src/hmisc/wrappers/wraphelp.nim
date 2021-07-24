@@ -10,18 +10,22 @@ type
     header: "<initializer_list>"
   .} = object
 
-  CxxTemplateUndefined = object
+  CxxTemplateUndefined* = object
 
   cchar16* = uint16
   cchar32* = uint32
   cwchar* = uint32
+  nullptr_t* = typeof(nil)
+
+  StdNullptrT* = nullptr_t
+  StdSizeT* = culong
+  StdPtrdiffT* = clong
 
 proc `as`*[T](
   undef: CxxTemplateUndefined, asTarget: typedesc[T]): T {.importcpp: "(#)"}
 
 proc cxxInitList*[T](args: T) {.importcpp: "{@}", varargs.}
 
-type nullptr_t* = typeof(nil)
 
 proc newImportAux*() {.importc: "//", header: "<new>".} =
   discard

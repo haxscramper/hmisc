@@ -12,6 +12,7 @@ import
     hdebug_misc,
     types/colorstring,
     macros/introspection,
+    macros/argpass,
     algo/hseq_mapping,
     algo/hseq_distance,
     algo/halgorithm
@@ -933,57 +934,6 @@ proc pprint*[T](
 
 import std/macros
 
-proc withFieldAssignsTo(
-    target, body: NimNode,
-    withTmp: bool = false,
-    asExpr: bool = false
-  ): NimNode =
-
-  assertNodeKind(body, {nnkStmtList, nnkArgList})
-
-  result = newStmtList()
-  let tmp = if withTmp: ident("tmp") else: target
-  proc addAsgn(re, part: NimNode) =
-    assertNodeKind(part, {nnkAsgn, nnkExprEqExpr})
-    re.add nnkAsgn.newTree(
-      nnkDotExpr.newTree(tmp, part[0]), part[1])
-
-  proc convertAsgn(re: NimNode, entry: NimNode) =
-    if entry.kind in {nnkStmtList, nnkArgList}:
-      for part in entry:
-        convertAsgn(re, part)
-        # if part.kind in {nnkStmtList}:
-        #   for subpart in part:
-        #     assertNodeKind(entry, {nnkAsgn, nnkExprEqExpr})
-        #     addAsgn(part)
-
-        # else:
-        #   assertNodeKind(entry, {nnkAsgn, nnkExprEqExpr})
-        #   addAsgn(part)
-
-    else:
-      addAsgn(re, entry)
-
-  convertAsgn(result, body)
-
-
-  # for entry in body:
-  #   assertNodeKind(entry, {nnkExprEqExpr, nnkStmtList})
-      # result.add nnkAsgn.newTree(
-      #   nnkDotExpr.newTree(tmp, entry[0]), entry[1])
-
-  # if
-
-  result = quote do:
-    block:
-      var `tmp` = `target`
-      `result`
-      `tmp`
-
-  echo result.repr              #
-
-# macro withAssignsTo*(target: untyped, body: varargs[untyped]): untyped =
-#   withFieldAssignsTo(target, body)
 
 macro pconf*(body: varargs[untyped]): untyped =
   withFieldAssignsTo(

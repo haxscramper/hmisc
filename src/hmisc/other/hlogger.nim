@@ -545,10 +545,9 @@ func findLineRange*(
 
     dec after
 
-  if result.b >= base.len or base[result.b] == '\n':
-    dec result.b
-
   if result.b > base.high: result.b = base.high
+  if base[result.b] == '\n': dec result.b
+
 
 
 func lineTextAround*(
@@ -632,7 +631,8 @@ proc logStackTrace*(
     logger: HLogger,
     e: ref Exception,
     showError: bool = true,
-    ignoreAssert: bool = true
+    ignoreAssert: bool = true,
+    source: bool = true
   ) =
 
   let (showFile, showLine, leftAlignFiles) =
@@ -704,41 +704,22 @@ proc logStackTrace*(
 
     let line = tr.line
 
-    let fileText =
-      block:
-        let
-          filename = $tr.filename
+    if source:
+      let fileText =
+        block:
+          let
+            filename = $tr.filename
 
-        if filename notin files:
-          files[filename] = filename.readFile()
+          if filename notin files:
+            files[filename] = filename.readFile()
 
-        files[filename]
+          files[filename]
 
-    logger.debug("")
-    logger.indent()
-    logger.logLines(fileText, line, ext)
-    logger.dedent()
-    logger.debug("")
-
-
-    # logEntry(idx)
-    # let nowPos = (filename, tr.line)
-    # if lastPos[0].len == 0:
-    #   lastPos = nowPos
-    #   logEntry(idx)
-    #   repeated = 0
-
-    # elif lastPos != nowPos and idx < maxIdx:
-    #   # lastPos = nowPos
-    #   logEntry(idx)
-    #   repeated = 0
-
-    # elif idx == maxIdx:
-    #   logEntry(idx)
-
-    # else:
-    #   # lastPos = nowPos
-    #   inc repeated
+      logger.debug("")
+      logger.indent()
+      logger.logLines(fileText, line, ext)
+      logger.dedent()
+      logger.debug("")
 
   logger.showFile = showFile
   logger.showLine = showLine

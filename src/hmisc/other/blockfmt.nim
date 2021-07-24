@@ -156,7 +156,7 @@ type
 proc margin(buf: OutConsole): int = buf.margins[^1]
 
 func `$`(s: LytStr): string = $s.text
-func len(s: LytStr): int = sumIt(s.text, it.len)
+func len*(s: LytStr): int = sumIt(s.text, it.len)
 func lytStr(s: string): LytStr =
   LytStr(text: @[toColored(s, initStyle())])
 
@@ -953,11 +953,17 @@ func makeIndentBlock*(
 
 
 func makeStackBlock*(
-    elems: openarray[LytBlock], breakMult: int = 1): LytBlock =
-  if (let idx = findSingle(elems, bkStack); idx != -1):
+    elems: openarray[LytBlock],
+    breakMult: int = 1,
+    compact: bool = true
+  ): LytBlock =
+  if compact and (let idx = findSingle(elems, bkStack); idx != -1):
     result = elems[idx]
 
-  elif elems.len == 1 and elems[0].len == 1:
+  elif compact and
+       elems.len == 1 and
+       elems[0].len == 1 and
+       elems[0][0].kind in { bkStack, bkLine }:
     result = elems[0][0].convertBlock(bkStack)
 
   else:
@@ -971,8 +977,13 @@ func makeStackBlock*(
 
 
 func makeWrapBlock*(
-    elems: openarray[LytBlock], breakMult: int = 1): LytBlock =
+    elems: openarray[LytBlock],
+    breakMult: int = 1,
+    sep: string = ", "
+  ): LytBlock =
+
   LytBlock(
+    sep: sep,
     kind: bkWrap, wrapElements: toSeq(elems), breakMult: breakMult,
     minWidth: elems.maxIt(it.minWidth))
 
@@ -1053,6 +1064,13 @@ func add*(target: var LytBlock, other: varargs[LytBlock]) =
            bl.kind == bkText:
 
         target.elements[^1].text.text.add bl.text.text
+        target.elements[^1].minWidth += bl.text.len
+
+      elif target.kind == bkText and bl.kind == bkText:
+        target.text.text.add bl.text.text
+
+      elif target.kind == bkWrap:
+        target.wrapElements.add bl
 
       else:
         target.elements.add bl
@@ -1395,8 +1413,14 @@ type
     blkEmpty
     blkWrap
 
-proc `[]`*(b: static[LytBuilderKind], s: seq[LytBlock]): LytBlock =
-  static: assert b in {blkLine, blkStack, blkChoice, blkWrap}, $b
+proc `[]`*(
+    b: static[LytBuilderKind], s: seq[LytBlock], sep: string = ", "
+  ): LytBlock =
+  staticAssert(b in {blkLine, blkStack, blkChoice, blkWrap},
+    "Layout builder for block sequences must be a line, start, choice " &
+      "or wrap, but found " & $b,
+    "Change builder kind, or add missing arguments",
+    hxInfo())
 
   case b:
     of blkLine:
@@ -1409,13 +1433,23 @@ proc `[]`*(b: static[LytBuilderKind], s: seq[LytBlock]): LytBlock =
       makeChoiceBlock(s)
 
     of blkWrap:
-      makeWrapBlock(s)
+      makeWrapBlock(s, sep = sep)
 
     else:
       raiseAssert("#[ IMPLEMENT ]#")
 
 
-proc `[]`*(b: static[LytBuilderKind], bl: LytBlock, args: varargs[LytBlock]): LytBlock =
+proc `[]`*(
+    b: static[LytBuilderKind],
+    bl: LytBlock,
+    args: varargs[LytBlock],
+  ): LytBlock =
+  staticAssert(b in {blkLine, blkStack, blkChoice, blkWrap},
+    "Layout builder for block sequences must be a line, start, choice " &
+      "or wrap, but found " & $b,
+    "Change builder kind, or add missing arguments",
+    hxInfo())
+
   b[@[ bl ] & toSeq(args)]
 
 proc `[]`*(
@@ -1440,9 +1474,10 @@ proc `[]`*(b: static[LytBuilderKind], tlen: int = 1): LytBlock =
     of blkLine: result = makeLineBlock(@[])
     of blkChoice: result = makeChoiceBlock(@[])
     of blkStack: result = makeStackBlock(@[])
+    of blkWrap: result = makeWrapBlock(@[])
     else:
       staticAssert(
-        b in {blkSpace, blkLine, blkChoice, blkStack, blkEmpty},
+        b in {blkSpace, blkLine, blkChoice, blkStack, blkEmpty, blkWrap},
         "Block builder without arguments must use space or " &
           "combinator layouts",
         "Unexpected builder kind",
@@ -1468,7 +1503,10 @@ func `??`*(blocks: tuple[ok, fail: LytBlock], condOk: bool): LytBlock =
   if condOk: blocks.ok else: blocks.fail
 
 func join*(
-  blocks: LytBlock, sep: LytBlock, vertLines: bool = true): LytBlock =
+    blocks: LytBlock,
+    sep: LytBlock,
+    vertLines: bool = true
+  ): LytBlock =
   assert blocks.kind in {bkLine, bkStack},
     "Only stack or line layouts can be joined"
 
@@ -1486,6 +1524,50 @@ func join*(
       result.add item
       if not isLast:
         result.add sep
+
+func join*(
+    blocks: seq[LytBlock],
+    sep: LytBlock,
+    direction: LytBlockKind
+  ): LytBlock  =
+
+  result = makeBlock(direction)
+  for isLast, item in itemsIsLast(blocks):
+    result.add item
+    if not isLast:
+      result.add sep
+
+template addItBlock*(
+    res: LytBlock,
+    item: typed,
+    expr: untyped,
+    join: LytBlock
+  ): untyped =
+
+  var idx = 0
+  for idx, it {.inject.} in pairs(item):
+    if idx < item.high:
+      if res.kind == bkStack:
+        res.add makeLineBlock(@[expr, join])
+
+      else:
+        res.add expr
+        res.add join
+
+    else:
+      res.add expr
+
+
+template joinItBlock*(
+    direction: LytBlockKind,
+    item: typed,
+    expr: untyped,
+    join: LytBlock
+  ): untyped =
+
+  var res = makeBlock(direction)
+  res.addItBlock(item, expr, join)
+  res
 
 # proc setCache(bl: LytBlock) =
 #   let table = newTable[Option[LytSolution], Option[LytSolution]]()

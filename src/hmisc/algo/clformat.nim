@@ -1,5 +1,6 @@
 import std/[strutils, tables, enumerate, strformat]
 import hseq_mapping, htext_algo
+import ../macros/argpass
 import ../base_errors
 import ../types/colorstring
 import ../algo/halgorithm
@@ -701,27 +702,46 @@ type
   HDisplayFlag* = enum
     dfColored
     dfPositionIndexed
-    dfFlagIndexed
+    dfPathIndexed
     dfUnicodeNewlines
     dfUnicodePPrint
+    dfWithRanges
 
   HDisplayOpts* = object
-    flags*: seq[HDisplayFlag]
-    colored*: bool
+    flags*: set[HDisplayFlag]
+    # colored*: bool
     indent*: int
     maxDepth*: int
+    maxLen*: int
     quoteIdents*: bool ## Add quotes around stings that are valid identifirers
     newlineBeforeMulti*: bool
     verbosity*: HDisplayVerbosity
     dropPrefix*: bool
 
 const defaultHDisplay* = HDisplayOpts(
-  colored: true,
+  flags: { dfColored, dfPositionIndexed },
   dropPrefix: true,
   newlineBeforeMulti: true,
-  maxDepth: -1,
+  maxLen: 30,
+  maxDepth: 120,
   verbosity: dvNormal,
 )
+
+import std/[macros]
+
+macro hdisplay*(body: varargs[untyped]): untyped =
+  withFieldAssignsTo(
+    ident("defaultHDisplay"), body, withTmp = true)
+
+func colored*(opts: HDisplayOpts): bool = dfColored in opts.flags
+func positionIndexed*(opts: HDisplayOpts): bool =
+  dfPositionIndexed in opts.flags
+
+func pathIndexed*(opts: HDisplayOpts): bool =
+  dfPathIndexed in opts.flags
+
+func withRanges*(opts: HDisplayOpts): bool =
+  dfWithRanges in opts.flags
 
 func hShow*(ch: char, opts: HDisplayOpts = defaultHDisplay): string =
   $ch
@@ -733,8 +753,11 @@ func hshow*(b: bool, opts: HDisplayOpts = defaultHDisplay): string =
   else:
     toRed($b, opts.colored)
 
-func hShow*(ch: int, opts: HDisplayOpts = defaultHDisplay): string =
+func hShow*(ch: SomeInteger, opts: HDisplayOpts = defaultHDisplay): string =
   toCyan($ch, opts.colored)
+
+func hshow*(i: BackwardsIndex, opts: HDisplayOpts = defaultHDisplay): string =
+  toCyan("^" & $i.int, opts.colored)
 
 func hshow*(ch: float, opts: HDisplayOpts = defaultHDisplay): string =
   toMagenta($ch, opts.colored)

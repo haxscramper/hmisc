@@ -2,6 +2,7 @@ import unittest
 
 import strformat, options
 import hmisc/[helpers, hexceptions]
+import hmisc/algo/htemplates
 import hmisc/macros/iflet
 
 func empty[T](): seq[T] = discard
@@ -123,9 +124,19 @@ suite "If let":
 suite "Slice clamping":
   test "test":
     doAssert clamp(0 .. 2, 0 .. 2) == 0 .. 2
+    check clamp(1 ..^ 2, 2).a == 1
+    check clamp(1 ..^ 2, 0).a == 0
+    doAssert @(clamp(1 ..^ 2, 0)).len == 0
+    doAssert @(clamp(1 .. 10, 0 .. 0)).len == 0
     doAssert clamp(0 .. 90, 3) == 0 .. 3
+
+    doassert intersect(0 .. 10, 10 .. 20) == 10 .. 10
 
     block:
       let s = @[0, 1, 3, 4]
       doAssert clamp(0 .. 102, s.high) == 0 .. s.high
       doAssert clamp(0 .. ^1, s.high) == 0 .. s.high
+
+  test "with it":
+    let val = @[0].withIt do:
+      it.add 10
