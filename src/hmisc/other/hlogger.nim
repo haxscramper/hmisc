@@ -145,8 +145,8 @@ proc logImpl*(
       " " |<< logger.prefixLen
 
     elif (level == logTrace):
-      $logger.logPrefix[level].str.alignRight(logger.prefixLen) & " " &
-        $position[1]
+      $logger.logPrefix[level].str.alignRight(logger.prefixLen) &
+        (if logger.showFile.not(): " " & $position[1] else: "")
 
     elif (level == logger.lastLog and event == logEvNone) or
        (level == logNone and event == logger.lastEvent):
