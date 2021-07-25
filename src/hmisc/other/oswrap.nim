@@ -532,14 +532,11 @@ proc relativePath*(path: AbsFile, base: AbsFile | AbsDir): RelFile =
   RelFile(os.relativePath(path.string, base.string))
 
 proc relativeUpCount*[P1: AbsPath, P2: AbsPath](
-  inCurrent: P1, inTarget: P2): int =
+    inCurrent: P1,
+    inTarget: P2
+  ): int =
 
-  var current = inCurrent.getStr()
-  var target = inTarget.getStr()
-
-  # let common =
-  # current.dropPrefix(common)
-  # target.dropPrefix(common)
+  var (current, target) = (inCurrent.getStr(), inTarget.getStr())
 
   if current.startsWith(target):
     swap(current, target)
@@ -557,13 +554,10 @@ proc relativeUpCount*[P1: AbsPath, P2: AbsPath](
 
     else:
       raise PathError(
-        msg: "Cannot compute relative up count for unrelated paths" &
-          &"(current: '{inCurrent}', target: '{inTarget}')"
-      )
+        msg: "Cannot compute relative up count for unrelated paths " &
+          &"(current: '{inCurrent}', target: '{inTarget}')")
 
   var relative = os.relativePath(current, target)
-  # echov (current, target)
-  # echov relative
   when P1 is AnyFile or P2 is AnyFile:
     relative = relative.dropPrefix("..")
 
@@ -579,6 +573,7 @@ proc relativeUpCount*[P1: AbsPath, P2: AbsPath](
   # echov current
   # echov target
   # echov diff
+
 
 
 proc parentDir*(path: AbsPath): AbsDir = AbsDir(os.parentDir(path.getStr()))
@@ -664,6 +659,28 @@ proc splitFile2*(file: RelFile): tuple[dir: RelDir, file: string] =
 proc splitFile2*(file: AbsFile): tuple[dir: AbsDir, file: string] =
   let (dir, name, ext) = splitFile(file)
   return (dir, name & (if ext.len > 0: "." & ext else: ""))
+
+proc importSplit*(inCurrent, inTarget: AbsFile):
+  tuple[depth: int, path: seq[string]] =
+
+  ## Split relative path between `inCurrent` and `inTarget` into two parts
+  ## - depth (number of relative directory changes (`..`)), and `path`
+  ## (actual path to the target)
+  let (current, target) = (inTarget.getStr(), inCurrent.getStr())
+  if current == target:
+    result.path = @[splitFile2(inCurrent).file]
+
+  else:
+    let rel = os.relativePath(current, target)
+    for part in rel.split("/"):
+      if part notin ["..", "."]:
+        result.path.add part
+
+      else:
+        inc result.depth
+
+    dec result.depth
+
 
 func hasExt*(file: AnyFile, exts: openarray[string] = @[]): bool =
   let (_, _, ext) = file.splitFile()
@@ -1498,9 +1515,8 @@ func withExt*(f: FsTree, ext: string): FsTree =
   result = f
   result.ext = ext
 
-func withExt*[F: AbsFile | RelFIle](
-    f: F, newExt: string, replace: bool = true
-  ): F =
+func addExt*[F: AbsFile | RelFIle](
+    f: var F, newExt: string, replace: bool = true) =
   ## Set file extension by either replacing it (default) or adding suffix
   ## `.<extension-string>`
 
@@ -1512,20 +1528,18 @@ func withExt*[F: AbsFile | RelFIle](
     if newExt.len > 0:
       resExt &= hstring_algo.addprefix(newExt, ".")
 
-    parent /. (file & resExt)
+    f = parent /. (file & resExt)
 
-  else:
-    let extAdd =
-      if newExt.len > 0:
-        hstring_algo.addPrefix(newExt, ".")
-      else:
-        ""
+  elif newExt.len > 0:
+    f.string &= "."
+    f.string &= newExt
 
-    when F is AbsFile:
-      AbsFile(f.getStr() & extAdd)
 
-    else:
-      RelFile(f.getStr() & extAdd)
+
+func withExt*[F: AbsFile | RelFIle](
+    f: F, newExt: string, replace: bool = true): F =
+  result = f
+  addExt(result, newExt, replace)
 
 func withExt*(fs: sink FsFile, ext: string, replace: bool = true): FsFile =
   result = fs
@@ -1540,27 +1554,34 @@ proc `&.`*(file: AbsFile, ext: string): AbsFile = withExt(file, ext)
 func withoutExt*[F: AbsFile | RelFile](file: F): F =
   withExt(file, "")
 
+func addBasePrefix*[F: AbsFile | RelFile | FsFile](
+  f: var F, prefix: string) =
 
-func withBasePrefix*[F: AbsFile | RelFile | FsFile](
-  f: F, prefix: string): F =
-  ## Return copy of the file path `f` with new basename for a file. E.g.
-  ## `/tmp/hello.cpp + prefix_ -> /tmp/prefix_hello.cpp`
   when f is FsFile:
     if f.isRelative:
-      result = toFsFile(withBasePrefix(f.relFile, prefix))
+      addBasePrefix(f.relFile, prefix)
+      # result = toFsFile(withBasePrefix(f.relFile, prefix))
 
     else:
-      result = toFsFile(withBasePrefix(f.absFile, prefix))
+      addBasePrefix(f.absFile, prefix)
+      # result = toFsFile(withBasePrefix(f.absFile, prefix))
 
   else:
     let (parent, file, ext) = os.splitFile(f.getStr())
     let res = os.joinpath(parent, prefix & file & ext)
 
     when F is AbsFile:
-      result = AbsFile(res)
+      f = AbsFile(res)
 
     else:
-      result = RelFile(res)
+      f = RelFile(res)
+
+
+func withBasePrefix*[F: AbsFile | RelFile | FsFile](f: F, prefix: string): F =
+  ## Return copy of the file path `f` with new basename for a file. E.g.
+  ## `/tmp/hello.cpp + prefix_ -> /tmp/prefix_hello.cpp`
+  result = f
+  addBasePrefix(result, prefix)
 
 func withBase*(f: FsTree, base: string): FsTree {.inline.} =
   result = f
@@ -1798,22 +1819,24 @@ func `&&=`*(ex: var ShellExpr, ex2: ShellExpr) =
 
 
 template withStreamFile*(inFile: AnyFile, body: untyped) =
-  block:
-    var file {.inject.} = open(inFile.getStr(), fmReadWrite)
-    try:
-      body
+  {.line: instantiationInfo(fullPaths = true).}:
+    block:
+      var file {.inject.} = open(inFile.getStr(), fmReadWrite)
+      try:
+        body
 
-    finally:
-      file.close()
+      finally:
+        file.close()
 
 
 template withNewStreamFile*(inFile: AnyFile, body: untyped) =
-  block:
-    if not inFile.parentDir().exists():
-      mkDir(inFile.parentDir())
+  {.line: instantiationInfo(fullPaths = true).}:
+    block:
+      if not inFile.parentDir().exists():
+        mkDir(inFile.parentDir())
 
-    withStreamFile(inFile):
-      body
+      withStreamFile(inFile):
+        body
 
 iterator xPatterns(pattern: string, pattChar: char = '?'): string =
   while true:

@@ -53,6 +53,24 @@ suite "Pathwrap":
     check relativeUpCount(AbsFile("/a.txt"), AbsFile("/b.txt")) == 0
     check relativeUpCount(AbsFile("/tmp/a.txt"), AbsFile("/tmp/b.txt")) == 0
 
+  test "Import split":
+    let base = AbsDir("/tmp")
+    template rs(p1, p2: string): untyped =
+      importSplit(base / RelFile(p1), base / RelFile(p2))
+
+    check rs("tmp/a.nim", "tmp/b.nim") == (0, @["b.nim"])
+    check rs("tmp/a.nim", "b.nim") == (1, @["b.nim"])
+    check rs("a.nim", "tmp/b.nim") == (0, @["tmp", "b.nim"])
+    check rs("a.nim", "b.nim") == (0, @["b.nim"])
+    check rs("a", "b") == (0, @["b"])
+    check rs("a", "a") == (0, @["a"])
+    # let (d, p) = relativeSplit(
+    #   base / RelFile("tmp/a.nim"),
+    #   base / RelFile("tmp/b.nim"))
+
+    # check d == 0
+    # check p == @["b.nim"]
+
   test "Mkdir structure":
     let name = "hello"
     proc generateText(): string = "input text test"
