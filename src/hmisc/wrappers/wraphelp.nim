@@ -1,5 +1,5 @@
 import
-  std/[macros, sequtils, strutils]
+  std/[macros, sequtils, strutils, parseutils]
 
 import ../macros/argpass
 
@@ -12,6 +12,9 @@ func closureToCdecl*[T0, T1](
 
   discard
 
+{.push warning[InheritFromException]:off.}
+
+
 type
   StdInitializerList*[T] {.
     importcpp: "std::initializer_list",
@@ -19,6 +22,7 @@ type
   .} = object
 
   CxxTemplateUndefined* = object
+  CxxTemplateApproximate*[T] = object
 
   cchar16* = uint16
   cchar32* = uint32
@@ -29,8 +33,40 @@ type
   StdSizeT* = culong
   StdPtrdiffT* = clong
 
+  StdException* {.
+    importcpp: "std::exception",
+    header: "<stdexcept>",
+    byref,
+    inheritable
+  .} =
+    object of Exception
+
+{.pop.}
+
+proc what*(ex: StdException): cstring {.importcpp: "#.what()".}
+
+
+
+
+
+proc `as`*[T1, T2](
+  approx: CxxTemplateApproximate[T1],
+  asTarget: typedesc[T2]): T2 {.importcpp: "(#)".}
+
+proc `as`*[T1, T2](asSource: T1, target: typedesc[CxxTemplateApproximate[T2]]):
+  CxxTemplateUndefined {.importcpp: "(#)".}
+
+converter toT*[T](approx: CxxTemplateApproximate[T]): T
+  {.importcpp: "(#) /*implicit conversion from approximate template*/".}
+
+converter toCxxTemplateApproximate*[T](base: T): CxxTemplateApproximate[T]
+  {.importcpp: "(#)".}
+
 proc `as`*[T](
   undef: CxxTemplateUndefined, asTarget: typedesc[T]): T {.importcpp: "(#)"}
+
+proc `as`*[T](asSource: T, target: typedesc[CxxTemplateUndefined]):
+  CxxTemplateUndefined {.importcpp: "(#)".}
 
 proc cxxInitList*[T](args: T) {.importcpp: "{@}", varargs.}
 
@@ -107,14 +143,41 @@ func procDeclAux(entry: NimNode, ctx: WrapCtx): NimNode =
       assertNodeKind(entry.body()[0], {nnkCall})
       entry.body()[0][0].strVal()
 
+  var
+    hasConst = false
+    filter: seq[NimNode]
+
+  for pr in entry.pragma:
+    if pr.eqIdent("const"):
+      hasConst = true
+
+    else:
+      filter.add pr
+
+
+  entry.pragma = nnkPragma.newTree(filter)
+
   result = entry
   result.body = newEmptyNode()
-  if ctx.inClass:
-    result.params.insert(1, nnkIdentDefs.newTree(
-      ident("this"), ctx.nimClassName, newEmptyNode()))
 
-  result.addPragma nnkExprColonExpr.newTree(
-    ident("importcpp"), ctx.getIcpp(name & "(@)", false).newLit())
+  if ctx.inClass:
+    let thisTy =
+      if hasConst:
+        ctx.nimClassName
+
+      else:
+        nnkVarTy.newTree(ctx.nimClassName)
+
+    result.params.insert(1, nnkIdentDefs.newTree(
+      ident("this"), thisTy, newEmptyNode()))
+
+  if allIt(name, it in IdentChars):
+    result.addPragma newEcE(
+      ident("importcpp"), ctx.getIcpp(name & "(@)", false).newLit())
+
+  else:
+    result.addPragma newEcE(
+      ident("importcpp"), ctx.getIcpp("operator" & name & "(@)", false).newLit())
 
 
 func stmtAux(entry: NimNode, ctx: WrapCtx): NimNode
@@ -133,16 +196,28 @@ func namespaceAux(name: string, body: seq[NimNode], ctx: WrapCtx): NimNode =
   for node in body:
     result.add stmtAux(node, ctx)
 
-func splitClassName(name: NimNode): tuple[nimName: NimNode, cxxName: string] =
+func splitClassName(name: NimNode):
+  tuple[nimName: NimNode, cxxName: string, super: Option[NimNode]] =
+
   case name.kind:
     of nnkStrLit:
       result.cxxName = name.strVal()
       result.nimName = ident(name.strVal())
 
     of nnkInfix:
-      assert name[0].strVal() == "as"
-      result.cxxName = name[1].strVal()
-      result.nimName = name[2]
+      case name[0].strVal():
+        of "as":
+          result.cxxName = name[1].strVal()
+          result.nimName = name[2]
+
+        of "of":
+          result.super = some name[2]
+          let (nim, cxx, _) = splitClassName(name[1])
+          result.nimName = nim
+          result.cxxName = cxx
+
+        else:
+          raise newImplementError()
 
     else:
       raise newUnexpectedKindError(name)
@@ -153,10 +228,12 @@ func classAux(name: NimNode, body: seq[NimNode], ctx: WrapCtx): NimNode =
   var resList: seq[NimNode]
   var fieldList = nnkRecList.newTree()
   var ctx = ctx
-  let (nim, cxx) = splitClassName(name)
+  let (nim, cxx, super) = splitClassName(name)
   ctx.inClass = true
   ctx.nimClassName = nim
   ctx.cxxClassName = cxx
+
+  var isByref: bool = false
 
   for entry in body:
     case entry.kind:
@@ -177,11 +254,12 @@ func classAux(name: NimNode, body: seq[NimNode], ctx: WrapCtx): NimNode =
           nnkPostfix.newTree(ident"*", nim),
           nnkPragma.newTree(
             newEcE("importcpp", newLit(ctx.getIcpp(ctx.cxxClassName, true))),
+            (if isByref: ident"byref" else: ident"bycopy"),
             newEcE("header", newLit(ctx.header)))),
         newEmptyNode(),
         nnkObjectTy.newTree(
           newEmptyNode(),
-          newEmptyNode(),
+          (if super.isSome(): nnkOfInherit.newTree(super.get()) else: newEmptyNode()),
           fieldList))) & resList)
 
 
@@ -200,6 +278,10 @@ func stmtAux(entry: NimNode, ctx: WrapCtx): NimNode =
 
         of "class":
           result = classAux(entry[1], entry[2..^1], ctx)
+
+        of "static", "struct", "enum", "var", "let", "const":
+          raise newImplementError(kind)
+
 
         else:
           raise newImplementKindError(kind)
