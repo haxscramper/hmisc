@@ -145,11 +145,16 @@ func procDeclAux(entry: NimNode, ctx: WrapCtx): NimNode =
 
   var
     hasConst = false
+    isConstructor = false
     filter: seq[NimNode]
 
   for pr in entry.pragma:
     if pr.eqIdent("const"):
       hasConst = true
+
+    elif pr.eqIdent("constructor"):
+      isConstructor = true
+      filter.add pr
 
     else:
       filter.add pr
@@ -160,7 +165,7 @@ func procDeclAux(entry: NimNode, ctx: WrapCtx): NimNode =
   result = entry
   result.body = newEmptyNode()
 
-  if ctx.inClass:
+  if ctx.inClass and not isConstructor:
     let thisTy =
       if hasConst:
         ctx.nimClassName
@@ -171,13 +176,23 @@ func procDeclAux(entry: NimNode, ctx: WrapCtx): NimNode =
     result.params.insert(1, nnkIdentDefs.newTree(
       ident("this"), thisTy, newEmptyNode()))
 
-  if allIt(name, it in IdentChars):
-    result.addPragma newEcE(
-      ident("importcpp"), ctx.getIcpp(name & "(@)", false).newLit())
+  var icpp: string
+  if isConstructor:
+    if entry.params[0].kind == nnkPtrTy:
+      icpp = "new " & ctx.getIcpp(ctx.cxxClassName, true) & "(@)"
+
+    else:
+      icpp = ctx.getIcpp(ctx.cxxClassName, true) & "(@)"
 
   else:
-    result.addPragma newEcE(
-      ident("importcpp"), ctx.getIcpp("operator" & name & "(@)", false).newLit())
+    if allIt(name, it in IdentChars):
+      icpp = ctx.getIcpp(name & "(@)", false)
+
+    else:
+      icpp = ctx.getIcpp("operator" & name & "(@)", false)
+
+
+  result.addPragma newEcE(ident("importcpp"), newLit(icpp))
 
 
 func stmtAux(entry: NimNode, ctx: WrapCtx): NimNode
@@ -200,7 +215,7 @@ func splitClassName(name: NimNode):
   tuple[nimName: NimNode, cxxName: string, super: Option[NimNode]] =
 
   case name.kind:
-    of nnkStrLit:
+    of nnkStrLit, nnkIdent:
       result.cxxName = name.strVal()
       result.nimName = ident(name.strVal())
 
@@ -255,6 +270,7 @@ func classAux(name: NimNode, body: seq[NimNode], ctx: WrapCtx): NimNode =
           nnkPragma.newTree(
             newEcE("importcpp", newLit(ctx.getIcpp(ctx.cxxClassName, true))),
             (if isByref: ident"byref" else: ident"bycopy"),
+            ident("inheritable"),
             newEcE("header", newLit(ctx.header)))),
         newEmptyNode(),
         nnkObjectTy.newTree(
