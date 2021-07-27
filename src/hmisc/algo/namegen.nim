@@ -141,17 +141,44 @@ func commonPrefix*[T](seqs: seq[seq[T]]): seq[T] =
 
 
 func isReservedNimType*(str: string): bool =
-  nimNorm(str) in [
+  const nameSet = toHashSet [
+    "ptr", "lent", "sink", "ref", "var",
+
     "int", "int8", "int16", "int32", "int64",
     "uint", "uint8", "uint16", "uint32", "uint64",
     "float", "float32", "float64",
     "bool", "char", "string",
 
-    "cstring", "openarray", "cstringarray", "seq", "set", "auto", "any"
+    "clong",
+    "culong",
+    "cchar",
+    "cschar",
+    "cshort",
+    "cint",
+    "csize",
+    "csize_t",
+    "clonglong",
+    "cfloat",
+    "cdouble",
+    "clongdouble",
+    "cuchar",
+    "cushort",
+    "cuint",
+    "culonglong",
+
+    # Those types are not built-in, and instead come from C++ interop
+    # wraphelp, but I don't want to complicate hcparse implementation, so I
+    # add them here.
+    "cchar32", "cchar16", "cwchar",
+
+    "cstring", "openarray", "cstringarray", "seq", "set", "auto", "any",
+    "void"
   ]
 
+  nimNorm(str) in nameSet
+
 func isReservedNimIdent*(str: string): bool =
-  const reserved = [
+  const reserved = toHashSet [
 
     "addr", "and", "as", "asm", "bind", "block", "break", "case", "cast",
     "concept", "const", "continue", "converter", "defer", "discard",

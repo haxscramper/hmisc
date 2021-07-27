@@ -6,6 +6,27 @@ import ../macros/argpass
 import
   ".."/[base_errors, hexceptions]
 
+##[
+
+[[code:CxxTemplateUndefined]] is made mostly for automatic wrapper
+generator, specifically for cases like these, where it might be /obvious,
+that most use cases/ for `==` return `bool`, but this intuition cannot be
+transferred to the wrapper generator. In that specific case you would need
+to do `(str1 == str2) as bool`.
+
+```c++
+template<typename _CharT>
+  inline
+  typename __gnu_cxx::__enable_if<__is_char<_CharT>::__value, bool>::__type
+  operator==(const basic_string<_CharT>& __lhs,
+       const basic_string<_CharT>& __rhs) _GLIBCXX_NOEXCEPT
+  { return (__lhs.size() == __rhs.size()
+      && !std::char_traits<_CharT>::compare(__lhs.data(), __rhs.data(),
+              __lhs.size())); }
+```
+
+]##
+
 func closureToCdecl*[T0, T1](
     cb: proc(a: var T0, b: T1) {.closure.}
   ): proc(a: var T0, b: T1, env: pointer) {.cdecl.} =

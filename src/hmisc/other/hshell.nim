@@ -649,6 +649,9 @@ func toStr*(inAst: ShellAst, oneline: bool = false): string =
 
 
 
+func toShellCmd*(ast: ShellAst): ShellCmd =
+  ShellCmd(bin: ast.toStr())
+
 iterator items*(cmd: ShellCmd): ShellCmdPart =
   for item in items(cmd.opts):
     yield item
@@ -856,12 +859,22 @@ func toShellArgument(arg: NimNode): NimNode =
 
 
 macro shellCmd*(cmd: untyped, args: varargs[untyped]): untyped =
+  let
+    onCallHead = "shellCmd does not support call arguments due to possible ambiguous interpretation"
+    onCallAnnot = "Can be interpreted as both value of\n the expression $() or subcommand ''"
+
   let shCmd = if cmd.kind == nnkIdent:
                 cmd.toStrLit()
+
               elif cmd.kind == nnkStrLit:
                 cmd
+
               elif cmd.kind == nnkAccQuoted:
                 cmd.mapIt(it.toStrLit().strVal()).join("").newLit()
+
+              elif cmd.kind in { nnkCall, nnkCommand }:
+                raise cmd.toCodeError(onCallHead, onCallAnnot)
+
               else:
                 raiseImplementError(&"#[ IMPLEMENT for kind {cmd.kind} ]#")
 
@@ -898,12 +911,8 @@ macro shellCmd*(cmd: untyped, args: varargs[untyped]): untyped =
         result.add newCall("arg", resId, newLit(res))
 
       of nnkCall, nnkCommand:
-        raise arg.toCodeError(
-          "shCmd does not support call arguments due to " &
-            "possible ambiguous interpretation",
-          "Can be interpreted as both value of\n" &
-            "the expression $() or subcommand ''"
-        )
+        raise arg.toCodeError(onCallHead, onCallAnnot)
+
       else:
         raiseImplementError(&"#[ IMPLEMENT for kind {arg.kind} ]#")
 
@@ -1245,10 +1254,15 @@ proc shellResult*(
   const nl = "\n"
 
   let hasTimeout = execTimeoutMs < high(int)
-  let start = getTime()
   var wasTerminated = false
   when not defined(NimScript):
     let pid = startShell(cmd, options, stdin)
+    if hasTimeout:
+      sleep(execTimeoutMs)
+      if pid.running():
+        wasTerminated = true
+        pid.kill()
+
     if discardOut and not reprintOut:
       while pid.running:
         discard
@@ -1259,11 +1273,6 @@ proc shellResult*(
 
       var outLineCount = 0
       while pid.running:
-        if hasTimeout:
-          if inMilliseconds(getTime() - start) > execTimeoutMs:
-            pid.kill()
-            wasTerminated = true
-
         try:
           let streamRes = outStream.readLine(line)
           if streamRes:
@@ -1361,7 +1370,8 @@ proc runShell*(
     options: set[ProcessOption] = {poEvalCommand},
     maxErrorLines: int = high(int),
     maxOutLines: int = high(int),
-    discardOut: bool = false
+    discardOut: bool = false,
+    execTimeoutMs: int = high(int)
   ): ShellExecResult =
   ## Execute shell command and return it's output. `stdin` - optional
   ## parameter, will be piped into process. `doRaise` - raise
@@ -1375,7 +1385,8 @@ proc runShell*(
     options = options,
     maxErrorLines = maxErrorLines,
     maxOutLines = maxOutLines,
-    discardOut = discardOut
+    discardOut = discardOut,
+    execTimeoutMs = execTimeoutMs
   )
 
   result = output.execResult

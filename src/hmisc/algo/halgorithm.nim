@@ -59,6 +59,13 @@ iterator ritems*[T](s: var LenIndexable[T]): var T =
   for idx in countdown(s.len - 1, 0):
     yield s[idx]
 
+iterator ritems*(slice: Slice[int]): int =
+  assert slice.a <= slice.b
+  var idx = slice.b
+  while slice.a <= idx:
+    yield idx
+    dec idx
+
 iterator rpairs*[T](s: T): auto =
   ## Iterate over sequence starting from the rightk
   for idx in countdown(s.len - 1, 0):
@@ -70,6 +77,16 @@ proc rfind*[T, Q](s: T, item: Q): int =
       return idx
 
   return -1
+
+proc rfindByKind*[T; K: enum](s: T, kind: K | set[K]): auto =
+  for idx in ritems(0 ..< s.len):
+    when kind is set:
+      if s[idx].kind in kind:
+        return (idx, s[idx])
+
+    else:
+      if s[idx].kind == kind:
+        return (idx, s[idx])
 
 iterator ritems*[T](s: openarray[T]): T =
   ## Iterate over sequence starting from the right
