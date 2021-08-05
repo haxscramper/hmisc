@@ -578,7 +578,7 @@ func makeDotEdge*(idFrom, idTo: DotNodeId): DotEdge =
   DotEdge(src: idFrom, to: @[idTo])
 
 func makeDotEdge*(idFrom, idTo: DotNodeId, label: string): DotEdge =
-  DotEdge(src: idFrom, to: @[idTo], label: some(label))
+  result = DotEdge(src: idFrom, to: @[idTo], label: some(label))
 
 func makeAuxEdge*(idFrom, idTo: DotNodeId): DotEdge =
   DotEdge(src: idFrom, to: @[idTo], weight: some(0.0), style: edsInvis)

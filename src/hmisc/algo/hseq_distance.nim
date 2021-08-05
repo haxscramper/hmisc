@@ -1365,11 +1365,15 @@ func `$`*(glob: GitGlob): string =
   result &= glob.patt
 
 func toGitGlob*(str: string): GitGlob =
+  assert str.len > 0
   if str[0] == '!':
     GitGlob(patt: str[1..^1], ign: false)
 
   else:
     GitGlob(patt: str, ign: true)
+
+proc match*(glob: GitGlob, str: string): bool =
+  gitignoreGlobMatch(str, glob.patt)
 
 proc accept*(glob: GitGlob, str: string, invert: bool = false): bool =
   if gitignoreGlobMatch(str, glob.patt):

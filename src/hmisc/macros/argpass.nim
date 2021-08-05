@@ -25,12 +25,24 @@ proc withFieldAssignsTo*(
 
   convertAsgn(result, body)
 
-  result = quote do:
-    block:
-      var `tmp` = `target`
-      `result`
-      `tmp`
+  if withTmp:
+    if asExpr:
+      result = quote do:
+        block:
+          var `tmp` = `target`
+          `result`
+          `tmp`
 
+    else:
+      result = quote do:
+        block:
+          var `tmp` = `target`
+          `result`
+
+macro withFields*(args: varargs[untyped]): untyped =
+  withFieldAssignsTo(
+    args[0], newStmtList(args[1 ..^ 1]),
+    withTmp = true, asExpr = true)
 
 macro argpass*(other: varargs[untyped]): untyped =
   let head = other[0]

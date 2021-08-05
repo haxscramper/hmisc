@@ -474,7 +474,7 @@ proc getFileName*(f: string): string =
 
 template pprintStackTrace*(): untyped =
   mixin toGreen, toDefault, toYellow, getFileName, splitFile
-  {.line: instantiationInfo().}:
+  {.line: instantiationInfo(fullPaths = true).}:
     block:
       let e = getCurrentException()
       let stackEntries =
@@ -518,7 +518,9 @@ template pprintStackTrace*(): untyped =
 
 
         let (_, name, ext) = filename.splitFile()
-        var filePref = $name.alignLeft(fileW)
+        var filePref = toLink(
+          ($tr.filename, tr.line, 0), strutils.alignLeft($name, fileW))
+
         if (not foundErr) and idx + 1 < stackEntries.len:
           let next = stackEntries[idx + 1]
           let nextFile = $next.filename
@@ -529,7 +531,7 @@ template pprintStackTrace*(): untyped =
 
         echo(
           prefix & (filePref) & " :" &
-            $(($tr.line).alignLeft(4)) &
+            $(strutils.alignLeft($tr.line, 4)) &
             " " &
             $($tr.procname).toYellow())
 

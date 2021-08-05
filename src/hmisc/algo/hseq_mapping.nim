@@ -266,6 +266,16 @@ func concatSide*[A, B](arg: (A, seq[seq[B]])): (A, seq[B]) =
 
 #==============================  searching  ==============================#
 
+template rfindIt*(s: typed, op: untyped): untyped =
+  var res = -1
+  for idx, it {.inject.} in rpairs(s):
+    if op:
+      res = idx
+      break
+
+  res
+
+
 template findIt*(s: typed, op: untyped): int =
   ##[ Find first element of the sequence for which `op` evaluates as
   true and return it's index. If no such element is found return -1

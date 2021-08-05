@@ -46,8 +46,10 @@ type
     hskScope
     hskIndent
     hskChDir
+    hskMain
 
   HLogScope = object
+    disabled: bool
     file: string
     line, column: int
     name: string
@@ -100,10 +102,11 @@ proc newTermLogger*(file: bool = false, line: bool = false): HLogger =
   result.showLine = line
   result.showFile = file
 
+  result.scopes =  @[HLogScope(kind: hskMain)]
+
   result.prefixLen = max(
     result.logPrefix.maxIt(it.str.len),
-    result.eventPrefix.maxIt(it.str.len)
-  )
+    result.eventPrefix.maxIt(it.str.len))
 
 proc prepareText*(
     logger: HLogger,
@@ -113,8 +116,8 @@ proc prepareText*(
 
   result = text.join(join)
   var indent = logger.scopes.len() * 2 + logger.prefixLen
-  if logger.leftAlignFiles > 0:
-    indent += logger.leftAlignFiles + 2
+  # if logger.leftAlignFiles > 0:
+  #   indent += logger.leftAlignFiles + 2
 
   if '\n' in result:
     var res = ""
@@ -135,6 +138,9 @@ proc logImpl*(
     args: seq[string],
     join: string = " "
   ) =
+
+  if logger.scopes.len > 0 and logger.scopes[^1].disabled:
+    return
 
   assertRef logger
   var prefix =
@@ -171,7 +177,7 @@ proc logImpl*(
   var indent = ""
   if logger.leftAlignFiles > 0:
     let lineRange =
-      logger.lastLogLine .. logger.lastLogLine + 1
+      logger.lastLogLine .. logger.lastLogLine + 2
 
     # echo lineRange, " ", logger.lastLogLine
     # echo position
@@ -191,7 +197,7 @@ proc logImpl*(
     prefix.add " "
     prefix.add toLink(position, filePrefix)
 
-  indent.add repeat("  ", logger.scopes.len())
+  indent.add repeat("  ", logger.scopes.len() - 1)
 
   if logger.skipNl > 0:
     dec logger.skipNl
@@ -202,6 +208,20 @@ proc logImpl*(
 
   logger.lastLog = level
   logger.lastEvent = event
+
+proc indentLen*(logger: HLogger): int =
+  2 * (logger.scopes.len() - 1) +
+    logger.prefixLen + logger.leftAlignFiles + 1
+
+
+proc separator0*(logger: HLogger) =
+  let spaces = indentLen(logger)
+  echo " " |<< spaces, "=".repeat(terminalWidth() - spaces)
+
+proc separator1*(logger: HLogger) =
+  let spaces = indentLen(logger)
+  echo " " |<< spaces, "v".repeat(terminalWidth() - spaces)
+  echo ""
 
 proc writeln*(logger: HLogger, text: varargs[string, `$`]) =
   stdout.writeline join(text, " ")
@@ -232,11 +252,15 @@ proc closeScope*(logger: HLogger) =
 template thisScope*(
     logger: HLogger, name: string,
     kind: HLogScopeKind = hskScope
-  ) =
+  ): untyped =
 
   let (file, line, column) = instantiationInfo(fullPaths = true)
   openScope(logger, kind, file, line, column, name)
   defer: closeScope(logger)
+
+template enableInScopeIf*(logger: HLogger, expr: bool): untyped =
+  if not expr:
+    logger.scopes[^1].disabled = true
 
 proc indent*(logger: HLogger) =
   openScope(logger, hskIndent, "", 0, 0, "")
@@ -272,9 +296,8 @@ macro logScope*(varname: untyped, pr: untyped): untyped =
   result[^1] = newStmtList(
     newCall("openScope", varname, ident("hskTask"),
             newLit(basename(pr[0]).strVal())),
-
-    pr[^1],
-    newCall("closeScope", varname)
+    nnkDefer.newTree(newCall("closeScope", varname)),
+    pr[^1]
   )
 
 
@@ -472,30 +495,35 @@ macro loggerField*(
 
     result.add quote do:
       template `nameId`(o: `T`, args: `vas`): untyped =
-        `module`.`implId`(o.`field`, `iinfo`, toStrSeq(args))
+        {.line: instantiationInfo(fullPaths = true)}:
+          `module`.`implId`(o.`field`, `iinfo`, toStrSeq(args))
 
   let (dumpId, pdumpId) = (ident"dump", ident"pdump")
 
   if doExport:
     result.add quote do:
       template `dumpId`*(o: `T`, expr: untyped, args: `vas`): untyped =
-        dumpImpl(o.`field`, `iinfo`,
-                 prepareDump(astToStr(expr), expr, toStrSeq(args)))
+        {.line: instantiationInfo(fullPaths = true)}:
+          dumpImpl(o.`field`, `iinfo`,
+                   prepareDump(astToStr(expr), expr, toStrSeq(args)))
 
       template `pdumpId`*(o: `T`, expr: untyped, args: `vas`): untyped =
-        dumpImpl(o.`field`, `iinfo`,
-                 preparePDump(astToStr(expr), expr, toStrSeq(args)))
+        {.line: instantiationInfo(fullPaths = true)}:
+          dumpImpl(o.`field`, `iinfo`,
+                   preparePDump(astToStr(expr), expr, toStrSeq(args)))
           # @[astToStr(expr), "\n=", pstring(expr)] & toStrSeq(args))
 
   else:
     result.add quote do:
       template `dumpId`(o: `T`, expr: untyped, args: `vas`): untyped =
-        dumpImpl(o.`field`, args, `iinfo`,
-          prepareDump(astToStr(expr), expr, toStrSeq(args)))
+        {.line: instantiationInfo(fullPaths = true)}:
+          dumpImpl(o.`field`, args, `iinfo`,
+            prepareDump(astToStr(expr), expr, toStrSeq(args)))
 
       template `pdumpId`(o: `T`, expr: untyped, args: `vas`): untyped =
-        dumpImpl(o.`field`, args, `iinfo`,
-          @[astToStr(expr), "\n=", pstring(expr)] & toStrSeq(args))
+        {.line: instantiationInfo(fullPaths = true)}:
+          dumpImpl(o.`field`, args, `iinfo`,
+            @[astToStr(expr), "\n=", pstring(expr)] & toStrSeq(args))
 
 
 template changeDir*(logger: HLogger, dir: AbsDir, body: untyped): untyped =

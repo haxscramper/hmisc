@@ -36,13 +36,13 @@ func intersect*(slice1, slice2: Slice[int]): Slice[int] =
   max(slice1.a, slice2.a) .. min(slice1.b, slice2.b)
 
 proc clamp*(slice: SliceTypes, base: int): Slice[int] =
-  if base == 0:
-    result = 0 .. -1
+  # if base == 0:
+  #   result = 0 .. -1
 
-  else:
-    result =
-      clamp(startFor(slice, base), 0, base) ..
-      clamp(endFor(slice, base), 0, base)
+  # else:
+  result =
+    clamp(startFor(slice, base), 0, base) ..
+    clamp(endFor(slice, base), 0, base)
 
   # if base < result.a and base < result.b:
   #   result = 0 .. -1
@@ -200,3 +200,10 @@ proc toRef*[T](t: T): ref T =
 
 template currIInfo*(): untyped =
   instantiationInfo(fullpaths = true)
+
+proc `of`*[A: object or ref object; K: enum](a: A, b: K | set[K]): bool =
+  when b is set:
+    a.kind in b
+
+  else:
+    a.kind == b

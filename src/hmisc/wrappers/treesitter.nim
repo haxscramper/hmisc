@@ -4,7 +4,8 @@ export unicode
 
 import
   ../base_errors,
-  ../helpers
+  ../helpers,
+  ../algo/clformat
 
 {.pragma: apiStruct, importc, incompleteStruct,
   header: "<tree_sitter/api.h>".}
@@ -542,8 +543,14 @@ proc fieldNames*[N: distinct](node: N): seq[string] =
     result.add childName(node, idx.int)
 
 
-func `[]`*[N: distinct](node: N,
-           idx: int, unnamed: bool = false): N =
+func `[]`*[N: distinct](
+    node: N,
+    idx: int | BackwardsIndex, unnamed: bool = false
+  ): N =
+
+  when idx is BackwardsIndex:
+    let idx = node.len(unnamed = unnamed) - idx.int + 1
+
   assert 0 <= idx and idx < node.len(unnamed = unnamed),
     "Cannot get subnode at index " & $idx & " - len is " &
       $node.len(unnamed = unnamed)
@@ -959,6 +966,10 @@ func getTs*[N, K](node: HtsNode[N, K]): N =
   else:
     node.node
 
+func getBase*[N, K](node: HtsNode[N, K]): string =
+  assertRef node.base
+  node.base[]
+
 func len*[N, K](
     node: HtsNode[N, K], unnamed: bool = false): int =
 
@@ -1156,7 +1167,8 @@ func toHtsTree*[N, K](
       var nodeIdx = 0
       for idx in items(cursor):
         if cursor.node().isNamed() or unnamed:
-          result.add aux(cursor)
+          let subConv = aux(cursor)
+          result.add subConv
           if cursor.isField():
             result.names[cursor.fieldName()] = nodeIdx
 
@@ -1177,10 +1189,14 @@ proc treeRepr*[N, K](
     langLen: int = 0,
     kindMap: TsKindMap[K] = default(array[K, TsBaseNodeKind]),
     unnamed: bool = false,
-    indexed: bool = false,
-    maxdepth: int = high(int),
-    pathIndexed: bool = false
+    opts: HDisplayOpts = defaultHDisplay
   ): string =
+
+  let
+    pathIndexed = opts.pathIndexed()
+    indexed = opts.positionIndexed()
+    maxdepth = opts.maxDepth
+    maxLen = opts.maxLen
 
   when node is distinct:
     let ts = TsNode(node)
@@ -1309,18 +1325,30 @@ proc treeRepr*[N, K](
           if level + 1 < `maxDepth`:
             var namedIdx = 0
             for idx, subn in pairs(node, unnamed = true):
-              if subn.isNamed() or unnamed:
-                res.add "\n"
-                subn.aux(
-                  level + 1, res, node.childName(idx),
-                  idx = namedIdx, path & namedIdx, nodeIdx = idx)
+              if idx < opts.maxlen:
+                if subn.isNamed() or unnamed:
+                  res.add "\n"
+                  subn.aux(
+                    level + 1, res, node.childName(idx),
+                    idx = namedIdx, path & namedIdx, nodeIdx = idx)
 
-                inc namedIdx
+                  inc namedIdx
+
+              else:
+                with res:
+                  add "\n"
+                  add getIndent(level + 1)
+                  add " + ("
+                  add toPluralNoun(
+                    "hidden node", node.len(unnamed = true) - opts.maxLen)
+                  add ")"
+
+                break
 
           else:
             with res:
               add " ... ("
-              add $node.len()
-              add " subnodes)"
+              add toPluralNoun("subnode", node.len())
+              add ")"
 
   aux(node, 0, result, "", 0, @[], 0)

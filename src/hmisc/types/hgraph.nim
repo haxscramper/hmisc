@@ -17,6 +17,7 @@ checklist
 - [ ] All iterator algorithms have both mutable and immutable implementations
 - [ ] As little side effects as possible
 - [ ] Make node and edge ID's distinct integers to avoid messing them up
+- [ ] Iterateo over node value pairs (source, target: N, edge: E)
 
 - IDEA :: Add `->` and `<-` as operators that would return `TempEdge`
   object that can be added via `graph.add source -> target`.
@@ -79,7 +80,7 @@ type
       of false:
         discard
 
-  HGraph*[N: not void, E: not void] = object
+  HGraph*[N: not void, E: not void] {.requiresinit.} = object
     structure*: HGraphStructure
     edgeMap*: HEdgeMap[E]
     nodeMap*: HNodeMap[N]
@@ -158,11 +159,10 @@ func incl*(s: var HNodeSet, node: HNodeSet) =
 func incl*(s: var HEdgeSet, edge: HEdgeSet) =
   s.intSet.incl edge.intSet
 
-func excl*(s: var HNodeSet, node: HNode) =
-  s.intSet.excl node.id.int
-
-func excl*(s: var HEdgeSet, edge: HEdge) =
-  s.intSet.excl edge.id.int
+func excl*(s: var HNodeSet, node: HNode) = s.intSet.excl node.id.int
+func excl*(s: var HNodeSet, s2: HNodeSet) = s.intSet.excl s2.intSet
+func excl*(s: var HEdgeSet, edge: HEdge) = s.intSet.excl edge.id.int
+func excl*(s: var HEdgeSet, s2: HEdgeSet) = s.intSet.excl s2.intSet
 
 func `<`*[S: HEdgeSet | HNodeSet](s1, s2: S): bool = s1.intSet < s2.intSet
 
@@ -224,6 +224,10 @@ func toSet*(path: HGraphPath): HNodeSet =
   for node in path:
     result.incl node
 
+func toSet*(paths: seq[HGraphPath]): seq[HNodeSet] =
+  for path in paths:
+    result.add toSet(path)
+
 func len*(stack: HNodeStack): int = stack.stack.len
 func top*(stack: HNodeStack): HNode = stack.stack[^1]
 func add*(stack: var HNodeStack, node: HNode) =
@@ -242,6 +246,10 @@ func contains*(stack: HNodeStack, node: HNode): bool =
 
 func `[]`*[N, E](g: HGraph[N, E], node: HNode): N =
   g.nodeMap.valueMap[node]
+
+func `[]`*[N, E](g: HGraph[N, E], idSet: HNodeSet): seq[N] =
+  for id in items(idSet):
+    result.add g.nodeMap.valueMap[id]
 
 func `[]`*[N, E](g: HGraph[N, E], edge: HEdge): E =
   g.edgeMap.valueMap[edge]
@@ -582,14 +590,46 @@ iterator inEdges*[N, E](graph: HGraph[N, E], target: HNode): HEdge =
     for edgeId in items(graph.structure.ingoingIndex[target.id]):
       yield edgeId
 
-iterator outNodes*[N, E](graph: HGraph[N, E], source: HNode): HNode =
+template optYield(
+    node: HNode, yieldMultiedge: bool, yielded: HNodeSet): untyped =
+
+  let target = node
+  if yieldMultiedge or target notin yielded:
+
+    yield target
+
+    if not yieldMultiedge:
+      yielded.incl target
+
+
+iterator outNodes*[N, E](
+    graph: HGraph[N, E], source: HNode,
+    yieldMultiedge: bool = false
+  ): HNode =
+
+  var yielded: HNodeSet
   for edge in outEdges(graph, source):
-    yield graph.target(edge)
+    optYield(graph.target(edge), yieldMultiedge, yielded)
 
-iterator inNodes*[N, E](graph: HGraph[N, E], source: HNode): HNode =
+iterator inNodes*[N, E](
+    graph: HGraph[N, E], source: HNode,
+    yieldMultiedge: bool = false
+  ): HNode =
 
+  var yielded: HNodeSet
   for edge in inEdges(graph, source):
-    yield graph.source(edge)
+    optYield(graph.source(edge), yieldMultiedge, yielded)
+
+iterator inNodes*[N, E](
+    graph: HGraph[N, E],
+    source: HNodeSet,
+    yieldMultiedge: bool = false
+  ): HNode =
+
+  var yielded: HNodeSet
+  for node in items(source):
+    for edge in inEdges(graph, node):
+      optYield(graph.source(edge), yieldMultiedge, yielded)
 
 iterator adjacent*[N, E](graph: HGraph[N, E], node: HNode): HNode =
   ## Iterate over all adjacent nodes for `node`
@@ -614,6 +654,12 @@ iterator nodes*[N, E](graph: HGraph[N, E]): HNode =
   ## Iterate over all nodes in graph
   for node, value in pairs(graph.nodeMap):
     yield node
+
+proc nodeSet*[N, E](graph: HGraph[N, E]): HNodeSet =
+  graph.structure.nodeSet
+
+# iterator nodePairValues*[N, E](graph: HGraph[N, E]): tuple[source, target: N, edge: E] =
+
 
 iterator nodesId*[N, E](graph: HGraph[N, E]): int =
   for id, _ in pairs(graph.nodeMap):
@@ -799,7 +845,8 @@ proc minimalSpanningTree*[N, E](graph: HGraph[N, E]): HGraph[N, E] =
 proc findCycles*[N, E](
     graph: HGraph[N, E],
     ignoreSelf: bool = false,
-    overrideDirected: bool = false
+    overrideDirected: bool = false,
+    yieldMultiedge: bool = false
   ): seq[HGraphPath] =
 
   var
@@ -835,11 +882,11 @@ proc findCycles*[N, E](
         processDFS()
 
 
-    for vertex in outNodes(graph, top):
+    for vertex in outNodes(graph, top, yieldMultiedge):
       body(vertex)
 
     if overrideDirected:
-      for vertex in inNodes(graph, top):
+      for vertex in inNodes(graph, top, yieldMultiedge):
         body(vertex)
 
     visited.incl stack.pop()
@@ -1120,14 +1167,90 @@ proc dotRepr*[N, E](
     result.add graph
 
 
+proc dotReprDollarNode*[N](node: N, hnode: HNode): DotNode =
+  makeDotNode(0, $node)
+
+proc dotReprCollapseEdgesNoLabel*[E](
+  edges: seq[tuple[edge: E, hedge: HEdge]]): DotEdge =
+    makeDotEdge(0, 0, "")
+
+proc dotReprCollapseEdgesJoin*[E](
+  edges: seq[tuple[edge: E, hedge: HEdge]]): DotEdge =
+    makeDotEdge(0, 0, mapIt(edges, $it.edge).join("\n"))
+
 proc dotRepr*[N, E](
-    graph: HGraph[N, E]): DotGraph =
+    graph: HGraph[N, E],
+    nodeDotRepr: proc(node: N, hnode: HNode): DotNode,
+    edgeDotRepr: proc(edges: seq[tuple[edge: E, hedge: HEdge]]): DotEdge = nil,
+    baseGraph: Option[DotGraph] = none(DotGraph),
+    clusters: seq[tuple[nodes: HNodeSet, name: string]] = @[]
+  ): DotGraph =
+
+  if baseGraph.isSome():
+    result = baseGraph.get()
+
+  else:
+    result = DotGraph(
+      name: "G",
+      styleNode: DotNode(
+        shape: nsaBox, labelAlign: nlaLeft, fontname: "consolas"),
+      styleEdge: DotEdge(
+        fontname: "consolas")
+    )
+
+  var nodeClusters: seq[(HNodeSet, DotGraph)]
+  for (nodes, name) in clusters:
+    nodeClusters.add((
+      nodes,
+      makeDotGraph().withIt((it.label = name))))
+
+  for node in nodes(graph):
+    var dotNode = nodeDotRepr(graph[node], node)
+    dotNode.id = node.id
+
+    var inSubgraph = false
+    for (nodes, graph) in mitems(nodeClusters):
+      if node in nodes:
+        graph.add dotNode
+        inSubgraph = true
+        break
+
+    if not inSubgraph:
+      result.nodes.add dotNode
+
+  var edgePairs: Table[(HNode, HNode), seq[(E, HEdge)]]
+  for edge in edges(graph):
+    edgePairs.mgetOrPut(
+      (graph.source(edge),
+       graph.target(edge)), @[]).add (graph[edge], edge)
+
+  if edgeDotRepr.isNil:
+    for pair, edges in pairs(edgePairs):
+      result.edges.add makeDotEdge(pair[0], pair[1])
+
+  else:
+    for pair, edges in pairs(edgePairs):
+      var dotEdge = edgeDotRepr(edges)
+      dotEdge.src = pair[0].id
+      dotEdge.to = @[pair[1].id]
+      result.edges.add dotEdge
+
+  for (nodes, graph) in nodeClusters:
+    result.add graph
+
+
+proc dotRepr*[N, E](
+    graph: HGraph[N, E],
+    baseGraph: Option[DotGraph] = none(DotGraph),
+    clusters: seq[tuple[nodes: HNodeSet, name: string]] = @[]
+  ): DotGraph =
   ## Convert `graph` to graphviz representation, using stringification for
   ## node and edge values.
   return dotRepr(
     graph,
     proc(node: N, hnode: HNode): DotNode =
       DotNode(shape: nsaRect, label: some $node),
-    proc(edge: E, hedge: HEdge): DotEdge =
-      DotEdge(label: some $edge),
+    proc(edge: E, hedge: HEdge): DotEdge = DotEdge(label: some $edge),
+    baseGraph = baseGraph,
+    clusters = clusters
   )

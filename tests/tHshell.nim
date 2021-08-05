@@ -1,11 +1,12 @@
 import std/[
   strutils, sequtils, strformat, segfaults,
-  deques, options, parseutils, enumerate, unittest
+  deques, options, parseutils, enumerate
 ]
 
 import
   hmisc/[helpers, hdebug_misc],
-  hmisc/other/[hshell, hshell_convert, oswrap, hjson, nimbleutils],
+  hmisc/other/[
+    hshell, hshell_convert, oswrap, hjson, nimbleutils, hunittest],
   hmisc/algo/[hlex_base, hparse_base],
   hmisc/scripts/hmisc_putils
 

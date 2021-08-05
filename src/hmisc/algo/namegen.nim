@@ -142,7 +142,7 @@ func commonPrefix*[T](seqs: seq[seq[T]]): seq[T] =
 
 func isReservedNimType*(str: string): bool =
   const nameSet = toHashSet [
-    "ptr", "lent", "sink", "ref", "var",
+    "ptr", "lent", "sink", "ref", "var", "pointer",
 
     "int", "int8", "int16", "int32", "int64",
     "uint", "uint8", "uint16", "uint32", "uint64",

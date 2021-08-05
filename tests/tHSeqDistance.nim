@@ -42,6 +42,7 @@ suite "String matches":
       "a", "b/x":                           ("a/**", false),
       "a", "b", "ab", "axb", "a/b":         ("a\\?b", false),
       "x/a/b", "a/b/x":                     ("a/**/b", false),
+      "Strace":                             ("*", true)
     }:
       let res = gitignoreGlobMatch(text, patt[0])
       if res != patt[1]:

@@ -27,11 +27,14 @@ template<typename _CharT>
 
 ]##
 
-func closureToCdecl*[T0, T1](
-    cb: proc(a: var T0, b: T1) {.closure.}
-  ): proc(a: var T0, b: T1, env: pointer) {.cdecl.} =
-
+macro closureToCdeclImpl(c: typed): untyped =
   discard
+
+func closureToCdecl*[C: proc {.closure.}](c: C): auto =
+  closureToCdeclImpl(c)
+
+func splitClosure*[C: proc {.closure.}](c: C): auto =
+  return (impl: cast[typeof(closureToCdecl(c))](rawProc(c)), env: rawEnv(c))
 
 {.push warning[InheritFromException]:off.}
 
@@ -89,8 +92,15 @@ proc `as`*[T](
 proc `as`*[T](asSource: T, target: typedesc[CxxTemplateUndefined]):
   CxxTemplateUndefined {.importcpp: "(#)".}
 
-proc cxxInitList*[T](args: T) {.importcpp: "{@}", varargs.}
 
+type StdInitializerListBuilder = object
+const lc* = StdInitializerListBuilder()
+
+proc cxxInitList*[T](args: T) {.importcpp: "{@}", varargs.}
+macro `[]`*(lc: StdInitializerListBuilder, a: varargs[untyped]): untyped =
+  result = newCall("cxxInitList")
+  for arg in a:
+    result.add arg
 
 proc newImportAux*() {.importc: "//", header: "<new>".} =
   discard

@@ -6,7 +6,7 @@ import hmisc/hasts/graphviz_ast
 import benchy
 
 import std/[unittest, sequtils, algorithm, random, strformat,
-            hashes]
+            hashes, options]
 
 startHax()
 
@@ -49,6 +49,99 @@ suite "Graph API":
     let cycles = graph.findCycles(ignoreSelf = true)
     stopHax()
     echo cycles
+
+  test "Find cycles with multiedges":
+    var graph = newHGraph[string, string]()
+    discard graph.addOrGetEdge(mapIt({
+      "codecvt":   "initializer_list",
+      "codecvt":   "ios",
+      "codecvt":   "iosfwd",
+      "codecvt":   "istream",
+      "codecvt":   "iterator",
+      "codecvt":   "memory",
+      "codecvt":   "streambuf",
+      "codecvt":   "string",
+      "codecvt":   "x86_64_pc_linux_gnu/bits/cppconfig",
+      "codecvt":   "x86_64_pc_linux_gnu/bits/cpplocale",
+      "ios":       "codecvt",
+      "ios":       "initializer_list",
+      "ios":       "iosfwd",
+      "ios":       "istream",
+      "ios":       "iterator",
+      "ios":       "memory",
+      "ios":       "streambuf",
+      "ios":       "string",
+      "ios":       "x86_64_pc_linux_gnu/bits/cppconfig",
+      "ios":       "x86_64_pc_linux_gnu/bits/cpplocale",
+      "iosfwd":    "codecvt",
+      "iosfwd":    "initializer_list",
+      "iosfwd":    "ios",
+      "iosfwd":    "istream",
+      "iosfwd":    "iterator",
+      "iosfwd":    "memory",
+      "iosfwd":    "streambuf",
+      "iosfwd":    "string",
+      "iosfwd":    "x86_64_pc_linux_gnu/bits/cppconfig",
+      "iosfwd":    "x86_64_pc_linux_gnu/bits/cpplocale",
+      "istream":   "codecvt",
+      "istream":   "initializer_list",
+      "istream":   "ios",
+      "istream":   "iosfwd",
+      "istream":   "iterator",
+      "istream":   "memory",
+      "istream":   "streambuf",
+      "istream":   "string",
+      "istream":   "x86_64_pc_linux_gnu/bits/cppconfig",
+      "istream":   "x86_64_pc_linux_gnu/bits/cpplocale",
+      "iterator":  "codecvt",
+      "iterator":  "initializer_list",
+      "iterator":  "ios",
+      "iterator":  "iosfwd",
+      "iterator":  "istream",
+      "iterator":  "iterator",
+      "iterator":  "memory",
+      "iterator":  "streambuf",
+      "iterator":  "string",
+      "iterator":  "x86_64_pc_linux_gnu/bits/cppconfig",
+      "iterator":  "x86_64_pc_linux_gnu/bits/cpplocale",
+      "memory":    "codecvt",
+      "memory":    "initializer_list",
+      "memory":    "ios",
+      "memory":    "iosfwd",
+      "memory":    "istream",
+      "memory":    "iterator",
+      "memory":    "streambuf",
+      "memory":    "string",
+      "memory":    "x86_64_pc_linux_gnu/bits/cppconfig",
+      "memory":    "x86_64_pc_linux_gnu/bits/cpplocale",
+      "streambuf": "codecvt",
+      "streambuf": "initializer_list",
+      "streambuf": "ios",
+      "streambuf": "iosfwd",
+      "streambuf": "istream",
+      "streambuf": "iterator",
+      "streambuf": "string",
+      "streambuf": "x86_64_pc_linux_gnu/bits/cppconfig",
+      "streambuf": "x86_64_pc_linux_gnu/bits/cpplocale",
+      "string":    "codecvt",
+      "string":    "initializer_list",
+      "string":    "ios",
+      "string":    "iosfwd",
+      "string":    "istream",
+      "string":    "iterator",
+      "string":    "memory",
+      "string":    "streambuf",
+      "string":    "x86_64_pc_linux_gnu/bits/cppconfig",
+      "string":    "x86_64_pc_linux_gnu/bits/cpplocale",
+    }, ((it[0], it[1]), &"{it[0]} -> {it[1]}")))
+
+    let cycles = graph.findCycles()
+    echo cycles.len()
+    graph.
+      dotRepr(
+        baseGraph = some makeDotGraph(dgpRecords),
+        clusters = cycles.mergeCycleSets().mapIt((it, ""))).
+      toPng(getAppTempDir() /. "cycles2.png")
 
   test "Iterations, graphviz repr":
     var graph = newHGraph[string, int]()

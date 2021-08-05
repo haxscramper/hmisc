@@ -971,20 +971,25 @@ iterator walkDirRec*(
     relative = relative,
     checkDir = checkDir,
   ):
-    let comp = os.getFileInfo(
-      if relative:
-        os.joinPath(dir.getStr(), path)
+    try:
+      let comp = os.getFileInfo(
+        if relative:
+          os.joinPath(dir.getStr(), path)
+
+        else:
+          path
+      ).kind
+
+      if globs.len > 0:
+        if globs.accept(path, true):
+          walkYieldImpl()
 
       else:
-        path
-    ).kind
-
-    if globs.len > 0:
-      if globs.accept(path, true):
         walkYieldImpl()
 
-    else:
-      walkYieldImpl()
+    except OsError:
+      # TODO implement protection against broken symbolic links
+      discard
 
 iterator walkDir*[T: AnyPath](
     dir: AnyDir,
@@ -1714,6 +1719,10 @@ proc mkDir*(dir: AnyDir | string) =
   ## Creates the directory dir including all necessary subdirectories.
   ## If the directory already exists, no error is raised.
   osOrNims(os.createDir(dir.getStr()), system.mkDir(dir.getStr()))
+
+proc ensureDir*(file: AbsFile) =
+  if not exists(file.dir()):
+    mkDir(file.dir())
 
 proc mvFile*(source, dest: AnyFile) =
   ## Moves the file from to to.

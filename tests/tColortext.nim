@@ -1,11 +1,10 @@
 import
   hmisc/types/[colortext, colorstring],
   hmisc/algo/halgorithm,
+  hmisc/other/[hunittest],
   hmisc/[hdebug_misc, base_errors]
 
-import std/[
-  strformat, unittest, strutils, sequtils, unicode, macros
-]
+import std/[strformat, strutils, sequtils, unicode, macros]
 
 startHax()
 

@@ -55,6 +55,24 @@ func startsWith*(s: string, part: StrPart): bool =
 
       return false
 
+func skip1*(s: string, part: StrPart): int =
+  case part.kind:
+    of spkSet:
+      if s.len > 0 and s[0] in part.chars:
+        result = 1
+
+      else:
+        result = 0
+
+    else:
+      for elem in part.strs:
+        if s.startsWith(elem):
+          return elem.len
+
+      result = 0
+
+
+
 func endsWith*(s: string, part: Strpart): bool =
   case part.kind:
     of spkSet:
