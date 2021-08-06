@@ -15,11 +15,9 @@ import std/[
 ]
 
 import
-  ../base_errors,
-  ../algo/[hmath, halgorithm, hseq_mapping],
-  ../types/[colorstring, hmap],
-  ../hdebug_misc,
-  ../hexceptions
+  ../core/[all, code_errors],
+  ../algo/[hmath, halgorithm, hseq_mapping, htemplates],
+  ../types/[colorstring, hmap]
 
 const infty = 1024 * 1024 * 1024 * 1024
 
@@ -92,7 +90,7 @@ type
     bkEmpty ## Empty layout block - ignored by `add` etc.
 
   LytStr* = object
-    text*: ColoredLine
+    text*: ColoredText
 
   LytBlock* = ref object
     layoutCache: Table[Option[LytSolution], Option[LytSolution]]
@@ -156,15 +154,15 @@ type
 proc margin(buf: OutConsole): int = buf.margins[^1]
 
 func `$`(s: LytStr): string = $s.text
-func len*(s: LytStr): int = sumIt(s.text, it.len)
+func len*(s: LytStr): int = s.text.len
 func lytStr(s: string): LytStr =
-  LytStr(text: @[toColored(s, initStyle())])
+  LytStr(text: s + defaultPrintStyling)
 
-func lytStr(s: ColoredLine): LytStr =
-  LytStr(text: s)
+func lytStr(s: ColoredLine | ColoredRuneLine): LytStr =
+  LytStr(text: toColoredtext(s))
 
 
-func lytStr(s: ColoredString): LytStr = LytStr(text: @[s])
+func lytStr(s: ColoredString): LytStr = LytStr(text: toColoredText(s))
 
 
 proc printStr(buf: var OutConsole, str: ColoredString | string | LytStr) =
@@ -335,11 +333,10 @@ func hash(sln: Option[LytSolution]): Hash =
 #*************************************************************************#
 
 func lytString(s: ColoredString): LayoutElement =
-  LayoutElement(text: LytStr(text: @[s]), kind: lekString)
+  LayoutElement(text: lytStr(s), kind: lekString)
 
 func lytString(s: string): LayoutElement =
-  LayoutElement(text: LytStr(
-    text: @[toColored(s, initStyle())]), kind: lekString)
+  LayoutElement(text: lytStr(s), kind: lekString)
 
 func lytString(s: LytStr): LayoutElement =
   LayoutElement(text: s, kind: lekString)
@@ -785,13 +782,14 @@ func makeEmptyBlock*(): LytBlock =
   LytBlock(kind: bkEmpty, breakMult: 1, minWidth: 0)
 
 func makeTextBlock*(
-    text: ColoredString | ColoredLine,
+    text: ColoredString | ColoredLine | ColoredRuneLine,
     breakMult: int = 1
   ): LytBlock =
 
   result = LytBlock(
-    kind: bkText, text: text.lytStr(),
-    breakMult: breakMult, minWidth: 0)
+    kind: bkText, text: lytStr(text),
+    breakMult: breakMult, minWidth: 0
+  )
 
   result.minWidth = result.text.len()
 
@@ -987,7 +985,8 @@ func makeWrapBlock*(
     kind: bkWrap, wrapElements: toSeq(elems), breakMult: breakMult,
     minWidth: elems.maxIt(it.minWidth))
 
-func makeVerbBlock*[S: string | ColoredString | ColoredLine](
+func makeVerbBlock*[
+    S: string | ColoredString | ColoredLine | ColoredRuneLine](
     textLines: openarray[S], breaking: bool = true,
     firstNl: bool = false,
     breakMult: int = 1
@@ -1004,7 +1003,8 @@ func makeVerbBlock*[S: string | ColoredString | ColoredLine](
 
 
 func makeTextOrVerbBlock*(
-    text: string | ColoredString | ColoredLine | seq[ColoredLine],
+    text: string | ColoredString | ColoredLine |
+          seq[ColoredLine] | ColoredText,
     breaking: bool = false,
     firstNl: bool = false,
     breakMult: int = 1
@@ -1033,6 +1033,16 @@ func makeTextOrVerbBlock*(
     else:
       result = makeTextBlock(lines[0], breakMult)
       result.isBreaking = breaking
+
+  elif text is ColoredText:
+    if text.hasNewline():
+      result = makeVerbBlock(
+        text.toRuneGrid(), breaking, firstNl, breakMult)
+
+    else:
+      result = makeTextBlock(text.toRuneLine(), breakMult)
+      result.isBreaking = breaking
+
 
   else:
     if '\n' in text:
@@ -1454,7 +1464,7 @@ proc `[]`*(
 
 proc `[]`*(
     b: static[LytBuilderKind],
-    a: string | ColoredString | ColoredLine | seq[ColoredLine],
+    a: string | ColoredString | ColoredLine | seq[ColoredLine] | ColoredText,
     breaking: bool = false
   ): LytBlock =
 
@@ -1501,6 +1511,14 @@ func `??`*(bl: LytBlock, condOk: bool): LytBlock =
 
 func `??`*(blocks: tuple[ok, fail: LytBlock], condOk: bool): LytBlock =
   if condOk: blocks.ok else: blocks.fail
+
+func condOr*(
+    cond: bool,
+    ok: LytBlock,
+    fail: LytBlock = makeEmptyBlock()): LytBlock =
+  if cond: ok else: fail
+
+
 
 func join*(
     blocks: LytBlock,
@@ -1633,7 +1651,7 @@ func codegenRepr*(inBl: LytBlock, indent: int = 0): string =
         result &= pref & "]"
 
       of bkText:
-        let text = bl.text.text.mapIt(it.str).join("")
+        let text = bl.text.text.mapIt1($it).join("")
         result = &"{pref}T[\"{text}\"]"
 
       of bkVerb:
@@ -1673,7 +1691,7 @@ func pyCodegenRepr*(inBl: LytBlock, indent: int = 0): string =
         result &= pref & "])"
 
       of bkText:
-        let text = bl.text.text.mapIt(it.str).join("").
+        let text = bl.text.text.mapIt1($it).join("").
           replace("\"", "\\\"")
 
         result = &"{pref}TextBlock(\"{text}\")"

@@ -1,7 +1,7 @@
 import std/[sequtils, strformat, strutils,
             parseutils, macros, algorithm]
 
-import ../base_errors
+import ../core/exceptions
 
 type
   StrBackIndex* = distinct string

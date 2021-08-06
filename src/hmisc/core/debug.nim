@@ -1,5 +1,4 @@
-import strutils, macros
-# import times
+import std/[strutils, macros]
 
 var doLog {.compiletime.}: bool = false
 var doLogRuntime: bool = false
@@ -240,3 +239,7 @@ template globalTick*(): untyped =
     var tick {.global.}: int = -1
     inc tick
     tick
+
+template here*(expr: untyped = ""): string =
+  let (file, column, _) = instantiationInfo()
+  file & ":" & $column & $expr

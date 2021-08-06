@@ -1,10 +1,11 @@
 import
-  std/[macros, strformat, sequtils, strutils, times]
+  std/[macros, strformat, sequtils, strutils, times, options]
 
 import
   ../macros/nim_ast_help,
   ../algo/hseq_distance,
-  ../hdebug_misc,
+  ../other/[hpprint],
+  ../core/[all, code_errors],
   ./oswrap
 
 
@@ -32,6 +33,13 @@ type
     tfkException
     tfkManualFail
 
+    tfkStringDiff
+    tfkStructDiff
+    tfkAstDiff
+    tfkMatchDiff
+    tfkStructEq
+    tfkStructNeqNoDiff
+
   TestReportKind = enum
     trkCheckpoint
 
@@ -56,7 +64,20 @@ type
   TestReport = object
     location {.requiresinit.}: TestLocation
     msg: string
-    failKind: TestFailKind
+    case failKind: TestFailKind
+      of tfkStringDiff:
+        textDiff: ShiftedDiff[string]
+
+      of tfkStructDiff, tfkStructEq:
+        structDiff: PPrintTree
+
+      of tfkException:
+        exception: ref Exception
+
+      else:
+        discard
+
+
     case kind: TestReportKind
       of trkCheckOk, trkCheckFail:
         strs: seq[tuple[expr, value: string]]
@@ -74,8 +95,8 @@ type
 
   TestProcPrototype = proc(testContext: TestContext)
 
-func allBackends(config: TestConf): bool =
-  let b = config.backends
+func allBackends(conf: TestConf): bool =
+  let b = conf.backends
   b.len == 0 or ((tbC in b) and (tbCpp in b) or (tbJs in b) or (tbNims in b))
 
 proc report(context: TestContext, report: TestReport) =
@@ -83,6 +104,17 @@ proc report(context: TestContext, report: TestReport) =
   case report.kind:
     of trkSectionKinds:
       echo ">> ", report.conf.name
+      if report.failKind == tfkException:
+        pprintStackTrace(report.exception)
+
+    of trkCheckFail:
+      case report.failKind:
+        of tfkStructDiff:
+          echo report.structDiff.pstring()
+
+        else:
+          discard
+
 
     else:
       discard
@@ -141,11 +173,63 @@ func testLocation(node: NimNode): TestLocation =
   let iinfo = node.lineInfoObj()
   TestLocation(file: iinfo.filename, line: iinfo.line, column: iinfo.column)
 
-template stringdiff*(str1, str2: string, loc: TestLocation): TestReport =
-  TestReport(location: loc)
+proc stringdiff*(str1, str2: string, loc: TestLocation): TestReport =
+  if str1 != str2:
+    result = TestReport(
+      location: loc,
+      kind: trkCheckFail,
+      failKind: tfkStringDiff,
+    )
 
-template structdiff*[T](struct1, struct2: T, loc: TestLocation): TestReport =
-  TestReport(location: loc)
+    let
+      text1 = str1.split()
+      text2 = str2.split()
+
+    result.textDiff = shiftDiffed(
+      text1, text2, myersDiff(text1, text2), "")
+
+  else:
+    result = TestReport(location: loc, kind: trkCheckOk)
+
+proc structdiff*(ptree1, ptree2: PPrintTree, loc: TestLocation): TestReport =
+  let
+    diff = treeDiff(ptree1, ptree2)
+
+  if isSome(diff):
+    result = TestReport(
+      location: loc,
+      kind: trkCheckFail,
+      failKind: tfkStructDiff,
+      structDiff: diff.get())
+
+  else:
+    result = TestReport(location: loc, kind: trkCheckOk)
+
+
+proc structdiff*[T](struct1, struct2: T, loc: TestLocation): TestReport =
+  bind pptree
+  structdiff(pptree(struct1), pptree(struct2), loc)
+
+
+proc structeq*[T](struct1, struct2: T, loc: TestLocation): TestReport =
+  bind pptree
+  if struct1 == struct2:
+    let diff = treeDiff(pptree(struct1), pptree(struct2))
+    if diff.isSome():
+      result = TestReport(
+        location: loc,
+        kind: trkCheckFail,
+        failKind: tfkStructDiff,
+        structDiff: diff.get())
+
+    else:
+      result = TestReport(
+        location: loc, kind: trkCheckFail, failKind: tfkStructNeqNoDiff)
+
+  else:
+    result = TestReport(location: loc, trkCheckOk)
+
+
 
 template astdiff*[T](ast1, ast2: T, loc: TestLocation): TestReport =
   TestReport(location: loc)
@@ -184,34 +268,39 @@ template wantContext*(): untyped {.dirty.} =
     {.error: ""}
 
 proc canRunTest(
-    context: TestContext, config: TestConf): bool =
+    context: TestContext, conf: TestConf): bool =
   if context.globs.len == 0:
     return true
 
   for glob in context.globs:
-    if config.isSuite:
-      if glob.suiteGlob.match(config.name):
+    if conf.isSuite:
+      if glob.suiteGlob.match(conf.name):
         return true
 
     else:
-      if glob.testGlob.match(config.name):
+      if glob.testGlob.match(conf.name):
         return true
 
 proc maybeRunSuite(
     context: TestContext,
     suiteProc: TestProcPrototype,
-    config: TestConf,
+    conf: TestConf,
     loc: TestLocation
   ) =
 
-  if context.canRunTest(config):
-    suiteProc(context)
-    context.report suiteEnded(config, loc)
+  if context.canRunTest(conf):
+    try:
+      suiteProc(context)
+
+      context.report suiteEnded(conf, loc)
+    except:
+      report(context, suiteFailed(conf, loc, getCurrentException()))
+
 
 proc checkpoint(loc: TestLocation, msg: string): TestReport =
   TestReport(location: loc, msg: msg, kind: trkCheckpoint)
 
-macro configureTests(config: untyped): untyped =
+macro configureTests(conf: untyped): untyped =
   discard
 
 proc newTestContext(): TestContext =
@@ -257,11 +346,7 @@ macro suite*(name: static[string], body: untyped): untyped =
       let loc = `locLit`
       proc `suiteProc`(testContext {.inject.}: TestContext) =
         {.line: `line`.}:
-          try:
-            `body`
-
-          except:
-            `report`(testContext, `suiteFailed`(conf, loc, getCurrentException()))
+          `body`
 
       when hasTestContext():
         maybeRunSuite(testContext, `suiteProc`, conf, loc)
@@ -403,15 +488,3 @@ template checkpoint*(mgs: string): untyped =
     let (file, line, column) = instantiationInfo(fullpaths = true)
     testContext.report checkpoint(
       TestLocation(line: line, column: column, file: file), msg)
-
-
-when ismainmodule:
-  suite "main suite":
-    test "test suite":
-      check(stringdiff("a", "b"))
-
-    test "parametrize":
-      expandMacros:
-        parametrizeOnConst N, [1, 3, 4]:
-          echo N
-          echo N + 1

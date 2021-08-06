@@ -8,27 +8,30 @@ import
     json, strformat, tables, strutils, sequtils
   ],
   ".."/[
-    hexceptions,
-    hdebug_misc,
+    core/all,
+    core/algorithms,
     types/colorstring,
     macros/introspection,
     macros/argpass,
     algo/hseq_mapping,
     algo/hseq_distance,
-    algo/halgorithm
+    algo/halgorithm,
+    algo/clformat
   ]
 
 type
-  PprintType* = object
+  PPrintType* = object
     ## Simplified representation of generic types
     head*: string
+    isVariant*: bool
     parameters*: seq[PPrintType]
 
 
-  PprintTreeKind* = enum
+  PPrintTreeKind* = enum
     ptkIgnored
     ptkVisited
     ptkNil
+    ptkAnnotation
 
     ptkConst
     ptkTuple
@@ -56,29 +59,6 @@ type
   PPrintLytForce* = tuple[match: PprintMatch, force: PPrintLytChoice]
 
 
-  PprintTree* = object
-    path*: PPrintPath
-    treeId*: int
-    styling* {.requiresinit.}: PrintStyling
-    treeType*: PPrintType
-    size*: int
-    height*: int
-    forceLayout*: Option[PPrintLytChoice]
-    visitedAt*: int
-
-
-    case kind*: PprintTreeKind
-      of ptkIgnored, ptkNil, ptkVisited:
-        discard
-
-      of ptkConst:
-        strVal*: string
-
-      of ptkObject, ptkNamedTuple, ptkTuple, ptkList:
-        elements*: seq[tuple[key: string, value: PPrintTree]]
-
-      of ptkMapping:
-        mappings*: seq[tuple[key, val: PPrintTree]]
 
   PPrintGlobPart = object
     case kind*: GenGlobPartKind
@@ -110,6 +90,40 @@ type
     sortBySize*: bool
     alignSmallFields*: bool
     alignSmallGrids*: bool
+
+
+const
+  ptkObjectKinds* = {
+    ptkObject, ptkNamedTuple, ptkTuple, ptkList,
+    ptkAnnotation
+  }
+
+type
+  PPrintTree* = object
+    annotation*: ColoredText
+    path*: PPrintPath
+    treeId*: int
+    styling* {.requiresinit.}: PrintStyling
+    treeType*: PPrintType
+    size*: int
+    height*: int
+    forceLayout*: Option[PPrintLytChoice]
+    visitedAt*: int
+
+
+    case kind*: PprintTreeKind
+      of ptkIgnored, ptkNil, ptkVisited:
+        discard
+
+      of ptkConst:
+        strVal*: string
+
+      of ptkObjectKinds:
+        elements*: seq[tuple[key: string, value: PPrintTree]]
+
+      of ptkMapping:
+        mappings*: seq[tuple[key, val: PPrintTree]]
+
 
 
 proc globKind*(pprintGlob: PPrintGlobPart): GenGlobPartKind = pprintGlob.kind
@@ -165,6 +179,13 @@ func matches*(match: PPrintMatch, path: PPrintPath): bool =
     if gitignoreGlobMatch(path, glob, globEqCmp):
       return true
 
+
+proc newPPrintType*(head: PprintType, _: bool = false): PPrintType =
+  head
+
+proc newPPrintType*(head: string, isVariant: bool = false): PPrintType =
+  result.head = head
+  result.isVariant = isVariant
 
 proc newPPrintType*[T](obj: T): PPrintType =
   let tof = $typeof(obj)
@@ -233,9 +254,12 @@ proc `$`*(path: PPrintPath): string =
 
 
 
-func updateCounts*(tree: var PPrintTree, conf: PPrintConf) =
+func updateCounts*(
+    tree: var PPrintTree,
+    sortBySize: bool = false
+  ) =
   case tree.kind:
-    of ptkConst, ptkVisited, ptkIgnored, ptkNil:
+    of ptkConst, ptkVisited, ptkIgnored, ptkNil, ptkAnnotation:
       tree.height = 1
 
     of ptkObject, ptkNamedTuple, ptkTuple, ptkList:
@@ -245,7 +269,7 @@ func updateCounts*(tree: var PPrintTree, conf: PPrintConf) =
 
       inc tree.height
 
-      if conf.sortBySize:
+      if sortBySize:
         sortIt(tree.elements, it.value.size)
 
     of ptkMapping:
@@ -255,15 +279,19 @@ func updateCounts*(tree: var PPrintTree, conf: PPrintConf) =
 
       inc tree.height
 
-      if conf.sortBySize:
+      if sortBySize:
         sortIt(tree.mappings, max(it[0].size, it[1].size))
 
 
 
 
-func updateCounts*(tree: sink PPrintTree, conf: PPrintConf): PPrintTree =
+func updateCounts*(
+    tree: sink PPrintTree,
+    sortBySize: bool = false
+  ): PPrintTree =
+
   result = tree
-  updateCounts(result, conf)
+  updateCounts(result, sortBySize)
 
 proc newPPrintConst*(
     value, constType: string, id: int,
@@ -283,6 +311,137 @@ proc newPPrintConst*(
   PPrintTree(
     kind: ptkConst, strVal: value, treeId: id,
     styling: styling, path: path, treeType: constType)
+
+
+proc add*(this: var PPrintTree, other: PPrintTree) =
+  case this.kind:
+    of ptkObjectKinds:
+      this.elements.add(("", other))
+
+    of ptkMapping:
+      this.mappings.add((
+        newPPrintConst("", "", 0, defaultPrintStyling, @[]),
+        other
+      ))
+
+    else:
+      raise newUnexpectedKindError(this)
+
+  updateCounts(this)
+
+
+proc add*(this: var PPrintTree, key: string, other: PPrintTree) =
+  case this.kind:
+    of ptkObjectKinds:
+      this.elements.add((key, other))
+
+    of ptkMapping:
+      this.mappings.add((
+        newPPrintConst(key, "", 0, defaultPrintStyling, @[]),
+        other
+      ))
+
+    else:
+      raise newUnexpectedKindError(this)
+
+  updateCounts(this)
+
+
+proc add*(this: var PPrintTree, key, other: PPrintTree) =
+  case this.kind:
+    of ptkObjectKinds:
+      this.elements.add(("???", other))
+
+    of ptkMapping:
+      this.mappings.add((key, other))
+
+    else:
+      raise newUnexpectedKindError(this)
+
+  updateCounts(this)
+
+proc annotate*(this: var PPrintTree, colored: ColoredText) =
+  this.annotation.add colored
+
+proc newPPrintObject*(
+    head: string | PPrintType,
+    elements: seq[(string, PPrintTree)] = @[],
+    styling: PrintSTyling = defaultPrintStyling,
+    isVariant: bool = false
+  ): PPrintTree =
+
+  result = PPrintTree(
+    styling: styling,
+    kind: ptkObject,
+    elements: elements,
+    treeType: newPPrintType(head, isVariant)
+  )
+
+  updateCounts(result)
+
+proc newPPrintVariant*(
+    kind: string,
+    elements: seq[(string, PprintTree)],
+    styling: PrintStyling = defaultPrintStyling
+  ): PPrintTree =
+
+  newPPrintObject(kind, elements, styling, true)
+
+
+proc newPPrintMap*(
+    elements: seq[(PPrintTree, PPrintTree)],
+    styling: PrintStyling = defaultPrintStyling
+  ): PPrintTree =
+
+  result = PprintTree(
+    styling: styling,
+    kind: ptkMapping,
+    mappings: elements
+  )
+
+  updateCounts(result)
+
+proc newPPrintConst*(
+    value: string,
+    styling: PrintStyling = defaultPrintStyling
+  ): PPrintTree =
+
+  result = PPrintTree(
+    styling: styling,
+    kind: ptkConst,
+    strVal: value,
+  )
+
+  updateCounts(result)
+
+proc newPPrintSeq*(
+    values: seq[PPrintTree],
+    styling: PrintStyling = defaultPrintStyling
+  ): PPrintTree =
+
+  result = PPrintTree(kind: ptkList, styling: styling)
+  for item in values:
+    result.elements.add(("", item))
+
+  updateCounts(result)
+
+proc newPPrintAnnotation*(
+    text: ColoredText,
+    elements: seq[PPrintTree] = @[]
+  ): PPrintTree =
+  result = PPrintTree(
+    kind: ptkAnnotation,
+    annotation: text,
+    styling: defaultPrintStyling,
+  )
+
+  for elem in elements:
+    result.elements.add(("", elem))
+
+  updateCounts(result)
+
+proc getField*(tree: PPrintTree, field: string): PPrintTree =
+  tree.elements.findItFirst(it.key == field).value
 
 proc ignoredBy*(conf: PPrintConf, path: PPrintPath): bool =
   conf.ignorePaths.matches(path)
@@ -367,7 +526,7 @@ proc toPprintTree*(
           result.elements.add(($name, toPPrintTree(
             item, conf, path & pathElem(ppkField, name))))
 
-  result.updateCounts(conf)
+  result.updateCounts(conf.sortBySize)
 
 proc isNilEntry*[T](entry: T): bool =
   when entry is ref or
@@ -403,27 +562,27 @@ proc toPprintTree*[T](
   elif conf.isVisited(entry):
     result = newPPrintTree(
       ptkVisited, conf.getId(entry), path,
-      conf, fgRed + bgDefault).updateCounts(conf)
+      conf, fgRed + bgDefault).updateCounts(conf.sortBySize)
 
     conf.visit(entry)
 
   elif conf.ignoredBy(path):
     result = newPPrintTree(
       ptkIgnored, conf.getId(entry), path,
-      conf, fgYellow + bgDefault).updateCounts(conf)
+      conf, fgYellow + bgDefault).updateCounts(conf.sortBySize)
 
   else:
     conf.visit(entry)
     if isNilEntry(entry):
       result = newPPrintNil(conf.getId(entry), path, conf)
       result.treeType = newPprintType(entry)
-      updateCounts(result, conf)
+      updateCounts(result, conf.sortBySize)
       return
 
     when entry is typeof(nil):
       return newPPrintConst(
         "nil", "nil", conf.getId(entry),
-        fgBlue + bgDefault, path).updateCounts(conf)
+        fgBlue + bgDefault, path).updateCounts(conf.sortBySize)
 
     elif not ( # key-value pairs (tables etc.)
         (entry is seq) or
@@ -674,7 +833,7 @@ proc toPprintTree*[T](
         path
       )
 
-  updateCounts(result, conf)
+  updateCounts(result, conf.sortBySize)
   result.treeType = newPPrintType(entry)
   when entry is ref or entry is ptr:
     result.visitedAt = cast[int](entry)
@@ -695,15 +854,18 @@ proc layouts(tree: PPrintTree, conf: PPrintConf): PprintLytChoice =
 
   else:
     result =
-      if tree.height >= conf.maxStackHeightChoice:
-        (false, true)
+      if tree.kind == ptkAnnotation:
+        (line: false, stack: true)
+
+      elif tree.height >= conf.maxStackHeightChoice:
+        (line: false, stack: true)
 
       elif tree.height < conf.minLineHeightChoice and
            tree.size < conf.minLineSizeChoice:
-        (true, false)
+        (line: true, stack: false)
 
       else:
-        (true, true)
+        (line: true, stack: true)
 
 proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
   let (hasLine, hasStack) = tree.layouts(conf)
@@ -719,10 +881,11 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
     of ptkConst:
       result = T[toColored(tree.strVal, tree.styling, conf.colored)]
 
-    of ptkTuple, ptkNamedTuple, ptkObject:
+    of ptkTuple, ptkNamedTuple, ptkObject, ptkAnnotation:
       var
         hasName = tree.kind == ptkObject
         hasFields = tree.kind in {ptkNamedTuple, ptkObject}
+        isAnnotation = tree.kind == ptkAnnotation
 
         line = H[]
         stack = V[]
@@ -758,8 +921,9 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
             resName.add toColored(": ")
 
         else:
-          resName.add toColored(
-            ": " & $value.treeType & " ", fgRed + bgDefault)
+          if hasFields:
+            resName.add toColored(
+              ": " & $value.treeType & " ", fgRed + bgDefault)
 
         if hasLine:
           line.add H[
@@ -781,18 +945,21 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
               valueBlock
           )
 
-      let open = (T[@[
-        toColored(
-          tree.treeType.head & visitedAt,
-          fgGreen + bgDefault, conf.colored),
-        toColored("(")]], T["("]) ?? hasName
+      let open = condOr(
+        hasName,
+        T[@[
+          toColored(
+            tree.treeType.head & visitedAt, fgGreen + bgDefault, conf.colored),
+          toColored("(")]],
+        T["("]
+      )
 
       let forceStack = false
 
-      if hasLine:
-        line = H[open, line, T[")"]]
+      if hasLine and not isAnnotation:
+        line = H[open.deepCopy(), line, T[")"]]
 
-      if hasStack or forceStack:
+      if (hasStack or forceStack) and not isAnnotation:
         stack = V[open, I[2, stack]]
 
       if hasLine and (hasStack or forceStack):
@@ -803,6 +970,13 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
 
       else:
         result = stack
+
+      if tree.annotation.len > 0:
+        if tree.elements.len == 0:
+          result = T[tree.annotation]
+
+        else:
+          result = V[T[tree.annotation], I[2, result]]
 
     of ptkVisited:
       result = T[
@@ -901,6 +1075,21 @@ proc ppblock*[T](obj: T, conf: PPrintConf = defaultPPrintConf): LytBlock =
   var conf = conf
   return toPPrintTree(obj, conf, @[]).toPPrintBlock(conf)
 
+proc ppblock*(
+    obj: PPrintTree,
+    conf: PPrintConf = defaultPPrintConf): LytBlock =
+  var conf = conf
+  return obj.toPPrintBlock(conf)
+
+
+proc pstring*(
+    tree: PPrintTree,
+    conf: PPrintConf = defaultPPrintConf,
+  ): string =
+
+  return tree.toPPrintBlock(conf).
+    toString(conf.formatOpts.rightMargin, opts = conf.formatOpts)
+
 proc pstring*[T](
     obj: T, rightMargin: int = 80,
     force: openarray[(PPrintMatch, PPrintLytChoice)] = @[],
@@ -949,3 +1138,68 @@ func debugpprint*[T](
 
   {.cast(noSideEffect).}:
     echo pstring(obj, rightMargin, force, ignore, conf = conf)
+
+proc treeDiff*(t1, t2: PPrintTree): Option[PPrintTree] =
+  var hasDiff: bool = false
+  proc aux(t1: var PprintTree, t2: PPrintTree) =
+    if t1.kind != t2.kind:
+      hasDiff = true
+      t1 = newPPrintAnnotation(
+        colored(
+          "Different tree kinds - ",
+          hshow(t1.kind), ", ",
+          hshow(t2.kind)))
+
+    else:
+      case t1.kind:
+        of ptkObject:
+          var
+            diffObject = newPPrintObject(t1.treeType)
+            diffs = newPPrintAnnotation("" + fgDefault)
+
+          let
+            lhsFields = toHashSet t1.elements.mapIt(it.key)
+            rhsFields = toHashSet t2.elements.mapIt(it.key)
+
+          for field in lhsFields - rhsFields:
+            hasDiff = true
+            diffs.add newPPrintAnnotation(
+              "del " & (field + fgRed), @[t1.getField(field)])
+
+          for field in rhsFields - lhsFields:
+            hasDiff = true
+            diffs.add newPPrintAnnotation(
+              "add " & (field + fgGreen), @[t2.getField(field)])
+
+          for field in sorted(toSeq rhsFields * lhsFields):
+            var lhsField = t1.getField(field)
+            let rhsField = t2.getField(field)
+
+            aux(lhsField, rhsField)
+            diffs.add(field, lhsField)
+
+          t1 = diffObject
+          t1.add diffs
+
+        of ptkConst:
+          if t1.strVal != t2.strVal:
+            hasDiff = true
+            t1 = newPPrintAnnotation(colored(
+              "value mismatch - \n",
+              "lhs: ", t1.strVal + fgGreen, "\n",
+              "rhs: ", t2.strVal + fgRed, "\n"
+            ))
+
+
+        of ptkIgnored, ptkVisited, ptkNil, ptkAnnotation,
+           ptkTuple, ptkList, ptkMapping, ptkNamedTuple:
+          raise newImplementKindError(t1)
+
+
+
+
+
+  var diff = t1
+  aux(diff, t2)
+  if hasDiff:
+    return some diff

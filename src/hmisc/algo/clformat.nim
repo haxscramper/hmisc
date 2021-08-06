@@ -1,9 +1,12 @@
 import std/[strutils, tables, enumerate, strformat]
-import hseq_mapping, htext_algo
-import ../macros/argpass
-import ../base_errors
-import ../types/colorstring
-import ../algo/halgorithm
+import
+  ./hseq_mapping,
+  ./hseq_distance,
+  ./htext_algo,
+  ../macros/argpass,
+  ../core/[all, algorithms],
+  ../types/colorstring,
+  ../algo/halgorithm
 
 
 
@@ -1013,26 +1016,23 @@ func pathIndexed*(opts: HDisplayOpts): bool =
 func withRanges*(opts: HDisplayOpts): bool =
   dfWithRanges in opts.flags
 
-func hShow*(ch: char, opts: HDisplayOpts = defaultHDisplay): string =
-  $ch
+func hShow*(ch: char, opts: HDisplayOpts = defaultHDisplay): ColoredText =
+  $ch + defaultPrintStyling
 
-func hshow*(b: bool, opts: HDisplayOpts = defaultHDisplay): string =
-  if b:
-    toGreen($b, opts.colored)
+func hshow*(b: bool, opts: HDisplayOpts = defaultHDisplay): ColoredText =
+  if b: $b + fgGreen else: $b + fgRed
 
-  else:
-    toRed($b, opts.colored)
+func hShow*(
+    ch: SomeInteger, opts: HDisplayOpts = defaultHDisplay): ColoredText =
+  $ch + fgCyan
 
-func hShow*(ch: SomeInteger, opts: HDisplayOpts = defaultHDisplay): string =
-  toCyan($ch, opts.colored)
-
-func hshow*(i: BackwardsIndex, opts: HDisplayOpts = defaultHDisplay): string =
+func hshow*(i: BackwardsIndex, opts: HDisplayOpts = defaultHDisplay): ColoredText =
   toCyan("^" & $i.int, opts.colored)
 
-func hshow*(ch: float, opts: HDisplayOpts = defaultHDisplay): string =
+func hshow*(ch: float, opts: HDisplayOpts = defaultHDisplay): ColoredText =
   toMagenta($ch, opts.colored)
 
-func hShow*(ch: Slice[int], opts: HDisplayOpts = defaultHDisplay): string =
+func hShow*(ch: Slice[int], opts: HDisplayOpts = defaultHDisplay): ColoredText =
   if ch.a == low(int):
     result.add toCyan("low(int)", opts.colored)
 
@@ -1048,11 +1048,11 @@ func hShow*(ch: Slice[int], opts: HDisplayOpts = defaultHDisplay): string =
     result.add toCyan($ch.b, opts.colored)
 
 func hShow*[A, B](
-    slice: HSlice[A, B], opts: HDisplayOpts = defaultHDisplay): string =
+    slice: HSlice[A, B], opts: HDisplayOpts = defaultHDisplay): ColoredText =
 
   "[" & hshow(slice.a, opts) & ":" & hshow(slice.b, opts) & "]"
 
-func hshow*[T](s: seq[T], opts: HDisplayOpts = defaultHDisplay): string =
+func hshow*[T](s: seq[T], opts: HDisplayOpts = defaultHDisplay): ColoredText =
   result.add "["
   for idx, item in pairs(s):
     if idx > 0: result.add ", "
@@ -1062,18 +1062,22 @@ func hshow*[T](s: seq[T], opts: HDisplayOpts = defaultHDisplay): string =
 
 import std/sequtils
 
-func replaceTailNewlines(buf: var string, replaceWith: string = "⮒") =
+func replaceTailNewlines(
+    buf: var ColoredText,
+    replaceWith: ColoredRune = uc"⮒" + defaultPrintStyling
+  ) =
   var nlCount = 0
-  while nlCount < buf.len and buf[buf.high - nlCount] in {'\n'}:
+  while nlCount < buf.len and buf[buf.high - nlCount].isNewline():
     inc nlCount
 
   let base = buf.len
-  buf.setLen(buf.len - nlCount)
+  buf.runes.setLen(buf.len - nlCount)
 
   for nl in 0 ..< nlCount:
     buf.add replaceWith
 
-func hShow*(str: string, opts: HDisplayOpts = defaultHDisplay): string =
+func hShow*(
+    str: string, opts: HDisplayOpts = defaultHDisplay): ColoredText =
   if str.len == 0:
     result = toYellow("''", opts.colored) & " (" &
       toItalic("empty string", opts.colored) & ")"
@@ -1081,21 +1085,90 @@ func hShow*(str: string, opts: HDisplayOpts = defaultHDisplay): string =
   else:
     let prefix = " ".repeat(opts.indent)
     if '\n' in str:
-      var str = str
-      replaceTailNewlines(str, toRed("⮒", opts.colored))
-      for idx, line in enumerate(str.split('\n')):
-        if idx > 0: result &= "\n"
-        result &= prefix & toYellow(line, opts.colored)
+      var str = toColoredText(str)
+      for idx, line in enumerate(str.lines()):
+        if idx > 0: result.newline()
+        result.add prefix
+        result.add line + (fgYellow + bgDefault)
+
+      replaceTailNewlines(result, uc"⮒" + (fgRed + bgDefault))
 
     else:
       result = toYellow("\"" & str & "\"", opts.colored)
 
-func hShow*[E: enum](e: E, opts: HDisplayOpts = defaultHDisplay): string =
+func hShow*[E: enum](e: E, opts: HDisplayOpts = defaultHDisplay): ColoredText =
   if opts.dropPrefix:
     toGreen(dropLowerPrefix($e), opts.colored)
 
   else:
     toGreen($e, opts.colored)
+
+
+func stringMismatchMessage*(
+    input: string,
+    expected: openarray[string],
+    colored: bool = true,
+    fixSuggestion: bool = true,
+    showAll: bool = false,
+  ): string =
+  ## - TODO :: Better heuristics for missing/extraneous prefix/suffix
+
+  let expected = deduplicate(expected)
+
+  if expected.len == 0:
+    return "No matching alternatives"
+
+  var results: seq[tuple[
+    edits: tuple[distance: int, operations: seq[LevEdit]],
+    target: string
+  ]]
+
+  for str in expected:
+    if str == input:
+      return
+
+    else:
+      results.add (
+        levenshteinDistance(input.toSeq(), str.toSeq()),
+        str
+      )
+
+  results = sortedByIt(results, it.edits.distance)
+
+  let best = results[0]
+
+  if best.edits.distance > int(input.len.float * 0.8):
+    result = &"No close matches to {toRed(input, colored)}, possible " &
+      namedItemListing(
+        "alternative",
+        results[0 .. min(results.high, 3)].mapIt(
+          it.target.toYellow().wrap("''")),
+        "or"
+      )
+
+  else:
+    result = &"Did you mean to use '{toYellow(best.target, colored)}'?"
+
+    if fixSuggestion:
+      if best.edits.operations.len < min(3, input.len div 2):
+        result &= " (" & getEditVisual(
+          toSeq(input),
+          toSeq(best.target),
+          best.edits.operations
+        ) & ")"
+
+      else:
+        result &= &" ({toRed(input, colored)} -> {toGreen(best.target, colored)})"
+
+    if showAll and expected.len > 1:
+      result &= " ("
+      for idx, alt in results[1 ..^ 1]:
+        if idx > 0:
+          result &= " "
+
+        result &= to8Bit(toItalic(alt.target, colored) & "?", tcGrey63)
+
+      result &= ")"
 
 
 when isMainModule:

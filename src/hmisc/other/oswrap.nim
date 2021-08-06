@@ -24,8 +24,7 @@ import std/[strutils, macros, random, hashes, json, math,
 
 import ../algo/[hstring_algo, hseq_distance, halgorithm, clformat]
 import ../types/colorstring
-import ../base_errors
-import ../hdebug_misc
+import ../core/[all, code_errors]
 
 from os import nil
 

@@ -13,65 +13,6 @@ export strutils
 import base_errors
 export base_errors
 
-type
-  SliceTypes* = Slice[int] | Slice[BackwardsIndex] | HSlice[int, BackwardsIndex]
-  IndexTypes* = int | BackwardsIndex
-
-
-proc startFor*(slice: SliceTypes, base: int): int =
-  when slice.a is int:
-    result = slice.a
-
-  else:
-    result = base - slice.a.int + 1
-
-proc endFor*(slice: SliceTypes, base: int): int =
-  when slice.b is int:
-    result = slice.b
-
-  else:
-    result = base - slice.b.int + 1
-
-func intersect*(slice1, slice2: Slice[int]): Slice[int] =
-  max(slice1.a, slice2.a) .. min(slice1.b, slice2.b)
-
-proc clamp*(slice: SliceTypes, base: int): Slice[int] =
-  # if base == 0:
-  #   result = 0 .. -1
-
-  # else:
-  result =
-    clamp(startFor(slice, base), 0, base) ..
-    clamp(endFor(slice, base), 0, base)
-
-  # if base < result.a and base < result.b:
-  #   result = 0 .. -1
-
-proc clamp*(slice: SliceTypes, base: Slice[int]): Slice[int] =
-  let (s, e) = (startFor(slice, base.b), endFor(slice, base.b))
-
-  if intersect(s .. e, base).len == 0:
-    result = 0 .. -1
-
-  else:
-    result = clamp(s, base.a, base.b) .. clamp(e, base.a, base.b)
-
-func getClamped*[T](s: seq[T], idx: IndexTypes): T =
-  assert s.len > 0
-  when idx is BackwardsIndex:
-    let pos = clamp(s.len - idx.int + 1, 0, s.high)
-
-  else:
-    let pos = clamp(idx, 0, s.high)
-
-  return s[pos]
-
-func `@`*(slice: Slice[int]): seq[int] =
-  for idx in slice:
-    result.add idx
-
-func clampIdx*(val: int): int = clamp(val, 0, high(int))
-
 
 template subnodesEq*(lhs, rhs, field: untyped): untyped =
   ## Check if two objects `lhs` and `rhs` has identical field `field`
@@ -80,31 +21,8 @@ template subnodesEq*(lhs, rhs, field: untyped): untyped =
   lhs.field.len() == rhs.field.len() and
   zip(lhs.field, rhs.field).allOfIt(it[0] == it[1])
 
-template fail*(msg: string): untyped {.deprecated.} =
-  debugecho "Fail on ", instantiationInfo()
-  raiseAssert(msg)
-
-template nnil*(): untyped {.deprecated.} =
-  defer:
-    let iinfo = instantiationInfo()
-    when result is seq:
-      for idx, val in result:
-        when val is ref:
-          assert (val != nil)
-        else:
-          for name, fld in val.fieldPairs():
-            when fld is ref:
-              if fld.isNil:
-                raiseAssert("Non-nil return assert on line " &
-                  $iinfo.line & ". Error idx: " & $idx & " fld name: " &
-                  name & ". Item type is " & $typeof(val)
-                )
-    else:
-      assert (result != nil)
-
-
 type
-  SingleIt*[T] {.deprecated.} = object
+  SingleIt*[T] = object
     it: seq[T]
 
 func getIt*[T](it: SingleIt[T]): T = it.it[0]
@@ -119,29 +37,6 @@ template isMutable*(v: typed): untyped = compiles(takesOnlyMutable(v))
 macro dumpStr*(body: untyped): untyped {.deprecated.} =
   newCall(ident "echo", newLit(body.treeRepr()))
 
-template notNil*(arg: untyped): bool = not isNil(arg)
-
-func nor*(args: varargs[bool]): bool =
-  for arg in args:
-    result = arg or result
-
-  result = not result
-
-func nand*(args: varargs[bool]): bool =
-  result = true
-  for arg in args:
-    result = arg and result
-
-  result = not result
-
-func `or`*(args: varargs[bool]): bool =
-  for arg in args:
-    result = arg and result
-
-func `and`*(args: varargs[bool]): bool =
-  result = true
-  for arg in args:
-    result = arg and result
 
 {.push inline.}
 
@@ -152,21 +47,6 @@ func `-=`*[E](s1: var set[E], v: E | set[E]) = (s1 = s1 - {v})
 
 import std/[options, times]
 
-proc add*[T](s: var seq[T], opt: Option[T]) =
-  if opt.isSome():
-    s.add opt.get()
-
-proc `&`*[T](elements: openarray[seq[T]]): seq[T] =
-  for element in elements:
-    result &= element
-
-proc `&`*(strings: openarray[string]): string =
-  for str in strings:
-    result &= str
-
-proc `&=`*(target: var string, args: openarray[string]) =
-  for arg in args:
-    target &= arg
 
 template timeIt*(name: string, body: untyped): untyped =
   block:
@@ -193,17 +73,3 @@ template byaddr1*(lhs, typ, ex) =
       let tmp: ptr typ = unsafeaddr(ex)
 
   template lhs: untyped = tmp[]
-
-proc toRef*[T](t: T): ref T =
-  new(result)
-  result[] = t
-
-template currIInfo*(): untyped =
-  instantiationInfo(fullpaths = true)
-
-proc `of`*[A: object or ref object; K: enum](a: A, b: K | set[K]): bool =
-  when b is set:
-    a.kind in b
-
-  else:
-    a.kind == b

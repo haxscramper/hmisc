@@ -1,11 +1,13 @@
 import std/[
   sequtils, strformat, strutils, unicode, colors,
-  lenientops, macros, strscans, algorithm, math, options
+  lenientops, macros, strscans, algorithm, math, options,
+  hashes
 ]
 
-import ../macros/traceif
-import ../hdebug_misc, ../base_errors
-import ../algo/[hseq_distance, htemplates]
+import ../macros/[traceif, wrapfields]
+import
+  ../core/all,
+  ../algo/[hseq_distance, htemplates]
 
 type
   TermColor8Bit* = enum
@@ -316,7 +318,7 @@ when defined(nimscript):
 
 else:
   import ../algo/halgorithm
-  import ../hdebug_misc
+  import ../core/all
   import terminal
   export terminal
 
@@ -344,6 +346,9 @@ type
     styling* {.requiresinit.}: PrintStyling
     rune*: Rune
 
+  ColoredText* = object
+    runes*: seq[ColoredRune]
+
   ColoredRuneLine* = seq[ColoredRune]
   ColoredRuneGrid* = seq[ColoredRuneLine]
 
@@ -368,12 +373,18 @@ func contains*(ps: PrintStyling, s: Style): bool =
 func contains*(s: ColoredString, c: char): bool =
   contains(s.str, c)
 
+
 func initPrintStyling*(
     fg: ForegroundColor = fgDefault,
     bg: BackgroundColor = bgDefault,
     style: set[Style] = {}
   ): PrintStyling =
   PrintStyling(use8Bit: false, fg: fg, bg: bg, style: style)
+
+const defaultPrintStyling* = initPrintStyling()
+
+func default*(rune: typedesc[ColoredRune]): ColoredRune =
+  ColoredRune(styling: defaultPrintStyling)
 
 func initStyleBg*(term: TermColor8Bit): PrintStyling {.inline.} =
   PrintStyling(use8Bit: true, bg8: term)
@@ -480,6 +491,12 @@ func initColoredString*(
   ColoredString(str: str, styling: PrintStyling(
     use8Bit: false, fg: fg, bg: bg, style: style))
 
+func hash*(text: ColoredText): Hash =
+  for rune in text.runes:
+    result = result !& hash(rune.rune)
+
+  return !$(result)
+
 func `+`*(bg: TermColor8BitBg, fg: TermColor8BitFg): PrintStyling =
   PrintStyling(use8Bit: true,
                fg8: TermColor8Bit(fg.int),
@@ -507,6 +524,118 @@ func `+`*(style: sink PrintStyling, fg: ForegroundColor): PrintStyling =
 func `+`*(style: sink PrintStyling, s: Style): PrintStyling =
   result = style
   result.style.incl s
+
+func `+`*(ch: char, style: PrintStyling): ColoredRune =
+  toColored(ch, style)
+
+func `+`*(rune: Rune, style: PrintStyling): ColoredRune =
+  toColored(rune, style)
+
+func `+`*(str: string, style: PrintStyling): ColoredText =
+  for ch in str:
+    result.runes.add toColored(ch, style)
+
+func `+`*(str: string, fg: ForegroundColor): ColoredText =
+  str + (fg + bgDefault)
+
+func `+`*(rune: Coloredrune, style: PrintStyling): ColoredRune =
+  result = rune
+  result.styling = style
+
+func `+`*(text: ColoredRuneLine, style: PrintStyling): ColoredRuneLine =
+  for ch in text:
+    result.add ch + style
+
+func `+`*(text: ColoredText, style: PrintStyling): ColoredText =
+  for ch in text.runes:
+    result.runes.add ch + style
+
+func toColoredText*(text: ColoredText): ColoredText = text
+func toColoredText*(str: string): ColoredText = str + defaultPrintStyling
+func toColoredText*(rune: ColoredRune): ColoredText =
+  ColoredText(runes: @[rune])
+
+
+func toColoredText*(str: ColoredString): ColoredText =
+  for rune in runes(str.str):
+    result.runes.add rune + str.styling
+
+func toColoredText*(rune: ColoredLine): ColoredText =
+  for str in rune:
+    result.runes.add toColoredText(str).runes
+
+func toColoredText*(rune: ColoredRuneLine): ColoredText =
+  result.runes = rune
+
+
+func toColoredText*(ch: char): ColoredText =
+  toColoredtext(ch + defaultPrintStyling)
+
+func isNewline*(rune: ColoredRune): bool = rune.rune == Rune(10)
+func hasNewline*(text: ColoredText): bool =
+  for rune in text.runes:
+    if isNewline(rune):
+      return true
+
+func newline*(text: var ColoredText) =
+  text.runes.add uc"\n" + defaultPrintStyling
+
+
+iterator lines*(text: ColoredText): ColoredRuneLine =
+  var buf: ColoredRuneLine
+  for rune in text.runes:
+    if rune.isNewline:
+      yield buf
+      buf.setLen(0)
+
+    else:
+      buf.add rune
+
+func toRuneGrid*(text: ColoredText): ColoredRuneGrid =
+  for line in lines(text):
+    result.add line
+
+func toRuneLine*(text: ColoredText): ColoredRuneLine =
+  text.runes
+
+wrapSeqContainer(ColoredText.runes, ColoredRune)
+
+func add*(colored: var ColoredText, other: ColoredText) =
+  colored.runes.add other.runes
+
+func add*(colored: var ColoredText, other: ColoredRuneLine) =
+  colored.runes.add other
+
+func add*(colored: var ColoredText, str: ColoredString) =
+  for ch in str.str:
+    colored.runes.add toColored(ch, str.styling)
+
+func add*(colored: var ColoredText, rune: ColoredRune) {.inline.} =
+  colored.runes.add rune
+
+func add*(colored: var ColoredText, ch: string) {.inline.} =
+  colored.add ch + defaultPrintStyling
+
+func add*(colored: var ColoredText, ch: char) {.inline.} =
+  colored.add ch + defaultPrintStyling
+
+func `&`*(t1: sink ColoredText, t2: ColoredText): ColoredText =
+  result = t1
+  result.runes.add t2.runes
+
+func `&`*(t1: sink ColoredText, t2: string): ColoredText =
+  result = t1
+  result.add toColoredText(t2)
+
+func `&`*(t1: string, t2: ColoredText): ColoredText =
+  result = toColoredText(t1)
+  result.add t2
+
+func colored*(chunks: varargs[ColoredText, toColoredText]): ColoredText =
+  for chunk in chunks:
+    result.add chunk
+
+
 
 func `??`*(style: sink PrintStyling, expr: bool): PrintStyling =
   if expr:
@@ -671,6 +800,9 @@ func `$`*(line: ColoredLine): string =
     result &= $e
 
 func `$`*(colr: seq[ColoredRune]): string = colr.toString()
+func `$`*(text: ColoredText): string =
+  result = toString(text.runes)
+
 func `$`*(colr: seq[seq[ColoredRune]]): string =
   for idx, line in colr:
     if idx > 0:
@@ -722,40 +854,27 @@ func toDefault*(
   $initColoredString(
     str, style = if colorize: style else: {}, fg = fgDefault)
 
-func toLink*(link: string, desc: string = link): string =
-  &"\e]8;;{link}\e\\{desc}\e]8;;\e\\"
 
-func toLink*(
-    pos: (string, int, int),
-    desc: string = "file://" & pos[0] & ":" & $pos[1] & ":" & $pos[2]
-  ): string =
+func toBlue*(str: string, color: bool): ColoredText =
+  if color: str + fgBlue else: str + fgDefault
 
-  toLink(&"file://{pos[0]}:{pos[1]}:{pos[2]}", desc)
+func toRed*(str: string, color: bool): ColoredText =
+  if color: str + fgRed else: str + fgDefault
 
-func toBlue*(str: string, style: set[Style] = {}): string =
-  $initColoredString(str, fg = fgBlue, style = style)
+func toGreen*(str: string, color: bool): ColoredText =
+  if color: str + fgGreen else: str + fgDefault
 
-func toBlue*(str: string, color: bool): string =
-  $initColoredString(str, fg = (if color: fgBlue else: fgDefault))
+func toYellow*(str: string, color: bool): ColoredText =
+  if color: str + fgYellow else: str + fgDefault
 
-func toRed*(str: string, color: bool): string =
-  $initColoredString(str, fg = (if color: fgRed else: fgDefault))
+func toWhite*(str: string, color: bool): Coloredtext =
+  if color: str + fgWhite else: str + fgDefault
 
-func toGreen*(str: string, color: bool): string =
-  $initColoredString(str, fg = (if color: fgGreen else: fgDefault))
+func toCyan*(str: string, color: bool): ColoredText =
+  if color: str + fgCyan else: str + fgDefault
 
-func toYellow*(str: string, color: bool): string =
-  $initColoredString(str, fg = (if color: fgYellow else: fgDefault))
-
-func toWhite*(str: string, color: bool): string =
-  $initColoredString(str, fg = (if color: fgWhite else: fgDefault))
-
-func toCyan*(str: string, color: bool): string =
-  $initColoredString(str, fg = (if color: fgCyan else: fgDefault))
-
-func toMagenta*(str: string, color: bool): string =
-  $initColoredString(str, fg = (if color: fgMagenta else: fgDefault))
-
+func toMagenta*(str: string, color: bool): ColoredText =
+  if color: str + fgMagenta else: str + fgDefault
 
 func toItalic*(str: string, color: bool): string =
   if color: str.toDefault({styleItalic}) else: str
@@ -1603,24 +1722,6 @@ func changeStyle(ps: var PrintStyling, code: int): void =
     else:
       discard
 
-func stripSGR*(str: string): string =
-  var
-    style: PrintStyling = initPrintStyling()
-    prev: int = 0
-    pos: int = 0
-    sgrbuf: string
-
-  while scanp(str, pos, (
-    *(~ '\e'), ("\e[", ({'0' .. '9'}){1,3} -> sgrbuf.add($_), 'm'))
-  ):
-    let termsym = sgrbuf.len + 2
-    let substr = str[prev ..< (pos - termsym - 1)]
-    result &= substr
-    prev = pos
-    sgrbuf = ""
-
-  if prev < pos:
-    result &= str[prev ..< pos]
 
 
 func splitSGR*(str: string): seq[ColoredString] =

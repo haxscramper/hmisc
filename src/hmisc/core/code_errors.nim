@@ -1,13 +1,10 @@
-import std/[strformat, strutils, algorithm, sequtils, macros, os]
-# TODO use `oswrap` instead of `os`
-import types/colorstring
-import algo/[hseq_mapping, hmath, halgorithm, hseq_distance, clformat]
-export alignLeft
-import std/enumerate
-import hdebug_misc
-import base_errors
-export base_errors
+import std/[
+  strformat, strutils, algorithm, sequtils,
+  macros, os, enumerate, terminal
+]
 
+export alignLeft
+import ./debug, ./exceptions, ./colored, ./algorithms, ./gold
 
 ## Exception type and helper functions for generating better errors in
 ## macro - automatically show **original** source code (not mangled
@@ -100,6 +97,7 @@ proc formatPos(annot: ErrorAnnotation, name, ext: string): string =
   else:
     &"{name}{ext} {annot.errpos.line}:{annot.errpos.column} "
 
+
 proc toColorString*(err: CodeError): string =
   let docolor = not defined(plainStdout)
 
@@ -109,9 +107,10 @@ proc toColorString*(err: CodeError): string =
   let (dir, name, ext) = err.getFile().splitFile()
 
   block:
-    let annSorted =
+    var annSorted =
       if err.fromString:
         @[err.annots.sortedByIt(it.offset)]
+
       else:
         err.annots.twoPassSortByIt(it.errpos.line, -it.errpos.column)
 
@@ -119,9 +118,8 @@ proc toColorString*(err: CodeError): string =
       let
         firstErr = lineAnnots[0]
         position = firstErr.formatPos(name, ext)
-        filelines = firstErr.getLines(tern(err.fromString,
-                                           err.substr.str,
-                                           ""))
+        filelines = firstErr.getLines(
+          tern(err.fromString, err.substr.str, ""))
 
       block:
         for idx, line in filelines[0..^2]:
@@ -138,20 +136,16 @@ proc toColorString*(err: CodeError): string =
 
       block:
         var spacing = 1
-        var buf: seq[seq[ColoredRune]]
+        var buf: seq[seq[string]]
         let lastline = position & filelines[^1]
         for annot in lineannots:
           let start = (position.len + annot.getColumn(err))
-          for line in 1 ..+ (spacing + 1):
-            buf[line, start] = toColored('|', initPrintStyling(
-              fg = fgRed
-            ), colorize = docolor)
+          for line in 1 .. 1 + (spacing + 1):
+            buf.setPart(line, start, toRedStr("|", docolor))
 
           # TODO IDEA add arrow in the expression 'center' and `~`
           # everywhere else.
-          buf[0, start] = toColored(uc"^", initPrintStyling(
-            fg = fgRed
-          ), colorize = docolor)
+          buf.setPart(0, start, toRedStr("^", docolor))
 
           var foundEnd = false
           for col in countdown(
@@ -162,33 +156,26 @@ proc toColorString*(err: CodeError): string =
               foundEnd = true
 
             if foundEnd:
-              buf[0, col] = toColored('~', initPrintStyling(
-                fg = fgRed
-              ), colorize = docolor)
+              buf.setPart(0, col, toRedStr("~", doColor))
 
           if annot.annotation.len > 0:
             inc spacing
             for line in annot.annotation.split("\n"):
               let line = if docolor: line else: line.stripSGR()
               for idx, ch in line:
-                buf[spacing, start + idx] = toColored(ch)
+                buf.setPart(spacing, start + idx, $ch)
 
               inc spacing
 
-        for line in buf:
-          result &= $line & "\n"
-
+        result.add joinBuf(buf)
         result &= "\n"
 
 
     block:
       let firstErr = annSorted[0][0]
       let (dir, name, ext) = err.raisepos.filename.splitFile()
-      result &= $err.getFile().toDefault(
-        {styleUnderscore}, colorize = docolor) & "\n"
-
-
-      result &= &"\nRaised in {toRed(name & ext, docolor)}:{toRed($err.raisepos.line, docolor)}\n"
+      result &= $err.getFile() & "\n"
+      result &= &"\nRaised in {toRedStr(name & ext, docolor)}:{toRedStr($err.raisepos.line, docolor)}\n"
       result &= err.postannot & "\n\n"
 
 
@@ -466,19 +453,19 @@ proc printSeparator*(msg: string): void =
     fillChar = '='
   )
 
-  echo str.toDefault(style = { styleDim })
+  echo str.toWhiteStr()
 
 proc getFileName*(f: string): string =
   let (_, name, ext) = f.splitFile()
   return name & ext
 
-template pprintStackTrace*(): untyped =
+template pprintStackTrace*(ex: ref Exception = nil): untyped =
   mixin toGreen, toDefault, toYellow, getFileName, splitFile
   {.line: instantiationInfo(fullPaths = true).}:
     block:
-      let e = getCurrentException()
+      let e = if isNil(ex): getCurrentException() else: ex
       let stackEntries =
-        if e != nil:
+        if not isNil(e):
           e.getStackTraceEntries()
         else:
           getStackTraceEntries()
@@ -490,7 +477,7 @@ template pprintStackTrace*(): untyped =
         discard
       else:
         echo ""
-        if e != nil:
+        if not isNil(e):
           printSeparator("Exception")
         else:
           printSeparator("Stacktrace")
@@ -509,10 +496,13 @@ template pprintStackTrace*(): untyped =
 
         let prefix =
           if not filename.startsWith(choosenim):
-            if ($tr.procname).startsWith(@["expect", "assert"]):
-              "(asr) ".toBlue()
+            if startsWith($tr.procname, "expect") or
+               startsWith($tr.procname, "assert"):
+              "\e[34m(asr) \e[39m"
+
             else:
-              "(usr) ".toGreen()
+              "\e[32m(usr) \e[39m"
+
           else:
             "(sys) "
 
@@ -524,16 +514,17 @@ template pprintStackTrace*(): untyped =
         if (not foundErr) and idx + 1 < stackEntries.len:
           let next = stackEntries[idx + 1]
           let nextFile = $next.filename
-          if nextFile.startsWith(choosenim) or ($next.procname).startsWith(@[
-            "expect", "assert"]):
-            filePref = filePref.toRed()
+          if startsWith(nextFile, choosenim) or
+             startsWith($next.procname, "expect") or
+             startsWith($next.procname, "assert"):
+            filePref = toRedStr(filePref)
             foundErr = true
 
         echo(
           prefix & (filePref) & " :" &
             $(strutils.alignLeft($tr.line, 4)) &
             " " &
-            $($tr.procname).toYellow())
+            toYellowStr($tr.procname))
 
       # let idx = e.msg.find('(')
       echo ""
@@ -552,108 +543,3 @@ template pprintErr*(): untyped =
 # DOC use formatting only on literal nodes, pas non-literal as-is
 template optFmt(arg: string{lit}): untyped = &arg
 proc optFmt(arg: string): string = arg
-
-# template longValueCheck*(expression: untyped, body: untyped): untyped =
-#   ## Raise `ValueError` if `expression` evaluates as false. Body is a
-#   ## string literal which will be passed as a message. It will be
-#   ## passed to `&` macro - i.e. variable interpolation is supported.
-#   runnableExamples:
-#     var test = false
-#     try:
-#       let variable = 2
-#       longValueCheck(variable == 3):
-#         """
-#         Failed to break math while comparing {variable} to `3`
-#         """
-#     except ValueError:
-#       test = true
-
-#     assert test
-
-#   if not (expression):
-#     raise newException(ValueError, joinLiteral(&body))
-
-
-# template longValueFail*(body: untyped): untyped =
-#   ## Raise `ValueError`. Body is a string literal which will be
-#   ## passed as a message. It will be passed to `&` macro - i.e.
-#   ## variable interpolation is supported.
-#   runnableExamples:
-#     var test = false
-#     try:
-#       longValueFail:
-#         "Assertion failed"
-#     except ValueError:
-#       test = true
-
-#     assert test
-
-#   static: assert body is string
-#   raise newException(ValueError, joinLiteral(&body))
-
-
-func stringMismatchMessage*(
-    input: string,
-    expected: openarray[string],
-    colored: bool = true,
-    fixSuggestion: bool = true,
-    showAll: bool = false,
-  ): string =
-  ## - TODO :: Better heuristics for missing/extraneous prefix/suffix
-
-  let expected = deduplicate(expected)
-
-  if expected.len == 0:
-    return "No matching alternatives"
-
-  var results: seq[tuple[
-    edits: tuple[distance: int, operations: seq[LevEdit]],
-    target: string
-  ]]
-
-  for str in expected:
-    if str == input:
-      return
-
-    else:
-      results.add (
-        levenshteinDistance(input.toSeq(), str.toSeq()),
-        str
-      )
-
-  results = sortedByIt(results, it.edits.distance)
-
-  let best = results[0]
-
-  if best.edits.distance > int(input.len.float * 0.8):
-    result = &"No close matches to {toRed(input, colored)}, possible " &
-      namedItemListing(
-        "alternative",
-        results[0 .. min(results.high, 3)].mapIt(
-          it.target.toYellow().wrap("''")),
-        "or"
-      )
-
-  else:
-    result = &"Did you mean to use '{toYellow(best.target, colored)}'?"
-
-    if fixSuggestion:
-      if best.edits.operations.len < min(3, input.len div 2):
-        result &= " (" & getEditVisual(
-          toSeq(input),
-          toSeq(best.target),
-          best.edits.operations
-        ) & ")"
-
-      else:
-        result &= &" ({toRed(input, colored)} -> {toGreen(best.target, colored)})"
-
-    if showAll and expected.len > 1:
-      result &= " ("
-      for idx, alt in results[1 ..^ 1]:
-        if idx > 0:
-          result &= " "
-
-        result &= to8Bit(toItalic(alt.target, colored) & "?", tcGrey63)
-
-      result &= ")"

@@ -12,12 +12,10 @@ import hstring_algo
 export hstring_algo
 
 import ../types/hprimitives
-import ../hdebug_misc
+import ../core/all
 
 import hmath
 export hmath
-
-import ../base_errors
 
 #=======================  small helper templates  ========================#
 

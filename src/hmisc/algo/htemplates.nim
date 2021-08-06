@@ -3,16 +3,6 @@ import sugar, sequtils, macros
 # TODO avoid unnecessary copying with these templates by checking whether
 # `let value = expr` can be optimized to `it[]` hack.
 
-template tern*(predicate: bool, tBranch: untyped, fBranch: untyped): untyped =
-  ## Shorthand for inline if/else.
-  runnableExamples:
-    let a = (1 == 2).tern("99", "0-")
-    assert a == "0-"
-
-  block:
-    # static: expectEqualTypes(tBranch, fBranch)
-    if predicate: tBranch
-    else: fBranch
 
 template orElse*(
   value: untyped, predicate: bool, fallback: untyped): untyped =
@@ -22,33 +12,6 @@ template orElse*(
 template setIf*(lhs: untyped, predicate: bool, value: untyped): untyped =
   if predicate: lhs = value
 
-template withIt*(val, body: untyped): untyped =
-  block:
-    var it {.inject.} = val
-    block:
-      body
-    it
-
-template withDeepIt*(expr, body: untyped): untyped =
-  block:
-    var it {.inject.} = deepCopy(expr)
-    block:
-      body
-
-    it
-
-
-
-template withResIt*(val, body: untyped): untyped =
-  block:
-    var it {.inject.} = val
-    body
-
-template withMutIt*[T](val: var T, body: untyped): untyped =
-  block:
-    var tmp: ptr T = addr(val)
-    template it(): untyped {.inject.} = tmp[]
-    body
 
 template splitOnIt*[T](s: seq[T], op: untyped): tuple[
   before, after: seq[T]] =
@@ -88,9 +51,18 @@ template allOfIt*(s: untyped, op: untyped): bool =
 template getIterOpType*(s, op: untyped): untyped =
   typeof((
     block:
-      # var itRef
-      var it {.inject.}: typeof(items(s), typeOfIter);
-      op), typeOfProc)
+      var it {.inject.} = default(typeof(items(s), typeOfIter))
+      op
+    ), typeOfProc
+  )
+
+template mapIt1*(s, op: untyped): untyped =
+  type OutType = getIterOpType(s, op)
+  var res: seq[OutType]
+  for it {.inject.} in s:
+    res.add op
+
+  res
 
 template maxIt*(s: untyped, op: untyped): untyped =
   ## Maximize value for all elements in sequence
@@ -159,7 +131,7 @@ template getMinIt*(s: untyped, op: untyped): untyped =
 
 template sumIt*(s: untyped, op: untyped): untyped =
   type OutType = getIterOpType(s, op)
-  var res: OutType
+  var res: OutType = default(OutType)
   for it {.inject.} in s:
     res = res + op
 
