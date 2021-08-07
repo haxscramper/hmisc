@@ -1,4 +1,4 @@
-import ../base_errors
+import ../core/all
 import ../types/colorstring
 import std/[sequtils, strutils, re]
 export re
@@ -140,12 +140,12 @@ func toStr*(elem: RxSetElem): string =
     of rseRange:
       result = rxEscape(elem.start) & "-" & rxEscape(elem.finish)
 
-func treeRepr*(rx: Rx, colored: bool = true, level: int = 0): string =
+func treeRepr*(rx: Rx, colored: bool = true, level: int = 0): ColoredText =
   let pref = "  ".repeat(level)
   let name = ($rx.kind)[3 .. ^1]
   case rx.kind:
     of rxkRepeatedArgKinds, rxkSingleArgKinds:
-      result = pref & name & "\n"
+      result.add pref & name & "\n"
       for idx, arg in pairs(rx.args):
         result &= treeRepr(arg, colored, level + 1)
         if idx < rx.args.high:
@@ -156,15 +156,15 @@ func treeRepr*(rx: Rx, colored: bool = true, level: int = 0): string =
         "\"" & rx.text.rxEscape() & "\"", colored)
 
     of rxkCharset:
-      result = pref & name & "[" &
+      result.add pref & name & "[" &
         join(mapIt(rx.charElems, toStr(it)), "") & "]"
 
     of rxkSpecial:
-      result = pref & name & ($rx.special)
+      result.add pref & name & ($rx.special)
 
 
-func lispRepr*(rx: Rx, colored: bool = true, level: int = 0): string =
-  result = "(" & ($rx.kind)[3..^1] & " "
+func lispRepr*(rx: Rx, colored: bool = true, level: int = 0): ColoredText =
+  result.add "(" & ($rx.kind)[3..^1] & " "
   case rx.kind:
     of rxkRepeatedArgKinds, rxkSingleArgKinds:
       for idx, arg in pairs(rx.args):
@@ -184,7 +184,7 @@ func lispRepr*(rx: Rx, colored: bool = true, level: int = 0): string =
 
   result &= ")"
 
-func `$`*(rx: Rx): string = lispRepr(rx)
+func `$`*(rx: Rx): ColoredText = lispRepr(rx)
 
 func toStr*(special: RxSpecialKind, flavor: RxFlavor = rxfPerl): string =
   case special:
@@ -222,16 +222,16 @@ func toStr*(kind: RxKind): string =
 func toStr*(rx: Rx, flavor: RxFlavor = rxfPerl): string =
   case flavor:
     of rxfDebug:
-      result = treeRepr(rx, false)
+      result = $treeRepr(rx, false)
 
     else:
       case rx.kind:
         of rxkText:
-          result = rx.text.rxEscape()
+          result.add rx.text.rxEscape()
 
         of rxkSingleArgKinds:
           let a0 = rx.args[0]
-          result = toStr(a0, flavor)
+          result.add toStr(a0, flavor)
 
           if rx.kind == rxkOptional and
              # Is an optional wrapper and first argument cannot be used
@@ -246,7 +246,7 @@ func toStr*(rx: Rx, flavor: RxFlavor = rxfPerl): string =
              # Explicitly check for wrapper parenthesis (might be necessary
              # to check for balanced too.)
              not (result[0] == '(' and result[^1] == ')'):
-            result = "(" & result & ")"
+            result.add "(" & result & ")"
 
           result &= toStr(rx.kind)
 
@@ -263,7 +263,7 @@ func toStr*(rx: Rx, flavor: RxFlavor = rxfPerl): string =
               discard
 
         of rxkSpecial:
-          result = toStr(rx.special, flavor)
+          result.add toStr(rx.special, flavor)
 
         of rxkCharset:
           result &= "["
@@ -274,15 +274,15 @@ func toStr*(rx: Rx, flavor: RxFlavor = rxfPerl): string =
 
         of rxkRepeatedArgKinds:
           case rx.kind:
-            of rxkGroup: result = "("
-            of rxkNonCapturingGroup: result = "(?:"
+            of rxkGroup: result.add "("
+            of rxkNonCapturingGroup: result.add "(?:"
             else: discard
 
 
           result &= mapIt(rx.args, toStr(it, flavor)).join(toStr(rx.kind))
 
           if rx.kind in rxkGroupKinds:
-            result = result & ")"
+            result.add ")"
 
           elif rx.kind == rxkAlt:
             # TODO generate more optimized matching, avoid creating

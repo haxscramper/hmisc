@@ -5,6 +5,13 @@ import
   ../core/all
 
 
+func maybeExport(str: string, cond: bool): NimNode =
+  if cond:
+    nnkPostfix.newTree(ident"*", ident(str))
+
+  else:
+    ident(str)
+
 macro wrapKindAst*(main: typed, kind: typed): untyped =
   let
     eqTil = ident("=~")
@@ -29,7 +36,8 @@ macro wrapSeqContainer*(
     fieldType: typed,
     isRef: static[bool] = false,
     withIterators: static[bool] = true,
-    ignore: openarray[string]{nkBracket} = [""]
+    ignore: openarray[string]{nkBracket} = [""],
+    exported: static[bool] = true
   ) =
 
   ## - TODO :: Generate kind using `assertKind`
@@ -47,45 +55,54 @@ macro wrapSeqContainer*(
   result = newStmtList()
 
   if "len" notin ignore:
+    let lenId = maybeExport("len", exported)
     result.add quote do:
-      proc len*(main: `mainType`): int = len(main.`field`)
+      proc `lenId`(main: `mainType`): int = len(main.`field`)
 
   if "high" notin ignore:
+    let highId = maybeExport("high", exported)
     result.add quote do:
-      proc high*(main: `mainType`): int = high(main.`field`)
+      proc `highId`(main: `mainType`): int = high(main.`field`)
 
   if "add" notin ignore:
+    let addId = maybeExport("add", exported)
     result.add quote do:
-      proc add*(main: `mutType`, other: `mainType` | seq[`mainType`]) =
+      proc `addId`(main: `mutType`, other: `mainType` | seq[`mainType`]) =
         add(main.`field`, other)
 
 
   if "[]" notin ignore:
+    let indexOp = maybeExport("[]", exported)
     result.add quote do:
-      proc `indexOp`*(main: `mainType`, index: IndexTypes): `fieldType` =
+      proc `indexOp`(main: `mainType`, index: IndexTypes): `fieldType` =
         main.`field`[index]
 
-      proc `indexOp`*(main: `mainType`, slice: SliceTypes): seq[`fieldType`] =
+      proc `indexOp`(main: `mainType`, slice: SliceTypes): seq[`fieldType`] =
         main.`field`[slice]
 
   if "[]=" notin ignore:
+    let indexAsgn = maybeExport("[]=", exported)
     result.add quote do:
-      proc `indexAsgn`*(
+      proc `indexAsgn`(
           main: `mainType`, index: IndexTypes, value: `fieldType`) =
 
         main.`field`[index] = value
 
   if withIterators:
+    let
+      pairsId = maybeExport("pairs", exported)
+      itemsId = maybeExport("items", exported
+      )
     result.add quote do:
-      iterator pairs*(main: `mainType`): (int, `fieldType`) =
+      iterator `pairsId`(main: `mainType`): (int, `fieldType`) =
         for item in pairs(main.`field`):
           yield item
 
-      iterator items*(main: `mainType`): `fieldType` =
+      iterator `itemsId`(main: `mainType`): `fieldType` =
         for item in items(main.`field`):
           yield item
 
-      iterator pairs*(main: `mainType`, slice: SliceTypes):
+      iterator `pairsId`(main: `mainType`, slice: SliceTypes):
         (int, `fieldType`) =
         let slice = clamp(slice, main.`field`.high)
         var resIdx = 0
@@ -93,7 +110,7 @@ macro wrapSeqContainer*(
           yield (resIdx, main.`field`[idx])
           inc resIdx
 
-      iterator items*(main: `mainType`, slice: SliceTypes): `fieldType` =
+      iterator `itemsId`(main: `mainType`, slice: SliceTypes): `fieldType` =
         for idx, item in pairs(main, slice):
           yield item
 

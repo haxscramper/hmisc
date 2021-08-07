@@ -2,10 +2,12 @@ import
   ./debug,
   ./gold,
   ./exceptions,
-  ./types
+  ./types,
+  ./algorithms
 
 export
   debug,
   gold,
   exceptions,
-  types
+  types,
+  algorithms

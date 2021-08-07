@@ -56,3 +56,13 @@ func `@`*(slice: Slice[int]): seq[int] =
     result.add idx
 
 func clampIdx*(val: int): int = clamp(val, 0, high(int))
+
+type
+  SingleIt*[T] = object
+    it: seq[T]
+
+func getIt*[T](it: SingleIt[T]): T = it.it[0]
+func setIt*[T](it: var SingleIt[T], val: T): void = (it.it[0] = val)
+func getIt*[T](it: var SingleIt[T]): var T = it.it[0]
+func newIt*[T](it: T): SingleIt[T] = SingleIt[T](it: @[it])
+converter toT*[T](it: SingleIt[T]): T = it.it[0]

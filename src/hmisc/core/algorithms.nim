@@ -1,5 +1,5 @@
 import
-  std/[algorithm]
+  std/[algorithm, sequtils, options, times]
 
 import
   ./gold
@@ -132,3 +132,70 @@ template twoPassSortByIt*(
       secondSorted.add(equal.sortedByIt(operation2))
 
   secondSorted
+
+template subnodesEq*(lhs, rhs, field: untyped): untyped =
+  ## Check if two objects `lhs` and `rhs` has identical field `field`
+  ## by comparing all items in the field. Check if two object's fields
+  ## have identical lengths too.
+  bind zip, allIt
+  lhs.field.len() == rhs.field.len() and
+  zip(lhs.field, rhs.field).allOfIt(it[0] == it[1])
+
+template byaddr1*(lhs, typ, ex) =
+  when typ is typeof(nil):
+    when compiles(addr(ex)):
+      let tmp = addr(ex)
+
+    else:
+      let tmp = unsafeAddr(ex)
+
+  else:
+    when compiles(addr(ex)):
+      let tmp: ptr typ = addr(ex)
+
+    else:
+      let tmp: ptr typ = unsafeaddr(ex)
+
+  template lhs: untyped = tmp[]
+
+func takesOnlyMutable*[T](v: var T) = discard
+template isMutable*(v: typed): untyped = compiles(takesOnlyMutable(v))
+
+template timeIt*(name: string, body: untyped): untyped =
+  block:
+    let start = cpuTime()
+    body
+    let total {.inject.} = cpuTime() - start
+    echo &"  {total:<5} ms ", name
+
+
+
+proc toString*(x: enum): string {.magic: "EnumToStr", noSideEffect.}
+
+func toMapArray*[K, V](map: openarray[(K, V)]): array[K, V] =
+  for (k, v) in map:
+    result[k] = v
+
+func toRevMapArray*[K, V](map: openarray[(K, V)]): array[V, K] =
+  for (k, v) in map:
+    result[v] = k
+
+func toMapArray*[K, V](map: openarray[(set[K], V)]): array[K, V] =
+  for (keySet, v) in map:
+    for k in items(keySet):
+      result[k] = v
+
+func toKeySet*[K, V](map: openarray[(K, V)]): set[K] =
+  for (k, v) in map:
+    result.incl k
+
+func toValSet*[K, V](map: openarray[(K, V)]): set[V] =
+  for (k, v) in map:
+    result.incl v
+
+func toArrayKeys*[K, V](
+    map: openarray[(K, V)], skipDefault: bool = true): seq[K] =
+  const def = default(K)
+  for (k, v) in map:
+    if not skipDefault or k != def:
+      result.add k

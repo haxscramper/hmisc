@@ -4,9 +4,7 @@ import
   ../macros/argpass,
   ../other/[hpprint, oswrap],
   ../types/[colorstring, colortext],
-  ../hdebug_misc,
-  ../base_errors,
-  ../helpers
+  ../core/all
 
 import
   std/[
@@ -48,7 +46,7 @@ type
     hskChDir
     hskMain
 
-  HLogScope = object
+  HLogScope* = object
     disabled: bool
     file: string
     line, column: int
@@ -56,7 +54,7 @@ type
     kind: HLogScopeKind
 
   HLogFormat = object
-    str: ColoredString
+    str*: ColoredText
 
   HLogger* = ref object
     minLogLevel: HLogLevel
@@ -65,40 +63,43 @@ type
     lastLogFile: string
     lastLogLine: int
     scopes: seq[HLogScope]
+    groupPrefix: bool
 
-    eventPrefix: array[HLogEvent, HLogFormat]
-    logPrefix: array[HLogLevel, HLogFormat]
+    eventPrefix*: array[HLogEvent, HLogFormat]
+    logPrefix*: array[HLogLevel, HLogFormat]
     skipNl: int
 
-    prefixLen: int
+    prefixLen*: int
 
     showFile*: bool
     showLine*: bool
     leftAlignFiles*: int
 
-proc format(str: ColoredString): HLogFormat =
+proc format*(str: ColoredText): HLogFormat =
   HLogFormat(str: str)
 
 proc newTermLogger*(file: bool = false, line: bool = false): HLogger =
+  static: echo typeof toYellow("traasdf")
   result = HLogger(
     logPrefix: toMapArray({
-      logTrace:  toColored("trace:", initStyle(styleDim)).format(),
-      logDebug:  toColored("debug:",   initStyle(fgYellow)).format(),
-      logInfo:   toColored("info:",     initStyle(fgMagenta)).format(),
-      logNotice: toColored("notice:", initStyle(fgGreen)).format(),
-      logWarn:   toColored("warn:",     initStyle(fgYellow)).format(),
-      logError:  toColored("error:",   initStyle(fgRed)).format(),
-      logFatal:  toColored("fatal:",   initStyle(bgMagenta, fgCyan)).format(),
+      logTrace:  toWhite("trace:").format(),
+      logDebug:  toYellow("debug:").format(),
+      logInfo:   toMagenta("info:").format(),
+      logNotice: toGreen("notice:").format(),
+      logWarn:   toYellow("warn:").format(),
+      logError:  toRed("error:").format(),
+      logFatal:  toMagenta("fatal:").format(),
     }),
     eventPrefix: toMapArray({
-      logEvSuccess:   toColored("ok:",     initStyle(fgMagenta)).format(),
-      logEvFail:      toColored("fail:", initStyle(fgGreen)).format(),
-      logEvWaitStart: toColored("wait:",     initStyle(fgYellow)).format(),
-      logEvWaitDone:  toColored("done:",   initStyle(fgGreen)).format(),
-      logEvExprDump:  toColored("expr:", initStyle(styleItalic)).format()
+      logEvSuccess:   toMagenta("ok:").format(),
+      logEvFail:      toGreen("fail:").format(),
+      logEvWaitStart: toYellow("wait:").format(),
+      logEvWaitDone:  toGreen("done:").format(),
+      logEvExprDump:  toItalic("expr:").format()
     })
   )
 
+  result.groupPrefix = true
   result.showLine = line
   result.showFile = file
 
@@ -154,8 +155,11 @@ proc logImpl*(
       $logger.logPrefix[level].str.alignRight(logger.prefixLen) &
         (if logger.showFile.not(): " " & $position[1] else: "")
 
-    elif (level == logger.lastLog and event == logEvNone) or
-       (level == logNone and event == logger.lastEvent):
+    elif
+       logger.groupPrefix and (
+         (level == logger.lastLog and event == logEvNone) or
+         (level == logNone and event == logger.lastEvent)
+     ):
       repeat(" ", logger.prefixLen)
 
     elif event != logEvNone:
@@ -201,10 +205,10 @@ proc logImpl*(
 
   if logger.skipNl > 0:
     dec logger.skipNl
-    stdout.write indent, prefix, " ", logger.prepareText(args, join)
+    stdout.write indent, prefix, logger.prepareText(args, join)
 
   else:
-    stdout.writeline indent, prefix, " ", logger.prepareText(args, join)
+    stdout.writeline indent, prefix, logger.prepareText(args, join)
 
   logger.lastLog = level
   logger.lastEvent = event
@@ -289,6 +293,9 @@ template withPositions*(logger: untyped): untyped =
 template openScope*(logger: HLogger, kind: HLogScopeKind, name: string) =
   let (file, line, column) = instantiationInfo(fullPaths = true)
   openScope(logger, kind, file, line, column, name)
+
+func initLogScope*(kind: HLogScopeKind): HLogScope =
+  HLogScope(kind: kind)
 
 macro logScope*(varname: untyped, pr: untyped): untyped =
   result = pr
@@ -402,6 +409,10 @@ template trace*(logger: HLogger, args: varargs[string, `$`]): untyped =
 proc infoImpl*(
   logger: HLogger, pos: (string, int, int), args: seq[string]) =
   logImpl(logger, logInfo, logEvNone, pos, args)
+
+proc passImpl*(
+  logger: HLogger, pos: (string, int, int), args: seq[string]) =
+  logImpl(logger, logInfo, logEvPass, pos, args)
 
 template info*(logger: HLogger, args: varargs[string, `$`]): untyped =
   infoImpl(logger, instantiationInfo(fullPaths = true), toStrSeq(args))
@@ -660,7 +671,7 @@ proc logStackTrace*(
     e: ref Exception,
     showError: bool = true,
     ignoreAssert: bool = true,
-    source: bool = true
+    source: bool = true,
   ) =
 
   let (showFile, showLine, leftAlignFiles) =
@@ -710,13 +721,15 @@ proc logStackTrace*(
     if ext.len > 0:
       ext = ext[1 ..^ 1]
 
-    var filePref = toLink(($tr.filename, tr.line, 0), $name.alignLeft(fileW))
+    var filePref: ColoredText =
+      toLink(($tr.filename, tr.line, 0), $name.alignLeft(fileW))
+
     if (not foundErr) and idx + 1 < stackEntries.len:
       let next = stackEntries[idx + 1]
       let nextFile = $next.filename
       if nextFile.startsWith(choosenim) or startsWith(
         $next.procname, @["expect", "assert"]):
-        filePref = filePref.toRed()
+        filePref += fgRed
         foundErr = true
 
     if $tr.procname == "failedAssertImpl" and ignoreAssert:
@@ -767,7 +780,7 @@ proc loggerErrConverter*(
 
   state.get().warn(stream.readLine())
 
-proc prettyShellCmd(cmd: ShellCmd): string =
+proc prettyShellCmd(cmd: ShellCmd): ColoredText =
   result = cmd.bin
   let max = 80
 
@@ -776,7 +789,7 @@ proc prettyShellCmd(cmd: ShellCmd): string =
   for arg in cmd:
     let
       str = arg.toStr(cmd.conf, true)
-      len = str.termLen()
+      len = str.len()
 
     if lineLen + len + 1 > max:
       result &= repeat(" ", clamp(max - lineLen, 0, high(int))) & "\\\n    "
@@ -792,7 +805,7 @@ proc prettyShellCmd(cmd: ShellCmd): string =
 proc logShellCmd(
     logger: HLogger, pos: (string, int, int), shellCmd: ShellCmd) =
   infoImpl(logger, pos, @["Running shell", "'" & shellCmd.bin & "'"])
-  debugImpl(logger, pos, @[shellCmd.prettyShellCmd()])
+  debugImpl(logger, pos, @[$shellCmd.prettyShellCmd()])
 
 
 proc execShell*(

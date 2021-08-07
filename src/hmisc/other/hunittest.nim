@@ -3,9 +3,10 @@ import
 
 import
   ../macros/nim_ast_help,
-  ../algo/hseq_distance,
+  ../algo/[hseq_distance, htemplates, halgorithm],
   ../other/[hpprint],
   ../core/[all, code_errors],
+  ../types/colorstring,
   ./oswrap
 
 
@@ -58,9 +59,13 @@ type
     trkSuiteEnd
     trkSuiteFail
 
-const trkSectionKinds = { trkTestStart .. trkSuiteFail }
+const
+  trkSectionKinds = { trkTestStart .. trkSuiteFail }
+  trkFailKinds = { trkSuiteFail, trkTestFail, trkExpectFail, trkCheckFail }
 
 type
+  TestMatchFail = tuple[path, expected, got: string]
+
   TestReport = object
     location {.requiresinit.}: TestLocation
     msg: string
@@ -73,6 +78,9 @@ type
 
       of tfkException:
         exception: ref Exception
+
+      of tfkMatchDiff:
+        paths: seq[TestMatchFail]
 
       else:
         discard
@@ -91,6 +99,8 @@ type
   TestContext* = ref object
     globs: seq[TestGlob]
     startTime: float
+    sourceOnError: bool
+    failCount: int
 
 
   TestProcPrototype = proc(testContext: TestContext)
@@ -99,21 +109,81 @@ func allBackends(conf: TestConf): bool =
   let b = conf.backends
   b.len == 0 or ((tbC in b) and (tbCpp in b) or (tbJs in b) or (tbNims in b))
 
+import ./hlogger
+
 proc report(context: TestContext, report: TestReport) =
-  echo report.kind, " ", report.msg
+  let (file, line, column) = (
+    report.location.file,
+    report.location.line,
+    report.location.column)
+
+  let (dir, filename, expr) = splitFile(AbsFile file)
+
+  let
+    width = 8
+    pad = " " |<< width
+    pFail = toRed("[FAIL] " |>> width)
+    pOk = toGreen("[OK] " |>> width)
+    pSuite = toMagenta("[SUITE] " |>> width)
+
   case report.kind:
     of trkSectionKinds:
-      echo ">> ", report.conf.name
-      if report.failKind == tfkException:
-        pprintStackTrace(report.exception)
+      let name = report.conf.name
+      case report.kind:
+        of trkFailKinds:
+          echo pFail, name
 
-    of trkCheckFail:
-      case report.failKind:
-        of tfkStructDiff:
-          echo report.structDiff.pstring()
+        of trkSuiteEnd:
+          echo pSuite, name
+
+        of trkTestEnd:
+          if context.failCount > 0:
+            echo pFail, name
+
+          else:
+            echo pOk, name
+
+          context.failCount = 0
 
         else:
-          discard
+          echo pOk, name
+
+      if report.failKind == tfkException:
+        newTermLogger().logStackTrace(
+          report.exception, source = context.sourceOnError)
+
+
+    of trkCheckFail:
+      inc context.failCount
+      var msg: ColoredText
+      msg.add pad
+      msg.add toYellow("[CHECK FAIL]")
+      msg.add " in "
+      msg.add toGreen(&"{filename}:{line}")
+
+
+      case report.failKind:
+        of tfkStructDiff:
+          msg.add " - structural comparison mismatch"
+          echo msg, "\n"
+          echo report.structDiff.pstring().indent(width + 3), "\n"
+
+        of tfkMatchDiff:
+          msg.add " - pattern matchig fail"
+          echo msg, "\n"
+          for (path, expected, got) in report.paths:
+            echo pad, "  expected ", toGreen(expected), " at '", path,
+              "', but got ", toRed(got)
+
+          echo ""
+
+        else:
+          echo msg, "\n"
+          let exprWidth  = report.strs.maxIt(it.expr.len)
+          for (expr, value) in report.strs:
+            echo pad, "  ", toGreen(expr |<< exprWidth), " was ", value
+
+          echo ""
 
 
     else:
@@ -136,8 +206,8 @@ func testFailed(
   if fail of CatchableError:
     result.msg = (ref CatchableError)(fail).msg
 
-func testOk(conf: TestConf, loc: TestLocation): TestReport =
-  TestReport(kind: trkTestOk, conf: conf, location: loc)
+func testEnd(conf: TestConf, loc: TestLocation): TestReport =
+  TestReport(kind: trkTestEnd, conf: conf, location: loc)
 
 func suiteStarted(conf: TestConf, loc: TestLocation): TestReport =
   TestReport(
@@ -152,6 +222,17 @@ proc checkFailed(
     strs: openarray[(string, string)]
   ): TestReport =
   TestReport(kind: trkCheckFail, location: loc, strs: @strs)
+
+
+proc checkOk(loc: TestLocation): TestReport =
+  TestReport(kind: trkCheckOk, location: loc)
+
+proc matchCheckFailed(
+    loc: TestLocation, fails: seq[TestMatchFail]): TestReport =
+  TestReport(
+    kind: trkCheckFail, location: loc,
+    failKind: tfkMatchDiff, paths: fails)
+
 
 func getWhen(conf: TestConf): NimNode =
   if conf.allBackends():
@@ -231,11 +312,187 @@ proc structeq*[T](struct1, struct2: T, loc: TestLocation): TestReport =
 
 
 
-template astdiff*[T](ast1, ast2: T, loc: TestLocation): TestReport =
-  TestReport(location: loc)
+proc hasKind[A, K](ast: A, kind: K): bool =
+  ast.kind == kind
 
-macro matchdiff*(obj: typed, match: untyped, loc: TestLocation): TestReport =
-  discard
+proc toPath[A](ast: A, path: seq[int]): string =
+  mixin `[]`
+  proc aux(a: A, path: seq[int]): seq[string] =
+    result.add $a.kind
+    if path.len > 1:
+      result.add aux(a[path[0]], path[1..^1])
+
+    elif path.len == 1:
+      result.add "[" & $path[0] & "]"
+
+  return aux(ast, path).join(".")
+
+
+macro astdiff*(ast: typed, match: untyped, loc: TestLocation): untyped =
+  let
+    fails = genSym(nskVar, "fails")
+    expr = ident("expr")
+    toPath = bindSym("toPath")
+
+  proc aux(path, pattern: NimNode, pathIdx: seq[int]): NimNode =
+    let idxLit = pathIdx.newLit()
+    case pattern.kind:
+      of nnkCall, nnkBracketExpr:
+        let kind = pattern[0]
+        let kindLit = kind.toStrLit()
+        let wantLen = newLit(pattern.len - 1)
+        result = quote do:
+          if not hasKind(`path`, `kind`):
+            `fails`.add((
+              `idxLit`,
+              `kindLit`,
+              $`path`.kind
+            ))
+
+          if `path`.len < `wantLen`:
+            `fails`.add((
+              `idxLit`,
+              "missing subnodes - wanted len " & $`wantLen`,
+              $`path`.len
+            ))
+
+        for idx, check in pattern[1..^1]:
+          let
+            idxLit = newLit(idx)
+            auxImpl = aux(
+              nnkBracketExpr.newTree(path, idxLit),
+              check, pathIdx & idx
+            )
+
+          result.add quote do:
+            if `idxLit` < `path`.len:
+              `auxImpl`
+
+
+      else:
+        raise newImplementKindError(pattern)
+
+  let impl = aux(ast, match, @[])
+
+  result = quote do:
+    var `fails`: seq[(seq[int], string, string)]
+    let `expr` = `ast`
+
+    `impl`
+
+    if `fails`.len > 0:
+      var failDescs: seq[TestMatchFail]
+      for (path, desc, got) in `fails`:
+        failDescs.add((`toPath`(`expr`, path), desc, got))
+
+      matchCheckFailed(`loc`, failDescs)
+
+    else:
+      checkOk(`loc`)
+
+
+
+macro matchdiff*(
+    obj: typed, match: untyped, loc: static[TestLocation]): untyped =
+
+  let
+    loc = newLit(loc)
+    fails = genSym(nskVar, "fails")
+    tmp = ident("expr")
+    hasKind = bindSym("hasKind")
+
+
+  func pathLit(item: NimNode): NimNode =
+    item.toStrLit().strVal()["expr".len .. ^1].newLit()
+
+  proc callCmp(item, call: NimNode, desc: NimNode): NimNode =
+    let pathLit = item.pathLit()
+
+    result = quote do:
+      if not(`call`):
+        `fails`.add (`pathLit`, $`desc`, $`item`)
+
+  proc itemCmp(item, value: NimNode): NimNode =
+    let pathLit = item.pathLit()
+    case value.kind:
+      of nnkIntLit:
+        result = quote do:
+          if not(`item` == `value`):
+            `fails`.add (`pathLit`, $`value`, $`item`)
+
+      of nnkPrefix:
+        let
+          cmpExpr = nnkInfix.newTree(value[0], item, value[1])
+          valueLit = value.toStrLit()
+
+        result = quote do:
+          if not(`cmpExpr`):
+            `fails`.add (`pathLit`, `valueLit`, $`item`)
+
+      else:
+        raise newImplementKindError(value, value.treeRepr())
+
+  proc aux(item, pattern, path: NimNode): NimNode =
+    result = newStmtList()
+    case pattern.kind:
+      of nnkPar:
+        for check in pattern:
+          result.add aux(item, check, path)
+
+      of nnkExprColonExpr:
+        assertNodeKind(pattern[0], {nnkIdent})
+        result.add itemCmp(nnkDotExpr.newTree(path, pattern[0]), pattern[1])
+
+      of nnkBracket:
+        result.add itemCmp(
+          nnkDotExpr.newTree(path, ident"len"), newLit(pattern.len))
+
+        for idx, item in pattern:
+          result.add itemCmp(
+            nnkBracketExpr.newTree(path, newLit(idx)), item)
+
+      of nnkBracketExpr, nnkCall:
+        let
+          pathLit = path.pathLit()
+          wantKind = pattern[0]
+          kindLit = wantKind.toStrLit()
+
+        result.add quote do:
+          if not(`hasKind`(`path`, `wantKind`)):
+            `fails`.add (`pathLit`, `kindLit`, $`path`.kind)
+
+
+        for idx, check in pattern[1..^1]:
+          if check.kind in { nnkIntLit, nnkPrefix }:
+            result.add itemCmp(
+              nnkBracketExpr.newTree(path, newLit(idx)), check)
+
+          else:
+            result.add aux(
+              item,
+              check,
+              nnkBracketExpr.newTree(path, newLit(idx)))
+
+
+      else:
+        raise newImplementKindError(pattern)
+
+
+  let impl = aux(tmp, match, tmp)
+
+  result = quote do:
+    block:
+      var `fails`: seq[TestMatchFail]
+      let `tmp` = `obj`
+      `impl`
+
+      if `fails`.len > 0:
+        matchCheckFailed(`loc`, `fails`)
+
+      else:
+        checkOk(`loc`)
+
+
 
 
 
@@ -303,8 +560,37 @@ proc checkpoint(loc: TestLocation, msg: string): TestReport =
 macro configureTests(conf: untyped): untyped =
   discard
 
-proc newTestContext(): TestContext =
-  discard
+
+proc newTestLogger*(): HLogger =
+  result = HLogger(
+    logPrefix: toMapArray({
+      logTrace:  toWhite("[trace]").format(),
+      logDebug:  toYellow("[debug]").format(),
+      logInfo:   toMagenta("[info]").format(),
+      logNotice: toGreen("[notice]").format(),
+      logWarn:   toYellow("[warn]").format(),
+      logError:  toRed("[error]").format(),
+      logFatal:  toMagenta("[fatal]").format(),
+    }),
+    eventPrefix: toMapArray({
+      logEvSuccess:   toGreen("[OK]").format(),
+      logEvFail:      toRed("[FAIL]").format(),
+      logEvWaitStart: toYellow("[wait]").format(),
+      logEvWaitDone:  toMagenta("[DONE]").format(),
+      logEvExprDump:  toItalic("[expr]").format()
+    })
+  )
+
+  result.openScope(hskMain, "main")
+
+  result.prefixLen = max(
+    result.logPrefix.maxIt(it.str.len),
+    result.eventPrefix.maxIt(it.str.len))
+
+proc newTestContext*(): TestContext =
+  TestContext(
+    sourceOnError: true
+  )
 
 proc getTestGlobs(): seq[TestGlob] =
   for param in paramStrs():
@@ -322,7 +608,8 @@ proc getTestGlobs(): seq[TestGlob] =
 proc getTestContext(): TestContext =
   var context {.global, threadvar.}: TestContext
   if isNil(context):
-    context = TestContext(globs: getTestGlobs())
+    context = newTestContext()
+    context.globs = getTestGlobs()
 
   return context
 
@@ -366,25 +653,27 @@ macro test*(name: static[string], body: untyped): untyped =
     testLit = newLit(testConf)
     canRun = bindSym("canRunTest")
     testFailed = bindSym("testFailed")
-    testOk = bindSym("testOk")
+    testOk = bindSym("testEnd")
     report = bindSym("report")
     testLoc = testLocation(body).newLit()
 
 
   result = quote do:
-    {.line: `line`.}:
+    block:
       let
         conf = `testLit`
         loc = `testLoc`
 
       if `canRun`(testContext, conf):
         try:
-          `body`
+          {.line: `line`.}:
+            `body`
 
           `report`(testContext, `testOk`(conf, loc))
 
         except:
-          `report`(testContext, `testFailed`(conf, loc, getCurrentException()))
+          `report`(testContext, `testFailed`(
+            conf, loc, getCurrentException()))
 
 
 
@@ -420,7 +709,9 @@ proc buildCheck(expr: NimNode): NimNode =
     else:
       if expr.kind in { nnkCall, nnkCommand } and
          expr[0].eqIdent([
-           "stringdiff", "structdiff", "astdiff", "matchdiff"]):
+           "stringdiff", "structdiff",
+           "matchdiff", "astdiff"
+         ]):
         expr.add loc
         result = quote do:
           block:
@@ -437,7 +728,7 @@ proc buildCheck(expr: NimNode): NimNode =
 
 
 
-
+  # echo result.repr()
 
 
 

@@ -110,3 +110,5 @@ proc `of`*[A: object or ref object; K: enum](item: A, kind: K | set[K]): bool =
 
   else:
     item.kind == kind
+
+template last*(s: typed): untyped = s[^1]

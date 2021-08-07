@@ -867,33 +867,6 @@ proc getRandMark*[K, E](marks: var MarkTable[K, E], value: K): E =
   result = marks.table[value]
 
 
-func toMapArray*[K, V](map: openarray[(K, V)]): array[K, V] =
-  for (k, v) in map:
-    result[k] = v
-
-func toRevMapArray*[K, V](map: openarray[(K, V)]): array[V, K] =
-  for (k, v) in map:
-    result[v] = k
-
-func toMapArray*[K, V](map: openarray[(set[K], V)]): array[K, V] =
-  for (keySet, v) in map:
-    for k in items(keySet):
-      result[k] = v
-
-func toKeySet*[K, V](map: openarray[(K, V)]): set[K] =
-  for (k, v) in map:
-    result.incl k
-
-func toValSet*[K, V](map: openarray[(K, V)]): set[V] =
-  for (k, v) in map:
-    result.incl v
-
-func toArrayKeys*[K, V](
-    map: openarray[(K, V)], skipDefault: bool = true): seq[K] =
-  const def = default(K)
-  for (k, v) in map:
-    if not skipDefault or k != def:
-      result.add k
 
 
 func mapChar*[Cat: enum](

@@ -1,8 +1,10 @@
 import std/[streams, strscans, strutils, strformat,
             macros, segfaults]
 
-import ../base_errors, ../hdebug_misc
-import ./halgorithm, ../other/oswrap
+import
+  ../core/all,
+  ./halgorithm,
+  ../other/oswrap
 
 
 ##[

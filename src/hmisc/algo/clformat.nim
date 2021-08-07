@@ -39,15 +39,13 @@ func toRomanNumeral*(x: int): string =
     x = x mod num
 
 func toPluralNoun*(
-    noun: string, count: int,
-    addNum: bool = true, plural: string = ""
-  ): string =
+    noun: ColoredText, count: int,
+    addNum: bool = true, plural: ColoredText = default(ColoredText)
+  ): ColoredText =
   ## Generate correct plural noun from string `noun`.
   ##
   ## NOTE placeholder implementation that just adds 's'
   ##
-  ## - TODO :: implement algorith described here:
-  ##   http://users.monash.edu/~damian/papers/HTML/Plurals.html
   ## - TODO Generate either numerical literal, or word representation
   if count == 1:
     result = noun
@@ -62,11 +60,11 @@ func toPluralNoun*(
     result = $count & " " & result
 
 func joinWords*(
-    words: seq[string],
-    sepWord: string,
+    words: seq[ColoredText],
+    sepWord: ColoredText,
     quote: char = '\'',
-    empty: string = ""
-  ): string =
+    empty: ColoredText = default(ColoredText)
+  ): ColoredText =
 
   template put(): untyped =
     if quote != '\x00':
@@ -97,23 +95,17 @@ func joinWords*(
           result &= ", "
 
 func joinAnyOf*(
-    words: seq[string],
+    words: seq[ColoredText],
     quote: char = '\'',
-    prefix: string = "any of ",
-    empty: string = "\x00",
-    sepWord: string = "or",
-    suffix: string = ""
-  ): string =
+    prefix: ColoredText = "any of ",
+    empty: ColoredText = "no",
+    sepWord: ColoredText = "or",
+    suffix: ColoredText = ""
+  ): ColoredText =
 
   case words.len:
     of 0:
-      if empty == "\x00":
-        raise newArgumentError(
-          "Cannot join list for 'any of' - got empty word list, " &
-            "fallback was not specified")
-
-      else:
-        result = empty
+      result = empty
 
     of 1:
       result = words[0]
@@ -122,14 +114,14 @@ func joinAnyOf*(
       result = prefix & joinWords(words, sepWord, quote) & suffix
 
 func namedItemListing*(
-    name: string,
-    words: seq[string],
-    sepWord: string,
+    name: ColoredText,
+    words: seq[ColoredText],
+    sepWord: ColoredText,
     quote: char = '\x00'
-  ): string =
+  ): ColoredText =
 
   if words.len == 0:
-    result = &"{toPluralNoun(name, 0).toLowerAscii()}"
+    result = toPluralNoun(name, 0).toLower()
 
   else:
     result = toPluralNoun(name, words.len) &
@@ -1104,13 +1096,18 @@ func hShow*[E: enum](e: E, opts: HDisplayOpts = defaultHDisplay): ColoredText =
     toGreen($e, opts.colored)
 
 
+func wrap*(text: ColoredText, around: ColorTextConvertible): ColoredText =
+  result.add around
+  result.add text
+  result.add around
+
 func stringMismatchMessage*(
     input: string,
     expected: openarray[string],
     colored: bool = true,
     fixSuggestion: bool = true,
     showAll: bool = false,
-  ): string =
+  ): ColoredText =
   ## - TODO :: Better heuristics for missing/extraneous prefix/suffix
 
   let expected = deduplicate(expected)
@@ -1166,7 +1163,7 @@ func stringMismatchMessage*(
         if idx > 0:
           result &= " "
 
-        result &= to8Bit(toItalic(alt.target, colored) & "?", tcGrey63)
+        result &= (toItalic(alt.target, colored) & "?") + tcGrey63
 
       result &= ")"
 

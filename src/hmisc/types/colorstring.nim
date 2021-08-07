@@ -4,10 +4,14 @@ import std/[
   hashes
 ]
 
-import ../macros/[traceif, wrapfields]
 import
-  ../core/all,
+  ../macros/[traceif, wrapfields]
+
+import
+  ../core/[all, colored],
   ../algo/[hseq_distance, htemplates]
+
+export toLink
 
 type
   TermColor8Bit* = enum
@@ -343,14 +347,27 @@ type
   ColoredLine* = seq[ColoredString]
 
   ColoredRune* = object
-    styling* {.requiresinit.}: PrintStyling
     rune*: Rune
+    styling* {.requiresinit.}: PrintStyling
 
   ColoredText* = object
     runes*: seq[ColoredRune]
 
   ColoredRuneLine* = seq[ColoredRune]
   ColoredRuneGrid* = seq[ColoredRuneLine]
+
+  ColorTextConvertible* =
+    string |
+    char |
+    Rune |
+    ColoredText |
+    ColoredRuneLine |
+    ColoredLine |
+    ColoredString
+
+# static:
+#     echo sizeof(ColoredRune)
+#     echo sizeof(PrintStyling)
 
 func isValid*(style: PrintStyling): bool =
   style.use8Bit or (style.fg.int != 0 and style.bg.int != 0)
@@ -491,6 +508,21 @@ func initColoredString*(
   ColoredString(str: str, styling: PrintStyling(
     use8Bit: false, fg: fg, bg: bg, style: style))
 
+
+func initColoredText*(
+    str: string,
+    bg: BackgroundColor = bgDefault,
+    fg: ForegroundColor = fgDefault,
+    style: set[Style] = {}
+  ): ColoredText =
+
+  for ch in str:
+    result.runes.add ColoredRune(
+      rune: Rune(ch),
+      styling: initPrintStyling(fg, bg, style)
+    )
+
+
 func hash*(text: ColoredText): Hash =
   for rune in text.runes:
     result = result !& hash(rune.rune)
@@ -546,12 +578,32 @@ func `+`*(text: ColoredRuneLine, style: PrintStyling): ColoredRuneLine =
   for ch in text:
     result.add ch + style
 
-func `+`*(text: ColoredText, style: PrintStyling): ColoredText =
-  for ch in text.runes:
-    result.runes.add ch + style
+func `+=`*(text: var ColoredText, style: PrintStyling) =
+  for ch in mitems(text.runes):
+    ch.styling = style
+
+func `+=`*(text: var ColoredText, fg: ForegroundColor) =
+  text += initPrintStyling(fg)
+
+func `+`*(text: sink ColoredText, style: PrintStyling): ColoredText =
+  result = text
+  result += style
+
+
+func `+`*(text: sink ColoredText, fg: TermColor8Bit): ColoredText =
+  result = text
+  for rune in mitems(result.runes):
+    rune.styling = PrintStyling(
+      use8Bit: true,
+      fg8: fg,
+      style: rune.styling.style
+    )
 
 func toColoredText*(text: ColoredText): ColoredText = text
-func toColoredText*(str: string): ColoredText = str + defaultPrintStyling
+
+
+
+
 func toColoredText*(rune: ColoredRune): ColoredText =
   ColoredText(runes: @[rune])
 
@@ -568,10 +620,54 @@ func toColoredText*(rune: ColoredRuneLine): ColoredText =
   result.runes = rune
 
 
-func toColoredText*(ch: char): ColoredText =
-  toColoredtext(ch + defaultPrintStyling)
+func toColoredText*(str: string, styling: PrintStyling): ColoredText =
+  str + styling
+
+converter toColoredText*(str: string): ColoredText =
+  str + defaultPrintStyling
+
+converter toColoredTextSeq*(str: seq[string]): seq[ColoredText] =
+  result = newSeqOfCap[ColoredText](str.len)
+  for si in str:
+    result.add toColoredText(si)
+
+converter toColoredText*(ch: char): ColoredText =
+  toColoredText(ch + defaultPrintStyling)
+
+converter toColoredRune*(ch: char): ColoredRune =
+  ch + defaultPrintStyling
+
+
+
+wrapSeqContainer(ColoredText.runes, ColoredRune)
+
 
 func isNewline*(rune: ColoredRune): bool = rune.rune == Rune(10)
+func toLower*(text: sink ColoredText): ColoredText =
+  result = text
+  for rune in mitems(text.runes):
+    rune.rune = toLower(rune.rune)
+
+func alignLeft*(
+    text: sink ColoredText, length: int, padding: ColoredRune = ' '
+  ): ColoredText =
+
+  result = text
+  if result.len < length:
+    result.runes.add padding.repeat(length - result.len)
+
+func alignRight*(
+    text: ColoredText, length: int, padding: ColoredRune = ' '
+  ): ColoredText =
+
+  if text.len < length:
+    result.runes.add padding.repeat(length - text.len)
+
+  result.runes.add text.runes
+
+func `==`*(rune: ColoredRune, ch: char): bool =
+  rune.rune == Rune(int(ch))
+
 func hasNewline*(text: ColoredText): bool =
   for rune in text.runes:
     if isNewline(rune):
@@ -597,8 +693,6 @@ func toRuneGrid*(text: ColoredText): ColoredRuneGrid =
 
 func toRuneLine*(text: ColoredText): ColoredRuneLine =
   text.runes
-
-wrapSeqContainer(ColoredText.runes, ColoredRune)
 
 func add*(colored: var ColoredText, other: ColoredText) =
   colored.runes.add other.runes
@@ -831,27 +925,32 @@ func toStyled*(
   else:
     str
 
-func toRed*(str: string, style: set[Style] = {}): string =
-  $initColoredString(str, style = style, fg = fgRed)
+func toRed*(str: string, style: set[Style] = {}): ColoredText =
+  initColoredText(str, style = style, fg = fgRed)
 
-func toGreen*(str: string, style: set[Style] = {}): string =
-  $initColoredString(str, style = style, fg = fgGreen)
+func toGreen*(str: string, style: set[Style] = {}): ColoredText =
+  initColoredText(str, style = style, fg = fgGreen)
 
-func toYellow*(str: string, style: set[Style] = {}): string =
-  $initColoredString(str, style = style, fg = fgYellow)
+func toBlue*(str: string, style: set[Style] = {}): ColoredText =
+  initColoredText(str, style = style, fg = fgBlue)
 
-func toWhite*(str: string, style: set[Style] = {}): string =
-  $initColoredString(str, style = style, fg = fgWhite)
+func toYellow*(str: string, style: set[Style] = {}): ColoredText =
+  initColoredText(str, style = style, fg = fgYellow)
 
-func toCyan*(str: string, style: set[Style] = {}): string =
-  $initColoredString(str, style = style, fg = fgCyan)
+func toWhite*(str: string, style: set[Style] = {}): ColoredText =
+  initColoredText(str, style = style, fg = fgWhite)
 
-func toMagenta*(str: string, style: set[Style] = {}): string =
-  $initColoredString(str, style = style, fg = fgMagenta)
+func toCyan*(str: string, style: set[Style] = {}): ColoredText =
+  initColoredText(str, style = style, fg = fgCyan)
+
+func toMagenta*(str: string, style: set[Style] = {}): ColoredText =
+  initColoredText(str, style = style, fg = fgMagenta)
 
 func toDefault*(
-  str: string, style: set[Style] = {}, colorize: bool = true): string =
-  $initColoredString(
+    str: string, style: set[Style] = {}, colorize: bool = true
+  ): ColoredText =
+
+  initColoredText(
     str, style = if colorize: style else: {}, fg = fgDefault)
 
 
@@ -876,53 +975,70 @@ func toCyan*(str: string, color: bool): ColoredText =
 func toMagenta*(str: string, color: bool): ColoredText =
   if color: str + fgMagenta else: str + fgDefault
 
-func toItalic*(str: string, color: bool): string =
-  if color: str.toDefault({styleItalic}) else: str
+func toItalic*(str: string, color: bool): ColoredText =
+  if color: str.toDefault({styleItalic}) else: toColoredText(str)
 
-func toUndescore*(str: string, color: bool): string =
-  if color: str.toDefault({styleUnderscore}) else: str
+func toUndescore*(str: string, color: bool): ColoredText =
+  if color: str.toDefault({styleUnderscore}) else: toColoredText(str)
 
-func toItalic*(str: string): string = str.toDefault({styleItalic})
-func toUndescore*(str: string): string = str.toDefault({styleUnderscore})
+func toItalic*(str: string): ColoredText = str.toDefault({styleItalic})
+func toUndescore*(str: string): ColoredText = str.toDefault({styleUnderscore})
 
-func to8Bit*(str: string, color: TermColor8Bit): string =
-  &"\e[38;5;{color.ord}m{str}\e[0m"
+func to8Bit*(str: string, color: TermColor8Bit): ColoredText =
+  toColoredText(str, initStyleFg(color))
+  # &"\e[38;5;{color.ord}m{str}\e[0m"
 
-func to8BitBg*(str: string, color: TermColor8Bit): string =
-  &"\e[48;5;{color.ord}m{str}\e[0m"
-
-proc to8Bit*(
-  str: string, r, g, b: range[0 .. 5], colored: bool = true): string =
-  if colored:
-    result = &"\e[38;5;{16 + b + g * 6 + (6 * 6) * r}m{str}\e[0m"
-
-  else:
-    result = str
+func to8BitBg*(str: string, color: TermColor8Bit): ColoredText =
+  toColoredText(str, initStyleBg(color))
+  # &"\e[48;5;{color.ord}m{str}\e[0m"
 
 proc to8Bit*(
-  str: string, gray: range[0 .. 23], colored: bool = true): string =
+  str: string, r, g, b: range[0 .. 5], colored: bool = true): ColoredText =
   if colored:
-    result = &"\e[38;5;{232 + gray}m{str}\e[0m"
+    toColoredText(str, initStyleFg(TermColor8Bit(16 + b + g * 6 + (6 * 6) * r)))
+    # result = &"\e[38;5;{}m{str}\e[0m"
 
   else:
-    result = str
+    toColoredText(str)
+    # result = str
+
+proc to8Bit*(
+  str: string, gray: range[0 .. 23], colored: bool = true): ColoredText =
+  if colored:
+    toColoredText(str, initStyleFg(TermColor8Bit(232 + gray)))
+    # result = &"\e[38;5;{232 + gray}m{str}\e[0m"
+
+  else:
+    toColoredText(str)
+    # result = str
 
 
 proc to8BitBg*(
-  str: string, r, g, b: range[0 .. 5], colored: bool = true): string =
+  str: string, r, g, b: range[0 .. 5], colored: bool = true): ColoredText =
   if colored:
-    result = &"\e[48;5;{16 + b + g * 6 + (6 * 6) * r}m{str}\e[0m"
+    toColoredText(str, initStyleBg(
+      TermColor8Bit(16 + b + g * 6 + (6 * 6) * r)))
 
   else:
-    result = str
+    toColoredText(str)
+  # if colored:
+  #   result = &"\e[48;5;{16 + b + g * 6 + (6 * 6) * r}m{str}\e[0m"
+
+  # else:
+  #   result = str
 
 proc to8BitBg*(
-  str: string, gray: range[0 .. 23], colored: bool = true): string =
+  str: string, gray: range[0 .. 23], colored: bool = true): ColoredText =
   if colored:
-    result = &"\e[48;5;{232 + gray}m{str}\e[0m"
+    toColoredText(str, initStyleBg(TermColor8Bit(232 + gray)))
 
   else:
-    result = str
+    toColoredText(str)
+  # if colored:
+  #   result = &"\e[48;5;{232 + gray}m{str}\e[0m"
+
+  # else:
+  #   result = str
 
 func term8Bit*(r, g, b: range[0 .. 5]): TermColor8Bit =
   TermColor8Bit(16 + b + g * 6 + (6 * 6) * r)
@@ -1898,7 +2014,7 @@ func `[]`*(buf: ColoredRuneGrid, row, col: int): ColoredRune =
 
 func initRuneGrid*(): ColoredRuneGrid = discard
 
-func getEditVisual*(src, target: seq[char], ops: seq[LevEdit]): string =
+func getEditVisual*(src, target: seq[char], ops: seq[LevEdit]): ColoredText =
   var
     src = src
     currIdx = 0

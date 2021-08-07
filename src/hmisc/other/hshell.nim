@@ -17,14 +17,11 @@ import oswrap
 import std/[strutils, strformat, sequtils, options,
             deques, json, macros, times]
 
-import ../hexceptions
-import ../base_errors
-import ../hdebug_misc
-
-import ../algo/hlex_base
-import ../algo/htemplates
-
-import ../types/colorstring
+import
+  ../core/[all, code_errors],
+  ../algo/hlex_base,
+  ../algo/htemplates,
+  ../types/colorstring
 
 from std/os import quoteShell
 
@@ -471,7 +468,8 @@ func quoteShell*(str: string): string =
 func toStr*(inAst: ShellAst, oneline: bool = false): string
 
 func toStr*(
-    part: ShellCmdPart, conf: ShellCmdConf, colored: bool = false): string =
+    part: ShellCmdPart, conf: ShellCmdConf, colored: bool = false
+  ): ColoredText=
   ## Convret shell command part to string representation
   let longPrefix =
     case conf.flagConf:
@@ -512,7 +510,7 @@ func toStr*(
       else:
         return part.expr.toStr()
 
-func toStrSeq*(cmd: ShellCmd): seq[string] =
+func toStrSeq*(cmd: ShellCmd): seq[ColoredText] =
   result = @[ cmd.bin ]
   for op in cmd.opts:
     result &= op.toStr(cmd.conf)
@@ -663,7 +661,7 @@ iterator pairs*(cmd: ShellCmd): (int, ShellCmdPart) =
   for idx, item in pairs(cmd.opts):
     yield (idx, item)
 
-func toLogStr*(cmd: ShellCmd): string =
+func toLogStr*(cmd: ShellCmd): ColoredText =
   ## Convert shell command to pretty-printed shell representation
   # TODO add newline escapes `\` at the end of the string
   for str in cmd.toStrSeq():
@@ -1038,7 +1036,7 @@ when cbackend:
         startProcess(
           cmd.bin,
           options = options,
-          args = cmd.opts.mapIt(it.toStr(cmd.conf)),
+          args = cmd.opts.mapIt($it.toStr(cmd.conf, colored = false)),
           env = if env.len > 0: newStringTable(env) else: nil
         )
 
