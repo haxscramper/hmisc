@@ -1,4 +1,6 @@
-import std/[strutils, tables, enumerate, strformat]
+import
+  std/[strutils, tables, enumerate, strformat]
+
 import
   ./hseq_mapping,
   ./hseq_distance,
@@ -8,6 +10,7 @@ import
   ../types/colorstring,
   ../algo/halgorithm
 
+export colorstring
 
 
 ## Implementation of several basic functions from common lisp `format`
@@ -326,7 +329,7 @@ const texIdents* = [
   "e",
 ]
 
-const extendedAsciiNames: array[char, string] = [
+const extendedAsciiNames*: array[char, string] = [
   '\x00': "[NUL]",
   '\x01': "[SOH]",
   '\x02': "[STX]",
@@ -584,6 +587,10 @@ const extendedAsciiNames: array[char, string] = [
   '\xFE': "þ" ,
   '\xFF': "ÿ"
 ]
+
+func asciiName*(ch: char, slash: bool = false): string =
+  extendedAsciinames[ch]
+
 
 
 const AsciiMath* = (
@@ -1054,10 +1061,10 @@ func hshow*[T](s: seq[T], opts: HDisplayOpts = defaultHDisplay): ColoredText =
 
 import std/sequtils
 
-func replaceTailNewlines(
+func replaceTailNewlines*(
     buf: var ColoredText,
     replaceWith: ColoredRune = uc"⮒" + defaultPrintStyling
-  ) =
+  ): int {.discardable.} =
   var nlCount = 0
   while nlCount < buf.len and buf[buf.high - nlCount].isNewline():
     inc nlCount
@@ -1067,6 +1074,37 @@ func replaceTailNewlines(
 
   for nl in 0 ..< nlCount:
     buf.add replaceWith
+
+  return nlCount
+
+func addIndent*(
+    res: var ColoredText,
+    level: int, sep: int = 2,
+    prefix: ColoredRune = ' '
+  ) =
+  if sep == 2 and prefix == ' ':
+    case level:
+      of 0:  res &=  toColoredTExt("")
+      of 1:  res &=  toColoredTExt("  ")
+      of 2:  res &=  toColoredTExt("    ")
+      of 3:  res &=  toColoredTExt("      ")
+      of 4:  res &=  toColoredTExt("        ")
+      of 5:  res &=  toColoredTExt("          ")
+      of 6:  res &=  toColoredTExt("            ")
+      of 7:  res &=  toColoredTExt("              ")
+      of 8:  res &=  toColoredTExt("                ")
+      of 9:  res &=  toColoredTExt("                  ")
+      of 10: res &=  toColoredTExt("                    ")
+      else: res &= repeat(prefix, level * sep)
+
+  else:
+    res &= repeat(prefix, level * sep)
+
+
+template coloredResult*(): untyped =
+  var outPtr: ptr ColoredText = addr result
+  template add(arg: untyped): untyped = outPtr[].add arg
+  template addIndent(level: int): untyped = outPtr[].addIndent(level)
 
 func hShow*(
     str: string, opts: HDisplayOpts = defaultHDisplay): ColoredText =
@@ -1100,6 +1138,63 @@ func wrap*(text: ColoredText, around: ColorTextConvertible): ColoredText =
   result.add around
   result.add text
   result.add around
+
+func getEditVisual*[T](
+    src, target: seq[T],
+    ops: seq[LevEdit],
+    conv: proc(t: T): string
+  ): ColoredText =
+
+  var
+    src = src
+    currIdx = 0
+
+  for op in ops:
+    if currIdx < op.getPos():
+      for i in currIdx ..< op.getPos():
+        result.add src[i]
+
+      currIdx = op.getPos() + 1
+
+    case op.kind:
+      of lekInsert:
+        result.add toGreen(conv op.insertItem)
+
+      of lekDelete:
+        result.add toRed(conv src[op.deletePos])
+
+      of lekReplace:
+        result.add toRed(conv src[op.replacePos]) &
+          toGreen(conv op.replaceItem)
+
+    src.apply(op)
+
+    if op.kind == lekDelete:
+      result.add src[op.deletePos]
+
+  for i in currIdx ..< src.len:
+    result.add src[i]
+
+
+func stringEditMessage*(
+    source, target: string,
+    detailed: bool = true,
+    windowSize: int = 4,
+    longThreshold: int = 6
+  ): ColoredText =
+  ## - @arg{windowSize} :: For long strings only show `+/-<window size>`
+  ##   characters around the edit. 'long' string should have at least
+  ##   @arg{longThreshold} characters before and after the edit area.
+
+  let (source, target) = (source.toSeq(), target.toSeq())
+
+  let (distance, operations) = levenshteinDistance(source, target)
+
+  let edit = getEditVisual(
+    source, target, operations,
+    proc(c: char): string = tern(detailed, asciiName(c), $c))
+
+  return edit
 
 func stringMismatchMessage*(
     input: string,
@@ -1151,7 +1246,8 @@ func stringMismatchMessage*(
         result &= " (" & getEditVisual(
           toSeq(input),
           toSeq(best.target),
-          best.edits.operations
+          best.edits.operations,
+          dollar[char]
         ) & ")"
 
       else:

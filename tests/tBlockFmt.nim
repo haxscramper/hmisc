@@ -1,22 +1,17 @@
-import std/[sugar, strutils, sequtils, strformat, options]
-import hmisc/helpers
-import hmisc/hdebug_misc
+import
+  std/[sugar, strutils, sequtils, strformat, options]
 
-#===========================  implementation  ============================#
-
-#================================  tests  ================================#
-
-import unittest
-import hmisc/other/blockfmt
+import
+  hmisc/core/all,
+  hmisc/other/[blockfmt, hunittest]
 
 initBlockFmtDSL()
 
 suite "Block formatting":
   test "Vertical layouts":
-    assertEq V[T["a"], T["b"]].toString(), "a\nb"
-    assertEq V[T["-"], T["-"], T["-"]].toString(), "-\n-\n-"
-
-    assertEq V[T["*"], C[T["a"], T["b"]]].toString(), "*\na"
+    check V[T["a"], T["b"]].toString() == "a\nb"
+    check V[T["-"], T["-"], T["-"]].toString() == "-\n-\n-"
+    check V[T["*"], C[T["a"], T["b"]]].toString() == "*\na"
 
 
   # test "Choice":

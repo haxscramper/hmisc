@@ -84,7 +84,7 @@ macro wrapSeqContainer*(
     let indexAsgn = maybeExport("[]=", exported)
     result.add quote do:
       proc `indexAsgn`(
-          main: `mainType`, index: IndexTypes, value: `fieldType`) =
+          main: `mutType`, index: IndexTypes, value: `fieldType`) =
 
         main.`field`[index] = value
 

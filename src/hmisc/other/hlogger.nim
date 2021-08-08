@@ -63,7 +63,7 @@ type
     lastLogFile: string
     lastLogLine: int
     scopes: seq[HLogScope]
-    groupPrefix: bool
+    groupPrefix*: bool
 
     eventPrefix*: array[HLogEvent, HLogFormat]
     logPrefix*: array[HLogLevel, HLogFormat]

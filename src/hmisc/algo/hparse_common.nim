@@ -1,6 +1,5 @@
 import
-  ./hparse_base,
-  ../helpers, ../base_errors, ../hdebug_misc
+  ./hparse_base, ../core/all
 
 type
   ExprTokKind* = enum

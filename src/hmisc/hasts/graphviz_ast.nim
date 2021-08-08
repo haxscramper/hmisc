@@ -1,15 +1,18 @@
-import std/[colors, options, strtabs, ropes, sequtils, sets,
-            strutils, strformat, os, hashes, tables]
+import std/[
+  colors, options, strtabs, ropes, sequtils, sets,
+  strutils, strformat, os, hashes, tables, sugar
+]
 
 export colors
 
-import hmisc/helpers
-# import ../halgorithm
+import
+  ../core/all,
+  ../types/[hprimitives, colorstring],
+  ../algo/halgorithm,
+  ../other/hshell
 
-import html_ast
-import hmisc/types/[hprimitives, colorstring]
-import hmisc/algo/halgorithm
-import hmisc/other/hshell
+import
+  ./html_ast
 
 export RawHtml
 
@@ -941,7 +944,7 @@ func toTree(
     result.elements.add DotTree(
       kind: dtkProperty, globalProp: true,
       key: "graph",
-      val: graph.attrs.mapPairs(&"{lhs}={rhs}").join(", ")
+      val: collect(newSeq, for lhs, rhs in graph.attrs: &"{lhs}={rhs}").join(", ")
     )
 
   if level == 0:
@@ -974,8 +977,9 @@ func toTree(
       result.elements.add DotTree(
         kind: dtkProperty, globalProp: true,
         key: "node",
-        val: styleNode.nodeAttributes.mapPairs(&"{lhs}={rhs}").join(", ")
-      )
+        val: collect(newSeq,
+          for lhs, rhs in (styleNode.nodeAttributes):
+            &"{lhs}={rhs}").join(", "))
 
   block:
     let styleEdge = graph.styleEdge.toTree(idshift, level + 1)
@@ -983,8 +987,9 @@ func toTree(
       result.elements.add DotTree(
         kind: dtkProperty, globalProp: true,
         key: "edge",
-        val: styleEdge.edgeAttributes.mapPairs(&"{lhs}={rhs}").join(", ")
-      )
+        val: collect(newSeq,
+          for lhs, rhs in styleEdge.edgeAttributes:
+            &"{lhs}={rhs}").join(", "))
 
   if graph.topNodes.len > 0:
     var nodeIds: seq[DotNodeId]
@@ -1059,13 +1064,14 @@ proc toRope(tree: DotTree, level: int = 0): Rope =
       else:
         rope(&"{pref}{tree.key} = {tree.val};")
     of dtkNodeDef:
-      let attrs = tree.nodeAttributes.mapPairs(&"{lhs}={rhs}").join(", ")
+      let attrs = collect(newSeq, for l, r in tree.nodeAttributes: &"{l}={r}").join(", ")
+      # mapPairs(&"{lhs}={rhs}").join(", ")
       if attrs.len == 0:
         rope(&"{pref}{tree.nodeId};")
       else:
         rope(&"{pref}{tree.nodeId}[{attrs}];")
     of dtkEdgeDef:
-      let attrs = tree.edgeAttributes.mapPairs(&"{lhs}={rhs}").join(", ")
+      let attrs = collect(newSeq, for l, r in tree.edgeAttributes: &"{l}={r}").join(", ")
       if tree.targets.anyOfIt(it.isRecord):
         var res: Rope
         # TODO Generate muliple edegs for record types, one edge per target

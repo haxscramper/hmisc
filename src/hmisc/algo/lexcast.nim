@@ -1,7 +1,9 @@
 import
-  std/[strutils, strformat],
+  std/[strutils, strformat]
+
+import
   ./halgorithm,
-  ../base_errors
+  ../core/all
 
 type
   LexcastError* = object of ParseError

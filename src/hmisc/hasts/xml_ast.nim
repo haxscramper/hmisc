@@ -1,21 +1,17 @@
-import std/[xmltree, xmlparser, enumerate, strutils, tables, with,
-            strtabs, options, streams]
+import std/[
+  xmltree, xmlparser, enumerate, strutils,
+  tables, with, strtabs, options, streams,
+  parsexml
+]
 
-# import std/parsexml except charData, elementName, entityName,
-#                            attrKey, attrValue, piName, piRest
-
-# export parsexml except charData, elementName, entityName,
-#                        attrKey, attrValue, piName, piRest
-import parsexml
-# import std/parsexml as pxml
 export xmltree, strtabs, xmlparser, parsexml
 
-import ../base_errors
-export base_errors
-import ../other/[oswrap, rx]
-import ../helpers
-import ../types/colorstring
-import ../algo/clformat
+import
+  ../core/all,
+  ../other/[oswrap, rx],
+  ../types/colorstring,
+  ../algo/[clformat, hstring_algo]
+
 export oswrap
 
 proc parseXml*(file: AbsFile): XmlNode = parseXml(file.readFile())
@@ -334,48 +330,59 @@ func optGet*(node: XmlNode, property: string): Option[string] =
 proc treeRepr*(
     pnode: XmlNode, colored: bool = true,
     indexed: bool = false, maxdepth: int = 120
-  ): string =
+  ): ColoredText =
 
-  proc aux(n: XmlNode, level: int, idx: seq[int]): string =
+  coloredResult()
+
+  proc aux(n: XmlNode, level: int, idx: seq[int]) =
     let pref =
       if indexed:
         idx.join("", ("[", "]")) & "    "
       else:
         "  ".repeat(level)
 
+    add pref
     if isNil(n):
-      return pref & toRed("<nil>", colored)
+      add toRed("<nil>", colored)
+      return
 
     if level > maxdepth:
-      return pref & " ..."
-
-    result &= pref
+      add " ..."
+      return
 
     case n.kind:
       of xnText, xnVerbatimText, xnCData, xnEntity:
-        result &= indent(n.text, level * 2)
+        add indent(n.text, level * 2)
 
       of xnComment:
-        result &= indent(n.text, level * 2)
+        add indent(n.text, level * 2)
 
       of xnElement:
         let multiline = n.len > 0
         let separator = tern(multiline, "\n", " ")
-        result &= &[" ", toRed(n.tag, colored), separator]
+        add " "
+        add toRed(n.tag, colored)
+        add separator
         if level + 1 > maxdepth and n.len > 0:
           result[^1] = ' '
-          result &= &["... ", toPluralNoun("subnode", n.len), separator]
+          add "... "
+          add toPluralNoun("subnode", n.len)
+          add separator
 
         if notNil(n.attrs):
           for key, value in n.attrs:
             if multiline:
-              result.add pref
+              add pref
 
             else:
-              result.add " "
+              add " "
 
-            result.add &["  ", key, " = \"", toYellow(value, colored),
-                         "\"", separator]
+            add "  "
+            add key
+            add " = \""
+            add toYellow(value, colored)
+            add "\""
+            add separator
 
         if multiline:
           if level + 1 > maxdepth:
@@ -383,12 +390,12 @@ proc treeRepr*(
 
           else:
             for i, node in n:
-              result &= aux(node, level + 1, idx & i)
+              aux(node, level + 1, idx & i)
 
         else:
-          result &= "\n"
+          add "\n"
 
-  return aux(pnode, 0, @[])
+  aux(pnode, 0, @[])
 
 import std/[times, uri]
 

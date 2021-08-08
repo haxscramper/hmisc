@@ -1,4 +1,4 @@
-import std/[options]
+import std/[options, strutils, strformat]
 
 ## Most important templates and additional overloads that I use in
 ## absoltely all parts of the code.
@@ -96,6 +96,7 @@ proc `&=`*(target: var string, args: openarray[string]) =
   for arg in args:
     target &= arg
 
+
 proc toRef*[T](t: T): ref T =
   new(result)
   result[] = t
@@ -112,3 +113,29 @@ proc `of`*[A: object or ref object; K: enum](item: A, kind: K | set[K]): bool =
     item.kind == kind
 
 template last*(s: typed): untyped = s[^1]
+
+func dollar*[T](arg: T): string =
+  mixin `$`
+  return $arg
+
+func pop*[E](s: var set[E]): E =
+  assert len(s) > 0, "Cannot pop from empty set"
+
+  for val in s:
+    result = val
+    s.excl result
+    return
+
+
+func width*(s: string): int =
+  var cnt = 0
+  for ch in s:
+    if ch == '\n':
+      result = max(cnt, result)
+      cnt = 0
+
+    else:
+      inc cnt
+
+  if result == 0:
+    result = cnt

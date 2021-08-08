@@ -17,10 +17,7 @@ import
   ./oswrap,
   ./hlogger,
   ./hpprint,
-  ../hexceptions,
-  ../hdebug_misc,
-  ../base_errors,
-  ../helpers,
+  ../core/[all, code_errors],
   ../types/colorstring,
   ../algo/[
     lexcast, clformat, htemplates, hseq_mapping, htext_algo,
@@ -338,87 +335,87 @@ func addOrRaise(errors: var seq[CliError], err: CliError) =
     ex[] = err
     raise ex
 
-func treeRepr*(tree: CliCmdTree): string =
-  func aux(t: CliCmdTree, res: var string, level: int) =
-    res.addIndent(level)
-    # if isNil(t):
-    #   res &= "<nil>", fgRed + bgDefault
-    #   return
-
-    res &= hshow(t.kind) & " " & toCyan(t.desc.name) &
-      " " & hshow($t.head) & "\n"
+func treeRepr*(tree: CliCmdTree): ColoredText =
+  coloredResult()
+  func aux(t: CliCmdTree, level: int) =
+    addIndent(level)
+    add hshow(t.kind)
+    add " " & toCyan(t.desc.name)
+    add " " & hshow($t.head) & "\n"
 
     for arg in t.args:
-      res.addIndent(level + 1)
-      res &= hshow($arg) & "\n"
+      addIndent(level + 1)
+      add hshow($arg) & "\n"
 
     case t.kind:
       of cctCommand:
         for sub in t.subnodes:
-          aux(sub, res, level + 1)
+          aux(sub, level + 1)
 
       of cctDashedKinds:
         for key, path in t.subPaths:
-          res &= getIndent(level + 1) & hshow(key) & ": " & $path & "\n"
+          addIndent(level + 1)
+          add hshow(key) & ": " & $path & "\n"
 
       of cctGrouped:
         for entry in t.entries:
-          aux(entry, res, level + 1)
+          aux(entry, level + 1)
 
       else:
         discard
 
 
 
-  aux(tree, result, 0)
+  aux(tree, 0)
 
 
-func treeRepr*(tree: CliValue): string =
-  func aux(t: CliValue, res: var string, level: int) =
-    res.addIndent(level)
+func treeRepr*(tree: CliValue): ColoredText =
+  coloredResult()
+  func aux(t: CliValue, level: int) =
+    addIndent(level)
     if isNil(t):
-      res.add "<nil>", fgRed + bgDefault
+      add "<nil>" + fgRed
       return
 
-    res &= hshow(t.kind)
+    add hshow(t.kind)
     case t.kind:
       of cvkCommand:
-        res &= " " & toMagenta(t.desc.name) & "\n"
+        add " " & toMagenta(t.desc.name) & "\n"
         let level = level + 1
         for arg in t.positional:
-          res &= getIndent(level) & "arg <" & toCyan(arg.desc.name) & ">\n"
-          aux(arg, res, level + 1)
-          res &= "\n"
+          addIndent(level)
+          add "arg <" & toCyan(arg.desc.name) & ">\n"
+          aux(arg, level + 1)
+          add "\n"
 
         for key, opt in t.options:
-          res &= getIndent(level) & "opt <" & toCyan(key) & ">\n"
-          aux(opt, res, level + 1)
-          res &= "\n"
+          addIndent(level)
+          add "opt <" & toCyan(key) & ">\n"
+          aux(opt, level + 1)
+          add "\n"
 
         if t.subCmd.isSome():
-          res &= getIndent(level) & "cmd\n"
+          add getIndent(level) & "cmd\n"
 
-          aux(t.subCmd.get(), res, level + 1)
-          res &= "\n"
+          aux(t.subCmd.get(), level + 1)
+          add "\n"
 
 
-      of cvkString:  res &= " " & hshow(t.strVal)
-      of cvkBool:    res &= " " & hshow(t.boolVal)
-      of cvkInt:     res &= " " & hshow(t.intVal)
-      of cvkFloat:   res &= " " & hshow(t.floatVal)
-      of cvkFsEntry: res &= " " & hshow(t.fsEntryVal.getStr())
+      of cvkString:  add " " & hshow(t.strVal)
+      of cvkBool:    add " " & hshow(t.boolVal)
+      of cvkInt:     add " " & hshow(t.intVal)
+      of cvkFloat:   add " " & hshow(t.floatVal)
+      of cvkFsEntry: add " " & hshow(t.fsEntryVal.getStr())
 
       of cvkSeq:
         for item in t.seqVal:
-          res &= "\n"
-          aux(item, res, level + 1)
+          add "\n"
+          aux(item, level + 1)
 
       else:
         raise newImplementKindError(t)
 
-
-
-  aux(tree, result, 0)
+  aux(tree, 0)
 
 
 
@@ -965,7 +962,9 @@ func getArg*(app: CliApp, name: string): CliValue = app.value.getArg(name)
 func hasCmd*(val: CliValue): bool =
   val.kind in {cvkCommand} and val.subCmd.isSome()
 
-template assertKind*(val: CliValue, target: set[CliValueKind]): untyped {.dirty.} =
+template assertKind*(
+    val: CliValue, target: set[CliValueKind]
+  ): untyped {.dirty.} =
   bind joinAnyOf, assertKind
   var targetNames: seq[string]
   for k in items(target):
@@ -974,7 +973,7 @@ template assertKind*(val: CliValue, target: set[CliValueKind]): untyped {.dirty.
   assertKind(
     val, target,
     ". In order to convert CLI string to value of this kind use " &
-      joinAnyOf(
+      $joinAnyOf(
         targetNames,
         prefix = "one of the converters ",
         empty = "converters for target kind"))
@@ -1900,12 +1899,12 @@ proc parseCmd(lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
       errors.addOrRaise newCliError(&[
         &"Failed to parse '{desc.name}' - missing one or more required subcommands or ",
         "positional arguments",
-        joinAnyOf(
+        $joinAnyOf(
           desc.subcommands.mapIt(it.name),
           prefix = ". Required subcommands - ",
           suffix = ". ",
           empty = ""),
-        joinAnyOf(
+        $joinAnyOf(
           desc.arguments.mapIt(it.name),
           prefix = ". Required positional arguments - ",
           suffix = ". ",
@@ -1970,8 +1969,9 @@ proc parseCli(
 
           if subIdx == -1:
             errors.addOrRaise newCliError(
-              &"No matching option. Got '{lexer[]} ({lexer[].kind})', but expected " &
-                desc.options.mapIt(it.altNames).concat().joinWords(
+              &"No matching option. Got '{lexer[]} ({lexer[].kind})', " &
+                "but expected " &
+                $desc.options.mapIt(it.altNames).concat().joinWords(
                   "or", '\'', empty = "no options"),
 
               desc, lexer.pop(),
@@ -2607,7 +2607,7 @@ proc checkHelp(check: CliCheck, inNested: bool = false): LytBlock =
 
 proc flagHelp(flag: CliDesc, level: CliShowLevel = cslDefault): LytBlock =
   result = V[]
-  var flags: seq[string]
+  var flags: seq[ColoredText]
   for key in flag.altNames:
     if key.len > 1:
       flags.add toGreen("--" & key)
@@ -2621,7 +2621,7 @@ proc flagHelp(flag: CliDesc, level: CliShowLevel = cslDefault): LytBlock =
 
 proc optHelp(opt: CliDesc, level: CliShowLevel = cslDefault): LytBlock =
   result = V[]
-  var opts: seq[string]
+  var opts: seq[ColoredText]
   for key in opt.altNames:
     if key.len > 1:
       opts.add toGreen("--" & key)

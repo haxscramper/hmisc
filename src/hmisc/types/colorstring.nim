@@ -9,7 +9,7 @@ import
 
 import
   ../core/[all, colored],
-  ../algo/[hseq_distance, htemplates]
+  ../algo/[htemplates]
 
 export toLink
 
@@ -365,10 +365,6 @@ type
     ColoredLine |
     ColoredString
 
-# static:
-#     echo sizeof(ColoredRune)
-#     echo sizeof(PrintStyling)
-
 func isValid*(style: PrintStyling): bool =
   style.use8Bit or (style.fg.int != 0 and style.bg.int != 0)
 
@@ -578,6 +574,72 @@ func `+`*(text: ColoredRuneLine, style: PrintStyling): ColoredRuneLine =
   for ch in text:
     result.add ch + style
 
+func isDefaultColor*(styling: PrintStyling): bool =
+  if styling.use8bit:
+    styling.fg8.int == 0 and styling.bg8.int == 0
+
+  else:
+    styling.fg == fgDefault and styling.bg == bgDefault
+
+
+func isDefaultColorFg*(styling: PrintStyling): bool =
+  if styling.use8bit:
+    styling.fg8.int == 0
+
+  else:
+    styling.fg == fgDefault
+
+func isDefaultColorBg*(styling: PrintStyling): bool =
+  if styling.use8bit:
+    styling.bg8.int == 0
+
+  else:
+    styling.bg == bgDefault
+
+func isDefaultFormat*(styling: PrintStyling): bool =
+  styling.style.len == 0
+
+func setStyle*(
+    text: var ColoredText,
+    style: PrintStyling,
+    overrideColor: bool = true,
+    overrideFormat: bool = true
+  ) =
+
+  let (newFg, newBg) = (
+    not isDefaultColorFg(style),
+    not isDefaultColorBg(style))
+
+  for ch in mitems(text.runes):
+    if style.use8bit:
+      if overrideColor:
+        ch.styling.fg8 = style.fg8
+        ch.styling.bg8 = style.bg8
+
+      else:
+        if isDefaultColorFg(ch.styling) and newFg:
+          ch.styling.fg8 = style.fg8
+
+        if isDefaultColorBg(ch.styling) and newBg:
+          ch.styling.bg8 = style.bg8
+
+    else:
+      if overrideColor:
+        ch.styling.fg = style.fg
+        ch.styling.bg = style.bg
+
+      else:
+        if isDefaultColorFg(ch.styling) and newFg:
+          ch.styling.fg = style.fg
+
+        if isDefaultColorBg(ch.styling) and newBg:
+          ch.styling.bg = style.bg
+
+    if overrideFormat or isDefaultFormat(ch.styling):
+      ch.styling.style = style.style
+
+
+
 func `+=`*(text: var ColoredText, style: PrintStyling) =
   for ch in mitems(text.runes):
     ch.styling = style
@@ -687,6 +749,9 @@ iterator lines*(text: ColoredText): ColoredRuneLine =
     else:
       buf.add rune
 
+
+
+
 func toRuneGrid*(text: ColoredText): ColoredRuneGrid =
   for line in lines(text):
     result.add line
@@ -712,6 +777,19 @@ func add*(colored: var ColoredText, ch: string) {.inline.} =
 
 func add*(colored: var ColoredText, ch: char) {.inline.} =
   colored.add ch + defaultPrintStyling
+
+func indent*(
+    text: ColoredText,
+    count: Natural,
+    padding: ColoredRune = ' '
+  ): ColoredText =
+    var idx = 0
+    for line in lines(text):
+      if idx > 0: result.newline
+      result.add padding.repeat(count)
+      result.add line
+      inc idx
+
 
 func `&`*(t1: sink ColoredText, t2: ColoredText): ColoredText =
   result = t1
@@ -978,6 +1056,22 @@ func toMagenta*(str: string, color: bool): ColoredText =
 func toItalic*(str: string, color: bool): ColoredText =
   if color: str.toDefault({styleItalic}) else: toColoredText(str)
 
+
+#$
+
+
+
+func toBlue*(str: sink ColoredText, override: bool = false): ColoredText =
+  result = str
+  setStyle(result, fgBlue + bgDefault, override, false)
+
+func toGreen*(str: sink ColoredText, override: bool = false): ColoredText =
+  result = str
+  setStyle(result, fgGreen + bgDefault, override, false)
+
+##
+
+
 func toUndescore*(str: string, color: bool): ColoredText =
   if color: str.toDefault({styleUnderscore}) else: toColoredText(str)
 
@@ -1048,8 +1142,6 @@ func term8Bit*(color: Color): TermColor8Bit =
     (r1, g1, b1) = color.extractRGB()
     (r2, g2, b2) = (int(r1 / 42.6), int(g1 / 42.6), int(b1 / 42.6))
 
-  echov (r1, g1, b1, r2, g2, b2)
-
   return term8Bit(r2, g2, b2)
 
 
@@ -1087,8 +1179,6 @@ func rgbToHsv(rgb: tuple[r, g, b: 0 .. 255]): TermHSV =
   var max = max([rgb.r, rgb.g, rgb.b])
   var diff = max - min([rgb.r, rgb.g, rgb.b])
   result.s = if (max == 0.0): 0.float else: (100 * diff / max)
-  # echov max
-  # echov diff
   if (result.s == 0): result.h = 0
   elif (rgb.r == max): result.h = round(60.0 * (rgb.g - rgb.b) / diff).int
   elif (rgb.g == max): result.h = round(60.0 * (rgb.b - rgb.r) / diff + 120.0).int
@@ -1096,13 +1186,6 @@ func rgbToHsv(rgb: tuple[r, g, b: 0 .. 255]): TermHSV =
   if (result.h < 0.0): result.h += 360
   result.v = round(max * 100 / 255)
   result.s = round(result.s)
-
-# startHax()
-# for hex in ["#ff0000", "#ff0000"]:
-#   let rgb = hexToRGB(hex)
-#   echov rgb
-#   echov rgbToHSV(rgb)
-# stopHax()
 
 const colorsHex = [
   (0, Color(0x00_00_00)),
@@ -1417,16 +1500,6 @@ func getColor(hsv: TermHSV): Option[TermColor8Bit] =
       else:
         result = some sv.id
 
-
-block:
-  for col in TermColor8Bit(17) .. high(TermColor8Bit):
-    let hsv = toHsv(col)
-    let newCol = getColor(hsv)
-    if not(col == newCol.get()):
-      echo &"{hsv}  {toHsv(newCol.get())} | {col.int:<3} {col} == {newCol.get().int} {newCol.get()}"
-
-
-
 func in360(v: auto): auto =
   result = v
   if result >= 360:
@@ -1448,24 +1521,19 @@ func closestMatchingColor(
     lookUp = dirUp.isNone() or dirUp.get() == true
     lookDown = dirUp.isNone() or dirUp.get() == false
 
-  # echov "INPUT", hsv
-
   when hsv is array:
     for idx, col in hsv:
       if col.isSome():
         let color = getColor(col.get())
         if color.isSome():
-          # echov col.get(), color
           return color.get()
 
-    # echov (lookUp, lookDown)
     if lookUp:
       var h = hsv[1].get().h + 5
       while hues[h].len == 0:
         h += 5
         if h >= 360: h -= 360
 
-      # echov "H:", h
 
       colHigh = some (h, hsv[1].get().s, hsv[1].get().v)
 
@@ -1861,11 +1929,8 @@ func splitSGR*(str: string): seq[ColoredString] =
     changeStyle(style, parseInt(sgrbuf))
 
     sgrbuf = ""
+ #   result.add initColoredString(str)
 
-  # if result.len == 0:
-  #   result.add initColoredString(str)
-
-  # debugecho pos, " ", prev, " ", str.len
   if prev < pos:
     result.add initColoredString(str[prev ..< pos])
 
@@ -1924,9 +1989,6 @@ func splitSGR_sep*(str: string, sep: string = "\n"): seq[seq[ColoredString]] =
         else:
           result.add splitl[1..^1]
       elif splitl.len > 0:
-        # echov cstr
-        # echov splitl
-        # echov splitted
         result.addToLast splitl[0]
         if cstr.str.endsWith(sep) and (idx != splitted.len - 1):
           result.add @[]
@@ -1940,7 +2002,6 @@ func splitSGR_sep*(str: string, sep: string = "\n"): seq[seq[ColoredString]] =
       else:
         result.addToLast splitl[0]
 
-    # echov result
 
 
 func toRuneGrid*(sseq: seq[seq[ColoredString]]): seq[seq[ColoredRune]] =
@@ -2013,33 +2074,3 @@ func `[]`*(buf: ColoredRuneGrid, row, col: int): ColoredRune =
   buf[row][col]
 
 func initRuneGrid*(): ColoredRuneGrid = discard
-
-func getEditVisual*(src, target: seq[char], ops: seq[LevEdit]): ColoredText =
-  var
-    src = src
-    currIdx = 0
-
-  for op in ops:
-    if currIdx < op.getPos():
-      for i in currIdx ..< op.getPos():
-        result.add src[i]
-
-      currIdx = op.getPos() + 1
-
-    case op.kind:
-      of lekInsert:
-        result.add toGreen($op.insertItem)
-
-      of lekDelete:
-        result.add toRed($src[op.deletePos])
-
-      of lekReplace:
-        result.add toRed($src[op.replacePos]) & toGreen($op.replaceItem)
-
-    src.apply(op)
-
-    if op.kind == lekDelete:
-      result.add src[op.deletePos]
-
-  for i in currIdx ..< src.len:
-    result.add src[i]

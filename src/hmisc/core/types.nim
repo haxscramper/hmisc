@@ -58,11 +58,11 @@ func `@`*(slice: Slice[int]): seq[int] =
 func clampIdx*(val: int): int = clamp(val, 0, high(int))
 
 type
-  SingleIt*[T] = object
+  It*[T] = object
     it: seq[T]
 
-func getIt*[T](it: SingleIt[T]): T = it.it[0]
-func setIt*[T](it: var SingleIt[T], val: T): void = (it.it[0] = val)
-func getIt*[T](it: var SingleIt[T]): var T = it.it[0]
-func newIt*[T](it: T): SingleIt[T] = SingleIt[T](it: @[it])
-converter toT*[T](it: SingleIt[T]): T = it.it[0]
+func getIt*[T](it: It[T]): T = it.it[0]
+func setIt*[T](it: var It[T], val: T): void = (it.it[0] = val)
+func getIt*[T](it: var It[T]): var T = it.it[0]
+func newIt*[T](it: T): It[T] = It[T](it: @[it])
+converter toT*[T](it: It[T]): T = it.it[0]

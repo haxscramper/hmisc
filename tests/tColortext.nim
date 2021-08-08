@@ -1,10 +1,10 @@
 import
   hmisc/types/[colortext, colorstring],
   hmisc/algo/halgorithm,
-  hmisc/other/[hunittest],
-  hmisc/[hdebug_misc, base_errors]
+  hmisc/preludes/unittest
 
-import std/[strformat, strutils, sequtils, unicode, macros]
+import
+  std/[strformat, strutils, sequtils, unicode, macros]
 
 startHax()
 
@@ -45,14 +45,22 @@ suite "Full printouts":
 
 suite "Close colors":
   test "Complementary":
+    var buf: string
     for c in 0 .. 5:
       let
         r = 5 - c
         g = c
         b = 5 - c
         col = term8Bit(r, g, b)
-      echo &"{col.int:<3} ", to8Bit(&"{r} {g} {b}", col), " -> ",
-            to8Bit("??", col.complement()), "; ", col.toHSV()
+      buf.add &"{col.int:<3} "
+      buf.add $to8Bit(&"{r} {g} {b}", col)
+      buf.add " -> "
+      buf.add $to8Bit("??", col.complement())
+      buf.add "; "
+      buf.add $col.toHSV()
+      buf.add "\n"
+
+    show buf
 
 
   test "Analog/square/triad/gradient":
@@ -65,11 +73,12 @@ suite "Close colors":
           assert g1 == g, &"{g1}, {g}"
           assert b1 == b, &"{b1}, {b}"
 
+    show:
+      interpolGradient(tcBlue3, tcGreen3)
+      interpolGradient(tcRed3, tcWhite)
 
-    for col in interpolGradient(tcBlue3, tcGreen3): echo col
-    for col in interpolGradient(tcRed3, tcWhite): echo col
-
-    echo "analog            square            triad"
+    var buf: string
+    buf.add "analog            square            triad\n"
     for c in 0 .. 5:
       let
         r = 5 - c
@@ -77,45 +86,49 @@ suite "Close colors":
         b = 5 - c
         col = term8Bit(r, g, b)
 
-      stdout.write(
-        col.analog(), col.square(), col.triad(),&" {r} {g} {b}\n")
+      buf.add $col.analog()
+      buf.add $col.square()
+      buf.add $col.triad()
+      buf.add &" {r} {g} {b}\n"
+
+    show buf
 
 suite "Colored string":
   test "Colored string wrapping":
-    assertEq "999".toRed(), "\e[31m999\e[39m"
-    assertEq "999".toDefault(), "999"
+    check $toRed("999") == "\e[31m999\e[39m"
+    check toDefault("999") == "999"
 
   test "{termLen}":
-    assertEq termLen("hhh"), 3
-    assertEq termLen("\e[41mhhh\e[49m"), 3
-    assertEq termLen("ᛀᛀᛀᛀ"), 4
-    assertEq termLen("\e[42mᛀᛀ\e[49m\e[44mᛀᛀ\e[49m"), 4
+    check termLen("hhh") == 3
+    check termLen("\e[41mhhh\e[49m") == 3
+    check termLen("ᛀᛀᛀᛀ") == 4
+    check termLen("\e[42mᛀᛀ\e[49m\e[44mᛀᛀ\e[49m") == 4
 
   test "{splitSGR}":
     func lispRepr(strs: seq[ColoredString]): string =
       strs.mapIt(it.lispRepr()).join(" ").wrap("()")
 
     # TEST TODO test multiple consecutive control codes
-    assertEq "hello \e[31mworld\e[39m".splitSGR(), @[
+    check "hello \e[31mworld\e[39m".splitSGR() == @[
       "hello ".initColoredString(),
       "world".initColoredString(fg = fgRed)
     ]
 
-    assertEq "--\e[31mAA\e[39m--".splitSGR(), @[
+    check "--\e[31mAA\e[39m--".splitSGR() == @[
       "--".initColoredString(),
       "AA".initColoredString(fg = fgRed),
       "--".initColoredString()
     ]
 
 
-    assertEq "\e[92m000\e[39m-\e[94m000\e[39m".splitSGR(), @[
+    check "\e[92m000\e[39m-\e[94m000\e[39m".splitSGR() == @[
       initColoredString("000", fg = fgGreen, style = {styleBright}),
       initColoredString("-"),
       initColoredString("000", fg = fgBlue, style = {styleBright})
     ]
 
-    assertEq "###---\e[31m\e[44m\e[4m\e[3m###\e[23m\e[24m\e[49m\e[39m".
-      splitSGR(), @[
+    check "###---\e[31m\e[44m\e[4m\e[3m###\e[23m\e[24m\e[49m\e[39m".
+      splitSGR() == @[
         initColoredString("###---"),
         initColoredString(
           "###", fg = fgRed, bg = bgBlue, style = {
@@ -123,74 +136,68 @@ suite "Colored string":
       ]
 
   test "{split} ColorString":
-    assertEq "Hello-World".toRed().splitSGR()[0].split("-"), @[
+    check splitSGR($"Hello-World".toRed())[0].split("-") == @[
       initColoredString("Hello", fg = fgRed),
       initColoredString("World", fg = fgRed)
     ]
 
-    assertEq initColoredString("--").split("-").mapIt(it.str),
-         "--".split("-")
+    check initColoredString("--").split("-").mapIt(it.str) == "--".split("-")
 
-
-    # echo initColoredString("\n\n\n").split("\n")
 
   test "{splitColor}":
-    assertEq "\e[31mHello\nworld\e[39m".splitColor("\n"), @[
-      "Hello".toRed(),
-      "world".toRed()
-    ]
+    check "\e[31mHello\nworld\e[39m".splitColor("\n") == @[
+      $"Hello".toRed(),
+      $"world".toRed()]
 
-    assertEq "".split("\n")[0], ""
-    assertEq "".splitColor("\n")[0], ""
+    check:
+      "".split("\n")[0] == ""
+      "".splitColor("\n")[0] == ""
 
   test "{toString} colored runes":
-    assertEq @[
+    check @[
       initColoredRune(uc"¤", initPrintStyling(fg = fgRed)),
       initColoredRune(uc"¤", initPrintStyling(bg = bgGreen, fg = fgRed)),
-    ].toString(), "\e[31m¤\e[42m¤\e[39m\e[49m"
+    ].toString() == "\e[31m¤\e[42m¤\e[39m\e[49m"
 
   test "{splitSGR_sep}":
-    # echo "==".splitSGR_sep("=")
-    # echo "==".splitSGR().mapIt(it.split("="))
-
     block:
-      let tt = splitSGR_sep("test" & toRed("colored") & "12312")[0]
-      assertEq tt.len, 3
-      assertEq tt, @[
+      let tt = splitSGR_sep($("test" & toRed("colored") & "12312"))[0]
+      check tt.len == 3
+      check tt == @[
         initColoredString("test"),
         initColoredString("colored", fg = fgRed),
         initColoredString("12312")
       ]
 
-    assertEq "*=*=*".splitSGR_sep("=").mapIt(it[0]),
+    check "*=*=*".splitSGR_sep("=").mapIt(it[0]) ==
       initColoredString("*=*=*").split("=")
 
-    assertEq "hello\n\e[31msfadf\e[39m\nsf".splitSGR_sep("\n"), @[
+    check "hello\n\e[31msfadf\e[39m\nsf".splitSGR_sep("\n") == @[
       @[ initColoredString("hello") ],
       @[ initColoredString("sfadf", fg = fgRed) ],
       @[ initColoredString("sf") ],
     ]
 
-    assertEq "\e[43mhello\e[49m\n-\n\e[41mworld\e[49m".splitSGR_sep(), @[
+    check "\e[43mhello\e[49m\n-\n\e[41mworld\e[49m".splitSGR_sep() == @[
       @[ initColoredString("hello", bg = bgYellow) ],
       @[ initColoredString("-") ],
       @[ initColoredString("world", bg = bgRed) ]
     ]
 
-    assertEq "\n\nee\n".splitSGR_sep(), @[
+    check "\n\nee\n".splitSGR_sep() == @[
       @[ initColoredString("") ],
       @[ initColoredString("") ],
       @[ initColoredString("ee") ],
       @[ initColoredString("") ]
     ]
-    # echo "\e[41m*=========\e[49m  eee  \e[41m==========*\e[49m"
-    assertEq "-\e[31m--\n--\e[39m-".splitSGR(), @[
+
+    check "-\e[31m--\n--\e[39m-".splitSGR() == @[
       initColoredString("-"),
       initColoredString("--\n--", fg = fgRed),
       initColoredString("-")
     ]
 
-    assertEq "-\e[31m--\e[39m\n\e[31m--\e[39m-".splitSGR(), @[
+    check "-\e[31m--\e[39m\n\e[31m--\e[39m-".splitSGR() == @[
       initColoredString("-"),
       initColoredString("--", fg = fgRed),
       initColoredString("\n"),
@@ -198,19 +205,19 @@ suite "Colored string":
       initColoredString("-")
     ]
 
-    assertEq "-\e[31m--\n--\e[39m-".splitSGR_sep(), @[
+    check "-\e[31m--\n--\e[39m-".splitSGR_sep() == @[
       @[ initColoredString("-"), initColoredString("--", fg = fgRed) ],
       @[ initColoredString("--", fg = fgRed), initColoredString("-") ]
     ]
 
-    assertEq "-\e[31m--\e[39m\n\e[31m--\e[39m-".splitSGR_sep(), @[
+    check "-\e[31m--\e[39m\n\e[31m--\e[39m-".splitSGR_sep() == @[
       @[ initColoredString("-"), initColoredString("--", fg = fgRed) ],
       @[ initColoredString("--", fg = fgRed), initColoredString("-") ]
     ]
 
 
   test "{splitSGR_sep} to runes":
-    assertEq "-\e[31m$\n$\e[39m-".splitSGR_sep().toRuneGrid(), @[
+    check "-\e[31m$\n$\e[39m-".splitSGR_sep().toRuneGrid() == @[
       @[ initColoredRune(Rune('-')),
          initColoredRune(Rune('$'), initPrintStyling(fg = fgRed))],
       @[ initColoredRune(Rune('$'), initPrintStyling(fg = fgRed)),
@@ -231,13 +238,11 @@ suite "Colored string":
         fromString: false,
         annotation: "Hell \e[32masdfas\e[39md o",
         linerange: -2,
-        expr: "errpos: currLineInf()"
-      )
-    ])
+        expr: "errpos: currLineInf()")])
 
   test "Link printing":
-    echo "https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda".toLink()
-
-    echo instantiationInfo().toLink("here")
+    show:
+      "google.com".toLink()
+      instantiationInfo().toLink("here")
 
     # echo err.toColorString()

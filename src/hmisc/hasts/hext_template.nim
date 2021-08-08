@@ -9,11 +9,14 @@
 ]#
 
 import
-  std/[tables, options, macros, streams, strformat],
-  ../base_errors,
-  ../hdebug_misc,
+  std/[tables, options, macros, streams, strformat]
+
+import
+  ../core/all,
   ../types/colorstring,
-  ../algo/[hlex_base, hparse_base, hparse_common, halgorithm],
+  ../algo/[hlex_base, hparse_base, hparse_common, halgorithm]
+
+import
   fusion/matching
 
 export hparse_base, colorstring
@@ -349,6 +352,7 @@ type
     hvkBool
     hvkRecord
     hvkSeq
+    hvkRefBox
 
   HextOpKind* = enum
     hopForLoop
@@ -359,6 +363,10 @@ type
   HextBaseType = int|string|float|bool
   HextTypeIdRange* = range[0 .. high(int)]
   HextUserTypeIdRange* = range[hextMinTypeId .. high(int)]
+
+  RefBox = object
+    refv: pointer
+    typeid: HextUserTypeIdRange
 
   HextValue*[T] = object
     case kind*: HextValueKind
@@ -373,6 +381,9 @@ type
 
       of hvkBool:
         boolVal*: bool
+
+      of hvkRefBox:
+        refBox*: int
 
       of hvkRecord:
         recordTypeId: HextUserTypeIdRange
@@ -605,6 +616,7 @@ proc write*[T](stream: Stream, value: HextValue[T]) =
     of hvkInt: stream.write $value.intVal
     of hvkFloat: stream.write $value.floatVal
     of hvkBool: stream.write $value.boolVal
+    of hvkRefBox: stream.write "<ref>"
     of hvkSeq:
       for item in value.seqVal:
         stream.write item

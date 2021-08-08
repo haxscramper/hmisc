@@ -1,9 +1,12 @@
 import
-  std/[macros, strformat, sequtils, strutils, times, options]
+  std/[
+    macros, strformat, sequtils, monotimes,
+    strutils, times, options, stats
+  ]
 
 import
   ../macros/nim_ast_help,
-  ../algo/[hseq_distance, htemplates, halgorithm],
+  ../algo/[hseq_distance, htemplates, halgorithm, clformat],
   ../other/[hpprint],
   ../core/[all, code_errors],
   ../types/colorstring,
@@ -33,6 +36,9 @@ type
     tfkNone
     tfkException
     tfkManualFail
+    tfkOpCheck
+    tfkCallCheck
+
 
     tfkStringDiff
     tfkStructDiff
@@ -58,6 +64,9 @@ type
     trkSuiteStart
     trkSuiteEnd
     trkSuiteFail
+    trkShow
+
+    trkTimeStats
 
 const
   trkSectionKinds = { trkTestStart .. trkSuiteFail }
@@ -65,6 +74,21 @@ const
 
 type
   TestMatchFail = tuple[path, expected, got: string]
+
+  TestValueKind = enum
+    tvkString
+    tvkStringified
+
+  TestValueContext = enum
+    tvcNone
+    tvcEqCompare
+    tvcParameter
+
+  TestValue = object
+    context: TestValueContext
+    case kind: TestValueKind
+      of tvkString, tvkStringified:
+        str: string
 
   TestReport = object
     location {.requiresinit.}: TestLocation
@@ -74,7 +98,7 @@ type
         textDiff: ShiftedDiff[string]
 
       of tfkStructDiff, tfkStructEq:
-        structDiff: PPrintTree
+        structDiff: It[PPrintTree]
 
       of tfkException:
         exception: ref Exception
@@ -82,16 +106,21 @@ type
       of tfkMatchDiff:
         paths: seq[TestMatchFail]
 
+      of tfkOpCheck:
+        checkOp: string
+
       else:
         discard
 
 
+    strs: seq[tuple[expr: string, value: TestValue]]
     case kind: TestReportKind
-      of trkCheckOk, trkCheckFail:
-        strs: seq[tuple[expr, value: string]]
-
       of trkSectionKinds:
         conf: TestConf
+
+      of trkTimeStats:
+        stat: RunningStat
+        name: string
 
       else:
         discard
@@ -101,6 +130,8 @@ type
     startTime: float
     sourceOnError: bool
     failCount: int
+    shownHeader: bool
+    contextValues: seq[(string, TestValue)]
 
 
   TestProcPrototype = proc(testContext: TestContext)
@@ -110,6 +141,50 @@ func allBackends(conf: TestConf): bool =
   b.len == 0 or ((tbC in b) and (tbCpp in b) or (tbJs in b) or (tbNims in b))
 
 import ./hlogger
+
+proc addValue(ctx: TestContext, name: string, value: TestValue) =
+  ctx.contextValues.add((name, value))
+
+proc removeValue(ctx: TestContext, name: string) =
+  discard ctx.contextValues.pop()
+
+proc testValue(str: string, context: TestValueContext): TestValue =
+  TestValue(str: str, kind: tvkString, context: context)
+
+proc testValue[T](str: T, context: TestValueContext): TestValue =
+  TestValue(str: $str, kind: tvkStringified, context: context)
+
+proc `$`(val: TestValue): string =
+  result = val.str
+
+
+proc newTestLogger*(): HLogger =
+  result = HLogger(
+    logPrefix: toMapArray({
+      logTrace:  toWhite("[trace]").format(),
+      logDebug:  toYellow("[debug]").format(),
+      logInfo:   toMagenta("[info]").format(),
+      logNotice: toGreen("[notice]").format(),
+      logWarn:   toYellow("[warn]").format(),
+      logError:  toRed("[error]").format(),
+      logFatal:  toMagenta("[fatal]").format(),
+    }),
+    eventPrefix: toMapArray({
+      logEvSuccess:   toGreen("[OK]").format(),
+      logEvFail:      toRed("[FAIL]").format(),
+      logEvWaitStart: toYellow("[wait]").format(),
+      logEvWaitDone:  toMagenta("[DONE]").format(),
+      logEvExprDump:  toItalic("[expr]").format()
+    })
+  )
+
+  result.openScope(hskMain, "main")
+  result.groupPrefix = true
+
+  result.prefixLen = max(
+    result.logPrefix.maxIt(it.str.len),
+    result.eventPrefix.maxIt(it.str.len))
+
 
 proc report(context: TestContext, report: TestReport) =
   let (file, line, column) = (
@@ -125,8 +200,35 @@ proc report(context: TestContext, report: TestReport) =
     pFail = toRed("[FAIL] " |>> width)
     pOk = toGreen("[OK] " |>> width)
     pSuite = toMagenta("[SUITE] " |>> width)
+    pShow = toYellow("[SHOW] ")
+
+  if report.kind != trkTimeStats:
+    context.shownHeader = false
 
   case report.kind:
+    of trkTimeStats:
+      if not context.shownHeader:
+        echo pad, "[TIME] "
+        context.shownHeader = true
+
+      echo pad, toGreen(report.name |<< 30), &"{report.stat.min:<10.3f}"
+      let w = context.contextValues.maxIt(it[0].len)
+      for (name, value) in context.contextValues:
+        echo pad, "  ", toYellow(name |<< w), " = ", toRed($value)
+
+    of trkShow:
+      let w = report.strs.maxIt(it[0].width())
+      let padW = width + pShow.len()
+      for idx, (arg, val) in report.strs[0 ..^ 1]:
+        let split = split(strip($val, leading = false, chars = {'\n'}), '\n')
+        echo pad, tern(idx == 0, pShow, "     ] "), toGreen(
+          indentBody(arg |<< w, padW)), " = ", tern(
+          split.len > 1, "", split[0])
+
+        if split.len > 1:
+          for line in split:
+            echo pad, "   ..   ", line
+
     of trkSectionKinds:
       let name = report.conf.name
       case report.kind:
@@ -149,8 +251,13 @@ proc report(context: TestContext, report: TestReport) =
           echo pOk, name
 
       if report.failKind == tfkException:
-        newTermLogger().logStackTrace(
-          report.exception, source = context.sourceOnError)
+        assertRef report.exception
+        logStackTrace(
+          newTestLogger(),
+          report.exception,
+          showError = true,
+          source = context.sourceOnError
+        )
 
 
     of trkCheckFail:
@@ -178,16 +285,82 @@ proc report(context: TestContext, report: TestReport) =
           echo ""
 
         else:
-          echo msg, "\n"
-          let exprWidth  = report.strs.maxIt(it.expr.len)
-          for (expr, value) in report.strs:
-            echo pad, "  ", toGreen(expr |<< exprWidth), " was ", value
+          if report.failKind == tfkOpCheck and
+             report.checkOp == "==" and
+             report.strs.len == 2 and
+             report.strs[0][1].kind == tvkString and
+             report.strs[1][1].kind == tvkString:
 
-          echo ""
+            let
+              s1 = report.strs[0][1].str
+              s2 = report.strs[1][1].str
+
+            echo msg, " - string value mismatch\n"
+            echo s1, "  ", s2
+            echo @s1, "  ", @s2
+            echo pad, "  ", stringEditMessage(s1, s2)
+
+
+          else:
+            echo msg, " ", report.failKind, "\n"
+            let exprWidth  = report.strs.maxIt(it.expr.len)
+            for (expr, value) in report.strs:
+              echo pad, "  ", toGreen(expr |<< exprWidth), " was ", value
+
+            echo ""
 
 
     else:
       discard
+
+
+func testLocation(node: NimNode): TestLocation =
+  let iinfo = node.lineInfoObj()
+  TestLocation(file: iinfo.filename, line: iinfo.line, column: iinfo.column)
+
+
+func testLocation(pos: (string, int, int)): TestLocation =
+  TestLocation(file: pos[0], line: pos[1], column: pos[2])
+
+
+proc flattenArgs(args: NimNode): seq[NimNode] =
+  for arg in args:
+    case arg.kind:
+      of nnkArgList:
+        result.add flattenArgs(arg)
+
+      of nnkStmtList:
+        for stmt in arg:
+          result.add stmt
+
+      else:
+        result.add arg
+
+
+macro show*(args: varargs[untyped]): untyped =
+  let args = flattenArgs(args)
+  let
+    report = bindSym("report")
+    testValue = bindSym("testValue")
+    tNone = bindSym("tvcNone")
+
+  var argpass = nnkTableConstr.newTree()
+  for arg in args:
+    argpass.add nnkExprColonExpr.newTree(
+      arg.toStrLit(),
+      newCall(
+        testValue,
+        nnkPrefix.newTree(ident"$", arg),
+        tNone))
+
+  let loc = args[0].testLocation().newLit()
+
+  result = quote do:
+    `report`(testContext, TestReport(
+      kind: trkShow,
+      strs: @`argpass`,
+      location: `loc`))
+
 
 
 func suiteFailed(
@@ -195,13 +368,14 @@ func suiteFailed(
 
   TestReport(
     kind: trkSuiteFail, failKind: tfkException,
+    exception: fail,
     msg: fail.msg, conf: conf, location: loc)
 
 func testFailed(
     conf: TestConf, loc: TestLocation, fail: ref Exception): TestReport =
   result = TestReport(
     kind: trkTestFail, failKind: tfkException,
-    conf: conf, location: loc)
+    conf: conf, location: loc, exception: fail)
 
   if fail of CatchableError:
     result.msg = (ref CatchableError)(fail).msg
@@ -219,9 +393,19 @@ proc suiteEnded(conf: TestConf, loc: TestLocation): TestReport =
 
 proc checkFailed(
     loc: TestLocation,
-    strs: openarray[(string, string)]
+    strs: openarray[(string, TestValue)],
+    failKind: TestFailKind,
+    checkOp: string = ""
   ): TestReport =
-  TestReport(kind: trkCheckFail, location: loc, strs: @strs)
+    result = TestReport(
+      kind: trkCheckFail,
+      strs: @strs,
+      location: loc, failKind: failKind)
+
+    if result.failKind == tfkOpCheck:
+      result.checkOp = checkOp
+
+
 
 
 proc checkOk(loc: TestLocation): TestReport =
@@ -250,10 +434,6 @@ func getWhen(conf: TestConf): NimNode =
 
     result = foldl(conds, nnkInfix.newTree(ident"or", a, b))
 
-func testLocation(node: NimNode): TestLocation =
-  let iinfo = node.lineInfoObj()
-  TestLocation(file: iinfo.filename, line: iinfo.line, column: iinfo.column)
-
 proc stringdiff*(str1, str2: string, loc: TestLocation): TestReport =
   if str1 != str2:
     result = TestReport(
@@ -281,7 +461,7 @@ proc structdiff*(ptree1, ptree2: PPrintTree, loc: TestLocation): TestReport =
       location: loc,
       kind: trkCheckFail,
       failKind: tfkStructDiff,
-      structDiff: diff.get())
+      structDiff: diff.get().newIt())
 
   else:
     result = TestReport(location: loc, kind: trkCheckOk)
@@ -561,31 +741,6 @@ macro configureTests(conf: untyped): untyped =
   discard
 
 
-proc newTestLogger*(): HLogger =
-  result = HLogger(
-    logPrefix: toMapArray({
-      logTrace:  toWhite("[trace]").format(),
-      logDebug:  toYellow("[debug]").format(),
-      logInfo:   toMagenta("[info]").format(),
-      logNotice: toGreen("[notice]").format(),
-      logWarn:   toYellow("[warn]").format(),
-      logError:  toRed("[error]").format(),
-      logFatal:  toMagenta("[fatal]").format(),
-    }),
-    eventPrefix: toMapArray({
-      logEvSuccess:   toGreen("[OK]").format(),
-      logEvFail:      toRed("[FAIL]").format(),
-      logEvWaitStart: toYellow("[wait]").format(),
-      logEvWaitDone:  toMagenta("[DONE]").format(),
-      logEvExprDump:  toItalic("[expr]").format()
-    })
-  )
-
-  result.openScope(hskMain, "main")
-
-  result.prefixLen = max(
-    result.logPrefix.maxIt(it.str.len),
-    result.eventPrefix.maxIt(it.str.len))
 
 proc newTestContext*(): TestContext =
   TestContext(
@@ -676,13 +831,77 @@ macro test*(name: static[string], body: untyped): untyped =
             conf, loc, getCurrentException()))
 
 
+proc nowMs(): float64 =
+  ## Gets current milliseconds.
+  getMonoTime().ticks.float64 / 1_000_000.0
 
+proc removeOutliers(s: var seq[SomeNumber]) =
+  ## Remove numbers that are above 2 standard deviation.
+  let avg = mean(s)
+  let std = standardDeviation(s)
+  var i = 0
+  while i < s.len:
+    if abs(s[i] - avg) > std*2:
+      s.delete(i)
+      continue
+    inc i
+
+
+template timeIt*(
+    testName: string,
+    params: seq[(string, TestValue)],
+    iterations: untyped,
+    body: untyped
+  ): untyped =
+  bind TestReport
+  block:
+    var
+      num = 0
+      total: float64
+      deltas: seq[float64]
+
+
+    while true:
+      inc num
+      let start = nowMs()
+
+      block:
+        body
+
+      let finish = nowMs()
+
+      let delta = finish - start
+      total += delta
+      deltas.add(delta)
+
+      when iterations != 0:
+        if num >= iterations:
+          break
+
+      else:
+        if total > 5_000.0 or num >= 1000:
+          break
+
+    var minDelta = min(deltas)
+    removeOutliers(deltas)
+    var stat: RunningStat
+    stat.push(deltas)
+
+    report(testContext, TestReport(
+      kind: trkTimeStats,
+      name: testName,
+      location: instantiationInfo(fullpaths = true).testLocation(),
+      stat: stat))
+
+template timeIt*(name: string, body: untyped): untyped =
+  timeIt(name, @[], 0, body)
 
 
 proc buildCheck(expr: NimNode): NimNode =
   let
     line = lineIINfo(expr)
     loc = testLocation(expr).newLit()
+    testValue = bindSym("testValue")
 
   case expr.kind:
     of nnkInfix:
@@ -690,7 +909,11 @@ proc buildCheck(expr: NimNode): NimNode =
       let (lhsLit, rhsLit) = (expr[1].toStrLit(), expr[2].toStrLit())
       let (lhsId, rhsId) = (genSym(nskLet), genSym(nskLet))
 
-      let doOp = nnkInfix.newTree(expr[0], lhsId, rhsId)
+      let
+        doOp = nnkInfix.newTree(expr[0], lhsId, rhsId)
+        opLit = expr[0].toStrLit()
+        context = newLit(
+          tern(expr[0].eqIdent("=="), tvcEqCompare, tvcNone))
 
       result = quote do:
         block:
@@ -701,9 +924,9 @@ proc buildCheck(expr: NimNode): NimNode =
 
             if not (`doOp`):
               `report`(testContext, checkFailed(`loc`, {
-                `lhsLit`: $`lhsId`,
-                `rhsLit`: $`rhsId`
-              }))
+                `lhsLit`: `testValue`($`lhsId`, `context`),
+                `rhsLit`: `testValue`($`rhsId`, `context`),
+              }, tfkOpCheck, checkOp = `opLit`))
 
 
     else:
@@ -728,7 +951,6 @@ proc buildCheck(expr: NimNode): NimNode =
 
 
 
-  # echo result.repr()
 
 
 
@@ -742,6 +964,77 @@ macro check*(expr: untyped): untyped =
 
     else:
       result.add buildCheck(expr)
+
+# import unittest
+# proc testEq*[A, B](lhs: A, rhs: B) =
+#   # TODO use LCS to highlight only parts that are different in red
+#   # static:
+#   #   assert compiles(lhs == rhs),
+#   #    "Cannot directly compare objects of type" & $typeof(lhs) &
+#   #      " and " & $typeof(rhs)
+
+#   mixin fmt
+#   if lhs != rhs:
+#     let
+#       lhsStr = ($lhs).replace("\e", "\\e")
+#       rhsStr = ($rhs).replace("\e", "\\e")
+
+#     # testEnded(
+#     #   ConsoleOutputFormatter(colorOutput: true, isInSuite: true),
+#     #   TestResult(testName: "Equality comparison", status: FAILED)
+#     # )
+
+#     let diffPos = mismatchStart(lhsStr, rhsStr)
+#     if '\n' in lhsStr or '\n' in rhsStr:
+#       let
+#         linesA = lhsStr.split('\n')
+#         linesB = rhsStr.split('\n')
+
+#       var hadAny = false
+#       for idx, line in zip(linesA, linesB):
+#         if line[0] != line[1]:
+#           echo fmt("LHS #{idx}: '{line[0]}'")
+#           echo fmt("RHS #{idx}: '{line[1]}'")
+#           hadAny = true
+#           break
+
+#       if not hadAny:
+#         echo fmt("LHS: '{lhsStr}'")
+#         echo fmt("RHS: '{rhsStr}'")
+#         # else:
+#         #   echo &"#{idx}: '{line[0]}' == '{line[1]}'"
+
+#     else:
+#       if (lhsStr.len > 50 or rhsStr.len > 50):
+#         let start = max(diffPos - 20, 0)
+#         let diffPos = max(diffPos, 1)
+#         echo "LHS: ...\e[32m", lhsStr[start ..< diffPos], "\e[39m",
+#           "\e[31m", lhsStr[diffPos ..< min(diffPos + 40, lhsStr.len)],
+#           "\e[39m..."
+
+#         echo "RHS: ...\e[32m", rhsStr[start ..< diffPos], "\e[39m",
+#           "\e[31m", rhsStr[diffPos ..< min(diffPos + 40, rhsStr.len)],
+#           "\e[39m..."
+
+#         echo " ".repeat(28), "^".repeat(10)
+#       else:
+#         echo fmt("LHS: {lhsStr}")
+#         echo fmt("RHS: {rhsStr}")
+
+#         echo "    ", " ".repeat(diffPos + 1),
+#                  "^".repeat(rhsStr.len() - diffPos + 1)
+
+#     echo ""
+
+# template assertEq*(lhs, rhs: untyped): untyped =
+#   let lhsVal = lhs
+#   let rhsVal = rhs
+#   testEq(lhsVal, rhsVal)
+#   let lInfo = instantiationInfo()
+#   if not (lhsVal == rhsVal):
+#     echo lhs.astToStr(), " == ", rhs.astToStr()
+#     raiseAssert("Comparison failed on line " & $lInfo.line)
+
 
 macro parametrizeOnType*(
     varname: untyped, types: typed, body: untyped): untyped =
@@ -764,7 +1057,13 @@ macro parametrizeOnConst*(varname, values, body: untyped): untyped =
 macro parametrizeOnValue*(
     varname: untyped, values: typed, body: untyped): untyped =
 
-  result = nnkForStmt.newTree(varname, values, body)
+
+  let name = toStrLit(varname)
+  result = quote do:
+    for `varname` in `values`:
+      addValue(testContext, `name`, testValue(`varname`, tvcParameter))
+      `body`
+      removeValue(testContext, `name`)
 
 
 

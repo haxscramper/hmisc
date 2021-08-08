@@ -1,5 +1,5 @@
 import
-  std/[algorithm, sequtils, options, times]
+  std/[algorithm, sequtils, options]
 
 import
   ./gold
@@ -161,12 +161,12 @@ template byaddr1*(lhs, typ, ex) =
 func takesOnlyMutable*[T](v: var T) = discard
 template isMutable*(v: typed): untyped = compiles(takesOnlyMutable(v))
 
-template timeIt*(name: string, body: untyped): untyped =
-  block:
-    let start = cpuTime()
-    body
-    let total {.inject.} = cpuTime() - start
-    echo &"  {total:<5} ms ", name
+# template timeIt*(name: string, body: untyped): untyped =
+#   block:
+#     let start = cpuTime()
+#     body
+#     let total {.inject.} = cpuTime() - start
+#     echo &"  {total:<5} ms ", name
 
 
 

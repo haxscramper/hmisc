@@ -1,32 +1,34 @@
 import
+  hmisc/preludes/unittest
+
+import
   hmisc/hasts/hext_template,
-  hmisc/hdebug_misc,
   hmisc/algo/[halgorithm, hparse_base]
 
-import std/[unittest, streams, tables]
+import std/[streams, tables]
 
 startHax()
 
-proc showLex(str: string) =
-  echo lexHext(str).toColored(htoColorMap)
+proc lex(str: string): ColoredRuneGrid =
+  lexHext(str).toColored(htoColorMap)
 
 suite "Lexer":
   test "Basic syntax lexer":
-    showLex("""
+    show lex("""
 {% for item in seq -%}
     {{ item }}
 {%- endfor %}
 """)
 
   test "Raw strings":
-    showLex("{% raw %} {{notraw}} {% endraw %} {{expr}}")
+    show lex("{% raw %} {{notraw}} {% endraw %} {{expr}}")
 
 suite "Parser":
   test "For loop parser":
     let tree = parseHext(
       "{% for item in seq %} {{item}} {%else%} No iteration {%end%}")
 
-    echo tree.treeRepr()
+    show tree.treeRepr()
 
 iterator boxedItems(t: typedesc[HextValue[int]], val: int): HextValue[int] =
   discard
@@ -36,7 +38,7 @@ suite "Output generation":
     let tree = parseHext(
       "{% for item in seq %} <<{{item}}>> {%else%} No iteration {%end%}")
 
-    echo treeRepr(tree)
+    show treeRepr(tree)
 
     evalHext(tree, newFileStream(stdout), {
       "seq": boxValue(HextValue[int], @[1,2,3,4,4])

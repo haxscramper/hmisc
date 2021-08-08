@@ -5,9 +5,10 @@ import std/[
   lenientops, strformat, strutils, sequtils, algorithm, random
 ]
 
-import ../algo/[htemplates, halgorithm]
-import ../hasts/graphviz_ast
-import ../hdebug_misc, ../base_errors
+import
+  ../algo/[htemplates, halgorithm],
+  ../hasts/graphviz_ast,
+  ../core/all
 
 #[
 checklist

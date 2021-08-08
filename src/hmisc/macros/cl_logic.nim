@@ -1,5 +1,5 @@
-import macros
-import ../hexceptions
+import std/macros
+import ../core/[all, code_errors]
 
 macro typeCondIt*(head, body: untyped): untyped =
   assert body.kind == nnkStmtList

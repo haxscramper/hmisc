@@ -1,6 +1,6 @@
-import ../types/hgraph
-import ../hdebug_misc
-import ../base_errors
+import
+  ../types/hgraph,
+  ../core/all
 
 import std/[options, intsets, sequtils, tables]
 

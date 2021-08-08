@@ -1,8 +1,6 @@
-import hmisc/hexceptions
-
-import hmisc/hdebug_misc
-
-import std/unittest
+import
+  hmisc/core/[all, code_errors],
+  hmisc/preludes/unittest
 
 suite "Exception from string":
   startHax()

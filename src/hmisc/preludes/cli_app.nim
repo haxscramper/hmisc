@@ -15,7 +15,7 @@ import
     hlex_base, # Parsing input data
     clformat # Simplified custom data pretty-printing
   ],
-  ../hdebug_misc # Debug misc helpers
+  ../core/all # Debug misc helpers etc.
 
 import
   std/[strutils, tables, macros, strformat, parseutils]
@@ -33,4 +33,4 @@ export
   hstring_algo,
   hlex_base,
   clformat,
-  hdebug_misc
+  all

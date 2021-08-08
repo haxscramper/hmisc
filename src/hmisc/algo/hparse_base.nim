@@ -5,10 +5,9 @@ import std/[
 ]
 
 import
-  ../base_errors,
-  ../hdebug_misc,
-  ../helpers,
+  ../core/all,
   ../types/colorstring,
+  ../algo/clformat,
   ./hlex_base,
   ./hstring_algo,
   ./hseq_mapping,
@@ -780,90 +779,93 @@ func treeRepr*[R, T](
     positionIndexed: bool = true,
     maxdepth: int = 120,
     baseStr: PosStr = PosStr()
-  ): string =
+  ): ColoredText =
 
-  proc aux(n: HsTokTree[R, T], level: int, idx: seq[int]): string =
-    let pref =
-      if pathIndexed:
-        idx.join("", ("[", "]")) & "    "
+  coloredResult()
 
-      elif positionIndexed:
-        if level > 0:
-          "  ".repeat(level - 1) & to8Bit("#" & $idx[^1], 10) &
-            to8Bit("/" & alignLeft($level, 2), 5) & " "
+  proc aux(n: HsTokTree[R, T], level: int, idx: seq[int]) =
+    if pathIndexed:
+      add idx.join("", ("[", "]")) & "    "
 
-        else:
-          "    "
+    elif positionIndexed:
+      if level > 0:
+        addIndent(level - 1)
+        add to8Bit("#" & $idx[^1], 10)
+        add to8Bit("/" & alignLeft($level, 2), 5)
+        add " "
 
       else:
-        "  ".repeat(level)
+        add "    "
+
+    else:
+      add "  ".repeat(level)
 
     if level > maxdepth:
-      return pref & " ..."
+      add " ..."
+      return
 
     let kind = $n.kind
-    result &= pref & toCyan(
-      kind[kind.skipWhile({'a' .. 'z'}) .. ^1], colored)
+    add toCyan(kind[kind.skipWhile({'a' .. 'z'}) .. ^1], colored)
 
     if n.isToken:
       let tok = $n.token.kind
-      result &= " " & toYellow(
+      add " " & toYellow(
         tok[tok.skipWhile({'a' .. 'z'}) .. ^1], colored)
 
       if '\n' in n.token.str:
-        var tmp = n.token.str
+        var tmp = toColoredText(n.token.str)
 
         if tmp.len == 0:
           tmp = "∅"
 
         else:
-          var nlCount = 0
-          while nlCount < tmp.high and
-                tmp[tmp.high - nlCount] in {'\n'}:
-            inc nlCount
+          let nlCount = replaceTailNewlines(tmp)
+          # var nlCount = 0
+          # while nlCount < tmp.high and
+          #       tmp[tmp.high - nlCount] in {'\n'}:
+          #   inc nlCount
 
-          tmp.setLen(tmp.len - nlCount)
-          var suffix = ""
-          if nlCount == 0 and n.token.str[^1] in {'\n'}:
-            inc nlCount
-          for nl in 0 ..< nlCount:
-            suffix.add toRed("⮒", colored)
+          # tmp.setLen(tmp.len - nlCount)
+          # var suffix = ""
+          # if nlCount == 0 and n.token.str[^1] in {'\n'}:
+          #   inc nlCount
+          # for nl in 0 ..< nlCount:
+          #   suffix.add toRed("⮒", colored)
 
-          if n.token.str.count('\n') == nlCount:
-            result &= " \"" & tmp.strip().toGreen(colored) & suffix & "\""
-            result &= to8Bit(&" ({n.token.line}:{n.token.column})", 2, 3, 3)
+          if n.token.str.count('\n') == 0:
+            add " \"" & tmp.toGreen(colored) & "\""
+            add to8Bit(&" ({n.token.line}:{n.token.column})", 2, 3, 3)
 
           else:
-            result &= to8Bit(&" ({n.token.line}:{n.token.column})", 2, 3, 3)
-            result &= "\n"
-            result &= tmp.strip().indent(idx.len * 2 + 6).toGreen(colored)
-            result &= suffix
+            add to8Bit(&" ({n.token.line}:{n.token.column})", 2, 3, 3)
+            add "\n"
+            add tmp.indent(idx.len * 2 + 6).toGreen(colored)
 
 
 
       else:
         # if n.token.str[0] in {' '} or n.token.str[^1] in {' '}:
-        result &= " \"" & toGreen(n.token.str, colored) & "\""
+        add " \"" & toGreen(n.token.str, colored) & "\""
 
         # else:
-        #   result &= " " & toGreen(n.token.str, colored)
+        #   add " " & toGreen(n.token.str, colored)
 
-        result &= to8Bit(&" ({n.token.line}:{n.token.column})", 2, 3, 3)
+        add to8Bit(&" ({n.token.line}:{n.token.column})", 2, 3, 3)
 
 
     else:
       if n.len > 0:
-        result &= "\n"
+        add "\n"
 
       for newIdx, subn in n:
-        result &= aux(subn, level + 1, idx & newIdx)
+        aux(subn, level + 1, idx & newIdx)
         if level + 1 > maxDepth:
           break
 
         if newIdx < n.len - 1:
-          result &= "\n"
+          add "\n"
 
-  return aux(tree, 0, @[])
+  aux(tree, 0, @[])
 
 proc toColored*[K](
     toks: seq[HsTok[K]],

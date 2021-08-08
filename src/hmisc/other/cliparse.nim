@@ -1,9 +1,10 @@
-import ../algo/[hstring_algo, clformat]
-import ../hexceptions
-import ../hdebug_misc
+import
+  ../algo/[hstring_algo, clformat],
+  ../core/all,
+  ../macros/introspection,
+  ./hjson
+
 import std/[options, strutils, strscans, strformat, macros]
-import ../macros/introspection
-import hjson
 
 type
   CliOptKind* = enum
@@ -364,25 +365,27 @@ const defaulCliParseConfig* = CliParseConfig(
   seqSeparator: ","
 )
 
-func lispRepr*(cli: CliOpt): string =
-  result &= "("
-  result &= "k:" & hshow(cli.kind)
+func lispRepr*(cli: CliOpt): ColoredText =
+  coloredResult()
+  add "("
+  add "k:"
+  add hshow(cli.kind)
 
   if cli.kind in coDashedKinds:
-    result &= " " & cli.keyPath.join"."
+    add " " & cli.keyPath.join(".")
 
   if cli.kind in coBracketKinds:
-    result &= &" [{cli.keySelect}]"
+    add &" [{cli.keySelect}]"
 
   if cli.kind in coOptionKinds:
-    result &= " "
-    result &= hshow(cli.addKind)
+    add " "
+    add hshow(cli.addKind)
 
   if cli.valStr.len > 0:
-    result &= " "
-    result &= cli.valStr
+    add " "
+    add cli.valStr
 
-  result &= ")"
+  add ")"
 
 func `$`*(cli: CliOpt): string =
   case cli.kind:

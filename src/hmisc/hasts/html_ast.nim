@@ -6,12 +6,19 @@ Originally implemented to generate graphviz html-like labels.
 
 ]##
 
-import std/[colors, xmltree, strformat, strutils, strtabs, sequtils, terminal,
-       macros, options]
-import hmisc/[helpers, hexceptions]
-import hmisc/types/[hprimitives, colorstring]
+import std/[
+  colors, xmltree, strformat, strutils, strtabs, sequtils,
+  terminal, macros, options
+]
+
+import
+  ../core/[all, code_errors],
+  ../types/[hprimitives, colorstring]
+
 export xmltree
-import ./xml_ast
+
+import
+  ./xml_ast
 
 type
   RawHtml* = distinct string
@@ -44,17 +51,20 @@ type
         bgcolor*: Color
         height*: int
         width*: int
+
       of hekText:
         textProps*: set[HtmlTextProp]
         textColor* {.requiresinit.}: Color
         textColorBg* {.requiresinit.}: Color
         textStr*: string
         textPre*: bool
+
       of hekCell:
         cellColor*: Color
         cellBgColor*: Color
         cellSize*: ArrSize
         dotPort*: int
+
       of hekOther:
         tagname*: string
 
