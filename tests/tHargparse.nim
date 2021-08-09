@@ -1,4 +1,4 @@
-import std/[strformat, sequtils, tables]
+import std/[strformat, sequtils, tables, macros]
 
 import
   hmisc/other/[hargparse, oswrap, hpprint],
@@ -113,7 +113,7 @@ suite "Argument structuring":
       @["--results", "output", "raw"],
       opt("results", "", maxRepeat = 2))
 
-    echo tree.treeRepr()
+    show tree.treeRepr()
 
   test "Subcommand":
     let (err, tree) = checkOpts(
@@ -122,6 +122,8 @@ suite "Argument structuring":
         flag("test", ""),
         cmd("addr", "")
     ]))
+
+    show tree.treeRepr()
 
     check:
       matchdiff tree:
@@ -155,8 +157,9 @@ suite "Convert to cli value":
     var (err, tree) = checkOpts(
       @["12"], arg("i", "", check = cliCheckFor(int)))
 
-    Argument(head: (value: "12")) := tree
-    Int(intVal: 12) := tree.toCliValue(err)
+    check:
+      matchdiff tree, Argument(head: (value: "12"))
+      matchdiff tree.toCliValue(err), Int(intVal: 12)
 
   test "Integer or enum positional":
     type Special = enum spec1, spec2
@@ -171,13 +174,15 @@ suite "Convert to cli value":
 
     block:
       var (err, tree) = checkOpts(@["12"], arg)
-      Argument(head: (value: "12")) := tree
-      Int(intVal: 12) := tree.toCliValue(err)
+      check:
+        matchdiff tree, Argument(head: (value: "12"))
+        matchdiff tree.toCliValue(err), Int(intVal: 12)
 
     block:
       var (err, tree) = checkOpts(@["spec1"], arg)
-      Argument(head: (value: "spec1")) := tree
-      String(strVal: "spec1") := tree.toCliValue(err)
+      check:
+        matchdiff tree, Argument(head: (value: "spec1"))
+        matchdiff tree.toCliValue(err), String(strVal: "spec1")
 
   test "Sequence of optional arguments":
      let arg = cmd("main", "", [
@@ -212,17 +217,19 @@ suite "Convert to cli value":
 
        fail()
 
-     value.assertMatch Command(
-       options: {
-         "ignore": Seq(
-           seqVal: [
-             String(strVal: "**/zs_matcher.nim"),
-             String(strVal: "**/nimble_aux.nim")]),
-         "ranges": Seq(
-           seqVal: [
-             Int(intVal: 1),
-             Int(intVal: 2),
-             Int(intVal: 3)])})
+     check:
+       matchdiff value:
+         Command(
+           options: {
+             "ignore": Seq(
+               seqVal: [
+                 String(strVal: "**/zs_matcher.nim"),
+                 String(strVal: "**/nimble_aux.nim")]),
+             "ranges": Seq(
+               seqVal: [
+                 Int(intVal: 1),
+                 Int(intVal: 2),
+                 Int(intVal: 3)])})
 
      doAssert value.getOpt("ignore") as seq[string] == @[
        "**/zs_matcher.nim", "**/nimble_aux.nim"]
@@ -242,7 +249,7 @@ suite "Error reporting":
   test "Flag mismatches":
     let (err, _) = checkOpts(@["--za"], flag("aa", "doc"))
     doAssert err.len == 1
-    echo err[0].helpStr()
+    show err[0].helpStr()
 
   test "Multiple flag mismatches":
     let (err, _) = checkOpts(@["main", "--zzz"], cmd(
@@ -251,7 +258,7 @@ suite "Error reporting":
         flag("zzze", "")
     ]))
 
-    echo err[0].helpStr()
+    show err[0].helpStr()
 
 suite "Default values":
   test "Option":
@@ -340,7 +347,7 @@ suite "Full app":
       en22: "Doc for en 2"
     }))
 
-    echo app.helpStr()
+    show app.helpStr()
 
   test "Full app dry-run":
     var app = newApp()

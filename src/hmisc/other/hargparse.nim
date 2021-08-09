@@ -25,6 +25,8 @@ import
   ],
   ../macros/argpass
 
+export `$`
+
 export cliparse, hlogger, argpass
 
 

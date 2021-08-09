@@ -58,6 +58,8 @@ template notNil*(arg: untyped): bool =
   ## `not isNil(x)` shortcut
   not isNil(arg)
 
+func `-`*[I](s: set[I], i: I): set[I] = s - {i}
+
 func nor*(args: varargs[bool]): bool =
   for arg in args:
     result = arg or result

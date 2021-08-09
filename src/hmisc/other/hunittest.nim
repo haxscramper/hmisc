@@ -669,6 +669,9 @@ macro matchdiff*(
       of nnkBracket:
         result = nnkBracketExpr.newTree(path, part)
 
+      of nnkStrLit, nnkIntLit:
+        result = nnkBracketExpr.newTree(path, part)
+
       of nnkDotExpr:
         result = splicePath(
           splicePath(path, part[0]), part[1])
@@ -676,38 +679,51 @@ macro matchdiff*(
       else:
         raise newImplementKindError(part, part.lispRepr())
 
-  func pathLit(item: NimNode): NimNode =
-    item.toStrLit().strVal()["expr".len .. ^1].newLit()
+  func pathLit(path: NimNode): NimNode =
+    path.toStrLit().strVal()["expr".len .. ^1].newLit()
 
-  proc callCmp(item, call: NimNode, desc: NimNode): NimNode =
-    let pathLit = item.pathLit()
+  proc callCmp(path, call: NimNode, desc: NimNode): NimNode =
+    let pathLit = path.pathLit()
 
     result = quote do:
       if not(`call`):
-        `fails`.add (`pathLit`, $`desc`, $`item`)
+        `fails`.add (`pathLit`, $`desc`, $`path`)
 
 
-  proc aux(item, pattern, path: NimNode): NimNode
+  proc aux(pattern, path: NimNode): NimNode
+  proc itemCmp(path, value: NimNode): NimNode
 
-  proc itemCmp(item, value: NimNode): NimNode =
-    let pathLit = item.pathLit()
+
+  const litKinds = { nnkIntLit, nnkStrLit, nnkPrefix }
+
+  proc auxOrCmp(pattern, path: NimNode): NimNode =
+    if pattern.kind in litKinds:
+      result = itemCmp(path, pattern)
+
+    else:
+      result = aux(pattern, path)
+
+
+
+  proc itemCmp(path, value: NimNode): NimNode =
+    let pathLit = path.pathLit()
     case value.kind:
-      of nnkIntLit, nnkStrLit:
+      of litKinds - nnkPrefix:
         result = quote do:
-          if not(`item` == `value`):
-            `fails`.add (`pathLit`, $`value`, $`item`)
+          if not(`path` == `value`):
+            `fails`.add (`pathLit`, $`value`, $`path`)
 
       of nnkPrefix:
         let
-          cmpExpr = nnkInfix.newTree(value[0], item, value[1])
+          cmpExpr = nnkInfix.newTree(value[0], path, value[1])
           valueLit = value.toStrLit()
 
         result = quote do:
           if not(`cmpExpr`):
-            `fails`.add (`pathLit`, `valueLit`, $`item`)
+            `fails`.add (`pathLit`, `valueLit`, $`path`)
 
       of nnkPar:
-        result = aux(item, value, item)
+        result = aux(value, path)
 
       else:
         raise newImplementKindError(value, value.treeRepr())
@@ -717,24 +733,42 @@ macro matchdiff*(
     while result.kind in { nnkCall, nnkObjConstr }:
       result = result[0]
 
-  proc aux(item, pattern, path: NimNode): NimNode =
+  startHaxComp()
+
+
+  var stmtLevel = 0
+  proc aux(pattern, path: NimNode): NimNode =
     result = newStmtList()
     case pattern.kind:
-      of nnkPar, nnkStmtList:
-        for check in pattern:
-          result.add aux(item, check, path)
+      of nnkPar:
+        for idx, check in pattern:
+          result.add aux(check, path)
+
+      of nnkStmtList:
+        inc stmtLevel
+        for idx, check in pattern:
+          if stmtLevel > 1:
+            result.add aux(check, path.splicePath(newLit(idx)))
+
+          else:
+            result.add aux(check, path)
+
+        dec stmtLevel
+
 
       of nnkExprColonExpr:
-        # assertNodeKind(pattern[0], {nnkIdent})
         result.add itemCmp(splicePath(path, pattern[0]), pattern[1])
 
       of nnkBracket:
         result.add itemCmp(
           splicePath(path, ident"len"), newLit(pattern.len))
 
-        for idx, item in pattern:
-          result.add itemCmp(
-            nnkBracketExpr.newTree(path, newLit(idx)), item)
+        for idx, check in pattern:
+          result.add auxOrCmp(check, nnkBracketExpr.newTree(path, newLit(idx)))
+
+      of nnkTableConstr:
+        for idx, check in pattern:
+          result.add check[1].auxOrCmp(splicePath(path, check[0]))
 
       of nnkBracketExpr, nnkCall, nnkObjConstr:
         let
@@ -748,29 +782,34 @@ macro matchdiff*(
             `fails`.add (`pathLit`, `kindLit`, $`path`.kind)
 
 
+        inc stmtLevel
         for idx, check in pattern[1..^1]:
-          if check.kind in { nnkIntLit, nnkPrefix }:
-            result.add itemCmp(
-              nnkBracketExpr.newTree(path, newLit(idx)), check)
+          # echov path, check, stmtLevel
+          case check.kind:
+            of nnkIntLit, nnkStrLit, nnkPrefix:
+              result.add itemCmp(
+                nnkBracketExpr.newTree(path, newLit(idx)), check)
 
-          if check.kind in { nnkExprEqExpr }:
-            result.add aux(
-              item,
-              check[1],
-              nnkBracketExpr.newTree(path, check[0]))
+            of nnkExprEqExpr:
+              result.add aux(check[1], nnkBracketExpr.newTree(path, check[0]))
 
-          else:
-            result.add aux(
-              item,
-              check,
-              nnkBracketExpr.newTree(path, newLit(idx)))
+            of nnkExprColonExpr:
+              let path = splicePath(path, check[0])
+              result.add check[1].auxOrCmp(path)
 
+            else:
+              result.add aux(
+                check,
+                tern(stmtLevel > 2, path.splicePath(newLit(idx)), path))
+                # nnkBracketExpr.newTree(path, newLit(idx))
+
+        dec stmtLevel
 
       else:
         raise newImplementKindError(pattern)
 
 
-  let impl = aux(tmp, match, tmp)
+  let impl = aux(match, tmp)
 
   result = quote do:
     block:
@@ -784,7 +823,7 @@ macro matchdiff*(
       else:
         checkOk(`loc`)
 
-  echo result.repr()
+  # echov result.repr()
 
 
 
