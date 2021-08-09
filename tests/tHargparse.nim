@@ -87,11 +87,11 @@ suite "Argument structuring":
     let (_, tree) = checkOpts(
       @["zz0"], arg("test", "documentation for test"))
 
-    doAssert tree.kind == cctArgument
+    check tree.kind == cctArgument
 
   test "Switch":
     let (_, tree) = checkOpts(@["--tset"], flag("tset", "Doc"))
-    doAssert tree.kind == cctFlag
+    check tree.kind == cctFlag
 
   test "Option":
     let (_, tree) = checkOpts(@["--opt:val"], opt("opt", "Doc"))
@@ -138,9 +138,10 @@ suite "Argument structuring":
         flag("dry-run", ""),
         cmd("nim", "", [cmd("trail", "")])]))
 
-    # echo tree.treeRepr()
+    show tree.treeRepr()
 
-    # tree.assertMatch:
+    show tree[0][0].len
+    show tree[0][0].treeRepr()
 
     check:
       matchdiff tree:
@@ -209,11 +210,11 @@ suite "Convert to cli value":
      ], arg)
 
      let value = tree.toCliValue(err)
-     echo value.treeRepr()
+     show value.treeRepr()
 
      if err.len > 0:
        for e in err:
-         echo helpStr(e)
+         show helpStr(e)
 
        fail()
 
@@ -231,24 +232,24 @@ suite "Convert to cli value":
                  Int(intVal: 2),
                  Int(intVal: 3)])})
 
-     doAssert value.getOpt("ignore") as seq[string] == @[
+     check value.getOpt("ignore") as seq[string] == @[
        "**/zs_matcher.nim", "**/nimble_aux.nim"]
 
-     doAssert value.getOpt("ranges") as seq[int] == @[1, 2, 3]
-     doAssert value.getOpt("option", true) as Option[int] == none(int)
-     doAssert value.getOpt("opthas") as Option[int] == some(1)
+     check value.getOpt("ranges") as seq[int] == @[1, 2, 3]
+     check value.getOpt("option", true) as Option[int] == none(int)
+     check value.getOpt("opthas") as Option[int] == some(1)
 
-     doAssert value.getOpt("tuples") as (int, string) == (1, "test")
-     doAssert value.getOpt("tupseq") as seq[(string, string)] ==
+     check value.getOpt("tuples") as (int, string) == (1, "test")
+     check value.getOpt("tupseq") as seq[(string, string)] ==
        @[("mnt", "/tmp"), ("/mnt", "/tmp")]
 
-     doAssert value.getOpt("dirpair") as seq[(AbsDir, AbsDir)] ==
+     check value.getOpt("dirpair") as seq[(AbsDir, AbsDir)] ==
        @[(AbsDir("/mnt"), AbsDir("/mnt")), (AbsDir("/tmp"), AbsDir("/tmp"))]
 
 suite "Error reporting":
   test "Flag mismatches":
     let (err, _) = checkOpts(@["--za"], flag("aa", "doc"))
-    doAssert err.len == 1
+    check err.len == 1
     show err[0].helpStr()
 
   test "Multiple flag mismatches":
@@ -267,8 +268,8 @@ suite "Default values":
     discard app.acceptArgs(@[])
 
     let opt = app.getOpt("test")
-    doAssert opt.kind == cvkString
-    doAssert opt.strVal == "false", opt.strVal
+    check opt.kind == cvkString
+    check opt.strVal == "false"
 
   test "Based on positional":
     var app = newApp()
@@ -280,10 +281,10 @@ suite "Default values":
       proc(val: CliValue): CliValue =
         val.as(FsFile).withExt("bin").toCliValue()))
 
-    doAssert app.acceptArgs(@["file.nim"])
+    check app.acceptArgs(@["file.nim"])
     let opt = app.getOpt("outfile")
-    doAssert opt.kind == cvkFsEntry
-    doAssert opt.fsEntryVal.getStr() == "file.bin"
+    check opt.kind == cvkFsEntry
+    check opt.fsEntryVal.getStr() == "file.bin"
 
   test "Based on positional subcommand":
     var app = newApp()
@@ -300,10 +301,10 @@ suite "Default values":
     sub1.add sub2
     app.add sub1
 
-    doAssert app.acceptArgs(@["sub1", "sub2", "file.nim"])
+    check app.acceptArgs(@["sub1", "sub2", "file.nim"])
     let opt = app.getCmd().getCmd().getOpt("out")
-    doAssert opt.kind == cvkFsEntry
-    doAssert opt.fsEntryVal.getStr() == "file.bin"
+    check opt.kind == cvkFsEntry
+    check opt.fsEntryVal.getStr() == "file.bin"
 
 
 
@@ -327,7 +328,7 @@ suite "Full app":
       "OSError": (1, "Example os error raise")
     })
 
-    let logger = newTermLogger()
+    let logger = getTestLogger()
 
     app.runMain(mainProc, logger, false, argpass(app, logger))
 
@@ -358,4 +359,4 @@ suite "Full app":
       app.showerrors(newtermLogger())
       fail()
 
-    doAssert app.getOpt("dry-run") as bool
+    check app.getOpt("dry-run") as bool == true

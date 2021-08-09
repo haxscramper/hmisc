@@ -12,7 +12,9 @@ import
   ../other/[hpprint],
   ../core/[all, code_errors],
   ../types/colorstring,
-  ./oswrap
+  ./oswrap,
+  ./hlogger
+
 
 
 
@@ -143,6 +145,7 @@ type
     skipAfterException: bool
     skipAfterManual: bool
     skipNext: bool
+    logger: HLogger
 
 
   TestProcPrototype = proc(testContext: TestContext)
@@ -150,8 +153,6 @@ type
 func allBackends(conf: TestConf): bool =
   let b = conf.backends
   b.len == 0 or ((tbC in b) and (tbCpp in b) or (tbJs in b) or (tbNims in b))
-
-import ./hlogger
 
 proc addValue(ctx: TestContext, name: string, value: TestValue) =
   ctx.contextValues.add((name, value))
@@ -199,6 +200,44 @@ proc newTestLogger*(): HLogger =
   result.prefixLen = max(
     result.logPrefix.maxIt(it.str.len),
     result.eventPrefix.maxIt(it.str.len))
+
+
+proc newTestContext*(): TestContext =
+  TestContext(sourceOnError: true, logger: newTestLogger())
+
+proc getTestGlobs(): seq[TestGlob] =
+  for param in paramStrs():
+    let split = param.split("::")
+    result.add TestGlob(
+      suiteGlob: toGitGlob(split[0]),
+      testGlob: toGitGlob(
+        if split.len > 1 and split[1].len > 0:
+          split[1]
+        else:
+          "*"
+      )
+    )
+
+proc getTestContext(): TestContext =
+  var context {.global, threadvar.}: TestContext
+  if isNil(context):
+    context = newTestContext()
+    context.globs = getTestGlobs()
+
+  return context
+
+proc getTestLogger*(): HLogger =
+  getTestContext().logger
+
+proc configureDefaultTestContext*(
+    skipAfterException: bool = false,
+    skipAfterManual: bool = false
+  ) =
+
+  var default = getTestContext()
+  default.skipAfterException = skipAfterException
+  default.skipAfterManual = skipAfterManual
+
 
 
 proc report(context: TestContext, report: TestReport) =
@@ -297,7 +336,7 @@ proc report(context: TestContext, report: TestReport) =
       if report.failKind == tfkException:
         assertRef report.exception
         logStackTrace(
-          newTestLogger(),
+          getTestLogger(),
           report.exception,
           showError = true,
           source = context.sourceOnError
@@ -679,8 +718,25 @@ macro matchdiff*(
       else:
         raise newImplementKindError(part, part.lispRepr())
 
+
   func pathLit(path: NimNode): NimNode =
     path.toStrLit().strVal()["expr".len .. ^1].newLit()
+
+  func checkedIndex(path: NimNode, idx: int, body: NimNode): NimNode =
+    let
+      idxLit = newLit(idx)
+      pathLit = pathLit(path)
+
+    quote do:
+      if `idxLit` < len(`path`):
+        `body`
+
+      else:
+        `fails`.add((
+          `pathLit`,
+          "Missing element at index " & $`idxLit`,
+          $len(`path`)))
+
 
   proc callCmp(path, call: NimNode, desc: NimNode): NimNode =
     let pathLit = path.pathLit()
@@ -748,7 +804,9 @@ macro matchdiff*(
         inc stmtLevel
         for idx, check in pattern:
           if stmtLevel > 1:
-            result.add aux(check, path.splicePath(newLit(idx)))
+            result.add newCommentStmtNode(here())
+            result.add checkedIndex(
+              path, idx, aux(check, path.splicePath(newLit(idx))))
 
           else:
             result.add aux(check, path)
@@ -784,7 +842,6 @@ macro matchdiff*(
 
         inc stmtLevel
         for idx, check in pattern[1..^1]:
-          # echov path, check, stmtLevel
           case check.kind:
             of nnkIntLit, nnkStrLit, nnkPrefix:
               result.add itemCmp(
@@ -797,11 +854,17 @@ macro matchdiff*(
               let path = splicePath(path, check[0])
               result.add check[1].auxOrCmp(path)
 
+            of nnkStmtList:
+              result.add aux(check, path)
+
             else:
-              result.add aux(
-                check,
-                tern(stmtLevel > 2, path.splicePath(newLit(idx)), path))
-                # nnkBracketExpr.newTree(path, newLit(idx))
+              if stmtLevel > 3:
+                result.add newCommentStmtNode(here() & $stmtLevel)
+                result.add checkedIndex(
+                  path, idx, aux(check, path.splicePath(newLit(idx))))
+
+              else:
+                result.add aux(check, path)
 
         dec stmtLevel
 
@@ -822,6 +885,7 @@ macro matchdiff*(
 
       else:
         checkOk(`loc`)
+
 
   # echov result.repr()
 
@@ -898,39 +962,6 @@ proc checkpoint(loc: TestLocation, msg: string): TestReport =
 
 
 
-
-proc newTestContext*(): TestContext =
-  TestContext(sourceOnError: true)
-
-proc getTestGlobs(): seq[TestGlob] =
-  for param in paramStrs():
-    let split = param.split("::")
-    result.add TestGlob(
-      suiteGlob: toGitGlob(split[0]),
-      testGlob: toGitGlob(
-        if split.len > 1 and split[1].len > 0:
-          split[1]
-        else:
-          "*"
-      )
-    )
-
-proc getTestContext(): TestContext =
-  var context {.global, threadvar.}: TestContext
-  if isNil(context):
-    context = newTestContext()
-    context.globs = getTestGlobs()
-
-  return context
-
-proc configureDefaultTestContext*(
-    skipAfterException: bool = false,
-    skipAfterManual: bool = false
-  ) =
-
-  var default = getTestContext()
-  default.skipAfterException = skipAfterException
-  default.skipAfterManual = skipAfterManual
 
 
 macro suite*(name: static[string], body: untyped): untyped =

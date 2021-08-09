@@ -1613,10 +1613,6 @@ macro runMain*(
 
   let mainCall = newCall(mainProc)
   mainCall.addArgpass(argpass)
-  # # mainCall.add app
-  # # mainCall.add logger
-  # for arg in args:
-  #   mainCall.add arg
 
   let line = app.lineInfoObj()
   let iinfo = newLit((line.filename, line.line, line.column))
@@ -1755,7 +1751,6 @@ macro runDispatched*(
     let `cmd` = `app`.getCmd()
     `dispatch`
 
-  # echo result.repr()
 
 proc arg*(
     name: string,
