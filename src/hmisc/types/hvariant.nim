@@ -1,6 +1,8 @@
-import macros, sequtils, strutils
+import
+  std/[macros, sequtils, strutils]
 
-import ../base_errors
+import
+  ../core/all
 
 type VariantAccessError* = ref object of ArgumentError
 

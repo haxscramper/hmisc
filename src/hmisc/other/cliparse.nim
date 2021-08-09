@@ -92,7 +92,7 @@ type
         discard
 
     jsonMsg*: JsonNode
-    strMsg*: string
+    strMsg*: ColoredText
 
 func key*(opt: CliOpt): string =
   if opt.kind in {coArgument, coCommand}:

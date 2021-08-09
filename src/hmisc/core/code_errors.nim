@@ -140,7 +140,7 @@ proc toColorString*(err: CodeError): string =
         let lastline = position & filelines[^1]
         for annot in lineannots:
           let start = (position.len + annot.getColumn(err))
-          for line in 1 .. 1 + (spacing + 1):
+          for line in 1 ..< 1 + (spacing + 1):
             buf.setPart(line, start, toRedStr("|", docolor))
 
           # TODO IDEA add arrow in the expression 'center' and `~`
@@ -408,17 +408,18 @@ template assertNodeIt*(
     if not cond:
       raise toCodeError(it, msg, annot)
 
-proc assertNodeKind*(
-  node: NimNode, kindSet: set[NimNodeKind],
-  iinfo = instantiationInfo()): void =
+template assertNodeKind*(node: NimNode, kindSet: set[NimNodeKind]): untyped =
+  # iinfo = instantiationInfo(fullpaths = true)): void =
   ## assert node kind is in the set. Provide higlighted error with
   ## list of expected types and kind of given node
   if node.kind notin kindSet:
-    raise toCodeError(node,
-      (&"Unexpected node kind. Expected one of " &
-        $kindSet & " but found " & $node.kind),
-      $node.kind,
-      iinfo = iinfo.toLineInfo())
+    let iinfo = instantiationInfo(fullPaths = true)
+    {.line: instantiationInfo(fullPaths = true).}:
+      raise toCodeError(node,
+        (&"Unexpected node kind. Expected one of " &
+          $kindSet & " but found " & $node.kind),
+        $node.kind,
+        iinfo = iinfo.toLineInfo())
 
 
 proc assertNodeKindNot*(

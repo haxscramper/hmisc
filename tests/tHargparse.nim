@@ -1,10 +1,10 @@
-import std/[unittest, strformat, sequtils, tables]
+import std/[strformat, sequtils, tables]
 
 import
   hmisc/other/[hargparse, oswrap, hpprint],
   hmisc/algo/htemplates,
-  hmisc/hdebug_misc,
-  fusion/matching
+  hmisc/preludes/unittest
+
 
 startHax()
 
@@ -123,10 +123,11 @@ suite "Argument structuring":
         cmd("addr", "")
     ]))
 
-    tree.assertMatch:
-      Command:
-        Flag(head: (key: "test"), desc: (name: "test"))
-        Command()
+    check:
+      matchdiff tree:
+        Command:
+          Flag(head: (key: "test"), desc: (name: "test"))
+          Command()
 
   test "Subcommand after flag":
     let (err, tree) = checkOpts(
@@ -137,12 +138,15 @@ suite "Argument structuring":
 
     # echo tree.treeRepr()
 
-    tree.assertMatch:
-      Command(desc.name: "haxdoc"):
-        Command(desc.name: "nim"):
-          Command(desc.name: "trail")
+    # tree.assertMatch:
 
-        Flag(head.key: "dry-run", desc.name: "dry-run")
+    check:
+      matchdiff tree:
+        Command(desc.name: "haxdoc"):
+          Command(desc.name: "nim"):
+            Command(desc.name: "trail")
+
+          Flag(head.key: "dry-run", desc.name: "dry-run")
 
 
 

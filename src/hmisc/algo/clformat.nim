@@ -1142,39 +1142,40 @@ func wrap*(text: ColoredText, around: ColorTextConvertible): ColoredText =
 func getEditVisual*[T](
     src, target: seq[T],
     ops: seq[LevEdit],
-    conv: proc(t: T): string
+    conv: proc(t: T): string,
+    opts: HDisplayOpts = defaultHDisplay
   ): ColoredText =
 
-  var
-    src = src
-    currIdx = 0
+  coloredResult()
 
-  for op in ops:
-    if currIdx < op.getPos():
-      for i in currIdx ..< op.getPos():
-        result.add src[i]
+  for group in sweepGroupByIt(ops, it.kind):
+    case group[0].kind:
+      of lekUnchanged:
+        for op in group:
+          add conv(src[op.sourcePos])
 
-      currIdx = op.getPos() + 1
+      of lekNone:
+        raise newUnexpectedKindError(group[0])
 
-    case op.kind:
       of lekInsert:
-        result.add toGreen(conv op.insertItem)
+        for op in group:
+          add toGreen(conv target[op.targetPos])
 
       of lekDelete:
-        result.add toRed(conv src[op.deletePos])
+        for op in group:
+          add toRed(conv src[op.sourcePos])
 
       of lekReplace:
-        result.add toRed(conv src[op.replacePos]) &
-          toGreen(conv op.replaceItem)
+        var sourceBuf, targetBuf: ColoredText
+        for op in group:
+          sourceBuf.add toYellow(conv src[op.sourcePos])
+          targetBuf.add toYellow(conv target[op.targetPos])
 
-    src.apply(op)
-
-    if op.kind == lekDelete:
-      result.add src[op.deletePos]
-
-  for i in currIdx ..< src.len:
-    result.add src[i]
-
+        add "["
+        add sourceBuf
+        add "->"
+        add targetBuf
+        add "]"
 
 func stringEditMessage*(
     source, target: string,

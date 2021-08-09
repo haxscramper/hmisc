@@ -107,6 +107,28 @@ template groupByIt*(sequence, op: untyped): untyped =
   res
 
 
+template sweepGroupByIt*(sequence, op: untyped): untyped =
+  var res: seq[typeof(sequence)]
+  var i = 0
+  for item in sequence:
+    if i == 0:
+      res.add @[item]
+
+    else:
+      if ((block:
+             let it {.inject.} = res[^1][0]; op)) ==
+         ((block:
+             let it {.inject.} = item; op)):
+        res[^1].add item
+
+      else:
+        res.add @[item]
+
+    inc i
+
+  res
+
+
 
 template twoPassSortByIt*(
   sequence, operation1, operation2: untyped): untyped =

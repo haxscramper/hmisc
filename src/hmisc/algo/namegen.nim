@@ -18,9 +18,13 @@ names.
 
 ]##
 
-import std/[tables, strutils, sequtils, sets]
-import ./hstring_algo, ./halgorithm
-import ../base_errors, ../hdebug_misc
+import
+  std/[tables, strutils, sequtils, sets]
+
+import
+  ./hstring_algo,
+  ./halgorithm,
+  ../core/all
 
 type
   StringNameCache* = object

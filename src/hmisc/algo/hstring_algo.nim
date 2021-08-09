@@ -302,11 +302,21 @@ func join*[T](obj: T, sep: string, wrap: (string, string)): string =
     result &= wrap[0] & $elem & wrap[1]
 
 
-proc indentBody*(str: string, count: int, indent: string = " "): string =
+proc indentBody*(
+    str: string,
+    count: int,
+    indent: string = " ",
+    prefix: string = ""
+  ): string =
+
   let nl = str.find('\n')
   if nl != -1:
     result.add str[0 .. nl]
-    result.add str[nl + 1 .. ^1].indent(count, indent)
+    for line in split(str[nl + 1 .. ^1], {'\n'}):
+      result.add "\n"
+      result.add repeat(indent, count - prefix.len)
+      result.add prefix
+      result.add line
 
   else:
     result = str

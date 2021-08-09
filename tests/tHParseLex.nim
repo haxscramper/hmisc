@@ -1,6 +1,8 @@
-import hmisc/algo/[hparse_base, hlex_base]
+import
+  hmisc/algo/[hparse_base, hlex_base],
+  hmisc/preludes/unittest
 
-import std/[unittest, options]
+import std/[options]
 
 suite "Hlex base":
   test "test":
@@ -13,7 +15,7 @@ of true:
 
     str.skipToEol()
     let indent = str.getIndent()
-    echo indent
+    show indent
     while str.hasIndent(indent):
       str.advance(indent)
       str.startSlice()
@@ -22,7 +24,7 @@ of true:
 
     var subStr = initPosStr(str)
 
-    echo subStr
+    show subStr
 
 
 suite "Positional string low-level parse API":

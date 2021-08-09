@@ -357,12 +357,19 @@ proc fuzzyMatch*(
 
 type
   LevEditKind* = enum
+    lekNone
+    lekUnchanged
     lekInsert
     lekReplace
     lekDelete
 
   LevEdit* = object
+    sourcePos*: int
+    targetPos*: int
     case kind*: LevEditKind
+      of lekNone, lekUnchanged:
+        discard
+
       of lekInsert:
         insertPos*: int
         insertItem*: char
@@ -376,20 +383,33 @@ type
 
 func getPos*(edit: LevEdit): int =
   case edit.kind:
+    of lekUnchanged: edit.sourcePos
     of lekInsert: edit.insertPos
     of lekDelete: edit.deletePos
     of lekReplace: edit.replacePos
+    of lekNone: raise newUnexpectedKindError(edit)
 
 
 func apply*(str: var seq[char], op: LevEdit) =
   case op.kind:
+    of lekUnchanged:
+      discard
+
+    of lekNone:
+      raise newUnexpectedKindError(op)
+
     of lekDelete:
       let start = min(str.high, op.deletePos)
       str.delete(start, start)
+
     of lekReplace:
       str[op.replacePos] = op.replaceItem
+
     of lekInsert:
+      # echov op.insertPos, str
+      # op.insertPos
       str.insert($op.insertItem, op.insertPos)
+      # echov str
 
 
 proc levenshteinDistance*(str1, str2: seq[char]): tuple[
@@ -428,14 +448,14 @@ proc levenshteinDistance*(str1, str2: seq[char]): tuple[
         elif (m[i - 1][j - 1] == min):
           paths[i][j] = (i - 1, j - 1)
 
-  var levenpath: seq[tuple[i, j: int, t: string]]
+  var levenpath: seq[tuple[i, j: int, t: LevEditKind]]
 
   var j = l2
   var i = l1
   while i >= 0 and j >= 0:
     j = l2
     while i >= 0 and j >= 0:
-      levenpath.add((i, j, ""))
+      levenpath.add((i, j, lekNone))
       let t = i
       i = paths[i][j][0]
       j = paths[t][j][1]
@@ -457,20 +477,18 @@ proc levenshteinDistance*(str1, str2: seq[char]): tuple[
       ):
         result.operations.add LevEdit(
           kind: lekReplace,
+          sourcePos: cur.i,
+          targetPos: cur.j,
           replacePos: cur.j - 1,
           replaceItem: str2[cur.j - 1]
         )
 
-        cur.t = "replace"
-
       elif (cur.i == last.i and cur.j == last.j + 1):
         result.operations.add LevEdit(
           kind: lekInsert,
-          insertPos: cur.i,
+          insertPos: cur.j - 1,
           insertItem: str2[cur.j - 1]
         )
-
-        cur.t = "insert"
 
       elif (cur.i == last.i + 1 and cur.j == last.j):
         result.operations.add LevEdit(
@@ -478,7 +496,12 @@ proc levenshteinDistance*(str1, str2: seq[char]): tuple[
           deletePos: cur.i - 1,
         )
 
-        cur.t = "delete"
+      else:
+        result.operations.add LevEdit(kind: lekUnchanged)
+
+      result.operations[^1].sourcePos = cur.i - 1
+      result.operations[^1].targetPos = cur.j - 1
+
 
 
 type

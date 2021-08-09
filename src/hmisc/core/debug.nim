@@ -1,5 +1,7 @@
 import std/[strutils, macros]
 
+import ./colored
+
 var doLog {.compiletime.}: bool = false
 var doLogRuntime: bool = false
 
@@ -141,10 +143,11 @@ template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
   # unindented based on new column value.
   #
   # TODO wrap expression in `try-catch` and print exception messages
+  bind align, toLink
   {.noSideEffect.}:
     block:
-      let iinfo = instantiationInfo()
-      var line = strutils.alignLeft($iinfo.line, 4) & " | "
+      let iinfo = instantiationInfo(fullpaths = true)
+      var line = " [" & toLink(iinfo, strutils.align($iinfo.line, 4)) & "] "
           # & " ".repeat(max(iinfo.column - 6, 0))
 
       var vart =

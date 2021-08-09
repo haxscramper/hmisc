@@ -1,6 +1,9 @@
-import hmisc/types/hvariant
+import
+  hmisc/types/hvariant,
+  hmisc/preludes/unittest
 
-import std/[unittest, strutils]
+
+import std/[strutils]
 
 suite "Variant":
   test "Set value":

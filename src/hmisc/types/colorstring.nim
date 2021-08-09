@@ -736,7 +736,7 @@ func hasNewline*(text: ColoredText): bool =
       return true
 
 func newline*(text: var ColoredText) =
-  text.runes.add uc"\n" + defaultPrintStyling
+  text.runes.add uc("\n") + defaultPrintStyling
 
 
 iterator lines*(text: ColoredText): ColoredRuneLine =
@@ -748,6 +748,9 @@ iterator lines*(text: ColoredText): ColoredRuneLine =
 
     else:
       buf.add rune
+
+  if buf.len > 0:
+    yield buf
 
 
 
@@ -789,6 +792,30 @@ func indent*(
       result.add padding.repeat(count)
       result.add line
       inc idx
+
+
+proc indentBody*(
+    str: ColoredText,
+    count: int,
+    indent: ColoredText = " ",
+    prefix: ColoredText = ""
+  ): ColoredText =
+
+  var idx = 0
+  for line in lines(str):
+    if idx == 0:
+      result.add line
+
+    else:
+      result.newline()
+      for _ in 0 ..< count - prefix.len:
+        result.add indent
+
+      result.add prefix
+      result.add line
+
+    inc idx
+
 
 
 func `&`*(t1: sink ColoredText, t2: ColoredText): ColoredText =

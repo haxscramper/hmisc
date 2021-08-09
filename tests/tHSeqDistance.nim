@@ -1,11 +1,18 @@
 import
-  std/[unittest, strformat, sequtils, strutils, math],
-  hmisc/algo/hseq_distance,
+  std/[strformat, sequtils, strutils, math, algorithm]
+
+import
+  hmisc/algo/[hseq_distance, clformat],
   hmisc/types/colorstring,
-  hmisc/[hdebug_misc, hexceptions, helpers]
+  hmisc/preludes/unittest
 
 
-proc show(args: varargs[string, `$`]) = echo "    ", join(args, " ")
+configureDefaultTestContext(
+  skipAfterException = true,
+  skipAfterManual = true
+)
+
+startHax()
 
 suite "String matches":
   test "Gitignore glob matches":
@@ -67,7 +74,8 @@ suite "String matches":
       text: seq[W] = @[("w", ggkWord)]
       glob: seq[W] = @[("", ggkAnyOne)]
 
-    echo gitignoreGlobMatch(text, glob, proc(t, g: W): bool = true)
+    show:
+      match = gitignoreGlobMatch(text, glob, proc(t, g: W): bool = true)
 
 
   test "Sequence alignment":
@@ -88,8 +96,9 @@ suite "String matches":
       else:
         mismatchPenalty
 
-    echo a.mapIt(if it.isGap: '-' else: it.item).join("")
-    echo b.mapIt(if it.isGap: '-' else: it.item).join("")
+    show:
+      a = a.mapIt(if it.isGap: '-' else: it.item).join("")
+      b = b.mapIt(if it.isGap: '-' else: it.item).join("")
 
 
   test "Weighted sequence alignment":
@@ -98,16 +107,9 @@ suite "String matches":
       seq2 = "ATGTAGTACATGCA".toSeq()
     let paths = affineGapAlign(
       seq1, seq2,
-      matchScore = proc(a, b: char): int =
-                       if a == b:
-                         if a in {'(', ')', ':', '='}:
-                           4
-                         else:
-                           0
-                       else:
-                         -1
-
-    )
+      matchScore =
+        proc(a, b: char): int =
+          tern(a == b, tern(a in {'(', ')', ':', '='}, 4, 0), -1))
 
     let aligns = sortAlignments(
       seq1, seq2, paths,
@@ -116,17 +118,13 @@ suite "String matches":
     )
 
     for (a, b, _) in aligns:
-      echo a.mapIt(if it.isGap: ' ' else: it.item).join("")
-      echo b.mapIt(if it.isGap: ' ' else: it.item).join("")
-      echo "---"
+      show:
+        a = a.mapIt(tern(it.isGap, ' ', it.item)).join("")
+        b = b.mapIt(tern(it.isGap, ' ', it.item)).join("")
 
 
   test "Token alignment":
-    let gapCost = proc(a: char): int =
-      if a == '=':
-        -2
-      else:
-        -1
+    let gapCost = proc(a: char): int = tern(a == '=', -2, -1)
 
     let cmp = proc(a, b: char): int =
       if a == b:
@@ -142,15 +140,15 @@ suite "String matches":
         else:
           -2
 
-    block:
+    block two_code_lines:
       let (al1, al2, _) = align(
         "let a = 12", "let nice = 90", matchScore = cmp)
 
-      echo al1.toString()
-      echo al2.toString()
-      echo "---"
+      show:
+        al1 = al1.toString()
+        al1 = al2.toString()
 
-    block:
+    block three_code_lines:
       var group: AlignGroup[char] = AlignGroup[char](@[
           (idx: 2'i8, align: "let nice = 12".toAlignSeq()),
           (idx: 0'i8, align: "let   a = 12".toAlignSeq()),
@@ -163,8 +161,7 @@ suite "String matches":
             group[0 ..< i] & group[i + 1 .. ^1],
             group[i].align,
             gapToItemPenalty = gapCost,
-            matchScore = cmp
-          )
+            matchScore = cmp)
 
           group[i] = (idx: group[i].idx, align: align)
 
@@ -196,6 +193,18 @@ suite "Edit distance":
       "a" : "bc",
       "hros" : "ros",
       "A__A" : "A_B_A",
+      "nme": "name",
+      "name": "nme",
+      "hello": "hello",
+      "one": "two",
+      "-123456789": "0",
+      "": "1",
+      "": "12",
+      "[]": "[1]",
+      "[]": "[1234]",
+      # "[1234]": "[]",
+      "0123": "01234567",
+      "0": "-123456789"
     }
 
     for (src, target) in tests:
@@ -205,7 +214,6 @@ suite "Edit distance":
       try:
         let (dist, ops) = levenshteinDistance(src, target)
         for op in ops:
-          # echo op
           ins.apply(op)
 
         ok = true
@@ -214,19 +222,19 @@ suite "Edit distance":
 
       if ins != target or (not ok):
         startHax()
-        echov &"{src} -> {target}"
-        echov &"{src} -> {ins}"
+        echov src
+        echov ins
+        echov target
 
         let (dist, ops) = levenshteinDistance(src, target)
         ins = src
         for op in ops:
-          echov ins
           ins.apply(op)
 
         echo ins
 
         stopHax()
-        echo "fail"
+        fail()
 
   test "Levenstein edit colored":
     template impl(inSrc, inTarget: string) =
@@ -234,13 +242,19 @@ suite "Edit distance":
         var src = toSeq(inSrc)
         var target = toSeq(inTarget)
         let (dist, ops) = levenshteinDistance(src, target)
-        let output = getEditVisual(src, target, ops)
-        show output
+        let output = getEditVisual(src, target, ops, dollar[char])
+        show:
+          "source" = src.join("")
+          "target" = target.join("")
+          "output" = output
 
     impl("nme", "name")
     impl("name", "nme")
     impl("hello", "hello")
     impl("one", "two")
+    impl("?one?", "?two?")
+    impl("-9223372036854775808", "0")
+    impl("0", "-9223372036854775808")
 
   test "Myers diff":
     let
@@ -251,7 +265,7 @@ suite "Edit distance":
 
     let shifted = shiftDiffed(oldText, newtext, diff, "")
 
-    echo formatDiffed(shifted)
+    show formatDiffed(shifted)
 
   test "Diff source code":
     let
@@ -267,7 +281,7 @@ proc main() =
 
       newCode = """
 proc changeSideEffect() = echo "werwer"
-proc changeRaiseAnnotation() = raise newException(OsError, "w23423")
+proc changeRaiseAnnotation() = raise
 proc changeImplementation() =
   for i in [0, 1, 3]:
     discard i
@@ -278,19 +292,20 @@ proc main() =
   changeImplementation()""".split("\n")
 
     starthax()
-    echo formatDiffed(shiftDiffed(
+    show formatDiffed(shiftDiffed(
       oldCode, newCode, myersDiff(oldCode, newCode), "<empty>"))
 
   test "Identifier mismatch":
     template mis(a, b: untyped, exp: bool = false): untyped =
       stringMismatchMessage(a, b, showAll = exp)
 
-    show mis("nme", ["name"])
-    show mis("hello world", ["hllo world"])
-    show mis("person", ["table"])
-    show mis("person", ["table", "distance"])
-    show mis("person", ["table", "distance", "distance"])
-    show mis("person", newSeq[string]())
+    show:
+      mis("nme", ["name"])
+      mis("hello world", ["hllo world"])
+      mis("person", ["table"])
+      mis("person", ["table", "distance"])
+      mis("person", ["table", "distance", "distance"])
+      mis("person", newSeq[string]())
 
     show mis("Error", [
       "prog", "EOFError", "IOError", "OSError", "array",
@@ -300,7 +315,7 @@ proc main() =
 suite "String distance algorithms":
   test "{longestCommonSubsequence} :generic:value:":
     template tmp(s1, s2, s3: untyped): untyped =
-      assertEq longestCommonSubsequence(s1, s2)[0].matches, s3
+      check longestCommonSubsequence(s1, s2)[0].matches == s3
 
     doAssert longestCommonSubsequence(@[1], @[2, 3])[0].matches.len == 0
     doAssert longestCommonSubsequence(@["Cond"], @["Int", "Lit"])[0].matches.len == 0
@@ -320,11 +335,11 @@ suite "String distance algorithms":
         s1, s2)[0]
 
       try:
-        assertEq lcsMatch, matches
-        assertEq lcsXIdx, xIdx
-        assertEq lcsYIdx, yIdx
+        check lcsMatch == matches
+        check lcsXIdx == xIdx
+        check lcsYIdx == yIdx
       except:
-        echo s1, ", ", s2
+        show s1, ", ", s2
         raise
 
     lcs("GAC", "AGCAT", "GA", @[0, 1], @[1, 3])
@@ -336,12 +351,13 @@ suite "String distance algorithms":
 
 
   proc showMatches(patt, input: string, matches: seq[int]) =
-    show "input:", input
     var buf = " ".repeat(input.len)
     for pattIdx, inIdx in matches:
       buf[inIdx] = patt[pattIdx]
 
-    show "match:", buf
+    show:
+      input = input
+      match = buf
 
     buf = " ".repeat(input.len)
 
@@ -357,7 +373,7 @@ suite "String distance algorithms":
           let p {.inject.} = p
           let o {.inject.} = o
           let m {.inject.} = m
-          # echo m
+
           expr
       )
 
@@ -372,7 +388,7 @@ suite "String distance algorithms":
 
         show "expec:", buf
 
-      assertEq res.matches, expected
+      check res.matches == expected
 
     test("123", "1123", (
       block:
@@ -413,6 +429,5 @@ suite "String distance algorithms":
       sortedByIt(-it[2].score)
 
     for entry in dataset2:
-      show "---"
       showMatches(entry[0], entry[1], entry[2].matches)
       show entry[2]

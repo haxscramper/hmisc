@@ -1,16 +1,24 @@
 # {.define(plainStdout).}
 
-import unittest, strutils, unicode, macros
-import sugar, json, sequtils, tables, strformat, options, terminal
+import std/[
+  strutils, unicode, macros, sugar, json, sequtils,
+  tables, strformat, options, terminal
+]
 
-import hmisc/types/[hvariant, colorstring]
-import hmisc/[helpers, hexceptions]
-import hmisc/algo/[halgorithm, htree_mapping, hseq_distance,
-                   clformat, namegen]
-import hmisc/hdebug_misc
-import hmisc/base_errors
+import
+  hmisc/core/all,
+  hmisc/preludes/unittest,
+  hmisc/types/[hvariant, colorstring],
+  hmisc/algo/[
+    halgorithm, htree_mapping, hseq_distance,
+    clformat, namegen, hseq_mapping
+  ]
 
 startHax()
+
+configureDefaultTestContext(
+  skipAfterException = true
+)
 
 
 type
@@ -159,19 +167,19 @@ suite "Tree mapping":
     block:
       var postordCnt = 0
       ast.iterateItDfs(it.sub, true, dfsPostorder):
-        assertEq it.pos, postordCnt
+        check it.pos == postordCnt
         inc postordCnt
 
     block:
       var preordCnt = 0
       ast.iterateItDFS(it.sub, true, dfsPreorder):
-        assertEq it.pre, preordCnt
+        check it.pre == preordCnt
         inc preordCnt
 
     block:
       var inordCnt = 0
       ast.iterateItDFS(it.sub, true, dfsInorder):
-        assertEq it.ino, inordCnt
+        check it.ino == inordCnt
         inc inordCnt
 
 
@@ -381,7 +389,7 @@ suite "Tree mapping":
 
     let inner = res.filterIt(it.len > 0).mapIt("  " & it).join('\n')
     let final = &"digraph G {{\n{inner}\n}}"
-    assertEq final, """
+    check final == """
       digraph G {
         _0 [label="hello"];
         _0 -> {_0_0,_0_1};
@@ -410,56 +418,54 @@ suite "Tree mapping":
           sub: subt
         )) == outval
 
-import strutils
-
 suite "Simple sequence templates":
   test "{foldlTuple}":
-    assertEq @[(0, 2)].foldlTuple(a + b), (0, @[2])
-    assertEq @[(1, 2), (3, 4)].foldlTuple(a + b), (4, @[2, 4])
+    check @[(0, 2)].foldlTuple(a + b) == (0, @[2])
+    check @[(1, 2), (3, 4)].foldlTuple(a + b) == (4, @[2, 4])
 
   test "{maxIt}":
-    doAssert @[1,2,3,4].maxIt(it) == 4
+    check @[1,2,3,4].maxIt(it) == 4
     var empty: seq[int]
-    doAssert empty.maxIt(it) == 0
+    check empty.maxIt(it) == low(int)
 
   test "{allOfIt} empty sequence :template:":
     var empty: seq[int]
-    doAssert empty.allOfIt(false)
+    check empty.allOfIt(false)
 
   test "{allOfIt} use example :template:example:":
-    doAssert @[1, 2, 3].allOfIt(it > 0)
+    check @[1, 2, 3].allOfIt(it > 0)
 
   test "{groupByIt}":
-    doAssert @[1, 2, 1].groupByIt(it) == @[@[1, 1], @[2]]
-    doAssert @[1].groupByIt(it) == @[@[1]]
-    doAssert @[1, 1, 1].groupByIt(it) == @[@[1, 1, 1]]
+    check @[1, 2, 1].groupByIt(it) == @[@[1, 1], @[2]]
+    check @[1].groupByIt(it) == @[@[1]]
+    check @[1, 1, 1].groupByIt(it) == @[@[1, 1, 1]]
 
-    doAssert @[(1, 2), (1, 3)].groupByIt(it[0]) == @[@[(1, 2), (1, 3)]]
+    check @[(1, 2), (1, 3)].groupByIt(it[0]) == @[@[(1, 2), (1, 3)]]
 
   test "{mapPairs} type assertion :template:type:":
-    doAssert {1: "hello", 2: "222"}.mapPairs(
+    check {1: "hello", 2: "222"}.mapPairs(
       $lhs & "--" & rhs
     ) is seq[string]
 
   test "{mapPairs} return value :template:value:":
-    doAssert {1: 2, 3: 4}.mapPairs(
+    check {1: 2, 3: 4}.mapPairs(
       lhs + rhs
     ) == @[3, 7]
 
   test "{mapPairs} map table values :template:example:":
     let val = {1: 3, 4: 5}.toTable().mapPairs(max(lhs, rhs))
-    assertEq(val.sorted(), @[3, 5])
+    check val.sorted() == @[3, 5]
 
   test "{mapPairs} iterate indexed :template:example:":
     let res = @["a", "b"].mapPairs(
       block:
-        doAssert lhs is int
-        doAssert rhs is string
+        check lhs is int
+        check rhs is string
         $lhs & ":" & rhs
     )
 
-    doAssert res is seq[string]
-    doAssert res == @["0:a", "1:b"]
+    check res is seq[string]
+    check res == @["0:a", "1:b"]
 
   test "{mapPairs} custom `pairs` :template:":
     type U = object
@@ -472,8 +478,8 @@ suite "Simple sequence templates":
       yield "222"
 
     let res = U().mapPairs($lhs & " () " & rhs)
-    doAssert res is seq[string]
-    doAssert res == @["1.2 () 1222"]
+    check res is seq[string]
+    check res == @["1.2 () 1222"]
 
   test "{mapPairs} custom `items` :template:":
     type U = object
@@ -484,26 +490,19 @@ suite "Simple sequence templates":
       yield "aaa"
 
     let res = U().mapPairs($lhs & " () " & rhs)
-    doAssert res is seq[string]
-    doAssert res == @["0 () 222", "1 () aaa"]
+    check res is seq[string]
+    check res == @["0 () 222", "1 () aaa"]
 
   test "{mapPairs} Element index injection :value:template:":
-    assertEq [1, 2, 3].mapPairs((val: rhs, id: idx)),
+    check [1, 2, 3].mapPairs((val: rhs, id: idx)) ==
       @[(val: 1, id: 0), (val: 2, id: 1), (val: 3, id: 2)]
 
   test "{mapPairs} Custom injected name :macro:value:":
     ## Add column and row index to each value in matrix
-    assertEq @[
-      @[1, 3],
-      @[4, 5]
-    ].mapPairs(rhs.mapPairs(
-      col + row + val,
-      (idx: row, rhs: val)
-    ), (idx: col)),
-      @[
-        @[1, 4],
-        @[5, 7]
-      ]
+    check mapPairs(
+      @[@[1, 3], @[4, 5]], rhs.mapPairs(
+        col + row + val, (idx: row, rhs: val)), (idx: col)) ==
+    @[@[1, 4], @[5, 7]]
 
   test "{mapPairs} Print 2d array :macro:example:":
     ## Absolutely useless example - use for loop instead.
@@ -522,7 +521,7 @@ suite "Simple sequence templates":
         )
     ).join("\n")
 
-    assertEq res, """
+    check res == """
     [   0 1 2 3
     0 | 1 3 4 5
     1 | 4 5 6 7""".dedent
@@ -532,13 +531,13 @@ suite "Simple sequence templates":
     block: # Two sequence of identical types
       var seq1 = @[(f1: 12, f2: "22"), (f1: 2, f2: "22")]
       var seq2 = @[(f1: 22, f2: "22"), (f1: 2, f2: "20")]
-      assertEq zip(seq1, seq2).mapPairs(&"{lhs.f1}+{rhs.f1}={lhs.f2}/{rhs.f2}"),
+      check zip(seq1, seq2).mapPairs(&"{lhs.f1}+{rhs.f1}={lhs.f2}/{rhs.f2}") ==
           @["12+22=22/22", "2+2=22/20"]
 
     block: # Two sequence of different types
       var seq1 = @[(f1: 12, f2: "22"), (f1: 2, f2: "22")]
       var seq2 = @[(f3: 22, f4: "22"), (f3: 2, f4: "20")]
-      assertEq zip(seq1, seq2).mapPairs(&"{lhs.f1}+{rhs.f3}={lhs.f2}/{rhs.f4}"),
+      check zip(seq1, seq2).mapPairs(&"{lhs.f1}+{rhs.f3}={lhs.f2}/{rhs.f4}") ==
           @["12+22=22/22", "2+2=22/20"]
 
     block: # Get first mismatch for two sequences
@@ -548,11 +547,11 @@ suite "Simple sequence templates":
       ).mapPairs(
         (id: idx, ok: (lhs[0] == rhs[0]) and (lhs[1] == rhs[1]))
       ).foldl((not a.ok).tern(a, b))
-      assertEq res, (id: 1, ok: false)
+      check res == (id: 1, ok: false)
 
 
   block: # Get first mismatch for two sequences
-    doAssert true and zip(
+    check true and zip(
       @[(1, 2)],
       @[(1, 2)]
     ).mapPairs(
@@ -564,40 +563,40 @@ suite "Simple sequence templates":
       U = object
         s: seq[U]
 
-    doAssert subnodesEq(U(), U(), s)
-    doAssert subnodesEq(U(s: @[U(), U()]), U(s: @[U(), U()]), s)
-    doAssert not subnodesEq(
+    check subnodesEq(U(), U(), s)
+    check subnodesEq(U(s: @[U(), U()]), U(s: @[U(), U()]), s)
+    check not subnodesEq(
       U(s: @[U(), U(), U()]), U(s: @[U(), U()]), s)
 
   test "{findItFirst} :template:example:":
-    doAssert @["A", "B", "D"].findItFirst(it == "A") == "A"
+    check @["A", "B", "D"].findItFirst(it == "A") == "A"
 
     expect ArgumentError:
       discard @["A", "B"].findItFirst(it == "D")
 
   test "{findItFirstOpt} :template:example:":
-    doAssert @["A"].findItFirstOpt(it == "A").isSome()
-    doAssert @["A"].findItFirstOpt(it == "D").isNone()
+    check @["A"].findItFirstOpt(it == "A").isSome()
+    check @["A"].findItFirstOpt(it == "D").isNone()
 
   test "{findIt} :template:":
-    doAssert @[1].findIt(it == 1) == 0
-    doAssert @[2].findIt(it == 1) == -1
+    check @[1].findIt(it == 1) == 0
+    check @[2].findIt(it == 1) == -1
 
   test "{max} :proc:generic:":
-    doAssert @[1, 2, 3].max(90) == 3
+    check @[1, 2, 3].max(90) == 3
     var tmp: seq[int]
-    doAssert tmp.max(80) == 80
+    check tmp.max(80) == 80
 
   test "{anyOfIt} :template:":
-    doAssert [1, 2, 3].anyOfIt(it > 1)
-    doAssert not [3, 4, 5].anyOfIt(it < 1)
+    check [1, 2, 3].anyOfIt(it > 1)
+    check not [3, 4, 5].anyOfIt(it < 1)
     var tmp: seq[int]
-    doAssert not tmp.anyOfIt(it > 9)
+    check not tmp.anyOfIt(it > 9)
 
   test "{deduplicateByIt} deduplicate ingeters :template:":
     let s = @[(1, 2), (1, 3), (1, 2)]
     let dedupl = s.deduplicateIt(it[0])
-    assertEq dedupl, @[(1, 2)]
+    check dedupl == @[(1, 2)]
 
   test "{deduplicateByIt} deduplicate without sorting :template:":
     type
@@ -609,7 +608,7 @@ suite "Simple sequence templates":
 
     let s = @[U(), U(f1: T(f1: 1)), U(f2: 3.9)]
     let dedupl = s.deduplicateIt(it.f1)
-    assertEq dedupl, @[U(), U(f1: T(f1: 1))]
+    check dedupl == @[U(), U(f1: T(f1: 1))]
 
 import math
 
@@ -618,9 +617,9 @@ suite "String helper functions":
   test "Namecache":
     var cache: StringNameCache
 
-    assertEq cache.getName("ROFF_bp"), "ROFF_bp"
-    assertEq cache.getName("ROFF_bp"), "ROFF_bp"
-    assertEq cache.getName("ROFF_BP"), "ROFF_BP1"
+    check cache.getName("ROFF_bp") == "ROFF_bp"
+    check cache.getName("ROFF_bp") == "ROFF_bp"
+    check cache.getName("ROFF_BP") == "ROFF_BP1"
 
   test "toLatin*Char":
     for ch in "[({<>|!@#$%})]":
@@ -629,195 +628,175 @@ suite "String helper functions":
     echo "((()))".toNamedMultichar()
 
   test "Named multichar join":
-    assertEq toNamedMulticharJoin("."), "dot"
-    assertEq toNamedMulticharJoin(".."), "doubleDot"
+    check toNamedMulticharJoin(".") == "dot"
+    check toNamedMulticharJoin("..") == "doubleDot"
 
   test "{[^]}":
-    doAssert "hello"[^"lo"]
-    doAssert "hello"["he"]
-    doAssert "hello"[{'h'}, {'o'}]
-    doAssert "hello"[{'h'}, "lo"]
-    doAssert "hello"['h', "lo"]
-    doAssert "hello"['h', ["lo", "le"]]
+    check "hello"[^"lo"]
+    check "hello"["he"]
+    check "hello"[{'h'}, {'o'}]
+    check "hello"[{'h'}, "lo"]
+    check "hello"['h', "lo"]
+    check "hello"['h', ["lo", "le"]]
 
   test "{msgjoin}":
-    assertEq msgjoin("_", "nice", "_"), "_nice_"
-    # echo msgjoin("[a", "b]")
-    # echo "-", msgjoin("a", "b"), "-"
+    check msgjoin("_", "nice", "_") == "_nice_"
 
-    doAssert msgjoin("a", "b") == "a b"
-    assertEq msgjoin("[hello,", "nice", "weather]"),
-            "[hello, nice weather]"
+    check msgjoin("a", "b") == "a b"
+    check msgjoin("[hello,", "nice", "weather]") == "[hello, nice weather]"
 
-    assertEq msgjoin("e", "/e"), "e /e"
-    assertEq msgjoin("e", "__e"), "e __e"
-    assertEq msgjoin("_a_"), "_a_"
-    assertEq msgjoin("_a", "_"), "_a_"
-    assertEq msgjoin("_", "a", "_"), "_a_"
-    assertEq msgjoin("file", "//ee"), "file //ee"
-    assertEq msgjoin("eee", "___eee"), "eee ___eee"
-    assertEq msgjoin("22", "22"), "22 22"
-    assertEq msgjoin("Found include", "cursor"), "Found include cursor"
-    assertEq msgjoin("1", "->", "2"), "1 -> 2"
-    assertEq msgjoin("/tt", "->", "/ee"), "/tt -> /ee"
-    # assertEq msgjoin("_", "333", "3", "_"), "_3333_"
-    # assertEq msgjoin("hello", "_", "a", "_"), "hello _a_"
-    # assertEq msgjoin("hello", "_", "a", "_", "world"), "hello _a_ world"
-    # assertEq msgjoin("hello", "_", "a", "2", "_", "world"),
+    check msgjoin("e", "/e") == "e /e"
+    check msgjoin("e", "__e") == "e __e"
+    check msgjoin("_a_") == "_a_"
+    check msgjoin("_a", "_") == "_a_"
+    check msgjoin("_", "a", "_") == "_a_"
+    check msgjoin("file", "//ee") == "file //ee"
+    check msgjoin("eee", "___eee") == "eee ___eee"
+    check msgjoin("22", "22") == "22 22"
+    check msgjoin("Found include", "cursor") == "Found include cursor"
+    check msgjoin("1", "->", "2") == "1 -> 2"
+    check msgjoin("/tt", "->", "/ee") == "/tt -> /ee"
+    # check msgjoin("_", "333", "3", "_"), "_3333_"
+    # check msgjoin("hello", "_", "a", "_"), "hello _a_"
+    # check msgjoin("hello", "_", "a", "_", "world"), "hello _a_ world"
+    # check msgjoin("hello", "_", "a", "2", "_", "world"),
     #  "hello _a 2_ world"
 
   test "{splitCamel}":
-    assertEq "FILE_AAName".splitCamel(), @["FILE", "AA", "Name"]
-    assertEq "HelloWorld".splitCamel, @["Hello", "World"]
-    assertEq "HHeelloWWorld".splitCamel(mergeCapitalized = false),
-            @["H", "Heello", "W", "World"]
-
-    assertEq "FILE".splitCamel(), @["FILE"]
-    assertEq "DBManager". splitCamel(), @["DB", "Manager"]
-    assertEq "DBManager". splitCamel(adaptiveMerge = false), @["DBManager"]
-    assertEq "helloWorld".splitCamel, @["hello", "World"]
-    assertEq "H".splitCamel, @["H"]
-    assertEq "".splitCamel, `@`[string]([])
-    assertEq "clang_Hello".splitCamel, @["clang", "Hello"]
-    assertEq "clang_HeeH".splitCamel(false), @[
-      "clang", "_", "Hee", "H"]
-
-    assertEq "hello___nice".splitCamel(), @["hello", "nice"]
-    assertEq "hello_nice".splitCamel(), @["hello", "nice"]
+    check "FILE_AAName".splitCamel() == @["FILE", "AA", "Name"]
+    check "HelloWorld".splitCamel == @["Hello", "World"]
+    check "HHeelloWWorld".splitCamel(mergeCapitalized = false) == @["H", "Heello", "W", "World"]
+    check "FILE".splitCamel() == @["FILE"]
+    check "DBManager". splitCamel() == @["DB", "Manager"]
+    check "DBManager". splitCamel(adaptiveMerge = false) == @["DBManager"]
+    check "helloWorld".splitCamel == @["hello", "World"]
+    check "H".splitCamel == @["H"]
+    check "".splitCamel == `@`[string]([])
+    check "clang_Hello".splitCamel == @["clang", "Hello"]
+    check "clang_HeeH".splitCamel(false) == @["clang", "_", "Hee", "H"]
+    check "hello___nice".splitCamel() == @["hello", "nice"]
+    check "hello_nice".splitCamel() == @["hello", "nice"]
 
   test "{abbrevCamel}":
-    assertEq abbrevCamel(
-      "IfList", @["IfStmtList", "IfBlockList", "IfHello"]), @[
-        "IfStmtList", "IfBlockList"
-    ]
+    check abbrevCamel(
+      "IfList", @["IfStmtList", "IfBlockList", "IfHello"]) == @[
+        "IfStmtList", "IfBlockList"]
 
-    assertEq do:
-      abbrevCamel(
-        "Cond", @["ConditionExpr", "ConditionStmt", "Block"])
-    do:
+    check abbrevCamel("Cond", @["ConditionExpr", "ConditionStmt", "Block"]) ==
       @["ConditionExpr", "ConditionStmt"]
 
-    assertEq do:
-      abbrevCamel(@["Cond"],
-        @[
-          @["Str", "Lit"],
-          @["Int", "Lit"],
-          @["Ident"],
-          @["Call"],
-          @["Condition"]
-        ])
-    do:
-      @[ "Condition" ]
-
-    # assertEq abbrevCamel("AA", @["ABA", "AZZ", "A)"]), @["ABA"]
+    check abbrevCamel(@["Cond"], @[
+        @["Str", "Lit"],
+        @["Int", "Lit"],
+        @["Ident"],
+        @["Call"],
+        @["Condition"]
+      ]) == @[ "Condition" ]
 
   test "{dropPrefix}":
-    assertEq "???##".dropPrefix("???"), "##"
-    assertEq "".dropPrefix("888"), ""
-    assertEq "--".dropPrefix("-"), "-"
-    assertEq "90".dropPrefix({'1', '9'}), "0"
+    check "???##".dropPrefix("???") == "##"
+    check "".dropPrefix("888") == ""
+    check "--".dropPrefix("-") == "-"
+    check "90".dropPrefix({'1', '9'}) == "0"
 
   test "{commonPrefix}":
-    # assertEq @[].commonPrefix(), ""
-    assertEq @["00"].commonPrefix(), "00"
-    assertEq @["--+", "--="].commonPrefix(), "--"
-    assertEq @["+=", "=+"].commonPrefix(), ""
+    check @["00"].commonPrefix() == "00"
+    check @["--+", "--="].commonPrefix() == "--"
+    check @["+=", "=+"].commonPrefix() == ""
 
   test "{commonPrefix[T]}":
-    assertEq commonPrefix(@[@["A", "B"], @["A", "C"]]), @["A"]
+    check commonPrefix(@[@["A", "B"], @["A", "C"]]) == @["A"]
 
   test "{dropCommonPrefix}":
-    assertEq @["--"].dropCommonPrefix(), @[""]
-    assertEq @["a@", "a$"].dropCommonPrefix(), @["@", "$"]
-    assertEq @["---"].dropCommonPrefix(false), @["---"]
-    assertEq @[].dropCommonPrefix(), emptySeq[string]()
+    check @["--"].dropCommonPrefix() == @[""]
+    check @["a@", "a$"].dropCommonPrefix() == @["@", "$"]
+    check @["---"].dropCommonPrefix(false) == @["---"]
+    check @[].dropCommonPrefix() == emptySeq[string]()
 
 
-    doAssert @["--", "-="].dropCommonPrefix() == @["-", "="]
-    doAssert @["---"].dropCommonPrefix(false) == @["---"]
+    check @["--", "-="].dropCommonPrefix() == @["-", "="]
+    check @["---"].dropCommonPrefix(false) == @["---"]
 
   test "{isSubseq}":
-    doAssert @["usr", "include", "vector"].isSubseq(@[
-      "usr", "include", "c++", "vector"])
+    check @["usr", "include", "vector"].isSubseq(@["usr", "include", "c++", "vector"])
 
-    doAssert @["A"].isSubseq(@["A"])
-    doAssert not @["B"].isSubseq(@["A"])
+    check @["A"].isSubseq(@["A"])
+    check not @["B"].isSubseq(@["A"])
 
   test "{dropSubseq}":
-    assertEq @["C", "X", "X", "E"].dropSubseq(@["C", "X", "X"]), @["E"]
-    assertEq @["C", "X"].dropSubseq(@[]), @["C", "X"]
-    assertEq emptySeq[string]().dropSubseq(@["E"]), emptySeq[string]()
-    assertEq "eCXXE"
+    check @["C", "X", "X", "E"].dropSubseq(@["C", "X", "X"]) == @["E"]
+    check @["C", "X"].dropSubseq(@[]) == @["C", "X"]
+    check emptySeq[string]().dropSubseq(@["E"]) == emptySeq[string]()
+    check "eCXXE"
       .splitCamel(mergeCapitalized = false)
-      .dropSubseq(@["C", "X", "X"]), @["e", "E"]
+      .dropSubseq(@["C", "X", "X"]) == @["e", "E"]
 
-    assertEq "Eeeee".dropSubstr("eee"), "Ee"
-    assertEq dropSubstr("--+==", "-+="), "-="
-    assertEq dropLongestSubseq(
-      "CXIdxEntityCXXTemplateKind", @["CX", "CXX"]),
+    check "Eeeee".dropSubstr("eee") == "Ee"
+    check dropSubstr("--+==", "-+=") == "-="
+    check dropLongestSubseq(
+      "CXIdxEntityCXXTemplateKind", @["CX", "CXX"]) ==
       "CXIdxEntityTemplateKind"
 
     # for runnable examples
-    doAssert "CXX_CX".dropLongestSubseq(@["CXX", "CX"]) == "_CX"
-    doAssert "CX_CX_EEECX".dropSubstr("CX") == "__EEE"
+    check "CXX_CX".dropLongestSubseq(@["CXX", "CX"]) == "_CX"
+    check "CX_CX_EEECX".dropSubstr("CX") == "__EEE"
 
 
   test "{startsWith}":
-    doAssert "        ()".startsWith(Whitespace, "()")
-    doAssert "-".startsWith({}, "-")
-    doAssert "---".startsWith({'-'})
-    doAssert "--".startsWith('-')
+    check "        ()".startsWith(Whitespace, "()")
+    check "-".startsWith({}, "-")
+    check "---".startsWith({'-'})
+    check "--".startsWith('-')
 
 
   test "{endsWith}":
-    doAssert "--, 9".endsWith("9", ", 9")
-    doAssert "---".endsWith({'-'})
-    doAssert "--".endsWith('-')
+    check "--, 9".endsWith("9", ", 9")
+    check "---".endsWith({'-'})
+    check "--".endsWith('-')
 
 
   test "{dropSuffix}":
-    assertEq "999".dropSuffix("9"), "99"
-    assertEq "hello.txt".dropSuffix(".txt").addSuffix(".nim"), "hello.nim"
+    check "999".dropSuffix("9") == "99"
+    check "hello.txt".dropSuffix(".txt").addSuffix(".nim") == "hello.nim"
 
   test "{splitTokenize}":
-    assertEq "std::vector<int>".splitTokenize(@["::", "<", ">"]), @[
-      "std", "::", "vector", "<", "int", ">"
-    ]
+    check "std::vector<int>".splitTokenize(@["::", "<", ">"]) == @[
+      "std", "::", "vector", "<", "int", ">"]
 
-    assertEq "(())".splitTokenize(@["(", ")"]), @["(", "(", ")", ")"]
-    assertEq "(())".splitTokenize({'(', ')'}), @["(", "(", ")", ")"]
-    assertEq "hello<world>".splitTokenize({'<', '>'}), @[
+    check "(())".splitTokenize(@["(", ")"]) == @["(", "(", ")", ")"]
+    check "(())".splitTokenize({'(', ')'}) == @["(", "(", ")", ")"]
+    check "hello<world>".splitTokenize({'<', '>'}) == @[
       "hello", "<", "world", ">"]
 
 import hmisc/other/strparser
 
 suite "Strparser":
   test "main":
-    assertEq("[a,b,c,d]".toStrSeq(), @["a", "b", "c", "d"])
-    assertEq("[a,  b]".toStrSeq(), @["a", "b"])
-    assertEq("~|[a|b]".toStrSeq(), @["a", "b"])
-    assertEq("a,b,c".toStrSeq(), @["a", "b", "c"])
+    check("[a,b,c,d]".toStrSeq() == @["a", "b", "c", "d"])
+    check("[a,  b]".toStrSeq() == @["a", "b"])
+    check("~|[a|b]".toStrSeq() == @["a", "b"])
+    check("a,b,c".toStrSeq() == @["a", "b", "c"])
 
-    assertEq(
-      toTuple[seq[string]]("(~|[a|b],~![a!b])"),
+    check(
+      toTuple[seq[string]]("(~|[a|b],~![a!b])") ==
       (@["a", "b"], @["a", "b"]))
 
-    assertEq(
-      toTuple[seq[string]]("~*([a,b]*[a,b])"),
+    check(
+      toTuple[seq[string]]("~*([a,b]*[a,b])") ==
       (@["a", "b"], @["a", "b"]))
 
-    assertEq(toTuple[seq[string]]("~*([a]*[a])"), (@["a"], @["a"]))
+    check(toTuple[seq[string]]("~*([a]*[a])") == (@["a"], @["a"]))
 
-    assertEq(toTuple[seq[string]]("(a,a)"), (@["a"], @["a"]))
+    check(toTuple[seq[string]]("(a,a)") == (@["a"], @["a"]))
 
-    assertEq("['a', 'b']".toStrSeq(), @["a", "b"])
+    check("['a', 'b']".toStrSeq() == @["a", "b"])
 
-    assertEq("~|,,a['  a'| 'b']".toStrSeq(), @["a", "'b'"])
+    check("~|,,a['  a'| 'b']".toStrSeq() == @["a", "'b'"])
 
-    assertEq("['input.tmp.pl']".toStrSeq(), @["input.tmp.pl"])
+    check("['input.tmp.pl']".toStrSeq() == @["input.tmp.pl"])
 
-    assertEq("input.tmp.pl".toStrSeq(), @["input.tmp.pl"])
+    check("input.tmp.pl".toStrSeq() == @["input.tmp.pl"])
 
-    assertEq(
-      toTuple[string]("~||(test.tmp.pl||test1.sh)"),
+    check(
+      toTuple[string]("~||(test.tmp.pl||test1.sh)") ==
       ("test.tmp.pl", "test1.sh"))

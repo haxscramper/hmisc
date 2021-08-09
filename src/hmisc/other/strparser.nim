@@ -1,6 +1,11 @@
-import strformat, strutils, sequtils, options
-import re
-import ../helpers
+import
+  std/[strformat, strutils, sequtils, options, re]
+
+import
+  ../algo/hstring_algo
+
+import
+  ../core/all
 
 ## Simple string parsing algorithm for splitting things like `[a, b]`
 ## into `["a", "b"]`. Not fully finished & usable, but there are unit

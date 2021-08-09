@@ -4,6 +4,8 @@ import
     strutils, times, options, stats
   ]
 
+from fusion/matching import hasKind
+
 import
   ../macros/nim_ast_help,
   ../algo/[hseq_distance, htemplates, halgorithm, clformat],
@@ -38,6 +40,7 @@ type
     tfkManualFail
     tfkOpCheck
     tfkCallCheck
+    tfkPredicateFail
 
 
     tfkStringDiff
@@ -66,6 +69,9 @@ type
     trkSuiteFail
     trkShow
 
+    trkBlockStart
+    trkBlockEnd
+
     trkTimeStats
 
 const
@@ -78,16 +84,18 @@ type
   TestValueKind = enum
     tvkString
     tvkStringified
+    tvkTypename
 
   TestValueContext = enum
     tvcNone
     tvcEqCompare
     tvcParameter
+    tvcTypeCompare
 
   TestValue = object
     context: TestValueContext
     case kind: TestValueKind
-      of tvkString, tvkStringified:
+      of tvkString, tvkStringified, tvkTypename:
         str: string
 
   TestReport = object
@@ -114,13 +122,13 @@ type
 
 
     strs: seq[tuple[expr: string, value: TestValue]]
+    name: string
     case kind: TestReportKind
       of trkSectionKinds:
         conf: TestConf
 
       of trkTimeStats:
         stat: RunningStat
-        name: string
 
       else:
         discard
@@ -132,6 +140,9 @@ type
     failCount: int
     shownHeader: bool
     contextValues: seq[(string, TestValue)]
+    skipAfterException: bool
+    skipAfterManual: bool
+    skipNext: bool
 
 
   TestProcPrototype = proc(testContext: TestContext)
@@ -154,27 +165,31 @@ proc testValue(str: string, context: TestValueContext): TestValue =
 proc testValue[T](str: T, context: TestValueContext): TestValue =
   TestValue(str: $str, kind: tvkStringified, context: context)
 
+proc testValue[T](str: typedesc[T], context: TestValueContext): TestValue =
+  TestValue(str: $str, kind: tvkTypename, context: context)
+
 proc `$`(val: TestValue): string =
   result = val.str
 
 
 proc newTestLogger*(): HLogger =
+  let pref = "     ] "
   result = HLogger(
     logPrefix: toMapArray({
-      logTrace:  toWhite("[trace]").format(),
-      logDebug:  toYellow("[debug]").format(),
-      logInfo:   toMagenta("[info]").format(),
-      logNotice: toGreen("[notice]").format(),
-      logWarn:   toYellow("[warn]").format(),
-      logError:  toRed("[error]").format(),
-      logFatal:  toMagenta("[fatal]").format(),
+      logTrace:  toWhite(pref & "[trace]").format(),
+      logDebug:  toYellow(pref & "[debug]").format(),
+      logInfo:   toMagenta(pref & "[info]").format(),
+      logNotice: toGreen(pref & "[notice]").format(),
+      logWarn:   toYellow(pref & "[warn]").format(),
+      logError:  toRed(pref & "[error]").format(),
+      logFatal:  toMagenta(pref & "[fatal]").format(),
     }),
     eventPrefix: toMapArray({
-      logEvSuccess:   toGreen("[OK]").format(),
-      logEvFail:      toRed("[FAIL]").format(),
-      logEvWaitStart: toYellow("[wait]").format(),
-      logEvWaitDone:  toMagenta("[DONE]").format(),
-      logEvExprDump:  toItalic("[expr]").format()
+      logEvSuccess:   toGreen(pref & "[ok]").format(),
+      logEvFail:      toRed(pref & "[fail]").format(),
+      logEvWaitStart: toYellow(pref & "[wait]").format(),
+      logEvWaitDone:  toMagenta(pref & "[DONE]").format(),
+      logEvExprDump:  toItalic(pref & "[expr]").format()
     })
   )
 
@@ -197,13 +212,22 @@ proc report(context: TestContext, report: TestReport) =
   let
     width = 8
     pad = " " |<< width
-    pFail = toRed("[FAIL] " |>> width)
-    pOk = toGreen("[OK] " |>> width)
+    pFail  = toRed("[FAIL] " |>> width)
+    pOk    = toGreen("[OK] " |>> width)
+    pBLock = toCyan("[BLOCK] " |>> width)
     pSuite = toMagenta("[SUITE] " |>> width)
-    pShow = toYellow("[SHOW] ")
+    pShow  = toYellow("[SHOW] ")
 
   if report.kind != trkTimeStats:
     context.shownHeader = false
+
+  if report.failKind == tfkException and
+     context.skipAfterException:
+    context.skipNext = true
+
+  if report.failKind == tfkManualFail and
+     context.skipAfterManual:
+    context.skipNext = true
 
   case report.kind:
     of trkTimeStats:
@@ -219,21 +243,41 @@ proc report(context: TestContext, report: TestReport) =
     of trkShow:
       let w = report.strs.maxIt(it[0].width())
       let padW = width + pShow.len()
-      for idx, (arg, val) in report.strs[0 ..^ 1]:
-        let split = split(strip($val, leading = false, chars = {'\n'}), '\n')
-        echo pad, tern(idx == 0, pShow, "     ] "), toGreen(
-          indentBody(arg |<< w, padW)), " = ", tern(
-          split.len > 1, "", split[0])
+      for idx, (arg, val) in report.strs:
+        let split = split(strip(
+          $val, leading = false, chars = {'\n'}), '\n')
+
+        var pref: ColoredText
+        pref.add pad
+        if idx == 0: pref.add pShow else: pref.add "     ] "
+        pref.add indentBody(toGreen(arg |<< w), padW, prefix = "] ")
+        if split.len > 1:
+          echo pref, " = "
+
+        elif pref.len + split[0].len > 80:
+          echo pref
+          echo pad, "     ]   = ", split[0]
+          echo pad, "     ] "
+
+
+        else:
+          echo pref, " = ", split[0]
+
 
         if split.len > 1:
           for line in split:
-            echo pad, "   ..   ", line
+            echo pad, "     ]  ", line
+
+          echo pad, "     ] "
+
+    of trkBlockStart:
+      echo pBlock, report.name.to8Bit(0, 4, 3)
 
     of trkSectionKinds:
       let name = report.conf.name
       case report.kind:
         of trkFailKinds:
-          echo pFail, name
+          echo pFail, name, " ", report.msg
 
         of trkSuiteEnd:
           echo pSuite, name
@@ -338,6 +382,18 @@ proc flattenArgs(args: NimNode): seq[NimNode] =
 
 
 macro show*(args: varargs[untyped]): untyped =
+  ## Show value in the unit test
+  ##
+  ## - WARNING :: Due to parser handling with `proc arg = value` case
+  ##   it is not possible to use `show name = value` without parentheses,
+  ##   nor is it possible to detect correctly. Instead you should either
+  ##   add wrapping parens (`show(name = value)`), or use block syntax:
+  ##   ```nim
+  ##   show:
+  ##     name = value
+  ##   ```
+
+
   let args = flattenArgs(args)
   let
     report = bindSym("report")
@@ -346,12 +402,21 @@ macro show*(args: varargs[untyped]): untyped =
 
   var argpass = nnkTableConstr.newTree()
   for arg in args:
-    argpass.add nnkExprColonExpr.newTree(
-      arg.toStrLit(),
+    let (lit, arg) =
+      if arg.kind in { nnkExprEqExpr, nnkAsgn }:
+        (arg[0].toStrLit(), arg[1])
+
+      else:
+        (arg.tostrLit(), arg)
+
+    let pass = nnkExprColonExpr.newTree(
+      lit,
       newCall(
         testValue,
         nnkPrefix.newTree(ident"$", arg),
         tNone))
+
+    argpass.add pass
 
   let loc = args[0].testLocation().newLit()
 
@@ -360,6 +425,8 @@ macro show*(args: varargs[untyped]): untyped =
       kind: trkShow,
       strs: @`argpass`,
       location: `loc`))
+
+
 
 
 
@@ -380,8 +447,20 @@ func testFailed(
   if fail of CatchableError:
     result.msg = (ref CatchableError)(fail).msg
 
+
+func testFailManual(loc: TestLocation, msg: string): TestReport =
+  result = TestReport(
+    kind: trkTestFail, failKind: tfkManualFail,
+    location: loc, msg: msg)
+
 func testEnd(conf: TestConf, loc: TestLocation): TestReport =
   TestReport(kind: trkTestEnd, conf: conf, location: loc)
+
+func blockStart(name: string, loc: TestLocation): TestReport =
+  TestReport(kind: trkBlockStart, location: loc, name: name)
+
+func blockEnd(name: string, loc: TestLocation): TestReport =
+  TestReport(kind: trkBlockEnd, location: loc, name: name)
 
 func suiteStarted(conf: TestConf, loc: TestLocation): TestReport =
   TestReport(
@@ -492,7 +571,7 @@ proc structeq*[T](struct1, struct2: T, loc: TestLocation): TestReport =
 
 
 
-proc hasKind[A, K](ast: A, kind: K): bool =
+proc hasKindSimple[A, K](ast: A, kind: K): bool =
   ast.kind == kind
 
 proc toPath[A](ast: A, path: seq[int]): string =
@@ -513,6 +592,7 @@ macro astdiff*(ast: typed, match: untyped, loc: TestLocation): untyped =
     fails = genSym(nskVar, "fails")
     expr = ident("expr")
     toPath = bindSym("toPath")
+    kindPredicate = bindSym("hasKind")
 
   proc aux(path, pattern: NimNode, pathIdx: seq[int]): NimNode =
     let idxLit = pathIdx.newLit()
@@ -522,7 +602,7 @@ macro astdiff*(ast: typed, match: untyped, loc: TestLocation): untyped =
         let kindLit = kind.toStrLit()
         let wantLen = newLit(pattern.len - 1)
         result = quote do:
-          if not hasKind(`path`, `kind`):
+          if not `kindPredicate`(`path`, `kind`):
             `fails`.add((
               `idxLit`,
               `kindLit`,
@@ -581,6 +661,20 @@ macro matchdiff*(
     tmp = ident("expr")
     hasKind = bindSym("hasKind")
 
+  func splicePath(path, part: NimNode): NimNode =
+    case part.kind:
+      of nnkIdent:
+        result = nnkDotExpr.newTree(path, part)
+
+      of nnkBracket:
+        result = nnkBracketExpr.newTree(path, part)
+
+      of nnkDotExpr:
+        result = splicePath(
+          splicePath(path, part[0]), part[1])
+
+      else:
+        raise newImplementKindError(part, part.lispRepr())
 
   func pathLit(item: NimNode): NimNode =
     item.toStrLit().strVal()["expr".len .. ^1].newLit()
@@ -592,10 +686,13 @@ macro matchdiff*(
       if not(`call`):
         `fails`.add (`pathLit`, $`desc`, $`item`)
 
+
+  proc aux(item, pattern, path: NimNode): NimNode
+
   proc itemCmp(item, value: NimNode): NimNode =
     let pathLit = item.pathLit()
     case value.kind:
-      of nnkIntLit:
+      of nnkIntLit, nnkStrLit:
         result = quote do:
           if not(`item` == `value`):
             `fails`.add (`pathLit`, $`value`, $`item`)
@@ -609,33 +706,42 @@ macro matchdiff*(
           if not(`cmpExpr`):
             `fails`.add (`pathLit`, `valueLit`, $`item`)
 
+      of nnkPar:
+        result = aux(item, value, item)
+
       else:
         raise newImplementKindError(value, value.treeRepr())
+
+  proc kindHead(a: NimNode): NimNode =
+    result = a
+    while result.kind in { nnkCall, nnkObjConstr }:
+      result = result[0]
 
   proc aux(item, pattern, path: NimNode): NimNode =
     result = newStmtList()
     case pattern.kind:
-      of nnkPar:
+      of nnkPar, nnkStmtList:
         for check in pattern:
           result.add aux(item, check, path)
 
       of nnkExprColonExpr:
-        assertNodeKind(pattern[0], {nnkIdent})
-        result.add itemCmp(nnkDotExpr.newTree(path, pattern[0]), pattern[1])
+        # assertNodeKind(pattern[0], {nnkIdent})
+        result.add itemCmp(splicePath(path, pattern[0]), pattern[1])
 
       of nnkBracket:
         result.add itemCmp(
-          nnkDotExpr.newTree(path, ident"len"), newLit(pattern.len))
+          splicePath(path, ident"len"), newLit(pattern.len))
 
         for idx, item in pattern:
           result.add itemCmp(
             nnkBracketExpr.newTree(path, newLit(idx)), item)
 
-      of nnkBracketExpr, nnkCall:
+      of nnkBracketExpr, nnkCall, nnkObjConstr:
         let
           pathLit = path.pathLit()
-          wantKind = pattern[0]
+          wantKind = pattern.kindHead()
           kindLit = wantKind.toStrLit()
+
 
         result.add quote do:
           if not(`hasKind`(`path`, `wantKind`)):
@@ -646,6 +752,12 @@ macro matchdiff*(
           if check.kind in { nnkIntLit, nnkPrefix }:
             result.add itemCmp(
               nnkBracketExpr.newTree(path, newLit(idx)), check)
+
+          if check.kind in { nnkExprEqExpr }:
+            result.add aux(
+              item,
+              check[1],
+              nnkBracketExpr.newTree(path, check[0]))
 
           else:
             result.add aux(
@@ -671,6 +783,8 @@ macro matchdiff*(
 
       else:
         checkOk(`loc`)
+
+  echo result.repr()
 
 
 
@@ -701,11 +815,16 @@ template hasTestContext(): untyped {.dirty.} =
     false
 
 template wantContext*(): untyped {.dirty.} =
+  bind hasTestContext
   when not hasTestContext():
     {.error: ""}
 
 proc canRunTest(
     context: TestContext, conf: TestConf): bool =
+
+  if context.skipNext:
+    return false
+
   if context.globs.len == 0:
     return true
 
@@ -737,15 +856,12 @@ proc maybeRunSuite(
 proc checkpoint(loc: TestLocation, msg: string): TestReport =
   TestReport(location: loc, msg: msg, kind: trkCheckpoint)
 
-macro configureTests(conf: untyped): untyped =
-  discard
+
 
 
 
 proc newTestContext*(): TestContext =
-  TestContext(
-    sourceOnError: true
-  )
+  TestContext(sourceOnError: true)
 
 proc getTestGlobs(): seq[TestGlob] =
   for param in paramStrs():
@@ -767,6 +883,16 @@ proc getTestContext(): TestContext =
     context.globs = getTestGlobs()
 
   return context
+
+proc configureDefaultTestContext*(
+    skipAfterException: bool = false,
+    skipAfterManual: bool = false
+  ) =
+
+  var default = getTestContext()
+  default.skipAfterException = skipAfterException
+  default.skipAfterManual = skipAfterManual
+
 
 macro suite*(name: static[string], body: untyped): untyped =
   var suiteConf: TestConf
@@ -811,7 +937,29 @@ macro test*(name: static[string], body: untyped): untyped =
     testOk = bindSym("testEnd")
     report = bindSym("report")
     testLoc = testLocation(body).newLit()
+    blockStart = bindSym("blockStart")
+    blockEnd = bindSym("blockEnd")
 
+  var newBody = newStmtList()
+  for stmt in body:
+    case stmt.kind:
+      of nnkBlockStmt:
+        if stmt[0].kind != nnkEmpty:
+          let name = stmt[0].toStrLit()
+          newBody.add nnkBlockStmt.newTree(
+            stmt[0],
+            newStmtList(
+              newCall(report, ident"testContext",
+                      newCall(blockStart, name, testLoc)),
+              stmt[1],
+              newCall(report, ident"testContext",
+                      newCall(blockEnd, name, testLoc))))
+
+        else:
+          newBody.add stmt
+
+      else:
+        newBody.add stmt
 
   result = quote do:
     block:
@@ -822,7 +970,7 @@ macro test*(name: static[string], body: untyped): untyped =
       if `canRun`(testContext, conf):
         try:
           {.line: `line`.}:
-            `body`
+            `newBody`
 
           `report`(testContext, `testOk`(conf, loc))
 
@@ -898,6 +1046,7 @@ template timeIt*(name: string, body: untyped): untyped =
 
 
 proc buildCheck(expr: NimNode): NimNode =
+  # echo expr.treeRepr()
   let
     line = lineIINfo(expr)
     loc = testLocation(expr).newLit()
@@ -915,18 +1064,31 @@ proc buildCheck(expr: NimNode): NimNode =
         context = newLit(
           tern(expr[0].eqIdent("=="), tvcEqCompare, tvcNone))
 
-      result = quote do:
-        block:
-          {.line: `line`.}:
-            let
-              `lhsId` = `lhs`
-              `rhsId` = `rhs`
+      if expr[0].eqIdent(["is", "isnot", "of"]):
+        result = quote do:
+          block:
+            {.line: `line`.}:
+              let `lhsId` = `lhs`
+              if not(`expr`):
+                `report`(testContext, checkFailed(`loc`, {
+                  `lhsLit`: `testValue`(typeof(`lhsId`), tvcTypeCompare),
+                  `rhsLit`: `testValue`(`rhs`, tvcTypeCompare)
+                }, tfkOpCheck, checkOp = `opLit`))
 
-            if not (`doOp`):
-              `report`(testContext, checkFailed(`loc`, {
-                `lhsLit`: `testValue`($`lhsId`, `context`),
-                `rhsLit`: `testValue`($`rhsId`, `context`),
-              }, tfkOpCheck, checkOp = `opLit`))
+
+      else:
+        result = quote do:
+          block:
+            {.line: `line`.}:
+              let
+                `lhsId` = `lhs`
+                `rhsId` = `rhs`
+
+              if not (`doOp`):
+                `report`(testContext, checkFailed(`loc`, {
+                  `lhsLit`: `testValue`($`lhsId`, `context`),
+                  `rhsLit`: `testValue`($`rhsId`, `context`),
+                }, tfkOpCheck, checkOp = `opLit`))
 
 
     else:
@@ -947,7 +1109,9 @@ proc buildCheck(expr: NimNode): NimNode =
           block:
             {.line: `line`.}:
               if not(`expr`):
-                testContext.checkFailed(`loc`, `lit`)
+                `report`(testContext, `checkFailed`(
+                  `loc`, {"expr": `testValue`(`lit`, tvcNone)},
+                  tfkPredicateFail))
 
 
 
@@ -1070,11 +1234,20 @@ macro parametrizeOnValue*(
 macro expect*(exceptions: varargs[typed]; body: untyped): untyped =
   discard
 
-macro fail*(): untyped = discard
+
+
 macro skip*(): untyped = discard
+
+template fail*(msg: string = ""): untyped =
+  bind report, testFailed, testLocation
+  block:
+    wantContext()
+    report(testContext, testFailManual(
+      instantiationInfo(fullpaths = true).testLocation(), msg))
+
+
 template checkpoint*(mgs: string): untyped =
   block:
     wantContext()
-    let (file, line, column) = instantiationInfo(fullpaths = true)
     testContext.report checkpoint(
-      TestLocation(line: line, column: column, file: file), msg)
+      instantiationInfo(fullpaths = true).testLocation(), msg)

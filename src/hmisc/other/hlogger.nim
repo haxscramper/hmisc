@@ -308,24 +308,24 @@ macro logScope*(varname: untyped, pr: untyped): untyped =
   )
 
 
-template check*(
-    logger: HLogger, expr: bool, desc: string,
-    expected: bool = true,
-    onMatch: HLogLevel = logInfo,
-    onFail: HLogLevel = logNotice
-  ): bool =
+# template check*(
+#     logger: HLogger, expr: bool, desc: string,
+#     expected: bool = true,
+#     onMatch: HLogLevel = logInfo,
+#     onFail: HLogLevel = logNotice
+#   ): bool =
 
-  let exprRes = expr
+#   let exprRes = expr
 
-  if exprRes == expected:
-    logger.logImpl(
-      onMatch, logEvSuccess, instantiationInfo(fullPaths = true), @[desc, "was", hshow(exprRes)])
+#   if exprRes == expected:
+#     logger.logImpl(
+#       onMatch, logEvSuccess, instantiationInfo(fullPaths = true), @[desc, "was", hshow(exprRes)])
 
-  else:
-    logger.logImpl(
-      onFail, logEvFail, instantiationInfo(fullPaths = true), @[desc, "was", hshow(exprRes)])
+#   else:
+#     logger.logImpl(
+#       onFail, logEvFail, instantiationInfo(fullPaths = true), @[desc, "was", hshow(exprRes)])
 
-  exprRes
+#   exprRes
 
 proc prepareDump*[T](
   head: string, expr: T, other: sink seq[string]): seq[string] =

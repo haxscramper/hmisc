@@ -525,7 +525,7 @@ proc checkAllOf*(sub: CliCheck): CliCheck =
 proc checkAcceptAll*(): CLiCheck =
   CliCheck(kind: cckAcceptAll)
 
-proc check*(kind: CliCheckKind): CliCheck =
+proc checkKind*(kind: CliCheckKind): CliCheck =
   result = CliCheck(kind: kind)
 
 func cliComplete*(key, doc: string, docFull: string = ""): CliCompletion =
@@ -1351,8 +1351,8 @@ proc getDefaultCliConfig*(ignored: seq[string] = @[]): seq[CliDesc] =
     opt.check =
       checkOr(
         opt.check,
-        check(cckIsWritable),
-        check(cckIsCreatable)
+        checkKind(cckIsWritable),
+        checkKind(cckIsCreatable)
       )
 
 
@@ -1490,6 +1490,18 @@ iterator items*(tree: CliCmdTree): CliCmdTree =
   elif tree.kind == cctGrouped:
     for entry in tree.entries:
       yield entry
+
+func `[]`*(tree: CliCmdTree, idx: int): CliCmdTree =
+  case tree.kind:
+    of cctCommand:
+      result = tree.subnodes[idx]
+
+    of cctGrouped:
+      result = tree.entries[idx]
+
+    else:
+      raise newUnexpectedKindError(
+        tree, "Index operator")
 
 
 iterator items*(desc: CliDesc): CliDesc =

@@ -67,7 +67,7 @@ macro wrapSeqContainer*(
   if "add" notin ignore:
     let addId = maybeExport("add", exported)
     result.add quote do:
-      proc `addId`(main: `mutType`, other: `mainType` | seq[`mainType`]) =
+      proc `addId`(main: `mutType`, other: `fieldType` | seq[`fieldType`]) =
         add(main.`field`, other)
 
 

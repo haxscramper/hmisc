@@ -1,5 +1,6 @@
-import hmisc/other/hjson
-import std/unittest
+import
+  hmisc/other/hjson,
+  hmisc/preludes/unittest
 
 suite "Json pretty printing":
   test "test":
