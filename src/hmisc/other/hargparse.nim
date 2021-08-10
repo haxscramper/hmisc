@@ -967,18 +967,19 @@ func hasCmd*(val: CliValue): bool =
 template assertKind*(
     val: CliValue, target: set[CliValueKind]
   ): untyped {.dirty.} =
-  bind joinAnyOf, assertKind
-  var targetNames: seq[string]
+  bind joinAnyOf, assertKind, ColoredText, toColoredText
+  var targetNames: seq[ColoredText]
   for k in items(target):
-    targetNames.add cvkValidatorNames[k]
+    for name in cvkValidatorNames[k]:
+      targetNames.add toColoredText(name)
 
   assertKind(
     val, target,
     ". In order to convert CLI string to value of this kind use " &
       $joinAnyOf(
         targetNames,
-        prefix = "one of the converters ",
-        empty = "converters for target kind"))
+        prefix = toColoredText("one of the converters "),
+        empty = toColoredText("converters for target kind")))
 
 proc fromCliValue*(val: CliValue, result: var AbsFile) =
   assertKind(val, {cvkFsEntry})

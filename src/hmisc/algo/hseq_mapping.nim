@@ -164,24 +164,22 @@ template findIt*(s: typed, op: untyped): int =
   result
 
 template findItFirst*(s: typed, op: untyped): untyped =
-  var res: typeof(s[0])
-  var found: bool = false
-  for it {.inject.} in s:
-    if op:
-      res = it
-      found = true
-      break
+  {.line: instantiationInfo(fullPaths = true).}:
+    var res: typeof(s[0])
+    var found: bool = false
+    for it {.inject.} in s:
+      if op:
+        res = it
+        found = true
+        break
 
-  if not found:
-    raiseArgumentError("Item not found in sequence " & astToStr(op) & ((
-      block:
-        if s.len == 0:
-          "; no elements in sequence"
-        else:
-          ""
-    )) & " " & $instantiationInfo())
+    if not found:
+      raise newArgumentError(
+        "Item not found in sequence ",
+        astToStr(op),
+        (if s.len == 0: "; no elements in sequence" else: ""), " ")
 
-  res
+    res
 
 
 template findItFirstOpt*(s: typed, op: untyped): untyped =

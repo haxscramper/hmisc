@@ -2,7 +2,7 @@ import ./jcommon
 
 import hmisc/algo/htree_mapping
 
-import std/[math, strutils, strformat]
+import std/[math, strutils, strformat, algorithm]
 
 type
   TreeMetrics* = object
@@ -37,35 +37,35 @@ const
 proc newTreeType*(name: string): Type = Type(name: name)
 
 proc newTree*(
-    treeType: Type, parent: Tree, 
+    treeType: Type, parent: Tree,
     metadata: openarray[(string, pointer)] = @[]
-  ): Tree = 
+  ): Tree =
   Tree(treeType: treeType, parent: parent, metadata: toTable(metadata))
 
 
-proc newFakeTree*(name: string, trees: varargs[Tree]): Tree = 
+proc newFakeTree*(name: string, trees: varargs[Tree]): Tree =
   Tree(children: toSeq(trees), fake: true, label: "FAKE-TREE-" & name)
 
-proc newFakeTree*(trees: varargs[Tree]): Tree = 
+proc newFakeTree*(trees: varargs[Tree]): Tree =
   Tree(children: toSeq(trees), fake: true, label: "FAKE-TREE")
 
 proc preOrder*(this: Tree): Iterable[Tree] =
-  return iterator(): Tree = 
+  return iterator(): Tree =
     iterateItDfs(this, it.children, true, dfsPreorder):
       yield it
 
 
 proc postOrder*(this: Tree): Iterable[Tree] =
-  return iterator(): Tree = 
+  return iterator(): Tree =
     iterateItDfs(this, it.children, true, dfsPostorder):
       yield it
-      
+
 
 proc breadthFirst*(this: Tree): Iterable[Tree] =
-  return iterator(): Tree = 
+  return iterator(): Tree =
     iterateItBfs(this, it.children, true):
       yield it
-  
+
 
 proc addChild*(this: Tree; t: Tree) =
   assertRef t
@@ -82,12 +82,12 @@ proc getChildren*(this: Tree): var seq[Tree] =
   assertRef this
   result = children
 
-iterator items*(tree: Tree): Tree = 
+iterator items*(tree: Tree): Tree =
   assertRef tree
   for sub in tree.children:
     yield sub
 
-iterator pairs*(tree: Tree): (int, Tree) = 
+iterator pairs*(tree: Tree): (int, Tree) =
   assertRef tree
   for it in pairs(tree.children):
     yield it
@@ -95,7 +95,7 @@ iterator pairs*(tree: Tree): (int, Tree) =
 func high*(tree: Tree): int = high(tree.children)
 
 
-proc getParent*(this: Tree): Tree = 
+proc getParent*(this: Tree): Tree =
   parent
 
 proc isRoot*(this: Tree): bool =
@@ -111,7 +111,7 @@ proc getParents*(this: Tree): seq[Tree] =
   return parents
 
 
-proc `$`*(this: Tree): string = 
+proc `$`*(this: Tree): string =
   if isNil(this):
     result = "<nil tree>"
 
@@ -123,7 +123,7 @@ proc `$`*(this: Tree): string =
       with result:
         add parent.treeType.name
         add "["
-        add $parent.pos 
+        add $parent.pos
         add "]"
 
     with result:
@@ -143,8 +143,8 @@ proc `$`*(this: Tree): string =
 proc treeRepr*(
     tree: Tree, fullIdent: bool = false,
     maxdepth: int = high(int)
-  ): string = 
-  proc aux(node: Tree, res: var string, level: int, parent: Tree) = 
+  ): string =
+  proc aux(node: Tree, res: var string, level: int, parent: Tree) =
     if fullIdent:
       with res:
         addIndent(level)
@@ -157,7 +157,7 @@ proc treeRepr*(
         add node.treeType.name
         add " "
 
-      if notNil(parent) and 
+      if notNil(parent) and
          notNil(node.getParent()) and
          node.getParent() != parent:
         res.add "INVALID_PARENT_SET"
@@ -212,20 +212,20 @@ proc hasSameTypeAndLabel*(this: Tree; t: Tree): bool =
 
 
 
-proc deepCopy*(this: Tree): Tree = 
-  new(result) 
+proc deepCopy*(this: Tree): Tree =
+  new(result)
   result[] = this[]
   for sub in mitems(result.children):
     sub = deepCopy(sub)
     sub.parent = result
 
   assert result.label == this.label
-    
 
 
 
 
-proc `==`*(tree1, tree2: Tree): bool = 
+
+proc `==`*(tree1, tree2: Tree): bool =
   assertRef tree1
   assertRef tree2
   # echov "check for equality"
@@ -324,7 +324,7 @@ proc setParentAndUpdateChildren*(this: Tree; parent: Tree) =
   raise newImplementError()
 
 
-proc getRoot*(this: Tree): Tree = 
+proc getRoot*(this: Tree): Tree =
   if getParent().isNil():
     return this
 
@@ -399,7 +399,7 @@ proc newTreeMetricComputer(
     enter: string = "enter",
     leave: string = "leave",
     base: int = 33
-  ): TreeMetricComputer = 
+  ): TreeMetricComputer =
 
   TreeMetricComputer(ENTER: enter, LEAVE: leave, BASE: base)
 
@@ -410,7 +410,7 @@ proc `*%=`[T: SomeInteger](val: var T, add: T) = val = val *% add
 # proc `^%`[T: float|int](base: T; exp: int): T =
 #   var (base, exp) = (base, exp)
 #   result = 1
- 
+
 #   if exp < 0:
 #     when T is int:
 #       if base *% base != 1: return 0
@@ -420,7 +420,7 @@ proc `*%=`[T: SomeInteger](val: var T, add: T) = val = val *% add
 #     else:
 #       base = 1.0 / base
 #       exp = -exp
- 
+
 #   while exp != 0:
 #     if (exp and 1) != 0:
 #       result *%= base
@@ -452,8 +452,8 @@ proc startInnerNode*(this: TreeMetricComputer; tree: Tree) =
 proc hash*(t: Type): Hash = hash(t.name)
 
 proc innerNodeStructureHash*(
-    this: TreeMetricComputer; 
-    tree: Tree; 
+    this: TreeMetricComputer;
+    tree: Tree;
     size: int;
     middleHash: Hash
   ): Hash =
@@ -471,7 +471,7 @@ proc innerNodeHash*(this: TreeMetricComputer; tree: Tree; size: int;
     (hash(tree.getType()) !& hash(ENTER) !& hash(tree.getLabel())) +%
     (hash(tree.getType()) !& hash(LEAVE) !& hash(tree.getLabel())) +%
     middleHash
-  ) *% hashFactor(size)    
+  ) *% hashFactor(size)
 
 proc leafHash*(this: TreeMetricComputer; tree: Tree): int =
   return innerNodeHash(tree, 1, 0)
@@ -482,11 +482,11 @@ proc leafStructureHash*(this: TreeMetricComputer; tree: Tree): int =
 proc visitLeaf*(this: TreeMetricComputer; tree: Tree) =
   tree.setMetrics(
     newTreeMetrics(
-      1, 
-      0, 
-      leafHash(tree), 
+      1,
+      0,
+      leafHash(tree),
       leafStructureHash(tree),
-      currentDepth, 
+      currentDepth,
       currentPosition))
 
   postInc(currentPosition)
@@ -506,11 +506,11 @@ proc endInnerNode*(this: TreeMetricComputer; tree: Tree) =
     if (metrics.height > maxHeight):
       maxHeight = metrics.height
   tree.setMetrics(newTreeMetrics(
-    sumSize + 1, 
+    sumSize + 1,
     maxHeight + 1,
-    innerNodeHash(tree, 2 * sumSize + 1, currentHash), 
-    innerNodeStructureHash(tree, 2 * sumSize + 1, currentStructureHash), 
-    currentDepth, 
+    innerNodeHash(tree, 2 * sumSize + 1, currentHash),
+    innerNodeStructureHash(tree, 2 * sumSize + 1, currentStructureHash),
+    currentDepth,
     currentPosition))
 
   postInc(currentPosition)
@@ -536,6 +536,6 @@ proc updateMetrics*(root: Tree) =
 
   aux(root, 0)
 
-proc newMetrics*(tree: Tree): TreeMetrics = 
+proc newMetrics*(tree: Tree): TreeMetrics =
   updateMetrics(tree)
   return tree.metrics

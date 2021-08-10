@@ -11,6 +11,7 @@ type
   ArgumentError*       = object of CatchableError
     ## Invalid argument passed to a functions
 
+  EnvironmentAssertionError* = object of ArgumentError
   GetterError* = object of ArgumentError
   SetterError* = object of ArgumentError
   NilArgumentError* = object of ArgumentError
@@ -70,17 +71,21 @@ type
     postannot*: string
 
 
-template raiseLogicError*(errMsg: string) {.dirty.} =
-  raise newException(LogicError, errMsg)
+# template raiseLogicError*(errMsg: string) {.dirty, deprecated.} =
+#   raise newException(LogicError, errMsg)
 
-template raiseArgumentError*(errMsg: string) {.dirty.} =
-  raise newException(ArgumentError, errMsg)
+# template raiseArgumentError*(errMsg: string) {.dirty, deprecated.} =
+#   raise newException(ArgumentError, errMsg)
 
 proc newLogicError*(msg: varargs[string, `$`]): ref LogicError =
-  newException(LogicError, msg.join(" "))
+  newException(LogicError, msg.join(""))
 
 proc newArgumentError*(msg: varargs[string, `$`]): ref ArgumentError =
-  newException(ArgumentError, msg.join(" "))
+  newException(ArgumentError, msg.join(""))
+
+proc newEnvironmentAssertionError*(
+    msg: varargs[string, `$`]): ref EnvironmentAssertionError =
+  newException(EnvironmentAssertionError, msg.join(""))
 
 template assertArg*(arg: untyped, cond: bool, msg: string): untyped =
   if not cond:
@@ -94,10 +99,10 @@ proc newGetterError*(msg: varargs[string, `$`]): ref GetterError =
   newException(GetterError, msg.join(" "))
 
 proc newSetterError*(msg: varargs[string, `$`]): ref SetterError =
-  newException(SetterError, msg.join(" "))
+  newException(SetterError, msg.join(""))
 
 proc newImplementError*(msgs: varargs[string, `$`]): ref ImplementError =
-  newException(ImplementError, join(msgs, " "))
+  newException(ImplementError, join(msgs, ""))
 
 template raiseImplementError*(errMsg: string) {.dirty.} =
   raise newImplementError(errMsg & " @" & $instantiationInfo())
@@ -225,24 +230,24 @@ proc newImplementBaseError*[T](
     "Missing implementaiton for based method '" & name &
       "' for object type '" & $typeof(obj) & "'")
 
-template raiseImplementKindError*(
-  node: untyped, userMsg: string = "") {.dirty.} =
-  raise newImplementKindError(node, userMsg)
+# template raiseImplementKindError*(
+#   node: untyped, userMsg: string = "") {.dirty, deprecated.} =
+#   raise newImplementKindError(node, userMsg)
 
 
 proc newUnexpectedKindError*[T](
     expr: T, userMsg: varargs[string, `$`]): ref UnexpectedKindError =
   newException(UnexpectedKindError,
     "Unexpected entry kind " & kindToStr(expr) &
-      prepareMsg(userMsg.join(" ")))
+      prepareMsg(userMsg.join("")))
 
 proc newUnexpectedKindError*(userMsg: varargs[string, `$`]):
     ref UnexpectedKindError =
-  newException(UnexpectedKindError, prepareMsg(userMsg.join(" ")))
+  newException(UnexpectedKindError, prepareMsg(userMsg.join("")))
 
-template raiseUnexpectedKindError*(
-  node: untyped, userMsg: string = "") {.dirty.} =
-  raise newUnexpectedKindError(node, userMsg)
+# template raiseUnexpectedKindError*(
+#   node: untyped, userMsg: string = "") {.dirty, deprecated.} =
+#   raise newUnexpectedKindError(node, userMsg)
 
 
 template canImport*(x: untyped): untyped =

@@ -26,7 +26,11 @@
 
 import ./tree, ./jcommon
 
-import hmisc/extra/hdrawing/term_buf
+import
+  hmisc/extra/hdrawing/term_buf
+
+import
+  std/strutils
 
 type
   Mapping* = tuple[first, second: Tree]
@@ -46,7 +50,7 @@ iterator items*(this: MappingStore): Mapping =
 
 import hmisc/other/blockfmt
 
-proc pprint*(this: MappingStore) = 
+proc pprint*(this: MappingStore) =
   let conf = pconf(
     stringPaths = matchField("first", "second"),
     forceLayouts = @{
@@ -58,7 +62,7 @@ proc pprint*(this: MappingStore) =
 
 import hmisc/algo/clformat
 
-proc `$`*(this: MappingStore): string = 
+proc `$`*(this: MappingStore): string =
   const box = AsciiBox.double
   for src, dst in this.srcToDst:
     result.add withBufStr(
@@ -72,16 +76,16 @@ proc `$`*(this: MappingStore): string =
         let dstStr = dst.treeRepr(maxdepth = 3)
 
         buf[3, 1] = srcStr
-        buf[3, srcStr.split("\n").maxIt(it.len) + 2] = dstStr
+        buf[3, srcStr.width() + 2] = dstStr
 
         let maxLine =  max(count(srcStr, '\n'), count(dstStr, '\n')) + 2
         for line in 0 ..< maxLine:
           buf[2 + line, 0] = box.vertical
 
-        buf[2 + maxLine, 0] = box.horizontal.repeat(20 )
+        buf[2 + maxLine, 0] = box.horizontal.repeat(20).join("")
         buf[2 + maxLine, 0] = box.leftCross
     )
- 
+
     result.add "\n"
 
 #     result.add &"""
@@ -174,7 +178,7 @@ type
     srcToDsts*: Table[Tree, HashSet[Tree]]
     dstToSrcs*: Table[Tree, HashSet[Tree]]
 
-  
+
 
 proc addMapping*(this: MultiMappingStore; src: Tree; dst: Tree): void =
   if (not(srcToDsts.contains(src))):
@@ -191,12 +195,12 @@ proc newMultiMappingStore*(mappings: HashSet[Mapping]): MultiMappingStore =
   new(result)
   for m in mappings:
     result.addMapping(m.first, m.second)
-  
+
 proc newMultiMappingStore*(): MultiMappingStore =
   new(result)
 
 proc getMappings*(this: MultiMappingStore): HashSet[Mapping] =
-  var mappings: HashSet[Mapping] 
+  var mappings: HashSet[Mapping]
   for src, _ in srcToDsts:
     for dst in srcToDsts[src]:
       mappings.incl(newMapping(src, dst))

@@ -622,10 +622,10 @@ suite "String helper functions":
     check cache.getName("ROFF_BP") == "ROFF_BP1"
 
   test "toLatin*Char":
-    for ch in "[({<>|!@#$%})]":
-      echo &"{ch} : {ch.toLatinAbbrChar()}"
+    show:
+      chars = mapIt("[({<>|!@#$%})]", &"'{it}' : {it.toLatinAbbrChar()}").join("\n")
 
-    echo "((()))".toNamedMultichar()
+    show "((()))".toNamedMultichar()
 
   test "Named multichar join":
     check toNamedMulticharJoin(".") == "dot"

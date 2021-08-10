@@ -816,7 +816,7 @@ func treeRepr*[R, T](
         var tmp = toColoredText(n.token.str)
 
         if tmp.len == 0:
-          tmp = "∅"
+          tmp = toColoredText("∅")
 
         else:
           let nlCount = replaceTailNewlines(tmp)

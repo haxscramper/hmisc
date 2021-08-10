@@ -556,7 +556,7 @@ proc parseXsdAnyType*(
       parser.skipEnd(tag)
 
     else:
-      raiseImplementKindError(parser)
+      raise newImplementKindError(parser)
 
 
 type

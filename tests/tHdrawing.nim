@@ -1,12 +1,13 @@
 # {.define(plainStdout).}
 
 import
-  std/[strutils, sequtils, strformat, options, terminal, unittest]
+  std/[strutils, sequtils, strformat, options, terminal]
 
 import
   hmisc/extra/hdrawing/hdrawing,
   hmisc/types/[seq2d, colorstring],
-  hmisc/algo/halgorithm
+  hmisc/algo/halgorithm,
+  hmisc/preludes/unittest
 
 converter toSeq2D*[T](s: seq[seq[T]]): Seq2d[T] =
   makeSeq2D(s)
@@ -41,7 +42,7 @@ suite "Drawing":
         (15, 15), @["Text inside", "of unicode box"],
         makeTwoLineRectBorder()
       ).render(buf)
-      echo buf.toString()
+      show buf.toString()
 
 
     block:
@@ -75,7 +76,7 @@ suite "Drawing":
         ].toTermBufGrid(),
         makeThinLineGridBorders()
       ).render(buf)
-      echo buf.toString()
+      show buf.toString()
 
   test "Multicell grid":
     proc ms(a, b: int): auto = makeArrSize(a, b)
@@ -124,7 +125,7 @@ suite "Drawing":
       ],
       makeAsciiGridBorders(),
     ).toTermBuf().toString()
-    echo res
+    show res
 
   if true:
     let buf1 = newTermGridVert(@[
@@ -143,4 +144,4 @@ suite "Drawing":
     ], ' ')
 
     # echo shape.nthShape().toStringBlock.join("\n")
-    echo shape.toStringBlock().join("\n")
+    show shape.toStringBlock().join("\n")

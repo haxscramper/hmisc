@@ -23,6 +23,7 @@ import std/[strutils, macros, random, hashes, json, math,
             strformat, sequtils, options, streams]
 
 import ../algo/[hstring_algo, hseq_distance, halgorithm, clformat]
+import ../macros/hmacro_utils
 import ../types/colorstring
 import ../core/[all, code_errors]
 
@@ -535,6 +536,8 @@ proc relativeUpCount*[P1: AbsPath, P2: AbsPath](
     inTarget: P2
   ): int =
 
+  bind dropPrefix
+
   var (current, target) = (inCurrent.getStr(), inTarget.getStr())
 
   if current.startsWith(target):
@@ -544,10 +547,10 @@ proc relativeUpCount*[P1: AbsPath, P2: AbsPath](
     discard
 
   else:
-    let common = commonPrefix(@[current, target])
+    let common = commonPrefix(@[current, target]).toStrPart()
 
-    if count(current.dropPrefix(common), "/") == 0 and
-       count(target.dropPrefix(common), "/") == 0:
+    if count(dropPrefix(current, common), "/") == 0 and
+       count(dropPrefix(target, common), "/") == 0:
 
       return 0
 
@@ -698,6 +701,9 @@ func ext*(file: AnyFile, multidot: bool = true): string =
 
 func name*(file: AnyFile, multidot: bool = true): string =
   file.splitFile(multidot).name
+
+func name*(dir: AnyDir): string =
+  os.splitFile(dir.getStr()).name
 
 proc assertValid*(
     path: AnyPath, msg: string = ""): void =
@@ -1514,7 +1520,8 @@ func withoutRoot*(file: AbsFile, root: AbsDir): RelFile =
 
 func withExt*(f: FsTree, ext: string): FsTree =
   if f.isDir:
-    raiseArgumentError("Cannot add extension to FsTree file")
+    raise newArgumentError(
+      "Cannot add extension to 'FsTree' file")
 
   result = f
   result.ext = ext
@@ -2062,7 +2069,7 @@ DSL for creating directory structures
             newStmtList(
               newVarStmt(
                 file,
-                newCall("open", node[1], ident"fmWrite")),
+                newCall("open", node[1].blockCall(), ident"fmWrite")),
               result,
               newCall("close", file)
             )
@@ -2074,7 +2081,7 @@ DSL for creating directory structures
             for subnode in node[2]:
               result.add aux(subnode)
 
-          result = newCall("withNewDir", newCall("RelDir", node[1]), result)
+          result = newCall("withNewDir", newCall("RelDir", node[1].blockCall()), result)
 
         else:
           result = node

@@ -379,9 +379,9 @@ proc report(context: TestContext, report: TestReport) =
               s2 = report.strs[1][1].str
 
             echo msg, " - string value mismatch\n"
-            echo s1, "  ", s2
-            echo @s1, "  ", @s2
-            echo pad, "  ", stringEditMessage(s1, s2)
+            echo pad, s1, " != ", s2
+            echo ""
+            echo pad, stringEditMessage(s1, s2)
 
 
           else:
@@ -786,7 +786,7 @@ macro matchdiff*(
 
   proc kindHead(a: NimNode): NimNode =
     result = a
-    while result.kind in { nnkCall, nnkObjConstr }:
+    while result.kind in { nnkCall, nnkObjConstr, nnkBracketExpr }:
       result = result[0]
 
   startHaxComp()
@@ -920,7 +920,8 @@ template hasTestContext(): untyped {.dirty.} =
 template wantContext*(): untyped {.dirty.} =
   bind hasTestContext
   when not hasTestContext():
-    {.error: ""}
+    static:
+      {.error: ""}
 
 proc canRunTest(
     context: TestContext, conf: TestConf): bool =
@@ -1167,6 +1168,7 @@ proc buildCheck(expr: NimNode): NimNode =
            "stringdiff", "structdiff",
            "matchdiff", "astdiff"
          ]):
+
         expr.add loc
         result = quote do:
           block:

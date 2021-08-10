@@ -7,7 +7,9 @@ import
   ./hshell,
   ./oswrap,
   ./hlogger,
-  ../algo/hseq_distance
+  ../core/all,
+  ../algo/hseq_distance,
+  ../types/colorstring
 
 
 func format*(str: string, kvalues: openarray[(string, string)]): string =
@@ -201,10 +203,8 @@ proc docgenBuild(conf: TaskRunConfig, ignored: seq[GitGlob]) =
   for glob in ignored:
     conf.debug "ignoring: ", glob
 
+  var commands: seq[ShellCmd]
   for file in files.mapIt(it.flatFiles()).concat():
-    conf.trace file
-    conf.trace file.parent.len
-    conf.trace curr.pathLen()
     if not ignored.accept($file):
       conf.notice "Ignoring", $file
       continue
@@ -213,7 +213,7 @@ proc docgenBuild(conf: TaskRunConfig, ignored: seq[GitGlob]) =
     conf.logger.execCode mkDir(dir), conf.testRun
 
     let outfile = dir /. $file.withoutParent().withExt("html")
-    conf.trace outfile
+    # conf.trace outfile
     if (file.ext in ["nim", "rst"]) and ("tests" notin $file):
       var cmd: ShellCmd
       case file.ext:
@@ -232,33 +232,17 @@ proc docgenBuild(conf: TaskRunConfig, ignored: seq[GitGlob]) =
             it.arg file
 
       if not cmd.isEmpty():
-        if conf.testRun:
-          conf.notice cmd.toLogStr()
+        commands.add cmd
 
-        else:
-          conf.logger.trace file
-          let res = conf.logger.runShellResult(cmd, execTimeoutMs = 10 * 1000)
-          if not res.resultOk:
-            conf.debug "run failed for file"
-            conf.warn file
-            conf.debug res.exception.outstr
-            conf.debug res.exception.errstr
-            errMsg.add @["-".repeat(80)].repeat(3).concat()
-            errMsg.add cmd.toLogStr()
-            errMsg.add res.exception.outstr
+  for (res, cmd) in runShellResult(commands.mapIt((it,it))):
+    conf.info cmd.prettyShellCmd()
 
   if (errMsg.len > 0) and (conf.logFile.len > 0):
     discard
-    # conf.warn "Errors during documentation compilation"
-    # conf.logFile.writeFile(errMsg.join("\n"))
-    # conf.notice &"Log file saved to {conf.logFile}"
 
   else:
     conf.notice "Documentation buid ok, no errors detected"
     conf.info &"Saved documentation at path {conf.outdir}"
-    # logcall cpFile(conf.nimdocCss, dir /. "nimdoc.out.css"), conf.testRun
-
-  # rmFile docConf
 
 when cbackend:
   import parsecfg, streams, tables
@@ -414,11 +398,10 @@ when cbackend:
         l.info "Using", version, "for", pkg
 
       else:
-        raiseAssert(&"Could not find {pkg} in local installations " &
-          "- either run " &
-          "`nimble develop` to make it available or install " &
-          &"via `nimble install {pkg}`"
-        )
+        raise newEnvironmentAssertionError(
+          &"Could not find {pkg} in local installations - either run ",
+          "`nimble develop` to make it available or install ",
+          &"via `nimble install {pkg}`")
 
     mkDir testDir
     for pkg in pkgs:
@@ -435,15 +418,17 @@ when cbackend:
             let dir = parentDir(nimble)
             l.info pkg, "is developed locally, copying from", dir
             cpDir dir, (testDir / pkg)
+
       elif versionedInstall.dirExists():
         l.info pkg, "is installed locally, copying from", versionedInstall
         cpDir versionedInstall, (testDir / pkg)
+
       else:
-        assertionFail:
-          "Neither versioned installation nor #head point to"
-          "existing file. Please make sure that package can is properly"
-          "installed and can be globally imported. Git submodules and"
-          "local installations are not currently supported."
+        raise newEnvironmentAssertionError(
+          "Neither versioned installation nor #head point to ",
+          "existing file. Please make sure that package can is properly ",
+          "installed and can be globally imported. Git submodules and ",
+          "local installations are not currently supported.")
 
       result = shAnd(
         result,

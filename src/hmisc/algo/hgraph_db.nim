@@ -225,7 +225,7 @@ proc getEdges(pipe: Pipe, graph: DGraph): seq[HEdge] =
         result.add edge
 
     else:
-      raiseUnexpectedKindError(pipe)
+      raise newUnexpectedKindError(pipe)
 
 
 proc runTraversalPipe(
@@ -278,7 +278,7 @@ proc evalFilterPipe(
 
 
     else:
-      raiseImplementKindError(pipe.filter)
+      raise newImplementKindError(pipe.filter)
 
 proc run(
     pipe: var Pipe, gremlin: Option[Gremlin], graph: DGraph): OptGremlin =
@@ -297,4 +297,4 @@ proc run(
       return runBackPipe(pipe, gremlin, graph)
 
     else:
-      raiseImplementKindError(pipe)
+      raise newImplementKindError(pipe)

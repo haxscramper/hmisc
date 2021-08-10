@@ -1,10 +1,6 @@
-import std/[unittest]
-
-import hmisc/algo/clformat
-
-template `==`(rhs, lhs: untyped): untyped =
-  assertEq(rhs, lhs)
-
+import
+  hmisc/preludes/unittest,
+  hmisc/algo/clformat
 
 suite "Clformat colored formatting":
   test "hshow string":
@@ -197,6 +193,6 @@ when false:
 
 
   suite "Colored & unicode fancy output":
-    assert hfmt("{90:fg-red}") == "\033[39m90\033[0m"
+    assert hfmt("{90:fg-red}") == "\e033[39m90\e033[0m"
     hfmt("{\"some-value\":fg-green}")
     hfmt("{\"--\":fg-green,bg-yellow,attr-bold}")

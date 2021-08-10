@@ -138,7 +138,7 @@ func len*(part: StrPart): int {.inline.} =
       elif part.strs.len == 0:
         0
       else:
-        raiseArgumentError(
+        raise newArgumentError(
           "Cannot get length for string part with more that one substring")
 
 
@@ -159,6 +159,12 @@ func dropPrefix*(str: string, part: StrPart): string =
   for alt in part:
     if str.startsWith(alt):
       return str[min(alt.len, str.len)..^1]
+
+  return str
+
+func dropPrefix*(str: string, alt: string): string =
+  if str.startsWith(alt):
+    return str[min(alt.len, str.len)..^1]
 
   return str
 

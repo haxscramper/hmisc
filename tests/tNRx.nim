@@ -1,8 +1,8 @@
 import std/[sugar, strutils, sequtils, strformat, streams]
 import hmisc/other/[rx]
 import hmisc/algo/hlex_base
+import hmisc/preludes/unittest
 
-import unittest
 
 suite "NRX":
   test "test":

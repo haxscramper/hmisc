@@ -84,7 +84,7 @@ proc dockerDocGen*(
   })
 
 
-import ../hexceptions
+import ../core/all
 
 func toCliValue*(
     glob: GitGlob, doc: string = "", desc: CliDesc = nil): CliValue =

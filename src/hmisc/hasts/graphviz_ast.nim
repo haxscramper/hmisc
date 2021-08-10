@@ -468,29 +468,31 @@ func `[]=`*(graph: var DotGraph, key, value: string) =
   graph.attrs[key] = value
 
 func makeRectConsolasNode*(): DotNode =
-  result.fontname = "Consolas"
-  result.shape = nsaRect
-  result.labelAlign = nlaLeft
+  DotNode(shape: nsaRect, fontname: "Consolas", labelAlign: nlaLeft)
+  # result.fontname = "Consolas"
+  # result.shape = nsaRect
+  # result.labelAlign = nlaLeft
 
 func makeRectConsolasEdge*(): DOtEdge =
   result.fontname = "Consolas"
 
 func makeCircleConsolasNode*(): DotNode =
-  result.fontname = "Consolas"
-  result.shape = nsaCircle
+  DotNode(shape: nsaCircle, fontname: "Consolas")
+  # result.fontname = "Consolas"
+  # result.shape = nsaCircle
 
 func makeDotNode*(style: DotGraphPresets): DotNode =
-  result.fontname = "Consolas"
   case style:
     of dgpRecords:
       discard
 
     of dgpAutomata:
-      result.shape = nsaCircle
+      result = DotNode(shape: nsaCircle)
 
     of dgpAutomataAccept:
-      result.shape = nsaDoubleCircle
+      result = DotNode(shape: nsaDoubleCircle)
 
+  result.fontname = "Consolas"
 
 func makeDotEdge*(style: DotGraphPresets): DotEdge =
   result.fontname = "Consolas"
@@ -1188,7 +1190,7 @@ proc toPng*(
     resolution: int = 300,
     tmpfile: string = "/tmp/dot-file.dot",
     tmpimage: string =  "/tmp/dot-image-tmp.png"
-  ): void {.deprecated.} =
+  ): void {.deprecated: "Use overload with `AbsFile`".} =
 
   toPng(graph, AbsFile resFile, resolution,
         AbsFile tmpFile, AbsFile tmpImage)

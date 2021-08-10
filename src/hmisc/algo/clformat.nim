@@ -273,7 +273,7 @@ const subSuperMap: Table[char, (string, string)] = toTable({
 
 func toUnicodeSubChar*(c: char): string =
   if c notin subSuperMap or subSuperMap[c][0] == "":
-    raiseArgumentError("Unicode does not provide subscript for char '" & $c & "'")
+    raise newArgumentError("Unicode does not provide subscript for char '" & $c & "'")
 
   else:
     return subSuperMap[c][0]
@@ -281,7 +281,7 @@ func toUnicodeSubChar*(c: char): string =
 
 func toUnicodeSupChar*(c: char): string =
   if c notin subSuperMap or subSuperMap[c][1] == "":
-    raiseArgumentError("Unicode does not provide superscript for char '" & $c & "'")
+    raise newArgumentError("Unicode does not provide superscript for char '" & $c & "'")
 
   else:
     return subSuperMap[c][1]
@@ -678,7 +678,7 @@ func fromTexToUnicodeMath*(tex: string): string =
     of "mathbb{j}", "j": "ⅉ"
     of "e": "ℯ"
     else:
-      raiseArgumentError("Unsupported latex to unicde conversion: '" & tex & "'")
+      raise newArgumentError("Unsupported latex to unicde conversion: '" & tex & "'")
 
 # ⅈ, ⅉ ℯ, ⅇ ℇ ∞ ⧜ ⧝ ⧞
 #  ∋  ∌ ⋶ ⋽ ⋲ ⋺ ⋳ ⋻
@@ -1104,7 +1104,30 @@ func addIndent*(
 template coloredResult*(): untyped =
   var outPtr: ptr ColoredText = addr result
   template add(arg: untyped): untyped = outPtr[].add arg
+  template add(arg1, arg2: untyped): untyped = outPtr[].add(arg1, arg2)
   template addIndent(level: int): untyped = outPtr[].addIndent(level)
+
+func joinPrefix*(
+    level: int, idx: seq[int],
+    pathIndexed, positionIndexed: bool): ColoredText =
+
+  if pathIndexed:
+    result = idx.join("", ("[", "]")) & "    "
+
+  elif positionIndexed:
+    if level > 0:
+      result.add "  ".repeat(level - 1)
+      result.add to8Bit(alignLeft("#" & $idx[^1], 3), 10)
+      result.add to8Bit("/" & alignLeft($level, 2), 20)
+      result.add " "
+
+    else:
+      result.add "    "
+
+  else:
+    result.addIndent(level)
+
+
 
 func hShow*(
     str: string, opts: HDisplayOpts = defaultHDisplay): ColoredText =

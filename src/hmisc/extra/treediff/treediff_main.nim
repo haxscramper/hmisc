@@ -1,6 +1,6 @@
 import std/[sequtils, with, tables, hashes, sets]
 import
-  hmisc/base_errors
+  hmisc/core/all
 
 
 import

@@ -72,7 +72,7 @@ template raiseUnexpectedChar*(str: PosStr) =
 template raiseCannotGetOffset*(str: PosStr, offset: int) =
   {.line: instantiationInfo().}:
     mixin finished
-    raiseArgumentError(
+    raise newArgumentError(
       "Cannot get char at +" & $offset & " input string is finished: " &
       $finished(str)
     )
@@ -189,7 +189,7 @@ proc `[]`*(str; idx: int = 0): char {.inline.} =
       else:
         sliceStart += slice.len
 
-    raiseArgumentError(&"Cannot get char at [+{idx}]")
+    raise newArgumentError(&"Cannot get char at [+{idx}]")
 
   else:
     return str.str[str.pos + idx]

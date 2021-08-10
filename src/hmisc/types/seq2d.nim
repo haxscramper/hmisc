@@ -1,9 +1,10 @@
-import sequtils, options, hprimitives, strformat, strutils, sugar
-import ../hdebug_misc
-import ../algo/[halgorithm, hseq_mapping]
-import ../base_errors
-export base_errors
-import unicode
+import
+  std/[sequtils, options, strformat, strutils, sugar, unicode]
+
+import
+  ../core/all,
+  ../algo/[halgorithm, hseq_mapping],
+  ./hprimitives
 
 #================================  TODO  =================================#
 #[
@@ -39,7 +40,7 @@ func colNum*[T](s: Seq2D[T]): int =
   result = s.colWidth
   for idx, row in s.elems:
     if row.len != result:
-      raiseArgumentError(
+      raise newArgumentError(
         &"Invariant invalidated: [{idx}].len: {row.len}, expected {result}")
 
 
@@ -83,11 +84,9 @@ the index of new row. `idx` MUST be in range `[0, grid.rowNum()]`
 
   ]##
   if not row.len == grid.colNum():
-    raiseArgumentError:
-      msgjoin(
-        "Cannot insert row at index `", idx, "` expected",
-        "len:", grid.colNum(), ", but row has length", row.len
-      )
+    raise newArgumentError(
+      "Cannot insert row at index `", idx, "` expected",
+      "len:", grid.colNum(), ", but row has length", row.len)
 
   if idx == 0:
     grid.elems = row & grid.elems
@@ -141,16 +140,17 @@ func makeSeq2D*[T](s: seq[seq[T]], default: T): Seq2d[T] =
 
     return Seq2D[T](elems: inseq, colWidth: maxlen)
 
+
+
 func makeSeq2D*[T](s: seq[seq[T]]): Seq2d[T] =
   if s.len != 0:
     let maxlen = s.mapIt(it.len).max()
     for idx, row in s:
       if row.len != maxlen:
-        raiseArgumentError(
-          "Cannot create 2d sequence from non-uniform " &
-          &"sequence. Row {idx} has {row.len} elements, but expected " &
-          &"{maxlen}"
-        )
+        raise newArgumentError(
+          "Cannot create 2d sequence from non-uniform ",
+          &"sequence. Row {idx} has {row.len} elements, but expected ",
+          &"{maxlen}")
 
     return Seq2D[T](elems: s, colWidth: maxlen)
 
@@ -212,31 +212,24 @@ func `[]=`*[T](grid: var Seq2d[T], pos: ArrPos, val: T): void =
 
 func concat*[T](inseq: Seq2d[T]): seq[T] = inseq.elems.concat()
 template mapIt2d*[T](inseq: Seq2d[T], op: untyped): untyped =
-  type ResT = typeof((
-    block:
-      var it {.inject.}: T
-      op))
+  {.line: instantiationInfo(fullPaths = true).}:
+    type ResT = typeof((
+      block:
+        var it {.inject.}: T
+        op))
 
-  var result: seq[seq[ResT]]
-  for row in inseq.elems:
-    result.add newSeq[ResT]()
-    for col in row:
-      let it {.inject.} = col
-      result[^1].add op
+    var result: seq[seq[ResT]]
+    for row in inseq.elems:
+      result.add newSeq[ResT]()
+      for col in row:
+        let it {.inject.} = col
+        result[^1].add op
 
-  var res: Seq2D[ResT]
-  try:
+    var res: Seq2D[ResT]
     res = makeSeq2D(result)
 
-  except ArgumentError:
-    {.noSideEffect.}:
-      let msg = getCurrentExceptionMsg()
-      let info = instantiationInfo()
-      raiseArgumentError(
-        msg & ". Template `mapIt2D` instantiated on line: " & $info.line &
-          ", file: " & $info.filename)
 
-  res
+    res
 
 
 template mapIt2d*[T](inseq: Seq2d[T], op: untyped, default: typed): untyped =
@@ -265,7 +258,7 @@ template maximizeColIt*[T](inseq: Seq2d[T], op: untyped): seq[int] =
   var res: seq[ResType]
   var idx = 0
   if inseq.colNum() == 0:
-    raiseArgumentError("Cannot maximize columns in empty grid")
+    raise newArgumentError("Cannot maximize columns in empty grid")
 
   for col in inseq.itercols():
     var buf: seq[ResType]
@@ -274,7 +267,7 @@ template maximizeColIt*[T](inseq: Seq2d[T], op: untyped): seq[int] =
       buf.add op
 
     if buf.len == 0:
-      raiseArgumentError("Failed to get any from column " & $idx)
+      raise newArgumentError("Failed to get any from column " & $idx)
 
     else:
       res.add buf.max()
@@ -293,7 +286,7 @@ template maximizeRowIt*[T](
   for row in inseq.iterrows():
     var buf: seq[ResType]
     if row.len == 0:
-      raiseArgumentError(
+      raise newArgumentError(
         "Cannot maximize empty row inseq[" & $idx & "].len == 0")
 
     for cell in row:
@@ -301,7 +294,7 @@ template maximizeRowIt*[T](
       buf.add op
 
     if buf.len == 0:
-      raiseArgumentError("Failed to get any from row " & $idx)
+      raise newArgumentError("Failed to get any from row " & $idx)
 
     else:
       res.add buf.max()
@@ -353,7 +346,7 @@ func makeLookup*(grid: Seq2d[Option[ArrSize]]): MulticellLookup =
       pos.colRange(size)
     ):
       if result[row, col].isSome():
-        raiseArgumentError(
+        raise newArgumentError(
           &"Cannot set cell at position {pos}: {(row, col)} is already occupied")
 
       else:
@@ -367,7 +360,7 @@ func makeLookup*(grid: Seq2d[Option[ArrSize]]): MulticellLookup =
 func `[]=`*[T](grid: var MulticellGrid[T], rect: ArrRect, val: T): void =
   for (row, col) in rect.itercells():
     if grid.lookup[row, col].isSome():
-      raiseArgumentError(
+      raise newArgumentError(
         &"Cannot set cell at rec {rect}: {(row, col)} is already occupied")
 
   for (row, col) in rect.itercells():

@@ -752,7 +752,18 @@ iterator lines*(text: ColoredText): ColoredRuneLine =
   if buf.len > 0:
     yield buf
 
+func width*(text: ColoredText): int =
+  var buf = 0
+  for rune in text.runes:
+    if rune.isNewline:
+      result = max(buf, result)
+      buf = 0
 
+    else:
+      inc buf
+
+  if buf > 0:
+    return buf
 
 
 func toRuneGrid*(text: ColoredText): ColoredRuneGrid =
@@ -777,6 +788,12 @@ func add*(colored: var ColoredText, rune: ColoredRune) {.inline.} =
 
 func add*(colored: var ColoredText, ch: string) {.inline.} =
   colored.add ch + defaultPrintStyling
+
+func add*(
+    colored: var ColoredText,
+    ch: string, styling: PRintStyling) {.inline.} =
+
+  colored.add ch + styling
 
 func add*(colored: var ColoredText, ch: char) {.inline.} =
   colored.add ch + defaultPrintStyling

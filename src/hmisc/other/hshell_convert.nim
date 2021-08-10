@@ -1,13 +1,18 @@
 ## Collection of helper procs to convert output of various command
 ## programs to json
 
-import ./hshell, ./hjson
-import ../algo/[tscanf, hstring_algo, halgorithm, hlex_base, hparse_base]
-import ../base_errors, ../hdebug_misc, ../helpers
-import std/[
-  strutils, sequtils, deques, macros, streams,
-  options, segfaults, strformat, parseutils
-]
+import
+  std/[
+    strutils, sequtils, deques, macros, streams,
+    options, segfaults, strformat, parseutils
+  ]
+
+
+import
+  ./hshell,
+  ./hjson,
+  ../core/all,
+  ../algo/[tscanf, hstring_algo, halgorithm, hlex_base, hparse_base]
 
 proc readLine*(stream: Stream): string =
   discard stream.readLine(result)

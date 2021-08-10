@@ -1,15 +1,16 @@
-import sugar, strutils, sequtils, strformat
-import ../src/hmisc/helpers
-import ../src/hmisc/other/[hshell, oswrap, pathwrap]
-import ../src/hmisc/hdebug_misc
+import
+  std/[sugar, strutils, sequtils, strformat]
+
+import
+  hmisc/other/[hshell, oswrap, pathwrap],
+  hmisc/preludes/unittest
 
 startHax()
 
-import unittest
 
 suite "Pathwrap":
   test "test":
-    assertEq AbsDir("/a/b/c") /../ 2 /../ RelDir("hello"), AbsDir("/hello")
+    check AbsDir("/a/b/c") /../ 2 /../ RelDir("hello") == AbsDir("/hello")
 
   test "A":
     echo getNewTempDir()
@@ -31,9 +32,10 @@ suite "Pathwrap":
         "Expected relative directory"
 
       let path = "12"
-      raise newPathError(AbsFile("12"), pekExpectedAbs): fmtJoin:
-        "Input path {path} has type {$typeof(path)}, but contains"
-        "invalid string - expected absolute path"
+      raise newPathError(AbsFile("12"), pekExpectedAbs):
+        &"Input path {path} has type {$typeof(path)}, but contains " &
+        &"invalid string - expected absolute path"
+
     except:
       discard
 

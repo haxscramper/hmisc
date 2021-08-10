@@ -1,13 +1,13 @@
-import std/[enumerate, strutils, tables, with, strtabs, options, streams]
+import
+  std/[enumerate, strutils, tables, with, strtabs, options, streams]
 
 import
-  ../base_errors,
-  ../other/[oswrap, rx],
-  ../helpers,
+  ../core/all,
   ../types/colorstring,
+  ../other/[oswrap, rx],
   ../algo/[hlex_base, hparse_base]
 
-export hparse_base, base_errors
+export hparse_base
 
 
 type

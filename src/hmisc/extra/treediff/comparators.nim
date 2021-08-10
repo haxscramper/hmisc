@@ -22,14 +22,14 @@
 # - MappingComparators.java
 
 
-import 
-  ./jcommon, 
-  ./mapping_store, 
+import
+  ./jcommon,
+  ./mapping_store,
   ./tree,
   ./similarity_metrics
 
 import
-  std/[math]
+  std/[math, algorithm]
 
 
 import
@@ -39,7 +39,7 @@ import
 
 type
   MappingComparators* = ref object
-  
+
   FullMappingComparator* = ref object
     siblingsComparator*: SiblingsSimilarityMappingComparator
     parentsComparator*: ParentsSimilarityMappingComparator
@@ -56,23 +56,23 @@ type
     cachedSimilarities*: Table[Mapping, float]
 
   PositionInParentsSimilarityMappingComparator* = ref object
-  
-  AbsolutePositionDistanceMappingComparator* = ref object
-  
 
-proc newSiblingsSimilarityMappingComparator*(ms: MappingStore): 
+  AbsolutePositionDistanceMappingComparator* = ref object
+
+
+proc newSiblingsSimilarityMappingComparator*(ms: MappingStore):
     SiblingsSimilarityMappingComparator =
   SiblingsSimilarityMappingComparator(ms: ms)
 
-proc newParentsSimilarityMappingComparator*(): ParentsSimilarityMappingComparator = 
+proc newParentsSimilarityMappingComparator*(): ParentsSimilarityMappingComparator =
   ParentsSimilarityMappingComparator()
 
 proc newPositionInParentsSimilarityMappingComparator*():
-    PositionInParentsSimilarityMappingComparator = 
+    PositionInParentsSimilarityMappingComparator =
   PositionInParentsSimilarityMappingComparator()
 
 proc newAbsolutePositionDistanceMappingComparator*():
-    AbsolutePositionDistanceMappingComparator = 
+    AbsolutePositionDistanceMappingComparator =
   AbsolutePositionDistanceMappingComparator()
 
 proc newFullMappingComparator*(ms: MappingStore): FullMappingComparator =
@@ -119,7 +119,7 @@ proc cmp*(this: ParentsSimilarityMappingComparator; m1: Mapping; m2: Mapping): i
       m1.second.getParent() == m2.second.getParent()):
     return 0
 
-  proc typeLabelEq(t1, t2: Tree): bool = 
+  proc typeLabelEq(t1, t2: Tree): bool =
     hasSameTypeAndLabel(t1, t2)
 
   if (not(cachedSimilarities.contains(m1))):
@@ -149,7 +149,7 @@ proc posVector*(this: PositionInParentsSimilarityMappingComparator; src: Tree): 
         cast[float](parent.getChildren().len())
     result.add(pos)
     current = parent
-    
+
 proc distance*(this: PositionInParentsSimilarityMappingComparator; m: Mapping): float =
   var posVector1 = posVector(m.first)
   var posVector2 = posVector(m.second)

@@ -93,8 +93,8 @@ func newRename*(
 
   let norm = nimNorm(baseName, not exact)
   if norm in cache.renames:
-    raiseArgumentError(
-      "Rename for " & baseName & " already exists in cache")
+    raise newArgumentError(
+      "Rename for ", baseName, " already exists in cache")
 
   else:
     cache.renames[norm] = newName

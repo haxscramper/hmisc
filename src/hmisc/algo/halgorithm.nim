@@ -150,7 +150,7 @@ proc enumerate*[T](s: openArray[T]): seq[(int, T)] =
 func splitList*[T](s: openarray[T]): (T, seq[T]) =
   ## Return head and tail of the list
   if s.len == 0:
-    raiseArgumentError("Cannot split empty list")
+    raise newArgumentError("Cannot split empty list")
 
   (s[0], s[1..^1])
 
@@ -288,12 +288,6 @@ template ifSomeIt*[T](opt: Option[T], predicate: untyped): bool =
     ))
 
 
-template getSomeIt*[T](opt: Option[T], value, default: untyped): untyped =
-  if opt.isSome():
-    let it {.inject.} = opt.get()
-    value
-  else:
-    default
 
 template getSome*[T](opt: Option[T], injected: untyped): bool =
   let expr = opt
@@ -361,7 +355,7 @@ func mapChar*[Cat: enum](
     map = toMapArray(map)
 
   if ch notin chars:
-    raiseArgumentError(
+    raise newArgumentError(
       &"Unexpected input char: got '{ch}', but expected {chars}")
 
   return map[ch]

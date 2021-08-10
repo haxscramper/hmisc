@@ -3,8 +3,6 @@ import hmisc/other/[hlogger, hshell]
 
 suite "HLogger":
   proc task(log: HLogger) {.logScope(log).} =
-    if log.check(false, "test"): echo 123
-    if log.check(true, "test"): echo 123
     log.info("hello")
 
   var l = newTermLogger()

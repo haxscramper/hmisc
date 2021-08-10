@@ -3,8 +3,7 @@ import
 
 import ../macros/argpass
 
-import
-  ".."/[base_errors, hexceptions]
+import ../core/[all, code_errors]
 
 ##[
 

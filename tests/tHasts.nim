@@ -1,15 +1,11 @@
-# This is just an example to get you started. You may wish to put all of your
-# tests into a single file, or separate them into multiple `test1`, `test2`
-# etc. files (better names are recommended, just make sure the name starts with
-# the letter 't').
-#
-# To run these tests, simply execute `nimble test`.
+import
+  std/[terminal, strformat, strutils, colors]
 
-import std/[unittest, terminal, strformat, strutils, colors]
-import hmisc/hasts/[html_ast, graphviz_ast]
-import hmisc/types/colorstring
-import hmisc/hdebug_misc
-import hmisc/algo/halgorithm
+import
+  hmisc/hasts/[html_ast, graphviz_ast],
+  hmisc/types/colorstring,
+  hmisc/preludes/unittest,
+  hmisc/algo/halgorithm
 
 startHax()
 
@@ -94,12 +90,12 @@ suite "Graphviz generation":
         graph.add makeDotEdge(color.int, pred(color).int)
 
     try:
-      graph.toPng("/tmp/res.png")
+      graph.toPng(AbsFile"/tmp/res.png")
 
     except:
       discard
 
-    topGraph.addSubgraph(graph)
+    topGraph.add graph
 
   test "Record nodes":
     var record = makeDotGraph()
@@ -118,27 +114,24 @@ suite "Graphviz generation":
         makeDotRecord(4, "test-1:4"),
         makeDotRecord(5, "test-1:5", @[
           makeDotRecord(6, "test-1:6"),
-          makeDotRecord(7, "test-1:7")
-        ])
-      ]),
-    ])
+          makeDotRecord(7, "test-1:7")])])])
 
     record.add makeDotEdge(toDotPath(0, 1), toDotPath(1, 1))
     record.add makeDotEdge(
       toDotPath(0, 3, dppRight),
-      toDotPath(1, 4, dppRight)
-    )
+      toDotPath(1, 4, dppRight))
 
     record.add makeDotEdge(
       toDotPath(0, 3, dppRight),
-      toDotPath(1, 7, dppRight)
-    )
+      toDotPath(1, 7, dppRight))
 
 
-    topGraph.addSubgraph(record)
+    topGraph.add record
 
   try:
-    topGraph.toPng("/tmp/res.png", tmpfile = "/tmp/dot-1.dot")
+    topGraph.toPng(
+      AbsFile "/tmp/res.png",
+      tmpfile = AbsFile "/tmp/dot-1.dot")
 
   except:
     discard
@@ -174,7 +167,9 @@ suite "graphiz terminal node styling":
 
 
     try:
-      topGraph.toPng("/tmp/res-1.png", tmpfile = "/tmp/dot-2.dot")
+      topGraph.toPng(
+        AbsFile"/tmp/res-1.png",
+        tmpfile = AbsFile"/tmp/dot-2.dot")
 
     except:
       discard
@@ -182,7 +177,7 @@ suite "graphiz terminal node styling":
 import
     hmisc/hasts/graphviz_ast,
     hmisc/other/[oswrap, hshell, hjson],
-    hmisc/[helpers, hdebug_misc],
+    hmisc/core/all,
     std/[strformat, parsesql, hashes],
     fusion/matching
 

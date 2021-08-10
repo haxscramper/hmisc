@@ -161,7 +161,7 @@ template subnodesEq*(lhs, rhs, field: untyped): untyped =
   ## have identical lengths too.
   bind zip, allIt
   lhs.field.len() == rhs.field.len() and
-  zip(lhs.field, rhs.field).allOfIt(it[0] == it[1])
+  zip(lhs.field, rhs.field).allIt(it[0] == it[1])
 
 template byaddr1*(lhs, typ, ex) =
   when typ is typeof(nil):

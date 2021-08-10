@@ -9,7 +9,7 @@ import
 import
   ../../algo/[halgorithm, hseq_mapping],
   ../../types/[seq2d, hprimitives, colorstring, geometry_primitives],
-  ../../helpers
+  ../../core/all
 
 export term_buf, hprimitives
 
@@ -129,7 +129,7 @@ func newTermPoint*(start: (int, int), c: char = '+'): SPoint[char, int] =
   SPoint[char, int](point: start.makePoint(), config: c)
 
 method render*(point: SPoint[char, int], buf: var TermBuf): void =
-  buf[point.point] = point.config
+  buf[point.point] = toColoredRune(point.config)
 
 #==============================  Term rect  ==============================#
 
@@ -703,7 +703,7 @@ method render*(grid: TermMultiGrid, buf: var TermBuf): void =
 
       block: # Remove things in grid
         for (x, y) in (wRange, hRange):
-          buf[x, y] = ' '
+          buf[x, y] = toColoredRune(' ')
 
       block: # Fix intersections
         for x in absCellX:

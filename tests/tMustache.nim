@@ -1,9 +1,9 @@
 import
   hmisc/hasts/mustache_template,
-  hmisc/types/ptree,
-  hmisc/[hdebug_misc]
+  hmisc/types/[ptree, colorstring],
+  hmisc/preludes/unittest
 
-import std/[unittest, streams, db_sqlite]
+import std/[streams, db_sqlite]
 
 startHax()
 

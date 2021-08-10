@@ -79,7 +79,6 @@ proc format*(str: ColoredText): HLogFormat =
   HLogFormat(str: str)
 
 proc newTermLogger*(file: bool = false, line: bool = false): HLogger =
-  static: echo typeof toYellow("traasdf")
   result = HLogger(
     logPrefix: toMapArray({
       logTrace:  toWhite("trace:").format(),
@@ -330,7 +329,7 @@ macro logScope*(varname: untyped, pr: untyped): untyped =
 proc prepareDump*[T](
   head: string, expr: T, other: sink seq[string]): seq[string] =
 
-  result.add toGreen(head & ":")
+  result.add $toGreen(head & ":")
   var tmp =
     when expr is NimNode:
       toGreen(($expr.kind)[3..^1]) "\n" &
@@ -373,7 +372,7 @@ proc toStrSeq(s: varargs[string]): seq[string] =
 proc preparePDump*[T](
   head: string, expr: T, args: sink seq[string]): seq[string] =
 
-  result.add toGreen(head & ":")
+  result.add $toGreen(head & ":")
   result.add "\n="
   result.add pstring(expr)
   result.add args
@@ -780,7 +779,7 @@ proc loggerErrConverter*(
 
   state.get().warn(stream.readLine())
 
-proc prettyShellCmd(cmd: ShellCmd): ColoredText =
+proc prettyShellCmd*(cmd: ShellCmd): ColoredText =
   result = cmd.bin
   let max = 80
 

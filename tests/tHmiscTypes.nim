@@ -1,9 +1,11 @@
-import sugar, strutils, sequtils, strformat
+import
+  std/[sugar, strutils, sequtils, strformat]
 
-import hmisc/types/[seq2d, hprimitives]
-import hmisc/hcommon_converters
+import
+  hmisc/types/[seq2d, hprimitives],
+  hmisc/hcommon_converters,
+  hmisc/preludes/unittest
 
-import unittest
 
 suite "{Seq2D}":
   test "{mapIt2d}":

@@ -3,14 +3,14 @@
 
 import
   std/[
-    unittest, sequtils, strutils, terminal, random,
+    sequtils, strutils, terminal, random,
     tables, json, macros
   ]
 
 import
   hmisc/other/hpprint,
   hmisc/algo/halgorithm,
-  hmisc/hdebug_misc
+  hmisc/preludes/unittest
 
 startHax()
 
@@ -53,29 +53,29 @@ suite "PPrint data":
 
 suite "Simple configuration":
   test "integer":
-    assertEq pstring(12, conf = op), "12"
+    check pstring(12, conf = op) == "12"
 
   test "string":
-    assertEq pstring("112", conf = op), "\"112\""
+    check pstring("112", conf = op) == "\"112\""
 
   test "Anonymous tuple":
-    assertEq pstring((12, "sdf"), conf = op), "(12, \"sdf\")"
+    check pstring((12, "sdf"), conf = op) == "(12, \"sdf\")"
 
   test "Named tuple":
-    assertEq pstring((a: "12", b: "222"), conf = op), "(a: \"12\", b: \"222\")"
+    check pstring((a: "12", b: "222"), conf = op) == "(a: \"12\", b: \"222\")"
 
   test "Narrow sequence":
-    assertEq @[1, 2, 3, 4].pstring(6, conf = op), """
+    check @[1, 2, 3, 4].pstring(6, conf = op) == """
 - 1
 - 2
 - 3
 - 4"""
 
   test "Wide sequence":
-    assertEq @[1, 2, 3].pstring(conf = op), "[1, 2, 3]"
+    check @[1, 2, 3].pstring(conf = op) == "[1, 2, 3]"
 
   test "int-int table":
-    assertEq {2: 3, 4: 5}.toOrderedTable().pstring(conf = op),
+    check {2: 3, 4: 5}.toOrderedTable().pstring(conf = op) ==
         "{ 2: 3, 4: 5"
 
   test "seq-seq table":
@@ -86,7 +86,7 @@ suite "Simple configuration":
     }
 
     let str = tbl.pstring(conf = op)
-    assertEq str, """
+    check str == """
 [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] =
   [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] =
@@ -96,15 +96,14 @@ suite "Simple configuration":
 
 
   test "Sequence of tuples":
-    assertEq @[(1, 3), (4, 5)].pstring(conf = op),
-        "[(1, 3), (4, 5)]"
+    check @[(1, 3), (4, 5)].pstring(conf = op) == "[(1, 3), (4, 5)]"
 
   type
     T = object
       f1: int
 
   test "Simple object":
-    assertEq T(f1: 12).pstring(conf = op), "T(f1: 12)"
+    check T(f1: 12).pstring(conf = op) == "T(f1: 12)"
 
   test "Multiline constant":
     type
@@ -119,7 +118,7 @@ suite "Simple configuration":
       pede. Etiam vel neque nec dui digniss
       Phasellus neque orci, porta a, alique
       Phasellus purus. Pellentesque tristiq""".dedent()).pstring(conf = op)
-    assertEq str, """
+    check str == """
       Tt(f2: "Aliquam erat volutpat. Nunc sad asdfd
              non orci commodo lobortis. Proin nequ
              lobortis eget, lacus. Sed diam. Praes
@@ -129,7 +128,7 @@ suite "Simple configuration":
              Phasellus purus. Pellentesque tristiq"""".dedent
 
   test "Sequence of objects":
-    assertEq @[T(f1: 12), T(f1: -99)].pstring(conf = op),
+    check @[T(f1: 12), T(f1: -99)].pstring(conf = op) ==
         "[T(f1: 12), T(f1: -99)]"
 
   type
@@ -139,9 +138,9 @@ suite "Simple configuration":
       of false: f09: (float, string)
 
   test "Case object":
-    assertEq C(kind: true, f90: "12").pstring(conf = op),
+    check C(kind: true, f90: "12").pstring(conf = op) ==
          "C(kind: true, f90: \"12\")"
-    assertEq C(kind: false, f09: (1.2, "12")).pstring(conf = op),
+    check C(kind: false, f09: (1.2, "12")).pstring(conf = op) ==
          "C(kind: false, f09: (1.2, \"12\"))"
 
 suite "Colored printing":
@@ -180,25 +179,25 @@ suite "Deeply nested types":
   # test "8D sequence":
   #   let str = @[@[@[@[@[@[@[@[1]]]]]]]].pstring(conf = op)
   #   echo str
-  #   assertEq str, "[[[[[[[[1]]]]]]]]"
+  #   check str, "[[[[[[[[1]]]]]]]]"
 
   test "4x4 seq":
-    assertEq @[
+    check @[
       @[1, 2, 3, 4],
       @[5, 6, 7, 8],
       @[9, 1, 2, 3],
       @[4, 5, 6, 7],
-    ].pstring(80, conf = op),
+    ].pstring(80, conf = op) ==
          "[[1, 2, 3, 4], [5, 6, 7, 8], [9, 1, 2, 3], [4, 5, 6, 7]]"
 
 
   test "Narrow 4x4 seq":
-    assertEq @[
+    check @[
       @[1, 2, 3, 4],
       @[5, 6, 7, 8],
       @[9, 1, 2, 3],
       @[4, 5, 6, 7],
-    ].pstring(20, conf = op), """
+    ].pstring(20, conf = op) == """
       - [1, 2, 3, 4]
       - [5, 6, 7, 8]
       - [9, 1, 2, 3]
@@ -206,10 +205,10 @@ suite "Deeply nested types":
 
 
   test "Super narrow 2x2 seq":
-    assertEq @[
+    check @[
       @[1, 2, 4],
       @[5, 6, 8],
-    ].pstring(7, conf = op), """
+    ].pstring(7, conf = op) == """
       - - 1
         - 2
         - 4
@@ -219,14 +218,16 @@ suite "Deeply nested types":
 
 suite "Other tests":
   test "primitive types colored":
-    pprint "hello"
-    pprint 12
-    pprint '1'
-    pprint @["12", "2"]
+    show:
+      pstring("hello")
+      pstring(12)
+      pstring('1')
+      pstring(@["12", "2"])
 
   test "Tuples and json colored":
-    pprint %["he", "llo"]
-    pprint %12
+    show:
+      pstring(%["he", "llo"])
+      pstring(%12)
 
   test "Larger types colored":
     pprint PPrintConf(), force = {
@@ -241,7 +242,7 @@ suite "Other tests":
     var a = A()
     a.next = a
 
-    pprint a
+    show pstring(a)
 
   test "Enum array":
     type
@@ -252,8 +253,8 @@ suite "Other tests":
 
     block:
       var arr: array[En, string]
-      pprint(arr)
+      show pstring(arr)
 
     block:
       var arr: array[en1 .. en2, string]
-      pprint(arr)
+      show pstring(arr)

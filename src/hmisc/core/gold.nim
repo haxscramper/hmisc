@@ -114,6 +114,14 @@ proc `of`*[A: object or ref object; K: enum](item: A, kind: K | set[K]): bool =
   else:
     item.kind == kind
 
+template getSomeIt*[T](opt: Option[T], value, default: untyped): untyped =
+  if opt.isSome():
+    let it {.inject.} = opt.get()
+    value
+  else:
+    default
+
+
 template last*(s: typed): untyped = s[^1]
 
 func dollar*[T](arg: T): string =

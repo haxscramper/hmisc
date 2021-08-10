@@ -1,63 +1,46 @@
-import unittest
+import std/[strformat, options]
 
-import strformat, options
-import hmisc/[helpers, hexceptions]
-import hmisc/algo/htemplates
-import hmisc/macros/iflet
+import
+  hmisc/preludes/unittest,
+  hmisc/core/all,
+  hmisc/algo/[htemplates, halgorithm],
+  hmisc/macros/iflet
 
 func empty[T](): seq[T] = discard
 
 suite "Misc helper functions":
-  test "Long assertion fail":
-    try:
-      raiseArgumentError: joinLiteral:
-        "Nice {12 + 2}"
-        "12"
-
-    except ArgumentError:
-      discard
-
   test "Split list":
     expect ArgumentError:
       discard empty[int]().splitList()
 
-    doAssert @[1].splitList() == (1, empty[int]())
-    doAssert @[1, 2].splitList() == (1, @[2])
+    check @[1].splitList() == (1, empty[int]())
+    check @[1, 2].splitList() == (1, @[2])
 
   test "{dedent} :proc:value:":
-    assertEq "  a".dedent, "a"
-    assertEq "A\n  a".dedent, "A\n  a"
+    check "  a".dedent == "a"
+    check "A\n  a".dedent == "A\n  a"
 
   test "{enclosedIn} :proc:value:":
-    doAssert "-+-".enclosedIn(("-", "-"))
-    doAssert "-+-".enclosedIn("-")
-    doAssert not "+".enclosedIn("-")
-
-  test "{wrapTwoColumns} :proc:value:":
-    assertEq @[("hello", "world"), ("", "nice")].wrapTwoColumns(
-      widthColLimits = (5, 5)
-    ).join("\n"), """
-      hello world
-            nice""".dedent
+    check "-+-".enclosedIn(("-", "-"))
+    check "-+-".enclosedIn("-")
+    check not "+".enclosedIn("-")
 
   test "{enumerate} :template:value:":
-    doAssert @["cat", "dog"].enumerate() == @[(0, "cat"), (1, "dog")]
+    check @["cat", "dog"].enumerate() == @[(0, "cat"), (1, "dog")]
 
   test "{join*} string joining functions":
-    assertEq @["1", "2"].joinq(", "), "\"1\", \"2\""
-    assertEq @["1", "2"].joinl(), "1\n2"
-    assertEq @["1", "2"].joinw(), "1 2"
+    check @["1", "2"].joinq(", ") == "\"1\", \"2\""
+    check @["1", "2"].joinl() == "1\n2"
+    check @["1", "2"].joinw() == "1 2"
 
   test "{tern} :template:":
-    doAssert (false).tern(1, 3) == 3
-    # If second branch is executed it will raise exception - due to
-    # lazy evaluation it does not happen.
-    doAssert (true).tern(-1, raiseAssert("!!!")) == -1
+    check (false).tern(1, 3) == 3
+    check (true).tern(-1, raiseAssert("!!!")) == -1
 
   test "{`==`} Option comparison :generic:":
-    doAssert some(12) == 12
-    doAssert not (none(int) == 2)
-    doAssert (some(12), some(2)) == (12, 2)
+    check some(12) == 12
+    check not (none(int) == 2)
+    check (some(12), some(2)) == (12, 2)
 
 suite "If let":
   test "{iflet} Simple :macro:":
@@ -68,7 +51,7 @@ suite "If let":
     else:
      ok = true
 
-    doAssert ok
+    check ok
 
   test "{iflet} Else-if brances :macro:":
     var final: int = 0
@@ -79,7 +62,7 @@ suite "If let":
     else:
       final = 1
 
-    doAssert final == 1
+    check final == 1
 
   test "{iflet} Return value from body using block :macro:":
     let final = block:
@@ -92,7 +75,7 @@ suite "If let":
       else:
         1
 
-    doAssert final == 1
+    check final == 1
 
   test "{iflet} Iflet in generic function :macro:generic:":
     proc g[T](arg: T): T =
@@ -102,9 +85,9 @@ suite "If let":
         return resVal
 
       else:
-        fail()
+        raise newImplementError()
 
-    doAssert g(12) == 12
+    check g(12) == 12
 
   test "{iflet} inside of template :macro:template:":
     template whileLet(expr, body: untyped): untyped =
@@ -119,23 +102,22 @@ suite "If let":
     whileLet(none(int)):
       inc cnt
 
-    doAssert cnt == 0
+    check cnt == 0
 
 suite "Slice clamping":
   test "test":
-    doAssert clamp(0 .. 2, 0 .. 2) == 0 .. 2
+    check clamp(0 .. 2, 0 .. 2) == 0 .. 2
     check clamp(1 ..^ 2, 2).a == 1
     check clamp(1 ..^ 2, 0).a == 0
-    doAssert @(clamp(1 ..^ 2, 0)).len == 0
-    doAssert @(clamp(1 .. 10, 0 .. 0)).len == 0
-    doAssert clamp(0 .. 90, 3) == 0 .. 3
-
-    doassert intersect(0 .. 10, 10 .. 20) == 10 .. 10
+    check @(clamp(1 ..^ 2, 0)).len == 1
+    check @(clamp(1 .. 10, 0 .. 0)).len == 0
+    check clamp(0 .. 90, 3) == 0 .. 3
+    check intersect(0 .. 10, 10 .. 20) == 10 .. 10
 
     block:
       let s = @[0, 1, 3, 4]
-      doAssert clamp(0 .. 102, s.high) == 0 .. s.high
-      doAssert clamp(0 .. ^1, s.high) == 0 .. s.high
+      check clamp(0 .. 102, s.high) == 0 .. s.high
+      check clamp(0 .. ^1, s.high) == 0 .. s.high
 
   test "with it":
     let val = @[0].withIt do:

@@ -566,8 +566,9 @@ func toStr*(inAst: ShellAst, oneline: bool = false): string =
 
     case ast.kind:
       of sakEmpty:
-        raiseArgumentError("'sakEmpty' cannot be converted to string and " &
-          "should exist withing final AST.")
+        raise newUnexpectedKindError(
+          ast, "'sakEmpty' cannot be converted to string and ",
+          "should not exist withing final AST.")
 
       of sakListKinds:
         var buf: seq[string]
@@ -640,6 +641,9 @@ func toStr*(inAst: ShellAst, oneline: bool = false): string =
 {pref}done
 """
 
+      of sakAsyncList:
+        result = ast[0].aux(level + 1, true) & " &"
+
       else:
         raiseImplementError(&"For kind {ast.kind} {instantiationInfo()}")
 
@@ -708,20 +712,23 @@ func extendList(
     e1 = e2
 
   elif e1.kind != kind:
-    raiseArgumentError(
-      "Cannot extend shell list of kind " & $e1.kind &
-      " as " & $kind & ". Use " & (
-        case kind:
-          of sakAndList: "&&="
-          of sakOrList: "||="
-          of sakAsyncList: "&="
-          of sakPipeList: "|="
-          of sakSequentialList: raiseImplementError("WIP")
-          else: raiseArgumentError(
-            "Cannot extend element of kind '" & $kind &
-              "' - not a list kind"
-          )
-      ) & " instead."
+    raise newArgumentError(
+      "Cannot extend shell list of kind ",
+      $e1.kind,
+      " as ",
+      $kind,
+      ". Use ",
+      case kind:
+        of sakAndList: "&&="
+        of sakOrList: "||="
+        of sakAsyncList: "&="
+        of sakPipeList: "|="
+        of sakSequentialList: raise newImplementError("WIP")
+        else:raise newArgumentError(
+          "Cannot extend element of kind '" & $kind &
+            "' - not a list kind"
+        ),
+       " instead."
     )
   else:
     e1.subnodes.add e2
@@ -788,8 +795,12 @@ macro shOr*(arg: varargs[untyped]): untyped =
 macro shPipe*(arg: varargs[untyped]): untyped =
   listToInfix("|", toSeq(arg), "shPipe")
 
-macro shAsync*(arg: varargs[untyped]): untyped =
-  listToInfix("&", toSeq(arg), "shAsync")
+func shAsync*(arg: ShellAst): ShellAst =
+  ShellAst(kind: sakAsyncList, subnodes: @[arg])
+
+func shAsync*(arg: ShellCmd): ShellAst =
+  ShellAst(kind: sakAsyncList, subnodes: @[
+    ShellAst(kind: sakCmd, cmd: arg)])
 
 func shStmtList*(args: varargs[ShellAst]): ShellAst =
   ShellAst(kind: sakStmtList, subnodes: toSeq(args))
@@ -1064,6 +1075,7 @@ when cbackend:
     var processList: seq[Process] = newSeq[Process](maxPool)
     var commandMap: seq[int] = newSeq[int](maxPool)
 
+    let maxPool = min(maxPool, cmds.len)
 
     var leftCount = len(cmds)
     var cmdIdx = 0
@@ -1243,10 +1255,10 @@ proc shellResult*(
     # will certainly involve some fuckery with filtering out ansi
     # codes (because colored output is basically /the/ reason to have
     # piping to parent shell).
-    raiseArgumentError(
-      "Stream access not allowed when you use poParentStreams. " &
-        "Either set `discardOut` to true or remove `poParentStream` " &
-        "from options"
+    raise newArgumentError(
+      "Stream access not allowed when you use poParentStreams. ",
+      "Either set `discardOut` to true or remove `poParentStream` ",
+      "from options"
     )
 
   const nl = "\n"

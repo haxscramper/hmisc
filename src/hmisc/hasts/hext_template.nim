@@ -330,7 +330,7 @@ proc parseHxStmtList(lexer: var HxLexer): HxTree =
         result.add parseHxExpr(lexer)
 
       else:
-        raiseImplementKindError(lexer[])
+        raise newImplementKindError(lexer[])
 
 
 proc parseHext*(lexer: var HxLexer): HxTree =

@@ -1,6 +1,5 @@
 import
-  ../base_errors,
-  ../hdebug_misc,
+  ../core/all,
   ../algo/[hlex_base, hparse_base],
   ../types/ptree
 
@@ -137,10 +136,10 @@ proc parseStmtList(lexer: var MLexer): MTree =
             return
 
           else:
-            raiseImplementKindError(lexer[+1])
+            raise newImplementKindError(lexer[+1])
 
       else:
-        raiseImplementKindError(lexer[])
+        raise newImplementKindError(lexer[])
 
 proc mustacheParse*(str: string): MTree =
   var str = initPosStr(str)
@@ -170,4 +169,4 @@ proc writeTemplate*(stream: Stream, tree: MTree, ctx: MPcontext) =
       stream.write ctx.getKey(tree[0].strVal()).getVal()
 
     else:
-      raiseImplementKindError(tree.kind)
+      raise newImplementKindError(tree.kind)

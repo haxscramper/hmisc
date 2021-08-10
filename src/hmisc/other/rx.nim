@@ -1,7 +1,7 @@
 import ../core/all
 import ../types/colorstring
 import std/[sequtils, strutils, re]
-export re
+export re, colorstring
 
 type
   RxFlavor* = enum
@@ -104,17 +104,16 @@ func initRx*(kind: RxKind, args: varargs[Rx]): Rx =
   result = Rx(kind: kind)
   case kind:
     of rxkText, rxkCharSet, rxkSpecial:
-      raiseArgumentError(
-        "Invalid kind for nested regex construction: " & $kind
-      )
+      raise newUnexpectedKindError(
+        kind, "Invalid kind for nested regex construction.")
 
     of rxkSingleArgKinds:
       if args.len != 1:
-        raiseArgumentError(
-          "Invalid number of arguments for regext construction: " &
-            $kind & " expected exactly one argument, but got " &
-            $args.len
-        )
+        raise newArgumentError(
+          "Invalid number of arguments for regex construction: ",
+          $kind,
+          " expected exactly one argument, but got ",
+          $args.len)
 
       else:
         result.args.add args
@@ -184,7 +183,7 @@ func lispRepr*(rx: Rx, colored: bool = true, level: int = 0): ColoredText =
 
   result &= ")"
 
-func `$`*(rx: Rx): ColoredText = lispRepr(rx)
+func `$`*(rx: Rx): string = $lispRepr(rx)
 
 func toStr*(special: RxSpecialKind, flavor: RxFlavor = rxfPerl): string =
   case special:
@@ -207,8 +206,8 @@ func toStr*(special: RxSpecialKind, flavor: RxFlavor = rxfPerl): string =
 func toStr*(kind: RxKind): string =
   case kind:
     of rxkText, rxkCharset, rxkSpecial:
-      raiseArgumentError(
-        $kind & " is not directly convertible to string")
+      raise newUnexpectedKindError(
+        kind, " is not directly convertible to string")
 
     of rxkOneOrMoreGreedy: "+"
     of rxkOneOrMoreLazy: "+?"

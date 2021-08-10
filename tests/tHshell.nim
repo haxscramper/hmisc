@@ -4,11 +4,13 @@ import std/[
 ]
 
 import
-  hmisc/[helpers, hdebug_misc],
-  hmisc/other/[
-    hshell, hshell_convert, oswrap, hjson, nimbleutils, hunittest],
+  hmisc/core/all,
   hmisc/algo/[hlex_base, hparse_base],
-  hmisc/scripts/hmisc_putils
+  hmisc/scripts/hmisc_putils,
+  hmisc/preludes/unittest,
+  hmisc/other/[
+    hshell, hshell_convert, oswrap, hjson, nimbleutils
+  ]
 
 import
   hmisc/scripts/hmisc_putils
@@ -75,7 +77,7 @@ suite "Shell output parser":
 
 suite "Hshell":
   test "Echo":
-    assertEq runShell(ShellExpr "echo '1'").stdout.strip(), "1"
+    check runShell(ShellExpr "echo '1'").stdout.strip() == "1"
 
   test "Parallel process launch":
     var cmds = repeat((shellCmd(echo, "test"), false), 20)
@@ -116,26 +118,26 @@ suite "Hshell":
 
 
   test "Shell ast generation":
-    assertEq shAnd(
+    check shAnd(
       shellCmd ls,
-      shellCmd ls).toStr(), "ls && ls"
+      shellCmd ls).toStr() == "ls && ls"
 
-    assertEq shOr(
+    check shOr(
       shellCmd ls,
-      shellCmd ls, shAnd(shellCmd ls, shellCmd ls)).toStr(),
+      shellCmd ls, shAnd(shellCmd ls, shellCmd ls)).toStr() ==
       "ls || ls || (ls && ls)"
 
-    assertEq shellCmd(echo, -n, "hello").toStr(), "echo -n hello"
-    assertEq shellCmd(echo, -n, "\"he llo\"").toStr(), "echo -n '\"he llo\"'"
-    assertEq shellCmd(`dashed-name`).toStr(), "dashed-name"
-    assertEq shellCmd("string-name").toStr(), "string-name"
-    assertEq toStr($$hello < 12), "[ $hello -lt 12 ]"
+    check shellCmd(echo, -n, "hello").toStr() == "echo -n hello"
+    check shellCmd(echo, -n, "\"he llo\"").toStr() == "echo -n '\"he llo\"'"
+    check shellCmd(`dashed-name`).toStr() == "dashed-name"
+    check shellCmd("string-name").toStr() == "string-name"
+    check toStr($$hello < 12) == "[ $hello -lt 12 ]"
 
   test "Shell ast execution":
     var cmd: ShellAst
     cmd &&= ShellExpr("echo '12'")
 
-    assertEq evalShellStdout(cmd), "12"
+    check evalShellStdout(cmd) == "12"
 
     execShell shAnd(shellCmd(true), shellCmd(true))
     execShell shOr(shellCmd "false", shellCmd(true))
@@ -143,7 +145,7 @@ suite "Hshell":
     expect ShellError:
       execShell shAnd(shellCmd "false")
 
-    assertEq evalShellStdout(shellCmd(echo, -n, "hello")), "hello"
+    check evalShellStdout(shellCmd(echo, -n, "hello")) == "hello"
 
     let cmd1: ShellCmd = shellCmd("sh").withIt do:
       it - "c"
@@ -151,7 +153,7 @@ suite "Hshell":
         it - "c"
         it.expr shAnd(shellCmd(echo, 2), shellCmd(echo, 1))
 
-    assertEq cmd1.evalShellStdout(), "2\n1"
+    check cmd1.evalShellStdout() == "2\n1"
     execShell(cmd1)
 
   test "Operators":
@@ -166,12 +168,12 @@ suite "Hshell":
 
     cmd &&= &&more
 
-    assertEq evalShellStdout(cmd), "0234"
+    check evalShellStdout(cmd) == "0234"
 
     more &= ShellExpr("echo -n 5")
     cmd &&= &&more
 
-    assertEq evalShellStdout(cmd), "02345"
+    check evalShellStdout(cmd) == "02345"
 
   test "Shell code execution":
     for oneline in [true, false]:
@@ -186,8 +188,7 @@ suite "Hshell":
 
       let expr = cmd.toStr(oneline = oneline)
 
-      assertEq evalShellStdout(ShellExpr(expr)),
-        "[hello]\n[hello]\n[hello]\n[hello]"
+      check evalShellStdout(ShellExpr(expr)) == "[hello]\n[hello]\n[hello]\n[hello]"
 
   test "Shell ast & makeShellCmd":
     block:

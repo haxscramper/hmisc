@@ -1,10 +1,7 @@
 import
   hmisc/scripts/[hmisc_putils, nim_gcov, nim_gprof],
   hmisc/other/[hargparse, oswrap, hshell],
-  hmisc/hdebug_misc
-
-import
-  std/unittest
+  hmisc/preludes/unittest
 
 startHax()
 
@@ -22,6 +19,8 @@ suite "hmisc_putils":
       file "test3.nim": "proc test3*() = discard"
       file "test4.nim": "proc test4*() = discard"
       file "test5.nim": "proc test5*() = discard"
+      file "test6.nim": "proc test5*() = discard"
+      file "test7.nim": "proc test5*() = discard"
 
       file "hangbomg.nim":
         """

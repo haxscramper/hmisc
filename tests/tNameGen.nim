@@ -1,6 +1,7 @@
-import std/[sugar, strutils, sequtils, strformat, unittest]
+import std/[sugar, strutils, sequtils, strformat]
 import hmisc/algo/namegen
-import hmisc/hdebug_misc
+import hmisc/core/all
+import hmisc/preludes/unittest
 
 startHax()
 

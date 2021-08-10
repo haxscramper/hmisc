@@ -1,5 +1,6 @@
-import hmisc/hasts/json_ast
-import std/unittest
+import
+  hmisc/hasts/json_ast,
+  hmisc/preludes//unittest
 
 suite "Generate JSON":
   test "1":

@@ -3,9 +3,9 @@ export options
 export unicode
 
 import
-  ../base_errors,
-  ../helpers,
-  ../algo/clformat
+  ../core/all,
+  ../algo/clformat,
+  ../types/colorstring
 
 {.pragma: apiStruct, importc, incompleteStruct,
   header: "<tree_sitter/api.h>".}
@@ -1190,7 +1190,7 @@ proc treeRepr*[N, K](
     kindMap: TsKindMap[K] = default(array[K, TsBaseNodeKind]),
     unnamed: bool = false,
     opts: HDisplayOpts = defaultHDisplay
-  ): string =
+  ): ColoredText =
 
   let
     pathIndexed = opts.pathIndexed()
@@ -1208,10 +1208,11 @@ proc treeRepr*[N, K](
     numStyle = tcDefault.bg + tcGrey54.fg
     isHts = node is HtsNode
 
+  coloredResult()
+
   proc aux(
       node: N,
       level: int,
-      res: var string,
       name: string,
       idx: int,
       path: seq[int],
@@ -1224,49 +1225,44 @@ proc treeRepr*[N, K](
         assertRef node.original.get(), $node.kind
 
     if node.isNil():
-      with res:
-        add "  ".repeat(level)
-        add "<nil>", fgRed + bgDefault
+      add "  ".repeat(level)
+      add "<nil>".toRed()
 
     else:
       if pathIndexed:
         for item in path:
-          with res:
-            add "["
-            add $item
-            add "]"
+          add "["
+          add $item
+          add "]"
 
-        res.add " "
+        add " "
 
       else:
-        res.add "  ".repeat(level)
+        add "  ".repeat(level)
 
         if indexed:
           if level > 0:
-            with res:
-              add "["
-              add $idx
-              add "] "
+            add "["
+            add $idx
+            add "] "
 
           else:
-            res.add "   "
+            add "   "
 
-        with res:
-          add ($node.kind())[langLen ..^ 1], tern(
-            node.isNamed(),
-            fgGreen + bgDefault,
-            fgYellow + bgDefault
-          )
+        add ($node.kind())[langLen ..^ 1], tern(
+          node.isNamed(),
+          fgGreen + bgDefault,
+          fgYellow + bgDefault
+        )
 
-          add " "
+        add " "
 
         if name.len > 0:
-          with res:
-            add "<"
-            add name, fgCyan + bgDefault
-            add "("
-            add $nodeIdx
-            add ")> "
+          add "<"
+          add name, fgCyan + bgDefault
+          add "("
+          add $nodeIdx
+          add ")> "
 
 
         let hasRange =
@@ -1281,23 +1277,20 @@ proc treeRepr*[N, K](
             startPoint = startPoint(node)
             endPoint = endPoint(node)
 
-          with res:
-            add $startPoint.row, numStyle
-            add ":"
-            add $startPoint.column, numStyle
+          add $startPoint.row, numStyle
+          add ":"
+          add $startPoint.column, numStyle
 
           if endPoint.row == startPoint.row:
-            with res:
-              add ".."
-              add $endPoint.column, numStyle
-              add " "
+            add ".."
+            add $endPoint.column, numStyle
+            add " "
 
           else:
-            with res:
-              add "-"
-              add $endPoint.row, numStyle
-              add ":"
-              add $endPoint.column, numStyle
+            add "-"
+            add $endPoint.row, numStyle
+            add ":"
+            add $endPoint.column, numStyle
 
 
         if node.len(unnamed) == 0:
@@ -1313,12 +1306,12 @@ proc treeRepr*[N, K](
 
           if text.len > 1:
             for idx, line in text:
-              res.add "\n"
-              res.add getIndent(level + 1)
-              res.add line, style
+              add "\n"
+              add getIndent(level + 1)
+              add line, style
 
           else:
-            res.add $text[0], style
+            add $text[0], style
 
 
         else:
@@ -1327,28 +1320,27 @@ proc treeRepr*[N, K](
             for idx, subn in pairs(node, unnamed = true):
               if idx < opts.maxlen:
                 if subn.isNamed() or unnamed:
-                  res.add "\n"
+                  add "\n"
                   subn.aux(
-                    level + 1, res, node.childName(idx),
+                    level + 1, node.childName(idx),
                     idx = namedIdx, path & namedIdx, nodeIdx = idx)
 
                   inc namedIdx
 
               else:
-                with res:
-                  add "\n"
-                  add getIndent(level + 1)
-                  add " + ("
-                  add toPluralNoun(
-                    "hidden node", node.len(unnamed = true) - opts.maxLen)
-                  add ")"
+                add "\n"
+                add getIndent(level + 1)
+                add " + ("
+                add toPluralNoun(
+                  toColoredText("hidden node"),
+                  node.len(unnamed = true) - opts.maxLen)
+                add ")"
 
                 break
 
           else:
-            with res:
-              add " ... ("
-              add toPluralNoun("subnode", node.len())
-              add ")"
+            add " ... ("
+            add toPluralNoun(toColoredText("subnode"), node.len())
+            add ")"
 
-  aux(node, 0, result, "", 0, @[], 0)
+  aux(node, 0, "", 0, @[], 0)

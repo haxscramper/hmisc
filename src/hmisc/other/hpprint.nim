@@ -1126,7 +1126,8 @@ import std/macros
 
 macro pconf*(body: varargs[untyped]): untyped =
   withFieldAssignsTo(
-    ident("defaultPPrintConf"), body, withTmp = true)
+    ident("defaultPPrintConf"), body,
+    asExpr = true, withTmp = true)
 
 
 func debugpprint*[T](

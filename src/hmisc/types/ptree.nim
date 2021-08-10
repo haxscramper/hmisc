@@ -1,4 +1,4 @@
-import ../hdebug_misc, ../base_errors
+import ../core/all
 import std/[tables, options, sequtils]
 
 type
@@ -69,7 +69,7 @@ proc getIdx*[K, V](tree: PTree[K, V], idx: int): PTree[K, V] =
 
 proc setKey*[K, V](tree: var PTree[K, V], key: K, value: PTree[K, V]) =
   if tree.isAttrProvider:
-    raiseArgumentError("Cannot set value to attr provider")
+    raise newArgumentError("Cannot set value to attr provider")
 
   else:
     tree.attrs[key] = value
@@ -78,7 +78,7 @@ proc setKey*[K, V](tree: var PTree[K, V], key: K, value: PTree[K, V]) =
 proc setIdx*[K, V](
   tree: var PTree[K, V], idx: int, value: PTree[K, V]): PTree[K, V] =
   if tree.isSubProvider:
-    raiseArgumentError("Cannot set index to subtree provider")
+    raise newArgumentError("Cannot set index to subtree provider")
 
   else:
     tree.subtree[idx] = value
