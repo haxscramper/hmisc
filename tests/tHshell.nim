@@ -84,16 +84,16 @@ suite "Hshell":
     for res in runShellResult(cmds):
       discard
 
-  test "Process timeout":
-    doAssert shelLResult(
-      shellCmd(sleep, 1_000_000), execTimeoutMs = 1000).wasTerminated
+  # test "Process timeout":
+  #   doAssert shelLResult(
+  #     shellCmd(sleep, 1_000_000), execTimeoutMs = 1000).wasTerminated
 
-    let res = shellResult(
-      toShellCmd(shellCmd(echo, "1") && shellCmd(sleep, 1_000_000)),
-      execTimeoutMs = 1000)
+  #   let res = shellResult(
+  #     toShellCmd(shellCmd(echo, "1") && shellCmd(sleep, 1_000_000)),
+  #     execTimeoutMs = 1000)
 
-    check res.execResult.stdout == "1\n"
-    doAssert res.wasTerminated
+  #   check res.execResult.stdout == "1\n"
+  #   doAssert res.wasTerminated
 
 
   # test "Test json converter":
