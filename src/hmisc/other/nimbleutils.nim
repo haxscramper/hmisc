@@ -234,8 +234,12 @@ proc docgenBuild(conf: TaskRunConfig, ignored: seq[GitGlob]) =
       if not cmd.isEmpty():
         commands.add cmd
 
-  for (res, cmd) in runShellResult(commands.mapIt((it,it))):
-    conf.info cmd.prettyShellCmd()
+  conf.logger.wait "Executing", commands.len, "docgen commands in parallel"
+  conf.logger.indented:
+    for (res, cmd) in runShellResult(commands.mapIt((it,it))):
+      conf.info cmd.prettyShellCmd()
+
+  conf.done()
 
   if (errMsg.len > 0) and (conf.logFile.len > 0):
     discard
