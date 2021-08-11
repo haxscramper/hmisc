@@ -493,13 +493,11 @@ proc advance*(str; step: int = 1) {.inline.} =
   if str.isSlice:
     if str.pos < str.slices[str.sliceIdx].finish:
       for fragment in mitems(str.fragmentedRanges):
-        fragment.last().b = str.pos
+        fragment.last().b = str.pos + (step - 1)
 
       inc(str.pos, step)
 
     else:
-      # echov str.pos
-      # echov str.fragmentedRanges
       let current = str.pos
 
       inc str.sliceIdx
@@ -511,9 +509,6 @@ proc advance*(str; step: int = 1) {.inline.} =
           fragment.last().b = current
           if str.sliceIdx < str.slices.len:
             fragment.add @[str.pos .. str.pos]
-
-      # echov str.fragmentedRanges
-
 
   else:
     inc(str.pos, step)

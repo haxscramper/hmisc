@@ -74,7 +74,7 @@ suite "Primitives":
       str.skipSpace()
 
   test "Subslice advancements":
-    block advanceOverFragmentedRange:
+    block advance_over_fragmented_range:
       var str = varStr("0_1_2_3_4_5", [0..0, 2..2, 4..4, 6..6, 8..8])
       check str['0']
 
@@ -89,8 +89,47 @@ suite "Primitives":
         str.getRangeIndices() == @[0..0, 2..2, 4..4]
         str.getRange() == "012"
 
+    block larger_fragmented_ranges:
+      var str = varStr("012_3_456_", [0..2, 4..4, 6..8])
+      str.pushRange()
+      check:
+        str['0']
+        str.pos == 0
+        str.getRangeIndices() == @[0..0]
 
-    block partialRange:
+      str.advance()
+      str.advance()
+      str.advance()
+
+      check:
+        str['3']
+        str.pos == 4
+        str.getRangeIndices() == @[0..2, 4..4]
+
+      str.advance()
+
+      check:
+        str['4']
+        str.pos == 6
+        str.getRangeIndices() == @[0..2, 4..4, 6..6]
+
+      str.advance(); check str['5']
+      str.advance()
+
+      check:
+        str['6']
+        str.pos == 8
+        str.getRangeIndices() == @[0..2, 4..4, 6..7]
+
+      str.advance()
+
+      check:
+        not ?str
+        str.getRangeIndices() == @[0..2, 4..4, 6..8]
+
+
+
+    block partial_range:
       var str = initPosStr(asPtr "01234", [0 .. 1])
       check str.pos == 0
       skip(str, '0')
@@ -102,7 +141,7 @@ suite "Primitives":
         str.sliceIdx == 1
         not ?str
 
-    block fragmentedRange:
+    block fragmented_range:
       var str = initPosStr(asPtr "0_1", [0 .. 0, 2 .. 2])
       check:
         str[] == '0'
@@ -113,7 +152,7 @@ suite "Primitives":
         str.pos == 2
         str[] == '1'
 
-    block skipFragmentedRange:
+    block skip_fragmented_range:
       var str = initPosStr(asPtr "0_1_2", [0 .. 0, 2 .. 2, 4 .. 4])
       skip(str, '0')
       skip(str, '1')
@@ -121,7 +160,7 @@ suite "Primitives":
       skip(str, '2')
       check not ?str
 
-    block popWhileFragmentedRange:
+    block pop_while_fragmented_range:
       var str = varStr("0_0_00____", [0..0, 2..2, 4..5])
 
       # Unrolled `while str['0']`
@@ -133,7 +172,7 @@ suite "Primitives":
 
       check not ?str
 
-    block skipWhile:
+    block skip_while:
       var str = varStr("0_0_", [0..0,2..2])
       str.pushRange()
       str.skipWhile({'0'})
