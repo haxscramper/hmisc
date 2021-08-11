@@ -1015,6 +1015,7 @@ func pathIndexed*(opts: HDisplayOpts): bool =
 func withRanges*(opts: HDisplayOpts): bool =
   dfWithRanges in opts.flags
 
+
 func hShow*(ch: char, opts: HDisplayOpts = defaultHDisplay): ColoredText =
   $ch + defaultPrintStyling
 
@@ -1136,15 +1137,25 @@ func hShow*(
       toItalic("empty string", opts.colored) & ")"
 
   else:
-    let prefix = " ".repeat(opts.indent)
     if '\n' in str:
-      var str = toColoredText(str)
-      for idx, line in enumerate(str.lines()):
-        if idx > 0: result.newline()
-        result.add prefix
-        result.add line + (fgYellow + bgDefault)
+      var str = toYellow(str)
+      let onlyTail = str.onlyTailNewline()
+      if onlyTail:
+        result.add toYellow("\"")
 
+      result.add str
       replaceTailNewlines(result, uc"⮒" + (fgRed + bgDefault))
+
+      if onlyTail:
+        result.add toYellow("\"")
+
+      # for idx, line in enumerate(str.lines()):
+      #   if idx > 0: result.newline()
+      #   result.add prefix
+      #   result.add line + (fgYellow + bgDefault)
+
+      # if onlyTailNewlines:
+      # replaceTailNewlines(result, uc"⮒" + (fgRed + bgDefault))
 
     else:
       result = toYellow("\"" & str & "\"", opts.colored)

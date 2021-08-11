@@ -37,6 +37,7 @@ macro wrapSeqContainer*(
     isRef: static[bool] = false,
     withIterators: static[bool] = true,
     ignore: openarray[string]{nkBracket} = [""],
+    extra: openarray[string]{nkBracket} = [""],
     exported: static[bool] = true
   ) =
 
@@ -47,6 +48,7 @@ macro wrapSeqContainer*(
     field = main[1]
     mutType = if isRef: mainType else: nnkVarTy.newTree(mainType)
     ignore = mapIt(ignore, it.strVal)
+    extra = mapIt(extra, it.strVal)
 
   let
     indexOp = ident("[]")
@@ -54,36 +56,41 @@ macro wrapSeqContainer*(
 
   result = newStmtList()
 
+  if "@" in extra:
+    let atId = maybeExport("@", exported)
+    result.add quote do:
+      func `atId`(main: `mainType`): seq[`fieldType`] = main.`field`
+
   if "len" notin ignore:
     let lenId = maybeExport("len", exported)
     result.add quote do:
-      proc `lenId`(main: `mainType`): int = len(main.`field`)
+      func `lenId`(main: `mainType`): int = len(main.`field`)
 
   if "high" notin ignore:
     let highId = maybeExport("high", exported)
     result.add quote do:
-      proc `highId`(main: `mainType`): int = high(main.`field`)
+      func `highId`(main: `mainType`): int = high(main.`field`)
 
   if "add" notin ignore:
     let addId = maybeExport("add", exported)
     result.add quote do:
-      proc `addId`(main: `mutType`, other: `fieldType` | seq[`fieldType`]) =
+      func `addId`(main: `mutType`, other: `fieldType` | seq[`fieldType`]) =
         add(main.`field`, other)
 
 
   if "[]" notin ignore:
     let indexOp = maybeExport("[]", exported)
     result.add quote do:
-      proc `indexOp`(main: `mainType`, index: IndexTypes): `fieldType` =
+      func `indexOp`(main: `mainType`, index: IndexTypes): `fieldType` =
         main.`field`[index]
 
-      proc `indexOp`(main: `mainType`, slice: SliceTypes): seq[`fieldType`] =
+      func `indexOp`(main: `mainType`, slice: SliceTypes): seq[`fieldType`] =
         main.`field`[slice]
 
   if "[]=" notin ignore:
     let indexAsgn = maybeExport("[]=", exported)
     result.add quote do:
-      proc `indexAsgn`(
+      func `indexAsgn`(
           main: `mutType`, index: IndexTypes, value: `fieldType`) =
 
         main.`field`[index] = value
@@ -91,11 +98,19 @@ macro wrapSeqContainer*(
   if withIterators:
     let
       pairsId = maybeExport("pairs", exported)
-      itemsId = maybeExport("items", exported
-      )
+      itemsId = maybeExport("items", exported)
+      ritemsId = maybeExport("ritems", exported)
+      rpairsId = maybeExport("rpairs", exported)
+
     result.add quote do:
-      iterator `pairsId`(main: `mainType`): (int, `fieldType`) =
-        for item in pairs(main.`field`):
+      iterator `rpairsId`(main: `mainType`): (int, `fieldType`) =
+        var idx = main.`field`.high
+        while idx >= 0:
+          yield (idx, main.`field`[idx])
+          dec idx
+
+      iterator `ritemsId`(main: `mainType`): `fieldType` =
+        for idx, item in rpairs(main.`field`):
           yield item
 
       iterator `itemsId`(main: `mainType`): `fieldType` =

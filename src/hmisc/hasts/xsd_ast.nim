@@ -6,8 +6,7 @@ export xml_ast
 
 import ../algo/[hstring_algo, halgorithm, clformat]
 import ../other/oswrap
-import ../helpers
-
+import ../core/all
 import ../types/colorstring
 
 
@@ -147,23 +146,25 @@ func `$`*(occur: XsdOccursCount): string =
 proc treeRepr*(
     xsd; colored: bool = true,
     indexed: bool = false, maxdepth: int = 120
-  ): string =
+  ): ColoredText =
+
+  coloredResult()
 
   proc aux(n: XsdEntry, level: int, idx: seq[int]): string =
     template updateValue(element: typed) =
       for name, field in fieldPairs(element):
         when field is Option and
-             field isnot Option[XsdEntry]
-          :
+             field isnot Option[XsdEntry]:
           if field.isSome():
-            result &= &[" ", toCyan(name, colored), " = ",
-                        toYellow($field.get(), colored)]
+            add " "
+            add toCyan(name, colored)
+            add " = "
+            add toYellow($field.get(), colored)
 
         elif field is XsdEntry or
              field is XsdEntryKind or
              field is seq[XsdEntry] or
-             field is Option[XsdEntry]
-          :
+             field is Option[XsdEntry]:
           discard
 
         else:
@@ -171,31 +172,45 @@ proc treeRepr*(
             discard
 
           else:
-            result &= &[" ", toCyan(name, colored), " = ",
-                        toYellow($field, colored)]
+            add " "
+            add toCyan(name, colored)
+            add " = "
+            add toYellow($field, colored)
 
       if notNil(element.attrs):
         for key, value in element.attrs:
-          result &= &[" ", toRed(key, colored), " = ",
-                      toYellow(value, colored)]
+          add " "
+          add toRed(key, colored)
+          add " = "
+          add toYellow(value, colored)
 
 
     let pref {.inject.} =
       if indexed:
         idx.join("", ("[", "]")) & "    "
+
       else:
         "  ".repeat(level)
 
-    if isNil(n): return pref & toRed("<nil>", colored)
-    if level > maxdepth: return pref & " ..."
+    add pref
+    if isNil(n):
+      add toRed("<nil>", colored)
+      return
 
-    result &= pref & toGreen(($n.kind)[3 ..^ 1], colored)
+    if level > maxdepth:
+      add " ..."
+      return
+
+
+
+    add toGreen(($n.kind)[3 ..^ 1], colored)
 
     updateValue(n[])
 
     case n.kind:
       of xekSimpleType:
-        result &= &[" / ", toRed(($n[0].kind)[3 ..^ 1], colored)]
+        add " / "
+        add toRed(($n[0].kind)[3 ..^ 1], colored)
         updateValue(n[0][])
 
       else:
@@ -212,7 +227,7 @@ proc treeRepr*(
       else:
         treeReprRecurse(n, level, idx)
 
-  return aux(xsd, 0, @[])
+  aux(xsd, 0, @[])
 
 proc newTree*(kind: XsdEntryKind, subnodes: varargs[XsdEntry]): XsdEntry =
   result = XsdEntry(kind: kind)
@@ -410,7 +425,7 @@ tag.
          return xsd.getTypeImpl().isPossiblePrimitiveType()
 
     else:
-      raiseImplementKindError(xsd)
+      raise newImplementKindError(xsd)
 
 ## #+endsection
 
@@ -436,7 +451,7 @@ proc classifyPrimitiveTypeKind*(str: string): XsdTokenKind =
     of "xsd:uri": xtkUri
     of "xsd:anyType", "xsd:anytype": xtkAnyType
     else:
-      raiseArgumentError(str)
+      raise newArgumentError(str)
 
 proc classifyPrimitiveTypeKind*(xsd): XsdTokenKind =
   classifyPrimitiveTypeKind(xsd.getType())
@@ -445,7 +460,7 @@ proc namePrimitiveTypeKind*(
     kind: XsdTokenKind; withPrefix: bool = false): string =
 
   if kind in xtkNamedKinds:
-    raiseArgumentError($kind & " cannot be named as primitive token kind")
+    raise newArgumentError($kind & " cannot be named as primitive token kind")
 
   const map = toMapArray({
     xtkString: "string",
@@ -497,7 +512,7 @@ proc getNimName*(kind: XsdTokenKind): string =
     of xtkUri: "URI"
     of xtkAnyType: "XmlNode"
     else:
-      raiseUnexpectedKindError(kind)
+      raise newUnexpectedKindError(kind)
 
 proc getParserName*(kind: XsdTokenKind): string =
   "parseXsd" & capitalizeAscii(namePrimitiveTypeKind(kind))
@@ -593,14 +608,14 @@ Return list of tokens that entry described by `xsd` can start with.
             result.add aux(xsd[0], parent)
 
           else:
-            raiseUnexpectedKindError(xsd[0])
+            raise newUnexpectedKindError(xsd[0])
 
       of xekSimpleType:
         if xsd[0].kind in {xekRestriction}:
           result.add aux(xsd[0], parent)
 
       else:
-        raiseUnexpectedKindError(xsd)
+        raise newUnexpectedKindError(xsd)
 
   return aux(xsd, parent)
 
@@ -663,7 +678,7 @@ Return token kind -> parser name mapping for each element in `alts`.
   for alt in alts:
     for (token, source) in getFirstTokens(alt):
       if token.kind in used:
-        raiseargumenterror(
+        raise newArgumentError(
           $token.kind &
             " is already used in first set for this group of tokens")
 
@@ -781,7 +796,7 @@ proc convertGroup*(xml; context): XsdEntry =
 
 
         else:
-          raiseImplementError(node.safeTag())
+          raise newImplementError(node.safeTag())
 
     context.groups[xml["name"]] = result
 
@@ -799,7 +814,7 @@ proc convertSequence*(xml; context): XsdEntry =
   case xml.safeTag():
     of xsd"sequence": result = XsdEntry(kind: xekSequence)
     of xsd"choice": result = XsdEntry(kind: xekChoice)
-    else: raiseImplementError(xml.safeTag())
+    else: raise newImplementError(xml.safeTag())
 
   for element in xml:
     case element.safeTag():
@@ -814,7 +829,7 @@ proc convertSequence*(xml; context): XsdEntry =
 
       else:
         echo element
-        raiseImplementError(element.safeTag())
+        raise newImplementError(element.safeTag())
 
   updateBaseAttrs(result, xml)
 
@@ -828,7 +843,7 @@ proc convertExtension*(xml; context): XsdEntry =
         result.add convertAttribute(node, context)
 
       else:
-        raiseImplementError(node.safeTag())
+        raise newImplementError(node.safeTag())
 
 
 proc convertRestriction*(xml, context): XsdEntry =
@@ -840,7 +855,7 @@ proc convertRestriction*(xml, context): XsdEntry =
         of xsd"enumeration": xekEnumeration
         of xsd"pattern": xekPattern
         else:
-          raiseImplementError(node.safeTag())
+          raise newImplementError(node.safeTag())
 
     var entry: XsdEntry = newTree(kind)
     updateBaseAttrs(entry, node)
@@ -878,7 +893,7 @@ proc convertComplexType*(xml; context): XsdEntry =
               convertRestriction(subnode[0], context))
 
           else:
-            raiseImplementError(subnode[0].safeTag())
+            raise newImplementError(subnode[0].safeTag())
 
       of xsd"choice":
         result.add convertSequence(subnode, context)
@@ -891,7 +906,7 @@ proc convertComplexType*(xml; context): XsdEntry =
 
       else:
         if subnode.kind == xnElement:
-          raiseImplementError(subnode.safeTag())
+          raise newImplementError(subnode.safeTag())
 
 
   if result.hasName():
@@ -905,7 +920,7 @@ proc convertSimpleType*(xml, context): XsdEntry =
       result.add convertRestriction(xml[0], context)
 
     else:
-      raiseImplementError(xml[0].safeTag())
+      raise newImplementError(xml[0].safeTag())
 
   if result.hasName():
     context.types[result.name()] = result

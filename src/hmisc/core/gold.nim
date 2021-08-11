@@ -103,6 +103,14 @@ proc toRef*[T](t: T): ref T =
   new(result)
   result[] = t
 
+template asVar*[T](t: T): untyped =
+  var tmp = t
+  tmp
+
+template asPtr*[T](t: T): untyped =
+  var tmp = t
+  addr tmp
+
 template currIInfo*(): untyped =
   instantiationInfo(fullpaths = true)
 

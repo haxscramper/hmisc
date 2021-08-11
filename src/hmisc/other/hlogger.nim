@@ -671,6 +671,7 @@ proc logStackTrace*(
     showError: bool = true,
     ignoreAssert: bool = true,
     source: bool = true,
+    skipFirst: int = 0
   ) =
 
   let (showFile, showLine, leftAlignFiles) =
@@ -706,6 +707,9 @@ proc logStackTrace*(
 
   let maxIdx = stackEntries.high()
   for idx, tr in stackEntries:
+    if idx < skipFirst:
+      continue
+
     let filename: string = $tr.filename
     let prefix =
       if not filename.startsWith(choosenim):
@@ -734,8 +738,11 @@ proc logStackTrace*(
     if $tr.procname == "failedAssertImpl" and ignoreAssert:
       return
 
-    logger.debug prefix & (filePref) & " " &
-      $($tr.procname).toYellow()
+    let source = source and exists(AbsFile $tr.filename)
+    logger.debug prefix &
+      (filePref) & " " &
+      $($tr.procname).toYellow() &
+      tern(source, "", " " & $tr.line)
 
     if filename == "":
       continue

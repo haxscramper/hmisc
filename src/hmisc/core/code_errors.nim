@@ -533,6 +533,16 @@ template pprintStackTrace*(ex: ref Exception = nil): untyped =
         echo e.msg
 
 
+template haxStackTrace*(): untyped =
+  when nimvm:
+    if haxRunningComp():
+      pprintStackTrace()
+
+  else:
+    if haxRunning():
+      pprintStackTrace()
+
+
 template pprintErr*(): untyped =
   pprintStackTrace()
 

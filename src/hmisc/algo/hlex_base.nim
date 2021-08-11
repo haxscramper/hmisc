@@ -1,10 +1,13 @@
-import std/[streams, strscans, strutils, strformat,
-            macros, segfaults]
+import std/[
+  streams, strscans, strutils, strformat, macros, segfaults,
+  sequtils
+]
 
 import
-  ../core/all,
+  ../core/[all, code_errors],
   ./halgorithm,
-  ../other/oswrap
+  ../other/oswrap,
+  ../algo/clformat
 
 
 ##[
@@ -25,22 +28,25 @@ type
       of false:
         str*: string
         stream*: Stream
+        ranges: seq[int]
 
       of true:
         sliceIdx*: int
         baseStr*: ptr string
         slices*: seq[PosStrSlice]
+        fragmentedRanges: seq[seq[Slice[int]]]
 
     pos*: int
     line*: int
     column*: int
-    ranges*: seq[int]
     bufferActive*: bool
     sliceBuffer*: seq[seq[PosStrSlice]]
 
 
-  HLexerError* = ref object of CatchableError
+  HLexerError* = ref object of ParseError
     pos*, line*, column*: int
+
+  UnexpectedCharError = object of HLexerError
 
 
 using str: var PosStr
@@ -57,25 +63,20 @@ const
   PunctOpenChars* = {'(', '[', '{', '<'}
   PunctCloseChars* = {')', ']', '}', '>'}
   PunctSentenceChars* = {',', '.', '?', '!', ';', ':'}
+  MathChars* = { '+', '/', '%', '*', '='}
   PunctChars* = PunctOpenChars + PunctCloseChars + PunctSentenceChars
   Newline* = {'\n'}
   AllSpace* = Whitespace
   HorizontalSpace* = AllSpace - Newline
   VeritcalSpace* = Newline
 
-template raiseUnexpectedChar*(str: PosStr) =
-  raise HLexerError(
-    msg: "Unexpected character encountered while parsing: '" & $str[0] &
-      "' at " & $str.line & ":" & $str.column,
-    column: str.column, line: str.line, pos: str.pos)
 
-template raiseCannotGetOffset*(str: PosStr, offset: int) =
-  {.line: instantiationInfo().}:
-    mixin finished
-    raise newArgumentError(
-      "Cannot get char at +" & $offset & " input string is finished: " &
-      $finished(str)
-    )
+
+# template raiseUnexpectedChar*(str: PosStr) =
+#   raise HLexerError(
+#     msg: ,
+#     column: str.column, line: str.line, pos: str.pos)
+
 
 
 # func getLine*(str: PosStr): int {.inline.} = str.line
@@ -101,7 +102,17 @@ proc initPosStr*(file: AbsFile): PosStr =
 func initPosStr*(str): PosStr =
   ## Pop one layer of slices from slice buffer and create new sub-string
   ## lexer from it.
-  PosStr(isSlice: true, baseStr: addr str.str, slices: str.sliceBuffer.pop)
+  result = PosStr(
+    isSlice: true, baseStr: addr str.str, slices: str.sliceBuffer.pop)
+
+  result.pos = result.slices[0].start
+
+func initPosStr*(inStr: ptr string, slices: openarray[Slice[int]]): PosStr =
+  result = PosStr(isSlice: true, baseStr: inStr)
+  for slice in slices:
+    result.slices.add PosStrSlice(start: slice.a, finish: slice.b)
+
+  result.pos = result.slices[0].start
 
 func initPosStrView*(str): PosStr =
   ## Create substring with `0 .. high(int)` slice range
@@ -123,9 +134,14 @@ template atom*(input: PosStr; idx: int; s: set[char]): bool =
 proc hasNxt*(input: PosStr; idx: int): bool =
   let pos = input.pos + idx
   if input.isSlice:
-    for slice in input.slices[input.sliceIdx .. ^1]:
-      if pos in slice and pos < input.baseStr[].len:
-        return true
+    result = input.sliceIdx < input.slices.high or (
+      input.sliceIdx < input.slices.len and
+      pos <= input.slices[input.sliceIdx].finish and
+      pos < input.baseStr[].len)
+
+    echov input.baseStr[][pos], input.pos, result
+    echov input.sliceIdx
+
 
   else:
     return pos < input.str.len
@@ -138,6 +154,9 @@ proc finished*(str: PosStr): bool =
   )
 
 proc `?`*(str: PosStr): bool = not str.finished()
+
+# proc newCannotGetOffset*(str: PosStr, offset: int): ref GetterError =
+
 
 
 template nxt*(input: var PosStr; idx, step: int = 1) =
@@ -175,24 +194,50 @@ proc resetBuffer*(str) =
 proc `[]`*(str; idx: int = 0): char {.inline.} =
   fillNext(str, idx)
   if not hasNxt(str, idx):
-    raiseCannotGetOffset(str, idx)
+    raise newGetterError("Cannot get char at +",
+      idx, " input string is finished: ",
+      finished(str))
     # raiseArgumentError(&"Cannot get char at [+{idx}]")
 
+  #   let idx = str.pos + idx
+  #   var sliceStart = 0
+  #   for slice in str.slices[str.sliceIdx .. ^1]:
+  #     if sliceStart <= idx and
+  #        idx <= sliceStart + slice.len:
+  #       return str.baseStr[][slice.toAbsolute(idx - sliceStart)]
+
+  #     else:
+  #       sliceStart += slice.len
+
+  #   raise newArgumentError(&"Cannot get char at [+{idx}]")
   if str.isSlice:
-    let idx = str.pos + idx
-    var sliceStart = 0
-    for slice in str.slices[str.sliceIdx .. ^1]:
-      if sliceStart <= idx and
-         idx <= sliceStart + slice.len:
-        return str.baseStr[][slice.toAbsolute(idx - sliceStart)]
-
-      else:
-        sliceStart += slice.len
-
-    raise newArgumentError(&"Cannot get char at [+{idx}]")
+    return str.baseStr[][str.pos + idx]
 
   else:
     return str.str[str.pos + idx]
+
+proc newUnexpectedCharError*(
+    str; expected: string = ""): ref UnexpectedCharError =
+  result = (ref UnexpectedCharError)(
+    column: str.column, line: str.line, pos: str.pos)
+
+  result.msg.add "Unexpected character encoutered during lexing - found '"
+  result.msg.add $str[0]
+
+  if expected.len > 0:
+    result.msg.add "', but expected - '"
+    result.msg.add expected
+    result.msg.add "'"
+
+  else:
+    result.msg.add "'"
+
+  result.msg.add " at " & $str.line & ":" & $str.column
+
+  # result.msg.add "'"
+  #   msg: "Unexpected character encountered while parsing. '" &  &
+  #     )
+
 
 proc `[]`*(str; slice: HSlice[int, BackwardsIndex]): string {.inline.} =
   var next = 0
@@ -260,7 +305,11 @@ proc `[]`*(str; slice: HSlice[int, char]): string =
 proc `$`*(slice: PosStrSlice): string = &"{slice.start}..{slice.finish}"
 proc `[]`*(str; slice: PosStrSlice): string =
   str.baseStr[][
-    max(slice.start, 0) ..< min(slice.finish, str.baseStr[].high)]
+    max(slice.start, 0) ..< min(slice.finish, str.baseStr[].len)]
+
+proc sliceStrings*(str): seq[string] =
+  for slice in str.slices:
+    result.add str[slice]
 
 proc lineAround*(str; pos: int): tuple[line: string, pos: int] =
   var start = pos
@@ -273,23 +322,38 @@ proc lineAround*(str; pos: int): tuple[line: string, pos: int] =
     result.line.add str.str[start]
     inc start
 
-proc `$`*(str): string =
+proc hshow*(
+    slice: PosStrSlice, opts: HDisplayOpts = defaultHDisplay): ColoredText =
+
+  hshow(slice.start) & ".." & hshow(slice.finish)
+
+proc hshow*(str; opts: HDIsplayOpts = defaultHDisplay): ColoredText =
   if str.isSlice:
-    result = "["
-    for slice in str.slices:
-      var text = str[slice]
-      if text.len == 0:
-        continue
+    result.add "["
+    for sliceIdx in str.sliceIdx ..< str.slices.len:
+      let slice = str.slices[sliceIdx]
+      var text =
+        if sliceIdx == str.sliceIdx:
+          str.baseStr[][str.pos ..< min(slice.finish, str.baseStr[].len)]
 
-      if text.count('\n') == 1:
-        text = "\"" & text.replace("\n", "⮒") & "\""
+        else:
+          str[slice]
 
-      result &= &"[{slice}: {text}]"
+      # if text.len == 0:
+      #   continue
 
-    result &= "]"
+      if sliceIdx == str.sliceIdx:
+        result.add toRed(&"{sliceIdx}@{str.pos}")
+
+      result.add &"[{hshow(slice)}: {hshow(text)}]"
+
+    result.add "]"
 
   else:
-    result = &"[{str.pos}: {str.str[str.pos .. ^1]}]"
+    result.add &"[{str.pos}: {hshow(str.str[str.pos .. ^1])}]"
+
+
+proc `$`*(str): string = $hshow(str)
 
 template assertAhead*(str: PosStr, ahead: string) =
   if not str[ahead]:
@@ -304,9 +368,14 @@ template assertAhead*(str: PosStr, ahead: string) =
 
 
 proc pushRange*(str) {.inline.} =
-  str.ranges.add str.pos
+  if str.isSlice:
+    str.fragmentedRanges.add @[str.pos .. str.pos]
+
+  else:
+    str.ranges.add str.pos
 
 proc startSlice*(str) {.inline.} =
+  ## Start new slice in the string slice buffer.
   if str.sliceBuffer.len == 0:
     str.sliceBuffer.add @[]
 
@@ -319,24 +388,100 @@ proc toggleBuffer*(str; activate: bool = not str.bufferActive) {.inline.} =
   str.bufferActive = activate
 
 
-proc popRange*(str; leftShift: int = 0, rightShift: int = 0):
-  string {.inline.} =
+func posStrSlice*(a, b: int): PosStrSlice {.inline.} =
+  PosStrSlice(start: a, finish: b)
 
-  let start = str.ranges.pop + leftShift
-  let finish = str.pos +  rightShift
+func `[]`*(str: string, slice: PosStrSlice): string =
+  str[slice.start .. slice.finish]
+
+func `==`*(posSlice: PosStrSlice, slice: Slice[int]): bool =
+  posSlice.start == slice.a and posSlice.finish == slice.b
+
+func `==`*(slice: Slice[int], posSlice: PosStrSlice): bool =
+  posSlice == slice
+
+func `==`*(posSlice: seq[PosStrSlice], slice: seq[Slice[int]]): bool =
+  if posSlice.len == slice.len:
+    result = true
+    for (lhs, rhs) in zip(posSlice, slice):
+      if lhs != rhs:
+        return false
+
+func `==`*(slice: seq[Slice[int]], posSlice: seq[PosStrSlice]): bool =
+  posSlice == slice
+
+iterator topRangeIndices*(
+    str;
+    leftShift: int = 0, rightShift: int = -1,
+    doPop: bool = true
+  ): PosStrSlice =
 
   if str.isSlice:
-    var foundStart = false
-    for slice in str.slices:
-      result &= str.baseStr[][
-        max(start, slice.start) ..< min(finish, slice.finish)
-      ]
+    var ranges = tern(
+      doPop,
+      str.fragmentedRanges.pop(),
+      str.fragmentedRanges.last())
 
+    let baseHigh = str.baseStr[].high
 
+    for idx, fragment in ranges:
+      let slice = posStrSlice(fragment.a, min(fragment.b, baseHigh))
+      yield slice
 
 
   else:
-    return str.str[start ..< min(finish, str.str.len)]
+    let start = tern(doPop, str.ranges.pop, str.ranges.last()) + leftShift
+    let finish = str.pos
+
+    yield posStrSlice(start, min(finish, str.str.len) + rightShift)
+
+proc popRangeIndices*(
+    str; leftShift: int = 0, rightShift: int = -1): seq[PosStrSlice] =
+
+  for slice in topRangeIndices(str, leftShift, rightShift):
+    result.add slice
+
+proc getRangeIndices*(
+    str; leftShift: int = 0, rightShift: int = -1): seq[PosStrSlice] =
+
+  for slice in topRangeIndices(str, leftShift, rightShift, doPop = false):
+    result.add slice
+
+
+proc getRange*(str; leftShift: int = 0, rightShift: int = -1):
+  string {.inline.} =
+
+  for slice in topRangeIndices(
+      str, leftShift, rightShift, doPop = false):
+
+    if str.isSlice:
+      result.add str.baseStr[][slice]
+
+    else:
+
+      result.add str.str[slice]
+
+proc popRange*(str; leftShift: int = 0, rightShift: int = -1):
+  string {.inline.} =
+
+  ## Pop current list of ranges and return combined string.
+  ##
+  ## - @arg{leftShift} :: Offset from the start range position
+  ## - @arg{rightShift} :: Offset from the end range position.
+  ##   Offset would be /added/ to the current string position.
+  ##   Default value is @val{-1} to simplfy common use case -
+  ##   skip while some condition is satisfied, then pop resulting
+  ##   range. If this is performed using `while cond(str)`, pop
+  ##   of the range would occur after string is out of the range,
+
+  for slice in topRangeIndices(str, leftShift, rightShift):
+    if str.isSlice:
+      result.add str.baseStr[][slice]
+
+    else:
+
+      result.add str.str[slice]
+
 
 proc advance*(str; step: int = 1) {.inline.} =
   if str['\n']:
@@ -345,10 +490,37 @@ proc advance*(str; step: int = 1) {.inline.} =
   else:
     inc str.column
 
-  inc(str.pos, step)
+  if str.isSlice:
+    if str.pos < str.slices[str.sliceIdx].finish:
+      for fragment in mitems(str.fragmentedRanges):
+        fragment.last().b = str.pos
+
+      inc(str.pos, step)
+
+    else:
+      # echov str.pos
+      # echov str.fragmentedRanges
+      let current = str.pos
+
+      inc str.sliceIdx
+      if str.sliceIdx < str.slices.len:
+        str.pos = str.slices[str.sliceIdx].start
+
+      for fragment in mitems(str.fragmentedRanges):
+        if fragment.len > 0:
+          fragment.last().b = current
+          if str.sliceIdx < str.slices.len:
+            fragment.add @[str.pos .. str.pos]
+
+      # echov str.fragmentedRanges
+
+
+  else:
+    inc(str.pos, step)
 
 proc skip*(str; ch: char) {.inline.} =
-  assert str[] == ch
+  if str[] != ch:
+   raise newUnexpectedCharError(str, $ch)
   str.advance()
 
 proc skipWhile*(str; chars: set[char]) {.inline.} =
@@ -388,7 +560,12 @@ proc popWhile*(str; chars: set[char]): string {.inline.} =
 
 proc popUntil*(str; chars: set[char] | char): string {.inline.} =
   str.pushRange()
-  when chars is set: str.skipUntil(chars) else: str.skipUntil({chars})
+
+  when chars is system.set:
+    str.skipUntil(chars)
+  else:
+    str.skipUntil({chars})
+
   return str.popRange()
 
 proc startsWith*(str; skip: set[char], search: string): bool =
@@ -451,6 +628,10 @@ proc popDigit*(str: var PosStr): string {.inline.} =
     str.advance(2)
     str.skipWhile(HexDigits + {'-'})
 
+  if str["0b"]:
+    str.advance(2)
+    str.skipWhile({'0', '1'})
+
   else:
     str.skipWhile(Digits + {'-', '.'})
 
@@ -466,10 +647,13 @@ proc popNext*(str; count: int): string {.inline.} =
   return str.popRange()
 
 proc popBacktickIdent*(str): string {.inline.} =
-  if str[] == '`':
+  if ?str and str[] == '`':
+    str.advance()
+    result = str.popUntil({'`'})
     str.advance()
 
-  str.popUntil({'`'})
+  else:
+    result = str.popIdent()
 
 proc readLine*(str; skipNl: bool = true): string =
   while not str['\n']:

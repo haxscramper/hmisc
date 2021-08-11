@@ -2,7 +2,7 @@ const cbackend = not (defined(nimscript) or defined(js))
 
 {.deprecated: "use `hlogger` instead".}
 
-import ../base_errors
+import ../core/all
 import ../types/colorstring
 import ../algo/hstring_algo
 import macros, strutils, strformat

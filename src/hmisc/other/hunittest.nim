@@ -74,6 +74,10 @@ type
     trkBlockStart
     trkBlockEnd
 
+    trkTestComment
+    trkSuiteComment
+    trkBlockComment
+
     trkTimeStats
 
 const
@@ -131,6 +135,9 @@ type
 
       of trkTimeStats:
         stat: RunningStat
+
+      of trkTestComment, trkSuiteComment, trkBlockComment:
+        text: string
 
       else:
         discard
@@ -256,6 +263,7 @@ proc report(context: TestContext, report: TestReport) =
     pBLock = toCyan("[BLOCK] " |>> width)
     pSuite = toMagenta("[SUITE] " |>> width)
     pShow  = toYellow("[SHOW] ")
+    pRun   = to8Bit("[RUN] " |>> width, 3, 1, 1)
 
   if report.kind != trkTimeStats:
     context.shownHeader = false
@@ -269,6 +277,10 @@ proc report(context: TestContext, report: TestReport) =
     context.skipNext = true
 
   case report.kind:
+    of trkTestComment, trkSuiteComment, trkBlockComment:
+      for line in report.text.split('\n'):
+        echo pad, "# ".to8Bit(0, 2, 2), to8Bit(line, 0, 2, 2)
+
     of trkTimeStats:
       if not context.shownHeader:
         echo pad, "[TIME] "
@@ -290,6 +302,7 @@ proc report(context: TestContext, report: TestReport) =
         pref.add pad
         if idx == 0: pref.add pShow else: pref.add "     ] "
         pref.add indentBody(toGreen(arg |<< w), padW, prefix = "] ")
+
         if split.len > 1:
           echo pref, " = "
 
@@ -300,7 +313,11 @@ proc report(context: TestContext, report: TestReport) =
 
 
         else:
-          echo pref, " = ", split[0]
+          if split[0] == " ":
+            echo pref, " = ", "' '"
+
+          else:
+            echo pref, " = ", split[0]
 
 
         if split.len > 1:
@@ -321,12 +338,15 @@ proc report(context: TestContext, report: TestReport) =
         of trkSuiteEnd:
           echo pSuite, name
 
+        of trkTestStart:
+          echo pRun, name
+
         of trkTestEnd:
           if context.failCount > 0:
-            echo pFail, name
+            echo pFail
 
           else:
-            echo pOk, name
+            echo pOk
 
           context.failCount = 0
 
@@ -339,7 +359,8 @@ proc report(context: TestContext, report: TestReport) =
           getTestLogger(),
           report.exception,
           showError = true,
-          source = context.sourceOnError
+          source = context.sourceOnError,
+          skipFirst = 2
         )
 
 
@@ -368,27 +389,30 @@ proc report(context: TestContext, report: TestReport) =
           echo ""
 
         else:
-          if report.failKind == tfkOpCheck and
-             report.checkOp == "==" and
-             report.strs.len == 2 and
-             report.strs[0][1].kind == tvkString and
-             report.strs[1][1].kind == tvkString:
-
+          if report.failKind == tfkOpCheck:
             let
               s1 = report.strs[0][1].str
               s2 = report.strs[1][1].str
 
-            echo msg, " - string value mismatch\n"
-            echo pad, s1, " != ", s2
+            echo msg, " - ", toGreen(report.strs[0][0]), " was \n"
+            echo pad, "  '", s1.indentBody(pad.len + 2), "'\n"
+            echo pad, "but expected\n"
+            echo pad, "  '", s2.indentBody(pad.len + 2), "'"
             echo ""
-            echo pad, stringEditMessage(s1, s2)
+            # let exprWidth  = report.strs.maxIt(it.expr.len)
+            # for (expr, value) in report.strs:
+            #   echo pad, "  ", toGreen(expr |<< exprWidth),
+            #     " was '", value, "'"
+
+            # echo ""
 
 
           else:
             echo msg, " ", report.failKind, "\n"
             let exprWidth  = report.strs.maxIt(it.expr.len)
             for (expr, value) in report.strs:
-              echo pad, "  ", toGreen(expr |<< exprWidth), " was ", value
+              echo pad, "  ", toGreen(expr |<< exprWidth),
+                " was '", value, "'"
 
             echo ""
 
@@ -495,11 +519,23 @@ func testFailManual(loc: TestLocation, msg: string): TestReport =
 func testEnd(conf: TestConf, loc: TestLocation): TestReport =
   TestReport(kind: trkTestEnd, conf: conf, location: loc)
 
+func testStart(conf: TestConf, loc: TestLocation): TestReport =
+  TestReport(kind: trkTestStart, conf: conf, location: loc)
+
 func blockStart(name: string, loc: TestLocation): TestReport =
   TestReport(kind: trkBlockStart, location: loc, name: name)
 
 func blockEnd(name: string, loc: TestLocation): TestReport =
   TestReport(kind: trkBlockEnd, location: loc, name: name)
+
+func testComment(text: string, loc: TestLocation): TestReport =
+  TestReport(kind: trkTestComment, location: loc, text: text)
+
+func blockComment(text: string, loc: TestLocation): TestReport =
+  TestReport(kind: trkBlockComment, location: loc, text: text)
+
+func suiteComment(text: string, loc: TestLocation): TestReport =
+  TestReport(kind: trkSuiteComment, location: loc, text: text)
 
 func suiteStarted(conf: TestConf, loc: TestLocation): TestReport =
   TestReport(
@@ -973,7 +1009,7 @@ macro suite*(name: static[string], body: untyped): untyped =
 
   let
     line = lineIInfo(body)
-    suiteProc = genSym(nskProc, "suite")
+    suiteProc = genSym(nskProc, "`[" & name & "]`")
     suiteLit = newLit(suiteConf)
     whenSuite = suiteConf.getWhen()
     suiteFailed = bindSym("suiteFailed")
@@ -984,8 +1020,7 @@ macro suite*(name: static[string], body: untyped): untyped =
       let conf = `suiteLit`
       let loc = `locLit`
       proc `suiteProc`(testContext {.inject.}: TestContext) =
-        {.line: `line`.}:
-          `body`
+        `body`
 
       when hasTestContext():
         maybeRunSuite(testContext, `suiteProc`, conf, loc)
@@ -1005,11 +1040,21 @@ macro test*(name: static[string], body: untyped): untyped =
     testLit = newLit(testConf)
     canRun = bindSym("canRunTest")
     testFailed = bindSym("testFailed")
+    testStart = bindSym("testStart")
     testOk = bindSym("testEnd")
     report = bindSym("report")
     testLoc = testLocation(body).newLit()
     blockStart = bindSym("blockStart")
     blockEnd = bindSym("blockEnd")
+    testComment = bindSym("testComment")
+
+  proc newCommentReport(stmt, call: NimNode): NimNode =
+    newCall(
+      report,
+      ident"testContext",
+      newCall(
+        call, stmt.strVal().newLit(),
+        stmt.testLocation().newLit()))
 
   var newBody = newStmtList()
   for stmt in body:
@@ -1017,17 +1062,29 @@ macro test*(name: static[string], body: untyped): untyped =
       of nnkBlockStmt:
         if stmt[0].kind != nnkEmpty:
           let name = stmt[0].toStrLit()
+          let blockLoc = testLocation(stmt[1]).newLit()
+          var blockBody = newStmtList()
+          for stmt in stmt[1]:
+            if stmt.kind == nnkCommentStmt:
+              blockBody.add newCommentReport(stmt, bindSym("blockComment"))
+
+            else:
+              blockBody.add stmt
+
           newBody.add nnkBlockStmt.newTree(
             stmt[0],
             newStmtList(
               newCall(report, ident"testContext",
-                      newCall(blockStart, name, testLoc)),
-              stmt[1],
+                      newCall(blockStart, name, blockLoc)),
+              blockBody,
               newCall(report, ident"testContext",
-                      newCall(blockEnd, name, testLoc))))
+                      newCall(blockEnd, name, blockLoc))))
 
         else:
           newBody.add stmt
+
+      of nnkCommentStmt:
+        newBody.add newCommentReport(stmt, bindSym"testComment")
 
       else:
         newBody.add stmt
@@ -1040,8 +1097,8 @@ macro test*(name: static[string], body: untyped): untyped =
 
       if `canRun`(testContext, conf):
         try:
-          {.line: `line`.}:
-            `newBody`
+          `report`(testContext, `testStart`(conf, loc))
+          `newBody`
 
           `report`(testContext, `testOk`(conf, loc))
 

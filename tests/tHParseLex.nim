@@ -1,10 +1,282 @@
 import
   hmisc/algo/[hparse_base, hlex_base],
-  hmisc/preludes/unittest
+  hmisc/preludes/unittest,
+  hmisc/other/hpprint
 
 import std/[options]
 
+configureDefaultTestContext(
+  skipAfterException = true
+)
+
+
+template varStr(inStr: string): untyped =
+  var str = initPosStr(inStr)
+  str
+
+template varStr(inStr: string, slices: openarray[Slice[int]]): untyped =
+  var str = initPosStr(asPtr inStr, slices)
+  str
+
+suite "Primitives":
+  test "Pop range while":
+    var str = initPosStr("---?")
+    str.pushRange()
+    while ?str and str['-']:
+      str.advance()
+
+    check str.popRangeIndices()[0] == 0 .. 2
+
+  test "Regular string advancements":
+    block skipWhile:
+      block:
+        var str = initPosStr("000000000000_")
+        check str['0']
+        str.skipWhile({'0'})
+        check str['_']
+
+      block:
+        var str = initPosStr("")
+        str.skipWhile({'0'})
+        check not ?str
+
+    block skipUntil:
+      var str = initPosStr("_________]")
+      check str['_']
+      str.skipUntil({']'})
+      check str[']']
+      str.advance()
+      check not ?str
+
+    block popEntries:
+      check:
+        varStr("hello").popIdent() == "hello"
+        varStr("").popIdent() == ""
+        varStr("01234").popNext(4) == "0123"
+        varStr("").popBacktickIdent() == ""
+        varStr("test").popBacktickIdent() == "test"
+        varStr("`hel lo`").popBacktickIdent() == "hel lo"
+
+
+    block popDigit:
+      var str = initPosStr("-123 123 0xABCDE 0b100")
+
+      check str.popDigit() == "-123"
+      str.skipSpace()
+
+      check str.popDigit() == "123"
+      str.skipSpace()
+
+      check str.popDigit() == "0xABCDE"
+      str.skipSpace()
+
+      check str.popDigit() == "0b100"
+      str.skipSpace()
+
+  test "Subslice advancements":
+    block advanceOverFragmentedRange:
+      var str = varStr("0_1_2_3_4_5", [0..0, 2..2, 4..4, 6..6, 8..8])
+      check str['0']
+
+      str.pushRange()
+      check str.getRangeIndices() == @[0..0]
+
+      str.advance()
+      check str.getRangeIndices() == @[0..0, 2..2]
+
+      str.advance()
+      check:
+        str.getRangeIndices() == @[0..0, 2..2, 4..4]
+        str.getRange() == "012"
+
+
+    block partialRange:
+      var str = initPosStr(asPtr "01234", [0 .. 1])
+      check str.pos == 0
+      skip(str, '0')
+
+      check str.pos == 1
+      skip(str, '1')
+
+      check:
+        str.sliceIdx == 1
+        not ?str
+
+    block fragmentedRange:
+      var str = initPosStr(asPtr "0_1", [0 .. 0, 2 .. 2])
+      check:
+        str[] == '0'
+        str.pos == 0
+
+      str.advance()
+      check:
+        str.pos == 2
+        str[] == '1'
+
+    block skipFragmentedRange:
+      var str = initPosStr(asPtr "0_1_2", [0 .. 0, 2 .. 2, 4 .. 4])
+      skip(str, '0')
+      skip(str, '1')
+      check ?str
+      skip(str, '2')
+      check not ?str
+
+    block popWhileFragmentedRange:
+      var str = varStr("0_0_00____", [0..0, 2..2, 4..5])
+
+      # Unrolled `while str['0']`
+
+      check str['0']; str.advance()
+      check str['0']; str.advance()
+      check str['0']; str.advance()
+      check str['0']; str.advance()
+
+      check not ?str
+
+    block skipWhile:
+      var str = varStr("0_0_", [0..0,2..2])
+      str.pushRange()
+      str.skipWhile({'0'})
+      let zeros = str.popRange()
+      check zeros == "00"
+
+    block fragmented_digit:
+      var str = varStr("0_1_2", [0..0, 2..2, 4..4])
+      let num = popDigit(str)
+      check num == "012"
+
+    block if_with_space:
+      var str = varStr("if ", [0..12])
+      check str['i']
+      str.skipWhile({'i', 'f'})
+      check str[' ']
+
+    block if_ident_chars:
+      var str = varStr("if?", [0..12])
+      str.pushRange()
+      check str['i']
+      str.skipWhile(IdentChars)
+      check:
+        str['?']
+        str.pos == 2
+        str.getRangeIndices() == @[0 .. 1]
+
+    block pop_ident:
+      var str = varStr("if ", [0..12])
+      check str.popIdent() == "if"
+
+    block pop_ident_superfragmented:
+      var str = varStr("if ", [0..0, 1..1, 2..2])
+      str.pushRange()
+      check str['i']
+      str.skipWhile(IdentChars)
+      check:
+        str[' ']
+        str.pos == 2
+        str.getRangeIndices() == @[0..0, 1..1]
+        str.getRange() == "if"
+
+
+
+
+    block popEdges:
+      var str = varStr("else_", [0 .. 3])
+      str.pushRange()
+
+      if str[IdentChars]: str.advance()
+      if str[IdentChars]: str.advance()
+      if str[IdentChars]: str.advance()
+
+      check str.getRangeIndices() == @[0..2]
+
+      startHax()
+      if str[IdentChars]:
+        str.advance()
+
+      stopHax()
+
+
+      check:
+        str.getRangeIndices() == @[0..3]
+        not ?str
+
+      if str[IdentChars]: str.advance()
+
+
+
+
+
+      check:
+        str['_']
+        str.pos == 3
+        str.getRangeIndices() == @[0..3]
+        str.getRange() == "else"
+
+
+
+
 suite "Hlex base":
+  test "Use example":
+    var str = initPosStr("[if (a == b)][{echo 12}][else")
+    # var str = initPosStr("[if (a == b)]")
+    block extractSlices:
+      ## Iterate over string, skipping braces, and extract all characters
+      ## in the subslices
+      while ?str:
+        if str['[']:
+          str.advance()
+          str.startSlice()
+          while ?str and not str[']']:
+            str.advance()
+
+          str.finishSlice()
+          if ?str: str.advance()
+
+    var chars = initPosStr(str)
+    check chars.sliceStrings() == @["if (a == b)", "{echo 12}", "else"]
+
+    show chars
+    startHax()
+
+    var str2 = chars
+    echov str2.popIdent()
+
+
+    block parseSlices:
+      ## Use subslice string as if it was a regular, concatenated
+      ## "aaabbbcccaaa"
+      var tokens: seq[string]
+      while ?chars:
+        echov chars
+        case chars[]:
+          of IdentChars:
+            tokens.add chars.popIdent()
+
+          of ' ':
+            chars.advance()
+
+          of PunctChars, MathChars:
+            tokens.add $chars.popChar()
+
+          else:
+            raise newUnexpectedCharError(chars)
+
+      show tokens
+
+      check tokens == @[
+        "if", "(", "a", "=", "=", "b", ")", "{",
+          "echo", "12",
+        "}", "else"
+      ]
+
+
+
+  test "Repeatedly nested slices":
+    ## Repeatedly extract nested string slices and parse them again.
+    ## Real-world use example - `#+table` form haxorg which might be
+    ## indented, and in turn also contain another `#+table`.
+
+
   test "test":
     var str = initPosStr("""
 of true:
@@ -136,7 +408,7 @@ test
   same
 dedent""", lexerImpl)
 
-    doAssert toks == @[
+    check toks == @[
       ('i', "test"),
       ('>', " "), ('i', "indent"),
       ('=', " "), ('i', "same"),

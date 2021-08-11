@@ -701,7 +701,8 @@ converter toColoredRune*(ch: char): ColoredRune =
 
 
 
-wrapSeqContainer(ColoredText.runes, ColoredRune)
+wrapSeqContainer(
+  ColoredText.runes, ColoredRune, extra = ["@"])
 
 
 func isNewline*(rune: ColoredRune): bool = rune.rune == Rune(10)
@@ -734,6 +735,18 @@ func hasNewline*(text: ColoredText): bool =
   for rune in text.runes:
     if isNewline(rune):
       return true
+
+func onlyTailNewline*(text: ColoredText): bool =
+  var onTail = true
+  result = true
+  for rune in ritems(text):
+    if isNewline(rune):
+      if not onTail:
+         return false
+
+    else:
+      onTail = false
+
 
 func newline*(text: var ColoredText) =
   text.runes.add uc("\n") + defaultPrintStyling

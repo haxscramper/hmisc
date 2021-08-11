@@ -18,6 +18,7 @@ proc startHax*() = doLogRuntime = true
 proc stopHax*() = doLogRuntime = false
 
 template haxRunning*(): bool = doLogRuntime
+template haxRunningComp*(): bool = doLog
 
 
 template stopHaxComp*() =
@@ -144,69 +145,70 @@ template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
   #
   # TODO wrap expression in `try-catch` and print exception messages
   bind align, toLink
-  {.noSideEffect.}:
-    block:
-      let iinfo = instantiationInfo(fullpaths = true)
-      var line = " [" & toLink(iinfo, strutils.align($iinfo.line, 4)) & "] "
-          # & " ".repeat(max(iinfo.column - 6, 0))
+  {.line: instantiationInfo(fullPaths = true).}:
+    {.noSideEffect.}:
+      block:
+        let iinfo = instantiationInfo(fullpaths = true)
+        var line = " [" & toLink(iinfo, strutils.align($iinfo.line, 4)) & "] "
+            # & " ".repeat(max(iinfo.column - 6, 0))
 
-      var vart =
-        when variable is NimNode:
-          "\e[34m" & ($variable.kind)[3..^1] & "\e[39m " &
-            variable.toStrLit().strVal().multiReplace({
-              "\\\"" : "\"",
-              "\\n" : "\n"
-            })
-        else:
-          $variable
-
-      when variable is string:
-        # vart = vart.multiReplace({"\n" : "⮒\n"})
-        if vart.split("\n").len > 1:
-          # discard
-          vart = "\n" & vart
-
-        else:
-          vart = "\"" & vart & "\""
-
-      elif (variable is char):
-        vart =
-          case variable:
-            of '\n': "\\n"
-            of '\t': "\\t"
-            of '\r': "\\r"
-            else: vart
-
-        vart = "'" & vart & "'"
-
-      else:
-        if vart.split("\n").len > 1:
-          if (variable is NimNode) and
-             (vart[0] == '"') and
-             (vart[^1] == '"'):
-            vart = "\n" & vart[1..^2]
+        var vart =
+          when variable is NimNode:
+            "\e[34m" & ($variable.kind)[3..^1] & "\e[39m " &
+              variable.toStrLit().strVal().multiReplace({
+                "\\\"" : "\"",
+                "\\n" : "\n"
+              })
           else:
+            $variable
+
+        when variable is string:
+          # vart = vart.multiReplace({"\n" : "⮒\n"})
+          if vart.split("\n").len > 1:
+            # discard
             vart = "\n" & vart
 
-      if vart.split("\n").len > 1 and other.len > 0:
-        vart = vart & "\n"
+          else:
+            vart = "\"" & vart & "\""
 
-      let pref =
-        when variable is static[string]:
-          "\e[33m" & vart & "\e[39m:"
+        elif (variable is char):
+          vart =
+            case variable:
+              of '\n': "\\n"
+              of '\t': "\\t"
+              of '\r': "\\r"
+              else: vart
+
+          vart = "'" & vart & "'"
+
         else:
-          "\e[32m" & astToStr(variable) & "\e[39m: " & vart
+          if vart.split("\n").len > 1:
+            if (variable is NimNode) and
+               (vart[0] == '"') and
+               (vart[^1] == '"'):
+              vart = "\n" & vart[1..^2]
+            else:
+              vart = "\n" & vart
+
+        if vart.split("\n").len > 1 and other.len > 0:
+          vart = vart & "\n"
+
+        let pref =
+          when variable is static[string]:
+            "\e[33m" & vart & "\e[39m:"
+          else:
+            "\e[32m" & astToStr(variable) & "\e[39m: " & vart
 
 
-      var text = line & pref & " " & other.join(" ")
+        var text = line & pref & " " & other.join(" ")
 
-      when nimvm:
-      # when compiles(doLogRuntime):
-        if doLog:
-          debugecho text
-      else:
-        if doLogRuntime:
-          debugecho text
+        when nimvm:
+        # when compiles(doLogRuntime):
+          if doLog:
+            debugecho text
+        else:
+          if doLogRuntime:
+            debugecho text
 
 
 

@@ -17,7 +17,7 @@ type
   NilArgumentError* = object of ArgumentError
   NoneArgumentError* = object of ArgumentError
 
-  ParseError* = object of ArgumentError
+  ParseError* = object of CatchableError
 
   LogicError*          = object of CatchableError
 
