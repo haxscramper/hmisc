@@ -24,26 +24,42 @@ type
   LineCol* = tuple[line: int, column: int]
 
   PosStr* = object
+    ## Input character stream, either based on input stream, or indexing in
+    ## parts of already existing buffer.
     case isSlice*: bool
       of false:
-        str*: string
-        stream*: Stream
-        ranges: seq[int]
+        str*: string ## Buffer string. Might contain full input data (in
+                     ## case of lexing over existing string)
+        stream*: Stream ## Input data stream. Might be `nil`, in which case
+                        ## new data won't be read in.
+        ranges*: seq[int] ## Sequence of starting position for ranges. When
+        ## `popRange()` is called end position of the string (with offset)
+        ## is used to determine end point.
 
       of true:
-        sliceIdx*: int
-        baseStr*: ptr string
-        slices*: seq[PosStrSlice]
-        fragmentedRanges: seq[seq[Slice[int]]]
+        sliceIdx*: int ## Currently active slice
+        baseStr*: ptr string ## Pointer to the base string. Must not be nil
+        slices*: seq[PosStrSlice] ## List of slices in the base string
+        fragmentedRanges*: seq[seq[Slice[int]]] ## Sequence of fragments for
+        ## active ranges. When `popRange()` is called end position is used,
+        ## identically to the [[code:.ranges]] case. When position is
+        ## advanced in string, new fragments might be added to the ranges.
 
-    pos*: int
-    line*: int
-    column*: int
+    pos*: int ## Current absolute position in the base/buffer string.
+              ## Always points to the current valid character. Calling
+              ## [[code:advance()]] changes this position, potentially by
+              ## an unlimited amount in case of fragmented string.
+    line*: int ## Current line index. Automatically tracked by
+               ## [[code:advance()]]
+    column*: int ## Current column number
     bufferActive*: bool
-    sliceBuffer*: seq[seq[PosStrSlice]]
+    sliceBuffer*: seq[seq[PosStrSlice]] ## Buffer for new positional
+    ## slices. Used by [[code:startSlice()]] and [[code:finishSlice()]] to
+    ## automatically collect new string slices
 
 
   HLexerError* = ref object of ParseError
+    ## Base type for lexer errors
     pos*, line*, column*: int
 
   UnexpectedCharError = object of HLexerError
@@ -70,22 +86,15 @@ const
   HorizontalSpace* = AllSpace - Newline
   VeritcalSpace* = Newline
 
-
-
-# template raiseUnexpectedChar*(str: PosStr) =
-#   raise HLexerError(
-#     msg: ,
-#     column: str.column, line: str.line, pos: str.pos)
-
-
-
-# func getLine*(str: PosStr): int {.inline.} = str.line
-# func getColumn*(str: PosStr): int {.inline.} = str.column
 func lineCol*(str: PosStr): LineCol {.inline.} =
   (line: str.line, column: str.column)
 
-func len*(slice: PosStrSlice): int = slice.finish - slice.start
+func len*(slice: PosStrSlice): int =
+  ## Get number of byte characters between end and start
+  slice.finish - slice.start
+
 func toAbsolute*(slice: PosStrSlice, offset: int): int =
+  ## Get absolute position of the @arg{offset}
   slice.start + offset
 
 func initPosStr*(str: string): PosStr =
@@ -97,6 +106,7 @@ func initPosStr*(stream: Stream): PosStr =
   PosStr(stream: stream, isSlice: false)
 
 proc initPosStr*(file: AbsFile): PosStr =
+  ## Create positional string using new file stream
   PosStr(stream: newFileStream(file.getStr()), isSlice: false)
 
 func initPosStr*(str): PosStr =
@@ -108,6 +118,7 @@ func initPosStr*(str): PosStr =
   result.pos = result.slices[0].start
 
 func initPosStr*(inStr: ptr string, slices: openarray[Slice[int]]): PosStr =
+  ## Initl slice positional string, using @arg{inStr} as base
   result = PosStr(isSlice: true, baseStr: inStr)
   for slice in slices:
     result.slices.add PosStrSlice(start: slice.a, finish: slice.b)
@@ -118,20 +129,25 @@ func initPosStrView*(str): PosStr =
   ## Create substring with `0 .. high(int)` slice range
   PosStr(
     isSlice: true, baseStr: addr str.str,
-    slices: @[PosStrSlice(start: 0, finish: high(int))]
-  )
+    slices: @[PosStrSlice(start: 0, finish: high(int))])
 
 
 func contains*(slice: PosStrSlice, position: int): bool =
+  ## Absolute position is within @arg{slice} start and end
   slice.start <= position and position <= slice.finish
 
 template atom*(input: PosStr; idx: int; c: char): bool =
+  ## Check if character at current index is @arg{c}. Used by
+  ## [[code:std/parseutils.scanp()]] macro
   input.str[input.pos + idx] == c
 
 template atom*(input: PosStr; idx: int; s: set[char]): bool =
+  ## Check if character at current index is in set @arg{s}. Used by
+  ## [[code:std/parseutils.scanp()]] macro
   input.str[input.pos + idx] in s
 
 proc hasNxt*(input: PosStr; idx: int): bool =
+  ## Check if input string has at least @arg{idx} more characters left.
   let pos = input.pos + idx
   if input.isSlice:
     result = input.sliceIdx < input.slices.high or (
@@ -139,25 +155,23 @@ proc hasNxt*(input: PosStr; idx: int): bool =
       pos <= input.slices[input.sliceIdx].finish and
       pos < input.baseStr[].len)
 
-    echov input.baseStr[][pos], input.pos, result
-    echov input.sliceIdx
+    # echov input.baseStr[][pos], input.pos, result
+    # echov input.sliceIdx
 
 
   else:
     return pos < input.str.len
 
 proc finished*(str: PosStr): bool =
+  ## Check if string as no more input data
   not str.hasNxt(0) and (
     str.isSlice or
     isNil(str.stream) or
-    str.stream.atEnd()
-  )
+    str.stream.atEnd())
 
-proc `?`*(str: PosStr): bool = not str.finished()
-
-# proc newCannotGetOffset*(str: PosStr, offset: int): ref GetterError =
-
-
+proc `?`*(str: PosStr): bool =
+  ## Shorthand for src_nim{not str.finished()}
+  not str.finished()
 
 template nxt*(input: var PosStr; idx, step: int = 1) =
   inc(idx, step)
@@ -425,7 +439,13 @@ iterator topRangeIndices*(
     let baseHigh = str.baseStr[].high
 
     for idx, fragment in ranges:
-      let slice = posStrSlice(fragment.a, min(fragment.b, baseHigh))
+      let slice =
+        if idx == ranges.high:
+          posStrSlice(fragment.a, fragment.b + rightShift)
+
+        else:
+          posStrSlice(fragment.a, fragment.b)
+
       yield slice
 
 
@@ -492,17 +512,21 @@ proc advance*(str; step: int = 1) {.inline.} =
 
   if str.isSlice:
     if str.pos < str.slices[str.sliceIdx].finish:
-      for fragment in mitems(str.fragmentedRanges):
-        fragment.last().b = str.pos + (step - 1)
-
       inc(str.pos, step)
+      for fragment in mitems(str.fragmentedRanges):
+        fragment.last().b = str.pos
+
 
     else:
-      let current = str.pos
+      var current = str.pos
 
       inc str.sliceIdx
       if str.sliceIdx < str.slices.len:
         str.pos = str.slices[str.sliceIdx].start
+
+      else:
+        inc current
+        inc str.pos
 
       for fragment in mitems(str.fragmentedRanges):
         if fragment.len > 0:

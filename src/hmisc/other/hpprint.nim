@@ -664,7 +664,9 @@ proc toPprintTree*[T](
     elif not ( # sequences but not strings
         (entry is string) or
         (entry is char) or
-        (entry is cstring)
+        (entry is cstring) or
+        (entry is ptr string) or
+        (entry is ref string)
       ) and (
       (
         (compiles(for i in items(entry): discard)) or
@@ -783,6 +785,10 @@ proc toPprintTree*[T](
 
       when entry is string:
         let val = "\"" & entry & "\""
+        style = fgYellow + bgDefault
+
+      elif (entry is ptr string) or (entry is ref string):
+        let val = "\"" & entry[] & "\""
         style = fgYellow + bgDefault
 
       elif entry is cstring:

@@ -6,7 +6,8 @@ import
 import std/[options]
 
 configureDefaultTestContext(
-  skipAfterException = true
+  skipAfterException = true,
+  skipAfterCheckFail = true
 )
 
 
@@ -28,7 +29,7 @@ suite "Primitives":
     check str.popRangeIndices()[0] == 0 .. 2
 
   test "Regular string advancements":
-    block skipWhile:
+    block skip_while:
       block:
         var str = initPosStr("000000000000_")
         check str['0']
@@ -40,7 +41,7 @@ suite "Primitives":
         str.skipWhile({'0'})
         check not ?str
 
-    block skipUntil:
+    block skip_until:
       var str = initPosStr("_________]")
       check str['_']
       str.skipUntil({']'})
@@ -48,7 +49,7 @@ suite "Primitives":
       str.advance()
       check not ?str
 
-    block popEntries:
+    block pop_entries:
       check:
         varStr("hello").popIdent() == "hello"
         varStr("").popIdent() == ""
@@ -57,8 +58,38 @@ suite "Primitives":
         varStr("test").popBacktickIdent() == "test"
         varStr("`hel lo`").popBacktickIdent() == "hel lo"
 
+    block range_paranoid:
+      block:
+        var str = varStr("0123456789")
+        str.pushRange()
+        check:
+          str.pos == 0
+          str.getRangeIndices() == @[0 .. -1]
+          str.ranges[0] == 0
 
-    block popDigit:
+        str.advance()
+
+        check:
+          str.pos == 1
+          str.getRangeIndices() == @[0 .. 0]
+
+      block:
+        starthax()
+        var str = varStr("0123456789", [0..90])
+        str.pushRange()
+        check:
+          str.pos == 0
+          str.fragmentedRanges[0] == @[0 .. 0]
+          str.getRangeIndices() == @[0 .. -1]
+
+        str.advance()
+        check:
+          str.pos == 1
+          str.fragmentedRanges[0] == @[0 .. 1]
+          str.getRangeIndices() == @[0 .. 0]
+
+
+    block pop_digit:
       var str = initPosStr("-123 123 0xABCDE 0b100")
 
       check str.popDigit() == "-123"
@@ -76,26 +107,44 @@ suite "Primitives":
   test "Subslice advancements":
     block advance_over_fragmented_range:
       var str = varStr("0_1_2_3_4_5", [0..0, 2..2, 4..4, 6..6, 8..8])
-      check str['0']
 
       str.pushRange()
-      check str.getRangeIndices() == @[0..0]
-
-      str.advance()
-      check str.getRangeIndices() == @[0..0, 2..2]
+      check:
+        str['0']
+        str.getRangeIndices() == @[0 .. -1]
 
       str.advance()
       check:
-        str.getRangeIndices() == @[0..0, 2..2, 4..4]
-        str.getRange() == "012"
+        str['1']
+        str.getRangeIndices() == @[0 .. 0, 2 .. 1]
+
+      str.advance()
+      check:
+        str['2']
+        str.getRangeIndices() == @[0 .. 0, 2 .. 2, 4 .. 3]
+        str.getRange() == "01"
 
     block larger_fragmented_ranges:
-      var str = varStr("012_3_456_", [0..2, 4..4, 6..8])
+      let baseStr = "012_3_456_"
+      var str = varStr(baseStr, [0..2, 4..4, 6..8])
       str.pushRange()
       check:
         str['0']
         str.pos == 0
-        str.getRangeIndices() == @[0..0]
+        ## By default right offset `-1` is applied, so without no
+        ## `advance()` range indices would be an empty sequence
+        str.getRangeIndices() == @[0 .. -1]
+
+        ## String has single active range, and without any `advance()`
+        ## calls it is currently empty
+        baseStr[str.getRangeIndices()[0]] == ""
+
+        ## This can be changed by specifying @arg{rightShift}
+        str.getRangeIndices(rightShift = 0) == @[0 .. 0]
+
+        ## And now currently active range also uses first character in the
+        ## base string
+        baseStr[str.getRangeIndices(rightShift = 0)[0]] == "0"
 
       str.advance()
       str.advance()
@@ -104,14 +153,28 @@ suite "Primitives":
       check:
         str['3']
         str.pos == 4
-        str.getRangeIndices() == @[0..2, 4..4]
+        ## After advancing several times new fragmented range was added -
+        ## index `3` is not placed in the allowed elements, so it is
+        ## skipped. Right offset of `-1` is applied to the last range
+        ## fragment only
+        str.getRangeIndices() == @[0 .. 2, 4 .. 3]
+
+        ## Collecting active ranges should give us all the characters up
+        ## until `str['3']`
+        baseStr[str.getRangeIndices()[0]] == "012"
+        baseStr[str.getRangeIndices()[1]] == ""
+        baseStr[str.getRangeIndices()[0]] & baseStr[str.getRangeIndices()[1]] == "012"
+
+        ## `getRange()` can be used for the same purpose
+        str.getRange() == "012"
 
       str.advance()
 
       check:
         str['4']
         str.pos == 6
-        str.getRangeIndices() == @[0..2, 4..4, 6..6]
+        ## Advancing over framented range yet again adds new subslice - `4..4`
+        str.getRangeIndices() == @[0 .. 2, 4 .. 4, 6 .. 5]
 
       str.advance(); check str['5']
       str.advance()
@@ -119,13 +182,16 @@ suite "Primitives":
       check:
         str['6']
         str.pos == 8
-        str.getRangeIndices() == @[0..2, 4..4, 6..7]
+        str.getRangeIndices() == @[0 .. 2, 4 .. 4, 6 .. 7]
+        str.getRange() == "012345"
+        str.getRange(rightShift = 0) == "0123456"
 
       str.advance()
 
       check:
+        str.pos == 9
         not ?str
-        str.getRangeIndices() == @[0..2, 4..4, 6..8]
+        str.getRangeIndices() == @[0 .. 2, 4 .. 4, 6 .. 8]
 
 
 
@@ -193,10 +259,12 @@ suite "Primitives":
     block if_ident_chars:
       var str = varStr("if?", [0..12])
       str.pushRange()
-      check str['i']
+      check:
+        str[] == 'i'
+
       str.skipWhile(IdentChars)
       check:
-        str['?']
+        str[] == '?'
         str.pos == 2
         str.getRangeIndices() == @[0 .. 1]
 
@@ -207,12 +275,15 @@ suite "Primitives":
     block pop_ident_superfragmented:
       var str = varStr("if ", [0..0, 1..1, 2..2])
       str.pushRange()
-      check str['i']
-      str.skipWhile(IdentChars)
       check:
-        str[' ']
+        str[] == 'i'
+
+      str.skipWhile(IdentChars)
+
+      check:
+        str[] == ' '
         str.pos == 2
-        str.getRangeIndices() == @[0..0, 1..1]
+        str.getRangeIndices() == @[0 .. 0, 1 .. 1, 2 .. 1]
         str.getRange() == "if"
 
 
@@ -224,31 +295,29 @@ suite "Primitives":
 
       if str[IdentChars]: str.advance()
       if str[IdentChars]: str.advance()
+
+      check:
+        str[] == 's'
+
       if str[IdentChars]: str.advance()
 
-      check str.getRangeIndices() == @[0..2]
+      check:
+        str.getRangeIndices() == @[0 .. 2]
+        str[] == 'e'
 
-      startHax()
       if str[IdentChars]:
         str.advance()
 
-      stopHax()
-
-
       check:
-        str.getRangeIndices() == @[0..3]
+        str.getRangeIndices() == @[0 .. 3]
         not ?str
 
-      if str[IdentChars]: str.advance()
-
-
-
-
+      if str[IdentChars]:
+        str.advance()
 
       check:
-        str['_']
-        str.pos == 3
-        str.getRangeIndices() == @[0..3]
+        str.pos == 4
+        str.getRangeIndices() == @[0 .. 3]
         str.getRange() == "else"
 
 

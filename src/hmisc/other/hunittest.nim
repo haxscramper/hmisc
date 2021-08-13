@@ -151,6 +151,7 @@ type
     contextValues: seq[(string, TestValue)]
     skipAfterException: bool
     skipAfterManual: bool
+    skipAfterCheckFail: bool
     skipNext: bool
     logger: HLogger
 
@@ -238,12 +239,14 @@ proc getTestLogger*(): HLogger =
 
 proc configureDefaultTestContext*(
     skipAfterException: bool = false,
-    skipAfterManual: bool = false
+    skipAfterManual: bool = false,
+    skipAfterCheckFail: bool = false
   ) =
 
   var default = getTestContext()
   default.skipAfterException = skipAfterException
   default.skipAfterManual = skipAfterManual
+  default.skipAfterCheckFail = skipAfterCheckFail
 
 
 
@@ -268,12 +271,13 @@ proc report(context: TestContext, report: TestReport) =
   if report.kind != trkTimeStats:
     context.shownHeader = false
 
-  if report.failKind == tfkException and
-     context.skipAfterException:
+  if report.failKind == tfkException and context.skipAfterException:
     context.skipNext = true
 
-  if report.failKind == tfkManualFail and
-     context.skipAfterManual:
+  if report.failKind == tfkManualFail and context.skipAfterManual:
+    context.skipNext = true
+
+  if report.kind == trkCheckFail and context.skipAfterCheckFail:
     context.skipNext = true
 
   case report.kind:
@@ -977,6 +981,9 @@ proc canRunTest(
       if glob.testGlob.match(conf.name):
         return true
 
+proc canRunBlock(context: TestContext): bool =
+  not context.skipNext
+
 proc maybeRunSuite(
     context: TestContext,
     suiteProc: TestProcPrototype,
@@ -1071,14 +1078,17 @@ macro test*(name: static[string], body: untyped): untyped =
             else:
               blockBody.add stmt
 
-          newBody.add nnkBlockStmt.newTree(
-            stmt[0],
-            newStmtList(
-              newCall(report, ident"testContext",
-                      newCall(blockStart, name, blockLoc)),
-              blockBody,
-              newCall(report, ident"testContext",
-                      newCall(blockEnd, name, blockLoc))))
+          newBody.add nnkIfStmt.newTree(
+            nnkElifBranch.newTree(
+              newCall(bindSym"canRunBlock", ident"testContext"),
+              nnkBlockStmt.newTree(
+                stmt[0],
+                newStmtList(
+                  newCall(report, ident"testContext",
+                          newCall(blockStart, name, blockLoc)),
+                  blockBody,
+                  newCall(report, ident"testContext",
+                          newCall(blockEnd, name, blockLoc))))))
 
         else:
           newBody.add stmt
@@ -1253,7 +1263,8 @@ macro check*(expr: untyped): untyped =
   case expr.kind:
     of nnkStmtList:
       for expr in expr:
-        result.add buildCheck(expr)
+        if expr.kind != nnkCommentStmt:
+          result.add buildCheck(expr)
 
     else:
       result.add buildCheck(expr)
