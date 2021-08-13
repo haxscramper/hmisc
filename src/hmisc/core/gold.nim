@@ -1,4 +1,4 @@
-import std/[options, strutils, strformat]
+import std/[options, strutils, strformat, macros]
 
 ## Most important templates and additional overloads that I use in
 ## absoltely all parts of the code.
@@ -144,16 +144,9 @@ func pop*[E](s: var set[E]): E =
     s.excl result
     return
 
+macro lit3*(str: static[string]): untyped =
+  ## Dedent static string literals
+  newLit(dedent(str))
 
-func width*(s: string): int =
-  var cnt = 0
-  for ch in s:
-    if ch == '\n':
-      result = max(cnt, result)
-      cnt = 0
-
-    else:
-      inc cnt
-
-  if result == 0:
-    result = cnt
+func add*[A, B](s: var seq[(A, B)], a: A, b: B) = s.add((a, b))
+func add*[A, B, C](s: var seq[(A, B, C)], a: A, b: B, c: C) = s.add((a, b, c))

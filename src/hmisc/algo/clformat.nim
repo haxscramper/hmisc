@@ -1246,7 +1246,7 @@ func stringMismatchMessage*(
     return "No matching alternatives"
 
   var results: seq[tuple[
-    edits: tuple[distance: int, operations: seq[LevEdit]],
+    edits: tuple[distance: int, operations: seq[LevEdit[char]]],
     target: string
   ]]
 
@@ -1297,6 +1297,77 @@ func stringMismatchMessage*(
         result &= (toItalic(alt.target, colored) & "?") + tcGrey63
 
       result &= ")"
+
+proc colorDollar*[T](arg: T): ColoredText = toColoredText($arg)
+
+proc formatDiffed*[T](
+    shifted: ShiftedDiff,
+    oldSeq, newSeq: openarray[T],
+    strConv: proc(t: T): string = dollar[T]
+  ): ColoredText =
+
+  var
+    oldText, newText: seq[ColoredText]
+    lhsMax = 0
+
+  template editFmt(fmt: untyped): untyped =
+    case fmt:
+      of dskDelete: "- "
+      of dskInsert: "+ "
+      of dskKeep: "~ "
+      of dskEmpty: "? "
+
+
+  for (lhs, rhs) in zip(shifted.oldShifted, shifted.newShifted):
+    oldText.add editFmt(lhs[0])
+    newText.add editFmt(rhs[0])
+
+    if lhs[0] == dskDelete and rhs[0] == dskInsert:
+      let
+        oldSplit = strConv(oldSeq[lhs[1]]).split(" ")
+        newSplit = strConv(newSeq[rhs[1]]).split(" ")
+
+      let (distance, ops) = levenshteinDistance[string](oldSplit, newSplit)
+
+      var oldLine, newLine: Coloredtext
+      for idx, op in ops:
+        if idx > 0:
+          oldLine.add ' '
+          newLine.add ' '
+
+        case op.kind:
+          of lekUnchanged:
+            oldLine.add oldSplit[op.sourcePos]
+            newLine.add newSplit[op.targetPos]
+
+          of lekDelete:
+            oldLine.add toRed(oldSplit[op.sourcePos])
+
+          of lekInsert:
+            newLine.add toGreen(newSplit[op.targetPos])
+
+          of lekReplace:
+            oldLine.add toYellow(oldSplit[op.sourcePos])
+            newLine.add toYellow(newSplit[op.targetPos])
+
+          of lekNone:
+            raise newUnexpectedKindError(op)
+
+      oldText.last().add oldLine
+      newText.last().add newLine
+
+    else:
+      oldText.last().add strConv(oldSeq[lhs[1]])
+      newText.last().add strConv(newSeq[rhs[1]])
+
+    lhsMax = max(oldText[^1].len, lhsMax)
+
+  for (lhs, rhs) in zip(oldtext, newtext):
+    result.add alignLeft(lhs, lhsMax + 3)
+    result.add rhs
+    result.add "\n"
+
+
 
 
 when isMainModule:

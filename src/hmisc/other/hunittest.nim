@@ -45,7 +45,7 @@ type
     tfkPredicateFail
 
 
-    tfkStringDiff
+    tfkStrdiff
     tfkStructDiff
     tfkAstDiff
     tfkMatchDiff
@@ -108,9 +108,6 @@ type
     location {.requiresinit.}: TestLocation
     msg: string
     case failKind: TestFailKind
-      of tfkStringDiff:
-        textDiff: ShiftedDiff[string]
-
       of tfkStructDiff, tfkStructEq:
         structDiff: It[PPrintTree]
 
@@ -312,8 +309,8 @@ proc report(context: TestContext, report: TestReport) =
 
         elif pref.len + split[0].len > 80:
           echo pref
-          echo pad, "     ]   = ", split[0]
-          echo pad, "     ] "
+          echo pad, "         = ", split[0]
+          echo pad, "       "
 
 
         else:
@@ -326,9 +323,9 @@ proc report(context: TestContext, report: TestReport) =
 
         if split.len > 1:
           for line in split:
-            echo pad, "     ]  ", line
+            echo pad, "        ", line
 
-          echo pad, "     ] "
+          echo pad, "       "
 
     of trkBlockStart:
       echo pBlock, report.name.to8Bit(0, 4, 3)
@@ -390,6 +387,22 @@ proc report(context: TestContext, report: TestReport) =
             echo pad, "  expected ", toGreen(expected), " at '", path,
               "', but got ", toRed(got)
 
+          echo ""
+
+        of tfkStrDiff:
+          let
+            text1 = report.strs[0].value.str.split("\n")
+            text2 = report.strs[1].value.str.split("\n")
+
+          let formatted = myersDiff(text1, text2).
+            shiftDiffed(text1, text2).
+            formatDiffed(text1, text2)
+
+          echo msg, " - string mismatch\n"
+          echo pad, toGreen(report.strs[0].expr), " != ",
+            toGreen(report.strs[1].expr), "\n"
+
+          echo formatted.indent(pad.len)
           echo ""
 
         else:
@@ -592,23 +605,27 @@ func getWhen(conf: TestConf): NimNode =
 
     result = foldl(conds, nnkInfix.newTree(ident"or", a, b))
 
-proc stringdiff*(str1, str2: string, loc: TestLocation): TestReport =
+proc strdiffImpl(
+    str1, str2: string, loc: TestLocation,
+    expr1, expr2: string
+  ): TestReport =
+
   if str1 != str2:
     result = TestReport(
       location: loc,
       kind: trkCheckFail,
-      failKind: tfkStringDiff,
-    )
+      failKind: tfkStrdiff,
+      strs: @{
+        expr1: testValue(str1, tvcEqCompare),
+        expr2: testValue(str2, tvcEqCompare)})
 
-    let
-      text1 = str1.split()
-      text2 = str2.split()
-
-    result.textDiff = shiftDiffed(
-      text1, text2, myersDiff(text1, text2), "")
 
   else:
     result = TestReport(location: loc, kind: trkCheckOk)
+
+template strdiff*(str1, str2: string, loc: TestLocation): TestReport =
+  bind strdiffImpl
+  strdiffImpl(str1, str2, loc, astToStr(str1), astToStr(str2))
 
 proc structdiff*(ptree1, ptree2: PPrintTree, loc: TestLocation): TestReport =
   let
@@ -1232,11 +1249,12 @@ proc buildCheck(expr: NimNode): NimNode =
     else:
       if expr.kind in { nnkCall, nnkCommand } and
          expr[0].eqIdent([
-           "stringdiff", "structdiff",
+           "strdiff", "structdiff",
            "matchdiff", "astdiff"
          ]):
 
         expr.add loc
+
         result = quote do:
           block:
             {.line: `line`.}:

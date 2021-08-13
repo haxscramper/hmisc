@@ -19,9 +19,6 @@ export hmath
 
 #=======================  small helper templates  ========================#
 
-func add*[A, B](s: var seq[(A, B)], a: A, b: B) =
-  s.add((a, b))
-
 template expectEqualTypes(a, b: untyped): untyped =
   assert (a is typeof(b)), "Mismatch between types: first is `" &
     $typeof(a) & "` and second is `" & $typeof(b) & "`"

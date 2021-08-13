@@ -221,3 +221,16 @@ func toArrayKeys*[K, V](
   for (k, v) in map:
     if not skipDefault or k != def:
       result.add k
+
+func width*(s: string): int =
+  var cnt = 0
+  for ch in s:
+    if ch == '\n':
+      result = max(cnt, result)
+      cnt = 0
+
+    else:
+      inc cnt
+
+  if result == 0:
+    result = cnt

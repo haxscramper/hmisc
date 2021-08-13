@@ -12,7 +12,14 @@ import
 
 ##[
 
-- TODO :: Tokenize range into runes
+This module provides implementation of a lexer base. Note that it does not
+strive to provide most /efficient/ implementaiton, but rather one that
+allows to deal with extremely annoying syntaxes - barely specified
+'pretty-printed' outputs from various shell commands, markup langauges of
+all sorts and so on.
+
+Multiple helper procedures are provided to deal with majority of common use
+cases, which allows for rapid prototyping.
 
 ]##
 
@@ -109,11 +116,17 @@ proc initPosStr*(file: AbsFile): PosStr =
   ## Create positional string using new file stream
   PosStr(stream: newFileStream(file.getStr()), isSlice: false)
 
-func initPosStr*(str): PosStr =
+func initPosStr*(str; lastSlice: bool = false): PosStr =
   ## Pop one layer of slices from slice buffer and create new sub-string
   ## lexer from it.
-  result = PosStr(
-    isSlice: true, baseStr: addr str.str, slices: str.sliceBuffer.pop)
+  if lastSlice:
+    result = PosStr(
+      isSlice: true, baseStr: addr str.str,
+      slices: @[str.sliceBuffer.last().pop()])
+
+  else:
+    result = PosStr(
+      isSlice: true, baseStr: addr str.str, slices: str.sliceBuffer.pop)
 
   result.pos = result.slices[0].start
 
@@ -182,7 +195,7 @@ macro scanpTemp*(str: typed, pattern: varargs[untyped]): untyped =
   result = nnkStmtList.newTree()
   let tmp = genSym(nskVar, "tmp")
   result.add newVarStmt(tmp, newLit(0))
-  result.add newCall("scanp", str, tmp)
+  result.add newCall(bindSym"scanp", str, tmp)
   for patt in pattern:
     result[^1].add patt
 
@@ -319,7 +332,7 @@ proc `[]`*(str; slice: HSlice[int, char]): string =
 proc `$`*(slice: PosStrSlice): string = &"{slice.start}..{slice.finish}"
 proc `[]`*(str; slice: PosStrSlice): string =
   str.baseStr[][
-    max(slice.start, 0) ..< min(slice.finish, str.baseStr[].len)]
+    max(slice.start, 0) .. min(slice.finish, str.baseStr[].high)]
 
 proc sliceStrings*(str): seq[string] =
   for slice in str.slices:
@@ -395,8 +408,9 @@ proc startSlice*(str) {.inline.} =
 
   str.sliceBuffer[^1].add PosStrSlice(start: str.pos)
 
-proc finishSlice*(str) {.inline.} =
-  str.sliceBuffer[^1][^1].finish = str.pos
+proc finishSlice*(str; rightShift: int = -1) {.inline.} =
+  str.sliceBuffer[^1][^1].finish = min(
+    str.pos + rightShift, str.str.high)
 
 proc toggleBuffer*(str; activate: bool = not str.bufferActive) {.inline.} =
   str.bufferActive = activate
@@ -467,6 +481,14 @@ proc getRangeIndices*(
   for slice in topRangeIndices(str, leftShift, rightShift, doPop = false):
     result.add slice
 
+
+proc getAll*(str): string =
+  if str.isSlice:
+    for slice in str.slices:
+      result.add str.baseStr[][slice]
+
+  else:
+    result = str.str
 
 proc getRange*(str; leftShift: int = 0, rightShift: int = -1):
   string {.inline.} =
@@ -541,6 +563,14 @@ proc skip*(str; ch: char) {.inline.} =
   if str[] != ch:
    raise newUnexpectedCharError(str, $ch)
   str.advance()
+
+proc trySkip*(str; ch: char): bool  =
+  if str[] != ch:
+    result = false
+
+  else:
+    str.advance()
+    result = true
 
 proc skipWhile*(str; chars: set[char]) {.inline.} =
   if str[chars]:

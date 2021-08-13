@@ -3,7 +3,7 @@ import
   hmisc/preludes/unittest,
   hmisc/other/hpprint
 
-import std/[options]
+import std/[options, strscans]
 
 configureDefaultTestContext(
   skipAfterException = true,
@@ -267,6 +267,7 @@ suite "Primitives":
         str[] == '?'
         str.pos == 2
         str.getRangeIndices() == @[0 .. 1]
+        str.getRange() == "if"
 
     block pop_ident:
       var str = varStr("if ", [0..12])
@@ -321,12 +322,36 @@ suite "Primitives":
         str.getRange() == "else"
 
 
+  test "Parse slices":
+    let base = "[if (a == b)][{echo 12}][else"
+    var s = varStr(base, [1 .. 11, 14 .. 22, 25 .. 29])
+    check:
+      s['i']
+      s.popIdent() == "if"
+      s.trySkip(' ')
+      s.trySkip('(')
+      s.trySkip('a')
+      s.trySkip(' ')
+      s.trySkip('=')
+      s.trySkip('=')
+      s.trySkip(' ')
+      s[] == 'b'; s.trySkip('b')
+      s[] == ')'
+      s.sliceIdx == 0
+      s[] == base[11]
+      base[11] == ')'
+
+      s.trySkip(')')
+      s[] == '{'; s.trySkip('{')
+      s.popIdent() == "echo"
+      s.trySkip(' ')
+      s.popDigit() == "12"
 
 
 suite "Hlex base":
   test "Use example":
-    var str = initPosStr("[if (a == b)][{echo 12}][else")
-    # var str = initPosStr("[if (a == b)]")
+    let base = "[if (a == b)][{echo 12}][else"
+    var str = initPosStr(base)
     block extractSlices:
       ## Iterate over string, skipping braces, and extract all characters
       ## in the subslices
@@ -337,25 +362,41 @@ suite "Hlex base":
           while ?str and not str[']']:
             str.advance()
 
-          str.finishSlice()
+          if ?str:
+            check:
+              str[] == ']'
+
+          if ?str:
+            str.finishSlice()
+
+          else:
+            str.finishSlice(0)
+
+
           if ?str: str.advance()
+
+    show str.sliceBuffer
+
+    let top = str.sliceBuffer[0]
+
+    check:
+      top[0] == 1 .. 11
+      base[top[0]] == "if (a == b)"
+
+      top[1] == 14 .. 22
+      base[top[1]] == "{echo 12}"
+
+      top[2] == 25 .. 28
+      base[top[2]] == "else"
 
     var chars = initPosStr(str)
     check chars.sliceStrings() == @["if (a == b)", "{echo 12}", "else"]
 
-    show chars
-    startHax()
-
-    var str2 = chars
-    echov str2.popIdent()
-
-
     block parseSlices:
       ## Use subslice string as if it was a regular, concatenated
-      ## "aaabbbcccaaa"
+      ## "if (a == b) {echo 12} else"
       var tokens: seq[string]
       while ?chars:
-        echov chars
         case chars[]:
           of IdentChars:
             tokens.add chars.popIdent()
@@ -405,19 +446,6 @@ of true:
     var subStr = initPosStr(str)
 
     show subStr
-
-
-suite "Positional string low-level parse API":
-  test "Pop numbers":
-    var str = initPosStr("1234")
-    check str.popDigit() == "1234"
-
-  test "Positional information":
-    var str = initPosStr("012\n456")
-    discard str.popDigit()
-    str.skip('\n')
-    check str.line == 1
-    check str.column == 0
 
 proc simpleLexerImpl(str: var PosStr): Option[HsTok[char]] =
   if not ?str: return
@@ -522,3 +550,62 @@ dedent""", lexerImpl)
       ('=', " "), ('i', "same"),
       ('<', " "), ('i', "dedent")
     ]
+
+
+suite "C preprocessor reimplementation":
+  test "define garbage":
+    discard
+
+  test "ifdef garbage":
+    let code = lit3"""
+    #ifdef 1 == 2
+      // random text that would not be parsed,
+      // might even contain more #ifdef, just
+      // don't start lines
+    #endif
+    """
+
+    var str = varStr(code)
+    var slices: seq[string]
+    while ?str:
+      case str[]:
+        of '#':
+          str.pushRange()
+          str.startSlice()
+          str.skipToEOL()
+          slices.add str.popRange()
+          str.finishSlice()
+
+        else:
+          str.pushRange()
+          str.startSlice()
+          while ?str and not str['#']:
+            str.skipToEol()
+
+          slices.add str.popRange()
+          str.finishSlice()
+
+    var
+      if2 = initPosStr(str, true)
+      body = initPosStr(str, true)
+      if1 = initPosStr(str, true)
+
+    check:
+      strdiff slices[0], if1.getAll()
+      strdiff slices[1], body.getAll()
+      strdiff slices[2], if2.getAll()
+
+      strdiff slices[0], "#ifdef 1 == 2\n"
+      strdiff slices[1], """
+  // random text that would not be parsed,
+  // might even contain more #ifdef, just
+  // don't start lines
+"""
+      strdiff slices[2], "#endif\n"
+
+
+suite "Nim cfg parser":
+  discard
+
+suite "Simple org-mode replacement":
+  discard

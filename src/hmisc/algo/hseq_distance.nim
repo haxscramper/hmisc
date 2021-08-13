@@ -363,7 +363,7 @@ type
     lekReplace
     lekDelete
 
-  LevEdit* = object
+  LevEdit*[T] = object
     sourcePos*: int
     targetPos*: int
     case kind*: LevEditKind
@@ -372,16 +372,16 @@ type
 
       of lekInsert:
         insertPos*: int
-        insertItem*: char
+        insertItem*: T
 
       of lekDelete:
         deletePos*: int
 
       of lekReplace:
         replacePos*: int
-        replaceItem*: char
+        replaceItem*: T
 
-func getPos*(edit: LevEdit): int =
+func getPos*[T](edit: LevEdit[T]): int =
   case edit.kind:
     of lekUnchanged: edit.sourcePos
     of lekInsert: edit.insertPos
@@ -390,7 +390,7 @@ func getPos*(edit: LevEdit): int =
     of lekNone: raise newUnexpectedKindError(edit)
 
 
-func apply*(str: var seq[char], op: LevEdit) =
+func apply*[T](str: var seq[T], op: LevEdit[T]) =
   case op.kind:
     of lekUnchanged:
       discard
@@ -408,12 +408,12 @@ func apply*(str: var seq[char], op: LevEdit) =
     of lekInsert:
       # echov op.insertPos, str
       # op.insertPos
-      str.insert($op.insertItem, op.insertPos)
+      str.insert(op.insertItem, op.insertPos)
       # echov str
 
 
-proc levenshteinDistance*(str1, str2: seq[char]): tuple[
-  distance: int, operations: seq[LevEdit]] =
+proc levenshteinDistance*[T](str1, str2: seq[T]): tuple[
+  distance: int, operations: seq[LevEdit[T]]] =
   # Adapted from https://phiresky.github.io/levenshtein-demo/
   var
     l1 = str1.len
@@ -475,7 +475,7 @@ proc levenshteinDistance*(str1, str2: seq[char]): tuple[
         cur.j == last.j + 1 and
         m[cur.i][cur.j] != m[last.i][last.j]
       ):
-        result.operations.add LevEdit(
+        result.operations.add LevEdit[T](
           kind: lekReplace,
           sourcePos: cur.i,
           targetPos: cur.j,
@@ -484,20 +484,20 @@ proc levenshteinDistance*(str1, str2: seq[char]): tuple[
         )
 
       elif (cur.i == last.i and cur.j == last.j + 1):
-        result.operations.add LevEdit(
+        result.operations.add LevEdit[T](
           kind: lekInsert,
           insertPos: cur.j - 1,
           insertItem: str2[cur.j - 1]
         )
 
       elif (cur.i == last.i + 1 and cur.j == last.j):
-        result.operations.add LevEdit(
+        result.operations.add LevEdit[T](
           kind: lekDelete,
           deletePos: cur.i - 1,
         )
 
       else:
-        result.operations.add LevEdit(kind: lekUnchanged)
+        result.operations.add LevEdit[T](kind: lekUnchanged)
 
       result.operations[^1].sourcePos = cur.i - 1
       result.operations[^1].targetPos = cur.j - 1
@@ -521,6 +521,11 @@ type
     kind*: DiffEditKind
     oldpos*: int
     newPos*: int
+
+  ShiftedDiff* = object
+    oldShifted*: seq[tuple[kind: DiffShiftKind, item: int]]
+    newShifted*: seq[tuple[kind: DiffShiftKind, item: int]]
+
 
 proc myersDiff*[T](
     aSeq, bSeq: openarray[T],
@@ -578,22 +583,16 @@ proc myersDiff*[T](
       else:
         front[k] = (x, history)
 
-
-type ShiftedDiff*[T] = tuple[
-  oldShifted, newShifted: seq[tuple[kind: DiffShiftKind, item: T]]]
-
 proc shiftDiffed*[T](
-    oldSeq, newSeq: openarray[T],
-    diff: seq[DiffEdit], empty: T
-  ): ShiftedDiff[T] =
+    diff: seq[DiffEdit], oldSeq, newSeq: openarray[T]): ShiftedDiff =
 
   for line in items(diff):
     case line.kind:
       of dekDelete:
-        result.oldShifted.add (dskDelete, oldSeq[line.oldPos])
+        result.oldShifted.add(dskDelete, line.oldPos)
 
       of dekInsert:
-        result.newShifted.add (dskInsert, newSeq[line.newPos])
+        result.newShifted.add(dskInsert, line.newPos)
 
       of dekKeep:
         var
@@ -602,40 +601,16 @@ proc shiftDiffed*[T](
 
         if oldLen < newLen:
           while oldLen < newLen:
-            result.oldShifted.add (dskEmpty, empty)
+            result.oldShifted.add(dskEmpty, 0)
             inc oldLen
 
         elif newLen < oldLen:
           while newLen < oldLen:
-            result.newShifted.add (dskEmpty, empty)
+            result.newShifted.add(dskEmpty, 0)
             inc newLen
 
-        result.oldShifted.add (dskKeep, oldSeq[line.oldPos])
-        result.newShifted.add (dskKeep, newSeq[line.newPos])
-
-proc formatDiffed*[T](shifted: ShiftedDiff[T]): string =
-  var
-    oldText, newText: seq[string]
-    lhsMax = 0
-
-  template editFmt(fmt: untyped): untyped =
-    case fmt:
-      of dskDelete: "- "
-      of dskInsert: "+ "
-      of dskKeep: "~ "
-      of dskEmpty: "? "
-
-
-  for (lhs, rhs) in zip(shifted.oldShifted, shifted.newShifted):
-    oldText.add editFmt(lhs[0]) & $lhs[1]
-    lhsMax = max(oldText[^1].len, lhsMax)
-    newText.add editFmt(rhs[0]) & $rhs[1]
-
-
-  for (lhs, rhs) in zip(oldtext, newtext):
-    result.add alignLeft(lhs, lhsMax + 3)
-    result.add rhs
-    result.add "\n"
+        result.oldShifted.add(dskKeep, line.oldPos)
+        result.newShifted.add(dskKeep, line.newPos)
 
 type
   Align*[T] = seq[AlignElem[T]]
