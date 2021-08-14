@@ -1,5 +1,7 @@
-import
-  ../core/all,
-  ../other/hunittest
+import ../other/hcoverage
 
-export all, hunittest
+hcoverageEnable()
+
+import ../core/all, ../other/hunittest
+
+export all, hunittest, hcoverage

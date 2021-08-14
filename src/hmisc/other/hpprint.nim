@@ -788,7 +788,17 @@ proc toPprintTree*[T](
         style = fgYellow + bgDefault
 
       elif (entry is ptr string) or (entry is ref string):
-        let val = "\"" & entry[] & "\""
+        let val =
+          if isNil(entry):
+            when entry is ptr:
+              "<ptr to nil string>"
+
+            else:
+              "<ref to nil string>"
+
+          else:
+            "\"" & entry[] & "\""
+
         style = fgYellow + bgDefault
 
       elif entry is cstring:

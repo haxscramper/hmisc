@@ -6,7 +6,7 @@ import std/[
 import
   ../core/[all, code_errors],
   ./halgorithm,
-  ../other/oswrap,
+  ../other/[oswrap, hcoverage],
   ../algo/clformat
 
 
@@ -168,10 +168,6 @@ proc hasNxt*(input: PosStr; idx: int): bool =
       pos <= input.slices[input.sliceIdx].finish and
       pos < input.baseStr[].len)
 
-    # echov input.baseStr[][pos], input.pos, result
-    # echov input.sliceIdx
-
-
   else:
     return pos < input.str.len
 
@@ -221,23 +217,9 @@ proc resetBuffer*(str) =
 proc `[]`*(str; idx: int = 0): char {.inline.} =
   fillNext(str, idx)
   if not hasNxt(str, idx):
-    raise newGetterError("Cannot get char at +",
-      idx, " input string is finished: ",
-      finished(str))
-    # raiseArgumentError(&"Cannot get char at [+{idx}]")
+    return '\x00'
 
-  #   let idx = str.pos + idx
-  #   var sliceStart = 0
-  #   for slice in str.slices[str.sliceIdx .. ^1]:
-  #     if sliceStart <= idx and
-  #        idx <= sliceStart + slice.len:
-  #       return str.baseStr[][slice.toAbsolute(idx - sliceStart)]
-
-  #     else:
-  #       sliceStart += slice.len
-
-  #   raise newArgumentError(&"Cannot get char at [+{idx}]")
-  if str.isSlice:
+  elif str.isSlice:
     return str.baseStr[][str.pos + idx]
 
   else:
@@ -377,7 +359,11 @@ proc hshow*(str; opts: HDIsplayOpts = defaultHDisplay): ColoredText =
     result.add "]"
 
   else:
-    result.add &"[{str.pos}: {hshow(str.str[str.pos .. ^1])}]"
+    result.add "["
+    result.add $str.pos
+    result.add ": ["
+    result.add hshow(str.str[clamp(str.pos, 0, str.str.high) .. ^1])
+    result.add "]]"
 
 
 proc `$`*(str): string = $hshow(str)
@@ -411,6 +397,10 @@ proc startSlice*(str) {.inline.} =
 proc finishSlice*(str; rightShift: int = -1) {.inline.} =
   str.sliceBuffer[^1][^1].finish = min(
     str.pos + rightShift, str.str.high)
+
+proc popSlice*(str; rightShift: int = -1): PosStr =
+  finishSlice(str, rightShift)
+  return initPosStr(str)
 
 proc toggleBuffer*(str; activate: bool = not str.bufferActive) {.inline.} =
   str.bufferActive = activate
@@ -525,7 +515,7 @@ proc popRange*(str; leftShift: int = 0, rightShift: int = -1):
       result.add str.str[slice]
 
 
-proc advance*(str; step: int = 1) {.inline.} =
+proc advance*(str; step: int = 1) {.astCov.} =
   if str['\n']:
     inc str.line
     str.column = 0
@@ -583,11 +573,19 @@ proc skipUntil*(str; chars: set[char], including: bool = false) {.inline.} =
     str.advance()
     changed = true
 
-  if changed and including:
+  if changed and including and ?str:
     str.advance()
 
-proc skipToEOL*(str; including: bool = true) =
-  str.skipUntil(Newline, including)
+proc skipToEOL*(str) =
+  ## Skip to the end of current line. After parsing cursor is positioned on
+  ## the last character in the string, or closes newline.
+  str.skipUntil(Newline, including = true)
+
+proc skipToNewline*(str) =
+  ## Skip until end of the current line is found. After parsing cursor is
+  ## positioned on the last character in the strign, or *before* closest
+  ## newline.
+  str.skipUntil(Newline, including = false)
 
 proc skipIndent*(str; maxIndent = high(int)): int =
   while str[HorizontalSpace]:

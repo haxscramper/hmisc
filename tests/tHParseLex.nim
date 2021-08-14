@@ -1,6 +1,8 @@
 import
+  hmisc/preludes/unittest
+
+import
   hmisc/algo/[hparse_base, hlex_base],
-  hmisc/preludes/unittest,
   hmisc/other/hpprint
 
 import std/[options, strscans]
@@ -20,6 +22,9 @@ template varStr(inStr: string, slices: openarray[Slice[int]]): untyped =
   str
 
 suite "Primitives":
+  {.configure.}:
+    showCoverage("advance")
+
   test "Pop range while":
     var str = initPosStr("---?")
     str.pushRange()
@@ -40,6 +45,22 @@ suite "Primitives":
         var str = initPosStr("")
         str.skipWhile({'0'})
         check not ?str
+
+    block line_information:
+      var str = initPosStr("0\n123\n456")
+      check:
+        str.line == 0
+        str.column == 0
+
+      str.advance()
+      check:
+        str.line == 0
+        str.column == 1
+
+      str.advance()
+      check:
+        str.line == 1
+        str.column == 0
 
     block skip_until:
       var str = initPosStr("_________]")
@@ -553,9 +574,6 @@ dedent""", lexerImpl)
 
 
 suite "C preprocessor reimplementation":
-  test "define garbage":
-    discard
-
   test "ifdef garbage":
     let code = lit3"""
     #ifdef 1 == 2
@@ -602,6 +620,47 @@ suite "C preprocessor reimplementation":
   // don't start lines
 """
       strdiff slices[2], "#endif\n"
+
+  proc lexerCb(str: var PosStr): Option[PosStr] =
+    case str[]:
+      of '#':
+        str.startSlice()
+        str.skipToNewline()
+        if ?str and str[-1] == '\\':
+          while ?str and str[-1] == '\\':
+            str.advance()
+            str.skipToNewline()
+
+        else:
+          str.advance()
+
+        return some str.popSlice()
+
+      else:
+        str.startSlice()
+        while ?str and not str['#']:
+          str.skipToEol()
+
+        return some str.popSlice()
+
+  test "Lexer callbacks":
+    startHax()
+    block one_define:
+      var tokens = lexAll(varStr("#define"), lexerCb)
+      check:
+        tokens[0].getAll() == "#define"
+
+    block consecutive_defines:
+      var tokens = lexAll(varStr("#define\n#define"), lexerCb)
+      check:
+        tokens[0].getAll() == "#define\n"
+        tokens[1].getAll() == "#define"
+
+    block continued_defines:
+      var tokens = lexAll(varStr("#def\\\n line2"), lexerCb)
+      check:
+        strdiff tokens[0].getAll(), "#def\\\n line2"
+
 
 
 suite "Nim cfg parser":

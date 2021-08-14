@@ -1104,26 +1104,34 @@ func addIndent*(
 
 template coloredResult*(): untyped =
   var outPtr: ptr ColoredText = addr result
+  template endResult(): untyped =
+    when nimvm:
+      return outPtr[]
+
+    else:
+      discard
+
   template add(arg: untyped): untyped = outPtr[].add arg
   template add(arg1, arg2: untyped): untyped = outPtr[].add(arg1, arg2)
   template addIndent(level: int): untyped = outPtr[].addIndent(level)
+
 
 func joinPrefix*(
     level: int, idx: seq[int],
     pathIndexed, positionIndexed: bool): ColoredText =
 
   if pathIndexed:
-    result = idx.join("", ("[", "]")) & "    "
+    result = idx.join("", ("[", "]")) & "  "
 
   elif positionIndexed:
     if level > 0:
       result.add "  ".repeat(level - 1)
-      result.add to8Bit(alignLeft("#" & $idx[^1], 3), 10)
-      result.add to8Bit("/" & alignLeft($level, 2), 20)
-      result.add " "
+      result.add to8Bit(align($idx[^1], 2, '#'), 10)
+      # result.add to8Bit("/" & alignLeft($level, 2), 20)
+      # result.add " "
 
-    else:
-      result.add "    "
+    # else:
+    #   result.add "  "
 
   else:
     result.addIndent(level)

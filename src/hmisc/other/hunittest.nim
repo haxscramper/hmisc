@@ -13,7 +13,8 @@ import
   ../core/[all, code_errors],
   ../types/colorstring,
   ./oswrap,
-  ./hlogger
+  ./hlogger,
+  ./hcoverage
 
 
 
@@ -25,12 +26,18 @@ type
     suiteGlob: GitGlob
     testGlob: GitGlob
 
+  TestCoverageWant = object
+    procname: string
+    onlyMissing: bool
+
   TestConf = object
     isSuite: bool
     stderr, stdout, stdin: string
     backends: seq[TestBackend]
     name: string
     timeExecution: bool
+
+    showCoverage: seq[TestCoverageWant]
 
   TestLocation = object
     line, column: int
@@ -245,6 +252,9 @@ proc configureDefaultTestContext*(
   default.skipAfterManual = skipAfterManual
   default.skipAfterCheckFail = skipAfterCheckFail
 
+proc showCoverage*(conf: var TestConf, procname: string) =
+  conf.showCoverage.add TestCoverageWant(
+    procname: procname, onlyMissing: true)
 
 
 proc report(context: TestContext, report: TestReport) =
@@ -354,6 +364,7 @@ proc report(context: TestContext, report: TestReport) =
         else:
           echo pOk, name
 
+
       if report.failKind == tfkException:
         assertRef report.exception
         logStackTrace(
@@ -436,6 +447,13 @@ proc report(context: TestContext, report: TestReport) =
 
     else:
       discard
+
+
+  if report.kind in { trkTestEnd, trkSuiteEnd }:
+    for cover in report.conf.showCoverage:
+      pprintCoverage(cover.procname, cover.onlyMissing)
+
+
 
 
 func testLocation(node: NimNode): TestLocation =
@@ -1023,6 +1041,18 @@ proc checkpoint(loc: TestLocation, msg: string): TestReport =
 
 
 
+proc makeConfigs(confIdent, configSection: NimNode): NimNode =
+  result = newStmtList()
+  if notNil(configSection):
+    for node in configSection:
+      case node.kind:
+        of nnkCall:
+          node.insert(1, confIdent)
+          result.add node
+
+        else:
+          raise newImplementKindError(node)
+
 
 
 macro suite*(name: static[string], body: untyped): untyped =
@@ -1039,29 +1069,41 @@ macro suite*(name: static[string], body: untyped): untyped =
     suiteFailed = bindSym("suiteFailed")
     locLit = testLocation(body).newLit()
 
+  var
+    newBody = newStmtList()
+    configSection: NimNode
+
+  for node in body:
+    if node.kind == nnkPragmaBlock and node[0][0].eqIdent("configure"):
+      configSection = node[1]
+
+    else:
+      newBody.add node
+
+  let
+    confIdent = genSym(nskVar, "conf")
+    callConfigs = makeConfigs(confIdent, configSection)
+
   result = quote do:
     when `whenSuite`:
-      let conf = `suiteLit`
+      var `confIdent` = `suiteLit`
+      `callConfigs`
+
       let loc = `locLit`
       proc `suiteProc`(testContext {.inject.}: TestContext) =
-        `body`
+        `newBody`
 
       when hasTestContext():
-        maybeRunSuite(testContext, `suiteProc`, conf, loc)
+        maybeRunSuite(testContext, `suiteProc`, `confIdent`, loc)
 
       else:
-        maybeRunSuite(getTestContext(), `suiteProc`, conf, loc)
+        maybeRunSuite(getTestContext(), `suiteProc`, `confIdent`, loc)
 
 
 
 macro test*(name: static[string], body: untyped): untyped =
-  var testConf: TestConf
-
-  testConf.name = name
-
   let
     line = lineIInfo(body)
-    testLit = newLit(testConf)
     canRun = bindSym("canRunTest")
     testFailed = bindSym("testFailed")
     testStart = bindSym("testStart")
@@ -1081,8 +1123,17 @@ macro test*(name: static[string], body: untyped): untyped =
         stmt.testLocation().newLit()))
 
   var newBody = newStmtList()
+  var configSection: NimNode
   for stmt in body:
     case stmt.kind:
+      of nnkPragmaBlock:
+        # echo stmt.treeRepr2(pathIndexed = true)
+        if stmt[0][0].eqIdent("configure"):
+          configSection = stmt[1]
+
+        else:
+          newBody.add stmt
+
       of nnkBlockStmt:
         if stmt[0].kind != nnkEmpty:
           let name = stmt[0].toStrLit()
@@ -1116,22 +1167,30 @@ macro test*(name: static[string], body: untyped): untyped =
       else:
         newBody.add stmt
 
+  let
+    testLit = newLit(TestConf(name: name))
+    confIdent = genSym(nskVar, "conf")
+    callConfigs = makeConfigs(confIdent, configSection)
+
+
   result = quote do:
     block:
-      let
-        conf = `testLit`
+      var
+        `confIdent` = `testLit`
         loc = `testLoc`
 
-      if `canRun`(testContext, conf):
+      `callConfigs`
+
+      if `canRun`(testContext, `confIdent`):
         try:
-          `report`(testContext, `testStart`(conf, loc))
+          `report`(testContext, `testStart`(`confIdent`, loc))
           `newBody`
 
-          `report`(testContext, `testOk`(conf, loc))
+          `report`(testContext, `testOk`(`confIdent`, loc))
 
         except:
           `report`(testContext, `testFailed`(
-            conf, loc, getCurrentException()))
+            `confIdent`, loc, getCurrentException()))
 
 
 proc nowMs(): float64 =

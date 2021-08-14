@@ -510,13 +510,12 @@ proc getAll*[T](lex: var HsLexer[T]): seq[T] =
   while not lex.finished():
     result.add lex.pop()
 
-
-
-
-
-
 proc lexAll*[T](str: string, impl: HsLexCallback[T]): seq[T] =
   var str = initPosStr(str)
+  var lexer = initLexer(str, impl)
+  return lexer.getAll()
+
+proc lexAll*[T](str: var PosStr, impl: HsLexCallback[T]): seq[T] =
   var lexer = initLexer(str, impl)
   return lexer.getAll()
 

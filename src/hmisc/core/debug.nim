@@ -177,6 +177,7 @@ template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
               of '\n': "\\n"
               of '\t': "\\t"
               of '\r': "\\r"
+              of '\x00': "\\x00"
               else: vart
 
           vart = "'" & vart & "'"

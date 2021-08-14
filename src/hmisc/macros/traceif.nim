@@ -1,4 +1,4 @@
-import macros, strutils, strformat
+import std/[macros, strutils, strformat]
 
 func traceIfImpl(head, body: NimNode): NimNode =
   # TODO also trigger `case`
