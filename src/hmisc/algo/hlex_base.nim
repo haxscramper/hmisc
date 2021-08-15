@@ -548,8 +548,9 @@ proc advance*(str; step: int = 1) {.hcov.} =
         str.pos = str.slices[str.sliceIdx].start
 
       else:
-        inc current
-        inc str.pos
+        nohcov:
+          inc current
+          inc str.pos
 
       for fragment in mitems(str.fragmentedRanges):
         if fragment.len > 0:

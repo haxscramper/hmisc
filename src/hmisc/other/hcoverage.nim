@@ -113,6 +113,10 @@ func execNode(hash: CovFileId, line: CovLineId, column: int) =
 
     covStats[hash].incl line
 
+func skipNode(hash: CovFileId, lineRange: Slice[CovLineId]) =
+  discard
+
+
 template execExpr(
     hash: CovFileId, line: CovLineId,
     column: int, expr: untyped
@@ -217,17 +221,16 @@ proc execExpr(base, node: NimNode): NimNode =
 
 const
   convTable = {
-    nnkStmtList, nnkElifBranch, nnkElse,
+    nnkStmtList, nnkElifBranch, nnkElse, nnkPragmaBlock,
     nnkDiscardStmt, nnkReturnStmt: 0 .. ^1,
     nnkCall, nnkCommand, nnkAsgn: 1 .. ^1,
     nnkForStmt: 2 .. ^1
   }
 
   convRanges = toMapArray convTable
-  convKinds = toKeySet convTable
+  convKinds = toKeySet(convTable)
 
-macro nohcov*(body: untyped): untyped =
-  raise newImplementError()
+template nohcov*(body: untyped): untyped = body
 
 proc transform(node: NimNode): NimNode =
   case node.kind:
@@ -235,6 +238,21 @@ proc transform(node: NimNode): NimNode =
       result = node
 
     of convKinds:
+      # echo node.repr()
+      # echo node.kind
+      if (node.kind == nnkPragmaBlock and node[0][0].eqIdent("nohcov")) or
+         (node.kind == nnkCall and node[0].eqIdent("nohcov")):
+        return newStmtList(
+          newCall(
+            bindSym"skipNode",
+            newCall(bindSym"CovFileId", newCall(
+              bindSym"CovFileId", hash(node.lineInfoObj().filename).newLit())),
+            nnkInfix.newTree(
+              ident"..",
+              newCall(bindSym"CovLineId", node.startPos().line.newLit()),
+              newCall(bindSym"CovLineId", node.finishPos().line.newLit()))),
+          node)
+
       result = newTree(node.kind)
 
       for sub in node[0 ..< convRanges[node.kind].a]:
