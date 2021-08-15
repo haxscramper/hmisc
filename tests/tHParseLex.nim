@@ -86,7 +86,7 @@ suite "Primitives":
         check:
           str.pos == 0
           str.getRangeIndices() == @[0 .. -1]
-          str.ranges[0] == 0
+          str.ranges[0].pos == 0
 
         str.advance()
 

@@ -25,6 +25,8 @@ cases, which allows for rapid prototyping.
 
 type
   PosStrSlice = object
+    line*: int
+    column*: int
     start*: int
     finish*: int
 
@@ -39,15 +41,15 @@ type
                      ## case of lexing over existing string)
         stream*: Stream ## Input data stream. Might be `nil`, in which case
                         ## new data won't be read in.
-        ranges*: seq[int] ## Sequence of starting position for ranges. When
-        ## `popRange()` is called end position of the string (with offset)
-        ## is used to determine end point.
+        ranges*: seq[tuple[pos, line, column: int]] ## Sequence of starting
+        ## position for ranges. When `popRange()` is called end position of
+        ## the string (with offset) is used to determine end point.
 
       of true:
         sliceIdx*: int ## Currently active slice
         baseStr*: ptr string ## Pointer to the base string. Must not be nil
         slices*: seq[PosStrSlice] ## List of slices in the base string
-        fragmentedRanges*: seq[seq[Slice[int]]] ## Sequence of fragments for
+        fragmentedRanges*: seq[seq[PosStrSlice]] ## Sequence of fragments for
         ## active ranges. When `popRange()` is called end position is used,
         ## identically to the [[code:.ranges]] case. When position is
         ## advanced in string, new fragments might be added to the ranges.
@@ -379,13 +381,17 @@ template assertAhead*(str: PosStr, ahead: string) =
     )
 
 
+func posStrSlice*(
+    a, b: int, line: int, column: int): PosStrSlice {.inline.} =
+  PosStrSlice(start: a, finish: b, line: line, column: column)
 
 proc pushRange*(str) {.inline.} =
   if str.isSlice:
-    str.fragmentedRanges.add @[str.pos .. str.pos]
+    str.fragmentedRanges.add @[posStrSlice(
+      str.pos, str.pos, str.line, str.column)]
 
   else:
-    str.ranges.add str.pos
+    str.ranges.add(str.pos, str.line, str.column)
 
 proc startSlice*(str) {.inline.} =
   ## Start new slice in the string slice buffer.
@@ -406,8 +412,6 @@ proc toggleBuffer*(str; activate: bool = not str.bufferActive) {.inline.} =
   str.bufferActive = activate
 
 
-func posStrSlice*(a, b: int): PosStrSlice {.inline.} =
-  PosStrSlice(start: a, finish: b)
 
 func `[]`*(str: string, slice: PosStrSlice): string =
   str[slice.start .. slice.finish]
@@ -445,19 +449,26 @@ iterator topRangeIndices*(
     for idx, fragment in ranges:
       let slice =
         if idx == ranges.high:
-          posStrSlice(fragment.a, fragment.b + rightShift)
+          posStrSlice(
+            fragment.start, fragment.finish + rightShift,
+            fragment.line,
+            fragment.column)
 
         else:
-          posStrSlice(fragment.a, fragment.b)
+          fragment
 
       yield slice
 
 
   else:
-    let start = tern(doPop, str.ranges.pop, str.ranges.last()) + leftShift
+    let (start, line, column) = tern(doPop, str.ranges.pop, str.ranges.last())
     let finish = str.pos
 
-    yield posStrSlice(start, min(finish, str.str.len) + rightShift)
+    yield posStrSlice(
+      start + leftshift,
+      min(finish, str.str.len) + rightShift,
+      line,
+      column)
 
 proc popRangeIndices*(
     str; leftShift: int = 0, rightShift: int = -1): seq[PosStrSlice] =
@@ -526,7 +537,7 @@ proc advance*(str; step: int = 1) {.hcov.} =
     if str.pos < str.slices[str.sliceIdx].finish:
       inc(str.pos, step)
       for fragment in mitems(str.fragmentedRanges):
-        fragment.last().b = str.pos
+        fragment.last().finish = str.pos
 
 
     else:
@@ -542,9 +553,13 @@ proc advance*(str; step: int = 1) {.hcov.} =
 
       for fragment in mitems(str.fragmentedRanges):
         if fragment.len > 0:
-          fragment.last().b = current
+          fragment.last().finish = current
           if str.sliceIdx < str.slices.len:
-            fragment.add @[str.pos .. str.pos]
+            fragment.add posStrSlice(
+              str.pos,
+              str.pos,
+              str.line,
+              str.column)
 
   else:
     inc(str.pos, step)

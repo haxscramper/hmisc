@@ -113,6 +113,14 @@ func execNode(hash: CovFileId, line: CovLineId, column: int) =
 
     covStats[hash].incl line
 
+template execExpr(
+    hash: CovFileId, line: CovLineId,
+    column: int, expr: untyped
+  ): untyped =
+
+  execNode(hash, line, column)
+  expr
+
 proc hash(procname: CovProcName): Hash = hash(procname.name)
 
 import ./hpprint
@@ -194,8 +202,18 @@ proc execCall(node: NimNode): NimNode =
     newLit(iinfo.column))
 
 
+
 proc execNode(node: NimNode): NimNode =
   nnkStmtListExpr.newTree(execCall(node), node)
+
+proc execExpr(base, node: NimNode): NimNode =
+  let iinfo = base.lineInfoObj()
+  return newCall(
+    bindSym"execExpr",
+    newCall(bindSym"CovFileId", fileId(iinfo.filename)),
+    newCall(bindSym"CovLineId", newLit(iinfo.line)),
+    newLit(iinfo.column),
+    node)
 
 const
   convTable = {
@@ -208,6 +226,8 @@ const
   convRanges = toMapArray convTable
   convKinds = toKeySet convTable
 
+macro nohcov*(body: untyped): untyped =
+  raise newImplementError()
 
 proc transform(node: NimNode): NimNode =
   case node.kind:
@@ -224,15 +244,15 @@ proc transform(node: NimNode): NimNode =
         if sub.kind in convKinds:
           result.add execNode(transform(sub))
 
+        elif node.kind in { nnkCall, nnkCommand }:
+          result.add execExpr(sub, transform(sub))
+
         else:
           result.add transform(sub)
 
       if node.kind in { nnkElse, nnkForStmt, nnkElifBranch }:
         let exec = execCall(node)
         result[^1].add exec
-
-      # if node.kind in { nnkStmtList, nnkIfStmt }:
-      #   result = execNode(result)
 
     else:
       result = newTree(node.kind)
