@@ -5,7 +5,7 @@ import
   hmisc/algo/[hparse_base, hlex_base],
   hmisc/other/hpprint
 
-import std/[options, strscans, tables]
+import std/[options, strscans, sets]
 
 configureDefaultTestContext(
   skipAfterException = true,
@@ -368,6 +368,39 @@ suite "Primitives":
       s.trySkip(' ')
       s.popDigit() == "12"
 
+  test "popBalancedSlice":
+    {.configure.}:
+      showCoverage("popBalancedSlice", false)
+
+    block inside_parens:
+      var str = varStr("[0123]")
+      let slice = str.popBalancedSlice({'['}, {']'})
+      check slice.strVal() == "[0123]"
+
+    block unclosed_noraise:
+      var str = varStr("[0123")
+      let slice = str.popBalancedSlice({'['}, {']'}, doRaise = false)
+      check slice.strVal() == "[0123"
+
+    block unclosed_end_noraise:
+      var str = varStr("[0123\n")
+      let slice = str.popBalancedSlice({'['}, {']'}, doRaise = false)
+      check:
+        slice.strVal() == "[0123"
+        str[] == '\n'
+
+    block raise_missing_end:
+      var str = varStr("[0123")
+      expect UnbalancedWrapError as err:
+        let slice = str.popBalancedSlice({'['}, {']'})
+
+      check:
+        err.line == 0
+        err.column == 5
+
+
+
+
 
 suite "Hlex base":
   test "Use example":
@@ -621,43 +654,53 @@ suite "C preprocessor reimplementation":
 """
       strdiff slices[2], "#endif\n"
 
-  proc lexerCb(str: var PosStr): Option[PosStr] =
-    case str[]:
-      of '#':
-        str.startSlice()
-        str.skipToNewline()
-        if ?str and str[-1] == '\\':
-          while ?str and str[-1] == '\\':
+
+  var macroNames: HashSet[string]
+  proc lex(str: var PosStr): seq[PosStr] =
+    while ?str:
+      case str[]:
+        of '#':
+          str.startSlice()
+          str.skipToNewline()
+          if ?str and str[-1] == '\\':
+            while ?str and str[-1] == '\\':
+              str.advance()
+              str.skipToNewline()
+
+          else:
             str.advance()
-            str.skipToNewline()
+
+          result.add str.popSlice()
+
+        of IdentChars:
+          let
+            id = str.popIdentSlice()
+            idStr = id.strVal()
+
+          echo idStr
 
         else:
-          str.advance()
+          str.startSlice()
+          while ?str and not str['#']:
+            str.skipToEol()
 
-        return some str.popSlice()
-
-      else:
-        str.startSlice()
-        while ?str and not str['#']:
-          str.skipToEol()
-
-        return some str.popSlice()
+          result.add str.popSlice()
 
   test "Lexer callbacks":
     startHax()
     block one_define:
-      var tokens = lexAll(varStr("#define"), lexerCb)
+      var tokens = varStr("#define").lex()
       check:
         tokens[0].getAll() == "#define"
 
     block consecutive_defines:
-      var tokens = lexAll(varStr("#define\n#define"), lexerCb)
+      var tokens = varStr("#define\n#define").lex()
       check:
         tokens[0].getAll() == "#define\n"
         tokens[1].getAll() == "#define"
 
     block continued_defines:
-      var tokens = lexAll(varStr("#def\\\n line2"), lexerCb)
+      var tokens = varStr("#def\\\n line2").lex()
       check:
         strdiff tokens[0].getAll(), "#def\\\n line2"
 

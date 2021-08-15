@@ -67,11 +67,12 @@ type
     ## automatically collect new string slices
 
 
-  HLexerError* = ref object of ParseError
+  HLexerError* = object of ParseError
     ## Base type for lexer errors
     pos*, line*, column*: int
 
-  UnexpectedCharError = object of HLexerError
+  UnexpectedCharError* = object of HLexerError
+  UnbalancedWrapError* = object of HLexerError
 
 
 using str: var PosStr
@@ -226,12 +227,15 @@ proc `[]`*(str; idx: int = 0): char {.inline.} =
 
   else:
     return str.str[str.pos + idx]
+proc setLineInfo*(error: ref HLexerError, str: PosStr) =
+  error.column = str.column
+  error.line = str.line
+  error.pos = str.pos
 
 proc newUnexpectedCharError*(
     str; expected: string = ""): ref UnexpectedCharError =
-  result = (ref UnexpectedCharError)(
-    column: str.column, line: str.line, pos: str.pos)
-
+  new(result)
+  result.setLineInfo(str)
   result.msg.add "Unexpected character encoutered during lexing - found '"
   result.msg.add $str[0]
 
@@ -244,11 +248,6 @@ proc newUnexpectedCharError*(
     result.msg.add "'"
 
   result.msg.add " at " & $str.line & ":" & $str.column
-
-  # result.msg.add "'"
-  #   msg: "Unexpected character encountered while parsing. '" &  &
-  #     )
-
 
 proc `[]`*(str; slice: HSlice[int, BackwardsIndex]): string {.inline.} =
   var next = 0
@@ -483,13 +482,15 @@ proc getRangeIndices*(
     result.add slice
 
 
-proc getAll*(str): string =
+proc getAll*(str: PosStr): string =
   if str.isSlice:
     for slice in str.slices:
       result.add str.baseStr[][slice]
 
   else:
     result = str.str
+
+proc strVal*(str: PosStr): string = getAll(str)
 
 proc getRange*(str; leftShift: int = 0, rightShift: int = -1):
   string {.inline.} =
@@ -548,9 +549,8 @@ proc advance*(str; step: int = 1) {.hcov.} =
         str.pos = str.slices[str.sliceIdx].start
 
       else:
-        nohcov:
-          inc current
-          inc str.pos
+        inc current
+        inc str.pos
 
       for fragment in mitems(str.fragmentedRanges):
         if fragment.len > 0:
@@ -702,6 +702,63 @@ proc popDigit*(str: var PosStr): string {.inline.} =
 
 proc popIdent*(str; chars: set[char] = IdentChars):
   string {.inline.} = str.popWhile(chars)
+
+proc popIdentSlice*(str; chars: set[char] = IdentChars): PosStr =
+  str.startSlice()
+  str.skipWhile(chars)
+  str.popSlice()
+
+proc popBalancedSlice*(
+    str; openChars, closeChars: set[char],
+    endChars: set[char] = Newline,
+    doRaise: bool = true
+  ): PosStr {.hcov.} =
+
+  var
+    fullCount = 0
+    count: array[char, int]
+
+  template unbalanced() {.dirty.} =
+    var err: ref UnbalancedWrapError
+    new(err)
+    err.setLineInfo(str)
+    err.msg.add "Unbalanced wrap"
+    raise err
+
+
+  str.startSlice()
+  while ?str:
+    if str[] in openChars:
+      inc fullCount
+      inc count[str.pop()]
+
+    elif str[] in closeChars:
+      dec fullCount
+      dec count[str.pop()]
+
+      if fullCount == 0:
+        return str.popSlice()
+
+    elif str[] in endChars:
+      if fullCount > 0:
+        if doRaise:
+          unbalanced()
+
+        else:
+          return str.popSlice()
+
+      else:
+        return str.popSlice()
+
+    else:
+      str.advance()
+
+  result = str.popSlice()
+  if fullcount > 0 and doRaise:
+    unbalanced()
+
+
+
 
 
 proc popNext*(str; count: int): string {.inline.} =

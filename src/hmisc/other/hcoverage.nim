@@ -222,6 +222,7 @@ proc execExpr(base, node: NimNode): NimNode =
 const
   convTable = {
     nnkStmtList, nnkElifBranch, nnkElse, nnkPragmaBlock,
+    nnkWhileStmt,
     nnkDiscardStmt, nnkReturnStmt: 0 .. ^1,
     nnkCall, nnkCommand, nnkAsgn: 1 .. ^1,
     nnkForStmt: 2 .. ^1
@@ -268,9 +269,9 @@ proc transform(node: NimNode): NimNode =
         else:
           result.add transform(sub)
 
-      if node.kind in { nnkElse, nnkForStmt, nnkElifBranch }:
+      if node.kind in { nnkElse, nnkForStmt, nnkElifBranch, nnkWhileStmt }:
         let exec = execCall(node)
-        result[^1].add exec
+        result[^1].insert(0, exec)
 
     else:
       result = newTree(node.kind)
@@ -295,12 +296,19 @@ macro hcoverageEnable*() =
   addCoverage = true
 
 
+proc getName(impl: NimNode): string =
+  if impl[0].kind == nnkPostfix:
+    impl[0][1].strVal()
+
+  else:
+    impl[0].strVal()
+
 proc getProcname(impl: NimNode): CovProcName =
-  result.name = impl.name().strVal()
+  result.name = impl.getName()
   for argument in impl.params[1..^1]:
     for id in argument[0 .. ^3]:
       if argument[^1].kind != nnkEmpty:
-        result.argumentTypes.add argument[^2].strVal()
+        result.argumentTypes.add argument[^2].repr()
 
       else:
         result.argumentTypes.add ""
@@ -338,6 +346,12 @@ proc transformImpl(impl: NimNode): NimNode =
 
       else:
         `oldBody`
+
+    result = quote do:
+      discard `execWithCoverage`(
+        `fileId`, `name`, `startLine` .. `finishLine`)
+
+      `result`
 
     writeFile("/tmp/" & impl.name().strVal() & ".nim", result.repr())
 

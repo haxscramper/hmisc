@@ -33,7 +33,7 @@ proc treeRepr2*(
   ## - show node position index
   ## - differentiate between `NilLit` and *actually* `nil` nodes
 
-  proc aux(n: NimNode, level: int, idx: seq[int]) =
+  proc aux(n: NimNode, level: int, idx: seq[int], err: ColoredText) =
     let pref = joinPrefix(level, idx, pathIndexed, positionIndexed)
 
     add pref
@@ -46,6 +46,9 @@ proc treeRepr2*(
       return
 
     add hshow(n.kind) # pref & ($n.kind)[3 ..^ 1]
+    if err.len > 0:
+      add " "
+      add err
 
     if lineInfo:
       let info = n.lineInfoObj()
@@ -68,7 +71,7 @@ proc treeRepr2*(
         add " " & toMagenta($n.floatVal, colored)
 
       of nnkIdent:
-        add " " & toGreen(n.strVal(), colored)
+        add " " & toCyan(n.strVal(), colored)
 
       of nnkSym:
         add " "
@@ -94,7 +97,38 @@ proc treeRepr2*(
           add "\n"
 
         for newIdx, subn in n:
-          aux(subn, level + 1, idx & newIdx)
+          var e: ColoredText
+          template th(): untyped = toRed($newIdx & "-th subnode of ") & hshow(n.kind)
+          template last(): untyped = toRed("last subnode of") & hshow(n.kind)
+
+          case n.kind:
+            of nnkTryStmt:
+              if 0 < newIdx and newIdx < n.len - 1:
+                if subn.kind != nnkExceptBranch:
+                  e.add toRed("! expected ExceptBranch as ")
+                  e.add th()
+
+              elif newIdx == n.len - 1:
+                if subn.kind notin { nnkExceptBranch, nnkFinally }:
+                  e.add toRed("! expected Finally or ExceptBranch as ")
+                  e.add last()
+
+            of nnkExceptBranch:
+              if newIdx < n.len - 1:
+                if not(
+                  subn.kind in { nnkIdent } or
+                  subn.kind == nnkInfix and
+                  subn[0].eqIdent("as")
+                ):
+                  e.add toRed("! expected type identifier or infix `as` as ")
+                  e.add th()
+
+            else:
+              discard
+
+
+
+          aux(subn, level + 1, idx & newIdx, e)
           if level + 1 > maxDepth:
             break
 
@@ -103,5 +137,5 @@ proc treeRepr2*(
 
 
 
-  aux(pnode, 0, @[])
+  aux(pnode, 0, @[], "")
   endResult()

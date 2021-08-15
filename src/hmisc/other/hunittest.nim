@@ -52,6 +52,8 @@ type
     tfkOpCheck
     tfkCallCheck
     tfkPredicateFail
+    tfkNoExceptionRaised
+    tfkUnexpectedExceptionRaised
 
 
     tfkStrdiff
@@ -120,7 +122,7 @@ type
       of tfkStructDiff, tfkStructEq:
         structDiff: It[PPrintTree]
 
-      of tfkException:
+      of tfkException, tfkUnexpectedExceptionRaised:
         exception: ref Exception
 
       of tfkMatchDiff:
@@ -459,6 +461,7 @@ proc report(context: TestContext, report: TestReport) =
           of cckNotExecuted:
             inc nocover
             echo pad, &"{line.line:<4} {toRed(line.text)}"
+            lastNotExecuted = line.line
 
           of cckEmpty:
             if line.line == lastNotExecuted + 1:
@@ -570,6 +573,24 @@ func testFailManual(loc: TestLocation, msg: string): TestReport =
   result = TestReport(
     kind: trkTestFail, failKind: tfkManualFail,
     location: loc, msg: msg)
+
+
+func expectOk(loc: TestLocation): TestReport =
+  TestReport(kind: trkExpectOk, location: loc)
+
+func expectFail(unexpected: ref Exception, loc: TestLocation): TestReport =
+  TestReport(
+    kind: trkExpectFail,
+    failKind: tfkUnexpectedExceptionRaised,
+    exception: unexpected,
+    location: loc)
+
+func expectFail(loc: TestLocation): TestReport =
+  TestReport(
+    kind: trkExpectFail,
+    failKind: tfkNoExceptionRaised,
+    location: loc)
+
 
 func testEnd(conf: TestConf, loc: TestLocation): TestReport =
   TestReport(kind: trkTestEnd, conf: conf, location: loc)
@@ -1468,8 +1489,65 @@ macro parametrizeOnValue*(
 
 
 
-macro expect*(exceptions: varargs[typed]; body: untyped): untyped =
-  discard
+# template `as`*[E](err: E, id: untyped): untyped = discard
+
+macro expect*(args: varargs[untyped]): untyped =
+  echo args.treeRepr()
+  var
+    exceptionTypes: seq[NimNode]
+    asVarType: NimNode
+    asVar: NimNode
+
+  for ex in args[0 .. ^2]:
+    case ex.kind:
+      of nnkInfix:
+        exceptionTypes.add ex[1]
+        asVarType = ex[1]
+        asVar = ex[2]
+
+      else:
+        exceptionTypes.add ex
+
+  result = nnkTryStmt.newTree()
+  result.add newStmtList(args[^1])
+  let
+    report = bindSym"report"
+    fail = bindSym"expectFail"
+    ok = bindSym"expectOk"
+    loc = testLocation(args[0]).newLit()
+
+  result[^1].add quote do:
+    `report`(testContext, `fail`(`loc`))
+
+
+  if isNil(asVar):
+    result.add nnkExceptBranch.newTree(exceptionTypes)
+    result[^1].add quote do:
+      `report`(testContext, `ok`(`loc`))
+
+  else:
+    # echo asVarType.treeRepr2()
+    let tmp = genSym(nskLet)
+    result.add nnkExceptBranch.newTree(nnkInfix.newTree(
+      ident"as", asVarType, tmp))
+
+    result[^1].add quote do:
+      `report`(testContext, `ok`(`loc`))
+      `asVar` = `tmp`
+
+  # echo result.treeRepr2()
+
+  result.add nnkExceptBranch.newTree()
+  result[^1].add quote do:
+    `report`(testContext, `fail`(getCurrentException(), `loc`))
+
+  if notNil(asVar):
+    result = quote do:
+      var `asVar`: ref `asVarType`
+      `result`
+
+  echo result.repr()
+
 
 
 
