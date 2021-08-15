@@ -111,6 +111,10 @@ template asPtr*[T](t: T): untyped =
   var tmp = t
   addr tmp
 
+template asConst*[T](t: T): untyped =
+  const tmp = t
+  tmp
+
 template currIInfo*(): untyped =
   instantiationInfo(fullpaths = true)
 
@@ -150,3 +154,11 @@ macro lit3*(str: static[string]): untyped =
 
 func add*[A, B](s: var seq[(A, B)], a: A, b: B) = s.add((a, b))
 func add*[A, B, C](s: var seq[(A, B, C)], a: A, b: B, c: C) = s.add((a, b, c))
+
+template procIt*[T](procname: untyped): untyped =
+  proc cb(arg: T): auto = procname(arg)
+  cb
+
+template procIt*[T](procname: untyped, arg1: untyped): untyped =
+  proc cb(arg: T): auto = procname(arg, arg1)
+  cb

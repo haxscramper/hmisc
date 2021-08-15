@@ -150,35 +150,33 @@ type
     width: Num
     config: T
 
-  TermRectConf* = Table[RectPoint, ColoredRune]
+  TermRectConf* = array[RectPoint, ColoredRune]
   TermRect* = SRect[TermRectConf, int]
 
 func makeTwoLineRectBorder*(): TermRectConf =
-  {
-    rpoLeftEdge : "║",
-    rpoRightEdge : "║",
-    rpoBottomEdge : "═",
-    rpoTopEdge : "═",
-    rpoTopLeft : "╔",
-    rpoTopRight : "╗",
-    rpoBottomLeft : "╚",
-    rpoBottomRight : "╝",
-  }.mapPairs((lhs, initColoredRune(
-    rhs.toRunes()[0]))).toTable()
+  toMapArray(procIt[Rune](initColoredRune), {
+    rpoLeftEdge:    uc"║",
+    rpoRightEdge:   uc"║",
+    rpoBottomEdge:  uc"═",
+    rpoTopEdge:     uc"═",
+    rpoTopLeft:     uc"╔",
+    rpoTopRight:    uc"╗",
+    rpoBottomLeft:  uc"╚",
+    rpoBottomRight: uc"╝",
+  })
 
 
 func makeAsciiRectBorder*(): TermRectConf =
-  {
-    rpoLeftEdge : "|",
-    rpoRightEdge : "|",
-    rpoBottomEdge : "-",
-    rpoTopEdge : "-",
-    rpoTopLeft : "+",
-    rpoTopRight : "+",
-    rpoBottomLeft : "+",
-    rpoBottomRight : "+",
-  }.mapPairs((lhs, initColoredRune(
-    rhs.toRunes()[0]))).toTable()
+  toMapArray(procIt[Rune](initColoredRune), {
+    rpoLeftEdge:    uc"|",
+    rpoRightEdge:   uc"|",
+    rpoBottomEdge:  uc"-",
+    rpoTopEdge:     uc"-",
+    rpoTopLeft:     uc"+",
+    rpoTopRight:    uc"+",
+    rpoBottomLeft:  uc"+",
+    rpoBottomRight: uc"+",
+  })
 
 func newTermRect*(
   start: (int, int),
@@ -221,30 +219,30 @@ func rectRenderAux(
   let h = height
   let w = width
 
-  if rpoLeftEdge in config:
+  if config[rpoLeftEdge].isValid():
     renderLine(
       start, 0, h - 1, buf, config[rpoLeftEdge])
 
-  if rpoRightEdge in config:
+  if config[rpoRightEdge].isValid():
     renderLine(
       start.shiftX(w - 1), 0, h - 1, buf, config[rpoRightEdge])
 
-  if rpoTopEdge in config:
+  if config[rpoTopEdge].isValid():
     renderLine(start, w - 1, 0, buf, config[rpoTopEdge])
 
-  if rpoBottomEdge in config:
+  if config[rpoBottomEdge].isValid():
     renderLine(start.shiftY(h - 1), w - 1, h, buf, config[rpoBottomEdge])
 
-  if rpoTopLeft in config:
+  if config[rpoTopLeft].isValid():
     buf[start.shiftXY(0, 0)] = config[rpoTopLeft]
 
-  if rpoTopRight in config:
+  if config[rpoTopRight].isValid():
     buf[start.shiftXY(w - 1, 0)] = config[rpoTopRight]
 
-  if rpoBottomLeft in config:
+  if config[rpoBottomLeft].isValid():
     buf[start.shiftXY(0, h - 1)] = config[rpoBottomLeft]
 
-  if rpoBottomRight in config:
+  if config[rpoBottomRight].isValid():
     buf[start.shiftXY(w - 1, h - 1)] = config[rpoBottomRight]
 
 
@@ -361,64 +359,64 @@ type
     cellHeights: seq[Num]
     config: T
 
-  TermGridConf* = Table[GridPoint, ColoredRune]
+  TermGridConf* = array[GridPoint, ColoredRune]
   TermGrid* = SGrid[TermGridConf, int]
 
 
 
 func makeThinLineGridBorders*(
   styling: PrintStyling = initPrintStyling()): TermGridConf =
-  {
-    gpoIntersection : "┼",
-    gpoTopLeft : "┌",
-    gpoTopRight : "┐",
-    gpoBottomLeft : "└",
-    gpoBottomRight : "┘",
-    gpoLeftBorder : "│",
-    gpoLeftIntersection : "├",
-    gpoRightBorder : "│",
-    gpoRightIntersection : "┤",
-    gpoTopBorder : "─",
-    gpoTopIntersection : "┬",
-    gpoBottomBorder : "─",
-    gpoBottomIntersection : "┴",
-    gpoHorizontalGap : "─",
-    gpoVerticalGap : "│",
-  }.mapPairs((lhs, initColoredRune(rhs.toRunes()[0], styling))).toTable()
+  toMapArray(procIt[Rune](initColoredRune, styling), {
+    gpoIntersection : uc"┼",
+    gpoTopLeft : uc"┌",
+    gpoTopRight : uc"┐",
+    gpoBottomLeft : uc"└",
+    gpoBottomRight : uc"┘",
+    gpoLeftBorder : uc"│",
+    gpoLeftIntersection : uc"├",
+    gpoRightBorder : uc"│",
+    gpoRightIntersection : uc"┤",
+    gpoTopBorder : uc"─",
+    gpoTopIntersection : uc"┬",
+    gpoBottomBorder : uc"─",
+    gpoBottomIntersection : uc"┴",
+    gpoHorizontalGap : uc"─",
+    gpoVerticalGap : uc"│",
+  })
 
 
 func makeAsciiGridBorders*(
   styling: PrintStyling = initPrintStyling()): TermGridConf =
-  {
-    gpoIntersection : "+",
-    gpoTopLeft : "+",
-    gpoTopRight : "+",
-    gpoBottomLeft : "+",
-    gpoBottomRight : "+",
-    gpoLeftBorder : "|",
-    gpoLeftIntersection : "+",
-    gpoRightBorder : "|",
-    gpoRightIntersection : "+",
-    gpoTopBorder : "-",
-    gpoTopIntersection : "+",
-    gpoBottomBorder : "-",
-    gpoBottomIntersection : "+",
-    gpoHorizontalGap : "-",
-    gpoVerticalGap : "|",
-  }.mapPairs((lhs, initColoredRune(rhs.toRunes()[0], styling))).toTable()
+  toMapArray(procIt[Rune](initColoredRune, styling), {
+    gpoIntersection : uc"+",
+    gpoTopLeft: uc"+",
+    gpoTopRight: uc"+",
+    gpoBottomLeft: uc"+",
+    gpoBottomRight: uc"+",
+    gpoLeftBorder: uc"|",
+    gpoLeftIntersection: uc"+",
+    gpoRightBorder: uc"|",
+    gpoRightIntersection: uc"+",
+    gpoTopBorder: uc"-",
+    gpoTopIntersection: uc"+",
+    gpoBottomBorder: uc"-",
+    gpoBottomIntersection: uc"+",
+    gpoHorizontalGap: uc"-",
+    gpoVerticalGap: uc"|",
+  })
 
 func spacingDimensions*(rc: TermGridConf): tuple[
   vSpacing, hSpacing, left, right, top, bottom: int] =
   result.vSpacing = (
-    (gpoHorizontalGap in rc) or
-    (gpoLeftIntersection in rc) or
-    (gpoRightIntersection in rc)
+    (rc[gpoHorizontalGap].isValid()) or
+    (rc[gpoLeftIntersection].isValid()) or
+    (rc[gpoRightIntersection].isValid)
   ).tern(1, 0)
 
   result.hSpacing = (
-    (gpoVerticalGap in rc) or
-    (gpoTopIntersection in rc) or
-    (gpoBottomIntersection in rc)
+    (rc[gpoVerticalGap].isValid()) or
+    (rc[gpoTopIntersection].isValid()) or
+    (rc[gpoBottomIntersection].isValid())
   ).tern(1, 0)
 
 
@@ -474,24 +472,15 @@ func newTermGrid*(
 
 func newTermGridVert*(
   cells: seq[string] | seq[StrBlock], sep: char = '-'): Multishape =
-  newTermGrid((0, 0), cells.mapIt(@[it.toTermBuf()]).makeSeq2D(), {
+  newTermGrid((0, 0), cells.mapIt(@[it.toTermBuf()]).makeSeq2D(), toMapArray {
     gpoHorizontalGap: toColored(sep)
-  }.toTable())
+  })
 
 func newTermGridHoriz*(
   cells: seq[string] | seq[StrBlock], sep: char = '|'): Multishape =
-  newTermGrid((0, 0), @[cells.mapIt(it.toTermBuf())].makeSeq2D(), {
+  newTermGrid((0, 0), @[cells.mapIt(it.toTermBuf())].makeSeq2D(), toMapArray {
     gpoVerticalGap: toColored(sep)
-  }.toTable())
-
-# # REFACTOR remove
-# func newTermGrid*(
-#   start: (int, int), cells: seq[seq[RuneSeq]],
-#   conf: TermGridConf): Multishape =
-#   let cells: Seq2d[RuneBlock] = cells.mapIt(
-#     it.mapIt(($it).split('\n').mapIt(it.toRunes()))
-#   ).toSeq2d()
-#   newTermGrid(start, cells, conf)
+  })
 
 func gridRenderAux(rect: TermGrid, buf: var TermBuf): void =
   let gridX = rect.start.x
@@ -500,57 +489,63 @@ func gridRenderAux(rect: TermGrid, buf: var TermBuf): void =
   let (vSpacing, hSpacing, totalW, totalH) = gridDimensions(rect)
 
   block outerBorder:
-    if gpoTopBorder in rc:
+    if rc[gpoTopBorder].isValid():
       renderLine(
         x0 = gridX, x1 = gridX + totalW,
         y0 = gridY, y1 = gridY,
         buf, rc[gpoTopBorder])
 
-    if gpoBottomBorder in rc:
+    if rc[gpoBottomBorder].isValid():
       renderLine(
         x0 = gridX, x1 = gridX + totalW,
         y0 = gridY + totalH + 1, y1 = gridY + totalH + 1,
         buf, rc[gpoBottomBorder])
 
-    if gpoLeftBorder in rc:
+    if rc[gpoLeftBorder].isValid():
       renderLine(
         x0 = gridX, x1 = gridX,
         y0 = gridY, y1 = gridY + totalH,
         buf, rc[gpoLeftBorder])
 
-    if gpoRightBorder in rc:
+    if rc[gpoRightBorder].isValid():
       renderLine(
         x0 = gridX + totalW + 1, x1 = gridX + totalW + 1,
         y0 = gridY, y1 = gridY + totalH,
         buf, rc[gpoRightBorder])
 
-    if gpoTopLeft in rc: buf[gridX, gridY] = rc[gpoTopLeft]
-    if gpoBottomLeft in rc: buf[gridX, gridY + totalH + 1] = rc[gpoBottomLeft]
-    if gpoTopRight in rc: buf[gridX + totalW + 1, gridY] = rc[gpoTopRight]
-    if gpoBottomRight in rc: buf[gridX + totalW + 1, gridY + totalH + 1] = rc[gpoBottomRight]
+    if rc[gpoTopLeft].isValid():
+      buf[gridX, gridY] = rc[gpoTopLeft]
+
+    if rc[gpoBottomLeft].isValid():
+      buf[gridX, gridY + totalH + 1] = rc[gpoBottomLeft]
+
+    if rc[gpoTopRight].isValid():
+      buf[gridX + totalW + 1, gridY] = rc[gpoTopRight]
+
+    if rc[gpoBottomRight].isValid():
+      buf[gridX + totalW + 1, gridY + totalH + 1] = rc[gpoBottomRight]
 
 
   block inerGrid:
     if vSpacing == 1:
       for row in rect.cellHeights.cumsumjoin(vSpacing)[0..^2]:
-        if gpoHorizontalGap in rc:
+        if rc[gpoHorizontalGap].isValid():
           renderLine(
             y0 = row + gridY, y1 = row + gridY,
             x0 = 0 + gridX, x1 = totalW + gridX,
             buf,
-            rc[gpoHorizontalGap]
-          )
+            rc[gpoHorizontalGap])
 
-        if gpoLeftIntersection in rc:
+        if rc[gpoLeftIntersection].isValid():
           buf[gridX, gridY + row] = rc[gpoLeftIntersection]
 
-        if gpoRightIntersection in rc:
+        if rc[gpoRightIntersection].isValid():
           buf[gridX + totalW + 1, gridY + row] = rc[gpoRightIntersection]
 
 
     if hSpacing == 1:
       for col in rect.cellWidths.cumsumjoin(vSpacing)[0..^2]:
-        if gpoVerticalGap in rc:
+        if rc[gpoVerticalGap].isValid():
           renderLine(
             y0 = gridY, y1 = gridY + totalH,
             x0 = gridX + col, x1 = gridX + col,
@@ -558,13 +553,13 @@ func gridRenderAux(rect: TermGrid, buf: var TermBuf): void =
             rc[gpoVerticalGap]
           )
 
-        if gpoTopIntersection in rc:
+        if rc[gpoTopIntersection].isValid():
           buf[gridX + col, gridY] = rc[gpoTopIntersection]
 
-        if gpoBottomIntersection in rc:
+        if rc[gpoBottomIntersection].isValid():
           buf[gridX + col, gridY + totalH + 1] = rc[gpoBottomIntersection]
 
-    if gpoIntersection in rc:
+    if rc[gpoIntersection].isValid():
       for row in rect.cellHeights.cumsumjoin(vSpacing)[0..^2]:
         for col in rect.cellWidths.cumsumjoin(hSpacing)[0..^2]:
           buf[gridX + col, gridY + row] = rc[gpoIntersection]
@@ -709,35 +704,38 @@ method render*(grid: TermMultiGrid, buf: var TermBuf): void =
         for x in absCellX:
           for y in absCellY:
             if (y + 1 == hRange.a) and (x in wRange):
-              if (y == y0) and (gpoTopBorder in rc):
+              if (y == y0) and rc[gpoTopBorder].isValid():
                 buf[x, y] = rc[gpoTopBorder]
-              elif (gpoBottomIntersection in rc):
+              elif rc[gpoBottomIntersection].isValid():
                 buf[x, y] = rc[gpoBottomIntersection]
 
             if (x + 1 == wRange.a) and (y in hRange):
-              if x == x0 and (gpoLeftBorder in rc):
+              if x == x0 and rc[gpoLeftBorder].isValid():
                 buf[x, y] = rc[gpoLeftBorder]
-              elif (gpoRightIntersection in rc):
+              elif rc[gpoRightIntersection].isValid():
                 buf[x, y] = rc[gpoRightIntersection]
 
             if (x - 1 == wRange.b) and (y in hRange):
-              if (x - 1) == totalW and (gpoRightBorder in rc):
+              if (x - 1) == totalW and rc[gpoRightBorder].isValid():
                 buf[x, y] = rc[gpoRightBorder]
-              elif (gpoLeftIntersection in rc):
+              elif rc[gpoLeftIntersection].isValid():
                 buf[x, y] = rc[gpoLeftIntersection]
 
             if (y - 1 == hRange.b) and (x in wRange):
-              if (y - 1) == totalH and (gpoBottomBorder in rc):
+              if (y - 1) == totalH and rc[gpoBottomBorder].isValid():
                 buf[x, y] = rc[gpoBottomBorder]
-              elif (gpoTopIntersection in rc):
+              elif rc[gpoTopIntersection].isValid():
                 buf[x, y] = rc[gpoTopIntersection]
 
       block:
         let lookup = makeLookup(grid.cells)
         for (pos, size) in grid.cells.iterSomeCells():
           for (cellPos, cellSize, relPos) in lookup.cellsAround(pos):
-            let rowOverlap = cellPos.rowRange(cellSize).overlap(pos.rowRange(size))
-            let colOverlap = cellPos.colRange(cellSize).overlap(pos.colRange(size))
+            let rowOverlap = cellPos.rowRange(cellSize).
+              overlap(pos.rowRange(size))
+
+            let colOverlap = cellPos.colRange(cellSize).
+              overlap(pos.colRange(size))
 
             let rowRange = cellPos.rowRange(cellSize)
             let colRange = cellPos.colRange(cellSize)
@@ -749,7 +747,7 @@ method render*(grid: TermMultiGrid, buf: var TermBuf): void =
               for rowY in absCellY.inrange(rowOverlap, 1):
                 case relPos:
                   of rpRight:
-                    if gpoVerticalGap in rc:
+                    if rc[gpoVerticalGap].isValid():
                       buf[absCellX[maxColX - 1], rowY] = rc[gpoVerticalGap]
                   else:
                     discard
@@ -759,7 +757,7 @@ method render*(grid: TermMultiGrid, buf: var TermBuf): void =
               for colX in absCellX.inrange(colOverlap, 1):
                 case relPos:
                   of rpBottom:
-                    if gpoHorizontalGap in rc:
+                    if rc[gpoHorizontalGap].isValid():
                       buf[colX, absCellY[maxRow]] = rc[gpoHorizontalGap]
                   else:
                     discard
@@ -767,15 +765,6 @@ method render*(grid: TermMultiGrid, buf: var TermBuf): void =
 
 
 #==============================  ---------  ==============================#
-
-
-
-
-# func toString*(shape: Shape): string =
-#   var buf = newBuf()
-#   shape.render(buf)
-#   return $buf
-
 
 func toStringBlock*(shape: Shape): seq[string] =
   var buf = newBuf()

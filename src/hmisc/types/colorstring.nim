@@ -368,6 +368,9 @@ type
 func isValid*(style: PrintStyling): bool =
   style.use8Bit or (style.fg.int != 0 and style.bg.int != 0)
 
+func isValid*(rune: ColoredRune): bool =
+  rune.rune.int != 0 and rune.styling.isValid()
+
 func `==`*(s1, s2: PrintStyling): bool =
   let check =
     if s1.use8Bit:
