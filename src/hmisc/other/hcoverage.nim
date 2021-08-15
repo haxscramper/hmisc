@@ -1,20 +1,75 @@
 import std/[
-  macros, tables, intsets, hashes, os, sequtils,
+  macros, tables, intsets, hashes, sequtils,
   sets, enumerate, algorithm, strutils
 ]
 
 import
   hmisc/core/all,
   hmisc/types/[colorstring, rev_set_table],
+  hmisc/other/[oswrap],
   hmisc/algo/hstring_algo,
   hmisc/macros/nim_ast_help
 
+type
+  CovProcId = distinct int
+  CovFileId = distinct int
+  CovLineId = distinct int
+
+  CovProcName* = object
+    name*: string
+    argumentTypes*: seq[string]
+    returnType*: string
+
+  CovChunkKind* = enum
+    cckExecuted
+    cckNotExecuted
+    cckEmpty
+
+  CovChunk* = object
+    line*: int
+    case kind*: CovChunkKind
+      of cckExecuted, cckNotExecuted:
+        text*: string
+
+      else:
+        discard
+
+  CovReport* = object
+    chunks*: seq[CovChunk]
+    procname*: CovProcInfo
+    lineRange*: Slice[int]
+    file*: AbsFile
+
+  CovProcInfo* = object
+    fullname*: CovProcName
+    id*: CovProcId
+    defFile*: CovFileId
+
+
+func hash(pid: CovProcId): Hash = hash(pid.int)
+func hash(pid: CovFileId): Hash = hash(pid.int)
+func hash(pid: CovLineId): Hash = hash(pid.int)
+func `==`*(p1, p2: CovProcId): bool = p1.int == p2.int
+func `==`*(p1, p2: CovFileId): bool = p1.int == p2.int
+func `==`*(p1, p2: CovLineId): bool = p1.int == p2.int
+
+func `<`(l1, l2: CovLineId): bool = l1.int < l2.int
+func `-`(l1: CovLineId, i: int): CovLineId = CovLineId(l1.int - i)
+
+func procId(name: CovProcName): CovProcId =
+  CovProcId(!$(
+    hash(name.name) !&
+    hash(name.argumentTypes) !&
+    hash(name.returnType)))
+
 var
-  covStats: Table[int, HashSet[int]]
-  fileTable: Table[int, string]
-  procTable: Table[string, int]
-  covActive: IntSet
-  procRanges: RevSetTable[int, string]
+  covStats: Table[CovFileId, HashSet[CovLineId]]
+  fileTable: Table[CovFileId, AbsFile]
+  procTable: Table[string, seq[CovProcInfo]]
+  covActive: HashSet[CovProcId]
+  covVisited: HashSet[CovProcId]
+  procRanges: RevSetTable[CovLineId, CovProcId]
+
 
 proc startPos(node: NimNode): LineInfo =
   case node.kind:
@@ -47,79 +102,85 @@ proc finishPos(node: NimNode): LineInfo =
 
 func addFile(file: static[string]) =
   {.cast(noSideEffect).}:
-    const hash = hashes.hash(file)
+    const hash = CovFileId(hashes.hash(file))
     if hash notin fileTable:
-      fileTable[hash] = file
+      fileTable[hash] = AbsFile(file)
 
-func execNode(hash, line, column: int) =
+func execNode(hash: CovFileId, line: CovLineId, column: int) =
   {.cast(noSideEffect).}:
     if hash notin covStats:
-      covStats[hash] = initHashSet[int]()
+      covStats[hash] = initHashSet[CovLineId]()
 
     covStats[hash].incl line
 
-func execWithCoverage(
-    fileId: static[int],
-    procname: static[string],
-    procnameFull: static[string],
-    lineRange: static[Slice[int]]): bool =
+proc hash(procname: CovProcName): Hash = hash(procname.name)
 
-  const hash = hashes.hash(procname)
+import ./hpprint
+
+func execWithCoverage(
+    fileId: int,
+    procname: static[CovProcName],
+    lineRange: Slice[int]): bool =
+
+  const id = hcoverage.procId(procname)
+
   {.cast(noSideEffect).}:
-    procTable[procname] = fileId
-    if lineRange.a notin procRanges:
+    if id notin covVisited:
+      covVisited.incl id
+      procTable.mgetOrPut(procname.name, @[]).add CovProcInfo(
+        fullname: procname,
+        id: id,
+        defFile: CovFileId(fileId))
+
       for line in lineRange:
-        procRanges[line] = procname
+        procRanges[CovLineId(line)] = id
 
     return true
 
 
-proc pprintCoverage*(procname: string, onlyMissing: bool) =
-  if procname notin procTable: return
-  let
-    id = procTable[procname]
-    file = fileTable[id]
+proc getCoverage*(procname: CovProcName): CovReport =
+  if procname.name notin procTable: return
+
+  var
+    id: CovFileId
+    pid: CovProcId
+
+  for impl in procTable[procname.name]:
+    if procname.argumentTypes.len == 0:
+      id = impl.defFile
+      pid = impl.id
+      result.procname = impl
+      break
+
+    elif procname.argumentTypes == impl.fullName.argumentTypes:
+      id = impl.defFile
+      pid = impl.id
+      result.procname = impl
+      break
+
+  let file = fileTable[id]
 
   const w = 5
-  let other = procRanges.getKeys(procname).sorted()
+  let other = procRanges.getKeys(pid).sorted()
 
-  echo procname, " defined in ", splitFile(file).name,
-      ":", other[0], ":", other[^1]
+  result.lineRange = other[0].int .. other[^1].int
+  result.file = file
 
   var lastNoexec = -1
   if id in covStats:
     let lines = readFile(file).split("\n")
     for lineNum in other:
-      let line = lines[lineNum - 1]
+      let line = lines[int(lineNum - 1)]
       if lineNum in covStats[id]:
-        if not onlyMissing:
-          echo $lineNum |<< 4, toGreen(line)
+        result.chunks.add CovChunk(kind: cckExecuted, text: line)
+
+      elif line.allIt(it in {' '}):
+        result.chunks.add CovChunk(kind: cckEmpty)
 
       else:
-        let empty = line.allIt(it in {' '})
-        if (empty and lastNoexec == lineNum - 1) or not empty:
-          echo $lineNum |<< 4, toRed(line)
+        result.chunks.add CovChunk(kind: cckNotExecuted, text: line)
 
-        lastNoexec = lineNum
-
-proc pprintCoverage*() =
-  for id, file in fileTable:
-    const w = 5
-    var shown: IntSet
-    if id in covStats:
-      let lines = readFile(file).split("\n")
-      for idx, _ in lines:
-        let lineNum = idx + 1
-        if lineNum notin shown and lineNum in procRanges:
-          let other = procRanges.otherKeys(lineNum).sorted()
-          for lineNum in other:
-            shown.incl lineNum
-            let line = lines[lineNum - 1]
-            if lineNum in covStats[id]:
-              echo $lineNum |<< 4, toGreen(line)
-
-            else:
-              echo $lineNum |<< 4, toRed(line)
+      result.chunks[^1].line = lineNum.int
 
 proc fileId(file: string): NimNode =
   hash(file).newLit()
@@ -128,8 +189,8 @@ proc execCall(node: NimNode): NimNode =
   let iinfo = node.lineInfoObj()
   return newCall(
     bindSym"execNode",
-    fileId(iinfo.filename),
-    newLit(iinfo.line),
+    newCall(bindSym"CovFileId", fileId(iinfo.filename)),
+    newCall(bindSym"CovLineId", newLit(iinfo.line)),
     newLit(iinfo.column))
 
 
@@ -195,6 +256,20 @@ var addCoverage {.compiletime.}: bool
 macro hcoverageEnable*() =
   addCoverage = true
 
+
+proc getProcname(impl: NimNode): CovProcName =
+  result.name = impl.name().strVal()
+  for argument in impl.params[1..^1]:
+    for id in argument[0 .. ^3]:
+      if argument[^1].kind != nnkEmpty:
+        result.argumentTypes.add argument[^2].strVal()
+
+      else:
+        result.argumentTypes.add ""
+
+  if impl.params[0].kind != nnkEmpty:
+    result.returnType = impl.params[0].strVal()
+
 proc transformImpl(impl: NimNode): NimNode =
   if not addCoverage:
     result = impl
@@ -204,8 +279,7 @@ proc transformImpl(impl: NimNode): NimNode =
     # echo impl.treeRepr2(lineInfo = true)
 
     let
-      name = newLit(impl.name().strVal())
-      fullname = newLit(impl.procFullname())
+      name = getProcname(impl).newLit()
       oldBody = impl.body
       transformed = impl.body.transform()
       execCheck = bindSym"execWithCoverage"
@@ -221,9 +295,7 @@ proc transformImpl(impl: NimNode): NimNode =
     result.body = quote do:
       `addFile`(`procFile`)
       `mainExec`
-      if `execWithCoverage`(
-          `fileId`, `name`, `fullname`,
-          `startLine` .. `finishLine`):
+      if `execWithCoverage`(`fileId`, `name`, `startLine` .. `finishLine`):
         `transformed`
 
       else:
@@ -234,7 +306,7 @@ proc transformImpl(impl: NimNode): NimNode =
 
 
 
-macro astCov*(impl: untyped): untyped = transformImpl(impl)
+macro hcov*(impl: untyped): untyped = transformImpl(impl)
 # macro semCov*(impl: typed): untyped = transformImpl(impl)
 
 # proc expr(): int = 12

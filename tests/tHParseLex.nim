@@ -5,7 +5,7 @@ import
   hmisc/algo/[hparse_base, hlex_base],
   hmisc/other/hpprint
 
-import std/[options, strscans]
+import std/[options, strscans, tables]
 
 configureDefaultTestContext(
   skipAfterException = true,

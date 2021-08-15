@@ -515,7 +515,7 @@ proc popRange*(str; leftShift: int = 0, rightShift: int = -1):
       result.add str.str[slice]
 
 
-proc advance*(str; step: int = 1) {.astCov.} =
+proc advance*(str; step: int = 1) {.hcov.} =
   if str['\n']:
     inc str.line
     str.column = 0

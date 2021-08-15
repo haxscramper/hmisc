@@ -1,8 +1,10 @@
 import
   std/[
     macros, strformat, sequtils, monotimes,
-    strutils, times, options, stats
+    strutils, times, options, stats, tables
   ]
+
+export tables
 
 from fusion/matching import hasKind
 
@@ -27,7 +29,7 @@ type
     testGlob: GitGlob
 
   TestCoverageWant = object
-    procname: string
+    procname: CovProcName
     onlyMissing: bool
 
   TestConf = object
@@ -252,9 +254,10 @@ proc configureDefaultTestContext*(
   default.skipAfterManual = skipAfterManual
   default.skipAfterCheckFail = skipAfterCheckFail
 
-proc showCoverage*(conf: var TestConf, procname: string) =
+proc showCoverage*(
+    conf: var TestConf, procname: string, onlyMissing: bool = true) =
   conf.showCoverage.add TestCoverageWant(
-    procname: procname, onlyMissing: true)
+    procname: CovProcName(name: procname), onlyMissing: onlyMissing)
 
 
 proc report(context: TestContext, report: TestReport) =
@@ -274,6 +277,7 @@ proc report(context: TestContext, report: TestReport) =
     pSuite = toMagenta("[SUITE] " |>> width)
     pShow  = toYellow("[SHOW] ")
     pRun   = to8Bit("[RUN] " |>> width, 3, 1, 1)
+    pCover = toYellow("[COVER] " |>> width)
 
   if report.kind != trkTimeStats:
     context.shownHeader = false
@@ -427,13 +431,6 @@ proc report(context: TestContext, report: TestReport) =
             echo pad, "but expected\n"
             echo pad, "  '", s2.indentBody(pad.len + 2), "'"
             echo ""
-            # let exprWidth  = report.strs.maxIt(it.expr.len)
-            # for (expr, value) in report.strs:
-            #   echo pad, "  ", toGreen(expr |<< exprWidth),
-            #     " was '", value, "'"
-
-            # echo ""
-
 
           else:
             echo msg, " ", report.failKind, "\n"
@@ -451,7 +448,30 @@ proc report(context: TestContext, report: TestReport) =
 
   if report.kind in { trkTestEnd, trkSuiteEnd }:
     for cover in report.conf.showCoverage:
-      pprintCoverage(cover.procname, cover.onlyMissing)
+      let coverReport = getCoverage(cover.procname)
+      var lastNotExecuted = 0
+      echo pCover, "proc '", toGreen(coverReport.procname.fullname.name), "' defined in ",
+        coverReport.file.name(), " ", hshow(coverReport.lineRange), "\n"
+
+      var nocover = 0
+      for line in coverReport.chunks:
+        case line.kind:
+          of cckNotExecuted:
+            inc nocover
+            echo pad, &"{line.line:<4} {toRed(line.text)}"
+
+          of cckEmpty:
+            if line.line == lastNotExecuted + 1:
+              lastNotExecuted = line.line
+              echo pad, &"{line.line:<4}"
+
+          of cckExecuted:
+            if not cover.onlyMissing:
+              echo pad, &"{line.line:<4} {toGreen(line.text)}"
+
+      if nocover == 0:
+        echo pad, "full coverage"
+
 
 
 
