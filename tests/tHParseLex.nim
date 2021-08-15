@@ -5,7 +5,7 @@ import
   hmisc/algo/[hparse_base, hlex_base],
   hmisc/other/hpprint
 
-import std/[options, strscans, sets]
+import std/[options, strscans, sets, sequtils]
 
 configureDefaultTestContext(
   skipAfterException = true,
@@ -407,6 +407,51 @@ suite "Primitives":
         err.line == 0
         err.column == 5
 
+    block cvs_arguments:
+      const
+        o = {'('}
+        c = {')'}
+
+      var str = varStr("((1), (1(2(3,4))), (3, 4, 5))")
+
+      check:
+        str.trySkip('(')
+        str.popBalancedSlice(o, c).strVal() == "(1)"
+        str.trySkip(", ")
+        str.popBalancedSlice(o, c).strVal() == "(1(2(3,4)))"
+        str.trySkip(", ")
+        str.popBalancedSlice(o, c).strVal() == "(3, 4, 5)"
+        str.trySkip(')')
+
+    block cvs_loop:
+      for (str, args) in {
+        "(1)": @["1"],
+        "(1,2)": @["1", "2"],
+        "(1,3,4)": @["1", "3", "4"],
+        "((1))": @["(1)"],
+        "((1), (2))": @["(1)", "(2)"],
+        "()": @[]
+      }:
+        var s = varStr(str)
+        s.skip('(')
+        var buf: seq[string]
+        while ?s and not s[')']:
+          if s['(']:
+            buf.add s.popBalancedSlice({'('}, {')'}).strVal()
+
+          else:
+            buf.add s.popUntil({',', ')'})
+
+          if not s.trySkip(','):
+            break
+
+          else:
+            s.skipWhile({' '})
+
+        s.skip(')')
+
+        check buf == args
+
 
 
 
@@ -664,12 +709,19 @@ suite "C preprocessor reimplementation":
       strdiff slices[2], "#endif\n"
 
 
-  var macroNames: HashSet[string]
-  proc lex(str: var PosStr): seq[PosStr] =
+  proc lex(str: var PosStr, names: var HashSet[string]): seq[PosStr] =
     while ?str:
       case str[]:
         of '#':
           str.startSlice()
+          str.advance()
+          let kind = str.popIdent()
+          if kind == "define" and str[' ']:
+            str.skip(' ')
+            let name = str.popIdent()
+            names.incl name
+
+
           str.skipToNewline()
           if ?str and str[-1] == '\\':
             while ?str and str[-1] == '\\':
@@ -679,14 +731,40 @@ suite "C preprocessor reimplementation":
           else:
             str.advance()
 
-          result.add str.popSlice()
+          let slice = str.popSlice()
+          result.add slice
 
         of IdentChars:
-          let
-            id = str.popIdentSlice()
-            idStr = id.strVal()
+          str.startSlice()
+          str.skipWhile(IdentChars)
+          let idStr = str.peekSlice().strVal()
 
-          echo idStr
+          if idStr in names:
+            result.add str.popSlice()
+            if str['(']:
+              result.add str.popPointSlice()
+              while ?str and not str[')']:
+                if str['(']:
+                  result.add str.popBalancedSlice({'('}, {')'})
+
+                else:
+                  result.add str.popUntilSlice({',', ')'})
+
+                if str[',']:
+                  result.add str.popWhileSlice({',', ' '})
+
+                else:
+                  break
+
+              result.add str.popPointSlice({')'})
+
+          else:
+            str.skipBalancedSlice({'('}, {')'})
+            result.add str.popSlice()
+
+
+        of ' ':
+          result.add str.popWhileSlice({' '})
 
         else:
           str.startSlice()
@@ -697,21 +775,35 @@ suite "C preprocessor reimplementation":
 
   test "Lexer callbacks":
     startHax()
+    proc lex(str: string): seq[string] =
+      var names: HashSet[string]
+      for token in varStr(str).lex(names):
+        result.add token.strVal()
+
     block one_define:
-      var tokens = varStr("#define").lex()
-      check:
-        tokens[0].getAll() == "#define"
+      var tokens = lex("#define")
+      check tokens == @["#define"]
 
     block consecutive_defines:
-      var tokens = varStr("#define\n#define").lex()
-      check:
-        tokens[0].getAll() == "#define\n"
-        tokens[1].getAll() == "#define"
+      var tokens = lex("#define\n#define")
+      check tokens == @["#define\n", "#define"]
 
     block continued_defines:
-      var tokens = varStr("#def\\\n line2").lex()
+      var tokens = lex("#def\\\n line2")
       check:
-        strdiff tokens[0].getAll(), "#def\\\n line2"
+        strdiff tokens[0], "#def\\\n line2"
+
+    block define_and_call:
+      var tokens = lex("#define test\ntest other")
+      check tokens == @["#define test\n", "test", " ", "other"]
+
+    block define_with_args:
+      var tokens = lex("#define test\ntest(1)")
+      check tokens == @["#define test\n", "test", "(", "1", ")"]
+
+    block define_with_args:
+      var tokens = lex("#define random\ntest(1)")
+      check tokens == @["#define random\n", "test(1)"]
 
 
 

@@ -119,17 +119,27 @@ proc initPosStr*(file: AbsFile): PosStr =
   ## Create positional string using new file stream
   PosStr(stream: newFileStream(file.getStr()), isSlice: false)
 
-func initPosStr*(str; lastSlice: bool = false): PosStr =
+func initPosStr*(
+    str; lastSlice: bool = false,
+    popSlice: bool = true): PosStr =
   ## Pop one layer of slices from slice buffer and create new sub-string
   ## lexer from it.
   if lastSlice:
     result = PosStr(
       isSlice: true, baseStr: addr str.str,
-      slices: @[str.sliceBuffer.last().pop()])
+      slices: @[
+        tern(popSlice,
+             str.sliceBuffer.last().pop(),
+             str.sliceBuffer.last().last())
+    ])
 
   else:
     result = PosStr(
-      isSlice: true, baseStr: addr str.str, slices: str.sliceBuffer.pop)
+      isSlice: true, baseStr: addr str.str,
+      slices: tern(
+        popSlice,
+        str.sliceBuffer.pop(),
+        str.sliceBuffer.last()))
 
   result.pos = result.slices[0].start
 
@@ -237,7 +247,11 @@ proc newUnexpectedCharError*(
   new(result)
   result.setLineInfo(str)
   result.msg.add "Unexpected character encoutered during lexing - found '"
-  result.msg.add $str[0]
+  if ?str:
+    result.msg.add str[0].describeChar()
+
+  else:
+    result.msg.add "EOF (string finished)"
 
   if expected.len > 0:
     result.msg.add "', but expected - '"
@@ -407,6 +421,10 @@ proc popSlice*(str; rightShift: int = -1): PosStr =
   finishSlice(str, rightShift)
   return initPosStr(str)
 
+proc peekSlice*(str; rightShift: int = -1): PosStr =
+  finishSlice(str, rightShift)
+  return initPosStr(str, popSlice = false)
+
 proc toggleBuffer*(str; activate: bool = not str.bufferActive) {.inline.} =
   str.bufferActive = activate
 
@@ -565,10 +583,29 @@ proc advance*(str; step: int = 1) {.hcov.} =
   else:
     inc(str.pos, step)
 
+proc popPointSlice*(str; expected: set[char] = AllChars): PosStr =
+  if str[] notin expected:
+    raise newUnexpectedCharError(str, expected.describeCharset())
+
+  else:
+    str.startSlice()
+    str.advance()
+    return str.popSlice()
+
 proc skip*(str; ch: char) {.inline.} =
   if str[] != ch:
    raise newUnexpectedCharError(str, $ch)
   str.advance()
+
+proc trySkip*(str; s: string): bool =
+  if str[s]:
+    str.advance(s.len)
+    result = true
+
+  else:
+    result = false
+
+
 
 proc trySkip*(str; ch: char): bool  =
   if str[] != ch:
@@ -703,16 +740,25 @@ proc popDigit*(str: var PosStr): string {.inline.} =
 proc popIdent*(str; chars: set[char] = IdentChars):
   string {.inline.} = str.popWhile(chars)
 
+proc popWhileSlice*(str; chars: set[char]): PosStr =
+  str.startSlice()
+  str.skipWhile(chars)
+  str.popSlice()
+
+proc popUntilSlice*(str; chars: set[char]): PosStr =
+  str.startSlice()
+  str.skipUntil(chars)
+  str.popSlice()
+
 proc popIdentSlice*(str; chars: set[char] = IdentChars): PosStr =
   str.startSlice()
   str.skipWhile(chars)
   str.popSlice()
 
-proc popBalancedSlice*(
+proc skipBalancedSlice*(
     str; openChars, closeChars: set[char],
     endChars: set[char] = Newline,
-    doRaise: bool = true
-  ): PosStr {.hcov.} =
+    doRaise: bool = true) =
 
   var
     fullCount = 0
@@ -725,8 +771,6 @@ proc popBalancedSlice*(
     err.msg.add "Unbalanced wrap"
     raise err
 
-
-  str.startSlice()
   while ?str:
     if str[] in openChars:
       inc fullCount
@@ -737,7 +781,7 @@ proc popBalancedSlice*(
       dec count[str.pop()]
 
       if fullCount == 0:
-        return str.popSlice()
+        return
 
     elif str[] in endChars:
       if fullCount > 0:
@@ -745,19 +789,27 @@ proc popBalancedSlice*(
           unbalanced()
 
         else:
-          return str.popSlice()
+          return
 
       else:
-        return str.popSlice()
+        return
 
     else:
       str.advance()
 
-  result = str.popSlice()
   if fullcount > 0 and doRaise:
     unbalanced()
 
 
+proc popBalancedSlice*(
+    str; openChars, closeChars: set[char],
+    endChars: set[char] = Newline,
+    doRaise: bool = true
+  ): PosStr {.hcov.} =
+
+  str.startSlice()
+  skipBalancedSlice(str, openChars, closeChars, endChars, doRaise)
+  return str.popSlice()
 
 
 

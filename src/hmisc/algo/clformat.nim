@@ -1,5 +1,5 @@
 import
-  std/[strutils, tables, enumerate, strformat]
+  std/[strutils, tables, enumerate, strformat, sequtils]
 
 import
   ./hseq_mapping,
@@ -143,9 +143,10 @@ func toLatinNamedChar*(ch: char): seq[string] =
     of '\a': @["bell"]
     of '\n': @["newline"]
     of '\v': @["vertical", "tab"]
-    # of char(0x1100_0000): @["utf8", "two", "byte", "lead"]
-    # of char(0x1110_0000): @["utf8", "three", "byte", "lead"]
-    # of char(0x1111_0000): @["utf8", "four", "byte", "lead"]
+    of ' ': @["space"]
+    of char(0b1100_0000): @["utf8", "two", "byte", "lead"]
+    of char(0b1110_0000): @["utf8", "three", "byte", "lead"]
+    of char(0b1111_0000): @["utf8", "four", "byte", "lead"]
     else: @[$ch]
 
 func toLatinAbbrChar*(ch: char): string =
@@ -591,6 +592,34 @@ const extendedAsciiNames*: array[char, string] = [
 func asciiName*(ch: char, slash: bool = false): string =
   extendedAsciinames[ch]
 
+func describeChar*(ch: char): string =
+  result.add "\\x"
+  result.add toHex(ch.uint8)
+  result.add " - "
+  result.add toLatinNamedChar(ch).join(" ")
+
+func describeCharset*(s: set[char]): string =
+  var buf: seq[string]
+  var left = s
+
+  let sets = {
+    { 'a' .. 'z', 'A' .. 'Z' }: "lower/upper-case",
+    { 'a' .. 'z' }: "lowercase",
+    { 'A' .. 'Z' }: "uppercse",
+    { '0' .. '0' }: "digit"
+  }
+
+  for (keys, name) in sets:
+    if len(keys * left) == len(keys):
+      buf.add name
+      left.excl keys
+
+  for ch in left:
+    buf.add toLatinNamedChar(ch).join(" ")
+
+  return $joinAnyOf(
+    words = mapIt(buf, toColoredText(it)),
+    empty = "no characters")
 
 
 const AsciiMath* = (

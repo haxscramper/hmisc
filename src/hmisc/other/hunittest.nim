@@ -1489,10 +1489,7 @@ macro parametrizeOnValue*(
 
 
 
-# template `as`*[E](err: E, id: untyped): untyped = discard
-
 macro expect*(args: varargs[untyped]): untyped =
-  echo args.treeRepr()
   var
     exceptionTypes: seq[NimNode]
     asVarType: NimNode
@@ -1535,8 +1532,6 @@ macro expect*(args: varargs[untyped]): untyped =
       `report`(testContext, `ok`(`loc`))
       `asVar` = `tmp`
 
-  # echo result.treeRepr2()
-
   result.add nnkExceptBranch.newTree()
   result[^1].add quote do:
     `report`(testContext, `fail`(getCurrentException(), `loc`))
@@ -1545,8 +1540,6 @@ macro expect*(args: varargs[untyped]): untyped =
     result = quote do:
       var `asVar`: ref `asVarType`
       `result`
-
-  echo result.repr()
 
 
 
