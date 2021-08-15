@@ -389,8 +389,17 @@ suite "Primitives":
         slice.strVal() == "[0123"
         str[] == '\n'
 
-    block raise_missing_end:
+    block raise_missing_end_at_eof:
       var str = varStr("[0123")
+      expect UnbalancedWrapError as err:
+        let slice = str.popBalancedSlice({'['}, {']'})
+
+      check:
+        err.line == 0
+        err.column == 5
+
+    block raise_missing_end_at_delimiter:
+      var str = varStr("[0123\n]")
       expect UnbalancedWrapError as err:
         let slice = str.popBalancedSlice({'['}, {']'})
 
