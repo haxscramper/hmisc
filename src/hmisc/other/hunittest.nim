@@ -9,7 +9,7 @@ export tables
 from fusion/matching import hasKind
 
 import
-  ../macros/nim_ast_help,
+  ../macros/[nim_ast_aux, ast_spec],
   ../algo/[hseq_distance, htemplates, halgorithm, clformat],
   ../other/[hpprint],
   ../core/[all, code_errors],
@@ -729,17 +729,6 @@ proc structeq*[T](struct1, struct2: T, loc: TestLocation): TestReport =
 proc hasKindSimple[A, K](ast: A, kind: K): bool =
   ast.kind == kind
 
-proc toPath[A](ast: A, path: seq[int]): string =
-  mixin `[]`
-  proc aux(a: A, path: seq[int]): seq[string] =
-    result.add $a.kind
-    if path.len > 1:
-      result.add aux(a[path[0]], path[1..^1])
-
-    elif path.len == 1:
-      result.add "[" & $path[0] & "]"
-
-  return aux(ast, path).join(".")
 
 
 macro astdiff*(ast: typed, match: untyped, loc: TestLocation): untyped =
@@ -880,7 +869,7 @@ macro matchdiff*(
   proc itemCmp(path, value: NimNode): NimNode =
     let pathLit = path.pathLit()
     case value.kind:
-      of litKinds - nnkPrefix:
+      of litKinds - nnkPrefix, nnkIdent:
         result = quote do:
           if not(`path` == `value`):
             `fails`.add (`pathLit`, $`value`, $`path`)

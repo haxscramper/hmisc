@@ -1,6 +1,9 @@
 import std/[macros, os, strutils]
 
-import ../algo/clformat
+import
+  ../algo/clformat,
+  ./ast_spec
+
 
 
 func lineIInfo*(node: NimNode): NimNode =
@@ -12,6 +15,26 @@ func eqIdent*(node: NimNode, strs: openarray[string]): bool =
   for str in strs:
     if node.eqIdent(str):
       return true
+
+
+const
+  nimAstSpec* = astSpec(NimNode, NimNodeKind):
+    nnkInfix:
+      0: nnkIdent
+      1 .. 2: _
+      ?3: nnkStmtList
+
+
+    nnkTryStmt:
+      1 .. ^1:
+        nnkExceptBranch:
+          1 .. ^2:
+            nnkSym
+            nnkIdent
+            nnkInfix:
+              0: nnkIdent(strVal: "as")
+              1: nnkIdent
+              2: nnkIdent
 
 
 
@@ -97,7 +120,7 @@ proc treeRepr2*(
           add "\n"
 
         for newIdx, subn in n:
-          var e: ColoredText
+          var e = validateAst(nimAstSpec, n, subn, newIdx)
           template th(): untyped = toRed($newIdx & "-th subnode of ") & hshow(n.kind)
           template last(): untyped = toRed("last subnode of") & hshow(n.kind)
 

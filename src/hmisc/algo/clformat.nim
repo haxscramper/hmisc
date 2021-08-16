@@ -138,12 +138,137 @@ func toLatinNamedChar*(ch: char): seq[string] =
   ## according to naming in basic latin unicode
   # https://theasciicode.com.ar/
   case ch:
-    of '[': @["left", "square", "bracket"]
-    of ']': @["right", "square", "bracket"]
-    of '\a': @["bell"]
-    of '\n': @["newline"]
-    of '\v': @["vertical", "tab"]
-    of ' ': @["space"]
+    of '\x00': @[ "null", "character" ]
+    of '\x01': @[ "start", "of", "header" ]
+    of '\x02': @[ "start", "of", "text" ]
+    of '\x03': @[ "end", "of", "text" ]
+    of '\x04': @[ "end", "of", "transmission" ]
+    of '\x05': @[ "enquiry", ]
+    of '\x06': @[ "acknowledgement", ]
+    of '\x07': @[ "bell", ]
+    of '\x08': @[ "backspace", ]
+    of '\x09': @[ "horizontal ,tab" ]
+    of '\x0A': @[ "line", "feed" ]
+    of '\x0B': @[ "vertical", "tab" ]
+    of '\x0C': @[ "form", "feed" ]
+    of '\x0D': @[ "carriage", "return" ]
+    of '\x0E': @[ "shift", "out" ]
+    of '\x0F': @[ "shift", "in" ]
+    of '\x10': @[ "data", "link", "escape" ]
+    of '\x11': @[ "device", "control", "1" ]
+    of '\x12': @[ "device", "control", "2" ]
+    of '\x13': @[ "device", "control", "3" ]
+    of '\x14': @[ "device", "control", "4" ]
+    of '\x15': @[ "negative", "acknowledge" ]
+    of '\x16': @[ "synchronous", "idle" ]
+    of '\x17': @[ "end", "of" ,"trans.", "block" ]
+    of '\x18': @[ "cancel", ]
+    of '\x19': @[ "end", "of", "medium" ]
+    of '\x1A': @[ "substitute", ]
+    of '\x1B': @[ "escape", ]
+    of '\x1C': @[ "file", "separator" ]
+    of '\x1D': @[ "group", "separator" ]
+    of '\x1E': @[ "record", "separator" ]
+    of '\x1F': @[ "unit", "separator" ]
+
+    of '\x20': @[ "space"  ]
+    of '\x21': @[ "exclamation", "mark"  ]
+    of '\x22': @[ "double", "quotation", "mark"  ]
+    of '\x23': @[ "number", "sign" ]
+    of '\x24': @[ "dollar", "sign"  ]
+    of '\x25': @[ "percent", "sign"  ]
+    of '\x26': @[ "ampersand"  ]
+    of '\x27': @[ "apostrophe" ]
+    of '\x28': @[ "left", "parenthesis"  ]
+    of '\x29': @[ "right", "parenthesis"  ]
+    of '\x2A': @[ "asterisk"  ]
+    of '\x2B': @[ "plus", "sign"  ]
+    of '\x2C': @[ "comma"  ]
+    of '\x2D': @[ "minus", "sign" ]
+    of '\x2E': @[ "period" ]
+    of '\x2F': @[ "slash" ]
+    of '\x30': @[ "digit", "0" ]
+    of '\x31': @[ "digit", "1" ]
+    of '\x32': @[ "digit", "2" ]
+    of '\x33': @[ "digit", "3" ]
+    of '\x34': @[ "digit", "4" ]
+    of '\x35': @[ "digit", "5" ]
+    of '\x36': @[ "digit", "6" ]
+    of '\x37': @[ "digit", "7" ]
+    of '\x38': @[ "digit", "8" ]
+    of '\x39': @[ "digit", "9" ]
+    of '\x3A': @[ "colon"  ]
+    of '\x3B': @[ "semicolon"  ]
+    of '\x3C': @[ "less", "than", "sign"  ]
+    of '\x3D': @[ "equal", "sign"  ]
+    of '\x3E': @[ "greater", "than", "sign"  ]
+    of '\x3F': @[ "question", "mark" ]
+    of '\x40': @[ "at", "sign" ]
+
+    of '\x5B': @[ "left", "square", "bracket" ]
+    of '\x5C': @[ "backslash" ]
+    of '\x5D': @[ "right", "square", "bracket" ]
+    of '\x5E': @[ "circumflex" ]
+    of '\x5F': @[ "underscore" ]
+    of '\x60': @[ "backtick" ]
+    of '\x7B': @[ "left", "curly", "bracket" ]
+    of '\x7C': @[ "vertical", "bar" ]
+    of '\x7D': @[ "right", "curly", "bracket" ]
+    of '\x7E': @[ "tilde" ]
+    of '\x7F': @[ "delete" ]
+
+    of 'A': @["capital", "A"]
+    of 'B': @["capital", "B"]
+    of 'C': @["capital", "C"]
+    of 'D': @["capital", "D"]
+    of 'E': @["capital", "E"]
+    of 'F': @["capital", "F"]
+    of 'G': @["capital", "G"]
+    of 'H': @["capital", "H"]
+    of 'I': @["capital", "I"]
+    of 'J': @["capital", "J"]
+    of 'K': @["capital", "K"]
+    of 'L': @["capital", "L"]
+    of 'M': @["capital", "M"]
+    of 'N': @["capital", "N"]
+    of 'O': @["capital", "O"]
+    of 'P': @["capital", "P"]
+    of 'Q': @["capital", "Q"]
+    of 'R': @["capital", "R"]
+    of 'S': @["capital", "S"]
+    of 'T': @["capital", "T"]
+    of 'U': @["capital", "U"]
+    of 'V': @["capital", "V"]
+    of 'W': @["capital", "W"]
+    of 'X': @["capital", "X"]
+    of 'Y': @["capital", "Y"]
+    of 'Z': @["capital", "Z"]
+    of 'a': @["lowercase", "a"]
+    of 'b': @["lowercase", "b"]
+    of 'c': @["lowercase", "c"]
+    of 'd': @["lowercase", "d"]
+    of 'e': @["lowercase", "e"]
+    of 'f': @["lowercase", "f"]
+    of 'g': @["lowercase", "g"]
+    of 'h': @["lowercase", "h"]
+    of 'i': @["lowercase", "i"]
+    of 'j': @["lowercase", "j"]
+    of 'k': @["lowercase", "k"]
+    of 'l': @["lowercase", "l"]
+    of 'm': @["lowercase", "m"]
+    of 'n': @["lowercase", "n"]
+    of 'o': @["lowercase", "o"]
+    of 'p': @["lowercase", "p"]
+    of 'q': @["lowercase", "q"]
+    of 'r': @["lowercase", "r"]
+    of 's': @["lowercase", "s"]
+    of 't': @["lowercase", "t"]
+    of 'u': @["lowercase", "u"]
+    of 'v': @["lowercase", "v"]
+    of 'w': @["lowercase", "w"]
+    of 'x': @["lowercase", "x"]
+    of 'y': @["lowercase", "y"]
+    of 'z': @["lowercase", "z"]
     of char(0b1100_0000): @["utf8", "two", "byte", "lead"]
     of char(0b1110_0000): @["utf8", "three", "byte", "lead"]
     of char(0b1111_0000): @["utf8", "four", "byte", "lead"]
@@ -593,21 +718,22 @@ func asciiName*(ch: char, slash: bool = false): string =
   extendedAsciinames[ch]
 
 func describeChar*(ch: char): string =
-  result.add "\\x"
-  result.add toHex(ch.uint8)
-  result.add " - "
-  result.add toLatinNamedChar(ch).join(" ")
+  case ch:
+    of { '\x00' .. '\x1F' } - { '\n', '\t' }:
+      result.add "\\x"
+      result.add toHex(ch.uint8)
 
-func describeCharset*(s: set[char]): string =
+    of '\n': result.add "\\n"
+    of '\t': result.add "\\t"
+    else: result.add $ch
+
+  result.add " ("
+  result.add toLatinNamedChar(ch).join(" ")
+  result.add ")"
+func describeSet*[S](
+    s: set[S], sets: openarray[(set[S], string)]): string =
   var buf: seq[string]
   var left = s
-
-  let sets = {
-    { 'a' .. 'z', 'A' .. 'Z' }: "lower/upper-case",
-    { 'a' .. 'z' }: "lowercase",
-    { 'A' .. 'Z' }: "uppercse",
-    { '0' .. '0' }: "digit"
-  }
 
   for (keys, name) in sets:
     if len(keys * left) == len(keys):
@@ -620,6 +746,17 @@ func describeCharset*(s: set[char]): string =
   return $joinAnyOf(
     words = mapIt(buf, toColoredText(it)),
     empty = "no characters")
+
+func describeCharset*(s: set[char]): string =
+  let sets = {
+    { 'a' .. 'z', 'A' .. 'Z' }: "lower/upper-case",
+    { 'a' .. 'z' }: "lowercase",
+    { 'A' .. 'Z' }: "uppercse",
+    { '0' .. '0' }: "digit"
+  }
+
+  describeSet[char](s, sets)
+
 
 
 const AsciiMath* = (

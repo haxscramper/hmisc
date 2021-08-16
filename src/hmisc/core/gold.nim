@@ -82,10 +82,6 @@ func `and`*(args: varargs[bool]): bool =
   for arg in args:
     result = arg and result
 
-proc add*[T](s: var seq[T], opt: Option[T]) =
-  if opt.isSome():
-    s.add opt.get()
-
 proc `&`*[T](elements: openarray[seq[T]]): seq[T] =
   for element in elements:
     result &= element
@@ -154,6 +150,17 @@ macro lit3*(str: static[string]): untyped =
 
 func add*[A, B](s: var seq[(A, B)], a: A, b: B) = s.add((a, b))
 func add*[A, B, C](s: var seq[(A, B, C)], a: A, b: B, c: C) = s.add((a, b, c))
+
+proc add*[T](s: var seq[T], opt: Option[T]) =
+  if opt.isSome():
+    s.add opt.get()
+
+func add*(s: var string, s1, s2: string, other: varargs[string]) =
+  s.add s1
+  s.add s2
+  for arg in other:
+    s.add arg
+
 
 template procIt*[T](procname: untyped): untyped =
   proc cb(arg: T): auto = procname(arg)

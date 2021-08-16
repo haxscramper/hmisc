@@ -12,16 +12,13 @@ type
     ## Invalid argument passed to a functions
 
   EnvironmentAssertionError* = object of ArgumentError
-  GetterError* = object of ArgumentError
-  SetterError* = object of ArgumentError
-  NilArgumentError* = object of ArgumentError
-  NoneArgumentError* = object of ArgumentError
-
-  ParseError* = object of CatchableError
-
-  LogicError*          = object of CatchableError
-
-  UnexpectedKindError* = object of ArgumentError
+  GetterError*               = object of ArgumentError
+  SetterError*               = object of ArgumentError
+  NilArgumentError*          = object of ArgumentError
+  NoneArgumentError*         = object of ArgumentError
+  ParseError*                = object of CatchableError
+  LogicError*                = object of CatchableError
+  UnexpectedKindError*       = object of ArgumentError
     ## More concrete specializaton of argument error for handling variant
     ## objects
 

@@ -267,8 +267,35 @@ template initTok*[K](
     kind: inKind,
     offset: posStr.pos,
     str: $inStr,
-    isSlice: false,
-  )
+    isSlice: false)
+
+template initTok*[K](
+    posStr: PosStr, inStr: PosStr, inKind: K): HsTok[K] =
+  var res = HsTok[K](
+    kind: inKind,
+    isSlice: true,
+    line: posStr.line,
+    column: posStr.column,
+    offset: posStr.pos)
+
+  let str = inStr
+  if str.isSlice:
+    if str.slices.len == 1:
+      let first = str.slices[0]
+      res.line = first.line
+      res.column = first.column
+      res.offset = first.start
+      res.finish = first.finish
+
+    else:
+      raise newArgumentError(
+        "Cannot create slice token from fragmented positional string -",
+        "expected exactly one slice, but found ",
+        str.slices.len)
+
+  res
+
+
 
 func strVal*[K](tok: HsTok[K]): string = tok.str
 

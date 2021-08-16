@@ -1,12 +1,14 @@
-import hmisc/macros/introspection
+import
+  hmisc/preludes/unittest
 
+import
+  hmisc/macros/[introspection, nim_ast_aux, ast_spec],
+  hmisc/types/colorstring
 
-import unittest
+import
+  std/macros
 
 suite "Enum introspection":
-  test "Underlying names":
-    echo 1
-
   test "Named subnodes":
     type
       AstKind = enum
@@ -14,6 +16,17 @@ suite "Enum introspection":
         askSecond
         askThird
 
-    echo namedSubnode(askFirst, 1, @{
-      askFirst : @["head", "tail"]
-    })
+    check:
+      namedSubnode(askFirst, 1, @{
+        askFirst : @["head", "tail"]
+      }) == "tail"
+
+suite "Ast spec":
+  test "On nim node":
+    macro spec() =
+      echo nimAstSpec.validateAst(
+        nnkInfix.newTree(newLit(12), ident"1", ident"2"))
+
+      echo nimAstSpec.validateAst(nnkInfix.newTree())
+
+    spec()

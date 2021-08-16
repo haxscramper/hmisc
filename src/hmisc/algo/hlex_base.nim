@@ -24,7 +24,7 @@ cases, which allows for rapid prototyping.
 ]##
 
 type
-  PosStrSlice = object
+  PosStrSlice* = object
     line*: int
     column*: int
     start*: int
@@ -73,6 +73,7 @@ type
 
   UnexpectedCharError* = object of HLexerError
   UnbalancedWrapError* = object of HLexerError
+  MalformedTokenError* = object of HLexerError
 
 
 using str: var PosStr
@@ -80,21 +81,21 @@ using str: var PosStr
 export strutils
 
 const
-  LowerAsciiLetters* = {'a' .. 'b'}
-  HighAsciiLetters* = {'A' .. 'Z'}
-  IntegerStartChars* = {'0' .. '9', '-', '+'}
-  HexDigitsLow* = {'a', 'b', 'c', 'd', 'e', 'f'} + Digits
-  HexDigitsHigh* = {'A', 'B', 'C', 'D', 'E', 'F'} + Digits
-  HexDigits* = HexDigitsLow + HexDigitsHigh
-  PunctOpenChars* = {'(', '[', '{', '<'}
-  PunctCloseChars* = {')', ']', '}', '>'}
+  LowerAsciiLetters*  = {'a' .. 'b'}
+  HighAsciiLetters*   = {'A' .. 'Z'}
+  IntegerStartChars*  = {'0' .. '9', '-', '+'}
+  HexDigitsLow*       = {'a', 'b', 'c', 'd', 'e', 'f'} + Digits
+  HexDigitsHigh*      = {'A', 'B', 'C', 'D', 'E', 'F'} + Digits
+  HexDigits*          = HexDigitsLow + HexDigitsHigh
+  PunctOpenChars*     = {'(', '[', '{', '<'}
+  PunctCloseChars*    = {')', ']', '}', '>'}
   PunctSentenceChars* = {',', '.', '?', '!', ';', ':'}
-  MathChars* = { '+', '/', '%', '*', '='}
-  PunctChars* = PunctOpenChars + PunctCloseChars + PunctSentenceChars
-  Newline* = {'\n'}
-  AllSpace* = Whitespace
-  HorizontalSpace* = AllSpace - Newline
-  VeritcalSpace* = Newline
+  MathChars*          = { '+', '/', '%', '*', '='}
+  PunctChars*         = PunctOpenChars + PunctCloseChars + PunctSentenceChars
+  Newline*            = {'\n'}
+  AllSpace*           = Whitespace
+  HorizontalSpace*    = AllSpace - Newline
+  VeritcalSpace*      = Newline
 
 func lineCol*(str: PosStr): LineCol {.inline.} =
   (line: str.line, column: str.column)
@@ -358,7 +359,7 @@ proc hshow*(str; opts: HDIsplayOpts = defaultHDisplay): ColoredText =
       let slice = str.slices[sliceIdx]
       var text =
         if sliceIdx == str.sliceIdx:
-          str.baseStr[][str.pos ..< min(slice.finish, str.baseStr[].len)]
+          str.baseStr[][str.pos .. min(slice.finish, str.baseStr[].high)]
 
         else:
           str[slice]
@@ -510,6 +511,22 @@ proc getAll*(str: PosStr): string =
 
 proc strVal*(str: PosStr): string = getAll(str)
 
+proc newMalformedTokenError*(
+    got: PosStr, expected: string): ref MalformedTokenError =
+  new(result)
+  result.setLineInfo(got)
+  result.msg.add(
+    "Malformed token encountered during lexing - found '",
+    got.strVal(),
+    "', but expected ",
+    expected,
+    " at ",
+    $got.line,
+    ":",
+    $got.column)
+
+
+
 proc getRange*(str; leftShift: int = 0, rightShift: int = -1):
   string {.inline.} =
 
@@ -583,13 +600,18 @@ proc advance*(str; step: int = 1) {.hcov.} =
   else:
     inc(str.pos, step)
 
-proc popPointSlice*(str; expected: set[char] = AllChars): PosStr =
+proc popPointSlice*(
+    str;
+    expected: set[char] = AllChars,
+    advance: int = 1
+  ): PosStr =
+
   if str[] notin expected:
     raise newUnexpectedCharError(str, expected.describeCharset())
 
   else:
     str.startSlice()
-    str.advance()
+    str.advance(advance)
     return str.popSlice()
 
 proc skip*(str; ch: char) {.inline.} =
@@ -708,16 +730,17 @@ proc popChar*(str: var PosStr): char {.inline.} =
   result = str[]
   str.advance()
 
-proc popStringLit*(str: var PosStr): string {.inline.} =
-  str.pushRange()
-
-  str.advance()
-
+proc skipStringLit*(str: var PosStr) =
   var found = false
+  str.advance()
   while not found:
     found = str['"'] and not str[-1, '\\']
     str.advance()
 
+
+proc popStringLit*(str: var PosStr): string {.inline.} =
+  str.pushRange()
+  str.skipStringLit()
   result = str.popRange()
   # str.advance()
 
@@ -745,9 +768,9 @@ proc popWhileSlice*(str; chars: set[char]): PosStr =
   str.skipWhile(chars)
   str.popSlice()
 
-proc popUntilSlice*(str; chars: set[char]): PosStr =
+proc popUntilSlice*(str; chars: set[char], including: bool = false): PosStr =
   str.startSlice()
-  str.skipUntil(chars)
+  str.skipUntil(chars, including)
   str.popSlice()
 
 proc popIdentSlice*(str; chars: set[char] = IdentChars): PosStr =

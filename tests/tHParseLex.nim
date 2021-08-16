@@ -798,17 +798,156 @@ suite "C preprocessor reimplementation":
       check tokens == @["#define test\n", "test", " ", "other"]
 
     block define_with_args:
-      var tokens = lex("#define test\ntest(1)")
-      check tokens == @["#define test\n", "test", "(", "1", ")"]
+      check:
+        lex("#define test\ntest(1)") == @["#define test\n", "test", "(", "1", ")"]
+        lex("#define random\ntest(1)") == @["#define random\n", "test(1)"]
 
-    block define_with_args:
-      var tokens = lex("#define random\ntest(1)")
-      check tokens == @["#define random\n", "test(1)"]
+
 
 
 
 suite "Nim cfg parser":
-  discard
+  type
+    CfgToken = enum
+      ctSection
+      ctComment
+      ctLongDash
+      ctShortDash
+      ctEq
+      ctColon
+      ctRStrLit
+      ctStrLit
+      ct3StrLit
+      ctIf
+      ctEnd
+      ctOpOr
+      ctOrAnd
+      ctIdent
+
+      ctEof
+
+
+  startHax()
+  proc lex(str: var PosStr): Option[HsTok[CfgToken]] =
+    if not ?str:
+      return some initTok(str, ctEof)
+
+    else:
+      case str[]:
+        of IdentChars:
+          if str['r', '"']:
+            str.startSlice()
+            str.skipStringLit()
+            result = some str.initTok(str.popSlice(), ctRStrLit)
+
+          else:
+            str.startSlice()
+            while str[IdentChars + {'.'}]:
+              str.advance()
+
+            result = some str.initTok(str.popSlice(), ctIdent)
+
+        of '"':
+          str.startSlice()
+          str.skipStringLit()
+          result = some str.initTok(str.popSlice(), ctStrLit)
+
+        of '[':
+          result = some str.initTok(str.popUntilSlice({']'}, true), ctSection)
+
+        of '=': result = some str.initTok(str.popPointSlice(), ctEq)
+        of ':': result = some str.initTok(str.popPointSlice(), ctColon)
+        of '-':
+          if str['-', '-']:
+            result = some str.initTok(str.popPointSlice(advance = 2), ctLongDash)
+
+          else:
+            result = some str.initTok(str.popPointSlice(), ctShortDash)
+
+        of '@':
+          str.startSlice()
+          str.advance()
+          str.skipWhile(IdentChars)
+          case str.peekSlice().strVal():
+             of "@if": result = some str.initTok(str.popSlice(), ctIf)
+             of "@end": result = some str.initTok(str.popSlice(), ctEnd)
+             else: raise newMalformedTokenError(str.popSlice(), "@if or @end")
+
+
+        of ';':
+          str.startSlice()
+          while ?str and str[';']:
+            str.skipToEol()
+
+          result = some str.initTok(str.popSlice(0), ctComment)
+
+        of ' ', '\n':
+          str.skipWhile({' ', '\n'})
+          result = lex(str)
+
+        else:
+          raise newUnexpectedCharError(str)
+
+  proc lex(str: string): seq[HsTok[CfgToken]] = lexAll(str, lex)
+  proc lexStrs(str: string): seq[string] =
+    for tok in lex(str):
+      if tok.kind != ctEof:
+        result.add str[tok.offset .. tok.finish]
+
+
+  test "Primitive elements":
+    block section:
+      let t = lex("[Common]")[0]
+      check:
+        matchdiff(t,
+          (line: 0, column: 0, offset: 0, finish: 7, isSlice: true))
+
+    block comments:
+      let
+        text = "; comment"
+        tok = lex(text)[0]
+
+      check:
+        text == text[tok.offset .. tok.finish]
+        matchdiff(
+          tok,
+          (line: 0, column: 0, offset: 0, finish: 8, isSlice: true))
+
+
+
+    block multiline_comment:
+      let
+        text = "; comment\n;line 2"
+        tok = lex(text)[0]
+
+      check:
+        text == text[tok.offset .. tok.finish]
+        matchdiff(
+          tok,
+          (line: 0, column: 0, offset: 0, finish: 16, isSlice: true))
+
+    block switches:
+      check:
+        lexStrs("cc=gcc") == @["cc", "=", "gcc"]
+        lexStrs("--cc=gcc") == @["--", "cc", "=", "gcc"]
+
+    block controls:
+      check:
+        lexStrs(lit3"""
+          @if cudnn:
+            define:"cuda"
+          @end
+        """) == @[
+          "@if",
+          "cudnn",
+          ":",
+          "define",
+          ":",
+          "\"cuda\"",
+          "@end"
+        ]
+
+
 
 suite "Simple org-mode replacement":
   discard

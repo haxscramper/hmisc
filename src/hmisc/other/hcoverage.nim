@@ -8,7 +8,7 @@ import
   hmisc/types/[colorstring, rev_set_table],
   hmisc/other/[oswrap],
   hmisc/algo/hstring_algo,
-  hmisc/macros/nim_ast_help
+  hmisc/macros/nim_ast_aux
 
 type
   CovProcId = distinct int
