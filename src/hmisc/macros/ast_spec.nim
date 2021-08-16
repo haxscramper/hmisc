@@ -151,7 +151,15 @@ macro astSpec*(nodeType, kindType, body: untyped): untyped =
             nnkInfix, nnkCall, nnkObjConstr})
 
 
-    result = nnkPrefix.newTree(ident"@", result)
+    if result.len == 0:
+      result = newCall(
+        nnkBracketExpr.newTree(
+          ident"newSeq",
+          nnkBracketExpr.newTree(
+            ident"AstPattern", nodeType, kindType)))
+
+    else:
+      result = nnkPrefix.newTree(ident"@", result)
 
 
 

@@ -776,23 +776,29 @@ macro astdiff*(ast: typed, match: untyped, loc: TestLocation): untyped =
       else:
         raise newImplementKindError(pattern)
 
-  let impl = aux(ast, match, @[])
-
-  result = quote do:
-    var `fails`: seq[(seq[int], string, string)]
-    let `expr` = `ast`
-
-    `impl`
-
-    if `fails`.len > 0:
-      var failDescs: seq[TestMatchFail]
-      for (path, desc, got) in `fails`:
-        failDescs.add((`toPath`(`expr`, path), desc, got))
-
-      matchCheckFailed(`loc`, failDescs)
-
-    else:
+  if match.kind == nnkIdent:
+    result = quote do:
+      echo validateAst(`match`, `ast`)
       checkOk(`loc`)
+
+  else:
+    let impl = aux(ast, match, @[])
+
+    result = quote do:
+      var `fails`: seq[(seq[int], string, string)]
+      let `expr` = `ast`
+
+      `impl`
+
+      if `fails`.len > 0:
+        var failDescs: seq[TestMatchFail]
+        for (path, desc, got) in `fails`:
+          failDescs.add((`toPath`(`expr`, path), desc, got))
+
+        matchCheckFailed(`loc`, failDescs)
+
+      else:
+        checkOk(`loc`)
 
 
 

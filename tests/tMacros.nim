@@ -2,7 +2,7 @@ import
   hmisc/preludes/unittest
 
 import
-  hmisc/macros/[introspection, nim_ast_aux, ast_spec],
+  hmisc/macros/[introspection, nim_ast_aux, ast_spec, wrapfields],
   hmisc/types/colorstring
 
 import
@@ -21,6 +21,19 @@ suite "Enum introspection":
         askFirst : @["head", "tail"]
       }) == "tail"
 
+type
+  AstKind = enum
+    akIfStmt
+    akExpr
+    akTryStmt
+
+  Ast = object
+    kind: AstKind
+    subnodes: seq[Ast]
+
+wrapSeqContainer(Ast.subnodes, Ast)
+
+
 suite "Ast spec":
   test "On nim node":
     macro spec() =
@@ -30,3 +43,12 @@ suite "Ast spec":
       echo nimAstSpec.validateAst(nnkInfix.newTree())
 
     spec()
+
+  test "On custom type":
+
+    const spec = astSpec(Ast, AstKind):
+      akIfStmt:
+        0 .. 2: _
+
+    check:
+      astdiff Ast(kind: akIfStmt), spec

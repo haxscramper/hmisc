@@ -110,7 +110,7 @@ macro wrapSeqContainer*(
           dec idx
 
       iterator `ritemsId`(main: `mainType`): `fieldType` =
-        for idx, item in rpairs(main.`field`):
+        for idx, item in rpairs(main):
           yield item
 
       iterator `itemsId`(main: `mainType`): `fieldType` =
