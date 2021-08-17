@@ -19,6 +19,6 @@ jobs:
         with:
           path: '../nim'
           version: ${{ matrix.nim }}
-      - run: "nimble install"
+      - run: "nimble -y install"
       - run: "nimble testall"
       - run: "nimble -y test"
