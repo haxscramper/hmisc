@@ -410,8 +410,10 @@ proc report(context: TestContext, report: TestReport) =
           msg.add " - pattern matchig fail"
           echo msg, "\n"
           for (path, expected, got) in report.paths:
-            echo pad, "  expected ", toGreen(expected), " at '", path,
-              "', but got ", toRed(got)
+            echo pad, "  expected ",
+              toGreen(expected.formatStringified()), " at '", path,
+              "', but got ",
+              toRed(got.formatStringified())
 
           echo ""
 

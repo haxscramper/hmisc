@@ -421,7 +421,8 @@ proc startSlice*(str) {.inline.} =
   if str.sliceBuffer.len == 0:
     str.sliceBuffer.add @[]
 
-  str.sliceBuffer[^1].add PosStrSlice(start: str.pos)
+  str.sliceBuffer[^1].add PosStrSlice(
+    start: str.pos, line: str.line, column: str.column)
 
 proc finishSlice*(str; rightShift: int = -1) {.inline.} =
   str.sliceBuffer[^1][^1].finish = min(

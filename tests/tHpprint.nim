@@ -258,3 +258,11 @@ suite "Other tests":
     block:
       var arr: array[en1 .. en2, string]
       show pstring(arr)
+
+when false:
+  # TODO test this
+  pprint(
+    tokens,
+    ignore = matchField("baseStr"),
+    force = { matchType("HsTok"): forceLine() }
+  )

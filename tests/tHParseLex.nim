@@ -1012,11 +1012,6 @@ suite "Simple org-mode replacement":
 
     block markup:
       let tokens = lexAll(varStr("*word* *BIG_IDENT* **IN**line bold"), lex)
-      pprint(
-        tokens,
-        ignore = matchField("baseStr"),
-        force = { matchType("HsTok"): forceLine() }
-      )
 
       check:
         matchdiff tokens, [
@@ -1029,11 +1024,11 @@ suite "Simple org-mode replacement":
           (kind: otBoldStart),
           (kind: otBigIdent, strVal: "BIG_IDENT"),
           (kind: otBoldEnd),
-          (kind: otSpace),
+          (kind: otSpace, strVal: " "),
           (kind: otBoldInline, strVal: "**"),
-          (kind: otBigIdent),
+          (kind: otBigIdent, strVal: "IN"),
           (kind: otBoldInline, strVal: "**"),
-          (kind: otWord),
-          (kind: otSpace, line: 0, column: 30, offset: 29, finish: 29),
-          (kind: otWord, line: 0, column: 30, offset: 30, finish: 33)
+          (kind: otWord, strVal: "line"),
+          (kind: otSpace, line: 0, column: 27, offset: 29, finish: 29, strVal: " "),
+          (kind: otWord, line: 0, column: 28, offset: 30, finish: 33, strVal: "bold")
         ]
