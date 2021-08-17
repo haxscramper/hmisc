@@ -92,7 +92,7 @@ proc next*(r) =
         r.next()
 
       else:
-        raiseUnexpectedChar(r.str)
+        raise newUnexpectedCharError(r.str)
 
 proc newJsonReader*(s: Stream): JsonReader =
   result = JsonReader(str: initPosStr(s))

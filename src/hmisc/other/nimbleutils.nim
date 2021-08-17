@@ -81,7 +81,9 @@ proc envOrParam*(
         &"and CLI parameter '{key}' was not supplied.")
 
 proc configureCI*(conf: var TaskRunConfig) =
-  if ShellVar("CI").exists():
+  if ShellVar("CI").exists() and
+     ShellVar("CI").toBool() == true and
+     not defined(hunittestMerge):
     conf.info "Using CI configuration"
     conf.envOrParam(
       "git.url",

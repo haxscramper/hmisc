@@ -2071,9 +2071,7 @@ DSL for creating directory structures
                 file,
                 newCall("open", node[1].blockCall(), ident"fmWrite")),
               result,
-              newCall("close", file)
-            )
-          )
+              newCall("close", file)))
 
         elif node[0].eqIdent("dir"):
           result = newStmtList()
@@ -2091,7 +2089,8 @@ DSL for creating directory structures
         for subnode in node:
           result.add aux(subnode)
 
-      of nnkCharLit .. nnkTripleStrLit, nnkPrefix, nnkIdent, nnkSym:
+      of nnkCharLit .. nnkTripleStrLit, nnkPrefix, nnkIdent, nnkSym,
+         nnkCallStrLit:
         result = newCall("write", file, node)
 
       else:

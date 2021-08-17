@@ -44,24 +44,24 @@ let outval = OutTest(
         OutTest(val: "888--0")])])
 
 type
-  Ast = object
+  AlgAst = object
     name: string
     case isToken: bool
       of true:
         tok: string
       of false:
-        subnodes: seq[Ast]
+        subnodes: seq[AlgAst]
 
-let astInval = Ast(isToken: false, subnodes: @[
-  Ast(isToken: false, subnodes: @[
-    Ast(isToken: true, tok: "opBrace"),
-    Ast(isToken: true, tok: "ident"),
-    Ast(isToken: true, tok: "closeBrace"),
+let astInval = AlgAst(isToken: false, subnodes: @[
+  AlgAst(isToken: false, subnodes: @[
+    AlgAst(isToken: true, tok: "opBrace"),
+    AlgAst(isToken: true, tok: "ident"),
+    AlgAst(isToken: true, tok: "closeBrace"),
   ]),
-  Ast(isToken: false, subnodes: @[
-    Ast(isToken: true, tok: "opBrace"),
-    Ast(isToken: true, tok: "ident"),
-    Ast(isToken: true, tok: "closeBrace"),
+  AlgAst(isToken: false, subnodes: @[
+    AlgAst(isToken: true, tok: "opBrace"),
+    AlgAst(isToken: true, tok: "ident"),
+    AlgAst(isToken: true, tok: "closeBrace"),
   ])
 ])
 
@@ -95,18 +95,18 @@ suite "Tree mapping":
         discard it.tok
 
   test "{iterateItBFS} int-indexed":
-    func len(tr: Ast): int =
+    func len(tr: AlgAst): int =
       if not tr.isToken:
         result = tr.subnodes.len
 
-    func `[]`(tr: Ast, idx: int): Ast = tr.subnodes[idx]
+    func `[]`(tr: AlgAst, idx: int): AlgAst = tr.subnodes[idx]
 
     astInval.iterateItBFS:
       if it.isToken:
         discard it.tok
 
   test "{iterateItBFS} using `items` iterator":
-    iterator items(tr: Ast): Ast =
+    iterator items(tr: AlgAst): AlgAst =
       if not tr.isToken:
         for it in tr.subnodes:
           yield it
@@ -121,11 +121,11 @@ suite "Tree mapping":
         discard it.tok
 
   test "{iterateItDFS} int-indexed":
-    func len(tr: Ast): int =
+    func len(tr: AlgAst): int =
       if not tr.isToken:
         result = tr.subnodes.len
 
-    func `[]`(tr: Ast, idx: int): Ast = tr.subnodes[idx]
+    func `[]`(tr: AlgAst, idx: int): AlgAst = tr.subnodes[idx]
 
     astInval.iterateItDFS(dfsPreorder):
       if it.isToken:
@@ -133,7 +133,7 @@ suite "Tree mapping":
 
 
   test "{itearteItDFS} using `items` iterator":
-    iterator items(tr: Ast): Ast =
+    iterator items(tr: AlgAst): AlgAst =
       if not tr.isToken:
         for it in tr.subnodes:
           yield it
@@ -332,19 +332,19 @@ suite "Tree mapping":
     ## Check if tree instance can have subnodes before trying to
     ## iterate over it's children
 
-    let res: Option[Ast] = astInval.mapDFSpost(
-      map = proc(it: Ast, subn: seq[Ast]): Option[Ast] =
+    let res: Option[AlgAst] = astInval.mapDFSpost(
+      map = proc(it: AlgAst, subn: seq[AlgAst]): Option[AlgAst] =
                 if not it.isToken:
-                  some(Ast(isToken: false, subnodes: subn))
+                  some(AlgAst(isToken: false, subnodes: subn))
                 elif it.isToken and it.tok == "ident":
-                  some(Ast(isToken: true, tok: "ident"))
+                  some(AlgAst(isToken: true, tok: "ident"))
                 else:
-                  none(Ast)
+                  none(AlgAst)
       ,
       # Field is accessible only for non-token ast nodes
-      getSubnodes = proc(it: Ast): seq[Ast] = it.subnodes
+      getSubnodes = proc(it: AlgAst): seq[AlgAst] = it.subnodes
       ,
-      hasSubnodes = proc(it: Ast): bool = not it.isToken
+      hasSubnodes = proc(it: AlgAst): bool = not it.isToken
     )
 
     doAssert res.get().mapItBFStoSeq(

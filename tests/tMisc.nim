@@ -1,4 +1,5 @@
-import std/[sugar, strutils, sequtils, strformat, unittest]
+import hmisc/preludes/unittest
+import std/[sugar, strutils, sequtils, strformat]
 import hmisc/other/[hlogger, hshell]
 
 suite "HLogger":

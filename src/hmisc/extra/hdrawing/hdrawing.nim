@@ -785,17 +785,11 @@ func toTermBuf*(shape: Shape): TermBuf =
 
   return buf
 
-converter toRunes*(s: string): RuneSeq =
-  unicode.toRunes(s)
+# func toRunes*(s: seq[string]): seq[RuneSeq] =
+#   s.mapIt(unicode.toRunes(it))
 
-converter toRunes*(s: seq[string]): seq[RuneSeq] =
-  s.mapIt(unicode.toRunes(it))
+# func toRunes*(s: seq[seq[string]]): seq[seq[RuneSeq]] =
+#   s.mapIt(it.mapIt(unicode.toRunes(it)))
 
-converter toRunes*(s: seq[seq[string]]): seq[seq[RuneSeq]] =
-  s.mapIt(it.mapIt(unicode.toRunes(it)))
-
-converter toRunes*(s: seq[seq[seq[string]]]): seq[seq[seq[RuneSeq]]] =
-  s.mapIt(it.mapIt(it.mapIt(unicode.toRunes(it))))
-
-# func toSeq2D*[T](s: seq[seq[T]]): Seq2d[T] =
-#   makeSeq2D(s)
+# func toRunes*(s: seq[seq[seq[string]]]): seq[seq[seq[RuneSeq]]] =
+#   s.mapIt(it.mapIt(it.mapIt(unicode.toRunes(it))))

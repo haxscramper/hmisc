@@ -77,7 +77,7 @@ suite "Shell output parser":
 
 suite "Hshell":
   test "Echo":
-    check runShell(ShellExpr "echo '1'").stdout.strip() == "1"
+    check strutils.strip(runShell(ShellExpr "echo '1'").stdout) == "1"
 
   test "Parallel process launch":
     var cmds = repeat((shellCmd(echo, "test"), false), 20)

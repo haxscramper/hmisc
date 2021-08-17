@@ -294,7 +294,7 @@ suite "SQL schema visualization":
       record.add makeDotNode(
         id,
         RawHtml(
-          alignLeft(
+          strutils.alignLeft(
             col[0].strVal & ":",
             w - col[1].strVal.len - 1,
           ) & &"<i>{col[1].strVal}</i>"

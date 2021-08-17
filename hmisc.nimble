@@ -33,6 +33,31 @@ hmisc-putils docgen \
   # --ignore='**/similarity_metrics.nim' \
   # --ignore='**/treediff_main.nim' \
 
+import std/[os, strutils]
+
+task testall, "Merge all tests and run them":
+  let outPath = "/tmp/tmp_tests_all.nim"
+  var res: string
+  res.add "{.define: hunittestMerge.}\n"
+  for (kind, path) in walkDir("tests"):
+    if kind == pcFile and path.splitFile().ext == ".nim":
+      let content = path.readFile()
+
+      if content.find("joinable: false") != -1:
+        echo "skipping join on ", path
+
+      else:
+        res.add "\n{.line: (filename: \""
+        res.add path
+        res.add "\", line: 0).}:\n"
+        res.add content.indent(2).strip(
+          leading = false, trailing = true, chars = {' ', '\n'})
+
+        res.add "\n"
+
+  res.add "\n\nmergedFileEnded()\n"
+  outPath.writeFile(res)
+  exec("nim r " & outPath)
 
 task dockertest, "Run tests in docker container":
   exec("hmisc-putils dockertest --projectDir:" & thisDir())

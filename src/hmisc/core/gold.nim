@@ -148,6 +148,18 @@ macro lit3*(str: static[string]): untyped =
   ## Dedent static string literals
   newLit(dedent(str))
 
+macro lit3*(ind: static[int], str: static[string]): untyped =
+  ## Dedent static string literals
+  let text = dedent(str)
+  if text.len == 0:
+    newLit("")
+
+  elif text[^1] == '\n':
+    newLit(text[0 .. ^2].indent(ind) & "\n")
+
+  else:
+    newLit(text.indent(ind))
+
 func add*[A, B](s: var seq[(A, B)], a: A, b: B) = s.add((a, b))
 func add*[A, B, C](s: var seq[(A, B, C)], a: A, b: B, c: C) = s.add((a, b, c))
 

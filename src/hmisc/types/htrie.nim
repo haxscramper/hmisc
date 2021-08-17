@@ -77,17 +77,13 @@ proc prefixHasValue*[Key, Val](
       curr = curr.subn[key]
       if curr.value.isSome():
         return true
+
     else:
       return false
 
 iterator prefixedValues*[Key, Val](
   trie: Trie[Key, Val], path: openarray[Key], topDown: bool = true): Val =
 
-  # for key in path:
-  #   if path[0 .. pathEnd] in trie:
-  #     yield trie[path[0 .. pathEnd]]
-
-  #   pathEnd += direction
 
   var buf: seq[Val]
   var curr = trie
@@ -110,25 +106,21 @@ iterator prefixedValues*[Key, Val](
 
 
 proc paths*[Key, Val](trie: Trie[Key, Val]): seq[seq[Key]] =
-  # echo trie
-  # echo "searching for paths"
   if trie.subn.len == 0:
-    # echo "Subnode is empty"
     return @[]
+
   else:
-    # echo "Subnode has ", trie.subn.len(), " nodes"
     for key, subtrie in trie.subn:
       let sub = subtrie.paths()
       if sub.len == 0:
-        # echo "Subtrie has no paths"
         if subtrie.subn.len == 0:
           result.add @[key]
+
         else:
           for subKey, _ in subtrie.subn:
             result.add @[key, subKey]
+
       else:
-        # echo "sub has paths:"
-        # echo sub
         for path in subtrie.paths():
           result.add @[key] & path
 
@@ -136,6 +128,7 @@ proc contains*[Key, Val](trie: Trie[Key, Val], path: openarray[Key]): bool =
   try:
     discard trie[path]
     return true
+
   except KeyError:
     return false
 

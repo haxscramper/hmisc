@@ -207,7 +207,7 @@ proc newHextLexer*(): HxLexer =
               })
 
             else:
-              raise newUnexpectedChar(str, state)
+              raise newUnexpectedCharError(str, state)
 
         of elsContent, elsRawText:
           case str[]:

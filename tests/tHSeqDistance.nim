@@ -260,40 +260,39 @@ suite "Edit distance":
     let
       oldText = @["apple","orange","pear", "text"]
       newText =  @["apple","orange","blueberry", "potato", "text"]
+      diff = myersDiff(oldText, newText)
+      shifted = diff.shiftDiffed(oldText, newtext)
 
-    let diff = myersDiff(oldText, newText)
-
-    let shifted = shiftDiffed(oldText, newtext, diff, "")
-
-    show formatDiffed(shifted)
+    show formatDiffed(shifted, oldText, newText)
 
   test "Diff source code":
     let
-      oldCode = """
-proc changeSideEffect() = discard
-proc changeRaiseAnnotation() = discard
-proc changeImplementation() = discard
+      oldCode = lit3"""
+        proc changeSideEffect() = discard
+        proc changeRaiseAnnotation() = discard
+        proc changeImplementation() = discard
 
-proc main() =
-  changeSideEffect()
-  changeRaiseAnnotation()
-  changeImplementation()""".split("\n")
+        proc main() =
+          changeSideEffect()
+          changeRaiseAnnotation()
+          changeImplementation()""".split("\n")
 
-      newCode = """
-proc changeSideEffect() = echo "werwer"
-proc changeRaiseAnnotation() = raise
-proc changeImplementation() =
-  for i in [0, 1, 3]:
-    discard i
+      newCode = lit3"""
+        proc changeSideEffect() = echo "werwer"
+        proc changeRaiseAnnotation() = raise
+        proc changeImplementation() =
+          for i in [0, 1, 3]:
+            discard i
 
-proc main() =
-  changeSideEffect()
-  changeRaiseAnnotation()
-  changeImplementation()""".split("\n")
+        proc main() =
+          changeSideEffect()
+          changeRaiseAnnotation()
+          changeImplementation()""".split("\n")
 
     starthax()
-    show formatDiffed(shiftDiffed(
-      oldCode, newCode, myersDiff(oldCode, newCode), "<empty>"))
+    show myersDiff(oldCode, newCode).
+      shiftDiffed(oldCode, newCode).
+      formatDiffed(oldCode, newCode)
 
   test "Identifier mismatch":
     template mis(a, b: untyped, exp: bool = false): untyped =

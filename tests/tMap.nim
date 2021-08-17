@@ -1,5 +1,8 @@
 import
-  std/[sequtils, unittest, tables],
+  hmisc/preludes/unittest
+
+import
+  std/[sequtils, tables],
   hmisc/types/hmap
 
 suite "Values from/before":

@@ -24,7 +24,7 @@ wrapSeqContainer(Ast.subnodes, Ast, exported = false)
 
 suite "main suite":
   test "test suite":
-    check(stringdiff("a", "a"))
+    check(strdiff("a", "a"))
 
   test "parametrize":
     parametrizeOnConst N, [1, 3, 4]:

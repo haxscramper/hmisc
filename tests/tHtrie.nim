@@ -1,3 +1,7 @@
+discard """
+joinable: false
+"""
+
 import
   std/[sugar, strutils, sequtils, strformat, algorithm]
 

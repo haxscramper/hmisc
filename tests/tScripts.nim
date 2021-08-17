@@ -23,14 +23,14 @@ suite "hmisc_putils":
       file "test7.nim": "proc test5*() = discard"
 
       file "hangbomg.nim":
-        """
+        lit3"""
 # static:
 #   for i in 0 .. 20000:
 #     discard gorge("sleep 90000")
 """
 
       file "package.nimble":
-        """
+        lit3"""
 author = "haxscramper"
 version = "0.1.2"
 description = "test nimble package for documentation generation"
@@ -49,7 +49,7 @@ suite "nim_gprof":
 
     mkWithDirStructure dir:
       file "main.nim":
-        """
+        lit3"""
 import hmisc/other/[hargparse, hpprint, blockfmt]
 
 var app = newCliApp(

@@ -1,11 +1,9 @@
-import sugar, strutils, sequtils, strformat
-import hmisc/algo/htext_algo
+import
+  hmisc/preludes/unittest,
+  hmisc/algo/htext_algo
 
-#===========================  implementation  ============================#
-
-#================================  tests  ================================#
-
-import unittest
+import
+  std/[sugar, strutils, sequtils, strformat]
 
 suite "Htext algo":
   test "Hypenation":

@@ -386,7 +386,7 @@ proc `$`*(str): string = $hshow(str)
 
 template assertAhead*(str: PosStr, ahead: string) =
   if not str[ahead]:
-    raise HLexerError(
+    raise (ref HLexerError)(
       msg: "Lexer error - expected : '" & ahead & "', but found " &
         str[0 .. len(ahead)] & " at " & $str.line & ":" & $str.column,
       column: str.column,

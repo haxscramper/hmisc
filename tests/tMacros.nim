@@ -11,7 +11,7 @@ import
 suite "Enum introspection":
   test "Named subnodes":
     type
-      AstKind = enum
+      MacAstKind = enum
         askFirst
         askSecond
         askThird
@@ -22,20 +22,20 @@ suite "Enum introspection":
       }) == "tail"
 
 type
-  AstKind = enum
+  MacAstKind = enum
     akIfStmt
     akExpr
     akTryStmt
     akIdent
 
-  Ast = object
-    kind: AstKind
-    subnodes: seq[Ast]
+  MacAst = object
+    kind: MacAstKind
+    subnodes: seq[MacAst]
 
-wrapSeqContainer(Ast.subnodes, Ast)
+wrapSeqContainer(MacAst.subnodes, MacAst)
 
 
-suite "Ast spec":
+suite "MacAst spec":
   test "On nim node":
     macro spec() =
       echo nimAstSpec.validateAst(
@@ -47,7 +47,7 @@ suite "Ast spec":
 
   test "On custom type":
 
-    const spec = astSpec(Ast, AstKind):
+    const spec = astSpec(MacAst, MacAstKind):
       akIfStmt:
         0 as "condition":
           ## If statement conditiond
@@ -64,4 +64,4 @@ suite "Ast spec":
 
 
     check:
-      astdiff Ast(kind: akIfStmt), spec
+      astdiff MacAst(kind: akIfStmt), spec

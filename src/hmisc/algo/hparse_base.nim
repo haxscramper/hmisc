@@ -124,15 +124,12 @@ proc newLexerState*[F](startFlag: F): HsLexerState[F] =
   result = HsLexerState[F](flagStack: @[startFlag])
   inc result.flagSet[startFlag]
 
-proc newUnexpectedChar*[F](
-    str: var PosStr, state: var HsLexerState[F]): HLexerError =
-  HLexerError(
-    msg: &[
-      "Unexpected character encountered while parsing: '",
-      $str[0], "' at ", $str.line, ":", $str.column, ". Current state is: ",
-      $state.topFlag()
-    ],
-    column: str.column, line: str.line, pos: str.pos)
+proc newUnexpectedCharError*[F](
+    str: var PosStr, state: var HsLexerState[F], expected: string = ""): ref UnexpectedCharError =
+
+  result = newUnexpectedCharError(str, expected)
+  result.msg.add " in state "
+  result.msg.add $state.topFlag()
 
 proc unexpectedTokenError*[K](
     lexer: var HsLexer[HsTok[K]],
@@ -817,7 +814,7 @@ func treeRepr*[R, T](
       if level > 0:
         addIndent(level - 1)
         add to8Bit("#" & $idx[^1], 10)
-        add to8Bit("/" & alignLeft($level, 2), 5)
+        add to8Bit("/" & strutils.alignLeft($level, 2), 5)
         add " "
 
       else:

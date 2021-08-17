@@ -70,7 +70,7 @@ proc newMustacheLexer*(): MLexer =
           result = some initTok(str, str.popIdent(), mtkIdent)
 
         else:
-          raiseUnexpectedChar(str)
+          raise newUnexpectedCharError(str)
 
     else:
       case str[]:

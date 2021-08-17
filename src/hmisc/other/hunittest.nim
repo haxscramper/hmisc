@@ -91,6 +91,9 @@ type
 
     trkTimeStats
 
+    trkFileEnded
+    trkMergedFileEnded
+
 const
   trkSectionKinds = { trkTestStart .. trkSuiteFail }
   trkFailKinds = { trkSuiteFail, trkTestFail, trkExpectFail, trkCheckFail }
@@ -245,6 +248,9 @@ proc getTestContext(): TestContext =
 proc getTestLogger*(): HLogger =
   getTestContext().logger
 
+
+
+
 proc configureDefaultTestContext*(
     skipAfterException: bool = false,
     skipAfterManual: bool = false,
@@ -294,6 +300,9 @@ proc report(context: TestContext, report: TestReport) =
     context.skipNext = true
 
   case report.kind:
+    of trkMergedFileEnded:
+      echo toBlue("[ALL OK] " |>> width), " merged file ended"
+
     of trkTestComment, trkSuiteComment, trkBlockComment:
       for line in report.text.split('\n'):
         echo pad, "# ".to8Bit(0, 2, 2), to8Bit(line, 0, 2, 2)
@@ -408,8 +417,10 @@ proc report(context: TestContext, report: TestReport) =
 
         of tfkStrDiff:
           let
-            text1 = report.strs[0].value.str.split("\n")
-            text2 = report.strs[1].value.str.split("\n")
+            s1 = report.strs[0].value.str
+            s2 = report.strs[1].value.str
+            text1 = s1.split("\n")
+            text2 = s2.split("\n")
 
           let formatted = myersDiff(text1, text2).
             shiftDiffed(text1, text2).
@@ -421,6 +432,25 @@ proc report(context: TestContext, report: TestReport) =
 
           echo formatted.indent(pad.len)
           echo ""
+
+          if s1.len < s2.len:
+            echo pad, " new text added"
+            for idx, ch in s1:
+              if s2[idx] != ch:
+                echo pad, "mismatch at ", idx, ". old was: ", ch, ", new is ", s2[idx]
+
+            echo pad, "added"
+            echo pad, "'", hshow(s2[s1.len .. ^1]), "'"
+
+          if s1.len > s2.len:
+            echo pad, "text removed"
+            for idx, ch in s2:
+              if s1[idx] != ch:
+                echo pad, "mismatch at ", idx, ". new is: ", ch, ", old was ", s2[idx]
+
+            echo pad, "removed"
+            echo pad, "'", hshow(s1[s2.len .. ^1]), "'"
+
 
         else:
           if report.failKind == tfkOpCheck:
@@ -478,7 +508,6 @@ proc report(context: TestContext, report: TestReport) =
 
 
 
-
 func testLocation(node: NimNode): TestLocation =
   let iinfo = node.lineInfoObj()
   TestLocation(file: iinfo.filename, line: iinfo.line, column: iinfo.column)
@@ -486,6 +515,14 @@ func testLocation(node: NimNode): TestLocation =
 
 func testLocation(pos: (string, int, int)): TestLocation =
   TestLocation(file: pos[0], line: pos[1], column: pos[2])
+
+template mergedFileEnded*() =
+  bind getTestContext, report, TestReport, testLocation
+  report(getTestContext(), TestReport(
+    kind: trkMergedFileEnded,
+    location: testLocation(instantiationInfo(fullPaths = true))
+  ))
+
 
 
 proc flattenArgs(args: NimNode): seq[NimNode] =
@@ -619,7 +656,6 @@ func suiteStarted(conf: TestConf, loc: TestLocation): TestReport =
 
 proc suiteEnded(conf: TestConf, loc: TestLocation): TestReport =
   TestReport(kind: trkSuiteEnd, location: loc, conf: conf)
-
 
 proc checkFailed(
     loc: TestLocation,

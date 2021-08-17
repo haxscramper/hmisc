@@ -646,11 +646,11 @@ suite "Lexer":
         else:
           str.advance()
 
-    let toks = lexAll("""
-test
-  indent
-  same
-dedent""", lexerImpl)
+    let toks = lexAll(lit3"""
+      test
+        indent
+        same
+      dedent""", lexerImpl)
 
     check toks == @[
       ('i', "test"),
@@ -664,9 +664,9 @@ suite "C preprocessor reimplementation":
   test "ifdef garbage":
     let code = lit3"""
     #ifdef 1 == 2
-      // random text that would not be parsed,
-      // might even contain more #ifdef, just
-      // don't start lines
+      // random text that would not be parsed, |
+      // might even contain more #ifdef, just  |
+      // don't start lines                     |
     #endif
     """
 
@@ -695,17 +695,19 @@ suite "C preprocessor reimplementation":
       body = initPosStr(str, true)
       if1 = initPosStr(str, true)
 
+    let text = lit3(2, """
+        // random text that would not be parsed, |
+        // might even contain more #ifdef, just  |
+        // don't start lines                     |
+        """)
+
     check:
       strdiff slices[0], if1.getAll()
       strdiff slices[1], body.getAll()
       strdiff slices[2], if2.getAll()
 
       strdiff slices[0], "#ifdef 1 == 2\n"
-      strdiff slices[1], """
-  // random text that would not be parsed,
-  // might even contain more #ifdef, just
-  // don't start lines
-"""
+      strdiff slices[1], text
       strdiff slices[2], "#endif\n"
 
 

@@ -1,7 +1,10 @@
 # {.define(plainStdout).}
 
 import
-  std/[strutils, sequtils, strformat, options, terminal]
+  std/[
+    strutils, sequtils, strformat,
+    options, terminal, unicode
+  ]
 
 import
   hmisc/extra/hdrawing/hdrawing,
@@ -16,30 +19,30 @@ suite "Drawing":
   test "test":
     block:
       withBufEcho:
-        newTermText((0, 0), @["222"]).render(buf)
+        newTermText((0, 0), toRunes @["222"]).render(buf)
 
     if false:
       var buf = newBuf()
       newTermText((0,0), @["* (0, 0)".toRunes()]).render(buf)
-      newTermText((8, 5), @["* (5, 5)"]).render(buf)
+      newTermText((8, 5), @["* (5, 5)"].toRunes()).render(buf)
       # newTermPoint((39, 19)).render(buf)
       newTermVLine((0, 0), 18).render(buf)
       # newTermHLine((0, 0), 38).render(buf)
       newTermPoint((0, 0), '#').render(buf)
       newBoxedTermText(
-        (0, 0), @["Hello world", "Some text", "to render"]
+        (0, 0), @["Hello world", "Some text", "to render"].toRunes()
       ).render(buf)
 
       let w = 10
       newTermRect((8, 6), w, 5, makeTwoLineRectBorder()).render(buf)
 
       for p in 6 ..+ 5:
-        newTermText((8 + w, p), @[&"* ({8 + w}, {p})"]).render(buf)
+        newTermText((8 + w, p), @[&"* ({8 + w}, {p})"].toRunes()).render(buf)
 
-      newTermText((8, 11), @["12345"]).render(buf)
+      newTermText((8, 11), @["12345"].toRunes()).render(buf)
 
       newBoxedTermText(
-        (15, 15), @["Text inside", "of unicode box"],
+        (15, 15), @["Text inside", "of unicode box"].toRunes(),
         makeTwoLineRectBorder()
       ).render(buf)
       show buf.toString()

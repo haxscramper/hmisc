@@ -86,13 +86,13 @@ suite "Simple configuration":
     }
 
     let str = tbl.pstring(conf = op)
-    check str == """
-[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] =
-  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] =
-  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-[0, 1, 2, 3, 4, 5, 6, 7, 8] =
-  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]"""
+    check str == lit3"""
+      [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] =
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] =
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      [0, 1, 2, 3, 4, 5, 6, 7, 8] =
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]"""
 
 
   test "Sequence of tuples":
@@ -118,14 +118,14 @@ suite "Simple configuration":
       pede. Etiam vel neque nec dui digniss
       Phasellus neque orci, porta a, alique
       Phasellus purus. Pellentesque tristiq""".dedent()).pstring(conf = op)
-    check str == """
+    check str == lit3"""
       Tt(f2: "Aliquam erat volutpat. Nunc sad asdfd
              non orci commodo lobortis. Proin nequ
              lobortis eget, lacus. Sed diam. Praes
              Nullam tempus. Mauris ac felis vel ve
              pede. Etiam vel neque nec dui digniss
              Phasellus neque orci, porta a, alique
-             Phasellus purus. Pellentesque tristiq"""".dedent
+             Phasellus purus. Pellentesque tristiq""""
 
   test "Sequence of objects":
     check @[T(f1: 12), T(f1: -99)].pstring(conf = op) ==
@@ -197,24 +197,24 @@ suite "Deeply nested types":
       @[5, 6, 7, 8],
       @[9, 1, 2, 3],
       @[4, 5, 6, 7],
-    ].pstring(20, conf = op) == """
+    ].pstring(20, conf = op) == lit3"""
       - [1, 2, 3, 4]
       - [5, 6, 7, 8]
       - [9, 1, 2, 3]
-      - [4, 5, 6, 7]""".dedent
+      - [4, 5, 6, 7]"""
 
 
   test "Super narrow 2x2 seq":
     check @[
       @[1, 2, 4],
       @[5, 6, 8],
-    ].pstring(7, conf = op) == """
+    ].pstring(7, conf = op) == lit3"""
       - - 1
         - 2
         - 4
       - - 5
         - 6
-        - 8""".dedent
+        - 8"""
 
 suite "Other tests":
   test "primitive types colored":
