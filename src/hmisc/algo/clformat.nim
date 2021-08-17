@@ -752,7 +752,7 @@ func describeCharset*(s: set[char]): string =
     { 'a' .. 'z', 'A' .. 'Z' }: "lower/upper-case",
     { 'a' .. 'z' }: "lowercase",
     { 'A' .. 'Z' }: "uppercse",
-    { '0' .. '0' }: "digit"
+    { '0' .. '9' }: "digit"
   }
 
   describeSet[char](s, sets)

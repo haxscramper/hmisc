@@ -22,9 +22,6 @@ template varStr(inStr: string, slices: openarray[Slice[int]]): untyped =
   str
 
 suite "Primitives":
-  {.configure.}:
-    showCoverage("advance")
-
   test "Pop range while":
     var str = initPosStr("---?")
     str.pushRange()
@@ -311,7 +308,7 @@ suite "Primitives":
 
 
 
-    block popEdges:
+    block pop_edges:
       var str = varStr("else_", [0 .. 3])
       str.pushRange()
 
@@ -369,9 +366,6 @@ suite "Primitives":
       s.popDigit() == "12"
 
   test "popBalancedSlice":
-    {.configure.}:
-      showCoverage("popBalancedSlice", false)
-
     block inside_parens:
       var str = varStr("[0123]")
       let slice = str.popBalancedSlice({'['}, {']'})
@@ -453,7 +447,87 @@ suite "Primitives":
         check buf == args
 
 
+  test "Line and column tracking":
+    block regular_string:
+      var str = varStr("01\n0")
+      check:
+        str.line == 0
+        str.column == 0
+        str.pos == 0
+        str[] == '0'
 
+      str.advance()
+      check:
+        str.line == 0
+        str.column == 1
+        str.pos == 1
+        str[] == '1'
+
+      str.advance()
+      check:
+        str.line == 0
+        str.column == 2
+        str.pos == 2
+        str[] == '\n'
+
+      str.advance()
+      check:
+        str.line == 1
+        str.column == 0
+        str.pos == 3
+        str[] == '0'
+
+    block pop_slice_oneline:
+      var str = varStr("0123")
+      let s1 = str.popPointSlice()
+      check:
+        s1.line == 0
+        s1.column == 0
+        s1.pos == 0
+        s1.strVal() == "0"
+
+      let s2 = str.popPointSlice(advance = 2)
+      check:
+        s2.line == 0
+        s2.column == 1
+        s2.pos == 1
+        s2.strVal() == "12"
+
+    block pop_slice_helpers:
+      var str = varStr("#+title")
+      check:
+        str[] == '#'
+        str.pos == 0
+        str.line == 0
+        str.column == 0
+
+      let s1 = str.popPointSlice(advance = 2)
+
+      check:
+        str[] == 't'
+        str.pos == 2
+        str.line == 0
+        str.column == 2
+
+        s1.pos == 0
+        s1.line == 0
+        s1.column == 0
+        s1.strVal() == "#+"
+
+
+      str.startSlice()
+      str.skipWhile(IdentChars)
+      let s2 = str.popSlice()
+
+      check:
+        str[] == '\x00'
+        str.pos == 7
+        str.line == 0
+        str.column == 7
+
+        s2.line == 0
+        s2.column == 2
+        s2.strVal() == "title"
 
 
 suite "Hlex base":
@@ -584,7 +658,7 @@ suite "Lexer":
     check lex[].strVal() == ";"
 
   test "Token positional information":
-    let tokens = lexAll("a\nb", simpleLexerImpl)
+    let tokens = lexAll(varStr "a\nb", simpleLexerImpl)
     check tokens[0].line == 0
     check tokens[1].line == 1
     check tokens[0].column == 0
@@ -618,7 +692,7 @@ suite "Lexer":
         else:
           discard
 
-    let tokens = lexAll("a b c", lexerImpl)
+    let tokens = lexAll(varStr "a b c", lexerImpl)
     check tokens[0].kind == '0'
     check tokens[1].kind == '1'
     check tokens[2].kind == '0'
@@ -647,7 +721,7 @@ suite "Lexer":
         else:
           str.advance()
 
-    let toks = lexAll(lit3"""
+    let toks = lexAll(varStr lit3"""
       test
         indent
         same
@@ -892,7 +966,7 @@ suite "Nim cfg parser":
         else:
           raise newUnexpectedCharError(str)
 
-  proc lex(str: string): seq[HsTok[CfgToken]] = lexAll(str, lex)
+  proc lex(str: string): seq[HsTok[CfgToken]] = lexAll(varStr str, lex)
   proc lexStrs(str: string): seq[string] =
     for tok in lex(str):
       if tok.kind != ctEof:
@@ -970,12 +1044,38 @@ type
 
     osEof
 
-proc lexOrgStructure(str: var PosStr): Option[HsTok[OrgStructureToken]] =
+proc lexOrgStructure(str: var PosStr): seq[HsTok[OrgStructureToken]] =
   if not ?str:
-    return some str.initTok(osEof)
+    result.add str.initTok(osEof)
 
   else:
     case str[]:
+      of '#':
+        if str[+1, '+']:
+          result.add str.initAdvanceTok(2, osCommandPrefix)
+
+        str.peek(IdentChars)
+        # pprint str
+        str.startSlice()
+        str.skipWhile(IdentChars)
+        # pprint str
+        let cmd = str.popSlice()
+        # pprint cmd
+
+        result.add initTok(cmd, osIdent)
+        result.add str.initAdvanceTok(1, osColon, {':'})
+        str.skipWhile({' '})
+
+        case cmd.strVal():
+          of "title":
+            str.startSlice()
+            str.skipToEol()
+            result.add str.initSliceTok(osText)
+
+          else:
+            raise newImplementKindError(str.strVal())
+
+
       else:
         raise newUnexpectedCharError(str)
 
@@ -1023,11 +1123,11 @@ suite "Simple org-mode replacement":
     let lex = lexOrgText
     block words:
       check:
-        matchdiff lexAll("test", lex), [
+        matchdiff lexAll(varStr "test", lex), [
           (kind: otWord, strVal: "test")
         ]
 
-        matchdiff lexAll("TODO", lex), [
+        matchdiff lexAll(varStr "TODO", lex), [
           (kind: otBigIdent, strVal: "TODO")
         ]
 
@@ -1050,17 +1150,27 @@ suite "Simple org-mode replacement":
           (kind: otBigIdent, strVal: "IN"),
           (kind: otBoldInline, strVal: "**"),
           (kind: otWord, strVal: "line"),
-          (kind: otSpace, line: 0, column: 27, offset: 29, finish: 29, strVal: " "),
-          (kind: otWord, line: 0, column: 28, offset: 30, finish: 33, strVal: "bold")
+          (kind: otSpace, line: 0, column: 29, offset: 29, finish: 29, strVal: " "),
+          (kind: otWord, line: 0, column: 30, offset: 30, finish: 33, strVal: "bold")
         ]
 
-  # test "Lex structure":
-  #   let lex = lexOrgStructure
-  #   block title:
-  #     check:
-  #       matchdiff lexAll("#+title: *bold*", lexOrgStructure), [
-  #         (kind: osCommandPrefix),
-  #         (kind: osIdent),
-  #         (kind: osColon),
-  #         (kind: osText)
-  #       ]
+  test "Lex structure":
+    let lex = lexOrgStructure
+    block title:
+      let tokens = lexAll(varStr "#+title: *bold*", lexOrgStructure)
+      var textStr = initPosStr(tokens[^1])
+      let textTokens = lexAll(textStr, lexOrgText)
+
+      check:
+        matchdiff tokens, [
+          (kind: osCommandPrefix, strVal: "#+", column: 0),
+          (kind: osIdent, strVal: "title", column: 2),
+          (kind: osColon, strVal: ":", column: 7),
+          (kind: osText, strVal: "*bold*", column: 9)
+        ]
+
+        matchdiff textTokens, [
+          (kind: otBoldStart, column: 9, line: 0, offset: 9, finish: 9, strVal: "*"),
+          (kind: otWord, column: 10, line: 0, offset: 10, finish: 13, strVal: "bold"),
+          (kind: otBoldEnd, column: 14, line: 0, offset: 14, finish: 14, strVal: "*")
+        ]

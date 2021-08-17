@@ -186,7 +186,8 @@ macro astSpec*(nodeType, kindType, body: untyped): untyped =
             result[^1].add newEqE("doc", newLit(kind.strVal()))
 
         else:
-          assertNodeKind(kind, {nnkInfix, nnkCall, nnkObjConstr, nnkCommentStmt})
+          assertNodeKind(
+            kind, {nnkInfix, nnkCall, nnkObjConstr, nnkCommentStmt})
 
 
     if result.len == 0:

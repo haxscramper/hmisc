@@ -114,15 +114,17 @@ func toAbsolute*(slice: PosStrSlice, offset: int): int =
 
 func initPosStr*(str: string): PosStr =
   ## Create new string with full buffer and `nil` input stream
-  PosStr(str: str, isSlice: false)
+  PosStr(str: str, isSlice: false, column: 0, line: 0)
 
 func initPosStr*(stream: Stream): PosStr =
   ## Create new string with empty buffer and non-nil input stream.
-  PosStr(stream: stream, isSlice: false)
+  PosStr(stream: stream, isSlice: false, column: 0, line: 0)
 
 proc initPosStr*(file: AbsFile): PosStr =
   ## Create positional string using new file stream
-  PosStr(stream: newFileStream(file.getStr()), isSlice: false)
+  PosStr(
+    stream: newFileStream(file.getStr()),
+    isSlice: false, column: 0, line: 0)
 
 func initPosStr*(
     str; lastSlice: bool = false,
@@ -130,27 +132,36 @@ func initPosStr*(
   ## Pop one layer of slices from slice buffer and create new sub-string
   ## lexer from it.
   if lastSlice:
+    let s = tern(
+      popSlice,
+      str.sliceBuffer.last().pop(),
+      str.sliceBuffer.last().last())
+
     result = PosStr(
-      isSlice: true, baseStr: addr str.str,
-      slices: @[
-        tern(popSlice,
-             str.sliceBuffer.last().pop(),
-             str.sliceBuffer.last().last())
-    ])
+      isSlice: true,
+      baseStr: tern(str.isSlice, str.baseStr, addr str.str),
+      column: s.column,
+      line: s.line,
+      slices: @[s])
 
   else:
+    let s = tern(
+      popSlice,
+      str.sliceBuffer.pop(),
+      str.sliceBuffer.last())
+
     result = PosStr(
-      isSlice: true, baseStr: addr str.str,
-      slices: tern(
-        popSlice,
-        str.sliceBuffer.pop(),
-        str.sliceBuffer.last()))
+      isSlice: true,
+      baseStr: tern(str.isSlice, str.baseStr, addr str.str),
+      column: s[0].column,
+      line: s[0].line,
+      slices: s)
 
   result.pos = result.slices[0].start
 
 func initPosStr*(inStr: ptr string, slices: openarray[Slice[int]]): PosStr =
   ## Initl slice positional string, using @arg{inStr} as base
-  result = PosStr(isSlice: true, baseStr: inStr)
+  result = PosStr(isSlice: true, baseStr: inStr, column: 0, line: 0)
   for slice in slices:
     result.slices.add PosStrSlice(start: slice.a, finish: slice.b)
 
@@ -160,6 +171,7 @@ func initPosStrView*(str): PosStr =
   ## Create substring with `0 .. high(int)` slice range
   PosStr(
     isSlice: true, baseStr: addr str.str,
+    column: str.column, line: str.line,
     slices: @[PosStrSlice(start: 0, finish: high(int))])
 
 
@@ -426,7 +438,8 @@ proc startSlice*(str) {.inline.} =
 
 proc finishSlice*(str; rightShift: int = -1) {.inline.} =
   str.sliceBuffer[^1][^1].finish = min(
-    str.pos + rightShift, str.str.high)
+    str.pos + rightShift,
+    tern(str.isSlice, str.baseStr[].high, str.str.high))
 
 proc popSlice*(str; rightShift: int = -1): PosStr =
   finishSlice(str, rightShift)
@@ -576,8 +589,9 @@ proc advance*(str; step: int = 1) {.hcov.} =
   if str['\n']:
     inc str.line
     str.column = 0
+
   else:
-    inc str.column
+    inc str.column, step
 
   if str.isSlice:
     if str.pos < str.slices[str.sliceIdx].finish:
@@ -628,6 +642,10 @@ proc skip*(str; ch: char) {.inline.} =
   if str[] != ch:
    raise newUnexpectedCharError(str, $ch)
   str.advance()
+
+proc peek*(str; ch: set[char]) =
+  if str[] notin ch:
+   raise newUnexpectedCharError(str, describeCharset(ch))
 
 proc trySkip*(str; s: string): bool =
   if str[s]:

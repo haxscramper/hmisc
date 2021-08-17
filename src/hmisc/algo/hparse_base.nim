@@ -44,6 +44,7 @@ type
       of true:
         baseStr*: ptr string
         finish*: int
+        extra*: seq[PosStrSlice]
 
       of false:
         str*: string
@@ -269,6 +270,27 @@ template initTok*[K](
     str: $inStr,
     isSlice: false)
 
+proc initTok*[K](str: PosStr, inKind: K): HsTok[K] =
+  result = HsTok[K](
+    kind: inKind,
+    isSlice: true,
+    line: str.line,
+    column: str.column,
+    offset: str.pos
+  )
+
+  echov result.column
+  if str.isSlice:
+    result.baseStr = str.baseStr
+    if str.slices.len == 1:
+      result.finish = str.slices.first().finish
+
+    else:
+      raise newArgumentError(
+        "Cannot create slice token from fragmented positional string -",
+        "expected exactly one slice, but found ",
+        str.slices.len)
+
 template initTok*[K](
     posStr: PosStr, inStr: PosStr, inKind: K): HsTok[K] =
   var res = HsTok[K](
@@ -300,6 +322,12 @@ template initTok*[K](
 func initSliceTok*[K](str: var PosStr, inKind: K): HsTok[K] =
   initTok(str, str.popSlice(), inKind)
 
+proc initAdvanceTok*[K](
+    str: var PosStr, advance: int, inKind: K,
+    expected: set[char] = AllChars
+  ): HsTok[K] =
+  initTok(str, str.popPointSlice(
+    advance = advance, expected = expected), inKind)
 
 
 func strVal*[K](tok: HsTok[K]): string =
@@ -316,6 +344,27 @@ proc initCharTok*[Cat: enum](
   ): HsTok[Cat] =
   let ch = str.popChar()
   initTok(ch, mapChar(ch, map))
+
+proc initPosStr*[K](tok: HsTok[K]): PosStr =
+  if tok.isSlice:
+    result = PosStr(
+      isSlice: true,
+      baseStr: tok.baseStr,
+      pos: tok.offset,
+      line: tok.line,
+      column: tok.column,
+      slices: @[PosStrSlice(
+        line: tok.line,
+        column: tok.column,
+        start: tok.offset,
+        finish: tok.finish)])
+
+    result.slices.add tok.extra
+
+
+
+  else:
+    raise newImplementError()
 
 func isFail*[T](parse: ParseResult[T]): bool = not parse.ok
 func isOk*[T](parse: ParseResult[T]): bool = parse.ok
@@ -548,11 +597,6 @@ func popRange*[T](lex: var HsLexer[T]): string =
 proc getAll*[T](lex: var HsLexer[T]): seq[T] =
   while not lex.finished():
     result.add lex.pop()
-
-proc lexAll*[T](str: string, impl: HsLexCallback[T]): seq[T] =
-  var str = initPosStr(str)
-  var lexer = initLexer(str, impl)
-  return lexer.getAll()
 
 proc lexAll*[T](str: var PosStr, impl: HsLexCallback[T]): seq[T] =
   var lexer = initLexer(str, impl)
@@ -816,7 +860,7 @@ func treeRepr*[R, T](
     pathIndexed: bool = false,
     positionIndexed: bool = true,
     maxdepth: int = 120,
-    baseStr: PosStr = PosStr()
+    baseStr: PosStr = PosStr(line: 0, column: 0)
   ): ColoredText =
 
   coloredResult()
