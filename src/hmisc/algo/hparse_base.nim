@@ -42,6 +42,7 @@ type
     kind*: K
     case isSlice*: bool
       of true:
+        baseStr*: ptr string
         finish*: int
 
       of false:
@@ -273,10 +274,12 @@ template initTok*[K](
     isSlice: true,
     line: posStr.line,
     column: posStr.column,
-    offset: posStr.pos)
+    offset: posStr.pos
+  )
 
   let str = inStr
   if str.isSlice:
+    res.baseStr = str.baseStr
     if str.slices.len == 1:
       let first = str.slices[0]
       res.line = first.line
@@ -292,9 +295,18 @@ template initTok*[K](
 
   res
 
+func initSliceTok*[K](str: var PosStr, inKind: K): HsTok[K] =
+  initTok(str, str.popSlice(), inKind)
 
 
-func strVal*[K](tok: HsTok[K]): string = tok.str
+
+func strVal*[K](tok: HsTok[K]): string =
+  if tok.isSlice:
+    assertRef tok.baseStr
+    tok.baseStr[][tok.offset .. tok.finish]
+
+  else:
+    tok.str
 
 proc initCharTok*[Cat: enum](
     str: var PosStr,
@@ -365,7 +377,7 @@ func `$`*[K](tok: HsTok[K]): string =
   var kindStr = $tok.kind
   kindStr = kindStr[kindStr.skipWhile(LowerAsciiLetters) .. ^1]
 
-  var str = tok.str
+  var str = tok.strVal()
   if not(str['"'] and str[^'"']):
     str = str.wrap('"', '"')
 

@@ -950,6 +950,90 @@ suite "Nim cfg parser":
         ]
 
 
+type
+  OrgToken = enum
+    otWord
+    otBigIdent
+
+    otBoldStart, otBoldEnd, otBoldInline
+    otSpace
+
+    otEof
 
 suite "Simple org-mode replacement":
-  discard
+  startHax()
+  test "Lex text":
+    proc lex(str: var PosStr): Option[HsTok[OrgToken]] =
+      if not ?str:
+        return some str.initTok(otEof)
+
+      else:
+        case str[]:
+          of MaybeLetters:
+            var allUp = true
+
+            str.startSlice()
+            while ?str and str[MaybeLetters + {'-', '_'}]:
+              if not str[HighAsciiLetters + {'-', '_'}]:
+                allUp = false
+
+              str.advance()
+
+            return some str.initSliceTok(if allUp: otBigIdent else: otWord)
+
+          of ' ':
+            return some str.initTok(str.popWhileSlice({' '}), otSpace)
+
+          of '*':
+            if str[+1, '*']:
+              return some str.initTok(str.popPointSlice(advance = 2), otBoldInline)
+
+            elif str[-1, ' '] or str.atStart():
+              return some str.initTok(str.popPointSlice(), otBoldStart)
+
+            elif str[+1, ' '] or str.beforeEnd():
+              return some str.initTok(str.popPointSlice(), otBoldEnd)
+
+            else:
+              raise newImplementError($str)
+
+          else:
+            raise newUnexpectedCharError(str)
+
+    block words:
+      check:
+        matchdiff lexAll("test", lex), [
+          (kind: otWord, strVal: "test")
+        ]
+
+        matchdiff lexAll("TODO", lex), [
+          (kind: otBigIdent, strVal: "TODO")
+        ]
+
+    block markup:
+      let tokens = lexAll(varStr("*word* *BIG_IDENT* **IN**line bold"), lex)
+      pprint(
+        tokens,
+        ignore = matchField("baseStr"),
+        force = { matchType("HsTok"): forceLine() }
+      )
+
+      check:
+        matchdiff tokens, [
+          (kind: otBoldStart, offset: 0),
+          (kind: otWord, strVal: "word", offset: 1),
+          (kind: otBoldEnd, offset: 5),
+
+          (kind: otSpace, strVal: " "),
+
+          (kind: otBoldStart),
+          (kind: otBigIdent, strVal: "BIG_IDENT"),
+          (kind: otBoldEnd),
+          (kind: otSpace),
+          (kind: otBoldInline, strVal: "**"),
+          (kind: otBigIdent),
+          (kind: otBoldInline, strVal: "**"),
+          (kind: otWord),
+          (kind: otSpace, line: 0, column: 30, offset: 29, finish: 29),
+          (kind: otWord, line: 0, column: 30, offset: 30, finish: 33)
+        ]

@@ -51,6 +51,9 @@ type
       of ppkIndex:
         idx*: int
 
+      of ppkObject:
+        typeName*: PPrintType
+
       else:
         name*: string
 
@@ -141,11 +144,18 @@ func field*(main: sink PPrintGlob, field: string): PPrintGlob =
   result = main
   result.add PPrintGlobPart(kind: ggkWord, name: field)
 
+func typeName*(main: sink PPrintGlob, name: string): PPrintGlob =
+  result = main
+  result.add PPrintGlobPart(kind: ggkWord, name: name)
+
 func match*(globs: varargs[PPrintGlob]): PPrintMatch =
   PPrintMatch(globs: toSeq(globs))
 
 func matchField*(name: varargs[string]): PPrintMatch =
   mapIt(name, pglob().star().field(it).star()).match()
+
+func matchType*(name: varargs[string]): PPrintMatch =
+  mapIt(name, pglob().star().typeName(it).star()).match()
 
 func matchAll*(): PPrintMatch =
   match(pglob().star())
@@ -157,6 +167,9 @@ func forceChoice*(): PPrintLytChoice = (true, true)
 proc pathElem*(kind: PPrintPathKind, name: string): PPrintPathElem =
   result = PprintPathElem(kind: kind)
   result.name = name
+
+proc pathElem*(typename: PPrintType): PPrintPathElem =
+  result = PprintPathElem(kind: ppkObject, typeName: typeName)
 
 proc pathElem*(idx: int): PPrintPathElem =
   PPrintPathElem(kind: ppkIndex, idx: idx)
@@ -170,9 +183,19 @@ func `$`*(part: PPrintGlob): string =
 
 
 func globEqCmp*(path: PPrintPathElem, glob: PPrintGlobPart): bool =
-  let k = (path.kind, glob.kind)
-  if k == (ppkField, ggkWord):
+  let (pk, gk) = (path.kind, glob.kind)
+  if pk == ppkField and gk == ggkWord:
     result = path.name == glob.name
+
+  elif pk == ppkIndex and gk == ggkWord:
+    result = false
+
+  elif pk == ppkObject and gk == ggkWord:
+    result = path.typeName.head.startsWith(glob.name)
+
+  else:
+    raise newImplementKindError(glob,
+      &"Compare glob of kind {glob.kind} and path of kind {path.kind}")
 
 func matches*(match: PPrintMatch, path: PPrintPath): bool =
   for glob in match.globs:
@@ -241,6 +264,9 @@ proc `$`*(elem: PPrintPathElem): string =
   case elem.kind:
     of ppkIndex:
       result = &"[{elem.idx}]"
+
+    of ppkObject:
+      result = &"<{elem.typeName}>"
 
     else:
       result = &"[{elem.name}]"
@@ -710,9 +736,9 @@ proc toPprintTree*[T](
       when (entry is object) or
            (entry is ref object) or
            (entry is ptr object):
-        let kind = ptkObject
-
-        let path = path & pathElem(ppkObject, $typeof(entry))
+        let
+          kind = ptkObject
+          path = path & pathElem(newPprintType(entry))
 
       elif isNamedTuple(T):
         let kind = ptkNamedTuple
@@ -788,6 +814,7 @@ proc toPprintTree*[T](
         style = fgYellow + bgDefault
 
       elif (entry is ptr string) or (entry is ref string):
+        style = fgYellow + bgDefault
         let val =
           if isNil(entry):
             when entry is ptr:
@@ -797,9 +824,13 @@ proc toPprintTree*[T](
               "<ref to nil string>"
 
           else:
-            "\"" & entry[] & "\""
+            try:
+              "\"" & entry[] & "\""
 
-        style = fgYellow + bgDefault
+            except:
+              style = fgRed + bgDefault
+              "[!" & getCurrentExceptionMsg() & "!]"
+
 
       elif entry is cstring:
         let val = "\"" & $entry & "\""

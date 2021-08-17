@@ -4,11 +4,11 @@ import std/[
 ]
 
 import
-  hmisc/core/all,
-  hmisc/types/[colorstring, rev_set_table],
-  hmisc/other/[oswrap],
-  hmisc/algo/hstring_algo,
-  hmisc/macros/nim_ast_aux
+  ../core/all,
+  ../types/[colorstring, rev_set_table],
+  ../other/[oswrap],
+  ../algo/hstring_algo,
+  ../macros/nim_ast_aux
 
 type
   CovProcId = distinct int

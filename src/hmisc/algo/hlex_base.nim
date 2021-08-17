@@ -81,8 +81,12 @@ using str: var PosStr
 export strutils
 
 const
-  LowerAsciiLetters*  = {'a' .. 'b'}
+  LowerAsciiLetters*  = {'a' .. 'z'}
   HighAsciiLetters*   = {'A' .. 'Z'}
+  AsciiLetters*       = LowerAsciiLetters + HighAsciiLetters
+  UnicodeStarts*      = { '\x80' .. '\xFF' }
+  MaybeLetters*       = AsciiLetters + UnicodeStarts
+
   IntegerStartChars*  = {'0' .. '9', '-', '+'}
   HexDigitsLow*       = {'a', 'b', 'c', 'd', 'e', 'f'} + Digits
   HexDigitsHigh*      = {'A', 'B', 'C', 'D', 'E', 'F'} + Digits
@@ -180,10 +184,11 @@ proc hasNxt*(input: PosStr; idx: int): bool =
     result = input.sliceIdx < input.slices.high or (
       input.sliceIdx < input.slices.len and
       pos <= input.slices[input.sliceIdx].finish and
+      0 <= pos and
       pos < input.baseStr[].len)
 
   else:
-    return pos < input.str.len
+    return 0 <= pos and pos < input.str.len
 
 proc finished*(str: PosStr): bool =
   ## Check if string as no more input data
@@ -191,6 +196,10 @@ proc finished*(str: PosStr): bool =
     str.isSlice or
     isNil(str.stream) or
     str.stream.atEnd())
+
+proc atStart*(str: PosStr): bool = str.pos == 0
+proc beforeEnd*(str: PosStr): bool =
+  str.hasNxt(0) and not str.hasNxt(1)
 
 proc `?`*(str: PosStr): bool =
   ## Shorthand for src_nim{not str.finished()}
