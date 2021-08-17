@@ -18,6 +18,7 @@ type
 
   AstRange = object
     optional*: bool
+    doc*: string
     case kind*: AstRangeKind
       of akPoint, akInversePoint:
         idx*: int
@@ -40,6 +41,7 @@ type
   AstPatternRange[N, K] = tuple[arange: AstRange, alts: seq[AstPattern[N, K]]]
 
   AstPattern*[N, K] = object
+    doc*: string
     check*: AstCheckProc[N, K]
     expected*: set[K]
     ranges*: seq[AstPatternRange[N, K]]
@@ -48,59 +50,75 @@ type
     spec: array[K, Option[AstPattern[N, K]]]
 
 func astPattern*[N, K](
-    expected: set[K], check: AstCheckProc[N, K] = nil): AstPattern[N, K] =
+    expected: set[K],
+    check: AstCheckProc[N, K] = nil,
+    doc: string = ""
+  ): AstPattern[N, K] =
   AstPattern[N, K](expected: expected, check: check)
 
 
 func astPattern*[N, K](
     expected: set[K],
     alts: openarray[AstPatternRange[N, K]],
-    check: AstCheckProc[N, K] = nil
+    check: AstCheckProc[N, K] = nil,
+    doc: string = ""
   ): AstPattern[N, K] =
 
-  AstPattern[N, K](expected: expected, ranges: @alts, check: check)
+  AstPattern[N, K](
+    expected: expected, ranges: @alts, check: check, doc: doc)
 
 func astPattern*[N, K](
-    alts: openarray[AstPatternRange[N, K]], check: AstCheckProc[N, K] = nil
+    alts: openarray[AstPatternRange[N, K]],
+    check: AstCheckProc[N, K] = nil,
+    doc: string = ""
   ): AstPattern[N, K] =
 
-  AstPattern[N, K](ranges: @alts, check: check)
+  AstPattern[N, K](ranges: @alts, check: check, doc: doc)
 
-func astPattern*[N, K](): AstPattern[N, K] =
-  AstPattern[N, K]()
+func astPattern*[N, K](doc: string = ""): AstPattern[N, K] =
+  AstPattern[N, K](doc: doc)
 
 func astSpec*[N, K](
     patterns: openarray[(K, AstPattern[N, K])]): AstSpec[N, K] =
   for (kind, pattern) in patterns:
     result.spec[kind] = some pattern
 
-func astRange*(idx: int, optional: bool = false): AstRange =
-  AstRange(kind: akPoint, idx: idx)
+func astRange*(
+    idx: int, optional: bool = false, doc: string = ""): AstRange =
+  AstRange(kind: akPoint, idx: idx, optional: optional, doc: doc)
 
 func astRange*(
     idx: BackwardsIndex,
-    optional: bool = false): AstRange =
-  AstRange(kind: akInversePoint, idx: idx.int, optional: optional)
+    optional: bool = false,
+    doc: string = ""
+  ): AstRange =
+  AstRange(kind: akInversePoint, idx: idx.int, optional: optional, doc: doc)
 
 func astRange*(
     slice: Slice[int],
-    optional: bool = false): AstRange =
+    optional: bool = false,
+    doc: string = ""
+  ): AstRange =
   AstRange(
-    kind: akDirectSlice, start: slice.a,
+    kind: akDirectSlice, start: slice.a, doc: doc,
     finish: slice.b, optional: optional)
 
 func astRange*(
     slice: HSlice[int, BackwardsIndex],
-    optional: bool = false): AstRange =
+    optional: bool = false,
+    doc: string = ""
+  ): AstRange =
   AstRange(
-    kind: akMixedSlice, start: slice.a,
+    kind: akMixedSlice, start: slice.a, doc: doc,
     finish: slice.b.int, optional: optional)
 
 func astRange*(
     slice: Slice[BackwardsIndex],
-    optional: bool = false): AstRAnge =
+    optional: bool = false,
+    doc: string = ""
+  ): AstRAnge =
   AstRange(
-    kind: akInverseSlice, start: slice.a.int,
+    kind: akInverseSlice, start: slice.a.int, doc: doc,
     finish: slice.b.int, optional: optional)
 
 macro astSpec*(nodeType, kindType, body: untyped): untyped =
@@ -115,8 +133,9 @@ macro astSpec*(nodeType, kindType, body: untyped): untyped =
   proc aux(node: NimNode): NimNode
   proc rangeCurly(node: NimNode): NimNode
 
-  proc altList(node: NimNode): NimNode =
+  proc altList(node: NimNode, comment: var string): NimNode =
     result = nnkBracket.newTree()
+    var itemCount = 0
     for kind in node:
       case kind.kind:
         of nnkIdent:
@@ -124,15 +143,18 @@ macro astSpec*(nodeType, kindType, body: untyped): untyped =
             discard
 
           else:
+            inc itemCount
             result.add newCall(call"astPattern", nnkCurly.newTree(kind))
 
         of nnkCall:
+          inc itemCount
           result.add newCall(
             call"astPattern",
             nnkCurly.newTree(kind[0]),
             rangeCurly(kind[1]))
 
         of nnkObjConstr:
+          inc itemCount
           var check = newStmtList()
           let nodeId = ident("node")
 
@@ -146,9 +168,15 @@ macro astSpec*(nodeType, kindType, body: untyped): untyped =
               node
           )
 
+        of nnkCommentStmt:
+          if itemCount == 0:
+            comment = kind.strVal()
+
+          else:
+            result[^1].add newEqE("doc", newLit(kind.strVal()))
+
         else:
-          assertNodeKind(kind, {
-            nnkInfix, nnkCall, nnkObjConstr})
+          assertNodeKind(kind, {nnkInfix, nnkCall, nnkObjConstr, nnkCommentStmt})
 
 
     if result.len == 0:
@@ -166,32 +194,38 @@ macro astSpec*(nodeType, kindType, body: untyped): untyped =
   proc rangeCurly(node: NimNode): NimNode =
     result = nnkTableConstr.newTree()
     for check in node:
+      var comment: string = ""
       case check.kind:
         of nnkInfix:
+          let list = altList(check[3], comment)
           if check.len == 4:
             result.add newEcE(
               newCall(
                 ident"astRange",
-                nnkInfix.newTree(check[0 .. 2])), altList(check[3]))
+                nnkInfix.newTree(check[0 .. 2]),
+                newEqE("doc", newLit(comment))),
+              list)
 
           else:
             result.add newEcE(
-              newCall(ident"astRange", check),
+              newCall(ident"astRange", check, newEqE("doc", newLit(comment))),
               nnkPrefix.newTree(
                 ident"@",
                 nnkBracket.newTree(
                   newCall(call"astPattern"))))
 
         of nnkCall:
+          let list = altList(check[1], comment)
           result.add newEcE(
-            newCall(ident"astRange", check[0]), altList(check[1]))
+            newCall(ident"astRange", check[0], newEqE("doc", newLit(comment))), list)
 
         of nnkPrefix:
           case check[0].strVal():
             of "?":
+              let list = altList(check[2], comment)
               result.add newEcE(
                 newCall(ident"astRange", check[1], newLit(true)),
-                altList(check[2]))
+                list)
 
             else:
               raise check[0].toCodeError(
@@ -207,7 +241,9 @@ macro astSpec*(nodeType, kindType, body: untyped): untyped =
         if allIt(
           node, it.kind == nnkIdent or
           (it.kind == nnkCall and it[0].kind == nnkIdent)):
-          result = newCall(call"astPattern", altList(node))
+          var comment = ""
+          let list = altList(node, comment)
+          result = newCall(call"astPattern", list, newEqE("doc", newLit(comment)))
 
         else:
           result = newCall(call"astPattern", rangeCurly(node))
@@ -223,6 +259,7 @@ macro astSpec*(nodeType, kindType, body: untyped): untyped =
     result.add newEcE(pattern[0], aux(pattern[1]))
 
   result = newCall(call"astSpec", result)
+  # echo result.repr()
 
 func contains*(arange: AstRange, idx, maxLen: int): bool =
   case arange.kind:
@@ -356,6 +393,10 @@ proc formatFail*[N, K](fail: AstCheckFail[K], node: N): ColoredText =
       else:
         add " for "
         add toGreen($fail.parent)
+
+      if fail.arange.doc.len > 0:
+        add "\n"
+        add fail.arange.doc.indent(level * 2 + 2).toYellow()
 
     for nested in fail.nested:
       if not nested.isEmpty():

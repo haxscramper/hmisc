@@ -26,6 +26,7 @@ type
     akIfStmt
     akExpr
     akTryStmt
+    akIdent
 
   Ast = object
     kind: AstKind
@@ -48,7 +49,26 @@ suite "Ast spec":
 
     const spec = astSpec(Ast, AstKind):
       akIfStmt:
-        0 .. 2: _
+        0 .. 1:
+          ## Documentation for first element in range
+
+          akIdent
+
+        2:
+          ## Documentation for second node in range
+
+          akExpr
+
+          akIdent
+          ## Comment 2
+
+          akExpr:
+            0: akIdent
+            1: akIdent
+
+        ?3:
+          ## Documentation for optional field at index 3
+
 
     check:
       astdiff Ast(kind: akIfStmt), spec
