@@ -73,7 +73,9 @@ type
     flagSet: array[Flag, int]
     indent: int
 
-  HsLexCallback*[T] = proc(str: var PosStr): Option[T]
+  HsLexCallback*[T] = proc(str: var PosStr): seq[T]
+  # HsMultiLexCallback*[T] = proc(str: var PosStr): seq[T]
+
   HsTokPredicate*[T] = proc(tok: T): bool
 
   ParseError* = ref object of CatchableError
@@ -408,22 +410,23 @@ proc `?`*[T](lex: HsLexer[T]): bool =
   lex.explicitEof or not lex.finished()
 
 
-proc nextToken*[T](lex: var HSLexer[T]): T =
-  var tok: Option[T]
-  while ?lex and tok.isNone():
+proc nextToken*[T](lex: var HSLexer[T]): bool =
+  var tok: seq[T]
+  while ?lex and tok.empty():
     tok = lex.cb(lex.str[])
 
-  if tok.isNone():
-    raise newException(ParseFail, "No tokens")
+  if tok.empty():
+    return false
 
   else:
-    return tok.get()
+    lex.tokens.add tok
+    return true
 
 proc fillNext*[T](lex: var HSLexer[T], chars: int) =
-  let needed = chars - (lex.tokens.len - lex.pos - 1)
-  if needed > 0:
-    for _ in 0 ..< needed:
-      lex.tokens.add nextToken(lex)
+  while chars - (lex.tokens.len - lex.pos - 1) > 0:
+    if not nextToken(lex):
+      if chars - (lex.tokens.len - lex.pos - 1) > 0:
+        raise newGetterError("No more tokens")
 
 
 proc `[]`*[T](lex: var HSlexer[T], offset: int = 0): T =

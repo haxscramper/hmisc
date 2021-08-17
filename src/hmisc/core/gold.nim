@@ -130,7 +130,9 @@ template getSomeIt*[T](opt: Option[T], value, default: untyped): untyped =
     default
 
 
-template last*(s: typed): untyped = s[^1]
+template last*(s: seq): untyped = s[^1]
+template first*(s: seq): untyped = s[0]
+template empty*(s: seq): bool = len(s) == 0
 
 func dollar*[T](arg: T): string =
   mixin `$`

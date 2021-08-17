@@ -555,19 +555,19 @@ of true:
 
     show subStr
 
-proc simpleLexerImpl(str: var PosStr): Option[HsTok[char]] =
+proc simpleLexerImpl(str: var PosStr): seq[HsTok[char]] =
   if not ?str: return
 
   case str[]:
     of IdentStartChars:
-      result = some str.initTok(str.popIdent(), 'i')
+      result.add str.initTok(str.popIdent(), 'i')
 
     of Digits:
-      result = some str.initTok(str.popDigit(), 'd')
+      result.add str.initTok(str.popDigit(), 'd')
 
     of PunctChars:
       let ch = str[]
-      result = some str.initTok(str.popChar(), ch)
+      result.add str.initTok(str.popChar(), ch)
 
     else:
       str.advance()
@@ -593,12 +593,12 @@ suite "Lexer":
   test "Multistate lexer":
     var state = newLexerState(0u8)
 
-    proc lexerImpl(str: var PosStr): Option[HsTok[char]] =
+    proc lexerImpl(str: var PosStr): seq[HsTok[char]] =
       case state.topFlag():
         of 0:
           case str[]:
             of IdentStartChars:
-              result = some initTok(str.popIdent(), '0')
+              result.add initTok(str.popIdent(), '0')
               state.toFlag(1)
 
             else:
@@ -608,7 +608,7 @@ suite "Lexer":
         of 1:
           case str[]:
             of IdentStartChars:
-              result = some initTok(str.popIdent(), '1')
+              result.add initTok(str.popIdent(), '1')
               state.toFlag(0)
 
             else:
@@ -625,23 +625,24 @@ suite "Lexer":
 
   test "Indentation lexer":
     var state = newLexerState('-')
-    proc lexerImpl(str: var PosStr): Option[HsTok[char]] =
+    proc lexerImpl(str: var PosStr): seq[HsTok[char]] =
       case str[]:
         of '\n', ' ':
           let indent = state.skipIndent(str)
-          return case indent:
-            of likIncIndent:  some initTok(" ", '>')
-            of likDecIndent:  some initTok(" ", '<')
-            of likSameIndent: some initTok(" ", '=')
-            of likNoIndent:   some initTok(" ", '?')
+          result.add():
+            case indent:
+              of likIncIndent:  initTok(" ", '>')
+              of likDecIndent:  initTok(" ", '<')
+              of likSameIndent: initTok(" ", '=')
+              of likNoIndent:   initTok(" ", '?')
 
 
         of IdentStartChars:
-          result = some initTok(str.popIdent(), 'i')
+          result.add initTok(str.popIdent(), 'i')
 
         of PunctChars:
           let ch = str[]
-          result = some initTok(str.popChar(), ch)
+          result.add initTok(str.popChar(), ch)
 
         else:
           str.advance()
@@ -830,9 +831,9 @@ suite "Nim cfg parser":
 
 
   startHax()
-  proc lex(str: var PosStr): Option[HsTok[CfgToken]] =
+  proc lex(str: var PosStr): seq[HsTok[CfgToken]] =
     if not ?str:
-      return some initTok(str, ctEof)
+      result.add initTok(str, ctEof)
 
     else:
       case str[]:
@@ -840,39 +841,40 @@ suite "Nim cfg parser":
           if str['r', '"']:
             str.startSlice()
             str.skipStringLit()
-            result = some str.initTok(str.popSlice(), ctRStrLit)
+            result.add str.initTok(str.popSlice(), ctRStrLit)
 
           else:
             str.startSlice()
             while str[IdentChars + {'.'}]:
               str.advance()
 
-            result = some str.initTok(str.popSlice(), ctIdent)
+            result.add str.initTok(str.popSlice(), ctIdent)
 
         of '"':
           str.startSlice()
           str.skipStringLit()
-          result = some str.initTok(str.popSlice(), ctStrLit)
+          result.add str.initTok(str.popSlice(), ctStrLit)
 
         of '[':
-          result = some str.initTok(str.popUntilSlice({']'}, true), ctSection)
+          result.add str.initTok(str.popUntilSlice({']'}, true), ctSection)
 
-        of '=': result = some str.initTok(str.popPointSlice(), ctEq)
-        of ':': result = some str.initTok(str.popPointSlice(), ctColon)
+        of '=': result.add str.initTok(str.popPointSlice(), ctEq)
+        of ':': result.add str.initTok(str.popPointSlice(), ctColon)
         of '-':
           if str['-', '-']:
-            result = some str.initTok(str.popPointSlice(advance = 2), ctLongDash)
+            result.add str.initTok(
+              str.popPointSlice(advance = 2), ctLongDash)
 
           else:
-            result = some str.initTok(str.popPointSlice(), ctShortDash)
+            result.add str.initTok(str.popPointSlice(), ctShortDash)
 
         of '@':
           str.startSlice()
           str.advance()
           str.skipWhile(IdentChars)
           case str.peekSlice().strVal():
-             of "@if": result = some str.initTok(str.popSlice(), ctIf)
-             of "@end": result = some str.initTok(str.popSlice(), ctEnd)
+             of "@if": result.add str.initTok(str.popSlice(), ctIf)
+             of "@end": result.add str.initTok(str.popSlice(), ctEnd)
              else: raise newMalformedTokenError(str.popSlice(), "@if or @end")
 
 
@@ -881,7 +883,7 @@ suite "Nim cfg parser":
           while ?str and str[';']:
             str.skipToEol()
 
-          result = some str.initTok(str.popSlice(0), ctComment)
+          result.add str.initTok(str.popSlice(0), ctComment)
 
         of ' ', '\n':
           str.skipWhile({' ', '\n'})
@@ -951,7 +953,7 @@ suite "Nim cfg parser":
 
 
 type
-  OrgToken = enum
+  OrgTextToken = enum
     otWord
     otBigIdent
 
@@ -960,46 +962,65 @@ type
 
     otEof
 
+  OrgStructureToken = enum
+    osCommandPrefix
+    osIdent
+    osColon
+    osText
+
+    osEof
+
+proc lexOrgStructure(str: var PosStr): Option[HsTok[OrgStructureToken]] =
+  if not ?str:
+    return some str.initTok(osEof)
+
+  else:
+    case str[]:
+      else:
+        raise newUnexpectedCharError(str)
+
+proc lexOrgText(str: var PosStr): seq[HsTok[OrgTextToken]] =
+  if not ?str:
+    result.add str.initTok(otEof)
+
+  else:
+    case str[]:
+      of MaybeLetters:
+        var allUp = true
+
+        str.startSlice()
+        while ?str and str[MaybeLetters + {'-', '_'}]:
+          if not str[HighAsciiLetters + {'-', '_'}]:
+            allUp = false
+
+          str.advance()
+
+        result.add str.initSliceTok(if allUp: otBigIdent else: otWord)
+
+      of ' ':
+        result.add str.initTok(str.popWhileSlice({' '}), otSpace)
+
+      of '*':
+        if str[+1, '*']:
+          result.add str.initTok(
+            str.popPointSlice(advance = 2), otBoldInline)
+
+        elif str[-1, ' '] or str.atStart():
+          result.add str.initTok(str.popPointSlice(), otBoldStart)
+
+        elif str[+1, ' '] or str.beforeEnd():
+          result.add str.initTok(str.popPointSlice(), otBoldEnd)
+
+        else:
+          raise newImplementError($str)
+
+      else:
+        raise newUnexpectedCharError(str)
+
 suite "Simple org-mode replacement":
   startHax()
   test "Lex text":
-    proc lex(str: var PosStr): Option[HsTok[OrgToken]] =
-      if not ?str:
-        return some str.initTok(otEof)
-
-      else:
-        case str[]:
-          of MaybeLetters:
-            var allUp = true
-
-            str.startSlice()
-            while ?str and str[MaybeLetters + {'-', '_'}]:
-              if not str[HighAsciiLetters + {'-', '_'}]:
-                allUp = false
-
-              str.advance()
-
-            return some str.initSliceTok(if allUp: otBigIdent else: otWord)
-
-          of ' ':
-            return some str.initTok(str.popWhileSlice({' '}), otSpace)
-
-          of '*':
-            if str[+1, '*']:
-              return some str.initTok(str.popPointSlice(advance = 2), otBoldInline)
-
-            elif str[-1, ' '] or str.atStart():
-              return some str.initTok(str.popPointSlice(), otBoldStart)
-
-            elif str[+1, ' '] or str.beforeEnd():
-              return some str.initTok(str.popPointSlice(), otBoldEnd)
-
-            else:
-              raise newImplementError($str)
-
-          else:
-            raise newUnexpectedCharError(str)
-
+    let lex = lexOrgText
     block words:
       check:
         matchdiff lexAll("test", lex), [
@@ -1032,3 +1053,14 @@ suite "Simple org-mode replacement":
           (kind: otSpace, line: 0, column: 27, offset: 29, finish: 29, strVal: " "),
           (kind: otWord, line: 0, column: 28, offset: 30, finish: 33, strVal: "bold")
         ]
+
+  # test "Lex structure":
+  #   let lex = lexOrgStructure
+  #   block title:
+  #     check:
+  #       matchdiff lexAll("#+title: *bold*", lexOrgStructure), [
+  #         (kind: osCommandPrefix),
+  #         (kind: osIdent),
+  #         (kind: osColon),
+  #         (kind: osText)
+  #       ]
