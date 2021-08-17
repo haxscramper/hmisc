@@ -19,6 +19,7 @@ type
   AstRange = object
     optional*: bool
     doc*: string
+    name*: string
     case kind*: AstRangeKind
       of akPoint, akInversePoint:
         idx*: int
@@ -84,41 +85,50 @@ func astSpec*[N, K](
     result.spec[kind] = some pattern
 
 func astRange*(
-    idx: int, optional: bool = false, doc: string = ""): AstRange =
-  AstRange(kind: akPoint, idx: idx, optional: optional, doc: doc)
+    idx: int, optional: bool = false,
+    doc: string = "", name: string = ""): AstRange =
+  AstRange(
+    kind: akPoint, idx: idx, optional: optional,
+    doc: doc, name: name)
 
 func astRange*(
     idx: BackwardsIndex,
     optional: bool = false,
-    doc: string = ""
+    doc: string = "",
+    name: string = ""
   ): AstRange =
-  AstRange(kind: akInversePoint, idx: idx.int, optional: optional, doc: doc)
+  AstRange(
+    kind: akInversePoint, idx: idx.int, name: name,
+    optional: optional, doc: doc)
 
 func astRange*(
     slice: Slice[int],
     optional: bool = false,
-    doc: string = ""
+    doc: string = "",
+    name: string = ""
   ): AstRange =
   AstRange(
-    kind: akDirectSlice, start: slice.a, doc: doc,
+    kind: akDirectSlice, start: slice.a, doc: doc, name: name,
     finish: slice.b, optional: optional)
 
 func astRange*(
     slice: HSlice[int, BackwardsIndex],
     optional: bool = false,
-    doc: string = ""
+    doc: string = "",
+    name: string = ""
   ): AstRange =
   AstRange(
-    kind: akMixedSlice, start: slice.a, doc: doc,
+    kind: akMixedSlice, start: slice.a, doc: doc, name: name,
     finish: slice.b.int, optional: optional)
 
 func astRange*(
     slice: Slice[BackwardsIndex],
     optional: bool = false,
-    doc: string = ""
+    doc: string = "",
+    name: string = ""
   ): AstRAnge =
   AstRange(
-    kind: akInverseSlice, start: slice.a.int, doc: doc,
+    kind: akInverseSlice, start: slice.a.int, doc: doc, name: name,
     finish: slice.b.int, optional: optional)
 
 macro astSpec*(nodeType, kindType, body: untyped): untyped =
@@ -190,25 +200,59 @@ macro astSpec*(nodeType, kindType, body: untyped): untyped =
       result = nnkPrefix.newTree(ident"@", result)
 
 
+  proc splitRange(check: NimNode): tuple[arange: NimNode, name: NimNode, isOpt: bool] =
+    result.name = newLit("")
+    if check.kind == nnkInfix and check[0].eqIdent(".."):
+      result.arange = nnkInfix.newTree(check[0 .. 2])
+
+    elif check.kind == nnkInfix and check[0].eqIdent("as"):
+      if check[1].kind == nnkPrefix and check[1][0].eqIdent("?"):
+        result.arange = check[1][1]
+        result.isOpt = true
+
+      else:
+        result.arange = check[1]
+
+      result.name = check[2]
+
+    elif check.kind == nnkPrefix:
+      if check[0].eqIdent("?"):
+        result.arange = check[1]
+        result.isOpt = true
+
+      else:
+        result.arange = nnkPrefix.newTree(check[0 .. 1])
+
+    else:
+      raise newImplementKindError(check, check.treeRepr())
 
   proc rangeCurly(node: NimNode): NimNode =
     result = nnkTableConstr.newTree()
     for check in node:
       var comment: string = ""
       case check.kind:
-        of nnkInfix:
-          let list = altList(check[3], comment)
-          if check.len == 4:
+        of nnkInfix, nnkPrefix:
+          let (arange, name, isOpt) = splitRange(check)
+
+          if (check.kind == nnkInfix and check.len == 4) or
+               (check.kind == nnkPrefix and check.len == 3):
+            let list = altList(check[^1], comment)
             result.add newEcE(
               newCall(
                 ident"astRange",
-                nnkInfix.newTree(check[0 .. 2]),
-                newEqE("doc", newLit(comment))),
+                arange,
+                newEqE("optional", newLit(isOpt)),
+                newEqE("doc", newLit(comment)),
+                newEqE("name", name)),
               list)
 
           else:
             result.add newEcE(
-              newCall(ident"astRange", check, newEqE("doc", newLit(comment))),
+              newCall(
+                ident"astRange",
+                arange,
+                newEqE("doc", newLit(comment)),
+                newEqE("name", name)),
               nnkPrefix.newTree(
                 ident"@",
                 nnkBracket.newTree(
@@ -218,18 +262,6 @@ macro astSpec*(nodeType, kindType, body: untyped): untyped =
           let list = altList(check[1], comment)
           result.add newEcE(
             newCall(ident"astRange", check[0], newEqE("doc", newLit(comment))), list)
-
-        of nnkPrefix:
-          case check[0].strVal():
-            of "?":
-              let list = altList(check[2], comment)
-              result.add newEcE(
-                newCall(ident"astRange", check[1], newLit(true)),
-                list)
-
-            else:
-              raise check[0].toCodeError(
-                "Unexpected prefix - want ?<idx> or ^<idx>")
 
         else:
           assertNodeKind(check, {nnkInfix, nnkCall})
@@ -259,7 +291,6 @@ macro astSpec*(nodeType, kindType, body: untyped): untyped =
     result.add newEcE(pattern[0], aux(pattern[1]))
 
   result = newCall(call"astSpec", result)
-  # echo result.repr()
 
 func contains*(arange: AstRange, idx, maxLen: int): bool =
   case arange.kind:
@@ -372,6 +403,11 @@ proc formatFail*[N, K](fail: AstCheckFail[K], node: N): ColoredText =
         if fail.isMissing:
           add "missing subnode "
           add toGreen($fail.arange)
+          if fail.arange.name.len > 0:
+            add " ("
+            add toCyan(fail.arange.name)
+            add ") "
+
           add " "
           add toRed($fail.expected)
 
@@ -380,11 +416,19 @@ proc formatFail*[N, K](fail: AstCheckFail[K], node: N): ColoredText =
           add toRed($fail.expected)
           add " in "
           add toGreen($fail.arange)
+          if fail.arange.name.len > 0:
+            add " ("
+            add toCyan(fail.arange.name)
+            add ") "
 
       else:
         if fail.isMissing:
           add "missing subnode "
           add toGreen($fail.arange)
+          if fail.arange.name.len > 0:
+            add " ("
+            add toCyan(fail.arange.name)
+            add ") "
 
       if fail.path.len > 0:
         add " on path "

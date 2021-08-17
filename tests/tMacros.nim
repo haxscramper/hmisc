@@ -49,25 +49,18 @@ suite "Ast spec":
 
     const spec = astSpec(Ast, AstKind):
       akIfStmt:
-        0 .. 1:
-          ## Documentation for first element in range
-
-          akIdent
-
-        2:
-          ## Documentation for second node in range
-
+        0 as "condition":
+          ## If statement conditiond
           akExpr
 
-          akIdent
-          ## Comment 2
+        1 as "then branch":
+          ## then branch, can be anything
 
-          akExpr:
-            0: akIdent
-            1: akIdent
+        2 as "else branch":
+          ## else branch
 
-        ?3:
-          ## Documentation for optional field at index 3
+        ?3 as "optional":
+          ## Optional trailing element
 
 
     check:
