@@ -143,16 +143,16 @@ type
 
 proc newHextLexer*(): HxLexer =
   var state = newLexerState(elsContent)
-  proc heLex(str: var PosStr): Option[HxTok] =
+  proc heLex(str: var PosStr): seq[HxTok] =
     if str.finished():
-      result = some initEof(str, htoEof)
+      result.add initEof(str, htoEof)
 
     else:
       case state.topFlag()
         of elsExpr, elsPossibleRaw, elsPossibleEndRaw:
           case str[]:
             of '-':
-              result = some (
+              result.add (
                 if str[+1, "%}"]:
                   state.toFlag(elsContent)
                   initTok(str, str.popNext(3), htoStmtCloseStrip)
@@ -160,7 +160,7 @@ proc newHextLexer*(): HxLexer =
               )
 
             of '}':
-              result = some (
+              result.add (
                 if str[+1, '}']:
                   state.toFlag(elsContent)
                   initTok(str, str.popNext(2), htoExprClose)
@@ -168,7 +168,7 @@ proc newHextLexer*(): HxLexer =
               )
 
             of '%':
-              result = some (
+              result.add (
                 if str[+1, '}']:
                   state.toFlag(elsContent)
                   initTok(str, str.popNext(2), htoStmtClose)
@@ -179,8 +179,8 @@ proc newHextLexer*(): HxLexer =
             # of '-', '}', '%', '#':
 
             of IdentStartChars:
-              result = some initTok(str, str.popIdent(), htoIdent)
-              let kwd = case result.get().strVal():
+              result.add initTok(str, str.popIdent(), htoIdent)
+              let kwd = case result.first().strVal():
                 of "block": htoBlockKwd
                 of "endblock": htoEndBlockKwd
                 of "raw": htoRawKwd
@@ -195,14 +195,14 @@ proc newHextLexer*(): HxLexer =
                 of "else": htoElseKwd
                 else: htoIdent
 
-              result.get().kind = kwd
+              result.first().kind = kwd
 
             of HorizontalSpace:
               str.skipWhile(HorizontalSpace)
               return heLex(str)
 
             of '.':
-              result = some initCharTok(str, {
+              result.add initCharTok(str, {
                 '.': htoDot
               })
 
@@ -213,26 +213,26 @@ proc newHextLexer*(): HxLexer =
           case str[]:
             of '{':
               if str[+1, "%-"]:
-                result = some initTok(str, str.popNext(3), htoStmtOpenStrip)
+                result.add initTok(str, str.popNext(3), htoStmtOpenStrip)
                 state.toFlag(elsExpr)
 
               elif str[+1, '%']:
-                result = some initTok(str, str.popNext(2), htoStmtOpen)
+                result.add initTok(str, str.popNext(2), htoStmtOpen)
                 state.toFlag(elsExpr)
 
               elif str[+1, '{']:
-                result = some initTok(str, str.popNext(2), htoExprOpen)
+                result.add initTok(str, str.popNext(2), htoExprOpen)
                 state.toFlag(elsExpr)
 
               elif str[+1, '#']:
-                result = some initTok(str, str.popNext(2), htoCommentOpen)
+                result.add initTok(str, str.popNext(2), htoCommentOpen)
                 state.toFlag(elsExpr)
 
               else:
-                result = some initTok(str, str.popUntil('{'), htoContent)
+                result.add initTok(str, str.popUntil('{'), htoContent)
 
             else:
-              result = some initTok(str, str.popUntil('{'), htoContent)
+              result.add initTok(str, str.popUntil('{'), htoContent)
 
 
   initLexer(heLex, true)

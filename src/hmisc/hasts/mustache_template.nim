@@ -38,14 +38,14 @@ type
 
 proc newMustacheLexer*(): MLexer =
   var state = newLexerState(false)
-  proc lexerImpl(str: var PosStr): Option[MTok] =
+  proc lexerImpl(str: var PosStr): seq[MTok] =
     if str.finished():
-      result = some initEof(str, mtkEof)
+      result.add initEof(str, mtkEof)
 
     elif state.topFlag():
       case str[]:
         of '#', '>', '/', '=', '^', '.':
-          result = some initCharTok(str, {
+          result.add initCharTok(str, {
             '#': mtkSectionStart,
             '/': mtkSectionEnd,
             '^': mtkInvert,
@@ -56,7 +56,7 @@ proc newMustacheLexer*(): MLexer =
 
         of '}':
           str.assertAhead("}}")
-          result = some initTok(mtkCurlyClose)
+          result.add initTok(mtkCurlyClose)
           str.advance(2)
           state.toFlag(false)
           if str['\n']:
@@ -67,7 +67,7 @@ proc newMustacheLexer*(): MLexer =
           result = str.lexerImpl()
 
         of IdentChars:
-          result = some initTok(str, str.popIdent(), mtkIdent)
+          result.add initTok(str, str.popIdent(), mtkIdent)
 
         else:
           raise newUnexpectedCharError(str)
@@ -76,15 +76,15 @@ proc newMustacheLexer*(): MLexer =
       case str[]:
         of '{':
           if str[+1, '{']:
-            result = some initTok(mtkCurlyOpen)
+            result.add initTok(mtkCurlyOpen)
             str.advance(2)
             state.toFlag(true)
 
           else:
-            result = some initTok(str, str.popUntil('{'), mtkContent)
+            result.add initTok(str, str.popUntil('{'), mtkContent)
 
         else:
-          result = some initTok(str, str.popUntil('{'), mtkContent)
+          result.add initTok(str, str.popUntil('{'), mtkContent)
 
   return initLexer(lexerImpl, true)
 

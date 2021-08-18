@@ -29,8 +29,7 @@ func newPTree*[K, V](kvPairs: openarray[(K, PTree[K, V])]): PTree[K, V] =
     isValue: false, isAttrProvider: false, isSubProvider: false)
 
   for (key, val) in kvPairs:
-    when not defined(hunittestMerge):
-      result.attrs[key] = val
+    result.attrs[key] = val
 
 
 func newPTree*[K; V: not seq and not array](value: V): PTree[K, V] =
@@ -48,8 +47,7 @@ func newPTree*[K, V](kvPairs: openarray[(K, V)]): PTree[K, V] =
     isValue: false, isAttrProvider: false, isSubProvider: false)
 
   for (key, val) in kvPairs:
-    when not defined(hunittestMerge):
-      result.attrs[key] = PTree[K, V](isValue: true, value: val)
+    result.attrs[key] = PTree[K, V](isValue: true, value: val)
 
 proc getVal*[K, V](tree: PTree[K, V]): V = tree.value
 
@@ -58,7 +56,7 @@ proc getKey*[K, V](tree: PTree[K, V], key: K): PTree[K, V] =
     result = tree.getAttr(key)
 
   else:
-    when not defined(nimdoc) and not defined(hunittestMerge):
+    when not defined(nimdoc):
       result = tree.attrs[key]
 
 

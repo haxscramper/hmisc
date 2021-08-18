@@ -89,14 +89,14 @@ type
         callArgs*: seq[string]
         callResult*: int
 
-proc lexCall*(str: var PosStr): Option[StrTok] =
+proc lexCall*(str: var PosStr): seq[StrTok] =
   case str[]:
     of IdentStartChars:
-      result = some initTok(str.popIdent(), stkIdent)
+      result.add initTok(str.popIdent(), stkIdent)
 
     of '(', ')', '[', ']', '{', '}', ',', '=', '|', '?', '+':
       let ch = str.popChar()
-      result = some initTok(ch, mapChar(ch, {
+      result.add initTok(ch, mapChar(ch, {
         '(': stkLPar,
         ')': stkRPar,
         '[': stkLBrace,
@@ -111,16 +111,16 @@ proc lexCall*(str: var PosStr): Option[StrTok] =
       }))
 
     of '"':
-      result = some initTok(str.popStringLit(), stkStrLit)
+      result.add initTok(str.popStringLit(), stkStrLit)
 
     of ' ':
       str.advance()
 
     of '.':
-      result = some initTok(str.popWhile({'.'}), stkEllipsis)
+      result.add initTok(str.popWhile({'.'}), stkEllipsis)
 
     of Digits, '-':
-      result = some initTok(str.popDigit(), stkNum)
+      result.add initTok(str.popDigit(), stkNum)
 
     of '/':
       if str[+1, '*']:
@@ -130,7 +130,7 @@ proc lexCall*(str: var PosStr): Option[StrTok] =
         while not str["*/"]:
           str.advance()
 
-        result = some initTok(str.popRange(0, -1), stkComment)
+        result.add initTok(str.popRange(0, -1), stkComment)
         str.advance(2)
 
     of '\n':
