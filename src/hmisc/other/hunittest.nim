@@ -1048,7 +1048,10 @@ macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
 
           else:
             for itIdx, it in par:
-              if itIdx < fieldList.len:
+              if it.eqIdent("_"):
+                discard
+
+              elif itIdx < fieldList.len and it.kind notin {nnkExprColonExpr}:
                 result.add nnkExprColonExpr.newTree(fieldList[itIdx], it)
 
               else:
