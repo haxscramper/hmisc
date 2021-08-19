@@ -44,12 +44,13 @@ import hmisc/other/hunittest
 {.push warning[UnusedImport]:off.}
 """
   let cwd = getCurrentDir()
+  var nojoin: seq[string]
   for (kind, path) in walkDir("tests", relative = false):
     if kind == pcFile and path.splitFile().ext == ".nim":
       let path = cwd / path
       let content = path.readFile()
       if content.find("joinable: false") != -1:
-        echo "skipping join on ", path
+        nojoin.add path
 
       else:
         res.add "import \""
@@ -60,6 +61,8 @@ import hmisc/other/hunittest
   res.add "\n\nmergedFileEnded()\n"
   outPath.writeFile(res)
   exec("nim r " & outPath)
+  for file in nojoin:
+    exec("nim r \"" & file & "\"")
 
 task dockertest, "Run tests in docker container":
   exec("hmisc-putils dockertest --projectDir:" & thisDir())

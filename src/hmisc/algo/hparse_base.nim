@@ -80,6 +80,11 @@ type
   HsTokPredicate*[T] = proc(tok: T): bool
 
   ParseError* = ref object of CatchableError
+    # REFACTOR merge HsLexerError and parse error into single entry. Move
+    # declaration into core exceptions handling. Ideally it should also be
+    # used as a base implementation for `code_errors.nim`, intead of
+    # current legacy implementation that was hacked over multiple
+    # iterations.
     line*: int
     column*: int
     baseOffset*: int
@@ -567,6 +572,12 @@ proc skip*[T, En](lexer: var HsLexer[T], kind: En) =
       raise unexpectedTokenError(lexer, {kind})
 
   lexer.advance()
+
+proc skip*[T, En](lexer: var HsLexer[T], kind: En, expected: string) =
+  if lexer[].strVal() != expected:
+    assert false, "TODO good error"
+
+  skip(lexer, kind)
 
 proc skip*[T, En](
     lexer: var HsLexer[T], kind1, kind2: set[En]|En) =

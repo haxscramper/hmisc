@@ -839,15 +839,14 @@ macro astdiff*(ast: typed, match: untyped, loc: TestLocation): untyped =
         checkOk(`loc`)
 
 
-
-macro matchdiff*(
-    obj: typed, match: untyped, loc: static[TestLocation]): untyped =
-
+macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
   let
     loc = newLit(loc)
     fails = genSym(nskVar, "fails")
     tmp = ident("expr")
     hasKind = bindSym("hasKind")
+
+  var exprPrefix = ""
 
   func splicePath(path, part: NimNode): NimNode =
     case part.kind:
@@ -869,7 +868,7 @@ macro matchdiff*(
 
 
   func pathLit(path: NimNode): NimNode =
-    path.toStrLit().strVal()["expr".len .. ^1].newLit()
+    (exprPrefix & path.toStrLit().strVal()["expr".len .. ^1]).newLit()
 
   func checkedIndex(path: NimNode, idx: int, body: NimNode): NimNode =
     let
@@ -1021,12 +1020,52 @@ macro matchdiff*(
         raise newImplementKindError(pattern)
 
 
-  let impl = aux(match, tmp)
+  if obj.kind == nnkPrefix and
+     obj[0].eqIdent("@") and
+     obj[1].kind == nnkPar:
+    let fieldlist = obj[1].toSeq()
+    for f in fieldList:
+      assertNodeKind(f, {nnkIdent})
 
-  result = quote do:
-    block:
+    var impl = newStmtList()
+
+    for item in match:
+      assertNodeKind(item, {nnkExprColonExpr})
+      assertNodeKind(item[1], {nnkPar, nnkBracket})
+
+      let expr = item[0]
+      exprPrefix = expr.repr()
+      if item[1].kind == nnkBracket:
+        var transform = newTree(nnkBracket)
+        if fieldList.len < item[1].len:
+          raise toCodeError(
+            item[fieldList.len],
+            "Mapping for parameter is not specified")
+
+        for idx, arg in item[1]:
+          var params = newTree(nnkPar)
+          for itIdx, it in arg:
+            params.add nnkExprColonExpr.newTree(fieldList[itIdx], it)
+
+          transform.add params
+
+
+          assertNodeKind(arg, {nnkPar})
+
+        let matchRes = aux(transform, tmp)
+
+        impl.add quote do:
+          block:
+            let `tmp` = `expr`
+            `matchRes`
+
+
+      else:
+        raise newImplementKindError(item[1])
+
+
+    result = quote do:
       var `fails`: seq[TestMatchFail]
-      let `tmp` = `obj`
       `impl`
 
       if `fails`.len > 0:
@@ -1036,7 +1075,22 @@ macro matchdiff*(
         checkOk(`loc`)
 
 
-  # echov result.repr()
+  else:
+    let impl = aux(match, tmp)
+
+    exprPrefix = obj.repr()
+
+    result = quote do:
+      block:
+        var `fails`: seq[TestMatchFail]
+        let `tmp` = `obj`
+        `impl`
+
+        if `fails`.len > 0:
+          matchCheckFailed(`loc`, `fails`)
+
+        else:
+          checkOk(`loc`)
 
 
 

@@ -50,16 +50,20 @@ suite "Matchdiff":
           Ast(kind: akThird),
           Ast(kind: akThird)])])
 
-    # expandMacros:
-    #   check matchdiff(ast, akFirst[
-    #     akSecond[
-    #       akThird(),
-    #       akThird()]])
-
     check astdiff(ast, akFirst[
       akSecond[
         akThird(),
         akThird()]])
+
+  test "Multimatch":
+    proc call(arg: int): seq[tuple[a: int, b: string]] =
+      @[(arg, $arg), (arg + 1, $(arg + 1))]
+
+    check:
+      matchdiff @(a, b), [
+        call(0): [(0, "0"), (1, "1")],
+        call(1): [(1, "1"), (2, "2")]
+      ]
 
 
 suite "Simple checks":

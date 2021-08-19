@@ -141,6 +141,18 @@ template toPtr*[T](p: PUArray[T]): ptr T = cast[ptr T](p)
 template toPtr*[T](r: ref T): ptr T = cast[ptr T](r)
 template toPUarray*[T](r: ref T): PUarray[T] = cast[PUarray[T]](r)
 
+iterator items*[T](arr: PUarray[T], size: int): T =
+  var idx = 0
+  while idx < size:
+    yield arr[][idx]
+    inc idx
+
+iterator pairs*[T](arr: PUarray[T], size: int): (int, T) =
+  var idx = 0
+  while idx < size:
+    yield (idx, arr[][idx])
+    inc idx
+
 template subArrayPtr*[T](arr: PUArray[T], idx: SomeInteger): PUarray[T] =
   toPUarray(toPtr(arr) + idx)
 
