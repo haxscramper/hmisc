@@ -1323,13 +1323,6 @@ func hShow*(
       if onlyTail:
         result.add toYellow("\"")
 
-      # for idx, line in enumerate(str.lines()):
-      #   if idx > 0: result.newline()
-      #   result.add prefix
-      #   result.add line + (fgYellow + bgDefault)
-
-      # if onlyTailNewlines:
-      # replaceTailNewlines(result, uc"⮒" + (fgRed + bgDefault))
 
     else:
       result = toYellow("\"" & str & "\"", opts.colored)

@@ -617,11 +617,12 @@ func linesAround*(
 
 proc logLines*(
     logger: HLogger, base: string, center: int,
-    lang: string, column: int = -1
+    lang: string, column: int = -1,
+    around: (int, int) = (1, 1)
   ) =
 
   var lineIdx = center - 1
-  for line in base.linesAround(center, (1, 1)):
+  for line in base.linesAround(center, around):
     let arrow =
       if lineIdx == center:
         toGreen(&"{lineIdx:<4}#>")
@@ -644,10 +645,13 @@ proc logLines*(
     #     +- Annotation for an arrow?
 
 proc logLines*(
-  logger: HLogger, file: AbsFile, center: int,
-  lang: string, column: int = -1) =
+    logger: HLogger, file: AbsFile, center: int,
+    lang: string,
+    column: int = -1,
+    around: (int, int) = (1, 1)
+  ) =
 
-  logger.logLines(file.readFile(), center, lang, column)
+  logger.logLines(file.readFile(), center, lang, column, around = around)
 
 from os import nil
 
@@ -683,7 +687,6 @@ proc logStackTrace*(
 
   if not isNil(e) and showError:
     e.log(logger)
-    # logger.err e.msg
 
   let stackEntries =
     if not isNil(e):
@@ -692,7 +695,10 @@ proc logStackTrace*(
     else:
       getStackTraceEntries()
 
-  let choosenim = os.getHomeDir() & ".choosenim"
+  let
+    compactPrint = terminalHeight() - 20 < stackEntries.len() * 6
+    superCompactPrint = terminalHeight() - 20 < stackEntries.len() * 4
+    choosenim = os.getHomeDir() & ".choosenim"
 
   var fileW = 0
   for tr in stackEntries:
@@ -711,15 +717,6 @@ proc logStackTrace*(
       continue
 
     let filename: string = $tr.filename
-    let prefix =
-      if not filename.startsWith(choosenim):
-        if ($tr.procname).startsWith(@["expect", "assert"]):
-          "(asr) ".toBlue()
-        else:
-          "(usr) ".toGreen()
-      else:
-        "(sys) "
-
     var (_, name, ext) = os.splitFile(filename)
     if ext.len > 0:
       ext = ext[1 ..^ 1]
@@ -739,8 +736,7 @@ proc logStackTrace*(
       return
 
     let source = source and exists(AbsFile $tr.filename)
-    logger.debug prefix &
-      (filePref) & " " &
+    logger.debug (filePref) & " " &
       $($tr.procname).toYellow() &
       tern(source, "", " " & $tr.line)
 
@@ -762,11 +758,20 @@ proc logStackTrace*(
 
           files[filename]
 
-      logger.debug("")
+      if not (compactPrint or superCompactPrint):
+        logger.debug("")
+
       logger.indent()
-      logger.logLines(fileText, line, ext)
+      if superCompactPrint:
+        logger.logLines(fileText, line, ext, around = (0, 0))
+
+      else:
+        logger.logLines(fileText, line, ext)
+
       logger.dedent()
-      logger.debug("")
+
+      if not (compactPrint or superCompactPrint):
+        logger.debug("")
 
   logger.showFile = showFile
   logger.showLine = showLine

@@ -284,7 +284,6 @@ proc initTok*[K](str: PosStr, inKind: K): HsTok[K] =
     offset: str.pos
   )
 
-  echov result.column
   if str.isSlice:
     result.baseStr = str.baseStr
     if str.slices.len == 1:

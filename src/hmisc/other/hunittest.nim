@@ -913,9 +913,13 @@ macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
     let pathLit = path.pathLit()
     case value.kind:
       of litKinds - nnkPrefix, nnkIdent:
-        result = quote do:
-          if not(`path` == `value`):
-            `fails`.add (`pathLit`, $`value`, $`path`)
+        if value.eqIdent("_"):
+          result = newEmptyNode()
+
+        else:
+          result = quote do:
+            if not(`path` == `value`):
+              `fails`.add (`pathLit`, $`value`, $`path`)
 
       of nnkPrefix:
         let
@@ -948,6 +952,13 @@ macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
         for idx, check in pattern:
           result.add aux(check, path)
 
+      of nnkIdent:
+        if pattern.eqIdent("_"):
+          discard
+
+        else:
+          raise newImplementKindError(pattern, pattern.lispRepr())
+
       of nnkStmtList:
         inc stmtLevel
         for idx, check in pattern:
@@ -966,11 +977,16 @@ macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
         result.add itemCmp(splicePath(path, pattern[0]), pattern[1])
 
       of nnkBracket:
-        result.add itemCmp(
-          splicePath(path, ident"len"), newLit(pattern.len))
+        let getLen = splicePath(path, ident"len")
+        result.add itemCmp(getLen, newLit(pattern.len))
 
         for idx, check in pattern:
-          result.add auxOrCmp(check, nnkBracketExpr.newTree(path, newLit(idx)))
+          let part = auxOrCmp(check, nnkBracketExpr.newTree(path, newLit(idx)))
+          let needIdx = newLit(idx)
+          result.add quote do:
+            if `needIdx` < `getLen`:
+              `part`
+
 
       of nnkTableConstr:
         for idx, check in pattern:
@@ -1037,6 +1053,7 @@ macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
       exprPrefix = expr.repr()
       proc getTransform(item: NimNode): NimNode =
         proc transformPar(par: NimNode): NimNode =
+          if par.eqIdent("_"): return par
           assertNodeKind(par, {nnkPar})
           result = newTree(nnkPar)
           if fieldList.len < par.len and
@@ -1048,10 +1065,7 @@ macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
 
           else:
             for itIdx, it in par:
-              if it.eqIdent("_"):
-                discard
-
-              elif itIdx < fieldList.len and it.kind notin {nnkExprColonExpr}:
+              if itIdx < fieldList.len and it.kind notin {nnkExprColonExpr}:
                 result.add nnkExprColonExpr.newTree(fieldList[itIdx], it)
 
               else:
@@ -1068,6 +1082,7 @@ macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
 
 
       let matchRes = aux(item[1].getTransform(), tmp)
+      let iLine = lineIInfo(item[1])
       impl.add quote do:
         block:
           let `tmp` = `expr`
@@ -1082,8 +1097,6 @@ macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
 
       else:
         checkOk(`loc`)
-
-    echo result.repr()
 
   else:
     let impl = aux(match, tmp)

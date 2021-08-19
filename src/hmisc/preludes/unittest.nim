@@ -2,6 +2,10 @@ import ../other/hcoverage
 
 hcoverageEnable()
 
-import ../core/all, ../other/hunittest
+import
+  ../core/all,
+  ../other/[hunittest, hpprint]
 
-export all, hunittest, hcoverage
+startHax()
+
+export all, hunittest, hcoverage, hpprint

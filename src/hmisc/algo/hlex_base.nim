@@ -127,35 +127,29 @@ proc initPosStr*(file: AbsFile): PosStr =
     isSlice: false, column: 0, line: 0)
 
 func initPosStr*(
-    str; lastSlice: bool = false,
+    str;
+    allSlice: bool = false,
     popSlice: bool = true): PosStr =
   ## Pop one layer of slices from slice buffer and create new sub-string
   ## lexer from it.
-  if lastSlice:
-    let s = tern(
-      popSlice,
-      str.sliceBuffer.last().pop(),
-      str.sliceBuffer.last().last())
+  var s: seq[PosStrSlice]
+  if allSlice:
+    for slice in str.sliceBuffer:
+      s.add slice
 
-    result = PosStr(
-      isSlice: true,
-      baseStr: tern(str.isSlice, str.baseStr, addr str.str),
-      column: s.column,
-      line: s.line,
-      slices: @[s])
+    if popSlice:
+      str.sliceBuffer = @[]
+
 
   else:
-    let s = tern(
-      popSlice,
-      str.sliceBuffer.pop(),
-      str.sliceBuffer.last())
+    s.add tern(popSlice, str.sliceBuffer.pop(), str.sliceBuffer.last())
 
-    result = PosStr(
-      isSlice: true,
-      baseStr: tern(str.isSlice, str.baseStr, addr str.str),
-      column: s[0].column,
-      line: s[0].line,
-      slices: s)
+  result = PosStr(
+    isSlice: true,
+    baseStr: tern(str.isSlice, str.baseStr, addr str.str),
+    column: s[0].column,
+    line: s[0].line,
+    slices: s)
 
   result.pos = result.slices[0].start
 
@@ -430,20 +424,31 @@ proc pushRange*(str) {.inline.} =
 
 proc startSlice*(str) {.inline.} =
   ## Start new slice in the string slice buffer.
-  if str.sliceBuffer.len == 0:
-    str.sliceBuffer.add @[]
-
-  str.sliceBuffer[^1].add PosStrSlice(
-    start: str.pos, line: str.line, column: str.column)
+  str.sliceBuffer.add @[
+    PosStrSlice(start: str.pos, line: str.line, column: str.column)]
 
 proc finishSlice*(str; rightShift: int = -1) {.inline.} =
   str.sliceBuffer[^1][^1].finish = min(
     str.pos + rightShift,
     tern(str.isSlice, str.baseStr[].high, str.str.high))
 
+proc finishAllSlice*(str; rightShift: int = -1) {.inline.} =
+  for slice in mitems(str.sliceBuffer):
+    slice.last().finish = min(
+      str.pos + rightShift,
+      tern(str.isSlice, str.baseStr[].high, str.str.high))
+
+proc pushSlice*(str) = startSlice(str)
+
 proc popSlice*(str; rightShift: int = -1): PosStr =
   finishSlice(str, rightShift)
   return initPosStr(str)
+
+template asSlice*(expr: untyped): untyped =
+  str.startSlice()
+  expr
+  str.popSlice()
+
 
 proc peekSlice*(str; rightShift: int = -1): PosStr =
   finishSlice(str, rightShift)
@@ -584,6 +589,11 @@ proc popRange*(str; leftShift: int = 0, rightShift: int = -1):
 
       result.add str.str[slice]
 
+template asRange*(expr: untyped): untyped =
+  str.pushRange()
+  expr
+  str.popRange()
+
 
 proc advance*(str; step: int = 1) {.hcov.} =
   if str['\n']:
@@ -623,6 +633,12 @@ proc advance*(str; step: int = 1) {.hcov.} =
 
   else:
     inc(str.pos, step)
+
+proc getPos*(str: PosStr): int = str.pos
+proc setPos*(str; pos: int): int =
+  ## - TODO backtrack over slice indices, raise exception if values
+  ##   is out of range etc.
+  str.pos = pos
 
 proc popPointSlice*(
     str;
@@ -702,6 +718,8 @@ proc skipSpace*(str) {.inline.} =
 
 proc space*(str) {.inline.} =
   str.skipWhile(HorizontalSpace)
+
+
 
 proc popWhile*(str; chars: set[char]): string {.inline.} =
   str.pushRange()

@@ -557,21 +557,19 @@ suite "Hlex base":
 
           if ?str: str.advance()
 
-    show str.sliceBuffer
-
-    let top = str.sliceBuffer[0]
+    let top = str.sliceBuffer
 
     check:
-      top[0] == 1 .. 11
-      base[top[0]] == "if (a == b)"
+      top[0][0] == 1 .. 11
+      base[top[0][0]] == "if (a == b)"
 
-      top[1] == 14 .. 22
-      base[top[1]] == "{echo 12}"
+      top[1][0] == 14 .. 22
+      base[top[1][0]] == "{echo 12}"
 
-      top[2] == 25 .. 28
-      base[top[2]] == "else"
+      top[2][0] == 25 .. 28
+      base[top[2][0]] == "else"
 
-    var chars = initPosStr(str)
+    var chars = initPosStr(str, allSlice = true)
     check chars.sliceStrings() == @["if (a == b)", "{echo 12}", "else"]
 
     block parseSlices:
@@ -606,6 +604,23 @@ suite "Hlex base":
     ## Repeatedly extract nested string slices and parse them again.
     ## Real-world use example - `#+table` form haxorg which might be
     ## indented, and in turn also contain another `#+table`.
+    var str = varStr("0123")
+    str.startSlice()
+    str.advance()
+    str.startSlice()
+    str.advance()
+    str.finishAllSlice(rightShift = 0)
+
+    check:
+      str.sliceBuffer[0] == @[0 .. 2]
+      str.sliceBuffer[1] == @[1 .. 2]
+
+    let s2 = str.popSlice(rightShift = 0)
+    let s1 = str.popSlice(rightShift = 0)
+
+    check:
+      s1.strVal() == "012"
+      s2.strVal() == "12"
 
 
   test "test":
@@ -766,9 +781,9 @@ suite "C preprocessor reimplementation":
           str.finishSlice()
 
     var
-      if2 = initPosStr(str, true)
-      body = initPosStr(str, true)
-      if1 = initPosStr(str, true)
+      if2 = initPosStr(str)
+      body = initPosStr(str)
+      if1 = initPosStr(str)
 
     let text = lit3(2, """
         // random text that would not be parsed, |

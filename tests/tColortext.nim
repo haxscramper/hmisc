@@ -1,6 +1,6 @@
 import
   hmisc/types/[colortext, colorstring],
-  hmisc/algo/halgorithm,
+  hmisc/algo/[halgorithm, clformat],
   hmisc/preludes/unittest
 
 import
@@ -246,3 +246,27 @@ suite "Colored string":
       instantiationInfo().toLink("here")
 
     # echo err.toColorString()
+
+suite "clformat":
+  test "не-ASCII":
+    echo hshow("юникод\n\n")
+    echo toColoredText("юникод")
+    echo toColoredText("юникод\n")
+    echo toYellow("векторная диаграмма")
+    echo toYellow("векторная диаграмма\n")
+    echo "Расчет смещения" + fgYellow
+    echo "Расчет смещения\n" + fgGreen
+
+    block:
+      var c: ColoredText
+      c.add toYellow("___AAA___")
+      c.add toYellow("___ЖЖЖ___")
+
+      echo c
+      echo c.runes
+
+      c.add toYellow("___QQQ___\n")
+      c.add toYellow("___ГГГ___\n")
+
+      echo c
+      echo c.runes

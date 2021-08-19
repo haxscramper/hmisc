@@ -10,8 +10,9 @@ template tern*(predicate: bool, tBranch: untyped, fBranch: untyped): untyped =
     let a = tern(1 == 2, "99", "0-")
     doAssert a == "0-"
 
-  block:
-    if predicate: tBranch else: fBranch
+  {.line: instantiationInfo(fullPaths = true).}:
+    block:
+      if predicate: tBranch else: fBranch
 
 template withIt*(val, body: untyped): untyped =
   ## Copy `val` to `it`, execute body and then return `it`.

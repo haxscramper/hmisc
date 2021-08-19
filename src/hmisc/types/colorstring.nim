@@ -515,7 +515,7 @@ func initColoredText*(
     style: set[Style] = {}
   ): ColoredText =
 
-  for ch in str:
+  for ch in runes(str):
     result.runes.add ColoredRune(
       rune: Rune(ch),
       styling: initPrintStyling(fg, bg, style)
@@ -563,7 +563,7 @@ func `+`*(rune: Rune, style: PrintStyling): ColoredRune =
   toColored(rune, style)
 
 func `+`*(str: string, style: PrintStyling): ColoredText =
-  for ch in str:
+  for ch in runes(str):
     result.runes.add toColored(ch, style)
 
 func `+`*(str: string, fg: ForegroundColor): ColoredText =
