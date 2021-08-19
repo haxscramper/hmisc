@@ -1,6 +1,6 @@
 import std/[
   streams, strscans, strutils, strformat, macros, segfaults,
-  sequtils
+  sequtils, unicode
 ]
 
 import
@@ -84,6 +84,7 @@ const
   LowerAsciiLetters*  = {'a' .. 'z'}
   HighAsciiLetters*   = {'A' .. 'Z'}
   AsciiLetters*       = LowerAsciiLetters + HighAsciiLetters
+  AnyRegularAscii*    = { '\x00' .. '\x7F' }
   UnicodeStarts*      = { '\x80' .. '\xFF' }
   MaybeLetters*       = AsciiLetters + UnicodeStarts
 
@@ -253,6 +254,26 @@ proc `[]`*(str; idx: int = 0): char {.inline.} =
 
   else:
     return str.str[str.pos + idx]
+
+proc runeAt*(str; idx: int = 0): Rune =
+  fillNext(str, idx)
+  if not hasNxt(str, idx):
+    return Rune(0)
+
+  else:
+    if str.isSlice:
+      let len = str.baseStr[].graphemeLen(str.pos + idx)
+      fillNext(str, len)
+      var i = str.pos + idx
+      fastRuneAt(str.baseStr[], i, result)
+
+    else:
+      let len = str.str.graphemeLen(str.pos + idx)
+      fillNext(str, len)
+
+      var i = str.pos + idx
+      fastRuneAt(str.str, i, result)
+
 proc setLineInfo*(error: ref HLexerError, str: PosStr) =
   error.column = str.column
   error.line = str.line
@@ -264,7 +285,11 @@ proc newUnexpectedCharError*(
   result.setLineInfo(str)
   result.msg.add "Unexpected character encoutered during lexing - found '"
   if ?str:
-    result.msg.add str[0].describeChar()
+    if str[0] in AnyRegularAscii:
+      result.msg.add describeChar(str[0])
+
+    else:
+      result.msg.add describeChar(str.runeAt(0))
 
   else:
     result.msg.add "EOF (string finished)"
@@ -634,7 +659,11 @@ proc advance*(str; step: int = 1) {.hcov.} =
   else:
     inc(str.pos, step)
 
-proc getPos*(str: PosStr): int = str.pos
+proc getPos*(str: PosStr): int =
+  ## - TODO should return position, line, column as well (just save whole
+  ##   positional string state at once to simplify restoration)
+  str.pos
+
 proc setPos*(str; pos: int): int =
   ## - TODO backtrack over slice indices, raise exception if values
   ##   is out of range etc.
@@ -656,6 +685,11 @@ proc popPointSlice*(
 
 proc skip*(str; ch: char) {.inline.} =
   if str[] != ch:
+   raise newUnexpectedCharError(str, $ch)
+  str.advance()
+
+proc skip*(str; ch: set[char]) {.inline.} =
+  if str[] notin ch:
    raise newUnexpectedCharError(str, $ch)
   str.advance()
 

@@ -1,5 +1,5 @@
 import
-  std/[strutils, tables, enumerate, strformat, sequtils]
+  std/[strutils, tables, enumerate, strformat, sequtils, unicode]
 
 import
   ./hseq_mapping,
@@ -730,6 +730,15 @@ func describeChar*(ch: char): string =
   result.add " ("
   result.add toLatinNamedChar(ch).join(" ")
   result.add ")"
+
+import pkg/unicodedb
+
+func describeChar*(rune: Rune): string =
+  result.add $rune
+  result.add " ("
+  result.add rune.name().toLowerAscii()
+  result.add ")"
+
 func describeSet*[S](
     s: set[S], sets: openarray[(set[S], string)]): string =
   var buf: seq[string]
