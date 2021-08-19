@@ -152,16 +152,6 @@ template rfindIt*(s: typed, op: untyped): untyped =
   res
 
 
-template findIt*(s: typed, op: untyped): int =
-  ##[ Find first element of the sequence for which `op` evaluates as
-  true and return it's index. If no such element is found return -1
-  ]##
-
-  var result = -1
-  for idx, it {.inject.} in s:
-    if op: result = idx; break
-
-  result
 
 template findItFirst*(s: typed, op: untyped): untyped =
   {.line: instantiationInfo(fullPaths = true).}:

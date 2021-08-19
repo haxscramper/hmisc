@@ -1035,34 +1035,40 @@ macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
 
       let expr = item[0]
       exprPrefix = expr.repr()
-      if item[1].kind == nnkBracket:
-        var transform = newTree(nnkBracket)
-        if fieldList.len < item[1].len:
-          raise toCodeError(
-            item[fieldList.len],
-            "Mapping for parameter is not specified")
+      proc getTransform(item: NimNode): NimNode =
+        proc transformPar(par: NimNode): NimNode =
+          assertNodeKind(par, {nnkPar})
+          result = newTree(nnkPar)
+          if fieldList.len < par.len and
+             item[fieldList.len ..^ 1].anyIt(it.kind in AtomicNodes):
+            raise toCodeError(
+              item[fieldList.len .. ^1][
+                item[fieldList.len .. ^1].findIt(it.kind in AtomicNodes)],
+              "Mapping for parameter is not specified")
 
-        for idx, arg in item[1]:
-          var params = newTree(nnkPar)
-          for itIdx, it in arg:
-            params.add nnkExprColonExpr.newTree(fieldList[itIdx], it)
+          else:
+            for itIdx, it in par:
+              if itIdx < fieldList.len:
+                result.add nnkExprColonExpr.newTree(fieldList[itIdx], it)
 
-          transform.add params
+              else:
+                result.add it
+
+        if item.kind == nnkBracket:
+          result = newTree(nnkBracket)
+          for idx, arg in item:
+            result.add transformPar(arg)
+
+        else:
+          result = transformPar(item)
 
 
-          assertNodeKind(arg, {nnkPar})
 
-        let matchRes = aux(transform, tmp)
-
-        impl.add quote do:
-          block:
-            let `tmp` = `expr`
-            `matchRes`
-
-
-      else:
-        raise newImplementKindError(item[1])
-
+      let matchRes = aux(item[1].getTransform(), tmp)
+      impl.add quote do:
+        block:
+          let `tmp` = `expr`
+          `matchRes`
 
     result = quote do:
       var `fails`: seq[TestMatchFail]
@@ -1074,6 +1080,7 @@ macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
       else:
         checkOk(`loc`)
 
+    echo result.repr()
 
   else:
     let impl = aux(match, tmp)

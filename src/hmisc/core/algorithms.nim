@@ -163,6 +163,18 @@ template subnodesEq*(lhs, rhs, field: untyped): untyped =
   lhs.field.len() == rhs.field.len() and
   zip(lhs.field, rhs.field).allIt(it[0] == it[1])
 
+template findIt*(s: typed, op: untyped): int =
+  ##[ Find first element of the sequence for which `op` evaluates as
+  true and return it's index. If no such element is found return -1
+  ]##
+
+  var result = -1
+  for idx, it {.inject.} in s:
+    if op: result = idx; break
+
+  result
+
+
 template byaddr1*(lhs, typ, ex) =
   when typ is typeof(nil):
     when compiles(addr(ex)):
