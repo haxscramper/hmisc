@@ -564,6 +564,18 @@ suite "Primitives":
         str.runeAt() == uc"г"
 
 
+  test "Advance backwards":
+    block go_to_the_end:
+      var str = varStr("0123")
+      check:
+        str[] == '0'
+
+      str.goToEof()
+      check:
+        str[] == '3'
+
+
+
 suite "Hlex base":
   test "Use example":
     let base = "[if (a == b)][{echo 12}][else"

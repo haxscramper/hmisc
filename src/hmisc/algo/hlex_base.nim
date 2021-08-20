@@ -66,7 +66,6 @@ type
     ## slices. Used by [[code:startSlice()]] and [[code:finishSlice()]] to
     ## automatically collect new string slices
 
-
   HLexerError* = object of ParseError
     ## Base type for lexer errors
     pos*, line*, column*: int
@@ -747,6 +746,25 @@ proc skipToEOL*(str) =
   ## Skip to the end of current line. After parsing cursor is positioned on
   ## the last character in the string, or closes newline.
   str.skipUntil(Newline, including = true)
+
+proc goToEof*(str) =
+  if str.isSlice:
+    let s = str.slices.last()
+    str.pos = s.finish
+    str.line = s.line
+    str.column = s.column + (s.finish -  s.start)
+
+  else:
+    for rune in runes(str.str[str.pos .. ^1]):
+      if rune == Rune(10):
+        inc str.line
+        str.column = 0
+
+      else:
+        inc str.column
+
+    str.pos = str.str.high
+
 
 proc skipToNewline*(str) =
   ## Skip until end of the current line is found. After parsing cursor is
