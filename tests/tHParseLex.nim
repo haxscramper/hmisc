@@ -1142,6 +1142,15 @@ type
     osColon
     osText
 
+    osIndent
+    osDedent
+    osSameIndent
+    osNoIndent
+
+    osListStart
+    osSubtreeTag
+    osCompletion
+
     osEof
 
 proc lexOrgStructure(str: var PosStr): seq[HsTok[OrgStructureToken]] =
@@ -1217,8 +1226,7 @@ proc lexOrgText(str: var PosStr): seq[HsTok[OrgTextToken]] =
       else:
         raise newUnexpectedCharError(str)
 
-suite "Simple org-mode replacement":
-  startHax()
+suite "Simple org-mode":
   test "Lex text":
     let lex = lexOrgText
     block words:
@@ -1274,3 +1282,140 @@ suite "Simple org-mode replacement":
           (kind: otWord, column: 10, line: 0, offset: 10, finish: 13, strVal: "bold"),
           (kind: otBoldEnd, column: 14, line: 0, offset: 14, finish: 14, strVal: "*")
         ]
+
+  test "Lex indented list":
+    var state = newLexerState(0u8)
+    proc lexerImpl(str: var PosStr): seq[HsTok[OrgStructureToken]] =
+      if not ?str:
+        result.add str.initTok(osEof)
+
+      else:
+        case str[]:
+          of '-':
+            let indent = str.column
+            result.add str.initTok(
+              asSlice str.skipWhile({'-', ' '}), osListStart)
+
+            str.startSlice()
+            var atEnd = false
+            while ?str and not atEnd:
+              str.skipToEol()
+              if str.getIndent() < indent:
+                atEnd = true
+
+              else:
+                var store = str
+                store.skipWhile({' '})
+                if store["- "]:
+                  atEnd = true
+
+            result.add str.initTok(str.popSlice(), osText)
+
+          of '\n':
+            for level in 0 ..< state.getIndentLevels():
+              result.add str.initTok(osDedent)
+
+            str.advance()
+            state.setIndent(0)
+
+          of ' ':
+            let indent = state.skipIndent(str)
+            result.add():
+              case indent:
+                of likIncIndent:  str.initTok(osIndent)
+                of likDecIndent:  str.initTok(osDedent)
+                of likSameIndent: str.initTok(osSameIndent)
+                of likNoIndent:   str.initTok(osNoIndent)
+
+          else:
+            raise newUnexpectedCharError(str)
+
+
+    block single_list_item:
+      state.clear()
+      let tokens = lexAll(varStr("- list"), lexerImpl)
+      check:
+        matchdiff tokens, [
+          (kind: osListStart),
+          (kind: osText)
+        ]
+
+    block indented_list_item:
+      state.clear()
+      let str = lit3"""
+      - list
+        - indented
+      """
+
+      let tokens = lexAll(varStr(str), lexerImpl)
+      check:
+        matchdiff tokens, [
+          (kind: osListStart),
+          (kind: osText),
+          (kind: osIndent),
+          (kind: osListStart),
+          (kind: osText)
+        ]
+
+    block indented_two_items:
+      state.clear()
+      let str = lit3"""
+      - list
+        - indented
+        - second item
+      """
+
+      let tokens = lexAll(varStr(str), lexerImpl)
+      check:
+        matchdiff tokens, [
+          (kind: osListStart),
+          (kind: osText),
+          (kind: osIndent),
+          (kind: osListStart),
+          (kind: osText),
+          (kind: osSameIndent),
+          (kind: osListStart),
+          (kind: osText)
+        ]
+
+    block indented_two_items:
+      state.clear()
+      let str = lit3"""
+      - list
+        - indented
+        - second item
+
+      - list2
+        - indented2
+        - second item2
+      """
+
+      let tokens = lexAll(varStr(str), lexerImpl)
+
+      check:
+        matchdiff @(kind, strVal), [
+          tokens: [
+            #[ 00 ]# (osListStart,   "- "),
+            #[ 01 ]# (osText,        "list\n"),
+            #[ 02 ]# (osIndent),
+            #[ 03 ]# (osListStart,   "- "),
+            #[ 04 ]# (osText,        "indented\n"),
+            #[ 05 ]# (osSameIndent),
+            #[ 06 ]# (osListStart,   "- "),
+            #[ 07 ]# (osText,        "second item\n"),
+            #[ 08 ]# (osDedent),
+
+            #[ 09 ]# (osListStart,   "- "),
+            #[ 10 ]# (osText,        "list2\n"),
+            #[ 11 ]# (osIndent),
+            #[ 12 ]# (osListStart,   "- "),
+            #[ 13 ]# (osText,        "indented2\n"),
+            #[ 14 ]# (osSameIndent),
+            #[ 16 ]# (osListStart,   "- "),
+            #[ 17 ]# (osText,        "second item2\n")
+          ]
+        ]
+
+
+  test "Lex subtree trailing tags":
+    discard

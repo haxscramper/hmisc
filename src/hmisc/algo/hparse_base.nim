@@ -73,6 +73,7 @@ type
     flagStack: seq[Flag]
     flagSet: array[Flag, int]
     indent: int
+    indentLevels: int
 
   HsLexCallback*[T] = proc(str: var PosStr): seq[T]
   # HsMultiLexCallback*[T] = proc(str: var PosStr): seq[T]
@@ -174,7 +175,21 @@ proc unexpectedTokenError*[K](
   result.msg = $buf
 
 
-proc skipIndent*[F](state: var HsLexerState[F], str: var PosStr): LexerIndentKind =
+func getIndent*[F](state: HsLexerState[F]): int = state.indent
+func setIndent*[F](state: var HsLexerState[F], ind: int) =
+  state.indent = ind
+
+func getIndentLevels*[F](state: HsLexerState[F]): int = state.indentLevels
+
+func clear*[F](state: var HsLexerState[F]) =
+  state.flagStack = @[]
+  state.indent = 0
+  state.indentLevels = 0
+  for val in mitems(state.flagSet):
+    val = 0
+
+proc skipIndent*[F](
+    state: var HsLexerState[F], str: var PosStr): LexerIndentKind =
   if str[Newline]:
     str.advance()
 
@@ -184,14 +199,17 @@ proc skipIndent*[F](state: var HsLexerState[F], str: var PosStr): LexerIndentKin
 
     else:
       result = likDecIndent
+      state.indentLevels = 0
       state.indent = 0
 
   else:
     str.skipWhile({' '})
     if state.indent > str.column:
+      dec state.indentLevels
       result = likDecIndent
 
     elif state.indent < str.column:
+      inc state.indentLevels
       result = likIncIndent
 
     else:
