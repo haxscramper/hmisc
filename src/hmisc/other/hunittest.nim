@@ -457,13 +457,13 @@ proc report(context: TestContext, report: TestReport) =
         else:
           if report.failKind == tfkOpCheck:
             let
-              s1 = report.strs[0][1].str
-              s2 = report.strs[1][1].str
+              s1 = report.strs[0][1].str.formatStringified()
+              s2 = report.strs[1][1].str.formatStringified()
 
             echo msg, " - ", toGreen(report.strs[0][0]), " was \n"
-            echo pad, "  '", s1.indentBody(pad.len + 2), "'\n"
+            echo pad, "  ", s1.indentBody(pad.len + 2), "\n"
             echo pad, "but expected\n"
-            echo pad, "  '", s2.indentBody(pad.len + 2), "'"
+            echo pad, "  ", s2.indentBody(pad.len + 2), ""
             echo ""
 
           else:

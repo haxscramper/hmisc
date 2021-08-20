@@ -3,9 +3,10 @@ import
 
 import
   hmisc/algo/[hparse_base, hlex_base],
-  hmisc/other/hpprint
+  hmisc/other/hpprint,
+  hmisc/types/colorstring
 
-import std/[options, strscans, sets, sequtils]
+import std/[options, strscans, sets, sequtils, unicode]
 
 configureDefaultTestContext(
   skipAfterException = true,
@@ -528,6 +529,39 @@ suite "Primitives":
         s2.line == 0
         s2.column == 2
         s2.strVal() == "title"
+
+    block unicode_text:
+      var str = varStr("бвг\nбвг")
+      check:
+        str[] == "б"[0]
+        str.pos == 0
+        str.line == 0
+        str.column == 0
+        str.runeAt() == uc"б"
+
+      str.advance()
+      check:
+        str[] == "в"[0]
+        str.pos == 2
+        str.line == 0
+        str.column == 1
+        str.runeAt() == uc"в"
+
+    block advance_n_positions:
+      var str = varStr("бвг")
+      check:
+        str.pos == 0
+        str.line == 0
+        str.column == 0
+        str.runeAt() == uc"б"
+
+      str.advance(2)
+      check:
+        str[] == "г"[0]
+        str.pos == 4
+        str.line == 0
+        str.column == 2
+        str.runeAt() == uc"г"
 
 
 suite "Hlex base":

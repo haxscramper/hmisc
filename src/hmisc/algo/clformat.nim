@@ -718,18 +718,23 @@ func asciiName*(ch: char, slash: bool = false): string =
   extendedAsciinames[ch]
 
 func describeChar*(ch: char): string =
-  case ch:
-    of { '\x00' .. '\x1F' } - { '\n', '\t' }:
-      result.add "\\x"
-      result.add toHex(ch.uint8)
+  if ch in { '\x80' .. '\xFF' }:
+    result.add  "\\x"
+    result.add toHex(ch.uint8)
 
-    of '\n': result.add "\\n"
-    of '\t': result.add "\\t"
-    else: result.add $ch
+  else:
+    case ch:
+      of { '\x00' .. '\x1F' } - { '\n', '\t' }:
+        result.add "\\x"
+        result.add toHex(ch.uint8)
 
-  result.add " ("
-  result.add toLatinNamedChar(ch).join(" ")
-  result.add ")"
+      of '\n': result.add "\\n"
+      of '\t': result.add "\\t"
+      else: result.add $ch
+
+    result.add " ("
+    result.add toLatinNamedChar(ch).join(" ")
+    result.add ")"
 
 import pkg/unicodedb
 
@@ -1351,6 +1356,9 @@ func formatStringified*(str: string): string =
     result.add "\'"
     result.add str
     result.add "\'"
+
+  elif str.len == 1 and str[0] in { '\x80' .. '\xFF' }:
+    result.add str[0].describeChar()
 
   else:
     return str

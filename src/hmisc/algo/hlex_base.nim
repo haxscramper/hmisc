@@ -620,44 +620,58 @@ template asRange*(expr: untyped): untyped =
   str.popRange()
 
 
-proc advance*(str; step: int = 1) {.hcov.} =
-  if str['\n']:
-    inc str.line
-    str.column = 0
+proc advance*(
+    str; step: int = 1, byteAdvance: bool = false) {.hcov.} =
 
-  else:
-    inc str.column, step
-
-  if str.isSlice:
-    if str.pos < str.slices[str.sliceIdx].finish:
-      inc(str.pos, step)
-      for fragment in mitems(str.fragmentedRanges):
-        fragment.last().finish = str.pos
-
-
-    else:
-      var current = str.pos
-
-      inc str.sliceIdx
-      if str.sliceIdx < str.slices.len:
-        str.pos = str.slices[str.sliceIdx].start
+  for diff in 0 ..< step:
+    let byteCount =
+      if byteAdvance:
+        1
 
       else:
-        inc current
-        inc str.pos
+        if str.isSlice:
+          graphemeLen(str.baseStr[], str.pos)
 
-      for fragment in mitems(str.fragmentedRanges):
-        if fragment.len > 0:
-          fragment.last().finish = current
-          if str.sliceIdx < str.slices.len:
-            fragment.add posStrSlice(
-              str.pos,
-              str.pos,
-              str.line,
-              str.column)
+        else:
+          graphemeLen(str.str, str.pos)
 
-  else:
-    inc(str.pos, step)
+    if str['\n']:
+      inc str.line
+      str.column = 0
+
+    else:
+      inc str.column
+
+    if str.isSlice:
+      if str.pos < str.slices[str.sliceIdx].finish:
+        inc(str.pos, byteCount)
+        for fragment in mitems(str.fragmentedRanges):
+          fragment.last().finish = str.pos
+
+
+      else:
+        var current = str.pos
+
+        inc str.sliceIdx
+        if str.sliceIdx < str.slices.len:
+          str.pos = str.slices[str.sliceIdx].start
+
+        else:
+          inc current
+          inc str.pos
+
+        for fragment in mitems(str.fragmentedRanges):
+          if fragment.len > 0:
+            fragment.last().finish = current
+            if str.sliceIdx < str.slices.len:
+              fragment.add posStrSlice(
+                str.pos,
+                str.pos,
+                str.line,
+                str.column)
+
+    else:
+      inc(str.pos, byteCount)
 
 proc getPos*(str: PosStr): int =
   ## - TODO should return position, line, column as well (just save whole
