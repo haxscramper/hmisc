@@ -6,7 +6,7 @@ import
   hmisc/other/hpprint,
   hmisc/types/colorstring
 
-import std/[options, strscans, sets, sequtils, unicode]
+import std/[options, strscans, sets, sequtils, unicode, algorithm]
 
 configureDefaultTestContext(
   skipAfterException = true,
@@ -27,7 +27,7 @@ suite "Primitives":
     var str = initPosStr("---?")
     str.pushRange()
     while ?str and str['-']:
-      str.advance()
+      str.next()
 
     check str.popRangeIndices()[0] == 0 .. 2
 
@@ -50,12 +50,12 @@ suite "Primitives":
         str.line == 0
         str.column == 0
 
-      str.advance()
+      str.next()
       check:
         str.line == 0
         str.column == 1
 
-      str.advance()
+      str.next()
       check:
         str.line == 1
         str.column == 0
@@ -65,7 +65,7 @@ suite "Primitives":
       check str['_']
       str.skipUntil({']'})
       check str[']']
-      str.advance()
+      str.next()
       check not ?str
 
     block pop_entries:
@@ -86,7 +86,7 @@ suite "Primitives":
           str.getRangeIndices() == @[0 .. -1]
           str.ranges[0].pos == 0
 
-        str.advance()
+        str.next()
 
         check:
           str.pos == 1
@@ -101,7 +101,7 @@ suite "Primitives":
           str.fragmentedRanges[0] == @[0 .. 0]
           str.getRangeIndices() == @[0 .. -1]
 
-        str.advance()
+        str.next()
         check:
           str.pos == 1
           str.fragmentedRanges[0] == @[0 .. 1]
@@ -124,7 +124,7 @@ suite "Primitives":
       str.skipSpace()
 
   test "Subslice advancements":
-    block advance_over_fragmented_range:
+    block next_over_fragmented_range:
       var str = varStr("0_1_2_3_4_5", [0..0, 2..2, 4..4, 6..6, 8..8])
 
       str.pushRange()
@@ -132,12 +132,12 @@ suite "Primitives":
         str['0']
         str.getRangeIndices() == @[0 .. -1]
 
-      str.advance()
+      str.next()
       check:
         str['1']
         str.getRangeIndices() == @[0 .. 0, 2 .. 1]
 
-      str.advance()
+      str.next()
       check:
         str['2']
         str.getRangeIndices() == @[0 .. 0, 2 .. 2, 4 .. 3]
@@ -151,10 +151,10 @@ suite "Primitives":
         str['0']
         str.pos == 0
         ## By default right offset `-1` is applied, so without no
-        ## `advance()` range indices would be an empty sequence
+        ## `next()` range indices would be an empty sequence
         str.getRangeIndices() == @[0 .. -1]
 
-        ## String has single active range, and without any `advance()`
+        ## String has single active range, and without any `next()`
         ## calls it is currently empty
         baseStr[str.getRangeIndices()[0]] == ""
 
@@ -165,9 +165,9 @@ suite "Primitives":
         ## base string
         baseStr[str.getRangeIndices(rightShift = 0)[0]] == "0"
 
-      str.advance()
-      str.advance()
-      str.advance()
+      str.next()
+      str.next()
+      str.next()
 
       check:
         str['3']
@@ -187,7 +187,7 @@ suite "Primitives":
         ## `getRange()` can be used for the same purpose
         str.getRange() == "012"
 
-      str.advance()
+      str.next()
 
       check:
         str['4']
@@ -195,8 +195,8 @@ suite "Primitives":
         ## Advancing over framented range yet again adds new subslice - `4..4`
         str.getRangeIndices() == @[0 .. 2, 4 .. 4, 6 .. 5]
 
-      str.advance(); check str['5']
-      str.advance()
+      str.next(); check str['5']
+      str.next()
 
       check:
         str['6']
@@ -205,7 +205,7 @@ suite "Primitives":
         str.getRange() == "012345"
         str.getRange(rightShift = 0) == "0123456"
 
-      str.advance()
+      str.next()
 
       check:
         str.pos == 9
@@ -232,7 +232,7 @@ suite "Primitives":
         str[] == '0'
         str.pos == 0
 
-      str.advance()
+      str.next()
       check:
         str.pos == 2
         str[] == '1'
@@ -250,10 +250,10 @@ suite "Primitives":
 
       # Unrolled `while str['0']`
 
-      check str['0']; str.advance()
-      check str['0']; str.advance()
-      check str['0']; str.advance()
-      check str['0']; str.advance()
+      check str['0']; str.next()
+      check str['0']; str.next()
+      check str['0']; str.next()
+      check str['0']; str.next()
 
       check not ?str
 
@@ -313,27 +313,27 @@ suite "Primitives":
       var str = varStr("else_", [0 .. 3])
       str.pushRange()
 
-      if str[IdentChars]: str.advance()
-      if str[IdentChars]: str.advance()
+      if str[IdentChars]: str.next()
+      if str[IdentChars]: str.next()
 
       check:
         str[] == 's'
 
-      if str[IdentChars]: str.advance()
+      if str[IdentChars]: str.next()
 
       check:
         str.getRangeIndices() == @[0 .. 2]
         str[] == 'e'
 
       if str[IdentChars]:
-        str.advance()
+        str.next()
 
       check:
         str.getRangeIndices() == @[0 .. 3]
         not ?str
 
       if str[IdentChars]:
-        str.advance()
+        str.next()
 
       check:
         str.pos == 4
@@ -457,21 +457,21 @@ suite "Primitives":
         str.pos == 0
         str[] == '0'
 
-      str.advance()
+      str.next()
       check:
         str.line == 0
         str.column == 1
         str.pos == 1
         str[] == '1'
 
-      str.advance()
+      str.next()
       check:
         str.line == 0
         str.column == 2
         str.pos == 2
         str[] == '\n'
 
-      str.advance()
+      str.next()
       check:
         str.line == 1
         str.column == 0
@@ -539,7 +539,7 @@ suite "Primitives":
         str.column == 0
         str.runeAt() == uc"б"
 
-      str.advance()
+      str.next()
       check:
         str[] == "в"[0]
         str.pos == 2
@@ -555,7 +555,7 @@ suite "Primitives":
         str.column == 0
         str.runeAt() == uc"б"
 
-      str.advance(2)
+      str.next(2)
       check:
         str[] == "г"[0]
         str.pos == 4
@@ -581,7 +581,7 @@ suite "Primitives":
     block backwards_over_ascii:
       var str = varStr("0123")
       str.gotoEof()
-      str.advance(-1)
+      str.next(-1)
       check:
         str[] == '2'
         str.pos == 2
@@ -605,7 +605,7 @@ suite "Primitives":
         str.pos == 4
 
       ## Move back one unicode rune
-      str.advance(-1)
+      str.next(-1)
 
       check:
         str[] == "в"[0]
@@ -624,10 +624,10 @@ suite "Hlex base":
       ## in the subslices
       while ?str:
         if str['[']:
-          str.advance()
+          str.next()
           str.startSlice()
           while ?str and not str[']']:
-            str.advance()
+            str.next()
 
           if ?str:
             check:
@@ -640,7 +640,7 @@ suite "Hlex base":
             str.finishSlice(0)
 
 
-          if ?str: str.advance()
+          if ?str: str.next()
 
     let top = str.sliceBuffer
 
@@ -667,7 +667,7 @@ suite "Hlex base":
             tokens.add chars.popIdent()
 
           of ' ':
-            chars.advance()
+            chars.next()
 
           of PunctChars, MathChars:
             tokens.add $chars.popChar()
@@ -691,9 +691,9 @@ suite "Hlex base":
     ## indented, and in turn also contain another `#+table`.
     var str = varStr("0123")
     str.startSlice()
-    str.advance()
+    str.next()
     str.startSlice()
-    str.advance()
+    str.next()
     str.finishAllSlice(rightShift = 0)
 
     check:
@@ -720,7 +720,7 @@ of true:
     let indent = str.getIndent()
     show indent
     while str.hasIndent(indent):
-      str.advance(indent)
+      str.next(indent)
       str.startSlice()
       str.skipToEol()
       str.finishSlice()
@@ -744,7 +744,7 @@ proc simpleLexerImpl(str: var PosStr): seq[HsTok[char]] =
       result.add str.initTok(str.popChar(), ch)
 
     else:
-      str.advance()
+      str.next()
 
 
 suite "Lexer":
@@ -753,7 +753,7 @@ suite "Lexer":
     var lex = initLexer(str, simpleLexerImpl)
 
     while ?lex and not lex[';']:
-      lex.advance()
+      lex.next()
 
     check lex[].strVal() == ";"
 
@@ -776,7 +776,7 @@ suite "Lexer":
               state.toFlag(1)
 
             else:
-              str.advance()
+              str.next()
 
 
         of 1:
@@ -786,7 +786,7 @@ suite "Lexer":
               state.toFlag(0)
 
             else:
-              str.advance()
+              str.next()
 
 
         else:
@@ -819,7 +819,7 @@ suite "Lexer":
           result.add initTok(str.popChar(), ch)
 
         else:
-          str.advance()
+          str.next()
 
     let toks = lexAll(varStr lit3"""
       test
@@ -891,7 +891,7 @@ suite "C preprocessor reimplementation":
       case str[]:
         of '#':
           str.startSlice()
-          str.advance()
+          str.next()
           let kind = str.popIdent()
           if kind == "define" and str[' ']:
             str.skip(' ')
@@ -902,11 +902,11 @@ suite "C preprocessor reimplementation":
           str.skipToNewline()
           if ?str and str[-1] == '\\':
             while ?str and str[-1] == '\\':
-              str.advance()
+              str.next()
               str.skipToNewline()
 
           else:
-            str.advance()
+            str.next()
 
           let slice = str.popSlice()
           result.add slice
@@ -1020,7 +1020,7 @@ suite "Nim cfg parser":
           else:
             str.startSlice()
             while str[IdentChars + {'.'}]:
-              str.advance()
+              str.next()
 
             result.add str.initTok(str.popSlice(), ctIdent)
 
@@ -1044,7 +1044,7 @@ suite "Nim cfg parser":
 
         of '@':
           str.startSlice()
-          str.advance()
+          str.next()
           str.skipWhile(IdentChars)
           case str.peekSlice().strVal():
              of "@if": result.add str.initTok(str.popSlice(), ctIf)
@@ -1148,6 +1148,7 @@ type
     osNoIndent
 
     osListStart
+    osSubtreeStars
     osSubtreeTag
     osCompletion
 
@@ -1202,7 +1203,7 @@ proc lexOrgText(str: var PosStr): seq[HsTok[OrgTextToken]] =
           if not str[HighAsciiLetters + {'-', '_'}]:
             allUp = false
 
-          str.advance()
+          str.next()
 
         result.add str.initSliceTok(if allUp: otBigIdent else: otWord)
 
@@ -1315,7 +1316,7 @@ suite "Simple org-mode":
             for level in 0 ..< state.getIndentLevels():
               result.add str.initTok(osDedent)
 
-            str.advance()
+            str.next()
             state.setIndent(0)
 
           of ' ':
@@ -1418,4 +1419,105 @@ suite "Simple org-mode":
 
 
   test "Lex subtree trailing tags":
-    discard
+    proc lexSubtree(str: var PosStr): seq[HsTok[OrgStructureToken]] =
+      if not ?str:
+        result.add str.initTok(osEof)
+
+      else:
+        case str[]:
+          of '*':
+            result.add str.initTok(asSlice str.skipWhile({'*'}), osSubtreeStars)
+            str.skip({' '})
+            var body = asSlice str.skipToEol()
+
+            var headerTokens: seq[HsTok[OrgStructureToken]]
+
+            body.gotoEof()
+            if body[':']:
+              let finish = body.getPos()
+              body.back()
+
+              var tagEnded = false
+              while ?body and not tagEnded:
+                while ?body and body[IdentChars]:
+                  body.back()
+
+                body.skipBack({':'})
+                if body[' ']:
+                  tagEnded = true
+
+              let start = body.getPos(+1)
+              headerTokens.add body.initTok(
+                str.sliceBetween(start, finish), osSubtreeTag)
+
+            while body[' ']:
+              body.back()
+
+            if body[']']:
+              let finish = body.getPos()
+              body.skipBack({']'})
+              body.skipBack(Digits)
+              while body[Digits]:
+                body.back()
+
+              if str['%']:
+                body.back()
+
+              else:
+                body.skipBack({'/'})
+                body.skipBack(Digits)
+                while body[Digits]:
+                  body.back()
+
+              body.skipBack({'['})
+
+              let start = body.getPos(+1)
+
+              headerTokens.add body.initTok(
+                str.sliceBetween(start, finish), osCompletion)
+
+              while body[' ']:
+                body.back()
+
+            block:
+              let finish = body.getPos()
+              body.goToSof()
+              let start = body.getPos()
+
+              headerTokens.add body.initTok(
+                str.sliceBetween(start, finish), osText)
+
+
+
+
+            result.add headerTokens.reversed()
+
+          else:
+            raise newUnexpectedCharError(str)
+
+    block no_tag_subtree:
+      let tokens = lexAll(varStr "* header", lexSubtree)
+      check:
+        matchdiff tokens, [
+          (kind: osSubtreeStars, strVal: "*"),
+          (kind: osText, strVal: "header")
+        ]
+
+    block tagged_subtree:
+      let tokens = lexAll(varStr "* header :tag:", lexSubtree)
+      check:
+        matchdiff tokens, [
+          (kind: osSubtreeStars, strVal: "*"),
+          (kind: osText, strVal: "header"),
+          (kind: osSubtreeTag, strVal: ":tag:")
+        ]
+
+    block tagged_subtree_with_completion_status:
+      let tokens = lexAll(varStr "* header [0/10] :tag:", lexSubtree)
+      check:
+        matchdiff tokens, [
+          (kind: osSubtreeStars, strVal: "*"),
+          (kind: osText, strVal: "header"),
+          (kind: osCompletion, strVal: "[0/10]"),
+          (kind: osSubtreeTag, strVal: ":tag:")
+        ]

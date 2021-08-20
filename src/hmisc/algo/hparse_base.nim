@@ -191,7 +191,7 @@ func clear*[F](state: var HsLexerState[F]) =
 proc skipIndent*[F](
     state: var HsLexerState[F], str: var PosStr): LexerIndentKind =
   if str[Newline]:
-    str.advance()
+    str.next()
 
   if not str[{' '}]:
     if state.indent == 0:
@@ -551,18 +551,22 @@ func returnTo*[T](lex: var HsLexer[T], position: int) =
 
 func getPosition*[T](lex: var HsLexer[T]): int = lex.pos
 
-func advance*[T](lex: var HSlexer[T], step: int = 1) =
+func next*[T](lex: var HSlexer[T], step: int = 1) =
   inc(lex.pos, step)
+
+func advance*[T](lex: var HSlexer[T], step: int = 1)
+  {.deprecated: "Alias for `next`"} =
+  next(lex, step)
 
 proc pop*[T](lex: var HsLexer[T]): T =
   result = lex[]
-  lex.advance()
+  lex.next()
 
 
 proc pop*[K](lex: var HsLexer[HsTok[K]], kind: K): HsTok[K] =
   result = lex[]
   assertKind(lex[], kind)
-  lex.advance()
+  lex.next()
 
 proc initLexer*[T](
     str: var PosStr, lexCb: HsLexCallback[T],
@@ -588,7 +592,7 @@ proc skip*[T, En](lexer: var HsLexer[T], kind: En) =
     if lexer[].kind != kind:
       raise unexpectedTokenError(lexer, {kind})
 
-  lexer.advance()
+  lexer.next()
 
 proc skip*[T, En](lexer: var HsLexer[T], kind: En, expected: string) =
   if lexer[].strVal() != expected:
@@ -646,7 +650,7 @@ proc insideBalanced*[T, K](
       result.add lex.pop()
 
     else:
-      lex.advance()
+      lex.next()
 
     while cnt > 0:
       if lex[openKinds]:
@@ -659,7 +663,7 @@ proc insideBalanced*[T, K](
         result.add lex.pop()
 
       else:
-        lex.advance()
+        lex.next()
 
 func splitSep*[T, K](tokens: seq[T], sep: set[K]): seq[seq[T]] =
   result.add @[]
@@ -823,7 +827,7 @@ func `^*`*[T, V](itemParse, delimiterParse: HsParseCallback[T, V]):
 func parseToken*[T](token: T): HsParseCallback[T, T] =
   return proc(toks: var HsLexer[T]): ParseResult[T] =
     if toks[] == token:
-      toks.advance()
+      toks.next()
       initParseResult(toks[])
 
     else:
@@ -834,7 +838,7 @@ func parseTokenKind*[K](kind: K): HsParseCallback[HsTok[K], HsTok[K]] =
   return proc(toks: var HsLexer[HsTok[K]]): ParseResult[HsTok[K]] =
     if toks[].kind == kind:
       result = initParseResult(toks[])
-      toks.advance()
+      toks.next()
 
     else:
       result = initParseResult[HsTok[K]](ParseFail())

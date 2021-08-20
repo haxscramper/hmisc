@@ -57,10 +57,10 @@ proc newMustacheLexer*(): MLexer =
         of '}':
           str.assertAhead("}}")
           result.add initTok(mtkCurlyClose)
-          str.advance(2)
+          str.next(2)
           state.toFlag(false)
           if str['\n']:
-            str.advance()
+            str.next()
 
         of ' ':
           str.skipWhile({' '})
@@ -77,7 +77,7 @@ proc newMustacheLexer*(): MLexer =
         of '{':
           if str[+1, '{']:
             result.add initTok(mtkCurlyOpen)
-            str.advance(2)
+            str.next(2)
             state.toFlag(true)
 
           else:
@@ -89,19 +89,19 @@ proc newMustacheLexer*(): MLexer =
   return initLexer(lexerImpl, true)
 
 proc parseGetExpr(lexer: var MLexer): MTree =
-  lexer.advance()
+  lexer.next()
   result = lexer.newHTree(makGetExpr)
   if lexer[].kind in {mtkSectionStart, mtkSectionEnd}:
-    lexer.advance()
+    lexer.next()
 
   while lexer[].kind in {mtkIdent, mtkDot}:
     if lexer[].kind == mtkIdent:
       result.add newHTree(makIdent, lexer.pop())
 
     else:
-      lexer.advance()
+      lexer.next()
 
-  lexer.advance()
+  lexer.next()
 
 
 proc parseStmtList(lexer: var MLexer): MTree =
@@ -128,9 +128,9 @@ proc parseStmtList(lexer: var MLexer): MTree =
             raiseImplementError("")
 
           of mtkPartial:
-            lexer.advance()
+            lexer.next()
             result.add newHTree(makPartial, lexer.pop())
-            lexer.advance()
+            lexer.next()
 
           of mtkSectionEnd:
             return

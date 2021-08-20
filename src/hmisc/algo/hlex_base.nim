@@ -32,6 +32,9 @@ type
 
   LineCol* = tuple[line: int, column: int]
 
+  PosStrPoint* = object
+    pos, line, column: int
+
   PosStr* = object
     ## Input character stream, either based on input stream, or indexing in
     ## parts of already existing buffer.
@@ -476,6 +479,28 @@ proc peekSlice*(str; rightShift: int = -1): PosStr =
   finishSlice(str, rightShift)
   return initPosStr(str, popSlice = false)
 
+proc sliceBetween*(str; start, finish: PosStrPoint): PosStr =
+  result = PosStr(
+    isSlice: true, line: start.line,
+    column: start.column,
+    pos: start.pos,
+    baseStr: tern(str.isSlice, str.baseStr, addr str.str)
+  )
+
+  if str.isSlice:
+    raise newImplementError()
+    # for slice in str.slices:
+    #   if start.pos <= slice.start and start.finish <= finish.pos:
+    #     result.slices.add slice
+
+    #   else:
+
+
+  else:
+    result.slices.add posStrSlice(
+      start.pos, finish.pos, start.line, start.column)
+
+
 proc toggleBuffer*(str; activate: bool = not str.bufferActive) {.inline.} =
   str.bufferActive = activate
 
@@ -624,7 +649,7 @@ proc getBaseStr*(str: PosStr): string =
   else:
     str.str
 
-proc advance*(
+proc next*(
     str; step: int = 1, byteAdvance: bool = false) =
 
   if step < 0:
@@ -718,15 +743,25 @@ proc advance*(
       else:
         inc(str.pos, byteCount)
 
-proc getPos*(str: PosStr): int =
+
+proc advance*(str; step: int = 1, byteAdvance: bool = false)
+  {.deprecated: "Alias for `next`".} =
+  next(str, step, byteAdvance)
+
+proc back*(str; step: int = 1) =
+  next(str, step * -1)
+
+proc getPos*(str: PosStr, offset: int = 0): PosStrPoint =
   ## - TODO should return position, line, column as well (just save whole
   ##   positional string state at once to simplify restoration)
-  str.pos
+  PosStrPoint(
+    pos: str.pos + offset,
+    line: str.line, column: str.column + offset)
 
-proc setPos*(str; pos: int): int =
+proc setPos*(str; pos: PosStrPoint) =
   ## - TODO backtrack over slice indices, raise exception if values
   ##   is out of range etc.
-  str.pos = pos
+  str.pos = pos.pos
 
 proc popPointSlice*(
     str;
@@ -739,18 +774,23 @@ proc popPointSlice*(
 
   else:
     str.startSlice()
-    str.advance(advance)
+    str.next(advance)
     return str.popSlice()
 
 proc skip*(str; ch: char) {.inline.} =
   if str[] != ch:
    raise newUnexpectedCharError(str, $ch)
-  str.advance()
+  str.next()
 
 proc skip*(str; ch: set[char]) {.inline.} =
   if str[] notin ch:
    raise newUnexpectedCharError(str, $ch)
-  str.advance()
+  str.next()
+
+proc skipBack*(str; ch: set[char]) {.inline.} =
+  if str[] notin ch:
+   raise newUnexpectedCharError(str, $ch)
+  str.next(-1)
 
 proc peek*(str; ch: set[char]) =
   if str[] notin ch:
@@ -758,7 +798,7 @@ proc peek*(str; ch: set[char]) =
 
 proc trySkip*(str; s: string): bool =
   if str[s]:
-    str.advance(s.len)
+    str.next(s.len)
     result = true
 
   else:
@@ -771,22 +811,22 @@ proc trySkip*(str; ch: char): bool  =
     result = false
 
   else:
-    str.advance()
+    str.next()
     result = true
 
 proc skipWhile*(str; chars: set[char]) {.inline.} =
   if str[chars]:
     while str[chars]:
-      str.advance()
+      str.next()
 
 proc skipUntil*(str; chars: set[char], including: bool = false) {.inline.} =
   var changed = false
   while str[AllChars - chars]:
-    str.advance()
+    str.next()
     changed = true
 
   if changed and including and ?str:
-    str.advance()
+    str.next()
 
 proc skipToEOL*(str) =
   ## Skip to the end of current line. After parsing cursor is positioned on
@@ -818,6 +858,17 @@ proc goToEof*(str; byteAdvance: bool = false) =
       while str.str[str.pos] in Utf8Continuations:
         dec str.pos
 
+proc gotoSof*(str; byteAdvance: bool = false) =
+  if str.isSlice:
+    let s = str.slices.first()
+    str.pos = s.start
+    str.line = s.line
+    str.column = s.column
+
+  else:
+    str.line = 0
+    str.column = 0
+    str.pos = 0
 
 proc skipToNewline*(str) =
   ## Skip until end of the current line is found. After parsing cursor is
@@ -828,7 +879,7 @@ proc skipToNewline*(str) =
 proc skipIndent*(str; maxIndent = high(int)): int =
   while str[HorizontalSpace]:
     inc result
-    str.advance()
+    str.next()
     if result >= maxIndent:
       break
 
@@ -889,35 +940,35 @@ proc peekStr*(str; chars: int): string =
 
 proc pop*(str: var PosStr): char {.inline.} =
   result = str[]
-  str.advance()
+  str.next()
 
 proc popChar*(str: var PosStr): char {.inline.} =
   result = str[]
-  str.advance()
+  str.next()
 
 proc skipStringLit*(str: var PosStr) =
   var found = false
-  str.advance()
+  str.next()
   while not found:
     found = str['"'] and not str[-1, '\\']
-    str.advance()
+    str.next()
 
 
 proc popStringLit*(str: var PosStr): string {.inline.} =
   str.pushRange()
   str.skipStringLit()
   result = str.popRange()
-  # str.advance()
+  # str.next()
 
 
 proc popDigit*(str: var PosStr): string {.inline.} =
   str.pushRange()
   if str["0x"]:
-    str.advance(2)
+    str.next(2)
     str.skipWhile(HexDigits + {'-'})
 
   if str["0b"]:
-    str.advance(2)
+    str.next(2)
     str.skipWhile({'0', '1'})
 
   else:
@@ -983,7 +1034,7 @@ proc skipBalancedSlice*(
         return
 
     else:
-      str.advance()
+      str.next()
 
   if fullcount > 0 and doRaise:
     unbalanced()
@@ -1003,14 +1054,14 @@ proc popBalancedSlice*(
 
 proc popNext*(str; count: int): string {.inline.} =
   str.pushRange()
-  str.advance(count)
+  str.next(count)
   return str.popRange()
 
 proc popBacktickIdent*(str): string {.inline.} =
   if ?str and str[] == '`':
-    str.advance()
+    str.next()
     result = str.popUntil({'`'})
-    str.advance()
+    str.next()
 
   else:
     result = str.popIdent()
@@ -1024,14 +1075,14 @@ proc readLine*(str; skipNl: bool = true): string =
       return
 
   if skipNl:
-    str.advance()
+    str.next()
 
   else:
     result.add str.pop()
 
 proc skipLine*(str) =
-  while not str['\n'] and not str.finished(): str.advance()
-  str.advance()
+  while not str['\n'] and not str.finished(): str.next()
+  str.next()
 
 import std/re
 import ../other/rx
@@ -1069,5 +1120,5 @@ proc cut*(str; rx: Rx | Regex, fill: int = 128): string =
   let rx = toRegex(rx)
   let match = matchLen(str, rx)
   str.pushRange()
-  str.advance(match)
+  str.next(match)
   result = str.popRange()
