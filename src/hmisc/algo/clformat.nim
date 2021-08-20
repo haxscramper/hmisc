@@ -269,9 +269,12 @@ func toLatinNamedChar*(ch: char): seq[string] =
     of 'x': @["lowercase", "x"]
     of 'y': @["lowercase", "y"]
     of 'z': @["lowercase", "z"]
-    of char(0b1100_0000): @["utf8", "two", "byte", "lead"]
-    of char(0b1110_0000): @["utf8", "three", "byte", "lead"]
-    of char(0b1111_0000): @["utf8", "four", "byte", "lead"]
+
+    of Utf8Continuations: @["utf8", "continuation"]
+    of Utf8Starts2: @["utf8", "two", "byte", "lead"]
+    of Utf8Starts3: @["utf8", "three", "byte", "lead"]
+    of Utf8Starts4: @["utf8", "four", "byte", "lead"]
+
     else: @[$ch]
 
 func toLatinAbbrChar*(ch: char): string =
@@ -718,23 +721,18 @@ func asciiName*(ch: char, slash: bool = false): string =
   extendedAsciinames[ch]
 
 func describeChar*(ch: char): string =
-  if ch in { '\x80' .. '\xFF' }:
-    result.add  "\\x"
-    result.add toHex(ch.uint8)
+  case ch:
+    of { '\x00' .. '\x1F' } - { '\n', '\t' } + { '\x80' .. '\xFF' }:
+      result.add "\\x"
+      result.add toHex(ch.uint8)
 
-  else:
-    case ch:
-      of { '\x00' .. '\x1F' } - { '\n', '\t' }:
-        result.add "\\x"
-        result.add toHex(ch.uint8)
+    of '\n': result.add "\\n"
+    of '\t': result.add "\\t"
+    else: result.add $ch
 
-      of '\n': result.add "\\n"
-      of '\t': result.add "\\t"
-      else: result.add $ch
-
-    result.add " ("
-    result.add toLatinNamedChar(ch).join(" ")
-    result.add ")"
+  result.add " ("
+  result.add toLatinNamedChar(ch).join(" ")
+  result.add ")"
 
 import pkg/unicodedb
 
@@ -1359,6 +1357,16 @@ func formatStringified*(str: string): string =
 
   elif str.len == 1 and str[0] in { '\x80' .. '\xFF' }:
     result.add str[0].describeChar()
+
+  elif (str[0] in Utf8Starts2 and str.len == 2) or
+       (str[0] in Utf8Starts3 and str.len == 3) or
+       (str[0] in Utf8Starts4 and str.len == 4):
+    result.add "\'"
+    result.add str
+    result.add "\' ("
+    result.add runeAt(str, 0).name().toLowerAscii()
+    result.add ")"
+
 
   else:
     return str

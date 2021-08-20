@@ -569,10 +569,49 @@ suite "Primitives":
       var str = varStr("0123")
       check:
         str[] == '0'
+        str.pos == 0
+        str.column == 0
 
       str.goToEof()
       check:
         str[] == '3'
+        str.pos == 3
+        str.column == 3
+
+    block backwards_over_ascii:
+      var str = varStr("0123")
+      str.gotoEof()
+      str.advance(-1)
+      check:
+        str[] == '2'
+        str.pos == 2
+        str.column == 2
+        str.line == 0
+
+    block backwards_over_unicode:
+      # TODO test backwards advance over regular characters,
+      # TODO test advance over unicode in 'byteAdvance' mode
+
+      var str = varStr("бвг")
+      str.gotoEof()
+      check:
+        ## By default (`byteAdvance: bool = false`) gotoEof moves to the
+        ## last unicode rune in available input.
+        str[] == "г"[0]
+        str.runeAt() == uc"г"
+        str.column == 2
+        ## Final position is 5, but it contains unicode continuation rune,
+        ## so correction was made
+        str.pos == 4
+
+      ## Move back one unicode rune
+      str.advance(-1)
+
+      check:
+        str[] == "в"[0]
+        str.runeAt() == uc"в"
+        str.column == 1
+        str.pos == 2
 
 
 

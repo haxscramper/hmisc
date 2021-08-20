@@ -1,6 +1,6 @@
 import std/[strutils, macros]
 
-import ./colored
+import ./colored, ./algorithms
 
 var doLog {.compiletime.}: bool = false
 var doLogRuntime: bool = false
@@ -178,6 +178,18 @@ template echov*(variable: untyped, other: varargs[string, `$`]): untyped =
               of '\t': "\\t"
               of '\r': "\\r"
               of '\x00': "\\x00"
+              of Utf8Continuations:
+                "\\x" & toHex(variable.uint8) & " (utf8 continuation)"
+
+              of Utf8Starts2:
+                "\\x" & toHex(variable.uint8)  & " (utf8 two byte lead)"
+
+              of Utf8Starts3:
+                "\\x" & toHex(variable.uint8)  & " (utf8 three byte lead)"
+
+              of Utf8Starts4:
+                "\\x" & toHex(variable.uint8)  & " (utf8 four byte lead)"
+
               else: vart
 
           vart = "'" & vart & "'"

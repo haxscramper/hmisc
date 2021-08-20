@@ -248,6 +248,12 @@ suite "Colored string":
     # echo err.toColorString()
 
 suite "clformat":
+  test "Describe chars":
+    show:
+      describeChar('.')
+      describeChar("б"[0])
+      describeChar("б"[1])
+
   test "не-ASCII":
     echo hshow("юникод\n\n")
     echo toColoredText("юникод")

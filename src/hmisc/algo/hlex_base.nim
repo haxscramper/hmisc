@@ -84,9 +84,7 @@ const
   HighAsciiLetters*   = {'A' .. 'Z'}
   AsciiLetters*       = LowerAsciiLetters + HighAsciiLetters
   AnyRegularAscii*    = { '\x00' .. '\x7F' }
-  UnicodeStarts*      = { '\x80' .. '\xFF' }
-  MaybeLetters*       = AsciiLetters + UnicodeStarts
-
+  MaybeLetters*       = AsciiLetters + Utf8Any
   IntegerStartChars*  = {'0' .. '9', '-', '+'}
   HexDigitsLow*       = {'a', 'b', 'c', 'd', 'e', 'f'} + Digits
   HexDigitsHigh*      = {'A', 'B', 'C', 'D', 'E', 'F'} + Digits
@@ -619,58 +617,106 @@ template asRange*(expr: untyped): untyped =
   str.popRange()
 
 
+proc getBaseStr*(str: PosStr): string =
+  if str.isSlice:
+    str.baseStr[]
+
+  else:
+    str.str
+
 proc advance*(
-    str; step: int = 1, byteAdvance: bool = false) {.hcov.} =
+    str; step: int = 1, byteAdvance: bool = false) =
 
-  for diff in 0 ..< step:
-    let byteCount =
-      if byteAdvance:
-        1
+  if step < 0:
+    for diff in 0 ..< -step:
+      var byteCount = 1
+      if not byteAdvance:
+        var pos = str.pos
+
+        if str.getBaseStr()[pos] in Utf8Continuations:
+          dec byteCount
+
+        elif str.getBaseStr()[pos] in Utf8Starts:
+          # At the start of utf8 rune, need to advance backwards to the
+          # previous one
+          dec pos
+
+        while str.getBaseStr()[pos] in Utf8Continuations:
+          # Search backwards until start of the utf is not found
+          inc byteCount
+          dec pos
+
+
+      if str.getBaseStr()[str.pos] == '\n':
+        dec str.line
+        # TODO correct column number (scan backwards until next newline/SOF)
 
       else:
-        if str.isSlice:
-          graphemeLen(str.baseStr[], str.pos)
+        dec str.column
+
+      if str.isSlice:
+        if (str.pos - byteCount) < str.slices[str.sliceIdx].start:
+          dec str.pos, byteCount
+          dec str.sliceIdx
 
         else:
-          graphemeLen(str.str, str.pos)
+          dec str.pos, byteCount
 
-    if str['\n']:
-      inc str.line
-      str.column = 0
+      else:
+        dec str.pos, byteCount
 
-    else:
-      inc str.column
 
-    if str.isSlice:
-      if str.pos < str.slices[str.sliceIdx].finish:
+
+  else:
+    for diff in 0 ..< step:
+      let byteCount =
+        if byteAdvance:
+          1
+
+        else:
+          if str.isSlice:
+            graphemeLen(str.baseStr[], str.pos)
+
+          else:
+            graphemeLen(str.str, str.pos)
+
+      if str['\n']:
+        inc str.line
+        str.column = 0
+
+      else:
+        inc str.column
+
+      if str.isSlice:
+        if str.pos < str.slices[str.sliceIdx].finish:
+          inc(str.pos, byteCount)
+          for fragment in mitems(str.fragmentedRanges):
+            fragment.last().finish = str.pos
+
+
+        else:
+          var current = str.pos
+
+          inc str.sliceIdx
+          if str.sliceIdx < str.slices.len:
+            str.pos = str.slices[str.sliceIdx].start
+
+          else:
+            inc current
+            inc str.pos
+
+          for fragment in mitems(str.fragmentedRanges):
+            if fragment.len > 0:
+              fragment.last().finish = current
+              if str.sliceIdx < str.slices.len:
+                fragment.add posStrSlice(
+                  str.pos,
+                  str.pos,
+                  str.line,
+                  str.column)
+
+      else:
         inc(str.pos, byteCount)
-        for fragment in mitems(str.fragmentedRanges):
-          fragment.last().finish = str.pos
-
-
-      else:
-        var current = str.pos
-
-        inc str.sliceIdx
-        if str.sliceIdx < str.slices.len:
-          str.pos = str.slices[str.sliceIdx].start
-
-        else:
-          inc current
-          inc str.pos
-
-        for fragment in mitems(str.fragmentedRanges):
-          if fragment.len > 0:
-            fragment.last().finish = current
-            if str.sliceIdx < str.slices.len:
-              fragment.add posStrSlice(
-                str.pos,
-                str.pos,
-                str.line,
-                str.column)
-
-    else:
-      inc(str.pos, byteCount)
 
 proc getPos*(str: PosStr): int =
   ## - TODO should return position, line, column as well (just save whole
@@ -747,12 +793,15 @@ proc skipToEOL*(str) =
   ## the last character in the string, or closes newline.
   str.skipUntil(Newline, including = true)
 
-proc goToEof*(str) =
+proc goToEof*(str; byteAdvance: bool = false) =
   if str.isSlice:
     let s = str.slices.last()
     str.pos = s.finish
     str.line = s.line
     str.column = s.column + (s.finish -  s.start)
+    if not byteAdvance:
+      while str.baseStr[][str.pos] in Utf8Continuations:
+        dec str.pos
 
   else:
     for rune in runes(str.str[str.pos .. ^1]):
@@ -763,7 +812,11 @@ proc goToEof*(str) =
       else:
         inc str.column
 
+    dec str.column
     str.pos = str.str.high
+    if not byteAdvance:
+      while str.str[str.pos] in Utf8Continuations:
+        dec str.pos
 
 
 proc skipToNewline*(str) =

@@ -4,6 +4,19 @@ import
 import
   ./gold
 
+const
+  Utf8Any*            = { '\x80' .. '\xFF' }
+  Utf8Continuations*  = { char(0b1000_0000) .. char(0b1011_1111) } ##
+                        ## Utf8 continuation
+  Utf8Starts2*        = { char(0b1100_0000) .. char(0b1101_1111) }
+                        ## Start of the two-byte utf8 rune
+  Utf8Starts3*        = { char(0b1110_0000) .. char(0b1110_1111) }
+                        ## Start of the three-byte utf8 rune
+  Utf8Starts4*        = { char(0b1111_0000) .. char(0b1111_0111) }
+                        ## Start of the four-byte utf8 rune
+  Utf8Starts*         = Utf8Starts2 + Utf8Starts3 + Utf8Starts4
+                        ## Start of any utf8 rune
+
 
 
 template mergeUniqByIt*(sequence, operation: untyped): untyped =
