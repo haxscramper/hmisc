@@ -308,6 +308,9 @@ proc report(context: TestContext, report: TestReport) =
         echo pad, "# ".to8Bit(0, 2, 2), to8Bit(line, 0, 2, 2)
 
     of trkTimeStats:
+      # TODO show relative average/min time for group of reports. Store
+      # list of reports and provide complete teardown when block/test is
+      # ended
       if not context.shownHeader:
         echo pad, "[TIME] "
         context.shownHeader = true
