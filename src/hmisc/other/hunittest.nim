@@ -1379,7 +1379,9 @@ template timeIt*(
       let start = nowMs()
 
       block:
+        {.emit: "/* timeIt " & testName & " start block */".}
         body
+        {.emit: "/* timeIt " & testName & " end block */".}
 
       let finish = nowMs()
 

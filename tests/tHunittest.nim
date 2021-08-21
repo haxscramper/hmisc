@@ -74,6 +74,11 @@ suite "Simple checks":
   test "equality":
     check 12 == 12
 
+  test "timeIt":
+    timeIt "add numbers":
+      let a = 2 + 3
+      let b = a + 2
+
 # suite "structdiff":
 #   test "different fields":
 #     type
