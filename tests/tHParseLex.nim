@@ -1426,7 +1426,9 @@ suite "Simple org-mode":
       else:
         case str[]:
           of '*':
-            result.add str.initTok(asSlice str.skipWhile({'*'}), osSubtreeStars)
+            result.add str.initTok(
+              asSlice str.skipWhile({'*'}), osSubtreeStars)
+
             str.skip({' '})
             var body = asSlice str.skipToEol()
 

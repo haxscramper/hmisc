@@ -11,6 +11,13 @@ type
   Vtable* = object
     table: PUarray[ProcBox]
 
+func `$`*(box: ProcBox): string =
+  result.add "ProcBox(impl: "
+  result.add $cast[int](box.impl)
+  result.add ", env: "
+  result.add $cast[int](box.env)
+  result.add ")"
+
 # proc tableLen*(vt: VTable): int = cast[int](vt.table[0])
 proc newVtable*(procs: openarray[ProcBox]): Vtable =
   result.table = allocPUarray[ProcBox](procs.len)

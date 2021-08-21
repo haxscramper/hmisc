@@ -259,6 +259,19 @@ suite "Other tests":
       var arr: array[en1 .. en2, string]
       show pstring(arr)
 
+suite "Extra features":
+  test "extra fields":
+    type
+      ExtraType = object
+        name: string
+
+    pprint(
+      ExtraType(),
+      extraFields = @[
+        pprintExtraField(ExtraType, "nameLen", newPPrintConst($it.name.len))
+      ]
+    )
+
 when false:
   # TODO test this
   pprint(

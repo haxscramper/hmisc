@@ -16,7 +16,8 @@ import
     algo/hseq_mapping,
     algo/hseq_distance,
     algo/halgorithm,
-    algo/clformat
+    algo/clformat,
+    algo/procbox
   ]
 
 type
@@ -60,7 +61,7 @@ type
   PPrintPath* = seq[PPrintPathElem]
   PPrintLytChoice* = tuple[line, stack: bool]
   PPrintLytForce* = tuple[match: PprintMatch, force: PPrintLytChoice]
-
+  PPrintExtraField* = tuple[match: PPrintMatch, impl: ProcBox]
 
 
   PPrintGlobPart = object
@@ -83,6 +84,7 @@ type
     ignorePaths*: PPrintMatch
     stringPaths*: PPrintMatch
     forceLayouts*: seq[PPrintLytForce]
+    extraFields*: seq[PPrintExtraField]
 
     showTypes*: bool
     maxStackHeightChoice*: int
@@ -173,6 +175,15 @@ proc pathElem*(typename: PPrintType): PPrintPathElem =
 
 proc pathElem*(idx: int): PPrintPathElem =
   PPrintPathElem(kind: ppkIndex, idx: idx)
+
+template pprintExtraField*(
+    typename: untyped, fieldName: string, body: untyped): untyped =
+  (
+    matchType(astToStr(typename)),
+    toProcBox(
+      proc(it {.inject.}: typename): (string, PPrintTree) = (fieldName, body)
+    )
+  )
 
 func `$`*(part: PPrintGlobPart): string =
   "[" & ($part.kind)[3..^1] & " " & (if part.kind == ggkWord: part.name else: "") & "]"
@@ -723,7 +734,7 @@ proc toPprintTree*[T](
 
     elif not (entry is Option) and
          (
-           (entry is object) or # objects
+           (entry is object) or
            (entry is tuple) or
            (entry is ref object) or
            (entry is ref tuple) or
@@ -785,6 +796,11 @@ proc toPprintTree*[T](
 
           if res.kind notin {ptkIgnored}:
             result.elements.add((name, res))
+
+      for (pattern, impl) in conf.extraFields:
+        if pattern.matches(path):
+          result.elements.add impl.callAs(
+            proc(e: T): (string, PPrintTree), entry)
 
 
     elif (entry is proc): # proc type
@@ -1142,6 +1158,7 @@ proc pstring*[T](
     force: openarray[(PPrintMatch, PPrintLytChoice)] = @[],
     ignore: PPrintMatch = PPrintMatch(),
     conf: PPrintConf = defaultPPrintConf,
+    extraFields: seq[PPrintExtraField] = @[]
   ): string =
 
   var conf = conf
@@ -1150,7 +1167,8 @@ proc pstring*[T](
 
     conf.formatOpts.rightMargin = rightMargin
 
-  conf.forceLayouts.add  toSeq(force)
+  conf.forceLayouts.add toSeq(force)
+  conf.extraFields.add toSeq(extraFields)
   conf.ignorePaths = ignore
 
 
@@ -1160,13 +1178,19 @@ proc pstring*[T](
 
 
 proc pprint*[T](
-    obj: T, rightMargin: int = 80,
+    obj: T,
+    rightMargin: int = 80,
     force: openarray[(PPrintMatch, PPrintLytChoice)] = @[],
     ignore: PPrintMatch = PPrintMatch(),
-    conf: PPrintConf = defaultPPrintConf
+    conf: PPrintConf = defaultPPrintConf,
+    extraFields: seq[PPrintExtraField] = @[]
   ) =
 
-  echo pstring(obj, rightMargin, force, ignore, conf = conf)
+  echo pstring(
+    obj, rightMargin, force, ignore,
+    conf = conf,
+    extraFields = extraFields
+  )
 
 import std/macros
 
