@@ -921,7 +921,7 @@ func updateSizes(bk: var LytBlock) =
       of bkChoice: true
       else: false
 
-  if bk.kind in { bkVerb, bkLine, bkStack } and bk.elements.len > 0:
+  if bk.kind in { bkChoice , bkLine, bkStack } and bk.elements.len > 0:
     bk.isBreaking = bk.elements[0].isBreaking
 
 
@@ -1162,7 +1162,122 @@ func makeTextOrVerbBlock*(
       result = makeTextBlock(text, breakMult)
 
 
+func makeForceLinebreak*(text: string = ""): LytBlock =
+  makeVerbBlock(@[text], true, false)
 
+func makeLineCommentBlock*(
+  text: string, prefix: string = "# "): LytBlock =
+  makeVerbBlock(@[prefix & text])
+
+func add*(target: var LytBlock, other: varargs[LytBlock]) =
+  for bl in other:
+    let bl = bl.flatten({bkLine})
+    assert not isNil(bl)
+    if bl.kind != bkEmpty:
+      if bl.kind == target.kind and bl.kind in {bkStack, bkLine}:
+        target.elements.add bl.elements
+
+      elif target.kind == bkLine and
+           target.elements.len > 0 and
+           target.elements[^1].kind == bkText and
+           bl.kind == bkText:
+
+        target.elements[^1].text.text.add bl.text.text
+        target.elements[^1].minWidth += bl.text.len
+
+      elif target.kind == bkText and bl.kind == bkText:
+        target.text.text.add bl.text.text
+
+      elif target.kind == bkWrap:
+        target.wrapElements.add bl
+
+      else:
+        target.elements.add bl
+
+  updateSizes(target)
+
+#============================  Layout logic  =============================#
+
+proc doOptLayout*(
+  self: var LytBlock,
+  rest: var Option[LytSolution], opts: LytOptions): Option[LytSolution]
+
+proc optLayout(
+    self: var LytBlock,
+    rest: var Option[LytSolution],
+    opts: LytOptions
+  ): Option[LytSolution] =
+  ## Retrieve or compute the least-cost (optimum) layout for this block.
+  ## - @arg{rest} :: text to the right of this block.
+  ## - @ret{} :: Optimal layout for this block and the rest of the line.
+  # Deeply-nested choice block may result in the same continuation
+  # supplied repeatedly to the same block. Without memoisation, this
+  # may result in an exponential blow-up in the layout algorithm.
+  if rest notin self.layoutCache:
+    self.layoutCache[rest] = self.doOptLayout(rest, opts)
+
+  return self.layoutCache[rest]
+
+proc doOptTextLayout(
+  self: LytBlock,
+  rest: var Option[LytSolution], opts: LytOptions): Option[LytSolution] =
+
+  let
+    span = len(self.text)
+    layout = initLayout(@[lytString(self.text)])
+  # The costs associated with the layout of this block may require 1, 2 or 3
+  # knots, depending on how the length of the text compares with the two
+  # margins (leftMargin and rightMargin) in opts. Note that we assume
+  # opts.rightMargin >= opts.leftMargin >= 0, as asserted in base.Options.Check().
+  if span >= opts.rightMargin:
+    result = some initSolution(
+      @[0],
+      @[span],
+      @[float(
+        (span - opts.leftMargin) * opts.leftMarginCost +
+        (span - opts.rightMargin) * opts.rightMargin)],
+      @[float(opts.leftMarginCost + opts.rightMarginCost)],
+      @[layout]
+    )
+
+  elif span >= opts.leftMargin:
+    result = some initSolution(
+      @[0, opts.rightMargin - span],
+      @[span, span], # XXXX
+      @[float((span - opts.leftMargin) * opts.leftMarginCost),
+        float((opts.rightMargin - opts.leftMargin) * opts.leftMarginCost)],
+      @[float(opts.leftMarginCost), float(opts.leftMarginCost + opts.rightMarginCost)],
+      @[layout, layout] # XXXX
+    )
+  else:
+    result = some initSolution(
+      @[0, opts.leftMargin - span, opts.rightMargin - span],
+      @[span, span, span], # XXXX
+      @[float(0), float(0), float((opts.rightMargin - opts.leftMargin) * opts.leftMarginCost)],
+      @[float(0), float(opts.leftMarginCost), float(opts.leftMarginCost + opts.rightMarginCost)],
+      @[layout, layout, layout] # XXXX
+    )
+
+  return result.withRestOfLine(rest, opts)
+
+
+proc doOptLineLayout(
+    self: var LytBlock,
+    rest: var Option[LytSolution],
+    opts: LytOptions
+  ): Option[LytSolution] =
+
+  assert self != nil
+  if self.elements.len == 0:
+    return rest
+
+  var elementLines: seq[seq[LytBlock]] = @[]
+  elementLines.add @[]
+
+  for i, elt in self.elements:
+    elementLines[^1].add elt
+
+    if i < self.elements.high() and elt.isBreaking:
       elementLines.add @[]
 
   if len(elementLines) > 1:
