@@ -10,6 +10,7 @@ import
 import
   hmisc/other/hpprint,
   hmisc/algo/halgorithm,
+  hmisc/types/colorstring,
   hmisc/preludes/unittest
 
 startHax()
@@ -259,6 +260,8 @@ suite "Other tests":
       var arr: array[en1 .. en2, string]
       show pstring(arr)
 
+import hmisc/algo/[hparse_base, hlex_base]
+
 suite "Extra features":
   test "extra fields":
     type
@@ -271,6 +274,42 @@ suite "Extra features":
         pprintExtraField(ExtraType, "nameLen", newPPrintConst($it.name.len))
       ]
     )
+
+  test "Token list":
+    var str = "10293480129480123"
+    type En = enum ostCommandPrefix
+    let tokens = @[
+      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: addr str, finish: 2)
+    ]
+
+    pprint(
+      tokens,
+      ignore = matchField("baseStr"),
+      extraFields = @[
+        pprintExtraField(
+          "HsTok", HsTok[En], "str",
+          newPprintConst(
+            "\"" & it.strVal() & "\"", fgYellow + bgDefault))
+      ]
+    )
+
+
 
 when false:
   # TODO test this

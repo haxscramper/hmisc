@@ -708,7 +708,7 @@ wrapSeqContainer(
   ColoredText.runes, ColoredRune, extra = ["@"])
 
 
-func isNewline*(rune: ColoredRune): bool = rune.rune == Rune(10)
+func isNewline*(rune: ColoredRune): bool = rune.rune == Rune(int('\n'))
 func toLower*(text: sink ColoredText): ColoredText =
   result = text
   for rune in mitems(text.runes):
@@ -759,6 +759,7 @@ iterator lines*(text: ColoredText): ColoredRuneLine =
   var buf: ColoredRuneLine
   for rune in text.runes:
     if rune.isNewline:
+      echov buf
       yield buf
       buf.setLen(0)
 
@@ -766,6 +767,7 @@ iterator lines*(text: ColoredText): ColoredRuneLine =
       buf.add rune
 
   if buf.len > 0:
+    echov buf
     yield buf
 
 func width*(text: ColoredText): int =
@@ -952,6 +954,13 @@ func ansiDiff*(s1, s2: PrintStyling): string =
     else:
       if s2.fg != s1.fg: result &= ansiEsc(s2.fg.int)
       if s2.bg != s1.bg: result &= ansiEsc(s2.bg.int)
+
+func toString*(rune: ColoredRune, color: bool = true): string =
+  if color:
+    raise newImplementError()
+
+  else:
+    result = $rune.rune
 
 func toString*(runes: seq[ColoredRune], color: bool = true): string =
   if color:
@@ -1994,8 +2003,23 @@ func splitSGR*(str: string): seq[ColoredString] =
   if prev < pos:
     result.add initColoredString(str[prev ..< pos])
 
+
+func stripSgr*(str: string): string =
+  var pos = 0
+  while pos < str.len:
+    if str[pos] == '\e':
+      inc pos, (1 #[\e]# + 1 #[ [ ]# + 2 #[color]# + 1 #[m]#)
+
+    else:
+      result.add str[pos]
+      inc pos
+
 func split*(str: ColoredString, sep: string): seq[ColoredString] =
   for chunk in str.str.split(sep):
+    result.add ColoredString(str: chunk, styling: str.styling)
+
+func splitLines*(str: ColoredString, keepEol: bool = false): seq[ColoredString] =
+  for chunk in str.str.splitLines(keepEol = keepEol):
     result.add ColoredString(str: chunk, styling: str.styling)
 
 func splitColor*(str: string, sep: string): seq[string] =

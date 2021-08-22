@@ -1256,6 +1256,17 @@ func replaceTailNewlines*(
 
   return nlCount
 
+func replaceNewlines*(
+    buf: ColoredText,
+    replaceWith: ColoredRune = uc"⮒" + defaultPrintStyling
+  ): ColoredText =
+  for rune in buf:
+    if isNewline(rune):
+      result.add replaceWith
+
+    else:
+      result.add rune
+
 func addIndent*(
     res: var ColoredText,
     level: int, sep: int = 2,

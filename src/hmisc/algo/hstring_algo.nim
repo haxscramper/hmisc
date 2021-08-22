@@ -535,6 +535,14 @@ func escapeHTML*(input: string): string =
     ("\"", "&quot;")
   ])
 
+
+func escapeStrLit*(input: string): string =
+  input.multiReplace([
+    ("\"", "\\\""),
+    ("\n", "\\n"),
+    ("\\", "\\\\")
+  ])
+
 func enclosedIn*(s: string, delim: string): bool =
   s.enclosedIn((delim, delim))
 

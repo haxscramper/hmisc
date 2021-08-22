@@ -37,6 +37,7 @@ var
   window = newQMainWindow()
   edit = newQTextEdit(window)
 
+
 if false:
   window[].show()
   window[].setCentralWidget(edit)

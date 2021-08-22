@@ -185,6 +185,18 @@ template pprintExtraField*(
     )
   )
 
+
+template pprintExtraField*(
+    typename: string, argtype: untyped,
+    fieldName: string, body: untyped): untyped =
+  (
+    matchType(typename),
+    toProcBox(
+      proc(it {.inject.}: argtype): (string, PPrintTree) = (fieldName, body)
+    )
+  )
+
+
 func `$`*(part: PPrintGlobPart): string =
   "[" & ($part.kind)[3..^1] & " " & (if part.kind == ggkWord: part.name else: "") & "]"
 

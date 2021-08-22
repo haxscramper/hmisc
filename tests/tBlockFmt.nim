@@ -3,7 +3,9 @@ import
 
 import
   hmisc/core/all,
-  hmisc/other/[blockfmt, hunittest]
+  hmisc/other/[blockfmt],
+  hmisc/preludes/unittest,
+  hmisc/types/colorstring
 
 initBlockFmtDSL()
 
@@ -235,3 +237,758 @@ suite "Edge case layouts":
         ]
 
         echo toString(bl)
+
+suite "WIP testing":
+    var line = makeChoiceBlock([
+      makeLineBlock([
+        makeTextBlock("["),
+        makeChoiceBlock([
+          makeLineBlock([
+            makeTextBlock("OrgStructureToken("),
+            makeLineBlock([
+              makeTextBlock("line: "),
+              makeTextBlock("0"),
+              makeTextBlock(", "),
+              makeTextBlock("column: "),
+              makeTextBlock("0"),
+              makeTextBlock(", "),
+              makeTextBlock("offset: "),
+              makeTextBlock("0"),
+              makeTextBlock(", "),
+              makeTextBlock("kind: "),
+              makeTextBlock("ostCommandPrefix"),
+              makeTextBlock(", "),
+              makeTextBlock("isSlice: "),
+              makeTextBlock("true"),
+              makeTextBlock(", "),
+              makeTextBlock("finish: "),
+              makeTextBlock("1"),
+              makeTextBlock(", "),
+              makeTextBlock("extra: "),
+              makeLineBlock([
+                makeTextBlock("[]")]),
+              makeTextBlock(", "),
+              makeTextBlock("strVal: "),
+              makeTextBlock("\"#+\"")]),
+            makeTextBlock(")")]),
+          makeStackBlock([
+            makeTextBlock("OrgStructureToken("),
+            makeLineBlock([
+              makeTextBlock("  "),
+              makeStackBlock([
+                makeLineBlock([
+                  makeTextBlock("line:  "),
+                  makeTextBlock("0")]),
+                makeLineBlock([
+                  makeTextBlock("column: "),
+                  makeTextBlock("0")]),
+                makeLineBlock([
+                  makeTextBlock("offset: "),
+                  makeTextBlock("0")]),
+                makeLineBlock([
+                  makeTextBlock("kind:  "),
+                  makeTextBlock("ostCommandPrefix")]),
+                makeLineBlock([
+                  makeTextBlock("isSlice: "),
+                  makeTextBlock("true")]),
+                makeLineBlock([
+                  makeTextBlock("finish: "),
+                  makeTextBlock("1")]),
+                makeLineBlock([
+                  makeTextBlock("extra: "),
+                  makeLineBlock([
+                    makeTextBlock("[]")])]),
+                makeLineBlock([
+                  makeTextBlock("strVal: "),
+                  makeTextBlock("\"#+\"")])])])])]),
+        makeTextBlock(", "),
+        makeChoiceBlock([
+          makeLineBlock([
+            makeTextBlock("OrgStructureToken("),
+            makeLineBlock([
+              makeTextBlock("line: "),
+              makeTextBlock("0"),
+              makeTextBlock(", "),
+              makeTextBlock("column: "),
+              makeTextBlock("7"),
+              makeTextBlock(", "),
+              makeTextBlock("offset: "),
+              makeTextBlock("7"),
+              makeTextBlock(", "),
+              makeTextBlock("kind: "),
+              makeTextBlock("ostColon"),
+              makeTextBlock(", "),
+              makeTextBlock("isSlice: "),
+              makeTextBlock("true"),
+              makeTextBlock(", "),
+              makeTextBlock("finish: "),
+              makeTextBlock("7"),
+              makeTextBlock(", "),
+              makeTextBlock("extra: "),
+              makeLineBlock([
+                makeTextBlock("[]")]),
+              makeTextBlock(", "),
+              makeTextBlock("strVal: "),
+              makeTextBlock("\":\"")]),
+            makeTextBlock(")")]),
+          makeStackBlock([
+            makeTextBlock("OrgStructureToken("),
+            makeLineBlock([
+              makeTextBlock("  "),
+              makeStackBlock([
+                makeLineBlock([
+                  makeTextBlock("line:  "),
+                  makeTextBlock("0")]),
+                makeLineBlock([
+                  makeTextBlock("column: "),
+                  makeTextBlock("7")]),
+                makeLineBlock([
+                  makeTextBlock("offset: "),
+                  makeTextBlock("7")]),
+                makeLineBlock([
+                  makeTextBlock("kind:  "),
+                  makeTextBlock("ostColon")]),
+                makeLineBlock([
+                  makeTextBlock("isSlice: "),
+                  makeTextBlock("true")]),
+                makeLineBlock([
+                  makeTextBlock("finish: "),
+                  makeTextBlock("7")]),
+                makeLineBlock([
+                  makeTextBlock("extra: "),
+                  makeLineBlock([
+                    makeTextBlock("[]")])]),
+                makeLineBlock([
+                  makeTextBlock("strVal: "),
+                  makeTextBlock("\":\"")])])])])]),
+        makeTextBlock(", "),
+        makeChoiceBlock([
+          makeLineBlock([
+            makeTextBlock("OrgStructureToken("),
+            makeLineBlock([
+              makeTextBlock("line: "),
+              makeTextBlock("0"),
+              makeTextBlock(", "),
+              makeTextBlock("column: "),
+              makeTextBlock("9"),
+              makeTextBlock(", "),
+              makeTextBlock("offset: "),
+              makeTextBlock("9"),
+              makeTextBlock(", "),
+              makeTextBlock("kind: "),
+              makeTextBlock("ostCommandArguments"),
+              makeTextBlock(", "),
+              makeTextBlock("isSlice: "),
+              makeTextBlock("true"),
+              makeTextBlock(", "),
+              makeTextBlock("finish: "),
+              makeTextBlock("37"),
+              makeTextBlock(", "),
+              makeTextBlock("extra: "),
+              makeLineBlock([
+                makeTextBlock("[]")]),
+              makeTextBlock(", "),
+              makeTextBlock("strVal: "),
+              makeVerbBlock(["\"Электротехника", "\""])]),
+            makeTextBlock(")")]),
+          makeStackBlock([
+            makeTextBlock("OrgStructureToken("),
+            makeLineBlock([
+              makeTextBlock("  "),
+              makeStackBlock([
+                makeLineBlock([
+                  makeTextBlock("line:  "),
+                  makeTextBlock("0")]),
+                makeLineBlock([
+                  makeTextBlock("column: "),
+                  makeTextBlock("9")]),
+                makeLineBlock([
+                  makeTextBlock("offset: "),
+                  makeTextBlock("9")]),
+                makeLineBlock([
+                  makeTextBlock("kind:  "),
+                  makeTextBlock("ostCommandArguments")]),
+                makeLineBlock([
+                  makeTextBlock("isSlice: "),
+                  makeTextBlock("true")]),
+                makeLineBlock([
+                  makeTextBlock("finish: "),
+                  makeTextBlock("37")]),
+                makeLineBlock([
+                  makeTextBlock("extra: "),
+                  makeLineBlock([
+                    makeTextBlock("[]")])]),
+                makeLineBlock([
+                  makeTextBlock("strVal: "),
+                  makeVerbBlock(["\"Электротехника", "\""])])])])])]),
+        makeTextBlock(", "),
+        makeChoiceBlock([
+          makeLineBlock([
+            makeTextBlock("OrgStructureToken("),
+            makeLineBlock([
+              makeTextBlock("line: "),
+              makeTextBlock("1"),
+              makeTextBlock(", "),
+              makeTextBlock("column: "),
+              makeTextBlock("0"),
+              makeTextBlock(", "),
+              makeTextBlock("offset: "),
+              makeTextBlock("38"),
+              makeTextBlock(", "),
+              makeTextBlock("kind: "),
+              makeTextBlock("ostCommandPrefix"),
+              makeTextBlock(", "),
+              makeTextBlock("isSlice: "),
+              makeTextBlock("true"),
+              makeTextBlock(", "),
+              makeTextBlock("finish: "),
+              makeTextBlock("39"),
+              makeTextBlock(", "),
+              makeTextBlock("extra: "),
+              makeLineBlock([
+                makeTextBlock("[]")]),
+              makeTextBlock(", "),
+              makeTextBlock("strVal: "),
+              makeTextBlock("\"#+\"")]),
+            makeTextBlock(")")]),
+          makeStackBlock([
+            makeTextBlock("OrgStructureToken("),
+            makeLineBlock([
+              makeTextBlock("  "),
+              makeStackBlock([
+                makeLineBlock([
+                  makeTextBlock("line:  "),
+                  makeTextBlock("1")]),
+                makeLineBlock([
+                  makeTextBlock("column: "),
+                  makeTextBlock("0")]),
+                makeLineBlock([
+                  makeTextBlock("offset: "),
+                  makeTextBlock("38")]),
+                makeLineBlock([
+                  makeTextBlock("kind:  "),
+                  makeTextBlock("ostCommandPrefix")]),
+                makeLineBlock([
+                  makeTextBlock("isSlice: "),
+                  makeTextBlock("true")]),
+                makeLineBlock([
+                  makeTextBlock("finish: "),
+                  makeTextBlock("39")]),
+                makeLineBlock([
+                  makeTextBlock("extra: "),
+                  makeLineBlock([
+                    makeTextBlock("[]")])]),
+                makeLineBlock([
+                  makeTextBlock("strVal: "),
+                  makeTextBlock("\"#+\"")])])])])]),
+        makeTextBlock(", "),
+        makeChoiceBlock([
+          makeLineBlock([
+            makeTextBlock("OrgStructureToken("),
+            makeLineBlock([
+              makeTextBlock("line: "),
+              makeTextBlock("1"),
+              makeTextBlock(", "),
+              makeTextBlock("column: "),
+              makeTextBlock("9"),
+              makeTextBlock(", "),
+              makeTextBlock("offset: "),
+              makeTextBlock("47"),
+              makeTextBlock(", "),
+              makeTextBlock("kind: "),
+              makeTextBlock("ostColon"),
+              makeTextBlock(", "),
+              makeTextBlock("isSlice: "),
+              makeTextBlock("true"),
+              makeTextBlock(", "),
+              makeTextBlock("finish: "),
+              makeTextBlock("47"),
+              makeTextBlock(", "),
+              makeTextBlock("extra: "),
+              makeLineBlock([
+                makeTextBlock("[]")]),
+              makeTextBlock(", "),
+              makeTextBlock("strVal: "),
+              makeTextBlock("\":\"")]),
+            makeTextBlock(")")]),
+          makeStackBlock([
+            makeTextBlock("OrgStructureToken("),
+            makeLineBlock([
+              makeTextBlock("  "),
+              makeStackBlock([
+                makeLineBlock([
+                  makeTextBlock("line:  "),
+                  makeTextBlock("1")]),
+                makeLineBlock([
+                  makeTextBlock("column: "),
+                  makeTextBlock("9")]),
+                makeLineBlock([
+                  makeTextBlock("offset: "),
+                  makeTextBlock("47")]),
+                makeLineBlock([
+                  makeTextBlock("kind:  "),
+                  makeTextBlock("ostColon")]),
+                makeLineBlock([
+                  makeTextBlock("isSlice: "),
+                  makeTextBlock("true")]),
+                makeLineBlock([
+                  makeTextBlock("finish: "),
+                  makeTextBlock("47")]),
+                makeLineBlock([
+                  makeTextBlock("extra: "),
+                  makeLineBlock([
+                    makeTextBlock("[]")])]),
+                makeLineBlock([
+                  makeTextBlock("strVal: "),
+                  makeTextBlock("\":\"")])])])])]),
+        makeTextBlock(", "),
+        makeChoiceBlock([
+          makeLineBlock([
+            makeTextBlock("OrgStructureToken("),
+            makeLineBlock([
+              makeTextBlock("line: "),
+              makeTextBlock("1"),
+              makeTextBlock(", "),
+              makeTextBlock("column: "),
+              makeTextBlock("11"),
+              makeTextBlock(", "),
+              makeTextBlock("offset: "),
+              makeTextBlock("49"),
+              makeTextBlock(", "),
+              makeTextBlock("kind: "),
+              makeTextBlock("ostCommandArguments"),
+              makeTextBlock(", "),
+              makeTextBlock("isSlice: "),
+              makeTextBlock("true"),
+              makeTextBlock(", "),
+              makeTextBlock("finish: "),
+              makeTextBlock("68"),
+              makeTextBlock(", "),
+              makeTextBlock("extra: "),
+              makeLineBlock([
+                makeTextBlock("[]")]),
+              makeTextBlock(", "),
+              makeTextBlock("strVal: "),
+              makeVerbBlock(["\"../../orgheader.org", "\""])]),
+            makeTextBlock(")")]),
+          makeStackBlock([
+            makeTextBlock("OrgStructureToken("),
+            makeLineBlock([
+              makeTextBlock("  "),
+              makeStackBlock([
+                makeLineBlock([
+                  makeTextBlock("line:  "),
+                  makeTextBlock("1")]),
+                makeLineBlock([
+                  makeTextBlock("column: "),
+                  makeTextBlock("11")]),
+                makeLineBlock([
+                  makeTextBlock("offset: "),
+                  makeTextBlock("49")]),
+                makeLineBlock([
+                  makeTextBlock("kind:  "),
+                  makeTextBlock("ostCommandArguments")]),
+                makeLineBlock([
+                  makeTextBlock("isSlice: "),
+                  makeTextBlock("true")]),
+                makeLineBlock([
+                  makeTextBlock("finish: "),
+                  makeTextBlock("68")]),
+                makeLineBlock([
+                  makeTextBlock("extra: "),
+                  makeLineBlock([
+                    makeTextBlock("[]")])]),
+                makeLineBlock([
+                  makeTextBlock("strVal: "),
+                  makeVerbBlock(["\"../../orgheader.org", "\""])])])])])]),
+        makeTextBlock("]")]),
+      makeStackBlock([
+        makeLineBlock([
+          makeTextBlock("- "),
+          makeChoiceBlock([
+            makeLineBlock([
+              makeTextBlock("OrgStructureToken("),
+              makeLineBlock([
+                makeTextBlock("line: "),
+                makeTextBlock("0"),
+                makeTextBlock(", "),
+                makeTextBlock("column: "),
+                makeTextBlock("0"),
+                makeTextBlock(", "),
+                makeTextBlock("offset: "),
+                makeTextBlock("0"),
+                makeTextBlock(", "),
+                makeTextBlock("kind: "),
+                makeTextBlock("ostCommandPrefix"),
+                makeTextBlock(", "),
+                makeTextBlock("isSlice: "),
+                makeTextBlock("true"),
+                makeTextBlock(", "),
+                makeTextBlock("finish: "),
+                makeTextBlock("1"),
+                makeTextBlock(", "),
+                makeTextBlock("extra: "),
+                makeLineBlock([
+                  makeTextBlock("[]")]),
+                makeTextBlock(", "),
+                makeTextBlock("strVal: "),
+                makeTextBlock("\"#+\"")]),
+              makeTextBlock(")")]),
+            makeStackBlock([
+              makeTextBlock("OrgStructureToken("),
+              makeLineBlock([
+                makeTextBlock("  "),
+                makeStackBlock([
+                  makeLineBlock([
+                    makeTextBlock("line:  "),
+                    makeTextBlock("0")]),
+                  makeLineBlock([
+                    makeTextBlock("column: "),
+                    makeTextBlock("0")]),
+                  makeLineBlock([
+                    makeTextBlock("offset: "),
+                    makeTextBlock("0")]),
+                  makeLineBlock([
+                    makeTextBlock("kind:  "),
+                    makeTextBlock("ostCommandPrefix")]),
+                  makeLineBlock([
+                    makeTextBlock("isSlice: "),
+                    makeTextBlock("true")]),
+                  makeLineBlock([
+                    makeTextBlock("finish: "),
+                    makeTextBlock("1")]),
+                  makeLineBlock([
+                    makeTextBlock("extra: "),
+                    makeLineBlock([
+                      makeTextBlock("[]")])]),
+                  makeLineBlock([
+                    makeTextBlock("strVal: "),
+                    makeTextBlock("\"#+\"")])])])])])]),
+        makeLineBlock([
+          makeTextBlock("- "),
+          makeChoiceBlock([
+            makeLineBlock([
+              makeTextBlock("OrgStructureToken("),
+              makeLineBlock([
+                makeTextBlock("line: "),
+                makeTextBlock("0"),
+                makeTextBlock(", "),
+                makeTextBlock("column: "),
+                makeTextBlock("7"),
+                makeTextBlock(", "),
+                makeTextBlock("offset: "),
+                makeTextBlock("7"),
+                makeTextBlock(", "),
+                makeTextBlock("kind: "),
+                makeTextBlock("ostColon"),
+                makeTextBlock(", "),
+                makeTextBlock("isSlice: "),
+                makeTextBlock("true"),
+                makeTextBlock(", "),
+                makeTextBlock("finish: "),
+                makeTextBlock("7"),
+                makeTextBlock(", "),
+                makeTextBlock("extra: "),
+                makeLineBlock([
+                  makeTextBlock("[]")]),
+                makeTextBlock(", "),
+                makeTextBlock("strVal: "),
+                makeTextBlock("\":\"")]),
+              makeTextBlock(")")]),
+            makeStackBlock([
+              makeTextBlock("OrgStructureToken("),
+              makeLineBlock([
+                makeTextBlock("  "),
+                makeStackBlock([
+                  makeLineBlock([
+                    makeTextBlock("line:  "),
+                    makeTextBlock("0")]),
+                  makeLineBlock([
+                    makeTextBlock("column: "),
+                    makeTextBlock("7")]),
+                  makeLineBlock([
+                    makeTextBlock("offset: "),
+                    makeTextBlock("7")]),
+                  makeLineBlock([
+                    makeTextBlock("kind:  "),
+                    makeTextBlock("ostColon")]),
+                  makeLineBlock([
+                    makeTextBlock("isSlice: "),
+                    makeTextBlock("true")]),
+                  makeLineBlock([
+                    makeTextBlock("finish: "),
+                    makeTextBlock("7")]),
+                  makeLineBlock([
+                    makeTextBlock("extra: "),
+                    makeLineBlock([
+                      makeTextBlock("[]")])]),
+                  makeLineBlock([
+                    makeTextBlock("strVal: "),
+                    makeTextBlock("\":\"")])])])])])]),
+        makeLineBlock([
+          makeTextBlock("- "),
+          makeChoiceBlock([
+            makeLineBlock([
+              makeTextBlock("OrgStructureToken("),
+              makeLineBlock([
+                makeTextBlock("line: "),
+                makeTextBlock("0"),
+                makeTextBlock(", "),
+                makeTextBlock("column: "),
+                makeTextBlock("9"),
+                makeTextBlock(", "),
+                makeTextBlock("offset: "),
+                makeTextBlock("9"),
+                makeTextBlock(", "),
+                makeTextBlock("kind: "),
+                makeTextBlock("ostCommandArguments"),
+                makeTextBlock(", "),
+                makeTextBlock("isSlice: "),
+                makeTextBlock("true"),
+                makeTextBlock(", "),
+                makeTextBlock("finish: "),
+                makeTextBlock("37"),
+                makeTextBlock(", "),
+                makeTextBlock("extra: "),
+                makeLineBlock([
+                  makeTextBlock("[]")]),
+                makeTextBlock(", "),
+                makeTextBlock("strVal: "),
+                makeVerbBlock(["\"Электротехника", "\""])]),
+              makeTextBlock(")")]),
+            makeStackBlock([
+              makeTextBlock("OrgStructureToken("),
+              makeLineBlock([
+                makeTextBlock("  "),
+                makeStackBlock([
+                  makeLineBlock([
+                    makeTextBlock("line:  "),
+                    makeTextBlock("0")]),
+                  makeLineBlock([
+                    makeTextBlock("column: "),
+                    makeTextBlock("9")]),
+                  makeLineBlock([
+                    makeTextBlock("offset: "),
+                    makeTextBlock("9")]),
+                  makeLineBlock([
+                    makeTextBlock("kind:  "),
+                    makeTextBlock("ostCommandArguments")]),
+                  makeLineBlock([
+                    makeTextBlock("isSlice: "),
+                    makeTextBlock("true")]),
+                  makeLineBlock([
+                    makeTextBlock("finish: "),
+                    makeTextBlock("37")]),
+                  makeLineBlock([
+                    makeTextBlock("extra: "),
+                    makeLineBlock([
+                      makeTextBlock("[]")])]),
+                  makeLineBlock([
+                    makeTextBlock("strVal: "),
+                    makeVerbBlock(["\"Электротехника", "\""])])])])])])]),
+        makeLineBlock([
+          makeTextBlock("- "),
+          makeChoiceBlock([
+            makeLineBlock([
+              makeTextBlock("OrgStructureToken("),
+              makeLineBlock([
+                makeTextBlock("line: "),
+                makeTextBlock("1"),
+                makeTextBlock(", "),
+                makeTextBlock("column: "),
+                makeTextBlock("0"),
+                makeTextBlock(", "),
+                makeTextBlock("offset: "),
+                makeTextBlock("38"),
+                makeTextBlock(", "),
+                makeTextBlock("kind: "),
+                makeTextBlock("ostCommandPrefix"),
+                makeTextBlock(", "),
+                makeTextBlock("isSlice: "),
+                makeTextBlock("true"),
+                makeTextBlock(", "),
+                makeTextBlock("finish: "),
+                makeTextBlock("39"),
+                makeTextBlock(", "),
+                makeTextBlock("extra: "),
+                makeLineBlock([
+                  makeTextBlock("[]")]),
+                makeTextBlock(", "),
+                makeTextBlock("strVal: "),
+                makeTextBlock("\"#+\"")]),
+              makeTextBlock(")")]),
+            makeStackBlock([
+              makeTextBlock("OrgStructureToken("),
+              makeLineBlock([
+                makeTextBlock("  "),
+                makeStackBlock([
+                  makeLineBlock([
+                    makeTextBlock("line:  "),
+                    makeTextBlock("1")]),
+                  makeLineBlock([
+                    makeTextBlock("column: "),
+                    makeTextBlock("0")]),
+                  makeLineBlock([
+                    makeTextBlock("offset: "),
+                    makeTextBlock("38")]),
+                  makeLineBlock([
+                    makeTextBlock("kind:  "),
+                    makeTextBlock("ostCommandPrefix")]),
+                  makeLineBlock([
+                    makeTextBlock("isSlice: "),
+                    makeTextBlock("true")]),
+                  makeLineBlock([
+                    makeTextBlock("finish: "),
+                    makeTextBlock("39")]),
+                  makeLineBlock([
+                    makeTextBlock("extra: "),
+                    makeLineBlock([
+                      makeTextBlock("[]")])]),
+                  makeLineBlock([
+                    makeTextBlock("strVal: "),
+                    makeTextBlock("\"#+\"")])])])])])]),
+        makeLineBlock([
+          makeTextBlock("- "),
+          makeChoiceBlock([
+            makeLineBlock([
+              makeTextBlock("OrgStructureToken("),
+              makeLineBlock([
+                makeTextBlock("line: "),
+                makeTextBlock("1"),
+                makeTextBlock(", "),
+                makeTextBlock("column: "),
+                makeTextBlock("9"),
+                makeTextBlock(", "),
+                makeTextBlock("offset: "),
+                makeTextBlock("47"),
+                makeTextBlock(", "),
+                makeTextBlock("kind: "),
+                makeTextBlock("ostColon"),
+                makeTextBlock(", "),
+                makeTextBlock("isSlice: "),
+                makeTextBlock("true"),
+                makeTextBlock(", "),
+                makeTextBlock("finish: "),
+                makeTextBlock("47"),
+                makeTextBlock(", "),
+                makeTextBlock("extra: "),
+                makeLineBlock([
+                  makeTextBlock("[]")]),
+                makeTextBlock(", "),
+                makeTextBlock("strVal: "),
+                makeTextBlock("\":\"")]),
+              makeTextBlock(")")]),
+            makeStackBlock([
+              makeTextBlock("OrgStructureToken("),
+              makeLineBlock([
+                makeTextBlock("  "),
+                makeStackBlock([
+                  makeLineBlock([
+                    makeTextBlock("line:  "),
+                    makeTextBlock("1")]),
+                  makeLineBlock([
+                    makeTextBlock("column: "),
+                    makeTextBlock("9")]),
+                  makeLineBlock([
+                    makeTextBlock("offset: "),
+                    makeTextBlock("47")]),
+                  makeLineBlock([
+                    makeTextBlock("kind:  "),
+                    makeTextBlock("ostColon")]),
+                  makeLineBlock([
+                    makeTextBlock("isSlice: "),
+                    makeTextBlock("true")]),
+                  makeLineBlock([
+                    makeTextBlock("finish: "),
+                    makeTextBlock("47")]),
+                  makeLineBlock([
+                    makeTextBlock("extra: "),
+                    makeLineBlock([
+                      makeTextBlock("[]")])]),
+                  makeLineBlock([
+                    makeTextBlock("strVal: "),
+                    makeTextBlock("\":\"")])])])])])]),
+        makeLineBlock([
+          makeTextBlock("- "),
+          makeChoiceBlock([
+            makeLineBlock([
+              makeTextBlock("OrgStructureToken("),
+              makeLineBlock([
+                makeTextBlock("line: "),
+                makeTextBlock("1"),
+                makeTextBlock(", "),
+                makeTextBlock("column: "),
+                makeTextBlock("11"),
+                makeTextBlock(", "),
+                makeTextBlock("offset: "),
+                makeTextBlock("49"),
+                makeTextBlock(", "),
+                makeTextBlock("kind: "),
+                makeTextBlock("ostCommandArguments"),
+                makeTextBlock(", "),
+                makeTextBlock("isSlice: "),
+                makeTextBlock("true"),
+                makeTextBlock(", "),
+                makeTextBlock("finish: "),
+                makeTextBlock("68"),
+                makeTextBlock(", "),
+                makeTextBlock("extra: "),
+                makeLineBlock([
+                  makeTextBlock("[]")]),
+                makeTextBlock(", "),
+                makeTextBlock("strVal: "),
+                makeVerbBlock(["\"../../orgheader.org", "\""])]),
+              makeTextBlock(")")]),
+            makeStackBlock([
+              makeTextBlock("OrgStructureToken("),
+              makeLineBlock([
+                makeTextBlock("  "),
+                makeStackBlock([
+                  makeLineBlock([
+                    makeTextBlock("line:  "),
+                    makeTextBlock("1")]),
+                  makeLineBlock([
+                    makeTextBlock("column: "),
+                    makeTextBlock("11")]),
+                  makeLineBlock([
+                    makeTextBlock("offset: "),
+                    makeTextBlock("49")]),
+                  makeLineBlock([
+                    makeTextBlock("kind:  "),
+                    makeTextBlock("ostCommandArguments")]),
+                  makeLineBlock([
+                    makeTextBlock("isSlice: "),
+                    makeTextBlock("true")]),
+                  makeLineBlock([
+                    makeTextBlock("finish: "),
+                    makeTextBlock("68")]),
+                  makeLineBlock([
+                    makeTextBlock("extra: "),
+                    makeLineBlock([
+                      makeTextBlock("[]")])]),
+                  makeLineBlock([
+                    makeTextBlock("strVal: "),
+                    makeVerbBlock(["\"../../orgheader.org", "\""])])])])])])])])])
+    echo treeRepr(line)
+
+
+    # let blc = makeChoiceBlock([line, stack])
+    let blc = line
+
+    # echo treeRepr(blc)
+    let text = pyCodegenRepr(line, indent = 2, nimpref = "make")
+    "/tmp/b".writeFile(text)
+    "/tmp/pp-b".writeFile(stripSgr(line.treeRepr()))
+    # echo pyCodegenRepr(stack)
+    echo toString(blc)
+
+
+
+  # test "Lexer incorr":
+  #   let b1 = H[V[T["strVal: \"#+\n\""]], V[T["strVal: \":\""]]]
+  #   # echov b1.treeRepr()
+  #   echov toString(b1)
+  #   echo ":--------------------------------------------------:"
+  #   let b2 = H[V[T["strVal: \"#+\""]], V[T["strVal: \":\""]]]
+  #   # echov b2.treeRepr()
+  #   echov toString(b2)
