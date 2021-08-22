@@ -253,6 +253,10 @@ func toArrayKeys*[K, V](
     if not skipDefault or k != def:
       result.add k
 
+template eachIt*(main, expr: untyped) =
+  for it {.inject.} in main:
+    expr
+
 func width*(s: string): int =
   var cnt = 0
   for ch in s:

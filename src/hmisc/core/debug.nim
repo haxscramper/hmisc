@@ -17,6 +17,21 @@ template startHaxComp*() =
 proc startHax*() = doLogRuntime = true
 proc stopHax*() = doLogRuntime = false
 
+var haxStack: seq[bool]
+
+
+proc pushHax*(doLog: bool) =
+  haxStack.add doLog
+  doLogRuntime = doLog
+
+proc popHax*(fall: bool = true) =
+  doLogRuntime = haxStack.pop()
+  if haxStack.len == 0:
+    doLogRuntime = true
+
+proc getHaxStack*(): seq[bool] = haxStack
+
+
 template haxRunning*(): bool = doLogRuntime
 template haxRunningComp*(): bool = doLog
 

@@ -2,7 +2,7 @@ import
   std/[sugar, strutils, sequtils, strformat, options]
 
 import
-  hmisc/core/all,
+  hmisc/core/[all, code_errors],
   hmisc/other/[blockfmt],
   hmisc/preludes/unittest,
   hmisc/types/colorstring
@@ -237,3 +237,16 @@ suite "Edge case layouts":
         ]
 
         echo toString(bl)
+
+suite "WIP testing":
+  test "A:":
+    var line = makeLineBlock([
+        makeLineBlock([makeVerbBlock(["222"]), makeTextBlock("333")]),
+        makeTextBlock("444"),
+      ])
+
+
+    wipeNewlined()
+    echo pyCodegenRepr(line)
+    echo treeRepr(line)
+    echo toString(line)

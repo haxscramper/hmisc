@@ -28,9 +28,9 @@ template splitOnIt*[T](s: seq[T], op: untyped): tuple[
 
   res
 
-template eachIt*(ins, op: untyped): untyped =
-  for it {.inject.} in ins:
-    op
+# template eachIt*(ins, op: untyped): untyped =
+#   for it {.inject.} in ins:
+#     op
 
 template anyOfIt*(sequence: typed, predicate: untyped): bool =
   ## Return `true` if for any of the items in sequence `predicate`

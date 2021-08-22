@@ -456,6 +456,9 @@ proc printSeparator*(msg: string): void =
 
   echo str.toWhiteStr()
 
+proc wipeNewlined*() =
+  echo repeat("\n", 10_000)
+
 proc getFileName*(f: string): string =
   let (_, name, ext) = f.splitFile()
   return name & ext
