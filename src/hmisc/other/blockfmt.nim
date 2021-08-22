@@ -620,9 +620,6 @@ proc vSumSolution(solutions: seq[LytSolution]): LytSolution =
   ##   A LytSolution object that lays out the solutions vertically, separated by
   ##   newlines, with the same left margin.
 
-  # echov "----"
-  # for s in solutions:
-  #   echov s
 
   assert solutions.len > 0
 
@@ -903,8 +900,6 @@ template findSingle*(elems: typed, targetKind: typed): untyped =
 
 
 func updateSizes(bk: var LytBlock) =
-  # if bk.kind == bkChoice: echov bk
-
   bk.minWidth =
     case bk.kind:
       of bkStack: bk.elements.maxIt(it.minWidth)
@@ -922,7 +917,7 @@ func updateSizes(bk: var LytBlock) =
       else: false
 
   if bk.kind in { bkChoice , bkLine, bkStack } and bk.elements.len > 0:
-    bk.isBreaking = bk.elements[0].isBreaking
+    bk.isBreaking = bk.elements[^1].isBreaking
 
 
 func convertBlock*(bk: LytBlock, newKind: LytBlockKind): LytBlock =
@@ -1155,7 +1150,6 @@ func makeTextOrVerbBlock*(
   else:
     if '\n' in text:
       let ls = text.splitLines(keepEol = false)
-      echov len(ls)
       result = makeVerbBlock(ls, breaking = true, firstNl, breakMult)
 
     else:
@@ -1169,30 +1163,39 @@ func makeLineCommentBlock*(
   text: string, prefix: string = "# "): LytBlock =
   makeVerbBlock(@[prefix & text])
 
-func add*(target: var LytBlock, other: varargs[LytBlock]) =
+func add*(
+    target: var LytBlock,
+    other: varargs[LytBlock],
+    compact: bool = defaultCompact
+  ) =
   for bl in other:
-    let bl = bl.flatten({bkLine})
-    assert not isNil(bl)
-    if bl.kind != bkEmpty:
-      if bl.kind == target.kind and bl.kind in {bkStack, bkLine}:
-        target.elements.add bl.elements
-
-      elif target.kind == bkLine and
-           target.elements.len > 0 and
-           target.elements[^1].kind == bkText and
-           bl.kind == bkText:
-
-        target.elements[^1].text.text.add bl.text.text
-        target.elements[^1].minWidth += bl.text.len
-
-      elif target.kind == bkText and bl.kind == bkText:
-        target.text.text.add bl.text.text
-
-      elif target.kind == bkWrap:
-        target.wrapElements.add bl
-
-      else:
+    if not compact:
+      if bl.kind != bkEmpty:
         target.elements.add bl
+
+    else:
+      let bl = bl.flatten({bkLine})
+      assert not isNil(bl)
+      if bl.kind != bkEmpty:
+        if bl.kind == target.kind and bl.kind in {bkStack, bkLine}:
+          target.elements.add bl.elements
+
+        elif target.kind == bkLine and
+             target.elements.len > 0 and
+             target.elements[^1].kind == bkText and
+             bl.kind == bkText:
+
+          target.elements[^1].text.text.add bl.text.text
+          target.elements[^1].minWidth += bl.text.len
+
+        elif target.kind == bkText and bl.kind == bkText:
+          target.text.text.add bl.text.text
+
+        elif target.kind == bkWrap:
+          target.wrapElements.add bl
+
+        else:
+          target.elements.add bl
 
   updateSizes(target)
 
@@ -1327,9 +1330,6 @@ proc doOptStackLayout(
   # a line.
   if self.elements.len == 0:
     return rest
-
-  # echov "++++++++++++++++++++++++++++++++++="
-  # echov self.treeRepr()
 
   let soln = vSumSolution: get: collect(newSeq):
     for idx, elem in mpairs(self.elements):
