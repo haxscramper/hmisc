@@ -663,7 +663,6 @@ proc vSumSolution(solutions: seq[LytSolution]): LytSolution =
       s.moveToMargin(margin)
 
   result = col.makeSolution()
-  # echov result.treeRepr()
 
 proc hPlusSolution(s1, s2: var LytSolution, opts: LytOptions): LytSolution =
   ## The LytSolution that results from joining two LytSolutions side-by-side.
@@ -1286,13 +1285,6 @@ proc doOptLineLayout(
     opts: LytOptions
   ): Option[LytSolution] =
 
-  let r = rest.isSome()
-  # if r:
-  #   echov self.treeRepr()
-  # if r:
-  #   echov rest.get().treeRepr()
-  #   echov self.treeRepr()
-
   assert self != nil
   if self.elements.len == 0:
     return rest
@@ -1309,71 +1301,25 @@ proc doOptLineLayout(
     assert opts.format_policy.breakElementLines != nil
     elementLines = opts.format_policy.breakElementLines(elementLines)
 
-  # if r:
-  #   echov rest.get.treeRepr()
-  #   echov self.treeRepr()
-
   var lineSolns: seq[LytSolution]
 
-  # pprintStackTrace()
-
-  var shape = ""
-  shape.add $element_lines.len & " ["
-  for line in element_lines:
-    shape.add "l" & $line.len & ", "
-  shape.add "]"
-
-  var had444 = false
   for i, ln in mpairs(elementLines):
-    var usingRest = false
     var lnLayout =
       if i == elementLines.high:
-        if r:
-          usingRest = true
-
         rest
       else:
         none(LytSolution)
 
     for idx, elt in rmpairs(ln):
-      if usingRest:
-        echov "using rest for block", idx, elt.treeRepr()
-        for line in elementLines:
-          echo "line"
-          for cell in line:
-            echov cell.treeRepr()
-
-        echov "end"
-
-      elif r:
-        echov "not using rest but have rest", idx, elt.treeRepr()
-
       lnLayout = elt.optLayout(lnLayout, opts)
-
-      # if usingRest:
-      #   echov lnLayout.get().treeRepr()
-
-      # if r:
-      #   echov "------------------"
-      #   echov i, "/", shape
-      #   echov shape
-      #   for line in elementLines:
-      #     echo "line"
-      #     for cell in line:
-      #       echov cell.treeRepr()
 
     if lnLayout.isSome():
       lineSolns.add lnLayout.get()
 
-  # reverse(lineSolns)
-
   let soln = vSumSolution(lineSolns)
-  # if r:
-  #   echov soln.treeRepr()
 
   result = some soln.plusConst(
     float(opts.linebreakCost * (len(lineSolns) - 1)))
-
 
 
 proc doOptChoiceLayout(
@@ -1563,31 +1509,9 @@ const defaultFormatOpts* = LytOptions(
   formatPolicy: LytFormatPolicy(
     breakElementLines: (
       proc(blc: seq[seq[LytBlock]]): seq[seq[LytBlock]] =
-        # echov "break element lines input"
-        # for a in blc:
-        #   echov "line"
-        #   for b in a:
-        #     echov b.treeRepr()
-
 
         let spaceText = makeTextBlock(" ")
         func strippedLine(line: seq[LytBlock]): LytBlock =
-          # var
-          #   leftSpaces: int = 0
-          #   rightSpaces: int = line.high()
-
-          # for idx, bl in pairs(line):
-          #   if bl == spaceText:
-          #     leftSpaces = idx
-          #   else:
-          #     break
-
-          # for idx, bl in rpairs(line):
-          #   if bl == spaceText:
-          #     rightSpaces = idx
-          #   else:
-          #     break
-
           return makeLineBlock(line#[(leftSpaces)..(rightSpaces)]#)
 
         result.add @[blc[0]]
@@ -1596,16 +1520,7 @@ const defaultFormatOpts* = LytOptions(
             makeStackBlock(blc[1..^1].map(strippedLine)),
             2 * 2)
 
-          result.add @[ind]
-
-        echov "break element lines output"
-        for a in result:
-          echov "line"
-          for b in a:
-            echov b.treeRepr()
-
-        echov "break end"
-        )))
+          result.add @[ind])))
 
 type
   LytBuilderKind* = enum
