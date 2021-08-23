@@ -53,6 +53,7 @@ type
     ##
     ## Refer to the corresponding methods of the LytConsole class for
     ## descriptions of the methods involved.
+    id {.requiresinit.}: int
     kind: LayoutElementKind
     text: LytStr ## Layout element text
     indent: bool
@@ -103,6 +104,8 @@ type
 
     minWidth* {.requiresinit.}: int
     hasInnerChoice*: bool
+
+    id {.requiresinit.}: int
 
     case kind*: LytBlockKind
       of bkVerb:
@@ -191,23 +194,21 @@ proc treeRepr*(self: Layout, level: int = 0): ColoredText =
 
   proc aux(lyt: Layout, l: int)
   proc aux(lyt: LayoutElement, l: int) =
+    addIndent(l)
+    add &"id {lyt.id} "
     case lyt.kind:
       of lekString:
-         addIndent(l)
          add toRed("[text] 《")
          add replaceNewlines(lyt.text.text)
          add "》"
 
       of lekNewline:
-        addIndent(l)
         add toRed("[newline]")
 
       of lekNewlineSpace:
-        addIndent(l)
         add toRed("[newline][space]")
 
       of lekLayoutPrint:
-        addIndent(l)
         add toCyan("[lyt]\n")
         aux(lyt.layout, l + 1)
 
@@ -324,7 +325,7 @@ func treeRepr*(inBl: LytBlock): string =
     let pref = align(
       name & " ", level * 2) &
         &"brk: {$hshow(bl.isBreaking)} " &
-        &"mul: {bl.breakMult} min: {bl.minWidth} "
+        &"mul: {bl.breakMult} min: {bl.minWidth} id: {$hshow(bl.id)}"
 
     let pref2 = repeat(" ", level * 2 + 2)
 
@@ -381,23 +382,29 @@ func hash(sln: Option[LytSolution]): Hash =
 #*******************************  Layout  ********************************#
 #*************************************************************************#
 
+func getSId(): int =
+  var slnId {.global.}: int
+  {.cast(noSideEffect).}:
+    inc slnId
+    result = slnId
+
 func lytString(s: ColoredString): LayoutElement =
-  LayoutElement(text: lytStr(s), kind: lekString)
+  LayoutElement(text: lytStr(s), kind: lekString, id: getSId())
 
 func lytString(s: string): LayoutElement =
-  LayoutElement(text: lytStr(s), kind: lekString)
+  LayoutElement(text: lytStr(s), kind: lekString, id: getSId())
 
 func lytString(s: LytStr): LayoutElement =
-  LayoutElement(text: s, kind: lekString)
+  LayoutElement(text: s, kind: lekString, id: getSId())
 
 func lytNewline(indent: bool = true): LayoutElement =
-  LayoutElement(indent: indent, kind: lekNewline)
+  LayoutElement(indent: indent, kind: lekNewline, id: getSId())
 
 func lytNewlineSpace(n: int): LayoutElement =
-  LayoutElement(spaceNum: n, kind: lekNewlineSpace)
+  LayoutElement(spaceNum: n, kind: lekNewlineSpace, id: getSId())
 
 proc lytPrint(lyt: Layout): LayoutElement =
-  LayoutElement(kind: lekLayoutPrint, layout: lyt)
+  LayoutElement(kind: lekLayoutPrint, layout: lyt, id: getSId())
 
 proc getStacked(layouts: seq[Layout]): Layout =
   ## Return the vertical composition of a sequence of layouts.
@@ -425,12 +432,10 @@ func initLayout(elems: seq[LayoutElement]): Layout =
 proc initSolution(
     knots: seq[int], spans: seq[int], intercepts: seq[float],
     gradients: seq[float], layouts: seq[Layout]): LytSolution =
-  var slnId {.global.}: int
   result = LytSolution(
     knots: knots, spans: spans, intercepts: intercepts,
-    gradients: gradients, layouts: layouts, id: slnId)
+    gradients: gradients, layouts: layouts, id: getSId())
 
-  inc slnId
 
 #===========================  Helper methods  ============================#
 func reset(self: var LytSolution) =
@@ -821,8 +826,15 @@ iterator mpairs*(blc: var LytBlock): (int, var LytBlock) =
 
 #============================  Constructors  =============================#
 
+func getBId(): int =
+  var id {.global.}: int
+  {.cast(noSideEffect).}:
+    inc id
+    return id
+
 func makeBlock*(kind: LytBlockKind, breakMult: int = 1): LytBlock =
   result = LytBlock(
+    id: getBId(),
     kind: kind, breakMult: breakMult, minWidth: 0, isBreaking: false)
 
   if kind == bkVerb:
@@ -830,12 +842,12 @@ func makeBlock*(kind: LytBlockKind, breakMult: int = 1): LytBlock =
 
 func makeTextBlock*(text: string, breakMult: int = 1): LytBlock =
   LytBlock(
-    kind: bkText, text: text.lytStr(), isBreaking: false,
+    id: getBId(), kind: bkText, text: text.lytStr(), isBreaking: false,
     breakMult: breakMult, minWidth: text.len())
 
 func makeEmptyBlock*(): LytBlock =
   LytBlock(
-    kind: bkEmpty, breakMult: 1, minWidth: 0, isBreaking: false)
+    id: getBId(), kind: bkEmpty, breakMult: 1, minWidth: 0, isBreaking: false)
 
 func filterEmpty*(blocks: openarray[LytBlock]): seq[LytBlock] =
   for bl in blocks:
@@ -851,7 +863,7 @@ func makeTextBlock*(
   assert not breaking
   result = LytBlock(
     kind: bkText, text: lytStr(text), isBreaking: breaking,
-    breakMult: breakMult, minWidth: 0
+    id: getBId(), breakMult: breakMult, minWidth: 0
   )
 
   result.minWidth = result.text.len()
@@ -923,7 +935,7 @@ func updateSizes(bk: var LytBlock) =
 
 func convertBlock*(bk: LytBlock, newKind: LytBlockKind): LytBlock =
   result = LytBlock(
-    breakMult: bk.breakMult, kind: newKind,
+    id: getBId(), breakMult: bk.breakMult, kind: newKind,
     minWidth: 0, isBreaking: false
   )
 
@@ -948,6 +960,7 @@ func makeChoiceBlock*(
   ): LytBlock =
   if not compact:
     result = LytBlock(
+      id: getBId(),
       isBreaking: false,
       breakMult: breakMult,
       kind: bkChoice,
@@ -959,6 +972,7 @@ func makeChoiceBlock*(
 
   else:
     result = LytBlock(
+      id: getBId(),
       isBreaking: false,
       breakMult: breakMult,
       kind: bkChoice,
@@ -977,7 +991,7 @@ func makeLineBlock*(
 
   if not compact:
     result = LytBlock(
-      isBreaking: false,
+      id: getBId(), isBreaking: false,
       breakMult: breakMult, kind: bkLine,
       minWidth: 0, elements: filterEmpty(elems))
 
@@ -993,6 +1007,7 @@ func makeLineBlock*(
 
     else:
       result = LytBlock(
+        id: getBId(),
         isBreaking: false,
         breakMult: breakMult, kind: bkLine, minWidth: 0)
 
@@ -1049,7 +1064,7 @@ proc makeStackBlock*(
 
   if not compact:
     result = LytBlock(
-      isBreaking: false,
+      id: getBId(), isBreaking: false,
       minWidth: 0,
       breakMult: breakMult, kind: bkStack,
       elements: filterEmpty(elems))
@@ -1064,7 +1079,7 @@ proc makeStackBlock*(
 
   else:
     result = LytBlock(
-      minWidth: 0,
+      id: getBId(), minWidth: 0,
       isBreaking: false,
       breakMult: breakMult, kind: bkStack,
       elements: filterIt(elems, not it.isEmpty()).mapIt(
@@ -1081,7 +1096,7 @@ func makeWrapBlock*(
 
   LytBlock(
     isBreaking: false,
-    sep: sep,
+    id: getBId(), sep: sep,
     kind: bkWrap,
     wrapElements: toSeq(elems),
     breakMult: breakMult,
@@ -1098,7 +1113,7 @@ func makeVerbBlock*[
   assert breaking
   result = LytBlock(
     breakMult: breakMult,
-    kind: bkVerb,
+    id: getBId(), kind: bkVerb,
     textLines: mapIt(textLines, lytStr(it)),
     isBreaking: breaking,
     firstNl: firstNl,
@@ -1295,7 +1310,7 @@ proc doOptLineLayout(
     elementLines = opts.format_policy.breakElementLines(elementLines)
 
   # if r:
-  #   echov elementLines.len()
+  #   echov rest.get.treeRepr()
   #   echov self.treeRepr()
 
   var lineSolns: seq[LytSolution]
@@ -1310,30 +1325,51 @@ proc doOptLineLayout(
 
   var had444 = false
   for i, ln in mpairs(elementLines):
+    var usingRest = false
     var lnLayout =
       if i == elementLines.high:
+        if r:
+          usingRest = true
+
         rest
       else:
         none(LytSolution)
 
     for idx, elt in rmpairs(ln):
-      lnLayout = elt.optLayout(lnLayout, opts)
-
-      if r:
-        echov "------------------"
-        echov i, "/", shape
-        echov shape
+      if usingRest:
+        echov "using rest for block", idx, elt.treeRepr()
         for line in elementLines:
           echo "line"
           for cell in line:
             echov cell.treeRepr()
 
+        echov "end"
+
+      elif r:
+        echov "not using rest but have rest", idx, elt.treeRepr()
+
+      lnLayout = elt.optLayout(lnLayout, opts)
+
+      # if usingRest:
+      #   echov lnLayout.get().treeRepr()
+
+      # if r:
+      #   echov "------------------"
+      #   echov i, "/", shape
+      #   echov shape
+      #   for line in elementLines:
+      #     echo "line"
+      #     for cell in line:
+      #       echov cell.treeRepr()
+
     if lnLayout.isSome():
       lineSolns.add lnLayout.get()
 
-  reverse(lineSolns)
+  # reverse(lineSolns)
 
   let soln = vSumSolution(lineSolns)
+  # if r:
+  #   echov soln.treeRepr()
 
   result = some soln.plusConst(
     float(opts.linebreakCost * (len(lineSolns) - 1)))
@@ -1554,6 +1590,7 @@ const defaultFormatOpts* = LytOptions(
 
           return makeLineBlock(line#[(leftSpaces)..(rightSpaces)]#)
 
+        result.add @[blc[0]]
         if blc.len > 1:
           let ind = makeIndentBlock(
             makeStackBlock(blc[1..^1].map(strippedLine)),
@@ -1561,12 +1598,13 @@ const defaultFormatOpts* = LytOptions(
 
           result.add @[ind]
 
-        result.add @[blc[0]]
-        # echov "break element lines output"
-        # for a in result:
-        #   echov "line"
-        #   for b in a:
-        #     echov b.treeRepr()
+        echov "break element lines output"
+        for a in result:
+          echov "line"
+          for b in a:
+            echov b.treeRepr()
+
+        echov "break end"
         )))
 
 type
