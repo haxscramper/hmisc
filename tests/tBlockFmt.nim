@@ -246,7 +246,7 @@ suite "WIP testing":
       ])
 
 
-    wipeNewlined()
+    # wipeNewlined()
     echo pyCodegenRepr(line)
     echo treeRepr(line)
     echo toString(line)

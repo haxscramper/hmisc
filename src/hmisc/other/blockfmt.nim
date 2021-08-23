@@ -1356,8 +1356,6 @@ proc doOptStackLayout(
         elem.optLayout(rest, opts)
 
 
-  # echo soln.treeRepr()
-
   # Under some odd circumstances involving comments, we may have a
   # degenerate solution.
   # WARNING
@@ -1719,7 +1717,6 @@ proc toString*(
 
   var console: OutConsole
   let lyt = bl.toLayouts()[0]
-  echo lyt.treeRepr()
   lyt.printOn(console)
   return console.outStr
 

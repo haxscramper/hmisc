@@ -759,7 +759,6 @@ iterator lines*(text: ColoredText): ColoredRuneLine =
   var buf: ColoredRuneLine
   for rune in text.runes:
     if rune.isNewline:
-      echov buf
       yield buf
       buf.setLen(0)
 
@@ -767,7 +766,6 @@ iterator lines*(text: ColoredText): ColoredRuneLine =
       buf.add rune
 
   if buf.len > 0:
-    echov buf
     yield buf
 
 func width*(text: ColoredText): int =
