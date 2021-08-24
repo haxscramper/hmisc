@@ -5,7 +5,7 @@ license       = "Apache-2.0"
 srcDir        = "src"
 packageName   = "hmisc"
 bin           = @["hmisc/scripts/hmisc_putils"]
-installExt    = @["nim"]
+installExt    = @["nim", "rst"]
 binDir        = "bin"
 
 when (1, 2, 2) < (NimMajor, NimMinor, NimPatch):
