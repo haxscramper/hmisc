@@ -1,5 +1,5 @@
 name:
-  test
+  docgen
 on:
   push
 jobs:
@@ -14,4 +14,5 @@ jobs:
         with:
           path: '../nim'
           version: 'version-1-4'
+      - run: "nimble -y install"
       - run: "nimble docgen"
