@@ -236,16 +236,20 @@ func rectRenderAux(
     renderLine(start.shiftY(h - 1), w - 1, h, buf, config[rpoBottomEdge])
 
   if config[rpoTopLeft].isValid():
-    buf[start.shiftXY(0, 0)] = config[rpoTopLeft]
+    when not defined(nimdoc):
+      buf[start.shiftXY(0, 0)] = config[rpoTopLeft]
 
   if config[rpoTopRight].isValid():
-    buf[start.shiftXY(w - 1, 0)] = config[rpoTopRight]
+    when not defined(nimdoc):
+      buf[start.shiftXY(w - 1, 0)] = config[rpoTopRight]
 
   if config[rpoBottomLeft].isValid():
-    buf[start.shiftXY(0, h - 1)] = config[rpoBottomLeft]
+    when not defined(nimdoc):
+      buf[start.shiftXY(0, h - 1)] = config[rpoBottomLeft]
 
   if config[rpoBottomRight].isValid():
-    buf[start.shiftXY(w - 1, h - 1)] = config[rpoBottomRight]
+    when not defined(nimdoc):
+      buf[start.shiftXY(w - 1, h - 1)] = config[rpoBottomRight]
 
 
 method render*(rect: TermRect, buf: var TermBuf): void =
