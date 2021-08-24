@@ -51,7 +51,7 @@ task docgen, "Generate documentation":
     "nim",
     "doc",
     "--project",
-    "--errormax:1",
+    # "--errormax:1",
     "--warnings:off",
     "--outdir:docs"
   ]

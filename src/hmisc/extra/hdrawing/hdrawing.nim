@@ -331,12 +331,10 @@ method render*(text: SText[int], buf: var TermBuf): void =
   case text.reflow:
     of true:
       raiseAssert("reflow text is not implemented")
+
     of false:
-      text.lines.renderOnto(buf, text.start)
-      # for rId, row in text.lines:
-      #   for cId in 0 ..< min(row.len, text.width):
-      #     # echo &"{text.start}, ({cId}, {rId}), {text.start.shiftXY(cId, rId)}"
-      #     buf[text.start.shiftXY(cId, rId)] = row[cId]
+      when not defined(nimdoc):
+        text.lines.renderOnto(buf, text.start)
 
 
 #==============================  Term grid  ==============================#
