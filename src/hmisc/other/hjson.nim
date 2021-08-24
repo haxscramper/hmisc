@@ -15,9 +15,6 @@ silently ignore errors. If something is missing exception is raised.
 
 ]##
 
-runnableExamples:
-  let js = parseJson("""{"a" : 12}""")
-
 template jsonConversion(target, conversionProc: untyped): untyped =
   ## Implementation for the convertsion procs. Throw exception if type
   ## does not match.

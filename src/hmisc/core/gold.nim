@@ -6,10 +6,6 @@ import std/[options, strutils, strformat, macros]
 template tern*(predicate: bool, tBranch: untyped, fBranch: untyped): untyped =
   ## Shorthand for inline if/else. Allows use of conditions in strformat,
   ## simplifies use in expressions. Less picky with formatting
-  runnableExamples:
-    let a = tern(1 == 2, "99", "0-")
-    doAssert a == "0-"
-
   {.line: instantiationInfo(fullPaths = true).}:
     block:
       if predicate: tBranch else: fBranch

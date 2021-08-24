@@ -23,13 +23,6 @@ template mergeUniqByIt*(sequence, operation: untyped): untyped =
   ## For each element in sequence apply `operation` and compare
   ## results. Consequent items from `sequence` with equal results will
   ## be added into single subsequence
-  runnableExamples:
-    assert @[1,2,3,4,4,5].mergeUniqByIt(it) ==
-           @[@[1], @[2], @[3], @[4, 4], @[5]]
-
-    assert @[(1,2), (1,2), (1,4), (2,3)].mergeUniqByIt(it[0]) ==
-           @[@[(1, 2), (1, 2), (1, 4)], @[(2, 3)]]
-
   {.line: instantiationInfo(fullPaths = true).}:
     let s = sequence
     var prev =

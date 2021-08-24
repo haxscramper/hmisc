@@ -737,7 +737,6 @@ suite "String helper functions":
       "CXIdxEntityCXXTemplateKind", @["CX", "CXX"]) ==
       "CXIdxEntityTemplateKind"
 
-    # for runnable examples
     check "CXX_CX".dropLongestSubseq(@["CXX", "CX"]) == "_CX"
     check "CX_CX_EEECX".dropSubstr("CX") == "__EEE"
 

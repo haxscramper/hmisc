@@ -1013,10 +1013,6 @@ iterator walkDir*[T: AnyPath](
   ## represent file, and path will be relative. This is a higher-level
   ## wrapper that takes advantage of distinct types for files/directories
   ## and eliminates need to filter by entry kind in the calling loop.
-  runnableExamples:
-    for dir in walkDir(~".config", RelDir):
-      assert dir is RelDir
-
   if assertExists:
     assertExists(dir, "Cannot iterate over non-existent directory.")
 

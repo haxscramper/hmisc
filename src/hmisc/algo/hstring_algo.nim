@@ -268,8 +268,6 @@ func wrap*(str: string, left, right: char): string {.inline.} =
 
 func joinl*(inseq: openarray[string]): string =
   ## Join items using newlines
-  runnableExamples:
-    assert @["as", "bn"].joinl == "as\nbn"
   inseq.join("\n")
 
 func joinql*(
@@ -286,15 +284,10 @@ func joinkv*[K, V](
 
 proc joinw*(inseq: openarray[string], sep = " "): string =
   ## Join items using spaces
-  runnableExamples:
-    assert @["as", ";;"].joinw == "as ;;"
   inseq.join(sep)
 
 func joinq*(inseq: openarray[string], sep: string = " ", wrap: string = "\""): string =
   ## Join items using spaces and quote each item
-  runnableExamples:
-    assert @["as", "qq"].joinq == "\"as\" \"qq\""
-
   inseq.mapIt(wrap & it & wrap).join(sep)
 
 func join*[T](obj: T, sep: string, wrap: (string, string)): string =
@@ -579,10 +572,6 @@ func dropCommonPrefix*(
   strs: seq[string], dropSingle: bool = true): seq[string] =
   ## Drop common prefix from sequence of strings. If `dropSingle` is
   ## false sequences with `len == 1` are returned as-is.
-  runnableExamples:
-    doAssert @["--", "-="].dropCommonPrefix() == @["-", "="]
-    doAssert @["---"].dropCommonPrefix(false) == @["---"]
-
   if not dropSingle and strs.len == 1:
     return strs
 
@@ -781,10 +770,6 @@ func joinCamel*(ins: openarray[string]): string =
 
 func replaceN*(str: string, n: int, subst: char = ' '): string =
   ## Replace first `n` characters in string with `subst`
-  runnableExamples:
-    assert "123".replaceN(1) == " 23"
-    assert "0--".replaceN(3, '-') == "---"
-
   result = str
   for i in 0..<min(str.len, n):
     result[i] = subst

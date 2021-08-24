@@ -164,17 +164,6 @@ proc matchWith*[K, V](
   tbl: seq[tuple[k: seq[K], v: V]]): Option[V] =
   ## Search `seq[seq[Key], Val]` for entry that has matching `Key` and
   ## return corresponding `Val`. If nothing found return `none(V)`
-  runnableExamples:
-    import options
-    let lookup = @[
-      (@["one", "two", "three"], "number"),
-      (@["cat", "dog", "mole"], "animal")
-    ]
-
-    doAssert "one".matchWith(lookup) == some("number")
-    doAssert "dog".matchWith(lookup) == some("animal")
-    doAssert "number".matchWith(lookup).isNone()
-
 
   for tupl in tbl:
     if val in tupl.k:
@@ -243,9 +232,6 @@ func dropLongestSubseq*[T](inseq: seq[T], subseqs: seq[seq[T]]): seq[T] =
 func dropLongestSubseq*(inseq: string, inseqs: seq[string]): string =
   ## Sort `subseq` by lenght and try to drop each from `inseq`. First
   ## first drop attempt that changes result length is returned.
-  runnableExamples:
-    doAssert "CXX_CX".dropLongestSubseq(@["CXX", "CX"]) == "_CX"
-
   let inseqs = collect(newSeq):
     for str in inseqs:
       str.mapIt(it)
@@ -254,9 +240,6 @@ func dropLongestSubseq*(inseq: string, inseqs: seq[string]): string =
 
 func dropSubstr*(instr, substr: string): string =
   ## Drop all occurencies of `substr` in `instr`
-  runnableExamples:
-    doAssert "CX_CX_EEECX".dropSubstr("CX") == "__EEE"
-
   instr.dropSubseq(substr).join("")
 
 func dropLowerPrefix*(str: sink string): string =
