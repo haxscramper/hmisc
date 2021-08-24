@@ -7,16 +7,11 @@ jobs:
     if: |
       !contains(github.event.head_commit.message, 'WIP')
 
-    strategy:
-      matrix:
-        nim: ['version-1-4']
-
     runs-on: ubuntu-latest
     steps:
-      - run: sudo apt-get install graphviz
       - uses: actions/checkout@v2
       - uses: alaviss/setup-nim@master
         with:
           path: '../nim'
-          version: ${{ matrix.nim }}
-      - run: "nimble -y test"
+          version: 'version-1-4'
+      - run: "nimble docgen"
