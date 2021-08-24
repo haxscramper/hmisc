@@ -518,16 +518,20 @@ func gridRenderAux(rect: TermGrid, buf: var TermBuf): void =
         buf, rc[gpoRightBorder])
 
     if rc[gpoTopLeft].isValid():
-      buf[gridX, gridY] = rc[gpoTopLeft]
+      when not defined(nimdoc):
+        buf[gridX, gridY] = rc[gpoTopLeft]
 
     if rc[gpoBottomLeft].isValid():
-      buf[gridX, gridY + totalH + 1] = rc[gpoBottomLeft]
+      when not defined(nimdoc):
+        buf[gridX, gridY + totalH + 1] = rc[gpoBottomLeft]
 
     if rc[gpoTopRight].isValid():
-      buf[gridX + totalW + 1, gridY] = rc[gpoTopRight]
+      when not defined(nimdoc):
+        buf[gridX + totalW + 1, gridY] = rc[gpoTopRight]
 
     if rc[gpoBottomRight].isValid():
-      buf[gridX + totalW + 1, gridY + totalH + 1] = rc[gpoBottomRight]
+      when not defined(nimdoc):
+        buf[gridX + totalW + 1, gridY + totalH + 1] = rc[gpoBottomRight]
 
 
   block inerGrid:
@@ -541,10 +545,12 @@ func gridRenderAux(rect: TermGrid, buf: var TermBuf): void =
             rc[gpoHorizontalGap])
 
         if rc[gpoLeftIntersection].isValid():
-          buf[gridX, gridY + row] = rc[gpoLeftIntersection]
+          when not defined(nimdoc):
+            buf[gridX, gridY + row] = rc[gpoLeftIntersection]
 
         if rc[gpoRightIntersection].isValid():
-          buf[gridX + totalW + 1, gridY + row] = rc[gpoRightIntersection]
+          when not defined(nimdoc):
+            buf[gridX + totalW + 1, gridY + row] = rc[gpoRightIntersection]
 
 
     if hSpacing == 1:
@@ -558,15 +564,18 @@ func gridRenderAux(rect: TermGrid, buf: var TermBuf): void =
           )
 
         if rc[gpoTopIntersection].isValid():
-          buf[gridX + col, gridY] = rc[gpoTopIntersection]
+          when not defined(nimdoc):
+            buf[gridX + col, gridY] = rc[gpoTopIntersection]
 
         if rc[gpoBottomIntersection].isValid():
-          buf[gridX + col, gridY + totalH + 1] = rc[gpoBottomIntersection]
+          when not defined(nimdoc):
+            buf[gridX + col, gridY + totalH + 1] = rc[gpoBottomIntersection]
 
     if rc[gpoIntersection].isValid():
       for row in rect.cellHeights.cumsumjoin(vSpacing)[0..^2]:
         for col in rect.cellWidths.cumsumjoin(hSpacing)[0..^2]:
-          buf[gridX + col, gridY + row] = rc[gpoIntersection]
+          when not defined(nimdoc):
+            buf[gridX + col, gridY + row] = rc[gpoIntersection]
 
 
 method render*(rect: TermGrid, buf: var TermBuf): void =
@@ -702,34 +711,47 @@ method render*(grid: TermMultiGrid, buf: var TermBuf): void =
 
       block: # Remove things in grid
         for (x, y) in (wRange, hRange):
-          buf[x, y] = toColoredRune(' ')
+          when not defined(nimdoc):
+            buf[x, y] = toColoredRune(' ')
 
       block: # Fix intersections
         for x in absCellX:
           for y in absCellY:
             if (y + 1 == hRange.a) and (x in wRange):
               if (y == y0) and rc[gpoTopBorder].isValid():
-                buf[x, y] = rc[gpoTopBorder]
+                when not defined(nimdoc):
+                  buf[x, y] = rc[gpoTopBorder]
+
               elif rc[gpoBottomIntersection].isValid():
-                buf[x, y] = rc[gpoBottomIntersection]
+                when not defined(nimdoc):
+                  buf[x, y] = rc[gpoBottomIntersection]
 
             if (x + 1 == wRange.a) and (y in hRange):
               if x == x0 and rc[gpoLeftBorder].isValid():
-                buf[x, y] = rc[gpoLeftBorder]
+                when not defined(nimdoc):
+                  buf[x, y] = rc[gpoLeftBorder]
+
               elif rc[gpoRightIntersection].isValid():
-                buf[x, y] = rc[gpoRightIntersection]
+                when not defined(nimdoc):
+                  buf[x, y] = rc[gpoRightIntersection]
 
             if (x - 1 == wRange.b) and (y in hRange):
               if (x - 1) == totalW and rc[gpoRightBorder].isValid():
-                buf[x, y] = rc[gpoRightBorder]
+                when not defined(nimdoc):
+                  buf[x, y] = rc[gpoRightBorder]
+
               elif rc[gpoLeftIntersection].isValid():
-                buf[x, y] = rc[gpoLeftIntersection]
+                when not defined(nimdoc):
+                  buf[x, y] = rc[gpoLeftIntersection]
 
             if (y - 1 == hRange.b) and (x in wRange):
               if (y - 1) == totalH and rc[gpoBottomBorder].isValid():
-                buf[x, y] = rc[gpoBottomBorder]
+                when not defined(nimdoc):
+                  buf[x, y] = rc[gpoBottomBorder]
+
               elif rc[gpoTopIntersection].isValid():
-                buf[x, y] = rc[gpoTopIntersection]
+                when not defined(nimdoc):
+                  buf[x, y] = rc[gpoTopIntersection]
 
       block:
         let lookup = makeLookup(grid.cells)
@@ -752,7 +774,8 @@ method render*(grid: TermMultiGrid, buf: var TermBuf): void =
                 case relPos:
                   of rpRight:
                     if rc[gpoVerticalGap].isValid():
-                      buf[absCellX[maxColX - 1], rowY] = rc[gpoVerticalGap]
+                      when not defined(nimdoc):
+                        buf[absCellX[maxColX - 1], rowY] = rc[gpoVerticalGap]
                   else:
                     discard
 
@@ -762,7 +785,8 @@ method render*(grid: TermMultiGrid, buf: var TermBuf): void =
                 case relPos:
                   of rpBottom:
                     if rc[gpoHorizontalGap].isValid():
-                      buf[colX, absCellY[maxRow]] = rc[gpoHorizontalGap]
+                      when not defined(nimdoc):
+                        buf[colX, absCellY[maxRow]] = rc[gpoHorizontalGap]
                   else:
                     discard
 

@@ -162,17 +162,18 @@ proc newUnexpectedTokenError*[K](
 
   var buf = initRuneGrid()
 
-  var pos = &"{result.line}:{result.column}"
+  when not defined(nimdoc):
+    var pos = &"{result.line}:{result.column}"
 
-  buf[0, 0] = &"Unexpected token: expected {expected}, but got"
-  buf[1, 0] = pos
-  buf[1, pos.len + 1] = result.lineText
-  let arrow = pos.len + 1 + linePos
-  buf[2, arrow] = "^"
-  buf[3, arrow] = "|"
-  buf[4, arrow] = result.gotToken
+    buf[0, 0] = &"Unexpected token: expected {expected}, but got"
+    buf[1, 0] = pos
+    buf[1, pos.len + 1] = result.lineText
+    let arrow = pos.len + 1 + linePos
+    buf[2, arrow] = "^"
+    buf[3, arrow] = "|"
+    buf[4, arrow] = result.gotToken
 
-  result.msg = $buf
+    result.msg = $buf
 
 
 
@@ -586,8 +587,9 @@ proc setStr*[T](lexer: var HsLexer[T], str: var PosStr) =
 
 proc skip*[T, En](lexer: var HsLexer[T], kind: En) =
   when kind is set:
-    if lexer[].kind notin kind:
-      raise newUnexpectedTokenError(lexer, kind)
+    when not defined(nimdoc):
+      if lexer[].kind notin kind:
+        raise newUnexpectedTokenError(lexer, kind)
 
   else:
     if lexer[].kind != kind:

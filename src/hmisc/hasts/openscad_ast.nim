@@ -112,19 +112,21 @@ proc makeScadModule*(
   body: openarray[ScadNode],
   args: varargs[tuple[key, val: string]]
      ): ScadNode =
-  ScadNode(
-    modName: name,
-    body: toSeq(body),
-    argList: newStringTable(args),
-    kind: sntModule
-  )
+  when not defined(nimdoc):
+    ScadNode(
+      modName: name,
+      body: toSeq(body),
+      argList: newStringTable(args),
+      kind: sntModule
+    )
 
 proc makeGroup*(
   elements: openarray[ScadNode],
   gType: GroupModeType =  gmtRegular
      ): ScadNode =
   ## Make group node
-  ScadNode(elements: toSeq(elements), kind: sntGroup, groupMod: gType)
+  when not defined(nimdoc):
+    ScadNode(elements: toSeq(elements), kind: sntGroup, groupMod: gType)
 
 proc makeGroupWith*(
   node: ScadNode,
@@ -134,11 +136,12 @@ proc makeGroupWith*(
   ## Add scad node to group with `other` elements. It will be added as
   ## first or last based on `reverse` value: `true` to add as last,
   ## `false` otherwise
-  ScadNode(elements:
-    reverse.tern(
-      toSeq(other) & @[node], @[node] & toSeq(other)
-    ),
-    kind: sntGroup)
+  when not defined(nimdoc):
+    ScadNode(elements:
+      reverse.tern(
+        toSeq(other) & @[node], @[node] & toSeq(other)
+      ),
+      kind: sntGroup)
 
 proc addComment*(node: ScadNode, comment: string): ScadNode =
   makeScadComment(comment).makeGroupWith([node])
@@ -184,11 +187,12 @@ proc makeScadTree*(
 proc setColor*(
   node: ScadNode, r = 0.0, g = 0.0, b = 0.0, a = 1.0
      ): ScadNode =
-  makeScadTree(
-    "color",
-    [node],
-    {"c" : &"[{r}, {r}, {b}]", "alpha" : $a}
-  )
+  when not defined(nimdoc):
+    makeScadTree(
+      "color",
+      [node],
+      {"c" : &"[{r}, {r}, {b}]", "alpha" : $a}
+    )
 
 
 proc setColor*(node: ScadNode, colorname: string,  a = 1.0): ScadNode =
@@ -201,7 +205,8 @@ proc scadOperator*(
   name: string,
   params: varargs[tuple[key, val: string]]
      ): ScadNode =
-    makeScadTree(name, [node], params)
+    when not defined(nimdoc):
+      makeScadTree(name, [node], params)
 
 proc scadTranslate*(node: ScadNode, x = 0.0, y = 0.0, z = 0.0): ScadNode =
   makeScadTree("translate", [node], {"v" : &"[{x}, {y}, {z}]"})

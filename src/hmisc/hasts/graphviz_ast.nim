@@ -644,10 +644,11 @@ func add*(
     node: var DotNode, other: DotNode,
     attrs: openarray[(string, string)] = @[]
   ) =
-  var attrs = toSeq(attrs)
-  attrs.add ("port", $other.id)
-  node.htmlLabel.add newTree(
-    "tr", @[newTree("td", @[other.htmlLabel], attrs)])
+  when not defined(nimdoc):
+    var attrs = toSeq(attrs)
+    attrs.add ("port", $other.id)
+    node.htmlLabel.add newTree(
+      "tr", @[newTree("td", @[other.htmlLabel], attrs)])
 
 const defaultDotBackgroundMap*: array[BackgroundColor, Color] =
   block:
@@ -986,12 +987,13 @@ func toTree(
   block:
     let styleEdge = graph.styleEdge.toTree(idshift, level + 1)
     if styleEdge.edgeAttributes.len > 0:
-      result.elements.add DotTree(
-        kind: dtkProperty, globalProp: true,
-        key: "edge",
-        val: collect(newSeq,
-          for lhs, rhs in styleEdge.edgeAttributes:
-            &"{lhs}={rhs}").join(", "))
+      when not defined(nimdoc):
+        result.elements.add DotTree(
+          kind: dtkProperty, globalProp: true,
+          key: "edge",
+          val: collect(newSeq,
+            for lhs, rhs in styleEdge.edgeAttributes:
+              &"{lhs}={rhs}").join(", "))
 
   if graph.topNodes.len > 0:
     var nodeIds: seq[DotNodeId]
@@ -1103,38 +1105,38 @@ proc `$`*(graph: DotGraph): string =
 
 #===============================  testing  ===============================#
 
-let res = DotGraph(
-  name: "G",
-  nodes: @[
-    DotNode(id: 12),
-    DotNode(id: 25),
-    DotNode(id: 23),
-    DotNode(
-      id: 77,
-      shape: nsaRecord,
-      flds: @[
-        RecordField(id: 8, text: "Hello"),
-        RecordField(id: 9, text: "world"),
-        RecordField(id: 10, text: "world")
-      ]
-    )
-  ],
-  edges: @[
-    DotEdge(src: 12, to: @[23, 25]),
-    DotEdge(src: 999, to: @[@[77, 8], @[77, 9], @[77, 10], @[25]]),
-    DotEdge(src: 999, to: @[77, 12], color: colGreen)
-  ],
-  subgraphs: @[
-    DotGraph(
-      name: "ZZ",
-      idshift: 8880000,
-      isCluster: true,
-      nodes: @[
-        DotNode(id: 999)
-      ]
-    )
-  ]
-)
+# let res = DotGraph(
+#   name: "G",
+#   nodes: @[
+#     DotNode(id: 12),
+#     DotNode(id: 25),
+#     DotNode(id: 23),
+#     DotNode(
+#       id: 77,
+#       shape: nsaRecord,
+#       flds: @[
+#         RecordField(id: 8, text: "Hello"),
+#         RecordField(id: 9, text: "world"),
+#         RecordField(id: 10, text: "world")
+#       ]
+#     )
+#   ],
+#   edges: @[
+#     DotEdge(src: 12, to: @[23, 25]),
+#     DotEdge(src: 999, to: @[@[77, 8], @[77, 9], @[77, 10], @[25]]),
+#     DotEdge(src: 999, to: @[77, 12], color: colGreen)
+#   ],
+#   subgraphs: @[
+#     DotGraph(
+#       name: "ZZ",
+#       idshift: 8880000,
+#       isCluster: true,
+#       nodes: @[
+#         DotNode(id: 999)
+#       ]
+#     )
+#   ]
+# )
 
 # echo $res
 
@@ -1158,10 +1160,11 @@ proc toPng*(
   tmpfile.writeFile($graph)
 
   try:
-    discard runShell makeX11ShellCmd("dot").withIt do:
-      it - ("T", "", "png")
-      it - ("o", "", $tmpimage)
-      it.arg tmpfile
+    when not defined(nimdoc):
+      discard runShell makeX11ShellCmd("dot").withIt do:
+        it - ("T", "", "png")
+        it - ("o", "", $tmpimage)
+        it.arg tmpfile
 
 
     cpFile tmpimage, resfile
@@ -1179,10 +1182,11 @@ proc toXDot*(
 
   tmpfile.writeFile($graph)
 
-  discard runShell makeGnuShellCmd("dot").withIt do:
-    it - ("T", "", "xdot")
-    it - ("o", "", $resfile)
-    it.arg tmpfile
+  when not defined(nimdoc):
+    discard runShell makeGnuShellCmd("dot").withIt do:
+      it - ("T", "", "xdot")
+      it - ("o", "", $resfile)
+      it.arg tmpfile
 
 proc toPng*(
     graph: DotGraph,

@@ -61,14 +61,15 @@ template expectAt*(
 
   {.line: instantiationInfo(fullPaths = true).}:
     if parser.base.kind notin at:
-      raise newException(
-        HXmlParserEventError,
-        (
-          "Invalid curent parser event kind for '" & procname &
-          "'. Expected any of " & $at & ", but found " & $parser.base.kind() &
-          " at " & displayAt(parser)
+      when not defined(nimdoc):
+        raise newException(
+          HXmlParserEventError,
+          (
+            "Invalid curent parser event kind for '" & procname &
+            "'. Expected any of " & $at & ", but found " & $parser.base.kind() &
+            " at " & displayAt(parser)
+          )
         )
-      )
 
 proc charData*(my: HXmlParser): string =
   expectAt(my, {
