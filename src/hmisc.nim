@@ -98,7 +98,6 @@ import ./hmisc/other/hargparse
 import ./hmisc/other/hjson
 import ./hmisc/other/nimbleutils
 import ./hmisc/other/rx
-import ./hmisc/other/hcligen
 import ./hmisc/other/hpprint
 import ./hmisc/other/hcoverage
 import ./hmisc/other/htree_draw

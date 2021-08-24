@@ -36,9 +36,10 @@ func renderLine(x0, y0, x1, y1: int, buf: var TermBuf,
     y = y0
 
   for i in 0 .. steps:
-    buf[x, y] = rune
-    x += xInc.int
-    y += yInc.int
+    when not defined(nimdoc):
+      buf[x, y] = rune
+      x += xInc.int
+      y += yInc.int
 
 func renderLine*(p: Point[int], w, h: int, buf: var TermBuf,
                  c: ColoredRune): void =
