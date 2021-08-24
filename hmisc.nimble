@@ -18,7 +18,6 @@ requires "fusion"
 requires "benchy >= 0.0.1"
 requires "jsony >= 1.0.4"
 requires "unicodedb >= 0.9.0"
-# requires "https://github.com/haxscramper/fusion.git#matching-fixup"
 
 import std/[os, strutils, strformat]
 
