@@ -9,6 +9,7 @@ import
     latex_ast,
     json_ast,
     pandoc,
+    xml_ast,
     html_ast2,
     openscad_ast
   ],
