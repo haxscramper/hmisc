@@ -55,11 +55,11 @@ task docgen, "Generate documentation":
     "--outdir:docs"
   ]
 
-  let commit = getEnv("GITHUB_SHA")
-  if commit.len > 0: args.add &"--git.commit:{commit}"
+  # let commit = getEnv("GITHUB_SHA")
+  # if commit.len > 0: args.add &"--git.commit:{commit}"
 
-  let ghref = getEnv("GITHUB_REF").split("/")[^1]
-  if ghref.len > 0: args.add &"--git.devel:{ghref}"
+  # let ghref = getEnv("GITHUB_REF").split("/")[^1]
+  # if ghref.len > 0: args.add &"--git.devel:{ghref}"
 
   let ghUrl = getEnv("GITHUB_REPOSITORY", &"file://{res}")
   if ghUrl.len > 0: args.add &"--git.url:\"{ghUrl}\""

@@ -1152,6 +1152,7 @@ type
     dfUnicodeNewlines
     dfUnicodePPrint
     dfWithRanges
+    dfSpellEmptyStrings
 
   HDisplayOpts* = object
     flags*: set[HDisplayFlag]
@@ -1165,7 +1166,7 @@ type
     dropPrefix*: bool
 
 const defaultHDisplay* = HDisplayOpts(
-  flags: { dfColored, dfPositionIndexed },
+  flags: { dfColored, dfPositionIndexed, dfSpellEmptyStrings },
   dropPrefix: true,
   newlineBeforeMulti: true,
   maxLen: 30,
@@ -1330,8 +1331,12 @@ func joinPrefix*(
 func hShow*(
     str: string, opts: HDisplayOpts = defaultHDisplay): ColoredText =
   if str.len == 0:
-    result = toYellow("''", opts.colored) & " (" &
-      toItalic("empty string", opts.colored) & ")"
+    if dfSpellEmptyStrings in opts.flags:
+      result = toYellow("''", opts.colored) & " (" &
+        toItalic("empty string", opts.colored) & ")"
+
+    else:
+      result = toYellow("''")
 
   else:
     if '\n' in str:

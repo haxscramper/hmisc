@@ -1,4 +1,5 @@
 import std/[macros]
+import ../core/code_errors
 
 proc withFieldAssignsTo*(
     target, body: NimNode,
@@ -11,9 +12,34 @@ proc withFieldAssignsTo*(
   result = newStmtList()
   let tmp = if withTmp: ident("tmp") else: target
   proc addAsgn(re, part: NimNode) =
-    expectKind(part, {nnkAsgn, nnkExprEqExpr})
-    re.add nnkAsgn.newTree(
-      nnkDotExpr.newTree(tmp, part[0]), part[1])
+    assertNodeKind(part, {nnkAsgn, nnkExprEqExpr, nnkInfix})
+    if part.kind == nnkInfix:
+      case part[0].strVal():
+        of "-=":
+          re.add newCall(
+            "excl", nnkDotExpr.newTree(tmp, part[1]), part[2])
+
+        of "+=":
+          re.add newCall(
+            "incl", nnkDotExpr.newTree(tmp, part[1]), part[2])
+
+        of "&=":
+          re.add newCall(
+            "add", nnkDotExpr.newTree(tmp, part[1]), part[2])
+
+        of "^=":
+          re.add newCall(
+            "insert", nnkDotExpr.newTree(tmp, part[1]), newLit(0), part[2])
+
+        else:
+          raise toCodeError(
+            part[0],
+            "Unexpected field operator. Expected `-=`, `^=`, `+=` or `&=`")
+
+
+    else:
+      re.add nnkAsgn.newTree(
+        nnkDotExpr.newTree(tmp, part[0]), part[1])
 
   proc convertAsgn(re: NimNode, entry: NimNode) =
     if entry.kind in {nnkStmtList, nnkArgList}:
@@ -38,6 +64,8 @@ proc withFieldAssignsTo*(
         block:
           var `tmp` = `target`
           `result`
+
+  # echo result.repr()
 
 macro withFields*(args: varargs[untyped]): untyped =
   withFieldAssignsTo(
