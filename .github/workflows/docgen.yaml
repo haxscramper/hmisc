@@ -13,3 +13,8 @@ jobs:
           version: 'version-1-4'
       - run: "nimble -y install"
       - run: "nimble docgen"
+      - uses: crazy-max/ghaction-github-pages@v1
+        with:
+          build_dir: docs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

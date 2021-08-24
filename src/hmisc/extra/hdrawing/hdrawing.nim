@@ -130,7 +130,8 @@ func newTermPoint*(start: (int, int), c: char = '+'): SPoint[char, int] =
   SPoint[char, int](point: start.makePoint(), config: c)
 
 method render*(point: SPoint[char, int], buf: var TermBuf): void =
-  buf[point.point] = toColoredRune(point.config)
+  when not defined(nimdoc):
+    buf[point.point] = toColoredRune(point.config)
 
 #==============================  Term rect  ==============================#
 
