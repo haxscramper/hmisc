@@ -29,11 +29,6 @@ macro cond*(v: untyped, conds: varargs[untyped]): untyped =
   ## other expressions. Syntax - takes `<input-value>` and multiple
   ## `(<value>, <expr>)` pairs and compares result of `<input-value>` with
   ## each `<value>` in branches. Yields first matched result.
-  runnableExamples:
-    let vald = cond(12,
-                    (13, "hello"),
-                    (14, "world"))
-
   var exprId = genSym(nskLet, "expr")
 
   result = nnkIfExpr.newTree()

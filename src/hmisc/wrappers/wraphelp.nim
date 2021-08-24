@@ -4,28 +4,6 @@ import
 import ../macros/argpass
 
 import ../core/[all, code_errors]
-import ./wraphelp_ptr
-
-##[
-
-[[code:CxxTemplateUndefined]] is made mostly for automatic wrapper
-generator, specifically for cases like these, where it might be /obvious,
-that most use cases/ for `==` return `bool`, but this intuition cannot be
-transferred to the wrapper generator. In that specific case you would need
-to do `(str1 == str2) as bool`.
-
-```c++
-template<typename _CharT>
-  inline
-  typename __gnu_cxx::__enable_if<__is_char<_CharT>::__value, bool>::__type
-  operator==(const basic_string<_CharT>& __lhs,
-       const basic_string<_CharT>& __rhs) _GLIBCXX_NOEXCEPT
-  { return (__lhs.size() == __rhs.size()
-      && !std::char_traits<_CharT>::compare(__lhs.data(), __rhs.data(),
-              __lhs.size())); }
-```
-
-]##
 
 macro closureToCdeclImpl(c: typed): untyped =
   discard
@@ -36,74 +14,68 @@ func closureToCdecl*[C: proc {.closure.}](c: C): auto =
 func splitClosure*[C: proc {.closure.}](c: C): auto =
   return (impl: cast[typeof(closureToCdecl(c))](rawProc(c)), env: rawEnv(c))
 
-{.push warning[InheritFromException]:off.}
-
-
 type
-  StdInitializerList*[T] {.
-    importcpp: "std::initializer_list",
-    header: "<initializer_list>"
-  .} = object
-
-  CxxTemplateUndefined* = object
-  CxxTemplateApproximate*[T] = object
-
   cchar16* = uint16
   cchar32* = uint32
   cwchar* = uint32
   nullptr_t* = typeof(nil)
 
-  StdNullptrT* = nullptr_t
-  StdSizeT* = culong
-  StdPtrdiffT* = clong
-
-  StdException* {.
-    importcpp: "std::exception",
-    header: "<stdexcept>",
-    byref,
-    inheritable
-  .} =
-    object of Exception
-
-{.pop.}
-
-proc what*(ex: StdException): cstring {.importcpp: "#.what()".}
 
 
+type
+  UArray*[T] = UncheckedArray[T]
+  PUarray*[T] = ptr UncheckedArray[T]
+
+template `+`*[T](p: ptr T, offset: SomeInteger): ptr T =
+  cast[ptr type(p[])](cast[ByteAddress](p) +% int(offset) * sizeof(p[]))
+
+template `+=`*[T](p: ptr T, offset: SomeInteger) =
+  p = p + offset
+
+template `-`*[T](p: ptr T, offset: SomeInteger): ptr T =
+  cast[ptr type(p[])](cast[ByteAddress](p) -% int(offset) * sizeof(p[]))
+
+template `-=`*[T](p: ptr T, offset: SomeInteger) =
+  p = p - offset
+
+template `[]`*[T](p: ptr T, offset: SomeInteger): T =
+  (p + offset)[]
+
+template `[]=`*[T](p: ptr T, offset: SomeInteger, val: T) =
+  (p + offset)[] = val
+
+proc allocPUarray*[T](size: Natural): PUarray[T] =
+  cast[PUarray[T]](alloc(size * sizeof(T)))
+
+proc deallocPUarray*[T](arr: PUarray[T]) =
+  dealloc(cast[pointer](arr))
+
+template toPUarray*[T](p: ptr T): PUarray[T] = cast[PUarray[T]](p)
+template toPtr*[T](p: PUArray[T]): ptr T = cast[ptr T](p)
+
+template toPtr*[T](r: ref T): ptr T = cast[ptr T](r)
+template toPUarray*[T](r: ref T): PUarray[T] = cast[PUarray[T]](r)
+
+iterator items*[T](arr: PUarray[T], size: int): T =
+  var idx = 0
+  while idx < size:
+    yield arr[][idx]
+    inc idx
+
+iterator pairs*[T](arr: PUarray[T], size: int): (int, T) =
+  var idx = 0
+  while idx < size:
+    yield (idx, arr[][idx])
+    inc idx
+
+template subArrayPtr*[T](arr: PUArray[T], idx: SomeInteger): PUarray[T] =
+  toPUarray(toPtr(arr) + idx)
 
 
 
-proc `as`*[T1, T2](
-  approx: CxxTemplateApproximate[T1],
-  asTarget: typedesc[T2]): T2 {.importcpp: "(#)".}
-
-proc `as`*[T1, T2](asSource: T1, target: typedesc[CxxTemplateApproximate[T2]]):
-  CxxTemplateUndefined {.importcpp: "(#)".}
-
-converter toT*[T](approx: CxxTemplateApproximate[T]): T
-  {.importcpp: "(#) /*implicit conversion from approximate template*/".}
-
-converter toCxxTemplateApproximate*[T](base: T): CxxTemplateApproximate[T]
-  {.importcpp: "(#)".}
-
-proc `as`*[T](
-  undef: CxxTemplateUndefined, asTarget: typedesc[T]): T {.importcpp: "(#)"}
-
-proc `as`*[T](asSource: T, target: typedesc[CxxTemplateUndefined]):
-  CxxTemplateUndefined {.importcpp: "(#)".}
 
 
-type StdInitializerListBuilder = object
-const lc* = StdInitializerListBuilder()
 
-proc cxxInitList*[T](args: T) {.importcpp: "{@}", varargs.}
-macro `[]`*(lc: StdInitializerListBuilder, a: varargs[untyped]): untyped =
-  result = newCall("cxxInitList")
-  for arg in a:
-    result.add arg
-
-proc newImportAux*() {.importc: "//", header: "<new>".} =
-  discard
 
 macro `//`*(arg: string): untyped =
   ## Emit C comment in generated source code

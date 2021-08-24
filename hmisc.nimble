@@ -28,8 +28,9 @@ task docgen, "Generate documentation":
 
   let
     cwd = getCurrentDir()
-    res = "/tmp" # &"{cwd}/docs"
+    res = &"{cwd}/docs"
     cdd = "src/hmisc"
+    maxFiles = 400
 
   cd cdd
 
@@ -40,17 +41,19 @@ task docgen, "Generate documentation":
   for path in walkDirRec(".", relative = true):
     let (dir, name, ext) = path.splitFile()
     if name != "hmisc" and ext == ".nim":
-      if dir.len > 0 and cnt < 10:
+      if dir.len > 0 and cnt < maxFiles:
         inc cnt
         hmiscText.add &"import ./hmisc/{dir}/{name}\n"
 
-  cd ".."
-  writeFile("hmisc.nim", hmiscText)
+  cd "../.."
+  writeFile("src/hmisc.nim", hmiscText)
   var args = @[
     "nim",
     "doc",
     "--project",
-    "--warnings:off"
+    "--errormax:1",
+    "--warnings:off",
+    "--outdir:docs"
   ]
 
   let commit = getEnv("GITHUB_SHA")
@@ -62,59 +65,11 @@ task docgen, "Generate documentation":
   let ghUrl = getEnv("GITHUB_REPOSITORY", &"file://{res}")
   if ghUrl.len > 0: args.add &"--git.url:\"{ghUrl}\""
 
-  args.add "hmisc.nim"
+  args.add "src/hmisc.nim"
 
   let cmd = join(args, " ")
   echo cmd
   exec cmd
-    # let outPath = &"{res}/{dir}/{name}.html"
-      # var cmd = &"nim doc --warnings:off --git.commit:{commit} --git.devel:{ghref} --git.url:{ghUrl} -o:{outPath}"
-      # cmd &= &" {cwd}/{cdd}/{path.quoteShell()}"
-      # files.add (&"{ghUrl}/{dir}/{name}.html", name)
-      # echo cmd
-
-      # if cnt < 10:
-      #   resDirs.add &"{res}/{dir}"
-      #   inc cnt
-      #   exec cmd
-
-#   var theindex = """
-# <html>
-# <head>
-#   <title>{{title}}</title>
-# </head>
-# <body>
-
-# <ul>
-# """
-
-#   for (file, name) in files:
-#     theindex.add &"<li><a href={file}>{name}</a></li>\n"
-
-#   theindex.add """
-# </ul>
-
-# </body>
-# </html>"""
-
-#   echo theindex
-
-#   for dir in resDirs:
-#     echo dir
-#     writeFile(&"{dir}/theindex.html", theindex)
-
-#   if not fileExists("bin/hmisc-putils"):
-#     exec("nimble build")
-
-#   exec("""
-# hmisc-putils docgen \
-#   --ignore='**/treediff/*.nim' \
-#   --ignore='**/hcligen.nim'
-# """)
-
-  # --ignore='**/zs_matcher.nim' \
-  # --ignore='**/similarity_metrics.nim' \
-  # --ignore='**/treediff_main.nim' \
 
 
 task testall, "Merge all tests and run them":

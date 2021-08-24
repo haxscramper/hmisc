@@ -1,6 +1,6 @@
 import std/macros, pkg/benchy
 
-import ../wrappers/wraphelp_ptr
+import ../wrappers/wraphelp
 import ../core/all
 
 type

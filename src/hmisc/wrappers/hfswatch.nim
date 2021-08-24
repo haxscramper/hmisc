@@ -1,8 +1,10 @@
-# import libfswatch, libfswatch/fswatch
-import ../other/oswrap, ../other/rx
+import
+  ../other/oswrap,
+  ../other/rx,
+  ../core/all
+
 import std/[bitops, strformat]
 import fusion/pointers
-import ../hdebug_misc
 
 const libfswatch =
   when defined(windows): "libfswatch.dll"

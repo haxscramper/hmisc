@@ -1,10 +1,11 @@
-import sugar, strutils, sequtils, strformat, sugar, lenientops, math
+import std/[sugar, strutils, sequtils, strformat, sugar, lenientops, math]
 
-## https://llimllib.github.io/pymag-trees/
+# https://llimllib.github.io/pymag-trees/
 
-import ../types/colorstring
-import ../algo/[htree_mapping, halgorithm]
-import ../hdebug_misc
+import
+  ../types/colorstring,
+  ../algo/[htree_mapping, halgorithm],
+  ../core/all
 
 type
   DrawTree[T] = ref object

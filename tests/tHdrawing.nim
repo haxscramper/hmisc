@@ -7,7 +7,7 @@ import
   ]
 
 import
-  hmisc/extra/hdrawing/hdrawing,
+  hmisc/extra/hdrawing/[hdrawing],
   hmisc/types/[seq2d, colorstring],
   hmisc/algo/halgorithm,
   hmisc/preludes/unittest
