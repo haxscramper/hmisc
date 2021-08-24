@@ -11,7 +11,7 @@ nimble install hmisc
 ** Links
 
 - [[https://nimble.directory/pkg/hmisc][nimble package]]
-- [[https://haxscramper.github.io/hmisc/src/hmisc.html][documentation]]
+- [[https://haxscramper.github.io/hmisc/theindex.html][documentation]]
 - [[https://github.com/haxscramper/hmisc][github]]
 
 * CI, testing and documentation

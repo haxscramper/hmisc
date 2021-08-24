@@ -34,3 +34,7 @@ export
   hlex_base,
   clformat,
   all
+
+
+proc just_having_file_in_project_is_not_enough_for_nim_doc_so_I_defined_public_symbol_here*() =
+  discard

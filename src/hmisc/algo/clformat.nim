@@ -1357,6 +1357,16 @@ func hShow*[E: enum](e: E, opts: HDisplayOpts = defaultHDisplay): ColoredText =
   else:
     toGreen($e, opts.colored)
 
+func hShow*[I](s: set[I], opts: HDisplayOpts = defaultHDisplay): ColoredText =
+  result.add toBlue("{")
+  for idx, item in pairs(s):
+    if idx > 0:
+      result.add ", "
+
+    result.add hshow(item, opts)
+
+  result.add toBlue("}")
+
 func formatStringified*(str: string): string =
   if str.len == 0:
     return "'' (empty string)"

@@ -146,6 +146,12 @@ func pop*[E](s: var set[E]): E =
     s.excl result
     return
 
+iterator pairs*[I](s: set[I]): (int, I) =
+  var idx = 0
+  for val in items(s):
+    yield (idx, val)
+    inc idx
+
 macro lit3*(str: static[string]): untyped =
   ## Dedent static string literals
   newLit(dedent(str))

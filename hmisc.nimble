@@ -29,7 +29,7 @@ task docgen, "Generate documentation":
     cwd = getCurrentDir()
     res = &"{cwd}/docs"
     cdd = "src/hmisc"
-    maxFiles = 400
+    maxFiles = 12_000
 
   cd cdd
 
@@ -48,10 +48,10 @@ task docgen, "Generate documentation":
   writeFile("src/hmisc.nim", hmiscText)
   var args = @[
     "nim",
-    "doc",
+    "doc2",
     "--project",
-    # "--errormax:1",
     "--warnings:off",
+    "--errormax:1",
     "--outdir:docs"
   ]
 

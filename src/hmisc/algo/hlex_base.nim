@@ -117,6 +117,10 @@ func initPosStr*(str: string): PosStr =
   ## Create new string with full buffer and `nil` input stream
   PosStr(str: str, isSlice: false, column: 0, line: 0)
 
+template varPosStr*(str: string): PosStr =
+  var posStr = initPosStr(str)
+  posStr
+
 func initPosStr*(stream: Stream): PosStr =
   ## Create new string with empty buffer and non-nil input stream.
   PosStr(stream: stream, isSlice: false, column: 0, line: 0)

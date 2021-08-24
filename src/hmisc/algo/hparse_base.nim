@@ -176,6 +176,15 @@ proc newUnexpectedTokenError*[K](
     result.msg = $buf
 
 
+proc expectKind*[K](lex: var HsLexer[HsTok[K]], kind: K | set[K]) =
+  when kind is set:
+    if lex[].kind notin kind:
+      raise newUnexpectedTokenError(lex, kind)
+
+  else:
+    if lex[].kind != kind:
+      raise newUnexpectedTokenError(lex, { kind })
+
 
 func getIndent*[F](state: HsLexerState[F]): int = state.indent
 func setIndent*[F](state: var HsLexerState[F], ind: int) =
@@ -566,8 +575,13 @@ proc pop*[T](lex: var HsLexer[T]): T =
 
 
 proc pop*[K](lex: var HsLexer[HsTok[K]], kind: K): HsTok[K] =
+  expectKind(lex, kind)
   result = lex[]
-  assertKind(lex[], kind)
+  lex.next()
+
+proc popAsStr*[K](lex: var HsLexer[HsTok[K]], kind: K | set[K]): PosStr =
+  expectKind(lex, kind)
+  result = initPosStr(lex[])
   lex.next()
 
 proc initLexer*[T](
@@ -620,8 +634,6 @@ proc skipTo*[T](lex: var HsLexer[T], chars: set[char]) =
 proc parseIdent*[R, T](lex: var HsLexer[T], kind: R):
   HsTokTree[R, T] = HsTokTree[R, T](isToken: true, token: lex.pop())
 
-proc expectKind*[T, K](lex: var HsLexer[T], kind: set[K]) =
-  lex[].assertKind(kind)
 
 func pushRange*[T](lex: var HsLexer[T]) =
   lex.str[].pushRange()

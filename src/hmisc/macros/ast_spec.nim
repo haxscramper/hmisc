@@ -167,6 +167,38 @@ macro astSpec*(nodeType, kindType, body: untyped): untyped =
   proc aux(node: NimNode): NimNode
   proc rangeCurly(node: NimNode): NimNode
 
+  proc toSet(node: NimNode): NimNode =
+    case node.kind:
+      of nnkCurly:
+        return node
+
+      of nnkIdent:
+        return nnkCurly.newTree(node)
+
+      of nnkInfix:
+        proc unpack(node: NimNode): seq[NimNode] =
+          if node.kind == nnkIdent:
+            result.add node
+
+          else:
+            if not node[0].eqIdent("or"):
+              raise node[0].toCodeError(
+                "Expected infix `or` for alternative node kind values")
+
+
+            result.add unpack(node[1])
+            result.add unpack(node[2])
+
+        if node[0].eqIdent("or"):
+          return nnkCurly.newTree(unpack(node))
+
+        else:
+          return nnkCurly.newTree()
+
+      else:
+        assertNodeKind(node, {nnkInfix, nnkCurly, nnkIdent})
+
+
   proc altList(node: NimNode, comment: var string): NimNode =
     result = nnkBracket.newTree()
     var itemCount = 0
@@ -178,14 +210,16 @@ macro astSpec*(nodeType, kindType, body: untyped): untyped =
 
           else:
             inc itemCount
-            result.add newCall(call"astPattern", nnkCurly.newTree(kind))
+            result.add newCall(call"astPattern", toSet(kind))
+
+        of nnkInfix:
+          inc itemCount
+          result.add newCall(call"astPattern", toSet(kind))
 
         of nnkCall:
           inc itemCount
           result.add newCall(
-            call"astPattern",
-            nnkCurly.newTree(kind[0]),
-            rangeCurly(kind[1]))
+            call"astPattern", toSet(kind[0]), rangeCurly(kind[1]))
 
         of nnkObjConstr:
           inc itemCount
@@ -193,8 +227,7 @@ macro astSpec*(nodeType, kindType, body: untyped): untyped =
           let nodeId = ident("node")
 
           result.add newCall(
-            call"astPattern",
-            nnkCurly.newTree(kind[0]),
+            call"astPattern", toSet(kind[0]),
             quote do:
               proc node(`nodeId`: `nodeType`): Option[AstCheckFail[`kindType`]] =
                 discard
@@ -211,7 +244,7 @@ macro astSpec*(nodeType, kindType, body: untyped): untyped =
 
         else:
           assertNodeKind(
-            kind, {nnkInfix, nnkCall, nnkObjConstr, nnkCommentStmt})
+            kind, {nnkIdent, nnkCall, nnkObjConstr, nnkCommentStmt})
 
 
     if result.len == 0:
@@ -416,6 +449,35 @@ proc validateAst*[N, K](
             expected: alt.expected,
             arange: arange.arange)
 
+proc treeRepr*[N, K](spec: AstSpec[N, K]): ColoredText =
+  coloredResult()
+  proc aux(p: AstPattern[N, K], level: int) =
+    addIndent(level)
+
+    if p.doc.len > 0:
+      add toYellow(p.doc.indent(level + 1))
+
+    if p.expected.len > 0:
+      add hshow(p.expected)
+
+    for arange in p.ranges:
+      add "\n"
+      addIndent(level + 1)
+      add toYellow($arange.arange)
+      for alt in arange.alts:
+        add "\n"
+        aux(alt, level + 2)
+
+  for kind, pattern in pairs(spec.spec):
+    if pattern.isSome():
+      add hshow(kind)
+      add "\n"
+      aux(pattern.get(), 1)
+      add "\n"
+
+  endResult()
+
+
 
 proc formatFail*[N, K](fail: AstCheckFail[K], node: N): ColoredText =
   coloredResult()
@@ -423,7 +485,8 @@ proc formatFail*[N, K](fail: AstCheckFail[K], node: N): ColoredText =
   proc aux(fail: AstCheckFail[K], level: int) =
     addIndent(level)
     if fail.isEmpty(withNested = false):
-      add toPath(node, fail.path).toYellow()
+      discard
+      # add toPath(node, fail.path).toRed()
 
     else:
       if fail.msg.len > 0:
@@ -437,7 +500,7 @@ proc formatFail*[N, K](fail: AstCheckFail[K], node: N): ColoredText =
           if fail.arange.name.len > 0:
             add " ("
             add toCyan(fail.arange.name)
-            add ") "
+            add ")"
 
           add " "
           add toRed($fail.expected)
@@ -450,7 +513,7 @@ proc formatFail*[N, K](fail: AstCheckFail[K], node: N): ColoredText =
           if fail.arange.name.len > 0:
             add " ("
             add toCyan(fail.arange.name)
-            add ") "
+            add ")"
 
       else:
         if fail.isMissing:
@@ -459,7 +522,7 @@ proc formatFail*[N, K](fail: AstCheckFail[K], node: N): ColoredText =
           if fail.arange.name.len > 0:
             add " ("
             add toCyan(fail.arange.name)
-            add ") "
+            add ")"
 
       if fail.path.len > 0:
         add " on path "
@@ -492,6 +555,26 @@ proc validateAst*[N, K](
     result.add "\n"
     result.add formatFail(
       findMissing(spec.spec[node.kind].get(), node), node)
+
+
+proc validateSub*[N, K](
+    spec: AstSpec[N, K], node: N, idx: int): Option[ColoredText] =
+  if spec.spec[node.kind].isSome():
+    let fail = formatFail(
+      validateAst(spec.spec[node.kind].get(), node,
+                  node[idx], idx, @[idx]), node)
+
+    if fail.len() > 0:
+      return some fail
+
+proc validateSelf*[N, K](
+    spec: AstSpec[N, K], node: N): Option[ColoredText] =
+  if spec.spec[node.kind].isSome():
+    let fail = formatFail(
+      findMissing(spec.spec[node.kind].get(), node), node)
+
+    if fail.len() > 0:
+      return some fail
 
 proc validateAst*[N, K](spec: AstSpec[N, K], node: N): ColoredText =
   if spec.spec[node.kind].isSome():
