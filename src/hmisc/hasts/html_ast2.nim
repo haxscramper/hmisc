@@ -1,8 +1,10 @@
 import std/[options, macros, strformat, strutils, streams]
 import std/[macros, sequtils]
 
-import ../other/oswrap
-import ../algo/halgorithm
+import
+  ../other/oswrap,
+  ../core/all,
+  ../algo/halgorithm
 
 # Copied from
 # https://developer.mozilla.org/en-US/docs/Web/HTML/Element and

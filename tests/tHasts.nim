@@ -2,7 +2,16 @@ import
   std/[terminal, strformat, strutils, colors]
 
 import
-  hmisc/hasts/[html_ast, graphviz_ast],
+  hmisc/hasts/[
+    html_ast,
+    graphviz_ast,
+    svg_ast,
+    latex_ast,
+    json_ast,
+    pandoc,
+    html_ast2,
+    openscad_ast
+  ],
   hmisc/types/colorstring,
   hmisc/preludes/unittest,
   hmisc/algo/halgorithm

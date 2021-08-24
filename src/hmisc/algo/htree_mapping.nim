@@ -1,6 +1,14 @@
 import options, macros, deques
 # export deques
 
+##[
+
+Generic implementations of algorithms for working with tree-like data
+structures. Iterative and recursive DFS/BFS with order control, recursive
+tree mapping etc.
+
+]##
+
 #=================================  BFS  =================================#
 # IDEA `itemsBFS` and `itemsDFS` to iterate over nodes in tree
 # IDEA `pairsBFS` and `pairsDFS` to iterate over paths

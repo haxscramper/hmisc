@@ -1,2 +1,10 @@
-## This is a toplevel file for package. Most of the functionality is
-## split into separate modules.
+import ./hmisc/hasts/svg_ast
+import ./hmisc/hasts/pandoc
+import ./hmisc/hasts/xsd_ast
+import ./hmisc/hasts/hext_template
+import ./hmisc/hasts/html_ast
+import ./hmisc/hasts/mustache_template
+import ./hmisc/hasts/latex_ast
+import ./hmisc/hasts/html_ast2
+import ./hmisc/hasts/openscad_ast
+import ./hmisc/hasts/graphviz_ast

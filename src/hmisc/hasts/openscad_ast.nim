@@ -1,7 +1,8 @@
 import std/[strtabs, strformat, sequtils, strutils, math]
+
 import
   ../types/geometry_primitives,
-  ../helpers
+  ../core/all
 
 type
   GenerateWhat = enum

@@ -151,11 +151,6 @@ template twoPassSortByIt*(
   # TODO support ascending and descending order. Possible
   # implementation - depending on type of the expression. If it is a
   # tuple `(_, SortOrder)` use it for comparison.
-  runnableExamples:
-    # Sort by first field and then by second
-    assert @[(1,2), (1,9), (4,32), (1,3)].twoPassSortByIt(it[0], it[1]) ==
-           @[@[(1, 2), (1, 3), (1, 9)], @[(4, 32)]]
-
 
   let s = sequence
   var secondSorted: seq[type(@[s[0]])]

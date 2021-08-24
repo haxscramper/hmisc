@@ -141,7 +141,7 @@ proc newUnexpectedCharError*[F](
   result.msg.add " in state "
   result.msg.add $state.topFlag()
 
-proc unexpectedTokenError*[K](
+proc newUnexpectedTokenError*[K](
     lexer: var HsLexer[HsTok[K]],
     expected: set[K] = {}
   ): UnexpectedTokenError =
@@ -173,6 +173,7 @@ proc unexpectedTokenError*[K](
   buf[4, arrow] = result.gotToken
 
   result.msg = $buf
+
 
 
 func getIndent*[F](state: HsLexerState[F]): int = state.indent
@@ -586,11 +587,11 @@ proc setStr*[T](lexer: var HsLexer[T], str: var PosStr) =
 proc skip*[T, En](lexer: var HsLexer[T], kind: En) =
   when kind is set:
     if lexer[].kind notin kind:
-      raise unexpectedTokenError(lexer, kind)
+      raise newUnexpectedTokenError(lexer, kind)
 
   else:
     if lexer[].kind != kind:
-      raise unexpectedTokenError(lexer, {kind})
+      raise newUnexpectedTokenError(lexer, {kind})
 
   lexer.next()
 

@@ -1,6 +1,9 @@
-import hmisc/helpers
-import ../other/[hshell]
-import std/[sequtils, json, strutils, strformat, options]
+import std/[sequtils, json, strutils, strformat, options, math]
+
+import
+  ../core/all,
+  ../algo/hmath,
+  ../other/[hshell]
 
 type
   ListStyleKind = enum

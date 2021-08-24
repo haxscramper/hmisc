@@ -469,10 +469,10 @@ proc popSlice*(str; rightShift: int = -1): PosStr =
   finishSlice(str, rightShift)
   return initPosStr(str)
 
-template asSlice*(expr: untyped): untyped =
+template asSlice*(expr: untyped; rightShift: int = -1): untyped =
   str.startSlice()
   expr
-  str.popSlice()
+  str.popSlice(rightShift)
 
 
 proc peekSlice*(str; rightShift: int = -1): PosStr =
@@ -489,11 +489,6 @@ proc sliceBetween*(str; start, finish: PosStrPoint): PosStr =
 
   if str.isSlice:
     raise newImplementError()
-    # for slice in str.slices:
-    #   if start.pos <= slice.start and start.finish <= finish.pos:
-    #     result.slices.add slice
-
-    #   else:
 
 
   else:
@@ -828,10 +823,10 @@ proc skipUntil*(str; chars: set[char], including: bool = false) {.inline.} =
   if changed and including and ?str:
     str.next()
 
-proc skipToEOL*(str) =
+proc skipToEOL*(str; including = true) =
   ## Skip to the end of current line. After parsing cursor is positioned on
   ## the last character in the string, or closes newline.
-  str.skipUntil(Newline, including = true)
+  str.skipUntil(Newline, including = including)
 
 proc goToEof*(str; byteAdvance: bool = false) =
   if str.isSlice:

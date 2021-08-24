@@ -3,6 +3,7 @@ import std/[
 
 import
   ../algo/htemplates,
+  ../core/all,
   ../types/geometry_primitives
 
 

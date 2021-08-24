@@ -20,21 +20,102 @@ requires "jsony >= 1.0.4"
 requires "unicodedb >= 0.9.0"
 # requires "https://github.com/haxscramper/fusion.git#matching-fixup"
 
-task docgen, "Generate documentation":
-  if not fileExists("bin/hmisc-putils"):
-    exec("nimble build")
+import std/[os, strutils, strformat]
 
-  exec("""
-hmisc-putils docgen \
-  --ignore='**/treediff/*.nim' \
-  --ignore='**/hcligen.nim'
-""")
+
+task docgen, "Generate documentation":
+  var files: seq[(string, string)]
+
+  let
+    cwd = getCurrentDir()
+    res = "/tmp" # &"{cwd}/docs"
+    cdd = "src/hmisc"
+
+  cd cdd
+
+  var cnt = 0
+  var resDirs: seq[string]
+  var hmiscText: string
+
+  for path in walkDirRec(".", relative = true):
+    let (dir, name, ext) = path.splitFile()
+    if name != "hmisc" and ext == ".nim":
+      if dir.len > 0 and cnt < 10:
+        inc cnt
+        hmiscText.add &"import ./hmisc/{dir}/{name}\n"
+
+  cd ".."
+  writeFile("hmisc.nim", hmiscText)
+  var args = @[
+    "nim",
+    "doc",
+    "--project",
+    "--warnings:off"
+  ]
+
+  let commit = getEnv("GITHUB_SHA")
+  if commit.len > 0: args.add &"--git.commit:{commit}"
+
+  let ghref = getEnv("GITHUB_REF").split("/")[^1]
+  if ghref.len > 0: args.add &"--git.devel:{ghref}"
+
+  let ghUrl = getEnv("GITHUB_REPOSITORY", &"file://{res}")
+  if ghUrl.len > 0: args.add &"--git.url:\"{ghUrl}\""
+
+  args.add "hmisc.nim"
+
+  let cmd = join(args, " ")
+  echo cmd
+  exec cmd
+    # let outPath = &"{res}/{dir}/{name}.html"
+      # var cmd = &"nim doc --warnings:off --git.commit:{commit} --git.devel:{ghref} --git.url:{ghUrl} -o:{outPath}"
+      # cmd &= &" {cwd}/{cdd}/{path.quoteShell()}"
+      # files.add (&"{ghUrl}/{dir}/{name}.html", name)
+      # echo cmd
+
+      # if cnt < 10:
+      #   resDirs.add &"{res}/{dir}"
+      #   inc cnt
+      #   exec cmd
+
+#   var theindex = """
+# <html>
+# <head>
+#   <title>{{title}}</title>
+# </head>
+# <body>
+
+# <ul>
+# """
+
+#   for (file, name) in files:
+#     theindex.add &"<li><a href={file}>{name}</a></li>\n"
+
+#   theindex.add """
+# </ul>
+
+# </body>
+# </html>"""
+
+#   echo theindex
+
+#   for dir in resDirs:
+#     echo dir
+#     writeFile(&"{dir}/theindex.html", theindex)
+
+#   if not fileExists("bin/hmisc-putils"):
+#     exec("nimble build")
+
+#   exec("""
+# hmisc-putils docgen \
+#   --ignore='**/treediff/*.nim' \
+#   --ignore='**/hcligen.nim'
+# """)
 
   # --ignore='**/zs_matcher.nim' \
   # --ignore='**/similarity_metrics.nim' \
   # --ignore='**/treediff_main.nim' \
 
-import std/[os, strutils]
 
 task testall, "Merge all tests and run them":
   let outPath = "/tmp/tmp_tests_all.nim"

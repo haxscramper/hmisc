@@ -1,6 +1,9 @@
-import std/[strutils, strformat, sequtils, ropes, os]
-import ../other/hshell
-import hmisc/helpers
+import
+  std/[strutils, strformat, sequtils, ropes, os]
+
+import
+  ../other/hshell,
+  ../core/all
 
 type
   LatexCompiler* = enum

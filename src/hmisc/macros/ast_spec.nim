@@ -84,6 +84,30 @@ func astSpec*[N, K](
   for (kind, pattern) in patterns:
     result.spec[kind] = some pattern
 
+func fieldRange*[N, K](
+    spec: AstSpec[N, K], node: N, idx: int): Option[AstRange] =
+  if spec.spec[node.kind].isSome():
+    let pattern = spec.spec[node.kind].get()
+    for field in pattern.ranges:
+      if field.arange.contains(idx, node.len):
+        return some field.arange
+
+
+func fieldName*[N, K](
+    spec: AstSpec[N, K], node: N, idx: int): Option[string] =
+
+  let field = spec.fieldRange(node, idx)
+  if field.isSome():
+    return some field.get().name
+
+func fieldDoc*[N, K](
+    spec: AstSpec[N, K], node: N, idx: int): Option[string] =
+
+  let field = spec.fieldRange(node, idx)
+  if field.isSome():
+    return some field.get().doc
+
+
 func astRange*(
     idx: int, optional: bool = false,
     doc: string = "", name: string = ""): AstRange =
@@ -223,6 +247,12 @@ macro astSpec*(nodeType, kindType, body: untyped): untyped =
 
       else:
         result.arange = nnkPrefix.newTree(check[0 .. 1])
+
+    elif check.kind == nnkInfix and check[0].eqIdent("..^"):
+      result.arange = nnkInfix.newTree(
+        ident"..",
+        check[1],
+        nnkPrefix.newTree(ident"^", check[2]))
 
     else:
       raise newImplementKindError(check, check.treeRepr())

@@ -85,6 +85,9 @@ type
     stringPaths*: PPrintMatch
     forceLayouts*: seq[PPrintLytForce]
     extraFields*: seq[PPrintExtraField]
+    idFields*: seq[(PPrintMatch, string)] ## `path pattern` -> `id field`
+    ## name. Object id fields are highlighed differently in the result and
+    ## can be used to select particular values.
 
     showTypes*: bool
     maxStackHeightChoice*: int

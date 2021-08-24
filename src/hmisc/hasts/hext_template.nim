@@ -321,7 +321,7 @@ proc parseHxStmtList(lexer: var HxLexer): HxTree =
           of htoEndKinds, htoElseKwd: break
           else:
             lexer.advance()
-            raise unexpectedTokenError(lexer)
+            raise newUnexpectedTokenError(lexer)
 
       of htoContent:
         result.add newHtree(hnoContent, lexer.pop())

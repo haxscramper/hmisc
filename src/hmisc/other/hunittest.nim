@@ -362,7 +362,11 @@ proc report(context: TestContext, report: TestReport) =
       let name = report.conf.name
       case report.kind:
         of trkFailKinds:
-          echo pFail, name, " ", report.msg
+          if report.failKind == tfkException:
+            echo pFail, name
+
+          else:
+            echo pFail, name, " ", report.msg
 
         of trkSuiteEnd:
           echo pSuite, name
