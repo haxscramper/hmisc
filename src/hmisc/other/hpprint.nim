@@ -4,12 +4,13 @@
 import
   ./blockfmt,
   std/[
-    typetraits, options, unicode, sets,
+    typetraits, options, unicode, sets, segfaults,
     json, strformat, tables, strutils, sequtils
   ],
   ".."/[
     core/all,
     core/algorithms,
+    core/code_errors,
     types/colorstring,
     macros/introspection,
     macros/argpass,
@@ -364,6 +365,26 @@ proc newPPrintConst*(
     kind: ptkConst, strVal: value, treeId: id,
     styling: styling, path: path, treeType: constType)
 
+proc newPPrintNil*[T](
+    value: T, path: PPrintPath, msg: string, conf: var PPrintConf
+  ): PPrintTree =
+    newPPrintConst(
+      "[!" & msg & "!]",
+      $typeof(value),
+      conf.getId(value),
+      fgRed + bgDefault,
+      path)
+
+
+proc newPPrintError*[T](
+    value: T, path: PPrintPath, msg: string, conf: var PPrintConf
+  ): PPrintTree =
+    newPPrintConst(
+      "error [!" & msg & "!]",
+      $typeof(value),
+      0, fgRed + bgDefault, path)
+
+
 
 proc add*(this: var PPrintTree, other: PPrintTree) =
   case this.kind:
@@ -589,6 +610,27 @@ proc isNilEntry*[T](entry: T): bool =
   else:
     false
 
+proc isErrorDeref*[T](entry: T, err: var string): bool =
+  when entry is ref or entry is ptr:
+    try:
+      discard entry[]
+      return false
+
+    except:
+      err.add "Could not dereference "
+      err.add $typeof(T)
+      err.add getCurrentExceptionMsg()
+      return true
+
+  # elif entry is seq:
+  #   when defined(c):
+  #     static: echo "C backend"
+
+
+
+  else:
+    return false
+
 
 proc toPprintTree*[T](
     entry: T, conf: var PPrintConf, path: PPrintPath): PPrintTree =
@@ -624,10 +666,17 @@ proc toPprintTree*[T](
       conf, fgYellow + bgDefault).updateCounts(conf.sortBySize)
 
   else:
+    var err: string
     conf.visit(entry)
     if isNilEntry(entry):
       result = newPPrintNil(conf.getId(entry), path, conf)
       result.treeType = newPprintType(entry)
+      updateCounts(result, conf.sortBySize)
+      return
+
+    elif isErrorDeref(entry, err):
+      result = newPPrintNil(entry, path, err, conf)
+      result.treeType = newPPrintType(entry)
       updateCounts(result, conf.sortBySize)
       return
 
@@ -734,18 +783,24 @@ proc toPprintTree*[T](
         ptkList, conf.getId(entry), path, conf)
 
       var idx: int = 0
-      for it in (
-        when directItems:
-          items(entry)
+      try:
+        for it in (
+          when directItems:
+            items(entry)
 
-        else:
-          items(entry[])
-      ):
-        let res = toPPrintTree(it, conf, path & pathElem(idx))
-        if res.kind notin { ptkIgnored }:
-          result.elements.add(($idx, res))
+          else:
+            items(entry[])
+        ):
+          let res = toPPrintTree(it, conf, path & pathElem(idx))
+          if res.kind notin { ptkIgnored }:
+            result.elements.add(($idx, res))
 
-        inc idx
+          inc idx
+
+      except:
+        result = newPPrintError(
+          entry, path, getCurrentExceptionMsg(), conf)
+
 
     elif not (entry is Option) and
          (
@@ -798,11 +853,24 @@ proc toPprintTree*[T](
            (entry is ptr object) or
            (entry is ptr tuple):
         for name, value in fieldPairs(entry[]):
-          let res = toPPrintTree(
-            value, conf, path & pathElem(ppkField, name))
+          try:
+            var err: string
+            let res =
+              if isErrorDeref(value, err):
+                newPPrintNil(value, path, err, conf)
 
-          if res.kind notin {ptkIgnored}:
-            result.elements.add((name, res))
+              else:
+                toPPrintTree(
+                  value, conf, path & pathElem(ppkField, name))
+
+            if res.kind notin {ptkIgnored}:
+              result.elements.add((name, res))
+
+          except:
+            result.elements.add((name, newPPrintError(
+              entry, path, getCurrentExceptionMsg(), conf)))
+
+
 
       else:
         for name, value in fieldPairs(entry):
@@ -903,7 +971,7 @@ proc toPprintTree*[T](
             style = fgRed + bgDefault
             let val = "<not convertible " & $typeof(entry) & ">"
 
-      result = newPPrintCOnst(
+      result = newPPrintConst(
         val,
         $typeof(entry),
         conf.getId(entry),

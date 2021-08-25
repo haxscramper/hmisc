@@ -4,6 +4,8 @@ import std/[
   sequtils
 ]
 
+## - TODO :: Require lexer callback to return at least one token, always
+
 import
   ../core/all,
   ../types/colorstring,
@@ -42,7 +44,7 @@ type
     kind*: K
     case isSlice*: bool
       of true:
-        baseStr*: ptr string
+        baseStr*: ref string
         finish*: int
         extra*: seq[PosStrSlice]
 
@@ -58,7 +60,7 @@ type
     tokens*: seq[Tok]
     cb*: HsLexCallback[Tok]
     pos*: int
-    str*: ptr PosStr
+    str*: PosStr
 
   LexerIndentKind* = enum
     likIncIndent ## Indentation increased on current position
@@ -143,7 +145,8 @@ proc newUnexpectedCharError*[F](
 
 proc newUnexpectedTokenError*[K](
     lexer: var HsLexer[HsTok[K]],
-    expected: set[K] = {}
+    expected: set[K] = {},
+    expectedMsg: string = ""
   ): UnexpectedTokenError =
   ## - TODO :: Support optional coloring for both displayed tokens
   ##   (via color map and line ranges) and displayed annotations.
@@ -171,20 +174,25 @@ proc newUnexpectedTokenError*[K](
     let arrow = pos.len + 1 + linePos
     buf[2, arrow] = "^"
     buf[3, arrow] = "|"
-    buf[4, arrow] = result.gotToken
+
+    if expectedMsg.len > 0 and
+       not(lexer[] of expected):
+      buf[4, arrow] = result.gotToken
+      buf[5, arrow] = expectedMsg
+
+    elif expectedMsg.len > 0:
+      buf[4, arrow] = expectedMsg
+
+    else:
+      buf[4, arrow] = result.gotToken
+
 
     result.msg = $buf
 
 
-proc expectKind*[K](lex: var HsLexer[HsTok[K]], kind: K | set[K]) =
-  when kind is set:
-    if lex[].kind notin kind:
-      raise newUnexpectedTokenError(lex, kind)
-
-  else:
-    if lex[].kind != kind:
-      raise newUnexpectedTokenError(lex, { kind })
-
+proc expectKind*[K](lex: var HsLexer[HsTok[K]], kind: set[K] | K) =
+  if not(lex[] of kind):
+    raise newUnexpectedTokenError(lex, asSet(kind))
 
 func getIndent*[F](state: HsLexerState[F]): int = state.indent
 func setIndent*[F](state: var HsLexerState[F], ind: int) =
@@ -399,6 +407,13 @@ proc initPosStr*[K](tok: HsTok[K]): PosStr =
   else:
     raise newImplementError()
 
+func initPosStr*[K](tokens: seq[HsTok[K]]): PosStr =
+  var strs: seq[PosStr]
+  for tok in tokens:
+    strs.add initPosStr(tok)
+
+  return concat(strs)
+
 func isFail*[T](parse: ParseResult[T]): bool = not parse.ok
 func isOk*[T](parse: ParseResult[T]): bool = parse.ok
 func initParseResult*[T](value: T): ParseResult[T] =
@@ -486,7 +501,7 @@ func hasNxt*[T](lex: HsLexer[T], offset: int): bool =
   lex.pos + offset < lex.tokens.len
 
 proc finished*[T](lex: HsLexer[T]): bool =
-  not hasNxt(lex, 0) and (isNil(lex.str) or lex.str[].finished())
+  not hasNxt(lex, 0) and lex.str.finished()
 
 proc `?`*[T](lex: HsLexer[T]): bool =
   lex.explicitEof or not lex.finished()
@@ -495,7 +510,7 @@ proc `?`*[T](lex: HsLexer[T]): bool =
 proc nextToken*[T](lex: var HSLexer[T]): bool =
   var tok: seq[T]
   while ?lex and tok.empty():
-    tok = lex.cb(lex.str[])
+    tok = lex.cb(lex.str)
 
   if tok.empty():
     return false
@@ -573,21 +588,24 @@ proc pop*[T](lex: var HsLexer[T]): T =
   result = lex[]
   lex.next()
 
-
-proc pop*[K](lex: var HsLexer[HsTok[K]], kind: K): HsTok[K] =
+proc pop*[K: enum](lex: var HsLexer[HsTok[K]], kind: set[K] | K): HsTok[K] =
   expectKind(lex, kind)
   result = lex[]
   lex.next()
 
-proc popAsStr*[K](lex: var HsLexer[HsTok[K]], kind: K | set[K]): PosStr =
+proc popAsStr*[K](lex: var HsLexer[HsTok[K]]): PosStr =
+  result = initPosStr(lex[])
+  lex.next()
+
+proc popAsStr*[K](lex: var HsLexer[HsTok[K]], kind: set[K] | K): PosStr =
   expectKind(lex, kind)
   result = initPosStr(lex[])
   lex.next()
 
 proc initLexer*[T](
-    str: var PosStr, lexCb: HsLexCallback[T],
+    str: PosStr, lexCb: HsLexCallback[T],
     explicitEof: bool = false): HsLexer[T] =
-  HsLexer[T](str: addr str, cb: lexCb, explicitEof: explicitEof)
+  HsLexer[T](str: str, cb: lexCb, explicitEof: explicitEof)
 
 proc initLexer*[T](tokens: seq[T]): HsLexer[T] =
   HsLexer[T](tokens: tokens)
@@ -596,34 +614,38 @@ proc initLexer*[T](
     lexCb: HsLexCallback[T], explicitEof: bool = false): HsLexer[T] =
   HsLexer[T](cb: lexCb, explicitEof: explicitEof)
 
-proc setStr*[T](lexer: var HsLexer[T], str: var PosStr) =
-  lexer.str = addr str
+proc setStr*[T](lexer: var HsLexer[T], str: PosStr) =
+  lexer.str = str
 
-proc skip*[T, En](lexer: var HsLexer[T], kind: En) =
-  when kind is set:
-    when not defined(nimdoc):
-      if lexer[].kind notin kind:
-        raise newUnexpectedTokenError(lexer, kind)
+proc skip*[T, En](lexer: var HsLexer[T], kind: set[En] | En) =
+  when not defined(nimdoc):
+    if not(lexer[] of kind):
+      raise newUnexpectedTokenError(lexer, asSet(kind))
 
-  else:
-    if lexer[].kind != kind:
-      raise newUnexpectedTokenError(lexer, {kind})
+    lexer.next()
+
+proc skip*[T, En](
+    lexer: var HsLexer[T], kind: set[En] | En, expected: string) =
+  if not(lexer[] of kind) or lexer[].strVal() != expected:
+    raise newUnexpectedTokenError(
+      lexer,
+      asSet(kind),
+      &"Token value mismatch - wanted '{expected}', but got {lexer[].strVal()}"
+    )
 
   lexer.next()
 
-proc skip*[T, En](lexer: var HsLexer[T], kind: En, expected: string) =
-  if lexer[].strVal() != expected:
-    assert false, "TODO good error"
+proc trySkip*[T, En](lexer: var HsLexer[T], kind: set[En]): bool =
+  if lexer[] of kind:
+    result = true
+    lexer.next()
 
-  skip(lexer, kind)
 
-proc skip*[T, En](
-    lexer: var HsLexer[T], kind1, kind2: set[En]|En) =
+proc skip*[T, En](lexer: var HsLexer[T], kind1, kind2: set[En]) =
   lexer.skip(kind1)
   lexer.skip(kind2)
 
-proc skip*[T, En](
-    lexer: var HsLexer[T], kind1, kind2, kind3: set[En]|En) =
+proc skip*[T, En](lexer: var HsLexer[T], kind1, kind2, kind3: set[En]) =
   lexer.skip(kind1)
   lexer.skip(kind2)
   lexer.skip(kind3)
@@ -648,6 +670,18 @@ proc getAll*[T](lex: var HsLexer[T]): seq[T] =
 proc lexAll*[T](str: var PosStr, impl: HsLexCallback[T]): seq[T] =
   var lexer = initLexer(str, impl)
   return lexer.getAll()
+
+proc initLexer*[T](strs: seq[PosStr], impl: HsLexCallback[T]): HsLexer[T] =
+  result = HsLexer[T](cb: impl)
+  var buf: seq[T]
+  for str in strs:
+    var str = str
+    result.str = addr str
+    while not result.finished():
+      buf.add result.pop()
+
+  result.tokens = buf
+  result.pos = 0
 
 proc insideBalanced*[T, K](
     lex: var HsLexer[T], openKinds, closeKinds: set[K],

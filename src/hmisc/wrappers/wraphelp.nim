@@ -77,14 +77,6 @@ template subArrayPtr*[T](arr: PUArray[T], idx: SomeInteger): PUarray[T] =
 
 
 
-macro `//`*(arg: string): untyped =
-  ## Emit C comment in generated source code
-  ##
-  ## `// "C comment"` will yield `/* C comment */` emited.
-  let lit = newLit("/* " & arg.strVal() & " */")
-
-  quote do:
-    {.emit: `lit`.}
 
 
 

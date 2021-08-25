@@ -38,10 +38,13 @@ type
   PosStr* = object
     ## Input character stream, either based on input stream, or indexing in
     ## parts of already existing buffer.
+    baseStr*: ref string ## For non-slice string used as buffer. Might
+    ## contain full input data (in case of lexing over existing string).
+    ## For slice string contains reference to the original string (is not
+    ## modified)
+
     case isSlice*: bool
       of false:
-        str*: string ## Buffer string. Might contain full input data (in
-                     ## case of lexing over existing string)
         stream*: Stream ## Input data stream. Might be `nil`, in which case
                         ## new data won't be read in.
         ranges*: seq[tuple[pos, line, column: int]] ## Sequence of starting
@@ -50,7 +53,6 @@ type
 
       of true:
         sliceIdx*: int ## Currently active slice
-        baseStr*: ptr string ## Pointer to the base string. Must not be nil
         slices*: seq[PosStrSlice] ## List of slices in the base string
         fragmentedRanges*: seq[seq[PosStrSlice]] ## Sequence of fragments for
         ## active ranges. When `popRange()` is called end position is used,
@@ -115,7 +117,7 @@ func toAbsolute*(slice: PosStrSlice, offset: int): int =
 
 func initPosStr*(str: string): PosStr =
   ## Create new string with full buffer and `nil` input stream
-  PosStr(str: str, isSlice: false, column: 0, line: 0)
+  PosStr(baseStr: asRef(str), isSlice: false, column: 0, line: 0)
 
 template varPosStr*(str: string): PosStr =
   var posStr = initPosStr(str)
@@ -151,16 +153,17 @@ func initPosStr*(
 
   result = PosStr(
     isSlice: true,
-    baseStr: tern(str.isSlice, str.baseStr, addr str.str),
+    baseStr: str.baseStr,
     column: s[0].column,
     line: s[0].line,
     slices: s)
 
   result.pos = result.slices[0].start
 
-func initPosStr*(inStr: ptr string, slices: openarray[Slice[int]]): PosStr =
+func initPosStr*(
+    inStr: string | ref string, slices: openarray[Slice[int]]): PosStr =
   ## Initl slice positional string, using @arg{inStr} as base
-  result = PosStr(isSlice: true, baseStr: inStr, column: 0, line: 0)
+  result = PosStr(isSlice: true, baseStr: asRef(inStr), column: 0, line: 0)
   for slice in slices:
     result.slices.add PosStrSlice(start: slice.a, finish: slice.b)
 
@@ -169,7 +172,7 @@ func initPosStr*(inStr: ptr string, slices: openarray[Slice[int]]): PosStr =
 func initPosStrView*(str): PosStr =
   ## Create substring with `0 .. high(int)` slice range
   PosStr(
-    isSlice: true, baseStr: addr str.str,
+    isSlice: true, baseStr: str.baseStr,
     column: str.column, line: str.line,
     slices: @[PosStrSlice(start: 0, finish: high(int))])
 
@@ -199,7 +202,7 @@ proc hasNxt*(input: PosStr; idx: int): bool =
       pos < input.baseStr[].len)
 
   else:
-    return 0 <= pos and pos < input.str.len
+    return 0 <= pos and pos < input.baseStr[].len
 
 proc finished*(str: PosStr): bool =
   ## Check if string as no more input data
@@ -238,26 +241,22 @@ proc fillNext*(str; chars: int) =
   if isNil(str.stream):
     return
 
-  let needed = chars - (str.str.len - str.pos - 1)
+  let needed = chars - (str.baseStr[].len - str.pos - 1)
   if needed > 0:
-    str.str &= str.stream.readStr(needed)
+    str.baseStr[] &= str.stream.readStr(needed)
 
 proc resetBuffer*(str) =
   ## Reset buffer position
   str.pos = 0
-  str.str.setLen(0)
-
+  str.baseStr[].setLen(0)
 
 proc `[]`*(str; idx: int = 0): char {.inline.} =
   fillNext(str, idx)
   if not hasNxt(str, idx):
     return '\x00'
 
-  elif str.isSlice:
-    return str.baseStr[][str.pos + idx]
-
   else:
-    return str.str[str.pos + idx]
+    return str.baseStr[][str.pos + idx]
 
 proc runeAt*(str; idx: int = 0): Rune =
   fillNext(str, idx)
@@ -272,11 +271,11 @@ proc runeAt*(str; idx: int = 0): Rune =
       fastRuneAt(str.baseStr[], i, result)
 
     else:
-      let len = str.str.graphemeLen(str.pos + idx)
+      let len = str.baseStr[].graphemeLen(str.pos + idx)
       fillNext(str, len)
 
       var i = str.pos + idx
-      fastRuneAt(str.str, i, result)
+      fastRuneAt(str.baseStr[], i, result)
 
 proc setLineInfo*(error: ref HLexerError, str: PosStr) =
   error.column = str.column
@@ -314,21 +313,21 @@ proc `[]`*(str; slice: HSlice[int, BackwardsIndex]): string {.inline.} =
     fillNext(str, next)
     inc next
 
-  result = str.str[str.pos + slice.a .. (str.pos + next - slice.b.int)]
+  result = str.baseStr[str.pos + slice.a .. (str.pos + next - slice.b.int)]
 
 proc `[]`*(str; slice: HSlice[int, int]): string {.inline.} =
   fillNext(str, max(slice.a, slice.b))
-  if str.str.len == 0:
+  if str.baseStr[].len == 0:
     result = "<empty>"
 
   else:
-    result = str.str[
-      min(str.str.high, str.pos + slice.a) ..
-      min(str.str.high, str.pos + slice.b)
+    result = str.baseStr[
+      min(str.baseStr[].high, str.pos + slice.a) ..
+      min(str.baseStr[].high, str.pos + slice.b)
     ]
 
-    if slice.b > str.str.high:
-      result &= "\\0".repeat(slice.b - str.str.high)
+    if slice.b > str.baseStr[].high:
+      result &= "\\0".repeat(slice.b - str.baseStr[].high)
 
 proc `[]`*(str; offset: int, patt: char | set[char] | string):
   bool {.inline.} =
@@ -358,7 +357,7 @@ proc `[]`*(
 
 
 proc `@`*(str): seq[char] =
-  for ch in str.str[str.pos .. ^1]:
+  for ch in str.baseStr[str.pos .. ^1]:
     result.add ch
 
 # proc `[]`*(str; slice: Slice[int]): string =
@@ -382,13 +381,14 @@ proc sliceStrings*(str): seq[string] =
 
 proc lineAround*(str; pos: int): tuple[line: string, pos: int] =
   var start = pos
-  while start > 0 and str.str[start] notin {'\n'}:
+  while start > 0 and str.baseStr[][start] notin {'\n'}:
     dec start
 
   result.pos = pos - start
 
-  while start < str.str.len and str.str[start] notin {'\n'}:
-    result.line.add str.str[start]
+  while start < str.baseStr[].len and
+        str.baseStr[][start] notin {'\n'}:
+    result.line.add str.baseStr[][start]
     inc start
 
 proc hshow*(
@@ -397,6 +397,7 @@ proc hshow*(
   hshow(slice.start) & ".." & hshow(slice.finish)
 
 proc hshow*(str; opts: HDIsplayOpts = defaultHDisplay): ColoredText =
+  assertRef str.baseStr
   if str.isSlice:
     result.add "["
     for sliceIdx in str.sliceIdx ..< str.slices.len:
@@ -422,11 +423,41 @@ proc hshow*(str; opts: HDIsplayOpts = defaultHDisplay): ColoredText =
     result.add "["
     result.add $str.pos
     result.add ": ["
-    result.add hshow(str.str[clamp(str.pos, 0, str.str.high) .. ^1])
+    result.add hshow(str.baseStr[][clamp(str.pos, 0, str.baseStr[].high) .. ^1])
     result.add "]]"
 
 
 proc `$`*(str): string = $hshow(str)
+
+func add*(str: var PosStr, other: PosStr) =
+  assertArg str, str.isSlice
+  assertArg other, other.isSlice
+
+  for slice in other.slices:
+    if str.slices.len == 0 or
+       str.slices.last().finish + 1 < slice.start:
+      str.slices.add slice
+
+    else:
+      str.slices.last().finish = slice.finish
+
+
+func concat*(strs: seq[PosStr]): PosStr =
+  result = PosStr(
+    isSlice: true,
+    baseStr: strs[0].baseStr,
+    column: strs[0].column,
+    line: strs[0].line)
+
+  for str in strs:
+    if str.isSlice:
+      result.add str
+
+    else:
+      raise newArgumentError(
+        "Input contains a non-slice strings - cannot be correctly concatenated")
+
+
 
 template assertAhead*(str: PosStr, ahead: string) =
   if not str[ahead]:
@@ -458,14 +489,11 @@ proc startSlice*(str) {.inline.} =
 
 proc finishSlice*(str; rightShift: int = -1) {.inline.} =
   str.sliceBuffer[^1][^1].finish = min(
-    str.pos + rightShift,
-    tern(str.isSlice, str.baseStr[].high, str.str.high))
+    str.pos + rightShift, str.baseStr[].high)
 
 proc finishAllSlice*(str; rightShift: int = -1) {.inline.} =
   for slice in mitems(str.sliceBuffer):
-    slice.last().finish = min(
-      str.pos + rightShift,
-      tern(str.isSlice, str.baseStr[].high, str.str.high))
+    slice.last().finish = min(str.pos + rightShift, str.baseStr[].high)
 
 proc pushSlice*(str) = startSlice(str)
 
@@ -488,8 +516,7 @@ proc sliceBetween*(str; start, finish: PosStrPoint): PosStr =
     isSlice: true, line: start.line,
     column: start.column,
     pos: start.pos,
-    baseStr: tern(str.isSlice, str.baseStr, addr str.str)
-  )
+    baseStr: str.baseStr)
 
   if str.isSlice:
     raise newImplementError()
@@ -558,7 +585,7 @@ iterator topRangeIndices*(
 
     yield posStrSlice(
       start + leftshift,
-      min(finish, str.str.len) + rightShift,
+      min(finish, str.baseStr[].len) + rightShift,
       line,
       column)
 
@@ -581,7 +608,7 @@ proc getAll*(str: PosStr): string =
       result.add str.baseStr[][slice]
 
   else:
-    result = str.str
+    result = str.baseStr[]
 
 proc strVal*(str: PosStr): string = getAll(str)
 
@@ -612,7 +639,7 @@ proc getRange*(str; leftShift: int = 0, rightShift: int = -1):
 
     else:
 
-      result.add str.str[slice]
+      result.add str.baseStr[slice]
 
 proc popRange*(str; leftShift: int = 0, rightShift: int = -1):
   string {.inline.} =
@@ -633,20 +660,13 @@ proc popRange*(str; leftShift: int = 0, rightShift: int = -1):
 
     else:
 
-      result.add str.str[slice]
+      result.add str.baseStr[slice]
 
 template asRange*(expr: untyped): untyped =
   str.pushRange()
   expr
   str.popRange()
 
-
-proc getBaseStr*(str: PosStr): string =
-  if str.isSlice:
-    str.baseStr[]
-
-  else:
-    str.str
 
 proc next*(
     str; step: int = 1, byteAdvance: bool = false) =
@@ -657,21 +677,21 @@ proc next*(
       if not byteAdvance:
         var pos = str.pos
 
-        if str.getBaseStr()[pos] in Utf8Continuations:
+        if str.baseStr[][pos] in Utf8Continuations:
           dec byteCount
 
-        elif str.getBaseStr()[pos] in Utf8Starts:
+        elif str.baseStr[][pos] in Utf8Starts:
           # At the start of utf8 rune, need to advance backwards to the
           # previous one
           dec pos
 
-        while str.getBaseStr()[pos] in Utf8Continuations:
+        while str.baseStr[][pos] in Utf8Continuations:
           # Search backwards until start of the utf is not found
           inc byteCount
           dec pos
 
 
-      if str.getBaseStr()[str.pos] == '\n':
+      if str.baseStr[][str.pos] == '\n':
         dec str.line
         # TODO correct column number (scan backwards until next newline/SOF)
 
@@ -698,11 +718,7 @@ proc next*(
           1
 
         else:
-          if str.isSlice:
-            graphemeLen(str.baseStr[], str.pos)
-
-          else:
-            graphemeLen(str.str, str.pos)
+          graphemeLen(str.baseStr[], str.pos)
 
       if str['\n']:
         inc str.line
@@ -786,6 +802,11 @@ proc skip*(str; ch: set[char]) {.inline.} =
    raise newUnexpectedCharError(str, $ch)
   str.next()
 
+
+proc skip*(str; ch1, ch2: set[char]) {.inline.} =
+  str.skip(ch1)
+  str.skip(ch2)
+
 proc skipBack*(str; ch: set[char]) {.inline.} =
   if str[] notin ch:
    raise newUnexpectedCharError(str, $ch)
@@ -832,18 +853,20 @@ proc skipToEOL*(str; including = true) =
   ## the last character in the string, or closes newline.
   str.skipUntil(Newline, including = including)
 
-proc goToEof*(str; byteAdvance: bool = false) =
+proc goToEof*(
+    str; byteAdvance: bool = false; rightShift: int = 0) =
+
   if str.isSlice:
     let s = str.slices.last()
-    str.pos = s.finish
+    str.pos = s.finish + rightShift
     str.line = s.line
-    str.column = s.column + (s.finish -  s.start)
+    str.column = s.column + (s.finish -  s.start) + rightShift
     if not byteAdvance:
       while str.baseStr[][str.pos] in Utf8Continuations:
         dec str.pos
 
   else:
-    for rune in runes(str.str[str.pos .. ^1]):
+    for rune in runes(str.baseStr[][str.pos .. ^1]):
       if rune == Rune(10):
         inc str.line
         str.column = 0
@@ -852,9 +875,9 @@ proc goToEof*(str; byteAdvance: bool = false) =
         inc str.column
 
     dec str.column
-    str.pos = str.str.high
+    str.pos = str.baseStr[].high
     if not byteAdvance:
-      while str.str[str.pos] in Utf8Continuations:
+      while str.baseStr[][str.pos] in Utf8Continuations:
         dec str.pos
 
 proc gotoSof*(str; byteAdvance: bool = false) =
@@ -1088,12 +1111,11 @@ import ../other/rx
 
 
 proc matchLen*(inStr: PosStr, regex: Regex): int =
-  matchLen(inStr.str, regex, inStr.pos)
+  matchLen(inStr.baseStr[], regex, inStr.pos)
 
 proc matchLen*(
     inStr: PosStr, regex: Regex, matches: var openarray[string]): int =
-
-  matchLen(inStr.str, regex, matches, inStr.pos)
+  matchLen(inStr.baseStr[], regex, matches, inStr.pos)
 
 template tildeImpl(inStr: typed, regex: Regex): untyped {.dirty.} =
   var matches {.inject.}: array[20, string]

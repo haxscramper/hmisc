@@ -84,13 +84,14 @@ proc newEnvironmentAssertionError*(
     msg: varargs[string, `$`]): ref EnvironmentAssertionError =
   newException(EnvironmentAssertionError, msg.join(""))
 
-template assertArg*(arg: untyped, cond: bool, msg: string): untyped =
+template assertArg*(arg: untyped, cond: bool, msg: string = ""): untyped =
   if not cond:
     {.line: instantiationInfo(fullpaths = true).}:
       raise newArgumentError(
-        "Invalid value for argument", astToStr(arg), "- " & msg &
-          ". Input value was '" & $arg & "', but check expected '" &
-          astToStr(cond) & "'")
+        "Invalid value for argument ", astToStr(arg), " ",
+        "', check '", astToStr(cond), "'",
+        (if msg.len > 0: ". " & msg else: msg))
+
 
 proc newGetterError*(msg: varargs[string, `$`]): ref GetterError =
   newException(GetterError, msg.join(" "))

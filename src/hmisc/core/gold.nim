@@ -92,9 +92,16 @@ proc `&=`*(target: var string, args: openarray[string]) =
     target &= arg
 
 
-proc toRef*[T](t: T): ref T =
+proc asRef*[T: not ref and not ptr](t: sink T): ref T =
   new(result)
   result[] = t
+
+proc asRef*[T: not ref and not ptr](t: ptr T): ref T =
+  new(result)
+  result[] = t[]
+
+proc asRef*[T: not ref and not ptr](t: ref T): ref T = t
+
 
 template asVar*[T](t: T): untyped =
   var tmp = t
@@ -108,6 +115,9 @@ template asConst*[T](t: T): untyped =
   const tmp = t
   tmp
 
+proc asSet*[E: enum](en: E): set[E] = {en}
+proc asSet*[E: enum](en: set[E]): set[E] = en
+
 template currIInfo*(): untyped =
   instantiationInfo(fullpaths = true)
 
@@ -119,6 +129,13 @@ proc `of`*[A: object or ref object; K: enum](item: A, kind: K | set[K]): bool =
   else:
     item.kind == kind
 
+proc `of`*[En: enum](item: En, kind: En | set[En]): bool =
+  when kind is set:
+    item in kind
+
+  else:
+    item == kind
+
 template getSomeIt*[T](opt: Option[T], value, default: untyped): untyped =
   if opt.isSome():
     let it {.inject.} = opt.get()
@@ -128,7 +145,9 @@ template getSomeIt*[T](opt: Option[T], value, default: untyped): untyped =
 
 
 template last*(s: seq): untyped = s[^1]
+template last2*(s: seq): untyped = s[^1][^1]
 template first*(s: seq): untyped = s[0]
+template clear*(s: seq): untyped = s.setlen(0)
 template empty*(s: seq):
  bool = len(s) == 0
 
@@ -189,3 +208,12 @@ template procIt*[T](procname: untyped): untyped =
 template procIt*[T](procname: untyped, arg1: untyped): untyped =
   proc cb(arg: T): auto = procname(arg, arg1)
   cb
+
+macro `//`*(arg: string): untyped =
+  ## Emit C comment in generated source code
+  ##
+  ## `// "C comment"` will yield `/* C comment */` emited.
+  let lit = newLit("/* " & arg.strVal() & " */")
+
+  quote do:
+    {.emit: `lit`.}

@@ -234,6 +234,14 @@ func toValSet*[K, V](map: openarray[(K, V)]): set[V] =
   for (k, v) in map:
     result.incl v
 
+func toValSeq*[K, V](map: openarray[(K, V)]): seq[V] =
+  for (k, v) in map:
+    result.add v
+
+func toSet*[E: enum](vals: openarray[E]): set[E] =
+  for val in vals:
+    result.incl val
+
 func toArrayKeys*[K, V](
     map: openarray[(K, V)], skipDefault: bool = true): seq[K] =
   const def = default(K)

@@ -19,7 +19,7 @@ template varStr(inStr: string): untyped =
   str
 
 template varStr(inStr: string, slices: openarray[Slice[int]]): untyped =
-  var str = initPosStr(asPtr inStr, slices)
+  var str = initPosStr(asRef inStr, slices)
   str
 
 suite "Primitives":
@@ -215,7 +215,7 @@ suite "Primitives":
 
 
     block partial_range:
-      var str = initPosStr(asPtr "01234", [0 .. 1])
+      var str = initPosStr(asRef "01234", [0 .. 1])
       check str.pos == 0
       skip(str, '0')
 
@@ -227,7 +227,7 @@ suite "Primitives":
         not ?str
 
     block fragmented_range:
-      var str = initPosStr(asPtr "0_1", [0 .. 0, 2 .. 2])
+      var str = initPosStr(asRef "0_1", [0 .. 0, 2 .. 2])
       check:
         str[] == '0'
         str.pos == 0
@@ -238,7 +238,7 @@ suite "Primitives":
         str[] == '1'
 
     block skip_fragmented_range:
-      var str = initPosStr(asPtr "0_1_2", [0 .. 0, 2 .. 2, 4 .. 4])
+      var str = initPosStr(asRef "0_1_2", [0 .. 0, 2 .. 2, 4 .. 4])
       skip(str, '0')
       skip(str, '1')
       check ?str
