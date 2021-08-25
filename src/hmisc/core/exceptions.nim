@@ -127,7 +127,8 @@ template kindToStr*(expr: typed): untyped =
 
 
 template assertKind*(
-    inExpr, inExpected: typed, onFail: string = "") {.dirty.} =
+    inExpr, inExpected: untyped,
+    onFail: string = "") {.dirty.} =
   bind kindToStr, UnexpectedKindError
   block:
     let
@@ -147,15 +148,20 @@ template assertKind*(
         if len(kind) > 1:
           anyOf = "any of "
 
-
-
       if kind notin expected:
-        msg = "Unexpected kind - got " & kindToStr(expr) &
-          ", but expected " & anyOf & $expected & onFail
+        let expected = $expected
+        if 80 < len(expected):
+          msg = "Unexpected kind. Got " & kindToStr(expr) &
+            " - " & onFail &
+            ". Expected kinds - " & astToStr(inExpected)
+
+        else:
+          msg = "Unexpected kind. Got " & kindToStr(expr) &
+            ", but expected " & anyOf & $expected & onFail
 
     elif expected is enum:
       if kind != expected:
-        msg = "Unexpected kind - got " & kindToStr(expr) &
+        msg = "Unexpected kind. Got " & kindToStr(expr) &
           ", but expected " & $expected & onFail
 
     if msg.len > 0:

@@ -13,6 +13,10 @@ configureDefaultTestContext(
   skipAfterCheckFail = true
 )
 
+# Missing tests for
+#
+# - `linesAround` and error message generation.
+
 
 template varStr(inStr: string): untyped =
   var str = initPosStr(inStr)
@@ -1295,7 +1299,7 @@ suite "Simple org-mode":
           of '-':
             let indent = str.column
             result.add str.initTok(
-              asSlice str.skipWhile({'-', ' '}), osListStart)
+              str.asSlice str.skipWhile({'-', ' '}), osListStart)
 
             str.startSlice()
             var atEnd = false
@@ -1427,10 +1431,10 @@ suite "Simple org-mode":
         case str[]:
           of '*':
             result.add str.initTok(
-              asSlice str.skipWhile({'*'}), osSubtreeStars)
+              str.asSlice str.skipWhile({'*'}), osSubtreeStars)
 
             str.skip({' '})
-            var body = asSlice str.skipToEol()
+            var body = str.asSlice str.skipToEol()
 
             var headerTokens: seq[HsTok[OrgStructureToken]]
 

@@ -145,6 +145,12 @@ template getSomeIt*[T](opt: Option[T], value, default: untyped): untyped =
 
 
 template last*(s: seq): untyped = s[^1]
+template last*[T](s: seq[T], item: T): untyped =
+  if len(s) == 0:
+    s.add item
+
+  s[^1]
+
 template last2*(s: seq): untyped = s[^1][^1]
 template first*(s: seq): untyped = s[0]
 template clear*(s: seq): untyped = s.setlen(0)

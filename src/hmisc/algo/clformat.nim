@@ -1362,6 +1362,11 @@ func hShow*[E: enum](e: E, opts: HDisplayOpts = defaultHDisplay): ColoredText =
   else:
     toGreen($e, opts.colored)
 
+func hshow*(
+    n: typeof(nil), opts: HDisplayOpts = defaultHDisplay): ColoredText =
+
+  toRed("<nil>")
+
 func hShow*[I](s: set[I], opts: HDisplayOpts = defaultHDisplay): ColoredText =
   result.add toBlue("{")
   for idx, item in pairs(s):

@@ -1,6 +1,6 @@
 import std/[
   streams, strscans, strutils, strformat, macros, segfaults,
-  sequtils, unicode
+  sequtils, unicode, strutils, parseutils
 ]
 
 import
@@ -384,6 +384,9 @@ proc lineAround*(str; pos: int): tuple[line: string, pos: int] =
   while start > 0 and str.baseStr[][start] notin {'\n'}:
     dec start
 
+  if str.baseStr[][start] in {'\n'}:
+    inc start
+
   result.pos = pos - start
 
   while start < str.baseStr[].len and
@@ -501,10 +504,11 @@ proc popSlice*(str; rightShift: int = -1): PosStr =
   finishSlice(str, rightShift)
   return initPosStr(str)
 
-template asSlice*(expr: untyped; rightShift: int = -1): untyped =
-  str.startSlice()
+template asSlice*(
+    bufStr: PosStr, expr: untyped; rightShift: int = -1): untyped =
+  bufStr.startSlice()
   expr
-  str.popSlice(rightShift)
+  bufStr.popSlice(rightShift)
 
 
 proc peekSlice*(str; rightShift: int = -1): PosStr =
@@ -611,6 +615,8 @@ proc getAll*(str: PosStr): string =
     result = str.baseStr[]
 
 proc strVal*(str: PosStr): string = getAll(str)
+proc strValNorm*(str: PosStr): string = getAll(str).normalize()
+
 
 proc newMalformedTokenError*(
     got: PosStr, expected: string): ref MalformedTokenError =
@@ -662,7 +668,7 @@ proc popRange*(str; leftShift: int = 0, rightShift: int = -1):
 
       result.add str.baseStr[slice]
 
-template asRange*(expr: untyped): untyped =
+template asRange*(str: PosStr, expr: untyped): untyped =
   str.pushRange()
   expr
   str.popRange()
@@ -904,6 +910,7 @@ proc skipIndent*(str; maxIndent = high(int)): int =
     str.next()
     if result >= maxIndent:
       break
+
 
 proc skipSpace*(str) {.inline.} =
   str.skipWhile(HorizontalSpace)

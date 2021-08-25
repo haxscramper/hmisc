@@ -27,7 +27,8 @@ type
         subnodes*: seq[HsTokTree[Rule, Tok]]
 
 
-  HsTok*[K: enum | SomeInteger | char] = object
+  HsTokSelector* = SomeInteger | char | enum
+  HsTok*[K: HsTokSelector] = object
     # uint*-based positional information allows to save up to 50% of token
     # size, but I decided it is not really necessary as tokens themselves
     # are not really inteded to be stored in large numbers anywhere.
@@ -153,7 +154,7 @@ proc newUnexpectedTokenError*[K](
   ## - TODO :: Support visualization mapping for tokens using
   ##   `array[K, string]` to display more human-friendly display.
 
-  let (line, linePos) = lexer.str[].lineAround(lexer[].offset)
+  let (line, linePos) = lexer.str.lineAround(lexer[].offset)
   result = UnexpectedTokenError(
     line: lexer[].line,
     column: lexer[].column,
@@ -281,7 +282,7 @@ proc wrap*[R, T](tree: sink HsTokTree[R, T], wrap: R): HsTokTree[R, T] =
 proc initEof*[K](str: var PosStr, kind: K): HsTok[K] =
   HsTok[K](kind: kind, line: str.line, column: str.column, isSlice: false)
 
-proc initTok*[K](
+proc initTok*[K: HsTokSelector](
     str: var PosStr, kind: K, tryPop: bool = true): HsTok[K] =
   if str.ranges.len == 0:
     result = HsTok[K](
@@ -312,7 +313,7 @@ template initTok*[K](
     str: $inStr,
     isSlice: false)
 
-proc initTok*[K](str: PosStr, inKind: K): HsTok[K] =
+proc initTok*[K: HsTokSelector](str: PosStr, inKind: K): HsTok[K] =
   result = HsTok[K](
     kind: inKind,
     isSlice: true,
@@ -675,8 +676,7 @@ proc initLexer*[T](strs: seq[PosStr], impl: HsLexCallback[T]): HsLexer[T] =
   result = HsLexer[T](cb: impl)
   var buf: seq[T]
   for str in strs:
-    var str = str
-    result.str = addr str
+    result.str = str
     while not result.finished():
       buf.add result.pop()
 
