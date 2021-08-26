@@ -276,26 +276,26 @@ suite "Extra features":
     )
 
   test "Token list":
-    var str = "10293480129480123"
+    var str = asRef("10293480129480123")
     type En = enum ostCommandPrefix
     let tokens = @[
-      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: addr str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: addr str, finish: 2)
+      HsTok[En](isSlice: true, baseStr: str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: str, finish: 2),
+      HsTok[En](isSlice: true, baseStr: str, finish: 2)
     ]
 
     pprint(

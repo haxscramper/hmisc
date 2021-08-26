@@ -55,12 +55,6 @@ task docgen, "Generate documentation":
     "--outdir:docs"
   ]
 
-  # let commit = getEnv("GITHUB_SHA")
-  # if commit.len > 0: args.add &"--git.commit:{commit}"
-
-  # let ghref = getEnv("GITHUB_REF").split("/")[^1]
-  # if ghref.len > 0: args.add &"--git.devel:{ghref}"
-
   let ghUrl = getEnv("GITHUB_REPOSITORY", &"file://{res}")
   if ghUrl.len > 0: args.add &"--git.url:\"{ghUrl}\""
 
@@ -70,6 +64,9 @@ task docgen, "Generate documentation":
   echo cmd
   exec cmd
 
+proc sh(str: varargs[string]) =
+  let str = str.join(" ")
+  exec str
 
 task testall, "Merge all tests and run them":
   let outPath = "/tmp/tmp_tests_all.nim"
@@ -81,7 +78,12 @@ import hmisc/other/hunittest
 """
   let cwd = getCurrentDir()
   var nojoin: seq[string]
+  var cnt = 0
   for (kind, path) in walkDir("tests", relative = false):
+    if 10_000 < cnt:
+      break
+    inc cnt
+
     if kind == pcFile and path.splitFile().ext == ".nim":
       let path = cwd / path
       let content = path.readFile()
@@ -96,12 +98,53 @@ import hmisc/other/hunittest
 
   res.add "\n\nmergedFileEnded()\n"
   outPath.writeFile(res)
-  exec("nim r " & outPath)
-  for file in nojoin:
-    exec("nim r \"" & file & "\"")
+
+  let withCov = true
+
+  if withCov:
+    let
+      dir = "/tmp/hmisc-test"
+      name = "test"
+
+    mkDir dir
+
+    let start = getCurrentDir()
+
+
+    cd dir
+    sh [
+      "nim",
+      "c",
+      "--nimcache:.",
+      "--debugger:native",
+      "--passC:--coverage",
+      "--passL:--coverage",
+      &"-o:{name}",
+      outPath
+    ]
+
+    sh &"lcov --base-directory . --directory . --zerocounters -q"
+    sh &"./{name}"
+    sh &"lcov --base-directory . --directory . -c -o {name}.info"
+
+    sh [
+      "lcov",
+      "--remove", &"{name}.info", "\"lib/*\"",
+      "--remove", &"{name}.info", "\"*generated_not_to_break*\"",
+      "--remove", &"{name}.info", &"\"{dir}/*\"",
+      "-o",
+      &"{name}.info"
+    ]
+
+    sh &"genhtml -o html {name}.info"
+    cd cwd
+
+  else:
+    sh "nim r", outPath
+    for file in nojoin:
+      sh "nim r \"" & file & "\""
+
+
 
 task dockertest, "Run tests in docker container":
   exec("hmisc-putils dockertest --projectDir:" & thisDir())
-
-# after test:
-#   exec("nim c --hints:off --verbosity:0 src/hmisc/scripts/hmisc_putils.nim")

@@ -652,17 +652,17 @@ proc skip*[T, En](lexer: var HsLexer[T], kind1, kind2, kind3: set[En]) =
   lexer.skip(kind3)
 
 proc skipTo*[T](lex: var HsLexer[T], chars: set[char]) =
-  lex.str[].skipWhile(AllChars - chars)
+  lex.str.skipWhile(AllChars - chars)
 
 proc parseIdent*[R, T](lex: var HsLexer[T], kind: R):
   HsTokTree[R, T] = HsTokTree[R, T](isToken: true, token: lex.pop())
 
 
 func pushRange*[T](lex: var HsLexer[T]) =
-  lex.str[].pushRange()
+  lex.str.pushRange()
 
 func popRange*[T](lex: var HsLexer[T]): string =
-  lex.str[].popRange()
+  lex.str.popRange()
 
 proc getAll*[T](lex: var HsLexer[T]): seq[T] =
   while not lex.finished():

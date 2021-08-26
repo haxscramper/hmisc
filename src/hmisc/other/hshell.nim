@@ -267,6 +267,9 @@ func getStdout*(shellRes: ShellResult): string =
 func getStderr*(shellRes: ShellResult): string =
   shellRes.execResult.stderr
 
+func split*(res: ShellResult): tuple[stdout, stderr: string, code: int] =
+  (res.execResult.stdout, res.execResult.stderr, res.execResult.code)
+
 func `[]`*(sa: ShellAst, idx: int): ShellAst = sa.subnodes[idx]
 func len*(sa: ShellAst): int = sa.subnodes.len
 func toJson*(v: ShellGlob): JsonNode = newJString(v.string)
