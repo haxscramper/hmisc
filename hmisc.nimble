@@ -99,7 +99,7 @@ import hmisc/other/hunittest
   res.add "\n\nmergedFileEnded()\n"
   outPath.writeFile(res)
 
-  let withCov = true
+  let withCov = false
 
   if withCov:
     let

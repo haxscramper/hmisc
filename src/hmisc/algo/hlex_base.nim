@@ -125,7 +125,8 @@ template varPosStr*(str: string): PosStr =
 
 func initPosStr*(stream: Stream): PosStr =
   ## Create new string with empty buffer and non-nil input stream.
-  PosStr(stream: stream, isSlice: false, column: 0, line: 0)
+  result = PosStr(stream: stream, isSlice: false, column: 0, line: 0)
+  new(result.baseStr)
 
 proc initPosStr*(file: AbsFile): PosStr =
   ## Create positional string using new file stream
