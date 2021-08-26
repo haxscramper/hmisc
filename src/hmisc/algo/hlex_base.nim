@@ -130,9 +130,7 @@ func initPosStr*(stream: Stream): PosStr =
 
 proc initPosStr*(file: AbsFile): PosStr =
   ## Create positional string using new file stream
-  PosStr(
-    stream: newFileStream(file.getStr()),
-    isSlice: false, column: 0, line: 0)
+  initPosStr(newFileStream(file.getStr()))
 
 func initPosStr*(
     str;
@@ -203,7 +201,7 @@ proc hasNxt*(input: PosStr; idx: int): bool =
       pos < input.baseStr[].len)
 
   else:
-    return 0 <= pos and pos < input.baseStr[].len
+    return notNil(input.baseStr) and 0 <= pos and pos < input.baseStr[].len
 
 proc finished*(str: PosStr): bool =
   ## Check if string as no more input data

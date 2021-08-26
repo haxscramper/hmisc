@@ -169,14 +169,15 @@ proc straceOutConverter*(
   discard
 
 proc straceErrConverter*(
-    str: var PosStr, cmd: ShellCmd, state: var Option[HsLexer[StrTok]]):
+    str: var PosStr, cmd: ShellCmd,
+    state: var Option[HsLexer[StrTok]]):
   Option[StraceRecord] =
 
   if state.isNone():
     state = some initLexer(str, lexCall)
 
 
-  if str.startsWith(IdentChars, "("):
+  if state.get().str.startsWith(IdentChars, "("):
     return some parseCall(state.get())
 
   else:
