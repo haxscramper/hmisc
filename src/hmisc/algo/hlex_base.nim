@@ -866,6 +866,13 @@ proc trySkip*(str; s: string): bool =
     result = false
 
 
+proc trySkip*(str; ch: set[char]): bool  =
+  if str[] in ch:
+    result = false
+
+  else:
+    str.next()
+    result = true
 
 proc trySkip*(str; ch: char): bool  =
   if str[] != ch:
@@ -1185,3 +1192,81 @@ proc cut*(str; rx: Rx | Regex, fill: int = 128): string =
   str.pushRange()
   str.next(match)
   result = str.popRange()
+
+macro scanSlice*(str; pattern: varargs[untyped]): untyped =
+  result = newStmtList()
+  let str = copyNimNode(str)
+
+  result.add newCall("pushSlice", str)
+
+  proc splitPattern(part: NimNode): NimNode =
+    case part.kind:
+      of nnkPrefix:
+        case part[0].strVal():
+          of r"*\":
+            return nnkPrefix.newTree(
+              ident"*", nnkPrefix.newTree(ident"\", part[1]))
+
+          of "+", "*", "-", "\\", "?":
+            return part
+
+          else:
+            raise newImplementKindError(part[0].strVal())
+
+
+      else:
+        return part
+
+  proc toCharGroup(name: string): NimNode =
+    case name:
+      of "n": bindSym"Newline"
+      of "N": nnkInfix.newTree(ident"-", bindSym"AllChars", bindSym"Newline")
+
+      else:
+        raise newImplementKindError(name)
+
+
+  proc isAt(part: NimNode): NimNode =
+    var at: NimNode
+    case part.kind:
+      of nnkCharLit, nnkStrLit: at = part
+      of nnkPrefix:
+        case part[0].strVal():
+          of "\\": at = toCharGroup(part[1].strVal())
+          else: raise newImplementKindError(part[0].strVal())
+
+      else:
+        raise newImplementKindError(part)
+
+    return nnkBracketExpr.newTree(str, at)
+
+  proc genSkip(part: NimNode, requires: bool = false): NimNode =
+    let part = splitPattern(part)
+    case part.kind:
+      of nnkCharLit:
+        result = newCall(tern(requires, "skip", "trySkip"), str, part)
+
+      of nnkPrefix:
+        case part[0].strVal():
+          of "*":
+            result = nnkWhileStmt.newTree(isAt(part[1]), newCall("next", str))
+
+          of "\\":
+            assertNodeKind(part[1], {nnkIdent, nnkSym})
+            result = newCall(
+              tern(requires, "skip", "trySkip"),
+              str, toCharGroup(part[1].strVal()))
+
+          else:
+            raise newImplementKindError(part[0].strVal())
+
+      else:
+        raise newImplementKindError(part)
+
+
+  for part in pattern:
+    result.add genSkip(part, true)
+
+  result.add newCall("popSlice", str)
+
+  echo result.repr()

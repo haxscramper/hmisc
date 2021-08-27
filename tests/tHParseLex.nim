@@ -810,6 +810,7 @@ suite "Lexer":
           result.add():
             case indent:
               of likIncIndent:  initTok(" ", '>')
+              of likEmptyLine:  initTok(" ", '_')
               of likDecIndent:  initTok(" ", '<')
               of likSameIndent: initTok(" ", '=')
               of likNoIndent:   initTok(" ", '?')
@@ -1329,6 +1330,7 @@ suite "Simple org-mode":
               case indent:
                 of likIncIndent:  str.initTok(osIndent)
                 of likDecIndent:  str.initTok(osDedent)
+                of likEmptyLine:  str.initTok(osSameIndent)
                 of likSameIndent: str.initTok(osSameIndent)
                 of likNoIndent:   str.initTok(osNoIndent)
 
@@ -1527,3 +1529,20 @@ suite "Simple org-mode":
           (kind: osCompletion, strVal: "[0/10]"),
           (kind: osSubtreeTag, strVal: ":tag:")
         ]
+
+import std/macros
+
+suite "String scanning DSL":
+  template testScan(s: string, args: varargs[untyped]): untyped =
+    block:
+      var str = varStr(s)
+      unpackVarargs(scanSlice, str, args)
+
+  test "scanSlice":
+    check:
+      testScan("0", '0').strVal() == "0"
+      testScan("00", *'0').strVal() == "00"
+
+  test "Scan escapes":
+    check:
+      testScan("a\n\n\nb", 'a', *\n, 'b').strVal() == "a\n\n\nb"

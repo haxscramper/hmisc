@@ -687,8 +687,6 @@ proc instImpl[N, K](
   let typeName = ident($N)
   let prefixLen = max(0, skipWhile($low(K), {'a' .. 'z'}))
 
-  echo spec.treeRepr()
-
   result = newStmtList()
 
 
@@ -810,7 +808,7 @@ proc instImpl[N, K](
         newEmptyNode(),
         impl)
 
-  echo result.repr()
+  # echo result.repr()
 
 
 template generateConstructors*[N; K: enum](
