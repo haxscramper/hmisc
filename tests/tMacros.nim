@@ -38,6 +38,9 @@ wrapSeqContainer(MacAst.subnodes, MacAst)
 suite "MacAst spec":
   test "On nim node":
     macro spec() =
+      let infix = newInfix(ident"+", ident"a", ident"b", ident"00")
+      # let tr = newTryStmt(newEmptyNode())
+
       echo nimAstSpec.validateAst(
         nnkInfix.newTree(newLit(12), ident"1", ident"2"))
 

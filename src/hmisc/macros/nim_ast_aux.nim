@@ -26,7 +26,7 @@ const
 
 
     nnkTryStmt:
-      1 .. ^1:
+      0 .. ^1:
         nnkExceptBranch:
           1 .. ^2:
             nnkSym

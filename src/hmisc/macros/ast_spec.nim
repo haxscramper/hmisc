@@ -363,12 +363,19 @@ macro astSpec*(nodeType, kindType, body: untyped): untyped =
   result = newCall(call"astSpec", result)
 
 func contains*(arange: AstRange, idx, maxLen: int): bool =
+  # echov arange.kind
   case arange.kind:
     of akPoint: idx == arange.idx
     of akInversePoint: idx == maxLen - arange.idx
     of akDirectSlice: arange.start <= idx and idx <= arange.finish
-    of akInverseSlice: (maxLen - arange.start) <= idx and idx <= (maxLen - arange.finish)
-    of akMixedSlice: arange.start <= idx and idx <= (maxLen - arange.finish)
+    of akInverseSlice:
+      (maxLen - arange.start) <= idx and idx <= (maxLen - arange.finish)
+    of akMixedSlice:
+      # echov arange.start
+      # echov idx
+      # echov maxLen - arange.finish
+      # echov arange.finish
+      arange.start <= idx and idx <= (maxLen - arange.finish)
 
 func `$`*(arange: AstRange): string =
   case arange.kind:
@@ -382,6 +389,10 @@ func `$`*[N, K](spec: AstPattern[N, K]): string =
   result.add $spec.expected
 
 proc toPath*[N](ast: N, path: seq[int]): string =
+  when ast is ref:
+    if isNil(ast):
+      return join(path.mapIt("[" & $it & "]"), ".")
+
   mixin `[]`
   proc aux(a: N, path: seq[int]): seq[string] =
     result.add $a.kind
@@ -638,13 +649,14 @@ proc instImpl[N, K](
     if pattern.isSome():
       var subnodes: seq[NimNode]
       var impl = newStmtList()
-      var make = newCall(ident(makeVia), ident($kind))
-      var argLen = ident("argLen")
+      var make = ident("argList")
+      var argLen = newCall("len", make)
       var absIdx = 0
       var validation = newStmtList()
 
       impl.add quote do:
-        var `argLen` = 0
+        var `make`: seq[`typeName`]
+
 
       for idx, arange in pattern.get().ranges:
         let (arange, alts) = arange
@@ -659,16 +671,22 @@ proc instImpl[N, K](
         case arange.kind:
           of akPoint:
             subnodes.add nnkIdentDefs.newTree(name, typeName, newEmptyNode())
-            make.add name
             let klit = ident($kind)
             let ilit = newLit(absIdx)
             let lit = newCall("getPattern", specId, kLit)
-            impl.add newCall("inc", argLen)
+            let nameLit = newLit(name.strVal())
 
             validation.add quote do:
-              let fail = validateSub(`lit`, `klit`, `name`.kind, `ilit`, `argLen`)
+              let fail = validateSub(
+                `lit`, `klit`, `name`.kind, `ilit`, `argLen`)
+
               if fail.isSome():
-                raise newException(AstCheckError, $fail.get())
+                raise newException(
+                  AstCheckError,
+                  "Invalid subnode kind for " & `nameLit` & " - " & $fail.get() &
+                    ". Current input is " & $`name`.kind)
+
+              `make`.add `name`
 
             inc absIdx
 
@@ -682,19 +700,42 @@ proc instImpl[N, K](
                 else:
                   name
 
-              impl.add newCall("inc", argLen)
               subnodes.add nnkIdentDefs.newTree(name, typeName, newEmptyNode())
-              make.add name
               inc subIdx
 
+          of akMixedSlice:
+            subnodes.add nnkIdentDefs.newTree(
+              name,
+              nnkBracketExpr.newTree(
+                tern(idx == pattern.get().ranges.high, ident"varargs", ident"seq"),
+                typeName),
+              newEmptyNode())
+
+            let klit = ident($kind)
+            let lit = newCall("getPattern", specId, kLit)
+            let nameLit = newLit(name.strVal())
+            validation.add quote do:
+              for item in items(`name`):
+                `make`.add item
+                let fail = validateSub(
+                  `lit`, `klit`, item.kind, high(`make`), `argLen`)
+
+                if fail.isSome():
+                  raise newException(
+                    AstCheckError,
+                    "Invalid subnode kind for " & `nameLit` & " - " & $fail.get() &
+                      ". Current input is " & $item.kind)
+
           else:
-            discard
+            raise newImplementKindError(arange)
 
 
       impl.add validation
 
+      let idCall = ident($kind)
+      let makeCall = ident(makeVia)
       impl.add quote do:
-        result = `make`
+        result = `makeCall`(`idCall`, `make`)
 
       result.add nnkProcDef.newTree(
         nnkPostfix.newTree(ident"*", ident("new" & ($kind)[prefixLen .. ^1])), # the exported proc name
