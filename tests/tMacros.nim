@@ -41,6 +41,9 @@ suite "MacAst spec":
       let infix = newInfix(ident"+", ident"a", ident"b", ident"00")
       # let tr = newTryStmt(newEmptyNode())
 
+      doAssert infix["op"].eqIdent("+")
+      doAssert infix.getSub("op")[0].eqIdent("+")
+
       echo nimAstSpec.validateAst(
         nnkInfix.newTree(newLit(12), ident"1", ident"2"))
 

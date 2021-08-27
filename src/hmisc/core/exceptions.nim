@@ -119,7 +119,7 @@ template assertHasIdx*(
         "Cannot get element at index ",
         access,
         " from '", astToStr(item), "', which has len() = ",
-        l, (if msg.len > 0: ". " & msg else: ""))
+        l, (if len(msg) > 0: ". " & msg else: ""))
 
 proc newSetterError*(msg: varargs[string, `$`]): ref SetterError =
   newException(SetterError, msg.join(""))

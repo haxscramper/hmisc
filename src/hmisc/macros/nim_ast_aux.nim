@@ -38,6 +38,12 @@ const
 
 generateConstructors(nimAstSpec, {nnkEmpty}, newTree)
 
+proc `[]`*(node: NimNode, name: string): NimNode =
+  getSingleSubnode(nimAstSpec, node, name)
+
+proc getSub*(node: NimNode, name: string): seq[NimNode] =
+  getMultipleSubnode(nimAstSpec, node, name)
+
 
 proc treeRepr2*(
     pnode: NimNode,

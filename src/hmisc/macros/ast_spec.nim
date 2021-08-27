@@ -5,7 +5,7 @@ import
   ./argpass
 
 import
-  std/[options, macros, sequtils, strutils, parseutils]
+  std/[options, macros, sequtils, strutils, parseutils, tables]
 
 type
   AstRangeKind = enum
@@ -88,6 +88,66 @@ func astSpec*[N, K](
 
 func getPattern*[N, K](spec: AstSpec[N, K], kind: K): AstPattern[N, K] =
   spec.spec[kind].get()
+
+func getNodeRanges*[N, K](spec: AstSpec[N, K]): array[K, Table[string, AstRange]] =
+  for kind, pattern in spec.spec:
+    if pattern.isSome():
+      for arange in pattern.get().ranges:
+        if arange.arange.name.len > 0:
+          result[kind][arange.arange.name] = arange.arange
+
+template noPositional(spec, node, name): untyped {.dirty.} =
+  var names: string
+  if table[node.kind].len > 0:
+    names = "Available names - "
+    for name, _ in pairs(table[node.kind]):
+      names.add ", "
+      names.add name
+
+  else:
+    names = "No named subnodes specified."
+
+
+  raise newGetterError(&[
+    "Cannot get positional node with name '", name,  "' from node of kind '",
+    $node.kind, "'. ", names])
+
+
+func getSingleSubnode*[N, K](spec: static[AstSpec[N, K]], node: N, name: string): N =
+  const table = getNodeRanges(spec)
+  if name in table[node.kind]:
+    let arange = table[node.kind][name]
+    let slice = arange.toSlice(len(node))
+    assertHasIdx(
+      node,
+      slice.a,
+      &["Range ", name, " for node kind ", $node.kind,
+        " was resolved into slice ", $slice, "(required ast range is ",
+        $arange, ")"])
+
+    return node[slice.a]
+
+  else:
+    noPositional(spec, node, name)
+
+
+func getMultipleSubnode*[N, K](spec: static[AstSpec[N, K]], node: N, name: string): seq[N] =
+  const table = getNodeRanges(spec)
+  if name in table[node.kind]:
+    let arange = table[node.kind][name]
+    let slice = arange.toSlice(len(node))
+    for idx in slice:
+      assertHasIdx(
+        node,
+        idx,
+        &["Range ", name, " for node kind ", $node.kind,
+          " was resolved into slice ", $slice, "(required ast range is ",
+          $arange, ")"])
+
+      result.add node[idx]
+
+  else:
+    noPositional(spec, node, name)
 
 func fieldRange*[N, K](
     spec: AstSpec[N, K], node: N, idx: int): Option[AstRange] =
@@ -361,21 +421,25 @@ macro astSpec*(nodeType, kindType, body: untyped): untyped =
     result.add newEcE(pattern[0], aux(pattern[1]))
 
   result = newCall(call"astSpec", result)
+func toSlice*(arange: AstRange, maxLen: int): Slice[int] =
+  case arange.kind:
+    of akPoint: arange.idx .. arange.idx
+    of akInversePoint: (maxLen - arange.idx) .. (maxLen - arange.idx)
+    of akDirectSlice: arange.start .. arange.finish
+    of akInverseSlice: (maxLen - arange.start) .. (maxLen - arange.finish)
+    of akMixedSlice: arange.start .. (maxLen - arange.finish)
 
 func contains*(arange: AstRange, idx, maxLen: int): bool =
-  # echov arange.kind
-  case arange.kind:
-    of akPoint: idx == arange.idx
-    of akInversePoint: idx == maxLen - arange.idx
-    of akDirectSlice: arange.start <= idx and idx <= arange.finish
-    of akInverseSlice:
-      (maxLen - arange.start) <= idx and idx <= (maxLen - arange.finish)
-    of akMixedSlice:
-      # echov arange.start
-      # echov idx
-      # echov maxLen - arange.finish
-      # echov arange.finish
-      arange.start <= idx and idx <= (maxLen - arange.finish)
+  idx in toSlice(arange, maxLen)
+  # case arange.kind:
+  #   of akPoint: idx == arange.idx
+  #   of akInversePoint: idx == maxLen - arange.idx
+  #   of akDirectSlice: arange.start <= idx and idx <= arange.finish
+  #   of akInverseSlice:
+  #     (maxLen - arange.start) <= idx and idx <= (maxLen - arange.finish)
+  #   of akMixedSlice:
+  #     arange.start <= idx and idx <= (maxLen - arange.finish)
+
 
 func `$`*(arange: AstRange): string =
   case arange.kind:
@@ -766,15 +830,3 @@ template generateConstructors*[N; K: enum](
     instImpl(spec, defaultable, makeVia, specId)
 
   inst(inSpec, inDefaultable, astToStr(makeVia), inSpec)
-
-  # macro generate()
-
-  # echo spec.getTypeInst().repr()
-
-  # result =
-
-
-  # echo prefix
-
-  # for kind, pattern in spec.spec:
-  #   if pattern.isSome():

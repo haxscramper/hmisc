@@ -93,7 +93,6 @@ proc `&=`*(target: var string, args: openarray[string]) =
   for arg in args:
     target &= arg
 
-
 proc asRef*[T: not ref and not ptr](t: sink T): ref T =
   new(result)
   result[] = t
