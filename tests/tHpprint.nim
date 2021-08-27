@@ -111,14 +111,15 @@ suite "Simple configuration":
       Tt = object
         f2: string
 
-    let str = Tt(f2: """
+    let str = Tt(f2: lit3"""
       Aliquam erat volutpat. Nunc sad asdfd
       non orci commodo lobortis. Proin nequ
       lobortis eget, lacus. Sed diam. Praes
       Nullam tempus. Mauris ac felis vel ve
       pede. Etiam vel neque nec dui digniss
       Phasellus neque orci, porta a, alique
-      Phasellus purus. Pellentesque tristiq""".dedent()).pstring(conf = op)
+      Phasellus purus. Pellentesque tristiq""").pstring(conf = op)
+
     check str == lit3"""
       Tt(f2: "Aliquam erat volutpat. Nunc sad asdfd
              non orci commodo lobortis. Proin nequ
@@ -126,7 +127,7 @@ suite "Simple configuration":
              Nullam tempus. Mauris ac felis vel ve
              pede. Etiam vel neque nec dui digniss
              Phasellus neque orci, porta a, alique
-             Phasellus purus. Pellentesque tristiq""""
+             Phasellus purus. Pellentesque tristiq")"""
 
   test "Sequence of objects":
     check @[T(f1: 12), T(f1: -99)].pstring(conf = op) ==

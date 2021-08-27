@@ -1123,7 +1123,7 @@ func makeVerbBlock*[
   updateSizes(result)
 
 
-func makeTextOrVerbBlock*(
+func makeTextOrStackTextBlock*(
     text: string | ColoredString | ColoredLine |
           seq[ColoredLine] | ColoredText,
     breaking: bool = false,
@@ -1149,7 +1149,9 @@ func makeTextOrVerbBlock*(
       let lines = text
 
     if lines.len > 1:
-      result = makeVerbBlock(lines, breaking = true, firstNl, breakMult)
+      result = makeStackBlock(
+        lines.mapIt(makeTextBlock(it)),
+        breakMult)
 
     else:
       result = makeTextBlock(lines[0], breakMult)
@@ -1157,7 +1159,9 @@ func makeTextOrVerbBlock*(
   elif text is ColoredText:
     if text.hasNewline():
       let ls = text.toRuneGrid()
-      result = makeVerbBlock(ls, breaking = true, firstNl, breakMult)
+      result = makeStackBlock(
+        mapIt(ls, makeTextBlock(it)),
+        breakMult)
 
     else:
       result = makeTextBlock(text.toRuneLine(), breakMult)
@@ -1166,7 +1170,9 @@ func makeTextOrVerbBlock*(
   else:
     if '\n' in text:
       let ls = text.splitLines(keepEol = false)
-      result = makeVerbBlock(ls, breaking = true, firstNl, breakMult)
+      result = makeStackBlock(
+        mapIt(ls, makeTextBlock(it)),
+        breakMult)
 
     else:
       result = makeTextBlock(text, breakMult)
@@ -1584,7 +1590,7 @@ proc `[]`*(
     hxInfo()
   )
 
-  return makeTextOrVerbBlock(a, breaking)
+  return makeTextOrStackTextBlock(a, breaking)
 
 proc `[]`*(b: static[LytBuilderKind], tlen: int = 1): LytBlock =
   case b:
