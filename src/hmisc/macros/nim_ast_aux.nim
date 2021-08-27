@@ -20,7 +20,7 @@ func eqIdent*(node: NimNode, strs: openarray[string]): bool =
 const
   nimAstSpec* = astSpec(NimNode, NimNodeKind):
     nnkInfix:
-      0: nnkIdent
+      0 as "op": nnkIdent
       1 .. 2: _
       ?3: nnkStmtList
 
@@ -36,6 +36,7 @@ const
               1: nnkIdent
               2: nnkIdent
 
+generateConstructors(nimAstSpec, {nnkEmpty}, newTree)
 
 
 proc treeRepr2*(
@@ -121,36 +122,6 @@ proc treeRepr2*(
 
         for newIdx, subn in n:
           var e = validateAst(nimAstSpec, n, subn, newIdx)
-          template th(): untyped = toRed($newIdx & "-th subnode of ") & hshow(n.kind)
-          template last(): untyped = toRed("last subnode of") & hshow(n.kind)
-
-          case n.kind:
-            of nnkTryStmt:
-              if 0 < newIdx and newIdx < n.len - 1:
-                if subn.kind != nnkExceptBranch:
-                  e.add toRed("! expected ExceptBranch as ")
-                  e.add th()
-
-              elif newIdx == n.len - 1:
-                if subn.kind notin { nnkExceptBranch, nnkFinally }:
-                  e.add toRed("! expected Finally or ExceptBranch as ")
-                  e.add last()
-
-            of nnkExceptBranch:
-              if newIdx < n.len - 1:
-                if not(
-                  subn.kind in { nnkIdent } or
-                  subn.kind == nnkInfix and
-                  subn[0].eqIdent("as")
-                ):
-                  e.add toRed("! expected type identifier or infix `as` as ")
-                  e.add th()
-
-            else:
-              discard
-
-
-
           aux(subn, level + 1, idx & newIdx, e)
           if level + 1 > maxDepth:
             break

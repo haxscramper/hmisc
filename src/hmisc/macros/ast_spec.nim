@@ -5,7 +5,7 @@ import
   ./argpass
 
 import
-  std/[options, macros, sequtils, strutils]
+  std/[options, macros, sequtils, strutils, parseutils]
 
 type
   AstRangeKind = enum
@@ -36,6 +36,8 @@ type
     expected*: set[K]
     arange*: AstRange
     nested*: seq[AstCheckFail[K]]
+
+  AstCheckError = object of CatchableError
 
   AstCheckProc*[N, K] = proc(node: N): Option[AstCheckFail[K]]
 
@@ -83,6 +85,9 @@ func astSpec*[N, K](
     patterns: openarray[(K, AstPattern[N, K])]): AstSpec[N, K] =
   for (kind, pattern) in patterns:
     result.spec[kind] = some pattern
+
+func getPattern*[N, K](spec: AstSpec[N, K], kind: K): AstPattern[N, K] =
+  spec.spec[kind].get()
 
 func fieldRange*[N, K](
     spec: AstSpec[N, K], node: N, idx: int): Option[AstRange] =
@@ -154,6 +159,7 @@ func astRange*(
   AstRange(
     kind: akInverseSlice, start: slice.a.int, doc: doc, name: name,
     finish: slice.b.int, optional: optional)
+
 
 macro astSpec*(nodeType, kindType, body: untyped): untyped =
   let
@@ -433,18 +439,17 @@ proc findMissing*[N, K](
 
 
 proc validateAst*[N, K](
-    spec: AstPattern[N, K], node, subnode: N,
-    idx: int, path: seq[int] = @[]
+    spec: AstPattern[N, K], kind, subnode: K,
+    idx: int, maxLen: int, path: seq[int] = @[]
   ): AstCheckFail[K] =
 
   result.path = path
-  # Find range in which given subnode is found
   for arange in spec.ranges:
-    if arange.arange.contains(idx, node.len):
+    if arange.arange.contains(idx, maxLen):
       for alt in arange.alts:
-        if subnode.kind notin alt.expected:
+        if subnode notin alt.expected:
           result.nested.add AstCheckFail[K](
-            parent: node.kind,
+            parent: kind,
             path: path,
             expected: alt.expected,
             arange: arange.arange)
@@ -464,6 +469,10 @@ proc treeRepr*[N, K](spec: AstSpec[N, K]): ColoredText =
       add "\n"
       addIndent(level + 1)
       add toYellow($arange.arange)
+      if arange.arange.name.len > 0:
+        add " "
+        add toBlue(arange.arange.name)
+
       for alt in arange.alts:
         add "\n"
         aux(alt, level + 2)
@@ -486,7 +495,6 @@ proc formatFail*[N, K](fail: AstCheckFail[K], node: N): ColoredText =
     addIndent(level)
     if fail.isEmpty(withNested = false):
       discard
-      # add toPath(node, fail.path).toRed()
 
     else:
       if fail.msg.len > 0:
@@ -550,7 +558,9 @@ proc validateAst*[N, K](
 
   if spec.spec[node.kind].isSome():
     result.add formatFail(
-      validateAst(spec.spec[node.kind].get(), node, subnode, idx, @[idx]), node)
+      validateAst(
+        spec.spec[node.kind].get(),
+        node.kind, subnode.kind, idx, node.len, @[idx]), node)
 
     result.add "\n"
     result.add formatFail(
@@ -558,14 +568,25 @@ proc validateAst*[N, K](
 
 
 proc validateSub*[N, K](
-    spec: AstSpec[N, K], node: N, idx: int): Option[ColoredText] =
-  if spec.spec[node.kind].isSome():
-    let fail = formatFail(
-      validateAst(spec.spec[node.kind].get(), node,
-                  node[idx], idx, @[idx]), node)
+    spec: AstPattern[N, K], node, sub: K, idx, maxIdx: int
+  ): Option[ColoredText] =
 
-    if fail.len() > 0:
-      return some fail
+  let fail = formatFail(
+    validateAst(spec, node, sub, idx, maxIdx, @[idx]), N(nil))
+
+  if fail.len() > 0:
+    return some fail
+
+
+proc validateSub*[N, K](
+    spec: AstSpec[N, K], node: N, idx: int, sub: N): Option[ColoredText] =
+  if spec.spec[node.kind].isSome():
+    return validateAst(
+      spec.spec[node.kind].get(), node.kind, sub.kind, idx)
+
+proc validateSub*[N, K](
+    spec: AstSpec[N, K], node: N, idx: int): Option[ColoredText] =
+  validateSub(spec, node, idx, node[idx])
 
 proc validateSelf*[N, K](
     spec: AstSpec[N, K], node: N): Option[ColoredText] =
@@ -580,3 +601,139 @@ proc validateAst*[N, K](spec: AstSpec[N, K], node: N): ColoredText =
   if spec.spec[node.kind].isSome():
     result.add formatFail(
       findMissing(spec.spec[node.kind].get(), node), node)
+
+proc instImpl[N, K](
+    spec: AstSpec[N, K],
+    defaultable: set[K],
+    makeVia: string,
+    specId: NimNode,
+  ): NimNode =
+
+  let typeName = ident($N)
+  let prefixLen = max(0, skipWhile($low(K), {'a' .. 'z'}))
+
+  echo spec.treeRepr()
+
+  result = newStmtList()
+
+
+  proc validate(arg: NimNode, pattern: AstPattern[N, K]): NimNode =
+    var cond: NimNode
+    var body = newStmtList()
+
+    if pattern.expected.len == 0 and
+       pattern.ranges.len == 0:
+      cond = newCall("assert", newCall("not", newCall("isNil", arg)))
+
+    else:
+      cond = newCall(
+        "contains",
+        newLit(pattern.expected),
+        nnkDotExpr.newTree(arg, ident"kind"))
+
+    return nnkElifBranch.newTree(cond, body)
+
+
+  for kind, pattern in spec.spec:
+    if pattern.isSome():
+      var subnodes: seq[NimNode]
+      var impl = newStmtList()
+      var make = newCall(ident(makeVia), ident($kind))
+      var argLen = ident("argLen")
+      var absIdx = 0
+      var validation = newStmtList()
+
+      impl.add quote do:
+        var `argLen` = 0
+
+      for idx, arange in pattern.get().ranges:
+        let (arange, alts) = arange
+        var name =
+          if arange.name.len > 0:
+            ident(arange.name)
+
+          else:
+            warning("Missing name for subnode #" & $idx & " of " & $kind)
+            ident("node" & $idx)
+
+        case arange.kind:
+          of akPoint:
+            subnodes.add nnkIdentDefs.newTree(name, typeName, newEmptyNode())
+            make.add name
+            let klit = ident($kind)
+            let ilit = newLit(absIdx)
+            let lit = newCall("getPattern", specId, kLit)
+            impl.add newCall("inc", argLen)
+
+            validation.add quote do:
+              let fail = validateSub(`lit`, `klit`, `name`.kind, `ilit`, `argLen`)
+              if fail.isSome():
+                raise newException(AstCheckError, $fail.get())
+
+            inc absIdx
+
+
+          of akDirectSlice:
+            var subIdx = 0
+            for item in arange.start .. arange.finish:
+              let name =
+                if arange.name.len == 0:
+                  ident(name.strVal() & "_" & $subIdx)
+                else:
+                  name
+
+              impl.add newCall("inc", argLen)
+              subnodes.add nnkIdentDefs.newTree(name, typeName, newEmptyNode())
+              make.add name
+              inc subIdx
+
+          else:
+            discard
+
+
+      impl.add validation
+
+      impl.add quote do:
+        result = `make`
+
+      result.add nnkProcDef.newTree(
+        nnkPostfix.newTree(ident"*", ident("new" & ($kind)[prefixLen .. ^1])), # the exported proc name
+        newEmptyNode(),
+        newEmptyNode(),
+        nnkFormalParams.newTree(typeName & subnodes),
+        newEmptyNode(),
+        newEmptyNode(),
+        impl)
+
+  echo result.repr()
+
+
+template generateConstructors*[N; K: enum](
+    inSpec: AstSpec[N, K]{lit | `const`},
+    inDefaultable: set[K],
+    makeVia: untyped{ident}
+  ): untyped =
+
+  bind instImpl
+  macro inst(
+      spec: static[AstSpec[N, K]],
+      defaultable: static[set[K]],
+      makeVia: static[string],
+      specId: AstSpec[N, K]
+    ): untyped =
+
+    instImpl(spec, defaultable, makeVia, specId)
+
+  inst(inSpec, inDefaultable, astToStr(makeVia), inSpec)
+
+  # macro generate()
+
+  # echo spec.getTypeInst().repr()
+
+  # result =
+
+
+  # echo prefix
+
+  # for kind, pattern in spec.spec:
+  #   if pattern.isSome():

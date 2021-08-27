@@ -173,6 +173,12 @@ func dollar*[T](arg: T): string =
 
 proc `not`*[K](s: set[K]): set[K] = ({ low(K) .. high(K) } - s)
 
+func first*[E](s: set[E]): E =
+  assert len(s) > 0, "Cannot get value from empty set"
+  for val in s:
+    result = val
+    return
+
 func pop*[E](s: var set[E]): E =
   assert len(s) > 0, "Cannot pop from empty set"
 

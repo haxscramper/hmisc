@@ -47,6 +47,9 @@ template `[]=`*[T](p: ptr T, offset: SomeInteger, val: T) =
 proc allocPUarray*[T](size: Natural): PUarray[T] =
   cast[PUarray[T]](alloc(size * sizeof(T)))
 
+proc allocPUarray*[T, R](elements: array[R, T]): PUarray[T] =
+  discard # TODO
+
 proc deallocPUarray*[T](arr: PUarray[T]) =
   dealloc(cast[pointer](arr))
 
