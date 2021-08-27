@@ -94,7 +94,32 @@ template assertArg*(arg: untyped, cond: bool, msg: string = ""): untyped =
 
 
 proc newGetterError*(msg: varargs[string, `$`]): ref GetterError =
-  newException(GetterError, msg.join(" "))
+  newException(GetterError, msg.join(""))
+
+proc newHException*[T: object](
+    ex: typedesc[T], msg: varargs[string, `$`]): ref T =
+  new(result)
+  result.msg = msg.join("")
+
+
+template assertHasIdx*(
+    item: untyped,
+    access: int,
+    msg: string = "",
+    exception: untyped = GetterError,
+  ): untyped =
+
+  bind newHException
+
+  let l = len(item)
+  if not(access < l):
+    {.line: instantiationInfo(fullPaths = true).}:
+      raise newHException(
+        Exception,
+        "Cannot get element at index ",
+        access,
+        " from '", astToStr(item), "', which has len() = ",
+        l, (if msg.len > 0: ". " & msg else: ""))
 
 proc newSetterError*(msg: varargs[string, `$`]): ref SetterError =
   newException(SetterError, msg.join(""))

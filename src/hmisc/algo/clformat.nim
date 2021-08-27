@@ -18,6 +18,65 @@ export colorstring
 
 # https://www.hexstreamsoft.com/articles/common-lisp-format-reference/clhs-summary/
 
+type
+  HDisplayVerbosity* = enum
+
+    dvMinimal
+    dvNormal
+    dvVerbose
+    dvDataDump
+
+  HDisplayFlag* = enum
+    dfColored
+    dfPositionIndexed
+    dfPathIndexed
+    dfUnicodeNewlines
+    dfUnicodePPrint
+    dfWithRanges
+    dfSpellEmptyStrings
+
+  HDisplayOpts* = object
+    flags*: set[HDisplayFlag]
+    # colored*: bool
+    indent*: int
+    maxDepth*: int
+    maxLen*: int
+    quoteIdents*: bool ## Add quotes around stings that are valid identifirers
+    newlineBeforeMulti*: bool
+    verbosity*: HDisplayVerbosity
+    dropPrefix*: bool
+
+const defaultHDisplay* = HDisplayOpts(
+  flags: { dfColored, dfPositionIndexed, dfSpellEmptyStrings },
+  dropPrefix: true,
+  newlineBeforeMulti: true,
+  maxLen: 30,
+  maxDepth: 120,
+  verbosity: dvNormal,
+)
+
+import std/[macros]
+
+macro hdisplay*(body: varargs[untyped]): untyped =
+  result = withFieldAssignsTo(
+    ident("defaultHDisplay"), body,
+    withTmp = true,
+    asExpr = true
+  )
+
+
+func colored*(opts: HDisplayOpts): bool = dfColored in opts.flags
+func positionIndexed*(opts: HDisplayOpts): bool =
+  dfPositionIndexed in opts.flags
+
+func pathIndexed*(opts: HDisplayOpts): bool =
+  dfPathIndexed in opts.flags
+
+func withRanges*(opts: HDisplayOpts): bool =
+  dfWithRanges in opts.flags
+
+
+
 const romanNumerals = [
   (1000, "M"),
   (900, "CM"),
@@ -720,7 +779,7 @@ const extendedAsciiNames*: array[char, string] = [
 func asciiName*(ch: char, slash: bool = false): string =
   extendedAsciinames[ch]
 
-func describeChar*(ch: char): string =
+func describeChar*(ch: char, opts: HDisplayOpts = defaultHDisplay): string =
   case ch:
     of { '\x00' .. '\x1F' } - { '\n', '\t' } + { '\x80' .. '\xFF' }:
       result.add "\\x"
@@ -730,9 +789,10 @@ func describeChar*(ch: char): string =
     of '\t': result.add "\\t"
     else: result.add $ch
 
-  result.add " ("
-  result.add toLatinNamedChar(ch).join(" ")
-  result.add ")"
+  if dvNormal <= opts.verbosity:
+    result.add " ("
+    result.add toLatinNamedChar(ch).join(" ")
+    result.add ")"
 
 import pkg/unicodedb
 
@@ -891,7 +951,7 @@ func fromTexToUnicodeMath*(tex: string): string =
 # ╊ ╋ ╉
 # ┡ ╇ ┩
 
-const AsciiBox* = (
+const CharBox* = (
   regular: (
     upLeft: "┌", downLeft: "└", downRight: "┘", upRight: "┐", center: "┼",
     vertical: "│", horizontal: "─",
@@ -934,6 +994,54 @@ const AsciiBox* = (
   )
 )
 
+const CharBrace* = (
+  asciiRound: (left: "(", right: ")"),
+  asciiSquare: (left: "[", right: "]"),
+  asciiCurlty: (left: "{", right: "}"),
+  asciiAngle: (left: "<", right: ">"),
+
+
+  doubleRound: (left: "⦅", right: "⦆"),
+  doubleSquare: (left: "〚", right: "〛"),
+  doubleCurly: (left: "⦃", right: "⦄"),
+  doubleAngle: (left: "《", right: "》"),
+
+  ucAngle: (left: "〈", right: "〉"),
+
+  mediumRound: (left: "❨", right: "❩" ),
+  mediumRound2: (left: "❪", right: "❫" ),
+  mediumCurly: (left: "❴", right: "❵"),
+  mediumAngle: (left: "❮", right: "❯" ),
+  mediumAngle2: (left: "❬", right: "❭" ),
+  mediumAngle3: (left: "❰", right: "❱"),
+
+  # doubleCurly: (left: "⦃", right: "⦄"),
+  # doubleCurly: (left: "⦃", right: "⦄"),
+  # doubleCurly: (left: "⦃", right: "⦄"),
+  # doubleCurly: (left: "⦃", right: "⦄"),
+  # doubleCurly: (left: "⦃", right: "⦄"),
+  # doubleCurly: (left: "⦃", right: "⦄"),
+  # doubleCurly: (left: "⦃", right: "⦄"),
+  # doubleCurly: (left: "⦃", right: "⦄"),
+)
+# White variants      
+
+# Western quotation “ ” ‘ ’ ‹ › « »
+# unmatched quotation „
+# Full width brackets （ ） ［ ］ ｛ ｝ ｟ ｠
+# Asian 「 」 〈    【 】 〔 〕 ⦗ ⦘
+# Asian white variant 『 』 〖 〗 〘 〙
+# Half width variant ｢ ｣
+# Math ⟦ ⟧ ⟨ ⟩ ⟪ ⟫ ⟮ ⟯ ⟬ ⟭ ⌈ ⌉ ⌊ ⌋ ⦇ ⦈ ⦉ ⦊
+
+# Decorative ❛ ❜ ❝ ❞ ❨ ❩ ❪ ❫ ❴ ❵ ❬ ❭ ❮ ❯ ❰ ❱ ❲ ❳
+# Arabic ornate parenthesis. (You need Arabic font) ﴾ ﴿
+# More angle brackets 〈 〉 ⦑ ⦒ ⧼ ⧽
+# Small variants ﹙ ﹚ ﹛ ﹜ ﹝ ﹞
+# superscript, subscript variants ⁽ ⁾ ₍ ₎
+# Square bracket variants ⦋ ⦌ ⦍ ⦎ ⦏ ⦐ ⁅ ⁆
+# ⸢ ⸣ ⸤ ⸥
+# Misc brackets ⟅ ⟆ ⦓ ⦔ ⦕ ⦖ ⸦ ⸧ ⸨ ⸩ ⧘ ⧙ ⧚ ⧛
 
 
 type
@@ -1137,62 +1245,6 @@ func hFormat*[T](s: openarray[T]): string =
     result &= $item
 
   result &= "]"
-
-type
-  HDisplayVerbosity* = enum
-    dvNormal
-    dvMinimal
-    dvVerbose
-    dvDataDump
-
-  HDisplayFlag* = enum
-    dfColored
-    dfPositionIndexed
-    dfPathIndexed
-    dfUnicodeNewlines
-    dfUnicodePPrint
-    dfWithRanges
-    dfSpellEmptyStrings
-
-  HDisplayOpts* = object
-    flags*: set[HDisplayFlag]
-    # colored*: bool
-    indent*: int
-    maxDepth*: int
-    maxLen*: int
-    quoteIdents*: bool ## Add quotes around stings that are valid identifirers
-    newlineBeforeMulti*: bool
-    verbosity*: HDisplayVerbosity
-    dropPrefix*: bool
-
-const defaultHDisplay* = HDisplayOpts(
-  flags: { dfColored, dfPositionIndexed, dfSpellEmptyStrings },
-  dropPrefix: true,
-  newlineBeforeMulti: true,
-  maxLen: 30,
-  maxDepth: 120,
-  verbosity: dvNormal,
-)
-
-import std/[macros]
-
-macro hdisplay*(body: varargs[untyped]): untyped =
-  result = withFieldAssignsTo(
-    ident("defaultHDisplay"), body,
-    withTmp = true,
-    asExpr = true
-  )
-
-
-func colored*(opts: HDisplayOpts): bool = dfColored in opts.flags
-func positionIndexed*(opts: HDisplayOpts): bool =
-  dfPositionIndexed in opts.flags
-
-func pathIndexed*(opts: HDisplayOpts): bool =
-  dfPathIndexed in opts.flags
-
-func withRanges*(opts: HDisplayOpts): bool =
-  dfWithRanges in opts.flags
 
 
 func hShow*(ch: char, opts: HDisplayOpts = defaultHDisplay): ColoredText =

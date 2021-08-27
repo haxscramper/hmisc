@@ -143,6 +143,7 @@ type
     case kind: TestReportKind
       of trkSectionKinds:
         conf: TestConf
+        nestedFail: seq[TestReport]
 
       of trkTimeStats:
         stat: RunningStat
@@ -158,6 +159,11 @@ type
     startTime: float
     sourceOnError: bool
     failCount: int
+
+    lastSuite: Option[TestReport]
+    lastTest: Option[TestReport]
+    hasFailed: seq[TestReport]
+
     shownHeader: bool
     contextValues: seq[(string, TestValue)]
     skipAfterException: bool
@@ -300,8 +306,20 @@ proc report(context: TestContext, report: TestReport) =
     context.skipNext = true
 
   case report.kind:
-    of trkMergedFileEnded:
-      echo toBlue("[ALL OK] " |>> width), " merged file ended"
+    of trkMergedFileEnded, trkFileEnded:
+      if defined(hunittestMerge) and report.kind == trkFileEnded:
+        discard
+
+      else:
+        if context.hasFailed.len > 0:
+          echo toBlue("[HAS FAIL] " |>> width)
+          for fail in context.hasFailed:
+            echo pFail, fail.name
+            for test in fail.nestedFail:
+              echo "  ", pFail, test.name
+
+        else:
+          echo toBlue("[ALL OK] " |>> width), " merged file ended"
 
     of trkTestComment, trkSuiteComment, trkBlockComment:
       for line in report.text.split('\n'):
@@ -368,20 +386,31 @@ proc report(context: TestContext, report: TestReport) =
           else:
             echo pFail, name, " ", report.msg
 
+          if report.kind == trkTestFail:
+            context.lastSuite.get().nestedFail.add report
+
         of trkSuiteEnd:
           echo pSuite, name
 
+          if context.lastSuite.get().nestedFail.len > 0:
+            context.hasFailed.add context.lastSuite.get()
+
         of trkTestStart:
+          context.lastTest = some report
           echo pRun, name
 
         of trkTestEnd:
           if context.failCount > 0:
+            context.lastSuite.get().nestedFail.add report
             echo pFail
 
           else:
             echo pOk
 
           context.failCount = 0
+
+        of trkSuiteStart:
+          context.lastSuite = some report
 
         else:
           echo pOk, name
@@ -525,6 +554,14 @@ func testLocation(node: NimNode): TestLocation =
 func testLocation(pos: (string, int, int)): TestLocation =
   TestLocation(file: pos[0], line: pos[1], column: pos[2])
 
+
+template testFileEnded*() =
+  bind getTestContext, report, TestReport, testLocation
+  report(getTestContext(), TestReport(
+    kind: trkFileEnded,
+    location: testLocation(instantiationInfo(fullPaths = true))
+  ))
+
 template mergedFileEnded*() =
   bind getTestContext, report, TestReport, testLocation
   report(getTestContext(), TestReport(
@@ -639,10 +676,10 @@ func expectFail(loc: TestLocation): TestReport =
 
 
 func testEnd(conf: TestConf, loc: TestLocation): TestReport =
-  TestReport(kind: trkTestEnd, conf: conf, location: loc)
+  TestReport(kind: trkTestEnd, conf: conf, location: loc, name: conf.name)
 
 func testStart(conf: TestConf, loc: TestLocation): TestReport =
-  TestReport(kind: trkTestStart, conf: conf, location: loc)
+  TestReport(kind: trkTestStart, conf: conf, location: loc, name: conf.name)
 
 func blockStart(name: string, loc: TestLocation): TestReport =
   TestReport(kind: trkBlockStart, location: loc, name: name)
@@ -659,12 +696,12 @@ func blockComment(text: string, loc: TestLocation): TestReport =
 func suiteComment(text: string, loc: TestLocation): TestReport =
   TestReport(kind: trkSuiteComment, location: loc, text: text)
 
-func suiteStarted(conf: TestConf, loc: TestLocation): TestReport =
+func suiteStart(conf: TestConf, loc: TestLocation): TestReport =
   TestReport(
-    kind: trkSuiteStart, location: loc, conf: conf)
+    kind: trkSuiteStart, location: loc, conf: conf, name: conf.name)
 
 proc suiteEnded(conf: TestConf, loc: TestLocation): TestReport =
-  TestReport(kind: trkSuiteEnd, location: loc, conf: conf)
+  TestReport(kind: trkSuiteEnd, location: loc, conf: conf, name: conf.name)
 
 proc checkFailed(
     loc: TestLocation,
@@ -1186,6 +1223,8 @@ proc maybeRunSuite(
 
   if context.canRunTest(conf):
     try:
+      context.report suiteStart(conf, loc)
+
       suiteProc(context)
 
       context.report suiteEnded(conf, loc)

@@ -22,7 +22,7 @@ import
 
 const
   infty = 1024 * 1024 * 1024 * 1024
-  defaultCompact: bool = false
+  defaultCompact: bool = true
 
 func inf(a: int): bool = (infty - 4096 <= a) and (a <= infty + 4096)
 
@@ -338,7 +338,8 @@ func treeRepr*(inBl: LytBlock): string =
           result &= elem.aux(level + 1)
 
       of bkText:
-        result &= "〈" & escapeStrLit($bl.text.text) & "〉\n"
+        result &= CharBrace.ucAngle.left &
+          escapeStrLit($bl.text.text) & CharBrace.ucAngle.right & "\n"
 
       of bkEmpty:
         result &= "<empty>"
@@ -1711,7 +1712,6 @@ proc toString*(
   ): string =
 
   var bl = bl
-  # setCache(bl)
   let opts = opts.withIt do:
     it.rightMargin = rightMargin
 

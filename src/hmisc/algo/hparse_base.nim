@@ -67,16 +67,22 @@ type
     likIncIndent ## Indentation increased on current position
     likDecIndent ## Decreased on current position
     likSameIndent ## No indentation change
+    likEmptyLine ## Multiple whitespaces followed by newline - special case
+                 ## for indented blocks.
     likNoIndent ## Not at position where indentation can be determine (e.g.
                 ## is inside of a identifier or at the start of the line)
 
   HsLexerState*[Flag:
-    enum | char | uint8 | uint16 | int8 | int16 | bool] = ref object
+    enum | char | uint8 | uint16 | int8 |
+    int16 | bool | NoValue
+  ] = ref object
 
     flagStack: seq[Flag]
     flagSet: array[Flag, int]
     indent: int
     indentLevels: int
+
+  HsLexerStateSimple* = HsLexerState[NoValue]
 
   HsLexCallback*[T] = proc(str: var PosStr): seq[T]
   # HsMultiLexCallback*[T] = proc(str: var PosStr): seq[T]
@@ -136,6 +142,9 @@ proc hasFlag*[F](state: HsLexerState[F], flag: F): bool =
 proc newLexerState*[F](startFlag: F): HsLexerState[F] =
   result = HsLexerState[F](flagStack: @[startFlag])
   inc result.flagSet[startFlag]
+
+proc newLexerState*(): HsLexerStateSimple =
+  HsLexerState[NoValue]()
 
 proc newUnexpectedCharError*[F](
     str: var PosStr, state: var HsLexerState[F], expected: string = ""): ref UnexpectedCharError =
@@ -209,7 +218,9 @@ func clear*[F](state: var HsLexerState[F]) =
     val = 0
 
 proc skipIndent*[F](
-    state: var HsLexerState[F], str: var PosStr): LexerIndentKind =
+    state: var HsLexerState[F],
+    str: var PosStr
+  ): LexerIndentKind =
   if str[Newline]:
     str.next()
 
@@ -224,7 +235,11 @@ proc skipIndent*[F](
 
   else:
     str.skipWhile({' '})
-    if state.indent > str.column:
+    if str['\n']:
+      result = likEmptyLine
+      return
+
+    elif state.indent > str.column:
       dec state.indentLevels
       result = likDecIndent
 
@@ -332,6 +347,9 @@ proc initTok*[K: HsTokSelector](str: PosStr, inKind: K): HsTok[K] =
         "Cannot create slice token from fragmented positional string -",
         "expected exactly one slice, but found ",
         str.slices.len)
+
+proc initTok*[K: HsTokSelector](inKind: K, str: PosStr): HsTok[K] =
+  initTok(str, inKind)
 
 template initTok*[K](
     posStr: PosStr, inStr: PosStr, inKind: K): HsTok[K] =

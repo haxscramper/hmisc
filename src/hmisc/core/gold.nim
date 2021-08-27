@@ -1,7 +1,9 @@
-import std/[options, strutils, strformat, macros]
+import std/[options, strutils, strformat, macros, os]
 
 ## Most important templates and additional overloads that I use in
 ## absoltely all parts of the code.
+
+type NoValue* = distinct char
 
 template tern*(predicate: bool, tBranch: untyped, fBranch: untyped): untyped =
   ## Shorthand for inline if/else. Allows use of conditions in strformat,
@@ -120,6 +122,14 @@ proc asSet*[E: enum](en: set[E]): set[E] = en
 
 template currIInfo*(): untyped =
   instantiationInfo(fullpaths = true)
+
+template curIDir*(): untyped =
+  bind splitFile
+  splitFile(instantiationInfo(fullPaths = true).filename).dir
+
+template relToSource*(path: string): untyped =
+  bind splitFile, joinPath
+  joinPath(splitFile(instantiationInfo(fullPaths = true).filename).dir, path)
 
 proc `of`*[A: object or ref object; K: enum](item: A, kind: K | set[K]): bool =
   ## Check if @arg{item} has @arg{kind}

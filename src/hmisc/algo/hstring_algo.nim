@@ -310,7 +310,7 @@ proc indentBody*(
 
   let nl = str.find('\n')
   if nl != -1:
-    result.add str[0 .. nl]
+    result.add str[0 .. (nl - 1)]
     for line in split(str[nl + 1 .. ^1], {'\n'}):
       result.add "\n"
       result.add repeat(indent, count - prefix.len)

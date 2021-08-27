@@ -1254,10 +1254,9 @@ proc pstring*[T](
   conf.extraFields.add toSeq(extraFields)
   conf.ignorePaths = ignore
 
+  let pblock = toPPrintTree(obj, conf, @[]).toPPrintBlock(conf)
 
-  return toPPrintTree(obj, conf, @[]).
-    toPPrintBlock(conf).
-    toString(conf.formatOpts.rightMargin, opts = conf.formatOpts)
+  return pblock.toString(conf.formatOpts.rightMargin, opts = conf.formatOpts)
 
 
 proc pprint*[T](

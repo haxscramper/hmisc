@@ -285,22 +285,12 @@ suite "Extra features":
       HsTok[En](isSlice: true, baseStr: str, finish: 2),
       HsTok[En](isSlice: true, baseStr: str, finish: 2),
       HsTok[En](isSlice: true, baseStr: str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: str, finish: 2),
-      HsTok[En](isSlice: true, baseStr: str, finish: 2)
     ]
 
     pprint(
       tokens,
       ignore = matchField("baseStr"),
+      force = { matchType"HsTok": forceLine() },
       extraFields = @[
         pprintExtraField(
           "HsTok", HsTok[En], "str",
@@ -310,6 +300,7 @@ suite "Extra features":
     )
 
 
+testFileEnded()
 
 when false:
   # TODO test this

@@ -282,29 +282,50 @@ proc setLineInfo*(error: ref HLexerError, str: PosStr) =
   error.pos = str.pos
 
 proc newUnexpectedCharError*(
-    str; expected: string = ""): ref UnexpectedCharError =
+    str;
+    expected: string = "",
+    parsing: string = ""
+  ): ref UnexpectedCharError =
+
   new(result)
   result.setLineInfo(str)
-  result.msg.add "Unexpected character encoutered during lexing - found '"
+  var e = "Unexpected character encoutered during lexing - found '"
   if ?str:
     if str[0] in AnyRegularAscii:
-      result.msg.add describeChar(str[0])
+      e.add describeChar(str[0])
 
     else:
-      result.msg.add describeChar(str.runeAt(0))
+      e.add describeChar(str.runeAt(0))
 
   else:
-    result.msg.add "EOF (string finished)"
+    e.add "EOF (string finished)"
 
   if expected.len > 0:
-    result.msg.add "', but expected - '"
-    result.msg.add expected
-    result.msg.add "'"
+    e.add "', but expected - '"
+    e.add expected
+    e.add "'"
 
   else:
-    result.msg.add "'"
+    e.add "'"
 
-  result.msg.add " at " & $str.line & ":" & $str.column
+  if parsing.len > 0:
+    e.add " while parsing "
+    e.add parsing
+
+  e.add " at " & $str.line & ":" & $str.column
+  if notNil(str.baseStr) and str.pos < str.baseStr[].len:
+    e.add ". Lookahead characters (from pos = "
+    e.add $str.pos
+    e.add ") ['"
+    for ch in str.pos .. min(str.baseStr[].high, str.pos + 10):
+      if ch > str.pos:
+        e.add "', '"
+      e.add describeChar(
+        str.baseStr[][ch], hdisplay(verbosity = dvMinimal))
+
+    e.add "'])"
+
+  result.msg = e
 
 proc `[]`*(str; slice: HSlice[int, BackwardsIndex]): string {.inline.} =
   var next = 0
@@ -359,6 +380,7 @@ proc `@`*(str): seq[char] =
   for ch in str.baseStr[str.pos .. ^1]:
     result.add ch
 
+
 # proc `[]`*(str; slice: Slice[int]): string =
 #   for i in slice:
 #     result.add str[i]
@@ -368,6 +390,13 @@ proc `[]`*(str; slice: HSlice[int, char]): string =
   while not str[pos, slice.b] and hasNxt(str, pos):
     result.add str[pos]
     inc pos
+
+proc `@`*(str; slice: Slice[int]): seq[char] =
+  var pos = slice.a
+  while hasNxt(str, pos) and pos < slice.b:
+    result.add str[pos]
+    inc pos
+
 
 proc `$`*(slice: PosStrSlice): string = &"{slice.start}..{slice.finish}"
 proc `[]`*(str; slice: PosStrSlice): string =
@@ -490,6 +519,13 @@ proc startSlice*(str) {.inline.} =
     PosStrSlice(start: str.pos, line: str.line, column: str.column)]
 
 proc finishSlice*(str; rightShift: int = -1) {.inline.} =
+  assertHasIdx str.sliceBuffer, 0,
+     "No slices started - use `pushSlice()` to initialize slice buffer"
+
+  assertHasIdx str.sliceBuffer[^1], 0,
+     "Internal error - last element in the slice buffer is empty, this " &
+       "should not happen", LogicError
+
   str.sliceBuffer[^1][^1].finish = min(
     str.pos + rightShift, str.baseStr[].high)
 
