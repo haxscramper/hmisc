@@ -89,6 +89,7 @@ const
   HighAsciiLetters*   = {'A' .. 'Z'}
   AsciiLetters*       = LowerAsciiLetters + HighAsciiLetters
   AnyRegularAscii*    = { '\x00' .. '\x7F' }
+  ControlChars*       = { '\x00' .. '\x1F', '\x7F' }
   MaybeLetters*       = AsciiLetters + Utf8Any
   IntegerStartChars*  = {'0' .. '9', '-', '+'}
   HexDigitsLow*       = {'a', 'b', 'c', 'd', 'e', 'f'} + Digits
@@ -103,6 +104,12 @@ const
   AllSpace*           = Whitespace
   HorizontalSpace*    = AllSpace - Newline
   VeritcalSpace*      = Newline
+  TextLineChars*      = AllChars - ControlChars + { '\t' }
+                        ## Character found in regular text line. All chars
+                        ## excluding special controls (newline, line feed,
+                        ## carriage return etc.). This does include
+                        ## tabulation, because it is not uncommon in
+                        ## regular text.
 
 func lineCol*(str: PosStr): LineCol {.inline.} =
   (line: str.line, column: str.column)
@@ -1195,7 +1202,7 @@ proc cut*(str; rx: Rx | Regex, fill: int = 128): string =
 
 macro scanSlice*(str; pattern: varargs[untyped]): untyped =
   result = newStmtList()
-  let str = copyNimNode(str)
+  let str = copyNimTree(str)
 
   result.add newCall("pushSlice", str)
 
@@ -1207,7 +1214,7 @@ macro scanSlice*(str; pattern: varargs[untyped]): untyped =
             return nnkPrefix.newTree(
               ident"*", nnkPrefix.newTree(ident"\", part[1]))
 
-          of "+", "*", "-", "\\", "?":
+          of "+", "*", "-", "\\", "?", "@":
             return part
 
           else:
@@ -1221,6 +1228,9 @@ macro scanSlice*(str; pattern: varargs[untyped]): untyped =
     case name:
       of "n": bindSym"Newline"
       of "N": nnkInfix.newTree(ident"-", bindSym"AllChars", bindSym"Newline")
+      of "Id": bindSym"IdentChars"
+      of "Hex": bindSym"HexDigits"
+      of "s": bindSym"HorizontalSpace"
 
       else:
         raise newImplementKindError(name)
@@ -1229,21 +1239,26 @@ macro scanSlice*(str; pattern: varargs[untyped]): untyped =
   proc isAt(part: NimNode): NimNode =
     var at: NimNode
     case part.kind:
-      of nnkCharLit, nnkStrLit: at = part
+      of nnkCharLit, nnkStrLit, nnkIdent: at = part
       of nnkPrefix:
         case part[0].strVal():
           of "\\": at = toCharGroup(part[1].strVal())
           else: raise newImplementKindError(part[0].strVal())
 
+      of nnkCurly:
+        # TODO check for unquoted `\n` special characters
+        at = part
+
       else:
-        raise newImplementKindError(part)
+        raise newImplementKindError(
+          part, "Cannot generate 'is at' check")
 
     return nnkBracketExpr.newTree(str, at)
 
   proc genSkip(part: NimNode, requires: bool = false): NimNode =
     let part = splitPattern(part)
     case part.kind:
-      of nnkCharLit:
+      of nnkCharLit, nnkStrLit, nnkCurly, nnkIdent:
         result = newCall(tern(requires, "skip", "trySkip"), str, part)
 
       of nnkPrefix:
@@ -1256,6 +1271,12 @@ macro scanSlice*(str; pattern: varargs[untyped]): untyped =
             result = newCall(
               tern(requires, "skip", "trySkip"),
               str, toCharGroup(part[1].strVal()))
+
+          of "@":
+            let at = isAt(part[1])
+            result = quote do:
+              while not `at`:
+                next(`str`)
 
           else:
             raise newImplementKindError(part[0].strVal())

@@ -1,7 +1,7 @@
 import std/[
   strutils, strformat, parseutils,
   options, segfaults, parseutils,
-  sequtils
+  sequtils, macros
 ]
 
 ## - TODO :: Require lexer callback to return at least one token, always
@@ -53,11 +53,7 @@ type
         str*: string
 
   HsLexer*[Tok] = object
-    explicitEof*: bool ## Lexer callback as separate token to denote end of
-    ## file that is returned when end is reached. - `finished()` will
-    ## always return false.
-    ##
-    ## - WARNING :: If set to `true` user MUST handle string end.
+    explicitEof*: Option[Tok]
     tokens*: seq[Tok]
     cb*: HsLexCallback[Tok]
     pos*: int
@@ -207,6 +203,10 @@ proc expectKind*[K](lex: var HsLexer[HsTok[K]], kind: set[K] | K) =
 func getIndent*[F](state: HsLexerState[F]): int = state.indent
 func setIndent*[F](state: var HsLexerState[F], ind: int) =
   state.indent = ind
+
+func clearIndent*[F](state: var HsLexerState[F]) =
+  state.indent = 0
+  state.indentLevels = 0
 
 func getIndentLevels*[F](state: HsLexerState[F]): int = state.indentLevels
 
@@ -382,6 +382,11 @@ template initTok*[K](
 func initSliceTok*[K](str: var PosStr, inKind: K): HsTok[K] =
   initTok(str, str.popSlice(), inKind)
 
+template scanTok*(
+  str, inKind: untyped, pattern: varargs[untyped]): untyped =
+  str.initTok(unpackVarargs(scanSlice, str, pattern), inKind)
+
+
 proc initAdvanceTok*[K](
     str: var PosStr, advance: int, inKind: K,
     expected: set[char] = AllChars
@@ -499,7 +504,7 @@ func `$`*[K](tok: HsTok[K]): string =
   if not(str['"'] and str[^'"']):
     str = str.wrap('"', '"')
 
-  return &"({kindStr} {str})"
+  return &"({kindStr} {str} @ {tok.offset}:{tok.line}:{tok.column})"
 
 func `@`*[T](lex: HSLexer[T]): seq[T] = lex.tokens[lex.pos .. ^1]
 func `$`*[T](lex: HSLexer[T]): string =
@@ -522,8 +527,27 @@ func hasNxt*[T](lex: HsLexer[T], offset: int): bool =
 proc finished*[T](lex: HsLexer[T]): bool =
   not hasNxt(lex, 0) and lex.str.finished()
 
-proc `?`*[T](lex: HsLexer[T]): bool =
-  lex.explicitEof or not lex.finished()
+
+proc `[]`*[T](lex: var HSlexer[T], offset: int = 0): T
+
+proc `?`*[T](lex: var HsLexer[T]): bool =
+  if lex.explicitEof.isSome() and
+     lex.pos < lex.tokens.len and
+     lex.tokens[lex.pos].kind == lex.explicitEof.get().kind:
+    return false
+
+  elif not lex.finished():
+    return true
+
+  elif lex.explicitEof.isSome():
+    while not(lex.pos < lex.tokens.len):
+      lex.tokens.add lex.cb(lex.str)
+
+    result = not(
+      lex.tokens[lex.pos].kind == lex.explicitEof.get().kind)
+
+  else:
+    return false
 
 
 proc nextToken*[T](lex: var HSLexer[T]): bool =
@@ -622,15 +646,19 @@ proc popAsStr*[K](lex: var HsLexer[HsTok[K]], kind: set[K] | K): PosStr =
   lex.next()
 
 proc initLexer*[T](
-    str: PosStr, lexCb: HsLexCallback[T],
-    explicitEof: bool = false): HsLexer[T] =
+    str: PosStr,
+    lexCb: HsLexCallback[T],
+    explicitEof: Option[T] = none(T)
+  ): HsLexer[T] =
   HsLexer[T](str: str, cb: lexCb, explicitEof: explicitEof)
 
 proc initLexer*[T](tokens: seq[T]): HsLexer[T] =
   HsLexer[T](tokens: tokens)
 
 proc initLexer*[T](
-    lexCb: HsLexCallback[T], explicitEof: bool = false): HsLexer[T] =
+    lexCb: HsLexCallback[T],
+    explicitEof: Option[T] = none(T)
+  ): HsLexer[T] =
   HsLexer[T](cb: lexCb, explicitEof: explicitEof)
 
 proc setStr*[T](lexer: var HsLexer[T], str: PosStr) =
@@ -681,6 +709,13 @@ func pushRange*[T](lex: var HsLexer[T]) =
 
 func popRange*[T](lex: var HsLexer[T]): string =
   lex.str.popRange()
+
+proc lexAll*[T](lex: var HsLexer[T]) =
+  let pos = lex.pos
+  while lex.nextToken() and ?lex.str:
+    lex.next()
+
+  lex.pos = pos
 
 proc getAll*[T](lex: var HsLexer[T]): seq[T] =
   while not lex.finished():

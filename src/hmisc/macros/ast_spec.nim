@@ -656,8 +656,14 @@ proc validateSub*[N, K](
 proc validateSub*[N, K](
     spec: AstSpec[N, K], node: N, idx: int, sub: N): Option[ColoredText] =
   if spec.spec[node.kind].isSome():
-    return validateAst(
-      spec.spec[node.kind].get(), node.kind, sub.kind, idx)
+    let fail = formatFail(
+      validateAst(
+        spec.spec[node.kind].get(), node.kind, sub.kind, idx, node.len),
+      node)
+
+    if fail.len() > 0:
+      return some fail
+
 
 proc validateSub*[N, K](
     spec: AstSpec[N, K], node: N, idx: int): Option[ColoredText] =

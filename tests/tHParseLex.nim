@@ -1546,3 +1546,4 @@ suite "String scanning DSL":
   test "Scan escapes":
     check:
       testScan("a\n\n\nb", 'a', *\n, 'b').strVal() == "a\n\n\nb"
+      testScan("<___>", '<', @{'>'}, '>').strVal() == "<___>"
