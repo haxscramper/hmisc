@@ -1,7 +1,6 @@
 import
   ../core/all,
-  ../algo/[hlex_base, hparse_base],
-  ../types/ptree
+  ../algo/[hlex_base, hparse_base]
 
 import std/[options, streams, tables]
 export hparse_base
@@ -33,7 +32,6 @@ type
   MLexer = HsLexer[MTok]
   MTree = HsTokTree[MustacheAstKind, MTok]
   MState = HsLexerState[bool]
-  MPContext = PTree[string, string]
 
 
 proc newMustacheLexer*(): MLexer =
@@ -148,25 +146,3 @@ proc mustacheParse*(str: string): MTree =
   return parseStmtList(lexer)
 
 
-proc writeTemplate*(stream: Stream, tree: MTree, ctx: MPcontext) =
-  case tree.kind:
-    of makContent:
-      stream.write(tree.token.str)
-
-    of makStmtList:
-      for sub in items(tree):
-        stream.writeTemplate(sub, ctx)
-
-    of makSection:
-      var get = ctx
-      for key in tree[0]:
-        get = get.getKey(key.strVal())
-
-      for value in items(get):
-        stream.writeTemplate(tree[1], value)
-
-    of makGetExpr:
-      stream.write ctx.getKey(tree[0].strVal()).getVal()
-
-    else:
-      raise newImplementKindError(tree.kind)

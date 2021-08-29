@@ -763,11 +763,7 @@ proc instImpl[N, K](
           of akDirectSlice:
             var subIdx = 0
             for item in arange.start .. arange.finish:
-              let name =
-                if arange.name.len == 0:
-                  ident(name.strVal() & "_" & $subIdx)
-                else:
-                  name
+              let name = ident(name.strVal() & "_" & $subIdx)
 
               subnodes.add nnkIdentDefs.newTree(name, typeName, newEmptyNode())
               inc subIdx
@@ -815,7 +811,7 @@ proc instImpl[N, K](
         newEmptyNode(),
         impl)
 
-  # echo result.repr()
+  echo result.repr()
 
 
 template generateConstructors*[N; K: enum](

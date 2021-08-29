@@ -1290,4 +1290,4 @@ macro scanSlice*(str; pattern: varargs[untyped]): untyped =
 
   result.add newCall("popSlice", str)
 
-  echo result.repr()
+  # echo result.repr()
