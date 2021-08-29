@@ -1,5 +1,3 @@
-# - TODO :: runtime switching for `pairs`/`items` usee for objects
-# - TODO :: rewrite `treeRepr` from hpprint_repr
 
 import
   ./blockfmt,
@@ -624,14 +622,94 @@ proc isErrorDeref*[T](entry: T, err: var string): bool =
       err.add getCurrentExceptionMsg()
       return true
 
-  # elif entry is seq:
-  #   when defined(c):
-  #     static: echo "C backend"
+
+  else:
+    return false
+
+
+proc toPprintTree*[T](
+    entry: T, conf: var PPrintConf, path: PPrintPath): PPrintTree
+
+proc objectToPprintTree*[T](
+    entry: T, conf: var PPrintConf, path: PPrintPath): PPrintTree =
+
+  let id = conf.getId(entry)
+
+  when (entry is object) or
+       (entry is ref object) or
+       (entry is ptr object):
+    let
+      kind = ptkObject
+      path = path & pathElem(newPprintType(entry))
+
+  elif isNamedTuple(T):
+    let kind = ptkNamedTuple
+
+  else:
+    let kind = ptkTuple
+
+  when entry is ptr or entry is ref:
+    if isNilEntry(entry):
+      result = newPPrintTree(
+        kind, conf.getId(entry, true), path, conf)
+
+      result.styling = fgRed + bgDefault
+      result.treeType = newPprintType(entry)
+
+      return
+
+    else:
+      result = newPPrintTree(
+        kind, conf.getId(entry), path, conf)
+
+
+  else:
+    result = newPPrintTree(
+      kind, conf.getId(entry), path, conf)
+
+  # result.treeType = entryT
+
+  when (entry is ref object) or
+       (entry is ref tuple) or
+       (entry is ptr object) or
+       (entry is ptr tuple):
+    for name, value in fieldPairs(entry[]):
+      try:
+        var err: string
+        let res =
+          if isErrorDeref(value, err):
+            newPPrintNil(value, path, err, conf)
+
+          else:
+            toPPrintTree(
+              value, conf, path & pathElem(ppkField, name))
+
+        if res.kind notin {ptkIgnored}:
+          result.elements.add((name, res))
+
+      except:
+        result.elements.add((name, newPPrintError(
+          entry, path, getCurrentExceptionMsg(), conf)))
 
 
 
   else:
-    return false
+    for name, value in fieldPairs(entry):
+      let res = toPPrintTree(
+        value, conf, path & pathElem(ppkField, name))
+
+      if res.kind notin {ptkIgnored}:
+        result.elements.add((name, res))
+
+  for (pattern, impl) in conf.extraFields:
+    if pattern.matches(path):
+      result.elements.add impl.callAs(
+        proc(e: T): (string, PPrintTree), entry)
+
+
+proc toPprintTree*[L, H](
+    val: HSlice[L, H], conf: var PPrintConf, path: PPrintPath): PPrintTree =
+  objectToPprintTree(val, conf, path)
 
 
 proc toPprintTree*[T](
@@ -814,79 +892,7 @@ proc toPprintTree*[T](
            (entry is ptr tuple)
          ):
 
-      let id = conf.getId(entry)
-
-      when (entry is object) or
-           (entry is ref object) or
-           (entry is ptr object):
-        let
-          kind = ptkObject
-          path = path & pathElem(newPprintType(entry))
-
-      elif isNamedTuple(T):
-        let kind = ptkNamedTuple
-
-      else:
-        let kind = ptkTuple
-
-      when entry is ptr or entry is ref:
-        if isNilEntry(entry):
-          result = newPPrintTree(
-            kind, conf.getId(entry, true), path, conf)
-
-          result.styling = fgRed + bgDefault
-          result.treeType = newPprintType(entry)
-
-          return
-
-        else:
-          result = newPPrintTree(
-            kind, conf.getId(entry), path, conf)
-
-
-      else:
-        result = newPPrintTree(
-          kind, conf.getId(entry), path, conf)
-
-      # result.treeType = entryT
-
-      when (entry is ref object) or
-           (entry is ref tuple) or
-           (entry is ptr object) or
-           (entry is ptr tuple):
-        for name, value in fieldPairs(entry[]):
-          try:
-            var err: string
-            let res =
-              if isErrorDeref(value, err):
-                newPPrintNil(value, path, err, conf)
-
-              else:
-                toPPrintTree(
-                  value, conf, path & pathElem(ppkField, name))
-
-            if res.kind notin {ptkIgnored}:
-              result.elements.add((name, res))
-
-          except:
-            result.elements.add((name, newPPrintError(
-              entry, path, getCurrentExceptionMsg(), conf)))
-
-
-
-      else:
-        for name, value in fieldPairs(entry):
-          let res = toPPrintTree(
-            value, conf, path & pathElem(ppkField, name))
-
-          if res.kind notin {ptkIgnored}:
-            result.elements.add((name, res))
-
-      for (pattern, impl) in conf.extraFields:
-        if pattern.matches(path):
-          result.elements.add impl.callAs(
-            proc(e: T): (string, PPrintTree), entry)
-
+      result = objectToPPrintTree(entry, conf, path)
 
     elif (entry is proc): # proc type
       result = newPPrintConst(
@@ -1433,3 +1439,6 @@ proc objectTreeRepr*(
   let blc = I[indent, aux(tree)]
 
   return blc.toString()
+
+proc pprintObjectTree*[T](obj: T) =
+  echo pptree(obj).objectTreeRepr()

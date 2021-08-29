@@ -109,9 +109,10 @@ suite "Argument structuring":
       @["--opt[Sel]:val"],
       opt("opt", "", selector = checkValues({"Sel": "select one"})))
 
-    check tree.kind == cctOpt
-    check tree.select() == "Sel"
-    check tree.strVal() == "val"
+    check:
+      tree.kind == cctOpt
+      tree.select() == "Sel"
+      tree.strVal() == "val"
 
   test "Option with repetitions":
     let (err, tree) = checkOpts(
@@ -237,19 +238,37 @@ suite "Convert to cli value":
                  Int(intVal: 2),
                  Int(intVal: 3)])})
 
-     check value.getOpt("ignore") as seq[string] == @[
-       "**/zs_matcher.nim", "**/nimble_aux.nim"]
+     check:
+       value.getOpt("ignore") as seq[string] == @[
+         "**/zs_matcher.nim", "**/nimble_aux.nim"]
 
-     check value.getOpt("ranges") as seq[int] == @[1, 2, 3]
-     check value.getOpt("option", true) as Option[int] == none(int)
-     check value.getOpt("opthas") as Option[int] == some(1)
+       value.getOpt("ranges") as seq[int] == @[1, 2, 3]
+       value.getOpt("option", true) as Option[int] == none(int)
+       value.getOpt("opthas") as Option[int] == some(1)
 
-     check value.getOpt("tuples") as (int, string) == (1, "test")
-     check value.getOpt("tupseq") as seq[(string, string)] ==
-       @[("mnt", "/tmp"), ("/mnt", "/tmp")]
+       value.getOpt("tuples") as (int, string) == (1, "test")
+       value.getOpt("tupseq") as seq[(string, string)] ==
+         @[("mnt", "/tmp"), ("/mnt", "/tmp")]
 
-     check value.getOpt("dirpair") as seq[(AbsDir, AbsDir)] ==
-       @[(AbsDir("/mnt"), AbsDir("/mnt")), (AbsDir("/tmp"), AbsDir("/tmp"))]
+       value.getOpt("dirpair") as seq[(AbsDir, AbsDir)] ==
+         @[(AbsDir("/mnt"), AbsDir("/mnt")), (AbsDir("/tmp"), AbsDir("/tmp"))]
+
+  test "Unjoined options":
+    let arg = cmd("main", "", [
+      opt("ignore", "", check = cliCheckFor(seq[string]))
+    ])
+
+    var (err, tree) = checkOpts(@[
+      "main", "--ignore", "ignore-1", "ignore-2"], arg)
+
+    # pprint tree
+    pprintObjectTree tree
+
+    let value = tree.toCliValue(err)
+
+    check:
+      value.getOpt("ignore") as seq[string] == @[
+        "ignore-1", "ignore-2"]
 
 suite "Error reporting":
   test "Flag mismatches":

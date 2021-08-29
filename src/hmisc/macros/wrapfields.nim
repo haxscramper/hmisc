@@ -96,38 +96,51 @@ macro wrapSeqContainer*(
         main.`field`[index] = value
 
   if withIterators:
-    let
-      pairsId = maybeExport("pairs", exported)
-      itemsId = maybeExport("items", exported)
-      ritemsId = maybeExport("ritems", exported)
-      rpairsId = maybeExport("rpairs", exported)
+    if "rpairs" notin ignore:
+      let rpairsId = maybeExport("rpairs", exported)
+      result.add quote do:
+        iterator `rpairsId`(main: `mainType`): (int, `fieldType`) =
+          var idx = main.`field`.high
+          while idx >= 0:
+            yield (idx, main.`field`[idx])
+            dec idx
 
-    result.add quote do:
-      iterator `rpairsId`(main: `mainType`): (int, `fieldType`) =
-        var idx = main.`field`.high
-        while idx >= 0:
-          yield (idx, main.`field`[idx])
-          dec idx
+    if "pairs" notin ignore:
+      let pairsId = maybeExport("pairs", exported)
+      result.add quote do:
+        iterator `pairsId`(main: `mainType`): (int, `fieldType`) =
+          for idx in 0 ..< len(main):
+            yield (idx, main.`field`[idx])
 
-      iterator `ritemsId`(main: `mainType`): `fieldType` =
-        for idx, item in rpairs(main):
-          yield item
+        iterator `pairsId`(main: `mainType`, slice: SliceTypes):
+          (int, `fieldType`) =
+          let slice = clamp(slice, main.`field`.high)
+          var resIdx = 0
+          for idx in slice:
+            yield (resIdx, main.`field`[idx])
+            inc resIdx
 
-      iterator `itemsId`(main: `mainType`): `fieldType` =
-        for item in items(main.`field`):
-          yield item
+    if "ritems" notin ignore:
+      let ritemsId = maybeExport("ritems", exported)
+      result.add quote do:
+        iterator `ritemsId`(main: `mainType`): `fieldType` =
+          var idx = main.`field`.high
+          while idx >= 0:
+            yield main.`field`[idx]
+            dec idx
 
-      iterator `pairsId`(main: `mainType`, slice: SliceTypes):
-        (int, `fieldType`) =
-        let slice = clamp(slice, main.`field`.high)
-        var resIdx = 0
-        for idx in slice:
-          yield (resIdx, main.`field`[idx])
-          inc resIdx
 
-      iterator `itemsId`(main: `mainType`, slice: SliceTypes): `fieldType` =
-        for idx, item in pairs(main, slice):
-          yield item
+    if "items" notin ignore:
+      let itemsId = maybeExport("items", exported)
+      result.add quote do:
+        iterator `itemsId`(main: `mainType`): `fieldType` =
+          for item in items(main.`field`):
+            yield item
+
+        iterator `itemsId`(main: `mainType`, slice: SliceTypes): `fieldType` =
+          let slice = clamp(slice, main.`field`.high)
+          for idx in slice:
+            yield main.`field`[idx]
 
 macro wrapStructContainer*(
     main: untyped,

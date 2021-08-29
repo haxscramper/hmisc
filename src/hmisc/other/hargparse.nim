@@ -2004,7 +2004,8 @@ proc parseCli(
 
 
 
-proc structureSplit*(opts: seq[CliOpt], desc: CliDesc, errors): CliCmdTree =
+proc structureSplit*(
+  opts: seq[CliOpt], desc: CliDesc, errors): CliCmdTree =
   ## Convert unstructured sequence of CLI commands/options into structured
   ## unchecked tree.
   assertRef desc
