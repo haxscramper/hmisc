@@ -1,9 +1,13 @@
 import
   std/[sugar, strutils, sequtils, strformat]
 
+import hmisc/preludes/unittest
+
+testFileStarted()
+
+
 import
-  hmisc/other/[hshell, oswrap, pathwrap],
-  hmisc/preludes/unittest
+  hmisc/other/[hshell, oswrap, pathwrap]
 
 startHax()
 
@@ -206,3 +210,6 @@ suite "Env wrap":
 
     else:
       fail()
+
+
+testFileEnded()

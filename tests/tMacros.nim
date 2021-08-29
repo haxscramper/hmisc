@@ -1,5 +1,6 @@
-import
-  hmisc/preludes/unittest
+import hmisc/preludes/unittest
+
+testFileStarted()
 
 import
   hmisc/macros/[introspection, nim_ast_aux, ast_spec, wrapfields],
@@ -71,3 +72,5 @@ suite "MacAst spec":
 
     check:
       astdiff MacAst(kind: akIfStmt), spec
+
+testFileEnded()

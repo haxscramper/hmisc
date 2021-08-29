@@ -1,3 +1,8 @@
+import hmisc/preludes/unittest
+
+testFileStarted()
+
+
 import std/[strformat, sequtils, tables, macros]
 
 import
@@ -360,3 +365,6 @@ suite "Full app":
       fail()
 
     check app.getOpt("dry-run") as bool == true
+
+
+testFileEnded()

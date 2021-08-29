@@ -1,3 +1,7 @@
+import hmisc/preludes/unittest
+
+testFileStarted()
+
 import
   hmisc/preludes/unittest
 
@@ -1547,3 +1551,5 @@ suite "String scanning DSL":
     check:
       testScan("a\n\n\nb", 'a', *\n, 'b').strVal() == "a\n\n\nb"
       testScan("<___>", '<', @{'>'}, '>').strVal() == "<___>"
+
+testFileEnded()

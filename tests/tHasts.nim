@@ -1,3 +1,7 @@
+import hmisc/preludes/unittest
+
+testFileStarted()
+
 import
   std/[terminal, strformat, strutils, colors]
 
@@ -322,3 +326,6 @@ suite "SQL schema visualization":
 
   if hasCmd(shellCmd(dot)):
     graph.toPng(getAppTempFile("sqlExample.png"))
+
+
+testFileEnded()

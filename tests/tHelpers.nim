@@ -1,3 +1,8 @@
+import hmisc/preludes/unittest
+
+testFileStarted()
+
+
 import std/[strformat, options]
 
 import
@@ -122,3 +127,7 @@ suite "Slice clamping":
   test "with it":
     let val = @[0].withIt do:
       it.add 10
+
+
+
+testFileEnded()

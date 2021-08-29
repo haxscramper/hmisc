@@ -1,5 +1,8 @@
+import hmisc/preludes/unittest
+
+testFileStarted()
+
 import
-  hmisc/preludes/unittest,
   hmisc/algo/clformat
 
 suite "Clformat colored formatting":
@@ -196,3 +199,5 @@ when false:
     assert hfmt("{90:fg-red}") == "\e033[39m90\e033[0m"
     hfmt("{\"some-value\":fg-green}")
     hfmt("{\"--\":fg-green,bg-yellow,attr-bold}")
+
+testFileEnded()

@@ -2,6 +2,11 @@ discard """
 joinable: false
 """
 
+import hmisc/preludes/unittest
+
+testFileStarted()
+
+
 import
   std/[sugar, strutils, sequtils, strformat, algorithm]
 
@@ -88,3 +93,6 @@ suite "Main":
 
     check toSeq(tr.prefixedValues([0, 1, 2])) == @[7, 8, 9]
     check toSeq(tr.prefixedValues([0, 1, 2], topDown = false)) == @[9, 8, 7]
+
+
+testFileEnded()

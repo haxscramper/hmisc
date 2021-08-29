@@ -1,5 +1,10 @@
-{.passc: "-pg".}
-{.passl: "-pg".}
+# {.passc: "-pg".}
+# {.passl: "-pg".}
+
+import hmisc/preludes/unittest
+
+testFileStarted()
+
 
 import
   std/[
@@ -323,3 +328,5 @@ when false:
     ignore = matchField("baseStr"),
     force = { matchType("HsTok"): forceLine() }
   )
+
+testFileEnded()

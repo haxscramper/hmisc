@@ -1,4 +1,7 @@
 import hmisc/preludes/unittest
+
+testFileStarted()
+
 import std/[sugar, strutils, sequtils, strformat]
 import hmisc/other/[hlogger, hshell]
 
@@ -17,3 +20,5 @@ suite "HLogger":
   l.trace "Test"
   l.execShell shellCmd(ls, "/tmp")
   l.execCode echo(12)
+
+testFileEnded()

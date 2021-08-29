@@ -63,7 +63,7 @@ proc pprint*(this: MappingStore) =
 import hmisc/algo/clformat
 
 proc `$`*(this: MappingStore): string =
-  const box = AsciiBox.double
+  const box = CharBox.double
   for src, dst in this.srcToDst:
     result.add withBufStr(
       block:

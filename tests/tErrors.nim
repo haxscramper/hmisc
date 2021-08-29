@@ -1,6 +1,10 @@
+import hmisc/preludes/unittest
+
+testFileStarted()
+
 import
-  hmisc/core/[all, code_errors],
-  hmisc/preludes/unittest
+  hmisc/core/[all, code_errors]
+
 
 suite "Exception from string":
   startHax()
@@ -18,3 +22,5 @@ suite "Exception from string":
 
   #   except CodeError as e:
   #     echo e.msg
+
+testFileEnded()

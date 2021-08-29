@@ -1,4 +1,6 @@
-# {.define(plainStdout).}
+import hmisc/preludes/unittest
+
+testFileStarted()
 
 import
   std/[
@@ -148,3 +150,5 @@ suite "Drawing":
 
     # echo shape.nthShape().toStringBlock.join("\n")
     show shape.toStringBlock().join("\n")
+
+testFileEnded()

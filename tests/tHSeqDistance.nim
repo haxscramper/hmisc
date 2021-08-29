@@ -1,3 +1,7 @@
+import hmisc/preludes/unittest
+
+testFileStarted()
+
 import
   std/[strformat, sequtils, strutils, math, algorithm]
 
@@ -430,3 +434,5 @@ suite "String distance algorithms":
     for entry in dataset2:
       showMatches(entry[0], entry[1], entry[2].matches)
       show entry[2]
+
+testFileEnded()

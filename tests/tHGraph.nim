@@ -1,3 +1,7 @@
+import hmisc/preludes/unittest
+
+testFileStarted()
+
 import
   hmisc/types/hgraph,
   hmisc/algo/[hgraph_db, hseq_mapping],
@@ -267,3 +271,5 @@ suite "Graph API":
 #      if hasCmd shellCmd(dot):
 #        graph.dotRepr().toPng(
 #          getAppTempFile("extendedMerger.png"))
+
+testFileEnded()

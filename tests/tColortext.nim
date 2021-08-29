@@ -1,3 +1,8 @@
+import hmisc/preludes/unittest
+
+testFileStarted()
+
+
 import
   hmisc/types/[colortext, colorstring],
   hmisc/algo/[halgorithm, clformat],
@@ -276,3 +281,5 @@ suite "clformat":
 
       echo c
       echo c.runes
+
+testFileEnded()

@@ -1,3 +1,7 @@
+import hmisc/preludes/unittest
+
+testFileStarted()
+
 import
   hmisc/preludes/unittest,
   hmisc/algo/htext_algo
@@ -10,3 +14,5 @@ suite "Htext algo":
     assert hyphenate("reformation") == @[
       "ref", "or", "ma", "tion"
     ]
+
+testFileEnded()

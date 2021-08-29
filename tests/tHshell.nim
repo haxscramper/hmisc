@@ -1,3 +1,7 @@
+import hmisc/preludes/unittest
+
+testFileStarted()
+
 import std/[
   strutils, sequtils, strformat, segfaults,
   deques, options, parseutils, enumerate
@@ -237,3 +241,6 @@ suite "Hshell":
               shellCmd ls, a
               shellCmd ls, a
               shellCmd ls, a
+
+
+testFileEnded()

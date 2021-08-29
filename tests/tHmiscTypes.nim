@@ -1,3 +1,7 @@
+import hmisc/preludes/unittest
+
+testFileStarted()
+
 import
   std/[sugar, strutils, sequtils, strformat]
 
@@ -41,3 +45,5 @@ suite "Type primitives":
     node[].text = "world"
 
     assert $tree1 == "<a>world</a>"
+
+testFileEnded()

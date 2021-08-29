@@ -1,3 +1,8 @@
+import hmisc/preludes/unittest
+
+testFileStarted()
+
+
 import
   hmisc/types/hvariant,
   hmisc/preludes/unittest
@@ -74,3 +79,6 @@ suite "Variant":
 
     for field in fields(typeTuple(toVar3[int, float, string](12))):
       echo typeof field
+
+
+testFileEnded()

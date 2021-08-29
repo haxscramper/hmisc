@@ -1,3 +1,8 @@
+import hmisc/preludes/unittest
+
+testFileStarted()
+
+
 import
   hmisc/preludes/unittest
 
@@ -113,3 +118,5 @@ doc: {{entry.doc}}
     evalHext(tree, newFileStream(stdout), {
       "db": boxValue(DValue, db)
     })
+
+testFileEnded()

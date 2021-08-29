@@ -1,3 +1,7 @@
+import hmisc/preludes/unittest
+
+testFileStarted()
+
 import
   hmisc/hasts/json_ast,
   hmisc/preludes//unittest
@@ -17,3 +21,6 @@ suite "Load json":
     var r = newJsonReader("1")
     var num: int
     r.loadJson(num)
+
+
+testFileEnded()

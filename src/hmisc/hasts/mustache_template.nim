@@ -86,7 +86,7 @@ proc newMustacheLexer*(): MLexer =
         else:
           result.add initTok(str, str.popUntil('{'), mtkContent)
 
-  return initLexer(lexerImpl, true)
+  return initLexer(lexerImpl, some initTok(mtkEof))
 
 proc parseGetExpr(lexer: var MLexer): MTree =
   lexer.next()

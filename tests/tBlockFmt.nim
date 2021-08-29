@@ -1,10 +1,13 @@
+import hmisc/preludes/unittest
+
+testFileStarted()
+
 import
   std/[sugar, strutils, sequtils, strformat, options]
 
 import
   hmisc/core/[all, code_errors],
   hmisc/other/[blockfmt],
-  hmisc/preludes/unittest,
   hmisc/types/colorstring
 
 initBlockFmtDSL()
@@ -250,3 +253,5 @@ suite "WIP testing":
     echo pyCodegenRepr(line)
     echo treeRepr(line)
     echo toString(line)
+
+testFileEnded()

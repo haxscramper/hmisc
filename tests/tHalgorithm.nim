@@ -1,4 +1,6 @@
-# {.define(plainStdout).}
+import hmisc/preludes/unittest
+
+testFileStarted()
 
 import std/[
   strutils, unicode, macros, sugar, json, sequtils,
@@ -799,3 +801,5 @@ suite "Strparser":
     check(
       toTuple[string]("~||(test.tmp.pl||test1.sh)") ==
       ("test.tmp.pl", "test1.sh"))
+
+testFileEnded()

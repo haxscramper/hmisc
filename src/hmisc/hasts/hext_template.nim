@@ -235,7 +235,7 @@ proc newHextLexer*(): HxLexer =
               result.add initTok(str, str.popUntil('{'), htoContent)
 
 
-  initLexer(heLex, true)
+  initLexer(heLex, some initTok(htoEof))
 
 proc lexHext*(str: string): seq[HxTok] =
   var str = initPosStr(str)

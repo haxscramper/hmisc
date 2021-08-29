@@ -92,6 +92,7 @@ type
     trkTimeStats
 
     trkFileEnded
+    trkFileStarted
     trkMergedFileEnded
 
 const
@@ -306,6 +307,10 @@ proc report(context: TestContext, report: TestReport) =
     context.skipNext = true
 
   case report.kind:
+    of trkFileStarted:
+      if defined(hunittestMerge):
+        echo toCyan("[FILE]" |>> width), " ", report.name
+
     of trkMergedFileEnded, trkFileEnded:
       if defined(hunittestMerge) and report.kind == trkFileEnded:
         discard
@@ -554,20 +559,26 @@ func testLocation(node: NimNode): TestLocation =
 func testLocation(pos: (string, int, int)): TestLocation =
   TestLocation(file: pos[0], line: pos[1], column: pos[2])
 
+template testFileStarted*() =
+  bind getTestContext, report, TestReport, testLocation
+  report(getTestContext(), TestReport(
+    name: instantiationInfo().filename,
+    kind: trkFileStarted,
+    location: testLocation(instantiationInfo(fullPaths = true))))
 
 template testFileEnded*() =
   bind getTestContext, report, TestReport, testLocation
   report(getTestContext(), TestReport(
+    name: instantiationInfo().filename,
     kind: trkFileEnded,
-    location: testLocation(instantiationInfo(fullPaths = true))
-  ))
+    location: testLocation(instantiationInfo(fullPaths = true))))
 
 template mergedFileEnded*() =
   bind getTestContext, report, TestReport, testLocation
   report(getTestContext(), TestReport(
+    name: instantiationInfo().filename,
     kind: trkMergedFileEnded,
-    location: testLocation(instantiationInfo(fullPaths = true))
-  ))
+    location: testLocation(instantiationInfo(fullPaths = true))))
 
 
 

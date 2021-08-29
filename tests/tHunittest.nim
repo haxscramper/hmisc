@@ -1,3 +1,8 @@
+import hmisc/preludes/unittest
+
+testFileStarted()
+
+
 import
   hmisc/other/[hunittest, hpprint, blockfmt],
   hmisc/types/[colorstring],
@@ -96,3 +101,5 @@ suite "Simple checks":
 #       newPPrintObject("head", @{"field1": newPPrintConst("12")}),
 #       newPPrintObject("head", @{"field2": newPPrintConst("12")})
 #     )
+
+testFileEnded()

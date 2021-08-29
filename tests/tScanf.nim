@@ -1,4 +1,8 @@
 import hmisc/preludes/unittest
+
+testFileStarted()
+
+
 import hmisc/algo/tscanf
 import hmisc/core/all
 
@@ -50,3 +54,5 @@ suite "tscanf test":
       echo "does not match"
 
     doAssert not declared(ml)
+
+testFileEnded()

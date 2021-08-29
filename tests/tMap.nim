@@ -1,5 +1,6 @@
-import
-  hmisc/preludes/unittest
+import hmisc/preludes/unittest
+
+testFileStarted()
 
 import
   std/[sequtils, tables],
@@ -227,3 +228,5 @@ suite "std/tMap tests":
     doAssert a['a'] == 19
     doAssert a['b'] == 18
     doAssert a['f'] == 14
+
+testFileEnded()

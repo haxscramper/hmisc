@@ -1,3 +1,7 @@
+import hmisc/preludes/unittest
+
+testFileStarted()
+
 import
   hmisc/other/hjson,
   hmisc/preludes/unittest
@@ -69,3 +73,5 @@ suite "Json pretty printing":
 
     echo toJson(en1)
     echo toJson(en2)
+
+testFileEnded()

@@ -1,7 +1,11 @@
+import hmisc/preludes/unittest
+
+testFileStarted()
+
+
 import
   hmisc/scripts/[hmisc_putils, nim_gcov, nim_gprof],
-  hmisc/other/[hargparse, oswrap, hshell],
-  hmisc/preludes/unittest
+  hmisc/other/[hargparse, oswrap, hshell]
 
 startHax()
 
@@ -88,3 +92,6 @@ pprint @[
 """
         if hasCmd(shellCmd(gprof)):
           nim_gprof.main(@[$(dir /. "main.nim")])
+
+
+testFileEnded()

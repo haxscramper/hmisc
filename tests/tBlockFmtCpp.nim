@@ -1,3 +1,7 @@
+import hmisc/preludes/unittest
+
+testFileStarted()
+
 import std/[sugar, strutils, sequtils, strformat, options]
 import
   hmisc/core/all,
@@ -7,3 +11,5 @@ suite "Block formatting minimal":
   initBlockFmtDsl()
   test "Vertical layouts":
     check V[T["a"], T["b"]].toString() == "a\nb"
+
+testFileEnded()

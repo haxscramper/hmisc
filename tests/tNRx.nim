@@ -4,6 +4,10 @@ import hmisc/algo/hlex_base
 import hmisc/preludes/unittest
 
 
+import hmisc/preludes/unittest
+
+testFileStarted()
+
 suite "NRX":
   test "test":
     check toStr(*nrx("hello")) == r"hello*"
@@ -47,3 +51,6 @@ suite "NRX with `PosStr`":
       doAssert str1["--"]
       doAssert str1.cut(re"..") == "--"
       doAssert str1.cut(*nrx('0', '9')) == "456"
+
+
+testFileEnded()

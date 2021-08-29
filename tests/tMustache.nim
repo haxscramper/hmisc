@@ -2,6 +2,10 @@ discard """
 joinable: false
 """
 
+import hmisc/preludes/unittest
+
+testFileStarted()
+
 import
   hmisc/hasts/mustache_template,
   hmisc/types/[ptree, colorstring],
@@ -96,3 +100,6 @@ suite "Data providers":
     s.writeTemplate(tree, ptree)
 
     db.close()
+
+
+testFileEnded()
