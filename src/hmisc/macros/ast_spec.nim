@@ -811,8 +811,6 @@ proc instImpl[N, K](
         newEmptyNode(),
         impl)
 
-  # echo result.repr()
-
 
 template generateConstructors*[N; K: enum](
     inSpec: AstSpec[N, K]{lit | `const`},

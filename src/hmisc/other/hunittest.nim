@@ -72,6 +72,7 @@ type
     trkExpectOk
     trkExpectFail
 
+    trkTestSkip
     trkTestStart
     trkTestEnd
     trkTestFail
@@ -84,6 +85,7 @@ type
 
     trkBlockStart
     trkBlockEnd
+
 
     trkTestComment
     trkSuiteComment
@@ -139,6 +141,7 @@ type
         discard
 
 
+    skipped: bool
     strs: seq[tuple[expr: string, value: TestValue]]
     name: string
     case kind: TestReportKind
@@ -381,6 +384,12 @@ proc report(context: TestContext, report: TestReport) =
     of trkBlockStart:
       echo pBlock, report.name.to8Bit(0, 4, 3)
 
+    of trkTestSkip:
+      echo toYellow("[SKIP]" |>> width), " ",
+       context.lastTest.get().conf.name
+
+      context.lastTest.get().skipped = true
+
     of trkSectionKinds:
       let name = report.conf.name
       case report.kind:
@@ -405,7 +414,8 @@ proc report(context: TestContext, report: TestReport) =
           echo pRun, name
 
         of trkTestEnd:
-          if context.failCount > 0:
+          if context.failCount > 0 and
+             not context.lastTest.get().skipped:
             context.lastSuite.get().nestedFail.add report
             echo pFail
 
@@ -518,7 +528,7 @@ proc report(context: TestContext, report: TestReport) =
 
 
     else:
-      discard
+      raise newImplementKindError(report)
 
 
   if report.kind in { trkTestEnd, trkSuiteEnd }:
@@ -667,6 +677,9 @@ func testFailManual(loc: TestLocation, msg: string): TestReport =
   result = TestReport(
     kind: trkTestFail, failKind: tfkManualFail,
     location: loc, msg: msg)
+
+func testSkip(loc: TestLocation, msg: string): TestReport =
+  result = TestReport(kind: trkTestSkip, location: loc, msg: msg)
 
 
 func expectOk(loc: TestLocation): TestReport =
@@ -1713,7 +1726,12 @@ macro expect*(args: varargs[untyped]): untyped =
 
 
 
-macro skip*(): untyped = discard
+template skip*(msg: string = ""): untyped =
+  bind report, testFailed, testLocation
+  block:
+    wantContext()
+    report(testContext, testSkip(
+      instantiationInfo(fullpaths = true).testLocation(), msg))
 
 template fail*(msg: string = ""): untyped =
   bind report, testFailed, testLocation
