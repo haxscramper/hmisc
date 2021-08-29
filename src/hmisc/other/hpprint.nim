@@ -237,8 +237,8 @@ proc newPPrintType*(head: string, isVariant: bool = false): PPrintType =
   result.head = head
   result.isVariant = isVariant
 
-proc newPPrintType*[T](obj: T): PPrintType =
-  let tof = $typeof(obj)
+proc newPPrintType*[T](obj: typedesc[T]): PPrintType =
+  let tof = $obj
   let split = tof.splitTokenize({'.', ',', '[', ']', ' '})
 
   var idx = 0
@@ -257,6 +257,8 @@ proc newPPrintType*[T](obj: T): PPrintType =
       inc idx
 
   result.head = buf
+
+proc newPPrintType*[T](obj: T): PPrintType = newPPrintType(typeof obj)
 
 proc newPPrintTree*(
     kind: PPrintTreeKind, id: int, path: PPrintPath,
@@ -901,8 +903,31 @@ proc toPprintTree*[T](
 
       else:
         result = newPPrintConst(
-          "none", $typeof(entry), conf.getId(entry),
+          "none[" & $newPPrintType(typeof entry.get()) & "]",
+          $typeof(entry), conf.getId(entry),
           fgCyan + bgDefault, path)
+
+    elif entry is enum:
+      proc toEnumString(x: enum): string {.magic: "EnumToStr", noSideEffect.}
+
+      var val: string = $entry
+
+      if toEnumString(entry) != val:
+        val.add " ("
+        val.add toEnumString(entry)
+        if entry == low(T): val.add ", low"
+        val.add ")"
+
+      elif entry == low(T):
+        val.add " (low)"
+
+      result = newPPrintConst(
+        val,
+        $typeof(entry),
+        conf.getId(entry),
+        fgGreen + bgDefault,
+        path
+      )
 
     else:
       # entryT.head = $typeof(entry)
@@ -954,10 +979,6 @@ proc toPprintTree*[T](
       elif entry is (SomeNumber | bool):
         let val = $entry
         style = bgDefault + fgBlue
-
-      elif entry is enum:
-        let val = $entry
-        style = fgGreen + bgDefault
 
       else:
         when entry is distinct and not compiles($entry):
@@ -1332,7 +1353,7 @@ proc treeDiff*(t1, t2: PPrintTree): Option[PPrintTree] =
             diffs.add newPPrintAnnotation(
               "add " & (field + fgGreen), @[t2.getField(field)])
 
-          for field in sorted(toSeq rhsFields * lhsFields):
+          for field in sorted(toSeq(rhsFields * lhsFields)):
             var lhsField = t1.getField(field)
             let rhsField = t2.getField(field)
 
@@ -1387,17 +1408,27 @@ proc objectTreeRepr*(
 
       of ptkObjectKinds:
         var fieldList = V[]
-        for (key, value) in t.elements:
-          fieldList.add H[T[key & ": "], aux(value)]
+        let keyW = t.elements.maxIt(it.key.len) + 2
 
-        result = V[T[$t.treeType + fgGreen], I[2, fieldList]]
+        for (key, value) in t.elements:
+          fieldList.add H[T[(key & ": ") |<< keyW], aux(value)]
+
+        if fieldList.len > 0:
+          result = V[T[$t.treeType + fgGreen], I[2, fieldList]]
+
+        else:
+          result = H[T[$t.treeType + fgGreen], T[" (empty)"]]
 
       of ptkMapping:
         var fieldList = V[]
         for (key, value) in t.mappings:
-          fieldList.add H[aux(key), aux(value)]
+          fieldList.add H[aux(key), T[" = "], aux(value)]
 
-        result = V[T[$t.treeType + fgGreen], I[2, fieldList]]
+        if fieldList.len > 0:
+          result = V[T[$t.treeType + fgGreen], I[2, fieldList]]
+
+        else:
+          result = H[T[$t.treeType + fgGreen], T[" (empty)"]]
 
   let blc = I[indent, aux(tree)]
 

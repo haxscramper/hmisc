@@ -255,14 +255,9 @@ proc newImplementKindError*[T](
 
 proc newImplementBaseError*[T](
     obj: T, name: string): ref ImplementBaseError =
-  newException(ImplementBaseError,
-    "Missing implementaiton for based method '" & name &
-      "' for object type '" & $typeof(obj) & "'")
-
-# template raiseImplementKindError*(
-#   node: untyped, userMsg: string = "") {.dirty, deprecated.} =
-#   raise newImplementKindError(node, userMsg)
-
+  newException(ImplementBaseError, &[
+    $T, " does not implement '", name,
+    "'. Use one of the derived types instead"])
 
 proc newUnexpectedKindError*[T](
     expr: T, userMsg: varargs[string, `$`]): ref UnexpectedKindError =
