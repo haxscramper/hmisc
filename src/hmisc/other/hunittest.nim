@@ -314,6 +314,15 @@ proc report(context: TestContext, report: TestReport) =
       if defined(hunittestMerge):
         echo toCyan("[FILE]" |>> width), " ", report.name
 
+    of trkExpectFail, trkCheckpoint:
+      raise newImplementKindError(report)
+
+    of trkExpectOk, trkBlockEnd:
+      discard
+
+    of trkCheckOk:
+      discard
+
     of trkMergedFileEnded, trkFileEnded:
       if defined(hunittestMerge) and report.kind == trkFileEnded:
         discard
@@ -490,7 +499,8 @@ proc report(context: TestContext, report: TestReport) =
             echo pad, " new text added"
             for idx, ch in s1:
               if s2[idx] != ch:
-                echo pad, "mismatch at ", idx, ". old was: ", ch, ", new is ", s2[idx]
+                echo pad, "mismatch at ", idx, ". old was: ", ch,
+                  ", new is ", s2[idx]
 
             echo pad, "added"
             echo pad, "'", hshow(s2[s1.len .. ^1]), "'"
@@ -526,16 +536,12 @@ proc report(context: TestContext, report: TestReport) =
 
             echo ""
 
-
-    else:
-      raise newImplementKindError(report)
-
-
   if report.kind in { trkTestEnd, trkSuiteEnd }:
     for cover in report.conf.showCoverage:
       let coverReport = getCoverage(cover.procname)
       var lastNotExecuted = 0
-      echo pCover, "proc '", toGreen(coverReport.procname.fullname.name), "' defined in ",
+      echo pCover, "proc '", toGreen(
+        coverReport.procname.fullname.name), "' defined in ",
         coverReport.file.name(), " ", hshow(coverReport.lineRange), "\n"
 
       var nocover = 0

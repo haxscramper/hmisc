@@ -57,7 +57,6 @@ import ./hmisc/types/seq2d
 import ./hmisc/types/langcodes
 import ./hmisc/types/hgraph
 import ./hmisc/types/rev_set_table
-import ./hmisc/types/ptree
 import ./hmisc/types/colorstring
 import ./hmisc/types/htrie
 import ./hmisc/wrappers/hfswatch
