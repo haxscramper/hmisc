@@ -811,7 +811,7 @@ proc instImpl[N, K](
         newEmptyNode(),
         impl)
 
-  echo result.repr()
+  # echo result.repr()
 
 
 template generateConstructors*[N; K: enum](

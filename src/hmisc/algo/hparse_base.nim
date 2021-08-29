@@ -521,8 +521,13 @@ func resetBuffer*[T](lex: var HSLexer[T]) =
   lex.pos = 0
   lex.tokens.setLen(0)
 
+func onEof*[T](lex: HsLexer[T]): bool =
+  lex.pos < lex.tokens.len and
+  lex.explicitEof.isSome() and
+  lex.tokens[lex.pos].kind == lex.explicitEof.get().kind
+
 func hasNxt*[T](lex: HsLexer[T], offset: int): bool =
-  lex.pos + offset < lex.tokens.len
+  lex.pos + offset < lex.tokens.len and not lex.onEof()
 
 proc finished*[T](lex: HsLexer[T]): bool =
   not hasNxt(lex, 0) and lex.str.finished()
@@ -531,9 +536,7 @@ proc finished*[T](lex: HsLexer[T]): bool =
 proc `[]`*[T](lex: var HSlexer[T], offset: int = 0): T
 
 proc `?`*[T](lex: var HsLexer[T]): bool =
-  if lex.explicitEof.isSome() and
-     lex.pos < lex.tokens.len and
-     lex.tokens[lex.pos].kind == lex.explicitEof.get().kind:
+  if lex.onEof():
     return false
 
   elif not lex.finished():
@@ -560,8 +563,18 @@ proc nextToken*[T](lex: var HSLexer[T]): bool =
 proc fillNext*[T](lex: var HSLexer[T], chars: int) =
   while chars - (lex.tokens.len - lex.pos - 1) > 0:
     if not nextToken(lex):
-      if chars - (lex.tokens.len - lex.pos - 1) > 0:
-        raise newGetterError("No more tokens")
+      let need = chars - (lex.tokens.len - lex.pos - 1)
+      if need > 0:
+        if lex.explicitEof.isSome():
+          for _ in 0 ..< need:
+            lex.tokens.add lex.explicitEof.get()
+
+        else:
+          raise newGetterError(
+            "Cannot get required token. `nextToken()` returned 'false', but ",
+            need, " tokens have to be filled. Current token buffer contains ",
+            lex.tokens.len, " tokens, current position is ", lex.pos,
+            ". Input string is finished - ", lex.str.finished(), ".")
 
 
 proc `[]`*[T](lex: var HSlexer[T], offset: int = 0): T =
