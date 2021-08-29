@@ -303,6 +303,19 @@ suite "Extra features":
 
 testFileEnded()
 
+suite "Tree pprint":
+  test "Simple type":
+    echo pptree(12).objectTreeRepr()
+
+  test "With fields":
+    echo pptree((a: 12, b: 12)).objectTreeRepr()
+    echo pptree((a: 12, b: (c: 12, q: "string"))).objectTreeRepr()
+
+  test "Sequence":
+    echo pptree(@[(a: 12), (a: 24)]).objectTreeRepr()
+
+
+
 when false:
   # TODO test this
   pprint(

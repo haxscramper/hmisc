@@ -130,6 +130,7 @@ template relToSource*(path: string): untyped =
   bind splitFile, joinPath
   joinPath(splitFile(instantiationInfo(fullPaths = true).filename).dir, path)
 
+
 proc `of`*[A: object or ref object; K: enum](item: A, kind: K | set[K]): bool =
   ## Check if @arg{item} has @arg{kind}
   when kind is set:

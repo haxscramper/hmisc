@@ -552,15 +552,10 @@ proc `?`*[T](lex: var HsLexer[T]): bool =
 
 proc nextToken*[T](lex: var HSLexer[T]): bool =
   var tok: seq[T]
-  while ?lex and tok.empty():
-    tok = lex.cb(lex.str)
+  while ?lex.str and tok.empty():
+    lex.tokens.add lex.cb(lex.str)
 
-  if tok.empty():
-    return false
-
-  else:
-    lex.tokens.add tok
-    return true
+  return not tok.empty()
 
 proc fillNext*[T](lex: var HSLexer[T], chars: int) =
   while chars - (lex.tokens.len - lex.pos - 1) > 0:

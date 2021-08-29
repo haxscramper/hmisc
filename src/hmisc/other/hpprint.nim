@@ -1213,19 +1213,26 @@ const defaultPPrintConf* = PPrintConf(
   showTypes: false
 )
 
-proc pptree*[T](obj: T, conf: PPrintConf = defaultPPrintConf): PPrintTree =
-  var conf = conf
+
+proc pptree*[T](obj: T, conf: var PPrintConf): PPrintTree =
   return toPPrintTree(obj, conf, @[])
 
-proc ppblock*[T](obj: T, conf: PPrintConf = defaultPPrintConf): LytBlock =
-  var conf = conf
+proc ppblock*[T](obj: T, conf: var PPrintConf): LytBlock =
   return toPPrintTree(obj, conf, @[]).toPPrintBlock(conf)
+
+proc ppblock*(obj: PPrintTree, conf: var PPrintConf): LytBlock =
+  return obj.toPPrintBlock(conf)
+
+proc pptree*[T](obj: T, conf: PPrintConf = defaultPPrintConf): PPrintTree =
+  pptree(obj, asVar conf)
+
+proc ppblock*[T](obj: T, conf: PPrintConf = defaultPPrintConf): LytBlock =
+  ppblock(obj, asVar conv)
 
 proc ppblock*(
     obj: PPrintTree,
     conf: PPrintConf = defaultPPrintConf): LytBlock =
-  var conf = conf
-  return obj.toPPrintBlock(conf)
+  ppblock(obj, asVar conf)
 
 
 proc pstring*(
@@ -1357,3 +1364,41 @@ proc treeDiff*(t1, t2: PPrintTree): Option[PPrintTree] =
   aux(diff, t2)
   if hasDiff:
     return some diff
+
+proc objectTreeRepr*(
+    tree: PPrintTree,
+    conf: PPrintConf = defaultPPrintConf,
+    indent: int = 0
+  ): ColoredText =
+
+  proc aux(t: PPrintTree): LytBlock =
+    case t.kind:
+      of ptkIgnored:
+        result = T["<ignored>" + fgRed]
+
+      of ptkNil:
+        result = T["<nil>" + fgRed]
+
+      of ptkVisited:
+        result = T[&"<visited> @ {t.treeId}" + fgRed]
+
+      of ptkConst:
+        result = T[t.strVal + t.styling]
+
+      of ptkObjectKinds:
+        var fieldList = V[]
+        for (key, value) in t.elements:
+          fieldList.add H[T[key & ": "], aux(value)]
+
+        result = V[T[$t.treeType + fgGreen], I[2, fieldList]]
+
+      of ptkMapping:
+        var fieldList = V[]
+        for (key, value) in t.mappings:
+          fieldList.add H[aux(key), aux(value)]
+
+        result = V[T[$t.treeType + fgGreen], I[2, fieldList]]
+
+  let blc = I[indent, aux(tree)]
+
+  return blc.toString()
