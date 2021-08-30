@@ -49,7 +49,7 @@ type
   CliCmdTree* = object
     desc* {.requiresinit.}: CliDesc
     head* {.requiresinit.}: CliOpt
-    args*: seq[CliOpt]
+    args*: seq[CliCmdTree]
     mainIdx*: int ## Cmd tree entry index in the main input (to compute
                   ## origin information later)
     case kind*: CliCmdTreeKind
@@ -1476,23 +1476,28 @@ proc fromCli*[T](obj: var T, cli: CliValue) =
 
 func len*(tree: CliCmdTree): int =
   case tree.kind:
-    of cctCommand:
-      result = tree.subnodes.len
-
-    of cctGrouped:
-      result = tree.entries.len
-
-    else:
-      discard
+    of cctCommand: result = tree.subnodes.len
+    of cctGrouped: result = tree.entries.len
+    of cctOpt: result = tree.args.len
+    else: discard
 
 iterator items*(tree: CliCmdTree): CliCmdTree =
-  if tree.kind == cctCommand:
-    for sub in tree.subnodes:
-      yield sub
+  case tree.kind:
+    of cctCommand:
+      for sub in tree.subnodes:
+        yield sub
 
-  elif tree.kind == cctGrouped:
-    for entry in tree.entries:
-      yield entry
+    of cctGrouped:
+      for entry in tree.entries:
+        yield entry
+
+    else:
+      for arg in tree.args:
+        yield arg
+
+
+    # else:
+    #   discard
 
 func `[]`*(tree: CliCmdTree, idx: int): CliCmdTree =
   case tree.kind:
@@ -1501,6 +1506,9 @@ func `[]`*(tree: CliCmdTree, idx: int): CliCmdTree =
 
     of cctGrouped:
       result = tree.entries[idx]
+
+    of cctOpt:
+      result = tree.args[idx]
 
     else:
       raise newUnexpectedKindError(
@@ -1828,19 +1836,65 @@ proc parseArg(
 
 proc matches(opt: CliOpt, check: CliCheck): bool = true
 
+func findRepeatRange(check: CLiCheck): Option[Slice[int]] =
+  case check.kind:
+    of cckCheckRepeat:
+      result = some(check.allowedRepeat)
+
+    of cckAndCheck:
+      for sub in check.subChecks:
+        result = findRepeatRange(sub)
+        if result.isSome():
+          return
+
+    else:
+      return
+
+proc popArgument(lexer: var HsLexer[CliOpt], desc: CLiDesc): CliCmdTree =
+  CliCmdTree(
+    desc: desc,
+    mainIdx: lexer.pos,
+    head: lexer.pop(),
+    kind: cctOpt
+  )
+
 proc parseOptOrFlag(
     lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
 
   assertRef desc
+  # echov lexer[]
   if lexer[].key in desc.altNames:
     var cnt = 1
+    let repeat = desc.check.findRepeatRange()
     result = CliCmdTree(
-      kind: tern(lexer[].kind in coOptionKinds, cctOpt, cctFlag),
+      kind: tern(
+        lexer[coOptionKinds] or (repeat.isSome() and 0 < repeat.get().b),
+        cctOpt,
+        cctFlag),
       head: lexer.pop(), desc: desc)
 
-    if ?lexer and result.head.needsValue():
-      # Handle separate `--opt value` case
-      result.args.add lexer.pop()
+    # if ?lexer:
+      # echov lexer[]
+      # echov result.head.needsValue()
+      # pprint desc
+
+    if ?lexer:
+      if result.head.needsValue():
+        # Handle separate `--opt value` case
+        result.args.add lexer.popArgument(desc)
+
+      if repeat.isSome():
+        var idx = 0
+        while idx < repeat.get().b and
+              ?lexer and
+              lexer[{coCommand, coArgument}]:
+
+          inc idx
+          result.args.add lexer.popArgument(desc)
+
+        # TODO error message if some items are missing from range
+
+
 
   else:
     errors.addOrRaise newCliError(
@@ -2036,20 +2090,6 @@ func `==`*(str: string, val: CliValue): bool =
       raise newImplementKindError(val)
 
 
-func findRepeatRange(check: CLiCheck): Option[Slice[int]] =
-  case check.kind:
-    of cckCheckRepeat:
-      result = some(check.allowedRepeat)
-
-    of cckAndCheck:
-      for sub in check.subChecks:
-        result = findRepeatRange(sub)
-        if result.isSome():
-          return
-
-    else:
-      raise newUnexpectedKindError(check)
-
 proc splitSeqVal*(tree: CliCmdTree): CliCmdTree =
   # echo tree.treeRepr()
   # echo tree.head.lispRepr()
@@ -2221,11 +2261,15 @@ proc checkedConvert(
           kind: cvkFsEntry, fsEntryVal: dir, desc: tree.desc)
 
     of cckAndCheck:
+      # echo "Checking for 'and'"
       let repeat = check.findRepeatRange()
       let isSingle = repeat.isNone() or repeat.get() == 1 .. 1
       let errCount = errors.len()
 
-      if not isSingle and tree.kind == cctGrouped:
+      if not isSingle and (
+        tree.kind == cctGrouped or
+        (tree.kind == cctOpt and tree.args.len > 1)
+      ):
         result = CliValue(kind: cvkSeq, desc: tree.desc)
         if tree.len notin repeat.get():
           errors.addOrRaise newCliError(
@@ -2252,8 +2296,14 @@ proc checkedConvert(
           if isSingle or sub.kind != cckCheckRepeat:
             result = checkedConvert(
               tree, sub, errors, result, isSingle = isSingle)
-            if errors.len() > errCount:
-              return nil
+
+            if errors.len() > errCount: return nil
+
+          else:
+            discard # ??? QUESTION
+
+            # pprintObjectTree tree
+            # raise newImplementError()
 
         if not isSingle and result.kind != cvkSeq:
           result = CliValue(kind: cvkSeq, seqVal: @[result], desc: tree.desc)

@@ -261,10 +261,10 @@ suite "Convert to cli value":
     var (err, tree) = checkOpts(@[
       "main", "--ignore", "ignore-1", "ignore-2"], arg)
 
-    # pprint tree
-    pprintObjectTree tree
+    # pprintObjectTree tree.subnodes
 
     let value = tree.toCliValue(err)
+    # pprintObjectTree value
 
     check:
       value.getOpt("ignore") as seq[string] == @[

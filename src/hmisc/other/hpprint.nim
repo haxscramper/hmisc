@@ -322,7 +322,7 @@ func updateCounts*(
 
       inc tree.height
 
-      if sortBySize:
+      if sortBySize and tree.kind != ptkList:
         sortIt(tree.elements, it.value.size)
 
     of ptkMapping:
@@ -336,6 +336,22 @@ func updateCounts*(
         sortIt(tree.mappings, max(it[0].size, it[1].size))
 
 
+func assertValid*(tree: PPrintTree) =
+  if tree.kind notin {ptkNil} and tree.treeType.head.len == 0:
+    raise newLogicError(
+      "Invalid tree type - empty type definition head for tree kind ",
+      tree.kind, " on path ", $toGreen($tree.path), ". If object was ",
+      "constructed in custom `toPPrintTree` overload you need to assign ",
+      "`result.treeType = newPPrintType(<your input type>)` or construct ",
+      "object yourself. Otherwise it is an internal implementation logic")
+
+  if tree.height <= 0:
+    raise newLogicError(
+      &"Invalid tree height for '", $tree.treeType,
+      "' - expected at least 1, but got ", tree.height,
+      ". If object was constructed in custom `toPPrintTree` overload ",
+      "you need to call `updateCounts()` at the end of constructor, ",
+      "otherwise it is an internal implementation error")
 
 
 func updateCounts*(
@@ -599,6 +615,8 @@ proc toPprintTree*(
           result.elements.add(($name, toPPrintTree(
             item, conf, path & pathElem(ppkField, name))))
 
+    result.treeType = newPPrintType($val.kind)
+
   result.updateCounts(conf.sortBySize)
 
 proc isNilEntry*[T](entry: T): bool =
@@ -709,7 +727,8 @@ proc objectToPprintTree*[T](
 
 proc toPprintTree*[L, H](
     val: HSlice[L, H], conf: var PPrintConf, path: PPrintPath): PPrintTree =
-  objectToPprintTree(val, conf, path)
+  result = objectToPprintTree(val, conf, path)
+  result.treeType = newPPrintType(val)
 
 
 proc toPprintTree*[T](
@@ -835,6 +854,8 @@ proc toPprintTree*[T](
         let res = toPPrintTree(
           val, conf, path & pathElem(ppkKey, keyName))
 
+        assertValid(res)
+
         if res.kind notin {ptkIgnored}:
           result.mappings.add((
             newPPrintConst(
@@ -872,6 +893,7 @@ proc toPprintTree*[T](
             items(entry[])
         ):
           let res = toPPrintTree(it, conf, path & pathElem(idx))
+          assertValid(res)
           if res.kind notin { ptkIgnored }:
             result.elements.add(($idx, res))
 
@@ -1399,6 +1421,7 @@ proc objectTreeRepr*(
   ): ColoredText =
 
   proc aux(t: PPrintTree): LytBlock =
+    # assertValid(t)
     case t.kind:
       of ptkIgnored:
         result = T["<ignored>" + fgRed]
