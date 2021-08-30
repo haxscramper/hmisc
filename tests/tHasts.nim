@@ -11,6 +11,7 @@ import
     graphviz_ast,
     svg_ast,
     latex_ast,
+    latex_writer,
     json_ast,
     pandoc,
     xml_ast,
@@ -326,6 +327,17 @@ suite "SQL schema visualization":
 
   if hasCmd(shellCmd(dot)):
     graph.toPng(getAppTempFile("sqlExample.png"))
+
+suite "Latex writer":
+  test "Simple escapes":
+    var w = newLatexWriter(stdout)
+    w.cmd "begin", "table"
+    w.cmd "end", "table"
+
+    w.env "center", []:
+      w.indRaw "test\n"
+
+    w.use ["utf8"], "inputenc"
 
 
 testFileEnded()

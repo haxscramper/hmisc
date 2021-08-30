@@ -323,8 +323,7 @@ const
     cvkFsEntry: @[
       "checkFileReadable",
       "checkDirCratable",
-      "cliCheckFor(FsEntry/AbsDir/RelDir/AbsFile/RelFile)"
-    ],
+      "cliCheckFor(FsEntry/AbsDir/RelDir/AbsFile/RelFile)"],
     cvkBool: @["cliCheckFor(bool)"],
     cvkInt: @["cliCheckFor(int)"]
   }
@@ -895,6 +894,7 @@ func getRootCmd*(app: CliApp): CliValue =
   ##   effect
   app.value
 
+
 func getCmdName*(app: CliApp): string = app.value.getCmdName()
 func getArg*(app: CliApp, pos: int = 0): CliValue = app.value.getArg(pos)
 func getOpt*(
@@ -914,8 +914,7 @@ func getOpt*(
     raise newArgumentError(
       &"Could not find option '{name}' for command '{val.desc.name}'.",
       "Available options:",
-      val.options.getKeys().joinWords("or")
-    )
+      val.options.getKeys().joinWords("or"))
 
 func getOpt*(app: CliApp, name: string): CliValue = app.value.getOpT(name)
 
@@ -2140,7 +2139,10 @@ proc checkedConvert(
 
     result.got = tree.head
 
-
+  # echov cast[int](check)
+  # echov str
+  # echov tree.head
+  # echov check.kind
 
   case check.kind:
     of cckAcceptAll, cckNoCheck:
@@ -2272,7 +2274,7 @@ proc checkedConvert(
 
       if not isSingle and (
         tree.kind == cctGrouped or
-        (tree.kind == cctOpt and tree.args.len > 1)
+        (tree.kind == cctOpt and tree.args.len > 0)
       ):
         result = CliValue(kind: cvkSeq, desc: tree.desc)
         if tree.len notin repeat.get():

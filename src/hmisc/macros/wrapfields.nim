@@ -142,6 +142,14 @@ macro wrapSeqContainer*(
           for idx in slice:
             yield main.`field`[idx]
 
+
+    if "mitems" notin ignore:
+      let itemsId = maybeExport("mitems", exported)
+      result.add quote do:
+        iterator `itemsId`(main: var `mainType`): var `fieldType` =
+          for item in mitems(main.`field`):
+            yield item
+
 macro wrapStructContainer*(
     main: untyped,
     fieldList: untyped,

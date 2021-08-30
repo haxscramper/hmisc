@@ -258,17 +258,23 @@ suite "Convert to cli value":
       opt("ignore", "", check = cliCheckFor(seq[string]))
     ])
 
-    var (err, tree) = checkOpts(@[
-      "main", "--ignore", "ignore-1", "ignore-2"], arg)
+    block:
+      var (err, tree) = checkOpts(@[
+        "main", "--ignore", "ignore-1"], arg)
 
-    # pprintObjectTree tree.subnodes
+      let value = tree.toCliValue(err)
 
-    let value = tree.toCliValue(err)
-    # pprintObjectTree value
+      check value.getOpt("ignore") as seq[string] == @["ignore-1"]
 
-    check:
-      value.getOpt("ignore") as seq[string] == @[
-        "ignore-1", "ignore-2"]
+    block:
+      var (err, tree) = checkOpts(@[
+        "main", "--ignore", "ignore-1", "ignore-2"], arg)
+
+      let value = tree.toCliValue(err)
+
+      check:
+        value.getOpt("ignore") as seq[string] == @[
+          "ignore-1", "ignore-2"]
 
 suite "Error reporting":
   test "Flag mismatches":

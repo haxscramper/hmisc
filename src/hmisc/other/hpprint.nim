@@ -79,6 +79,7 @@ type
   PPrintConf* = object
     idCounter: int
     visited: CountTable[int]
+    confId*: int
 
     ignorePaths*: PPrintMatch
     stringPaths*: PPrintMatch
@@ -160,6 +161,9 @@ func matchField*(name: varargs[string]): PPrintMatch =
 
 func matchType*(name: varargs[string]): PPrintMatch =
   mapIt(name, pglob().star().typeName(it).star()).match()
+
+func `&`*(m1, m2: PPrintMatch): PprintMatch =
+  match(m1.globs & m2.globs)
 
 func matchAll*(): PPrintMatch =
   match(pglob().star())
@@ -256,7 +260,18 @@ proc newPPrintType*[T](obj: typedesc[T]): PPrintType =
 
   result.head = buf
 
-proc newPPrintType*[T](obj: T): PPrintType = newPPrintType(typeof obj)
+
+var
+  instLevel* {.compiletime.}: int = 0
+  instCount* {.compiletime.}: int = 0
+  newTypeInstCount* {.compiletime.}: int = 0
+
+proc newPPrintType*[T](obj: T): PPrintType =
+  # static:
+  #   echo $newTypeInstCount |>> (instLevel + 2), ">> ", $T
+  #   inc newTypeInstCount
+
+  newPPrintType(typeof obj)
 
 proc newPPrintTree*(
     kind: PPrintTreeKind, id: int, path: PPrintPath,
@@ -533,7 +548,7 @@ proc getField*(tree: PPrintTree, field: string): PPrintTree =
   tree.elements.findItFirst(it.key == field).value
 
 proc ignoredBy*(conf: PPrintConf, path: PPrintPath): bool =
-  conf.ignorePaths.matches(path)
+  result = conf.ignorePaths.matches(path)
 
 proc isVisited*[T](conf: PPrintConf, obj: T): bool =
   when obj is ref or obj is ptr:
@@ -648,17 +663,20 @@ proc isErrorDeref*[T](entry: T, err: var string): bool =
 proc toPprintTree*[T](
     entry: T, conf: var PPrintConf, path: PPrintPath): PPrintTree
 
-proc objectToPprintTree*[T](
+#=========  PPrint implementation for general object conversion ==========#
+
+proc objectToPprintTree*[
+    T: object or ptr object or ref object or tuple or ptr tuple or ref tuple
+  ](
     entry: T, conf: var PPrintConf, path: PPrintPath): PPrintTree =
 
   let id = conf.getId(entry)
+  var path = path
+  assert conf.confID == 228
 
-  when (entry is object) or
-       (entry is ref object) or
-       (entry is ptr object):
-    let
-      kind = ptkObject
-      path = path & pathElem(newPprintType(entry))
+  when (entry is object) or (entry is ref object) or (entry is ptr object):
+    let kind = ptkObject
+    path.add pathElem(newPprintType(entry))
 
   elif isNamedTuple(T):
     let kind = ptkNamedTuple
@@ -731,6 +749,8 @@ proc toPprintTree*[L, H](
   result.treeType = newPPrintType(val)
 
 
+#=============  Main implementation of the pprint converter  =============#
+
 proc toPprintTree*[T](
     entry: T, conf: var PPrintConf, path: PPrintPath): PPrintTree =
 
@@ -739,7 +759,7 @@ proc toPprintTree*[T](
     when compiles($entry):
       result = newPPrintConst(
         $entry,
-        newPPrintType(entry),
+        newPPrintType(typeof entry),
         conf.getId(entry),
         fgDefault + bgDefault,
         path)
@@ -747,7 +767,7 @@ proc toPprintTree*[T](
     else:
       result = newPPrintConst(
         "[[No `$` defined for " & $typeof(entry) & "]]",
-        newPPrintType(entry),
+        newPPrintType(typeof entry),
         conf.getId(entry),
         fgDefault + bgDefault,
         path)
@@ -914,7 +934,15 @@ proc toPprintTree*[T](
            (entry is ptr tuple)
          ):
 
+      # static:
+      #   echo $instCount |>> (instLevel * 2), "  ", typeof entry
+      #   inc instCount
+      #   inc instLevel
+
       result = objectToPPrintTree(entry, conf, path)
+
+      # static:
+      #   dec instLevel
 
     elif (entry is proc): # proc type
       result = newPPrintConst(
@@ -1256,7 +1284,7 @@ const defaultPPrintConf* = PPrintConf(
   minLineHeightChoice: 2,
   minLineSizeChoice: 6,
   colored: true,
-  sortBySize: true,
+  sortBySize: false,
   alignSmallFields: true,
   alignSmallGrids: true,
   showTypes: false
@@ -1442,11 +1470,12 @@ proc objectTreeRepr*(
         for (key, value) in t.elements:
           fieldList.add H[T[(key & ": ") |<< keyW], aux(value)]
 
+        let t = T[&"{t.treeType} @ {t.treeId}" + fgGreen]
         if fieldList.len > 0:
-          result = V[T[$t.treeType + fgGreen], I[2, fieldList]]
+          result = V[t, I[2, fieldList]]
 
         else:
-          result = H[T[$t.treeType + fgGreen], T[" (empty)"]]
+          result = H[t, T[" (empty)"]]
 
       of ptkMapping:
         var fieldList = V[]
