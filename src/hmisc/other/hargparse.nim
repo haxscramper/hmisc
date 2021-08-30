@@ -40,16 +40,17 @@ import
 
 type
   CliCmdTreeKind* = enum
-    cctFlag
-    cctOpt
-    cctArgument
-    cctCommand
-    cctGrouped
+    cctFlag ## Command-line option flag with no values
+    cctOpt ## Option with values
+    cctArgument ## Positional argument
+    cctCommand ## Subcommand
+    cctGrouped ## Repeatedly used flag - `--define:val1 --define:val2`
 
   CliCmdTree* = object
-    desc* {.requiresinit.}: CliDesc
-    head* {.requiresinit.}: CliOpt
-    args*: seq[CliCmdTree]
+    desc* {.requiresinit.}: CliDesc ## Command tree structure description
+    head* {.requiresinit.}: CliOpt ## Used CLI option
+    args*: seq[CliCmdTree] ## Additional arguments to CLI option (for
+                           ## separately specified arguments)
     mainIdx*: int ## Cmd tree entry index in the main input (to compute
                   ## origin information later)
     case kind*: CliCmdTreeKind
@@ -66,29 +67,32 @@ type
         discard
 
   CliCheckKind = enum
-    cckNoCheck
-    cckAliasedCheck
+    cckNoCheck ## Allow any entry kind
+    cckAliasedCheck ## Use check for other CLI option
 
-    cckIsFile
-    cckIsDirectory
-    cckIsWritable
-    cckIsReadable
-    cckIsCreatable
+    cckIsFile ## Must be a file
+    cckIsDirectory ## Must be a directory
+    cckIsWritable ## Writable by current process
+    cckIsReadable ## Readable for current process
+    cckIsCreatable ## Can be created
     cckIsEmpty
 
-    cckFileExtMatches
+    cckFileExtMatches ## has matching extension
 
-    cckIsInRange
-    cckIsPositive
+    cckIsInRange ## Within range of values (integer)
+    cckIsPositive ## Positive value (integer)
 
-    cckIsInSet
+    cckIsInSet ## In set of predefined values
 
     cckUser
 
-    cckAndCheck
-    cckOrCheck
-    cckAndPosCheck
-    cckCheckRepeat
+    cckAndCheck ## Match multiple options at once
+    cckOrCheck ## Match one or more of the specified options
+    cckAndPosCheck ## Multiple conditions. Element at each position must
+                   ## match corresponding check. Used for enum checking -
+                   ## first element is validated against type in first
+                   ## position, second against second and so on.
+    cckCheckRepeat ## Repeat seveal times
 
     cckAllOf
     cckNoneOf
@@ -96,20 +100,20 @@ type
 
     cckAcceptAll
 
-    cckIsStrValue
-    cckIsIntValue
-    cckIsFloatValue
-    cckIsBoolValue
-    cckIsListValue
+    cckIsStrValue ## Must be a valid string (basically accept-all)
+    cckIsIntValue ## Valid integer
+    cckIsFloatValue ## Float
+    cckIsBoolValue ## Bool
+    cckIsListValue ## ???
 
 
   CliErrorKind = enum
     cekErrorDescription
     cekUserFailure
-    cekMissingEntry
-    cekFailedParse
-    cekUnexpectedEntry
-    cekCheckExecFailure
+    cekMissingEntry ## Required argument was not specified
+    cekFailedParse ## Cannot process input parameters
+    cekUnexpectedEntry ## Specified entry was not found in CLI description
+    cekCheckExecFailure ## Cannot validate input parameters
     cekCheckFailure
 
 
@@ -129,7 +133,7 @@ type
 
 
   CliCheck* = ref object
-    fakeCheck*: bool
+    fakeCheck*: bool ## Do not execute OS actions.
     case kind*: CliCheckKind
       of cckIsInRange:
         valueRange*: Slice[float64]
