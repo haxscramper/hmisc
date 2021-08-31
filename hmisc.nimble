@@ -1,4 +1,4 @@
-version       = "0.12.0"
+version = "0.12.0"
 author        = "haxscramper"
 description   = "Collection of helper utilities"
 license       = "Apache-2.0"
@@ -19,7 +19,7 @@ requires "benchy >= 0.0.1"
 requires "jsony >= 1.0.4"
 requires "unicodedb >= 0.9.0"
 
-import std/[os, strutils, strformat]
+import std/[os, strutils, strformat, sequtils]
 
 
 task docgen, "Generate documentation":
@@ -143,6 +143,54 @@ import hmisc/other/hunittest
     sh "nim r", outPath
     for file in nojoin:
       sh "nim r \"" & file & "\""
+
+proc check() =
+  sh ["nimble", "testall"]
+  sh ["nimble", "docgen"]
+
+
+task push, "Execute checks and push ":
+  check()
+  sh ["git", "push", "origin", "master"]
+
+
+task newversion, "Tag new version and push it to git":
+  try:
+    sh ["git", "diff-index", "--quiet", "HEAD", "--"]
+
+    check()
+
+    let ver = version.split(".").mapIt(it.parseInt())
+    var (major, minor, patch) = (ver[0], ver[1], ver[2])
+    inc patch
+
+    let
+      file = currentSourcePath()
+      text = file.readFile()
+      pos = text.find("version")
+      endPos = text.find("\n", pos)
+      newText = text[0 ..< pos] & &"version = \"{major}.{minor}.{patch}\"" & text[endPos .. ^1]
+
+    file.writeFile(newText)
+    sh ["git", "add", "hmisc.nimble"]
+
+    let
+      commitCmd = [
+        "git", "commit", "-m", &"\"[REPO] Version update {version} -> {major}.{minor}.{patch}\""]
+
+      tagCmd = ["git", "tag", &"v{major}.{minor}.{patch}"]
+      pushCmd = ["git", "push", "--all", "origin", "master"]
+
+    sh commitCmd
+    sh tagCmd
+    sh pushCmd
+
+
+  except OsError:
+    echo "Have uncomitted changes, commit first before pushing"
+    sh ["git", "--no-pager", "diff"]
+
+
 
 
 

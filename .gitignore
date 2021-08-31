@@ -27,3 +27,5 @@ public/*
 **/*.out
 docs/*
 *.code-workspace
+**/.gdb_*
+**/massif*

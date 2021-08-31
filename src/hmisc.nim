@@ -1,5 +1,6 @@
 import ./hmisc/hasts/svg_ast
 import ./hmisc/hasts/pandoc
+import ./hmisc/hasts/latex_writer
 import ./hmisc/hasts/xsd_ast
 import ./hmisc/hasts/hext_template
 import ./hmisc/hasts/html_ast
