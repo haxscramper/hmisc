@@ -672,7 +672,6 @@ proc objectToPprintTree*[
 
   let id = conf.getId(entry)
   var path = path
-  assert conf.confID == 228
 
   when (entry is object) or (entry is ref object) or (entry is ptr object):
     let kind = ptkObject

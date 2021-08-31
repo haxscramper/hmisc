@@ -322,6 +322,11 @@ suite "Tree pprint":
   test "Sequence":
     echo pptree(@[(a: 12), (a: 24)]).objectTreeRepr()
 
+  test "Conver to json":
+    when false: # WIP, will do this after fixing some issues with jsony API
+      let j = pptree(@[12, 1]).toJson()
+      let t = j.fromJson(PPrintTree)
+      echo t.objectTreeRepr()
 
 
 when false:

@@ -178,12 +178,14 @@ task newversion, "Tag new version and push it to git":
       commitCmd = [
         "git", "commit", "-m", &"\"[REPO] Version update {version} -> {major}.{minor}.{patch}\""]
 
-      tagCmd = ["git", "tag", &"v{major}.{minor}.{patch}"]
-      pushCmd = ["git", "push", "--all", "origin", "master"]
+      tag = &"v{major}.{minor}.{patch}"
+      tagCmd = ["git", "tag", tag]
 
     sh commitCmd
     sh tagCmd
-    sh pushCmd
+
+    sh ["git", "push", "origin", "master"]
+    sh ["git", "push", "origin", tag]
 
 
   except OsError:
