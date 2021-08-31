@@ -2620,8 +2620,20 @@ proc newFileStream*(
   filename: AbsFile | RelFile;
   mode: FileMode = fmRead; bufSize: int = -1): owned FileStream =
 
-  if mode == fmRead:
-    assertExists(filename, "Cannot open file for stream reading")
+  case mode:
+    of fmRead:
+      assertExists(filename, "Cannot open file for stream reading")
+
+    of fmWrite:
+      if not exists(filename):
+        assertExists(
+          filename.dir(),
+          &["Cannot write to non-existent file - parent directory does not ",
+            "exist either."])
+
+    else:
+      discard
+
 
   return newFileStream(filename.string, mode, bufSize)
 

@@ -30,6 +30,12 @@ proc line*(writer) = writer.stream.write("\n")
 
 proc write*(writer; text: varargs[string]) = writer.stream.write(text)
 proc raw*(writer; text: varargs[string]) = writer.stream.write(text)
+proc comment*(writer; text: string) =
+  add "% "
+  add text
+  writer.line()
+
+proc `.%`*(writer; text: string) = writer.comment(text)
 
 proc indent*(writer) = writer.indentBuf.add "  "
 proc dedent*(writer) =
@@ -68,6 +74,9 @@ proc cmd*(
 proc cmd*(writer; name, arg: string, args: openarray[string] = []) =
   writer.cmd(name, [], arg, args)
 
+proc cmd*(writer; name: string, params: openarray[string], arg: string) =
+  writer.cmd(name, params, arg, [])
+
 template env*(
     writer;
     envName: string,
@@ -81,6 +90,18 @@ template env*(
   body
 
   writer.dedent()
+  writer.cmd "end", envName
+
+
+template flatEnv*(
+    writer;
+    envName: string,
+    args: openarray[string] = [],
+    body: untyped
+  ): untyped =
+
+  writer.cmd "begin", envName, args
+  body
   writer.cmd "end", envName
 
 proc use*(writer; params: openarray[string], name: string) =

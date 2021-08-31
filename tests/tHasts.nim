@@ -5,22 +5,24 @@ testFileStarted()
 import
   std/[terminal, strformat, strutils, colors]
 
-import
-  hmisc/hasts/[
-    html_ast,
-    graphviz_ast,
-    svg_ast,
-    latex_ast,
-    latex_writer,
-    json_ast,
-    pandoc,
-    xml_ast,
-    html_ast2,
-    openscad_ast
-  ],
-  hmisc/types/colorstring,
-  hmisc/preludes/unittest,
-  hmisc/algo/halgorithm
+importx:
+  hmisc/[
+    types/colorstring,
+    preludes/unittest,
+    algo/halgorithm,
+    hasts/[
+      html_ast,
+      graphviz_ast,
+      svg_ast,
+      latex_ast,
+      latex_writer,
+      json_ast,
+      pandoc,
+      xml_ast,
+      html_ast2,
+      openscad_ast
+    ],
+  ]
 
 startHax()
 

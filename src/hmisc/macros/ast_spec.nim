@@ -113,8 +113,8 @@ template noPositional(spec, node, name): untyped {.dirty.} =
     $node.kind, "'. ", names])
 
 
-func getSingleSubnode*[N, K](
-    spec: static[AstSpec[N, K]], node: N, name: string): N =
+func getSingleSubnodeIdx*[N, K](
+    spec: static[AstSpec[N, K]], node: N, name: string): int =
   const table = getNodeRanges(spec)
   if name in table[node.kind]:
     let arange = table[node.kind][name]
@@ -126,13 +126,17 @@ func getSingleSubnode*[N, K](
         " was resolved into slice ", $slice, "(required ast range is ",
         $arange, ")"])
 
-    return node[slice.a]
+    return slice.a
 
   else:
     noPositional(spec, node, name)
 
+func getSingleSubnode*[N, K](
+    spec: static[AstSpec[N, K]], node: N, name: string): N =
+  node[getSingleSubnodeIDx(spec, node, name)]
 
-func getMultipleSubnode*[N, K](spec: static[AstSpec[N, K]], node: N, name: string): seq[N] =
+func getMultipleSubnode*[N, K](
+    spec: static[AstSpec[N, K]], node: N, name: string): seq[N] =
   const table = getNodeRanges(spec)
   if name in table[node.kind]:
     let arange = table[node.kind][name]

@@ -153,6 +153,10 @@ template getSomeIt*[T](opt: Option[T], value, default: untyped): untyped =
   else:
     default
 
+template canGet*[T](opt: Option[T], injected: untyped): untyped =
+  let expr = opt
+  expr.isSome() and (let injected {.inject.} = expr.get(); true)
+
 
 template last*(s: seq): untyped = s[^1]
 template last*[T](s: seq[T], item: T): untyped =
@@ -239,3 +243,35 @@ macro `//`*(arg: string): untyped =
 
   quote do:
     {.emit: `lit`.}
+
+macro importx*(imports: untyped): untyped =
+  proc aux(tree: NimNode, prefix: seq[NimNode]): seq[seq[NimNode]] =
+    case tree.kind:
+      of nnkIdent, nnkStrLit:
+        result.add prefix & tree
+
+      of nnkPrefix:
+        assert tree[0].strVal() in ["../", "./"]
+        result = aux(tree[1], prefix & ident(tree[0].strVal()[0..^2]))
+
+      of nnkInfix:
+        result = aux(tree[2], prefix & tree[1])
+
+      of nnkStmtList, nnkBracket:
+        for imp in tree:
+          result.add aux(imp, prefix)
+
+      else:
+        error("Unexpected input node for `importx` - " & tree.treeRepr(), tree)
+
+  result = nnkImportStmt.newTree()
+  for imp in aux(imports, @[]):
+    var infix = imp[0]
+    var idx = 1
+    while idx < imp.len:
+      infix = nnkInfix.newTree(ident"/", infix, imp[idx])
+      inc idx
+
+    result.add infix
+
+  echo result.repr()
