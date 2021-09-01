@@ -808,7 +808,8 @@ proc toPprintTree*[T](
         (entry is array) or
         (entry is openarray) or
         (entry is string) or
-        (entry is cstring)
+        (entry is cstring) or
+        (entry is set)
       ) and compiles(for k, v in pairs(entry): discard):
 
       result = newPPrintTree(

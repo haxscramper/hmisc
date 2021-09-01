@@ -130,6 +130,7 @@ type
 
       of tfkException, tfkUnexpectedExceptionRaised:
         exception: ref Exception
+        wanted: seq[string]
 
       of tfkMatchDiff:
         paths: seq[TestMatchFail]
@@ -314,7 +315,7 @@ proc report(context: TestContext, report: TestReport) =
       if defined(hunittestMerge):
         echo toCyan("[FILE]" |>> width), " ", report.name
 
-    of trkExpectFail, trkCheckpoint:
+    of trkCheckpoint:
       raise newImplementKindError(report)
 
     of trkExpectOk, trkBlockEnd:
@@ -398,6 +399,23 @@ proc report(context: TestContext, report: TestReport) =
        context.lastTest.get().conf.name
 
       context.lastTest.get().skipped = true
+
+    of trkExpectFail:
+      if report.failKind == tfkNoExceptionRaised:
+        echo pfail, " No exception were raised"
+
+      elif report.failKind == tfkUnexpectedExceptionRaised:
+        echo pFail, " unexpected - wanted ", report.wanted, ", but got"
+        # echov report.kind
+        # echov report.failKind
+        # assertRef report.exception
+        # logStackTrace(
+        #   getTestLogger(),
+        #   report.exception,
+        #   showError = true,
+        #   source = context.sourceOnError,
+        #   skipFirst = 2
+        # )
 
     of trkSectionKinds:
       let name = report.conf.name
@@ -691,12 +709,16 @@ func testSkip(loc: TestLocation, msg: string): TestReport =
 func expectOk(loc: TestLocation): TestReport =
   TestReport(kind: trkExpectOk, location: loc)
 
-func expectFail(unexpected: ref Exception, loc: TestLocation): TestReport =
+func expectFail(
+  unexpected: ref Exception,
+  loc: TestLocation, wanted: openarray[string]): TestReport =
+
   TestReport(
     kind: trkExpectFail,
     failKind: tfkUnexpectedExceptionRaised,
     exception: unexpected,
-    location: loc)
+    location: loc,
+    wanted: @wanted)
 
 func expectFail(loc: TestLocation): TestReport =
   TestReport(
@@ -1698,6 +1720,7 @@ macro expect*(args: varargs[untyped]): untyped =
   let
     report = bindSym"report"
     fail = bindSym"expectFail"
+    failList = nnkBracket.newTree(exceptionTypes.mapIt(it.repr.newLit()))
     ok = bindSym"expectOk"
     loc = testLocation(args[0]).newLit()
 
@@ -1722,7 +1745,8 @@ macro expect*(args: varargs[untyped]): untyped =
 
   result.add nnkExceptBranch.newTree()
   result[^1].add quote do:
-    `report`(testContext, `fail`(getCurrentException(), `loc`))
+    `report`(testContext, `fail`(getCurrentException(), `loc`, `failList`))
+    raise getCurrentException()
 
   if notNil(asVar):
     result = quote do:

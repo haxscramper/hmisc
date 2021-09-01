@@ -110,7 +110,7 @@ func knownRename*(
 func knownGenerated*(
     cache: StringNameCache, name: string): bool =
   ## Whether *normalized* form of `name` was created in the cache
-  nimNorm(name) in cache.genNormalized
+  result = nimNorm(name) in cache.genNormalized
 
 func knownName*(cache: StringNameCache, name: string): bool =
   ## Whether `name` has already been generated in the `cache`
@@ -215,14 +215,13 @@ proc keepNimIdentChars*(str: string): string =
 proc fixIdentName*(str: string, prefix: string): string =
   ## Convert possibly reserved identifier `str` to save identfier by
   ## prepending `prefix`.
-  if not str.isReservedNimWord():
+  if str.isReservedNimWord():
     assert prefix.len > 0
-    result = keepNimIdentChars(str)
     while result.isReservedNimWord():
       result = prefix & capitalizeAscii(result)
 
   else:
-    result = str
+    result = keepNimIdentChars(str)
 
 proc fixIdentName*(
     str, prefix: string,
@@ -245,11 +244,19 @@ proc fixIdentName*(
     result[prefix.len] = toUpperAscii(result[prefix.len])
 
   else:
-    result = str
-    result[0] = toLowerAscii(result[0])
+    result = str.fixIdentName(prefix)
 
-  while cache.knownGenerated(result):
-    result = prefix & result
+  if cache.knownGenerated(result):
+    # TODO implement different unique name generation strategies (appending
+    # new name, finding per-character differences etc.)
+    if prefix.len == 0:
+      raise newArgumentError(
+        "'", result, "' ident has already been generated, in order to ",
+        "generate new unique result non-empty prefix must be supplied, ",
+        "but `prefix` argument is empty")
+
+    while cache.knownGenerated(result):
+      result = prefix & result
 
   result[0] = toLowerAscii(result[0])
   cache.newRename(str, result)
