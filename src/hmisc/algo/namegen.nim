@@ -38,8 +38,10 @@ proc nimNorm*(str: string, normalize: bool = true): string =
   ## Normalize nim identifier name
   if normalize:
     if str.len > 0:
-      result = str.replace("_", "").toLowerAscii()
-      result[0] = str[0]
+      result = str.replace("_", "")
+      let first = result[0]
+      result = result.toLowerAscii()
+      result[0] = first
 
   else:
     result = str
@@ -262,6 +264,11 @@ proc fixIdentName*(
   cache.newRename(str, result)
 
 
+proc fixIdentName*(
+    c: var StringNameCache, str, prefix: string,
+    requirePrefix: bool = false): string =
+
+ fixIdentName(str, prefix, c, requirePrefix)
 
 
 
