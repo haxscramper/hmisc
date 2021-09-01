@@ -30,12 +30,13 @@ proc line*(writer) = writer.stream.write("\n")
 
 proc write*(writer; text: varargs[string]) = writer.stream.write(text)
 proc raw*(writer; text: varargs[string]) = writer.stream.write(text)
+proc close*(writer) = writer.stream.close()
 proc comment*(writer; text: string) =
   add "% "
   add text
   writer.line()
 
-proc `.%`*(writer; text: string) = writer.comment(text)
+proc `%`*(writer; text: string) = writer.comment(text)
 
 proc indent*(writer) = writer.indentBuf.add "  "
 proc dedent*(writer) =

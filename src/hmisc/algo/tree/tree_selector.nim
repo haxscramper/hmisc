@@ -84,6 +84,7 @@ type
     options: set[QueryOption]
 
   QueryCtx*[N, K] = object
+    wrapNode*: proc(node: N): N
     eqElement*: proc(node: N, element: K): bool
     eqKind*: proc(node1, node2: N): bool
 
@@ -129,9 +130,40 @@ func initElementDemand*[N, K](element: K): Demand[N, K] =
 func initPseudoDemand*[N, K](kind: TokenKind): Demand[N, K] =
   result = Demand[N, K](kind: kind)
 
-func initPredicateDemand*[N, K](
-    kind: TokenKind, predicate: proc(node: N): bool): Demand[N, K] =
-  Demand(kind: kind, predicate: predicate)
+func initPredicateDemand*[N, K](predicate: proc(node: N): bool): Demand[N, K] =
+  Demand[N, K](kind: tkPredicate, predicate: predicate)
+
+template predicate*[N, K](ctx: QueryCtx[N, K], predicate: untyped): untyped =
+  initPredicateDemand[N, K](proc(it {.inject.}: N): bool = predicate)
+
+
+func initQueryPart*[N, K](
+    demands: seq[Demand[N, K]], combinator: Combinator): QueryPart[N, K] =
+  return QueryPart[N, K](demands: demands, combinator: combinator)
+
+func initQuery*[N, K](
+    parts: seq[QueryPart[N, K]],
+    options: set[QueryOption] = DefaultQueryOptions): Query[N, K] =
+
+  Query[N, K](queries: @[parts], options: options)
+
+func initQueryCtx*[N, K](
+    wrapNode: proc(node: N): N,
+    eqElement: proc(node: N, element: K): bool,
+    eqKind: proc(node1, node2: N): bool
+  ): QueryCtx[N, K] =
+
+  QueryCtx[N, K](wrapNode: wrapNode, eqElement: eqElement, eqKind: eqKind)
+
+func initWithParent*[N, K](
+    parent: N, index: int, elementIndex: int): NodeWithParent[N, K] =
+
+  NodeWithParent[N, K](parent: parent, index: index, elementIndex: elementIndex)
+
+
+
+func query*[N, K](demand: Demand[N, K]): Query[N, K] =
+  initQuery(@[initQueryPart(@[demand], cmLeaf)])
 
 func initNthChildDemand*[N, K](kind: TokenKind, a, b: int): Demand[N, K] =
   case kind
@@ -202,21 +234,6 @@ iterator children[N, K](
 
 func initToken(kind: TokenKind, value: string = ""): Token =
   return Token(kind: kind, value: value)
-
-func initQueryPart*[N, K](
-    demands: seq[Demand[N, K]], combinator: Combinator): QueryPart[N, K] =
-  return QueryPart[N, K](demands: demands, combinator: combinator)
-
-func initQuery*[N, K](
-    parts: seq[QueryPart[N, K]],
-    options: set[QueryOption] = DefaultQueryOptions): Query[N, K] =
-
-  Query[N, K](queries: @[parts], options: options)
-
-func initWithParent*[N, K](
-    parent: N, index: int, elementIndex: int): NodeWithParent[N, K] =
-
-  NodeWithParent[N, K](parent: parent, index: index, elementIndex: elementIndex)
 
 func canFindMultiple(q: Querypart, comb: Combinator,
                      options: set[QueryOption]): bool =
@@ -482,12 +499,21 @@ proc exec[N, K](
 proc exec*[N, K](
     query: Query[N, K],
     root: N,
-    single: bool,
-    wrapperRoot: N,
     ctx: QueryCtx[N, K]
   ): seq[N] =
 
+  let wrapper = ctx.wrapNode(root)
+  let wrapperRoot = ctx.wrapNode(wrapper)
+
   result = newSeq[N, K]()
-  let wRoot = NodeWithParent[N, K](parent: wrapperRoot, index: 0, elementIndex: 0)
+  let wRoot = NodeWithParent[N, K](
+    parent: wrapperRoot, index: 0, elementIndex: 0)
   for parts in query.queries:
-    parts.exec(wRoot, single, query.options, result, ctx)
+    parts.exec(wRoot, false, query.options, result, ctx)
+
+template execWithCtx*[N, K](
+    tree: N,
+    inCtx: QueryCtx[N, K], body: untyped): untyped =
+
+  let ctx {.inject.} = inCtx
+  exec(query(body), tree, ctx)

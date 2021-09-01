@@ -2,6 +2,8 @@ import parseutils
 
 when not defined(NimScript):
   import osproc, streams
+  export ProcessOption
+
 else:
   type
     ProcessOption* = enum
@@ -1047,11 +1049,17 @@ when cbackend:
           env = if env.len > 0: newStringTable(env) else: nil
         )
       else:
+        let args = cmd.opts.mapIt($it.toStr(cmd.conf, colored = false))
+        let env = if env.len > 0: newStringTable(env) else: nil
+        echov args
+        echov cwd()
+        echov cmd.bin
+
         startProcess(
           cmd.bin,
           options = options,
-          args = cmd.opts.mapIt($it.toStr(cmd.conf, colored = false)),
-          env = if env.len > 0: newStringTable(env) else: nil
+          args = args,
+          env = env
         )
 
     if result.isNil:
