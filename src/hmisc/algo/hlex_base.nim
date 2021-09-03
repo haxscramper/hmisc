@@ -851,6 +851,12 @@ proc skip*(str; ch: set[char]) {.inline.} =
    raise newUnexpectedCharError(str, $ch)
   str.next()
 
+proc skip*(str; s: string) {.inline.} =
+  if not str[s]:
+    raise newUnexpectedCharError(str, s)
+
+  else:
+    str.next(s.len)
 
 proc skip*(str; ch1, ch2: set[char]) {.inline.} =
   str.skip(ch1)

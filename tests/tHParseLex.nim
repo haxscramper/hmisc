@@ -1552,4 +1552,8 @@ suite "String scanning DSL":
       testScan("a\n\n\nb", 'a', *\n, 'b').strVal() == "a\n\n\nb"
       testScan("<___>", '<', @{'>'}, '>').strVal() == "<___>"
 
+  test "Scan until":
+    check:
+      testScan("RADIO_TARGET>>>", @">>>").strVal() == "RADIO_TARGET"
+
 testFileEnded()
