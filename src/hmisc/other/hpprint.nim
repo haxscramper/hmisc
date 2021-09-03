@@ -266,12 +266,12 @@ var
   instCount* {.compiletime.}: int = 0
   newTypeInstCount* {.compiletime.}: int = 0
 
-proc newPPrintType*[T](obj: T): PPrintType =
-  # static:
-  #   echo $newTypeInstCount |>> (instLevel + 2), ">> ", $T
-  #   inc newTypeInstCount
+# proc newPPrintType*[T](obj: T): PPrintType =
+#   # static:
+#   #   echo $newTypeInstCount |>> (instLevel + 2), ">> ", $T
+#   #   inc newTypeInstCount
 
-  newPPrintType(typeof obj)
+#   newPPrintType(typeof obj)
 
 proc newPPrintTree*(
     kind: PPrintTreeKind, id: int, path: PPrintPath,
@@ -675,7 +675,7 @@ proc objectToPprintTree*[
 
   when (entry is object) or (entry is ref object) or (entry is ptr object):
     let kind = ptkObject
-    path.add pathElem(newPprintType(entry))
+    path.add pathElem(newPprintType(T))
 
   elif isNamedTuple(T):
     let kind = ptkNamedTuple
@@ -689,7 +689,7 @@ proc objectToPprintTree*[
         kind, conf.getId(entry, true), path, conf)
 
       result.styling = fgRed + bgDefault
-      result.treeType = newPprintType(entry)
+      result.treeType = newPprintType(T)
 
       return
 
@@ -742,6 +742,129 @@ proc objectToPprintTree*[
         proc(e: T): (string, PPrintTree), entry)
 
 
+proc arrayEnumToPPrintTree[ArrKey, ArrValue](
+    entry: array[ArrKey, ArrValue], conf: var PPrintConf, path: PPrintPath
+  ): PPrintTree =
+
+  result = newPPrintTree(
+    ptkMapping, conf.getId(entry), path, conf)
+
+  echov path
+  for key, val in pairs(entry):
+    when ArrKey is (StaticParam[enum] or static[enum] or enum):
+      when key is range:
+        # FIXME get underlying enum type instead of `range[]`.
+        # `directEnumName` uses `getTypeImpl`, which cannot handle ranges
+        # correctly. It can be fixed here, or in
+        # `hmisc/macros/introspection`, but I would prefer to figure out
+        # the way to implement it with `std/typetraits` if possible.
+
+        # The question is: how to get type of `array` range using
+        # `typetraits` (or somehow else)? - I can get to `range
+        # 0..3(int)` using `genericParams` and `get()`, but I cannot use
+        # them repeatedly - `echo genericParams(array[0 .. 3,
+        # int]).get(0).genericParams()` fails to compile with
+        #
+        # ```nim
+        # Error: type expected, but got:
+        # typeof(default:
+        #   type
+        #     T2`gensym5 = array[0 .. 3, int]
+        #   (range[0 .. 3], int)[0])
+        # ```
+
+        let keyName = directEnumName(key)
+
+      else:
+        let keyName = directEnumName(key)
+
+    else:
+      let keyName = $key
+
+    var res = toPPrintTree(
+      val, conf, path & pathElem(ppkKey, keyName))
+
+    assertValid(res)
+
+    if res.kind notin {ptkIgnored}:
+      result.mappings.add((
+        newPPrintConst(
+          keyName, $typeof(key),
+          conf.getId(key), fgGreen + bgDefault, path), res))
+
+proc simpleConstToPPrintTree[T](
+    entry: T, conf: var PPrintConf, path: PPrintPath): PPrintTree =
+  var style = initPrintStyling()
+  when entry is string:
+    let val = "\"" & entry & "\""
+    style = fgYellow + bgDefault
+
+  elif (entry is ptr string) or (entry is ref string):
+    style = fgYellow + bgDefault
+    let val =
+      if isNil(entry):
+        when entry is ptr:
+          "<ptr to nil string>"
+
+        else:
+          "<ref to nil string>"
+
+      else:
+        try:
+          "\"" & entry[] & "\""
+
+        except:
+          style = fgRed + bgDefault
+          "[!" & getCurrentExceptionMsg() & "!]"
+
+
+  elif entry is cstring:
+    let val = "\"" & $entry & "\""
+    style = fgYellow + bgDefault
+
+  elif entry is pointer:
+    let val = "<pointer>"
+    style = fgRed + bgDefault
+
+  elif entry is void:
+    let val = "<void>"
+    style = fgRed + bgDefault + styleItalic
+
+  elif entry is Rune:
+    let val = "\'" & $(@[entry]) & "\'"
+    style = fgYellow + bgDefault
+
+  elif entry is NimNode:
+    let val = entry.repr
+    style = fgDefault + styleItalic
+
+  elif entry is (SomeNumber | bool):
+    let val = $entry
+    style = bgDefault + fgBlue
+
+  else:
+    when entry is distinct and not compiles($entry):
+      let val = $distinctBase(entry)
+
+    else:
+      when compiles($entry):
+        let val = $entry
+
+      else:
+        style = fgRed + bgDefault
+        let val = "<not convertible " & $typeof(entry) & ">"
+
+  result = newPPrintConst(
+    val,
+    $typeof(entry),
+    conf.getId(entry),
+    style,
+    path
+  )
+
+
+
+
 proc toPprintTree*[L, H](
     val: HSlice[L, H], conf: var PPrintConf, path: PPrintPath): PPrintTree =
   result = objectToPprintTree(val, conf, path)
@@ -788,13 +911,13 @@ proc toPprintTree*[T](
     conf.visit(entry)
     if isNilEntry(entry):
       result = newPPrintNil(conf.getId(entry), path, conf)
-      result.treeType = newPprintType(entry)
+      result.treeType = newPprintType(T)
       updateCounts(result, conf.sortBySize)
       return
 
     elif isErrorDeref(entry, err):
       result = newPPrintNil(entry, path, err, conf)
-      result.treeType = newPPrintType(entry)
+      result.treeType = newPPrintType(T)
       updateCounts(result, conf.sortBySize)
       return
 
@@ -820,68 +943,15 @@ proc toPprintTree*[T](
         if res.kind notin {ptkIgnored}:
           result.mappings.add((toPPrintTree(key, conf, path), res))
 
-    elif (entry is array) and
-         (
-           when compiles(genericParams(typeof entry)):
-             get(genericParams(typeof entry), 0) is (
-               StaticParam[char] or static[char] or char or
-               StaticParam[enum] or static[enum] or enum
-             )
-           else:
-             false
-         )
-      :
-      type
-        ArrKey = get(genericParams(typeof entry), 0)
-        ArrValue = get(genericParams(typeof entry), 1)
-
-      mixin items
-
-      result = newPPrintTree(
-        ptkMapping, conf.getId(entry), path, conf)
-
-      for key, val in pairs(entry):
-        when ArrKey is (StaticParam[enum] or static[enum] or enum):
-          when key is range:
-            # FIXME get underlying enum type instead of `range[]`.
-            # `directEnumName` uses `getTypeImpl`, which cannot handle ranges
-            # correctly. It can be fixed here, or in
-            # `hmisc/macros/introspection`, but I would prefer to figure out
-            # the way to implement it with `std/typetraits` if possible.
-
-            # The question is: how to get type of `array` range using
-            # `typetraits` (or somehow else)? - I can get to `range
-            # 0..3(int)` using `genericParams` and `get()`, but I cannot use
-            # them repeatedly - `echo genericParams(array[0 .. 3,
-            # int]).get(0).genericParams()` fails to compile with
-            #
-            # ```nim
-            # Error: type expected, but got:
-            # typeof(default:
-            #   type
-            #     T2`gensym5 = array[0 .. 3, int]
-            #   (range[0 .. 3], int)[0])
-            # ```
-
-            let keyName = directEnumName(key)
-
-          else:
-            let keyName = directEnumName(key)
-
-        else:
-          let keyName = $key
-
-        let res = toPPrintTree(
-          val, conf, path & pathElem(ppkKey, keyName))
-
-        assertValid(res)
-
-        if res.kind notin {ptkIgnored}:
-          result.mappings.add((
-            newPPrintConst(
-              keyName, $typeof(key),
-              conf.getId(key), fgGreen + bgDefault, path), res))
-
+    elif (entry is array) and (
+       when compiles(genericParams(typeof entry)):
+         get(genericParams(typeof entry), 0) is (
+           StaticParam[char] or static[char] or char or
+           StaticParam[enum] or static[enum] or enum)
+       else:
+         false
+     ):
+      result = arrayEnumToPPrintTree(entry, conf, path)
 
     elif not ( # sequences but not strings
         (entry is string) or
@@ -934,17 +1004,9 @@ proc toPprintTree*[T](
            (entry is ptr tuple)
          ):
 
-      # static:
-      #   echo $instCount |>> (instLevel * 2), "  ", typeof entry
-      #   inc instCount
-      #   inc instLevel
-
       result = objectToPPrintTree(entry, conf, path)
 
-      # static:
-      #   dec instLevel
-
-    elif (entry is proc): # proc type
+    elif (entry is proc):
       result = newPPrintConst(
         $(typeof(T)), $(typeof("T")), conf.getId(entry),
         fgMagenta + bgDefault, path)
@@ -986,78 +1048,10 @@ proc toPprintTree*[T](
       )
 
     else:
-      # entryT.head = $typeof(entry)
-      var style = initPrintStyling()
-
-      when entry is string:
-        let val = "\"" & entry & "\""
-        style = fgYellow + bgDefault
-
-      elif (entry is ptr string) or (entry is ref string):
-        style = fgYellow + bgDefault
-        let val =
-          if isNil(entry):
-            when entry is ptr:
-              "<ptr to nil string>"
-
-            else:
-              "<ref to nil string>"
-
-          else:
-            try:
-              "\"" & entry[] & "\""
-
-            except:
-              style = fgRed + bgDefault
-              "[!" & getCurrentExceptionMsg() & "!]"
-
-
-      elif entry is cstring:
-        let val = "\"" & $entry & "\""
-        style = fgYellow + bgDefault
-
-      elif entry is pointer:
-        let val = "<pointer>"
-        style = fgRed + bgDefault
-
-      elif entry is void:
-        let val = "<void>"
-        style = fgRed + bgDefault + styleItalic
-
-      elif entry is Rune:
-        let val = "\'" & $(@[entry]) & "\'"
-        style = fgYellow + bgDefault
-
-      elif entry is NimNode:
-        let val = entry.repr
-        style = fgDefault + styleItalic
-
-      elif entry is (SomeNumber | bool):
-        let val = $entry
-        style = bgDefault + fgBlue
-
-      else:
-        when entry is distinct and not compiles($entry):
-          let val = $distinctBase(entry)
-
-        else:
-          when compiles($entry):
-            let val = $entry
-
-          else:
-            style = fgRed + bgDefault
-            let val = "<not convertible " & $typeof(entry) & ">"
-
-      result = newPPrintConst(
-        val,
-        $typeof(entry),
-        conf.getId(entry),
-        style,
-        path
-      )
+      result = simpleConstToPPrintTree(entry, conf, path)
 
   updateCounts(result, conf.sortBySize)
-  result.treeType = newPPrintType(entry)
+  result.treeType = newPPrintType(T)
   when entry is ref or entry is ptr:
     result.visitedAt = cast[int](entry)
 

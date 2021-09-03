@@ -1,7 +1,8 @@
 import
   std/[
     macros, strformat, sequtils, monotimes,
-    strutils, times, options, stats, tables
+    strutils, times, options, stats, tables,
+    exitprocs
   ]
 
 export tables
@@ -279,6 +280,9 @@ proc showCoverage*(
     procname: CovProcName(name: procname), onlyMissing: onlyMissing)
 
 
+func toShortString(loc: TestLocation): string =
+  &"{AbsFile(loc.file).name()}:{loc.line}"
+
 proc report(context: TestContext, report: TestReport) =
   let (file, line, column) = (
     report.location.file,
@@ -332,9 +336,9 @@ proc report(context: TestContext, report: TestReport) =
         if context.hasFailed.len > 0:
           echo toBlue("[HAS FAIL] " |>> width)
           for fail in context.hasFailed:
-            echo pFail, fail.name
+            echo pFail, fail.name, " at ", fail.location.toShortString()
             for test in fail.nestedFail:
-              echo "  ", pFail, test.name
+              echo "  ", pFail, test.name, " at ", test.location.toShortString()
 
         else:
           echo toBlue("[ALL OK] " |>> width), " merged file ended"
@@ -555,6 +559,9 @@ proc report(context: TestContext, report: TestReport) =
             echo ""
 
   if report.kind in { trkTestEnd, trkSuiteEnd }:
+    if context.failCount > 0 or context.hasFailed.len > 0:
+      setProgramResult(1)
+
     for cover in report.conf.showCoverage:
       let coverReport = getCoverage(cover.procname)
       var lastNotExecuted = 0
@@ -685,29 +692,37 @@ func suiteFailed(
   TestReport(
     kind: trkSuiteFail, failKind: tfkException,
     exception: fail,
+    name: conf.name,
     msg: fail.msg, conf: conf, location: loc)
 
 func testFailed(
     conf: TestConf, loc: TestLocation, fail: ref Exception): TestReport =
   result = TestReport(
+    name: conf.name,
     kind: trkTestFail, failKind: tfkException,
     conf: conf, location: loc, exception: fail)
 
   if fail of CatchableError:
     result.msg = (ref CatchableError)(fail).msg
 
+func toName(loc: TestLocation): string =
+  &"{AbsFile(loc.file).name()}:{loc.line}"
 
 func testFailManual(loc: TestLocation, msg: string): TestReport =
   result = TestReport(
     kind: trkTestFail, failKind: tfkManualFail,
-    location: loc, msg: msg)
+    location: loc, msg: msg,
+    name: "manual fail at " & loc.toName())
 
 func testSkip(loc: TestLocation, msg: string): TestReport =
-  result = TestReport(kind: trkTestSkip, location: loc, msg: msg)
+  result = TestReport(
+    kind: trkTestSkip, location: loc, msg: msg,
+    name: "test skip at " & loc.toName())
 
 
 func expectOk(loc: TestLocation): TestReport =
-  TestReport(kind: trkExpectOk, location: loc)
+  TestReport(kind: trkExpectOk, location: loc,
+             name: "expect ok at " & loc.toName())
 
 func expectFail(
   unexpected: ref Exception,
@@ -717,12 +732,14 @@ func expectFail(
     kind: trkExpectFail,
     failKind: tfkUnexpectedExceptionRaised,
     exception: unexpected,
+    name: "unexpected exception at " & loc.toName(),
     location: loc,
     wanted: @wanted)
 
 func expectFail(loc: TestLocation): TestReport =
   TestReport(
     kind: trkExpectFail,
+    name: "expect fail at " & loc.toName(),
     failKind: tfkNoExceptionRaised,
     location: loc)
 
@@ -740,13 +757,17 @@ func blockEnd(name: string, loc: TestLocation): TestReport =
   TestReport(kind: trkBlockEnd, location: loc, name: name)
 
 func testComment(text: string, loc: TestLocation): TestReport =
-  TestReport(kind: trkTestComment, location: loc, text: text)
+  TestReport(
+    kind: trkTestComment, location: loc, text: text,
+    name: "test comment at " & loc.toName())
 
 func blockComment(text: string, loc: TestLocation): TestReport =
-  TestReport(kind: trkBlockComment, location: loc, text: text)
+  TestReport(kind: trkBlockComment, location: loc, text: text,
+    name: "block comment at " & loc.toName())
 
 func suiteComment(text: string, loc: TestLocation): TestReport =
-  TestReport(kind: trkSuiteComment, location: loc, text: text)
+  TestReport(kind: trkSuiteComment, location: loc, text: text,
+    name: "suite comment at " & loc.toName())
 
 func suiteStart(conf: TestConf, loc: TestLocation): TestReport =
   TestReport(
@@ -764,6 +785,7 @@ proc checkFailed(
     result = TestReport(
       kind: trkCheckFail,
       strs: @strs,
+      name: "check fail at " & loc.toName(),
       location: loc, failKind: failKind)
 
     if result.failKind == tfkOpCheck:
@@ -773,12 +795,14 @@ proc checkFailed(
 
 
 proc checkOk(loc: TestLocation): TestReport =
-  TestReport(kind: trkCheckOk, location: loc)
+  TestReport(kind: trkCheckOk, location: loc,
+    name: "check ok at " & loc.toName())
 
 proc matchCheckFailed(
     loc: TestLocation, fails: seq[TestMatchFail]): TestReport =
   TestReport(
     kind: trkCheckFail, location: loc,
+    name: "match fail at " & loc.toName(),
     failKind: tfkMatchDiff, paths: fails)
 
 
@@ -806,6 +830,7 @@ proc strdiffImpl(
   if str1 != str2:
     result = TestReport(
       location: loc,
+      name: "strdiff fail at " & loc.toName(),
       kind: trkCheckFail,
       failKind: tfkStrdiff,
       strs: @{
@@ -814,7 +839,9 @@ proc strdiffImpl(
 
 
   else:
-    result = TestReport(location: loc, kind: trkCheckOk)
+    result = TestReport(
+      location: loc, kind: trkCheckOk,
+      name: "strdiff ok at " & loc.toName())
 
 template strdiff*(str1, str2: string, loc: TestLocation): TestReport =
   bind strdiffImpl
@@ -828,11 +855,13 @@ proc structdiff*(ptree1, ptree2: PPrintTree, loc: TestLocation): TestReport =
     result = TestReport(
       location: loc,
       kind: trkCheckFail,
+      name: "structdiff at " & loc.toName(),
       failKind: tfkStructDiff,
       structDiff: diff.get().newIt())
 
   else:
-    result = TestReport(location: loc, kind: trkCheckOk)
+    result = TestReport(location: loc, kind: trkCheckOk,
+      name: "structdiff ok at " & loc.toName())
 
 
 proc structdiff*[T](struct1, struct2: T, loc: TestLocation): TestReport =
@@ -848,15 +877,18 @@ proc structeq*[T](struct1, struct2: T, loc: TestLocation): TestReport =
       result = TestReport(
         location: loc,
         kind: trkCheckFail,
+        name: "structeq fail at " & loc.toName(),
         failKind: tfkStructDiff,
         structDiff: diff.get())
 
     else:
       result = TestReport(
-        location: loc, kind: trkCheckFail, failKind: tfkStructNeqNoDiff)
+        location: loc, kind: trkCheckFail, failKind: tfkStructNeqNoDiff,
+        name: "structeq fail at " & loc.toName())
 
   else:
-    result = TestReport(location: loc, trkCheckOk)
+    result = TestReport(location: loc, kind: trkCheckOk,
+      name: "structeq fail at " & loc.toName())
 
 
 
@@ -1285,7 +1317,8 @@ proc maybeRunSuite(
 
 
 proc checkpoint(loc: TestLocation, msg: string): TestReport =
-  TestReport(location: loc, msg: msg, kind: trkCheckpoint)
+  TestReport(location: loc, msg: msg, kind: trkCheckpoint,
+    name: "checkpoint at " & loc.toName())
 
 
 
