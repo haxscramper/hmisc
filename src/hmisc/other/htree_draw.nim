@@ -207,21 +207,7 @@ func initTree(a: string, b: varargs[Tree]): Tree =
   result.a = a
   result.subn = toSeq(b)
 
-let tree = initTree(
-  "1",
-  initTree("2"),
-  initTree("3"),
-  initTree(
-    "0",
-    initTree("-"),
-    initTree("+")
-  )
-)
-
 func `$`(tr: Tree): string = tr.a
-
-var dt = tree.initDrawTree(tr => tr.subn)
-let res = buchheim(dt)
 
 func toString*[T](dt: DrawTree[T]): string =
   var buf: seq[seq[ColoredRune]]
@@ -236,9 +222,19 @@ func toString*[T](dt: DrawTree[T]): string =
 
   return buf.mapIt($it).join("\n")
 
-echo res.toString()
-
 
 
 when isMainModule:
+  let tree = initTree(
+    "1",
+    initTree("2"),
+    initTree("3"),
+    initTree("0", initTree("-"), initTree("+")))
+
+  var dt = tree.initDrawTree(tr => tr.subn)
+  let res = buchheim(dt)
+
+  echo res.toString()
+
+
   echo "hello"

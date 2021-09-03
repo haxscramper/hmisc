@@ -649,6 +649,7 @@ proc getRangeIndices*(
 
 
 proc getAll*(str: PosStr): string =
+  assertRef str.baseStr
   if str.isSlice:
     for slice in str.slices:
       result.add str.baseStr[][slice]
@@ -1201,6 +1202,7 @@ proc cut*(str; rx: Rx | Regex, fill: int = 128): string =
   result = str.popRange()
 
 macro scanSlice*(str; pattern: varargs[untyped]): untyped =
+  # - TODO :: `@">>>"` to skip until `>>>` is found
   result = newStmtList()
   let str = copyNimTree(str)
 

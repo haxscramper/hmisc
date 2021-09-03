@@ -14,7 +14,10 @@ type
     position*: int ## An absolute position for the node. Usually computed via the postfix order.
 
 
-  Tree* = ref object of RootObj
+  Tree* = ref object
+    impl: TreeImpl
+    nodeRef: pointer
+
     parent: Tree
     metadata: Table[string, pointer]
     children: seq[Tree]
@@ -25,8 +28,11 @@ type
     metrics: TreeMetrics
     fake: bool
 
-  Type = object
-    name: string
+  Type* = object
+    name*: int
+
+  TreeImpl* = ref object
+    reprType*: proc(t: Type): string
 
 const
   NO_LABEL = ""
@@ -34,13 +40,14 @@ const
 
 {.this: this.}
 
-proc newTreeType*(name: string): Type = Type(name: name)
+proc newTreeType*(name: int): Type = Type(name: name)
 
 proc newTree*(
     treeType: Type, parent: Tree,
+    impl: TreeImpl,
     metadata: openarray[(string, pointer)] = @[]
   ): Tree =
-  Tree(treeType: treeType, parent: parent, metadata: toTable(metadata))
+  Tree(impl: impl, treeType: treeType, parent: parent, metadata: toTable(metadata))
 
 
 proc newFakeTree*(name: string, trees: varargs[Tree]): Tree =
@@ -121,14 +128,14 @@ proc `$`*(this: Tree): string =
     for idx, parent in parents.reversed():
       if idx > 0: result.add "/"
       with result:
-        add parent.treeType.name
+        add this.impl.reprType(parent.treeType)
         add "["
         add $parent.pos
         add "]"
 
     with result:
       add "/"
-      add treeType.name
+      add this.impl.reprType(treeType)
       add "["
       add $pos
       add "]::"
@@ -154,7 +161,7 @@ proc treeRepr*(
     else:
       with res:
         addIndent(level)
-        add node.treeType.name
+        add tree.impl.reprType(node.treeType)
         add " "
 
       if notNil(parent) and
@@ -179,10 +186,6 @@ proc treeRepr*(
   aux(tree, result, 0, nil)
 
 proc insertChild*(this: Tree; t: Tree; position: int) =
-  echov position
-  echo this.treeRepr()
-  echo t.treeRepr()
-
   assertRef this
   assertRef t
   children.insert t, position
@@ -206,7 +209,6 @@ proc hash*(tree: Tree): Hash = tree.metrics.hash
 
 proc hasSameTypeAndLabel*(this: Tree; t: Tree): bool =
   return hasSameType(t) and getLabel() == t.getLabel()
-
 
 
 
@@ -319,6 +321,11 @@ proc getDescendants*(this: Tree): seq[Tree] =
 proc setParent*(this: Tree; parent: Tree) =
   assertRef this
   this.parent = parent
+
+proc setNodeRef*[N: ref object](this: Tree, node: N) =
+  assertRef this
+  assertRef node
+  this.nodeRef = cast[pointer](node)
 
 proc setParentAndUpdateChildren*(this: Tree; parent: Tree) =
   raise newImplementError()

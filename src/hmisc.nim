@@ -86,6 +86,7 @@ import ./hmisc/algo/htext_algo
 import ./hmisc/algo/hgraph_db
 import ./hmisc/algo/hlex_base
 import ./hmisc/algo/hseq_mapping
+import ./hmisc/algo/tree/tree_selector
 import ./hmisc/scripts/nim_gcov
 import ./hmisc/scripts/nim_gprof
 import ./hmisc/scripts/hmisc_putils

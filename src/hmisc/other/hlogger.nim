@@ -621,7 +621,7 @@ proc logLines*(
     around: (int, int) = (1, 1)
   ) =
 
-  var lineIdx = center - 1
+  var lineIdx = center - around[0]
   for line in base.linesAround(center, around):
     let arrow =
       if lineIdx == center:
