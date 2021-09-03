@@ -156,13 +156,23 @@ task push, "Execute checks and push ":
 
 task newversion, "Tag new version and push it to git":
   try:
-    sh ["git", "diff-index", "--quiet", "HEAD", "--"]
 
-    check()
 
     let ver = version.split(".").mapIt(it.parseInt())
     var (major, minor, patch) = (ver[0], ver[1], ver[2])
     inc patch
+
+    let commits = gorgeEx(&"git log --oneline v{version}..HEAD ").
+      output.split("\n").filterIt(it.len > 0).mapIt(&"- {it}").join("\n")
+
+    let msg = &"""
+[REPO] Version update {version} -> {major}.{minor}.{patch}
+
+{commits}
+"""
+
+    sh ["git", "diff-index", "--quiet", "HEAD", "--"]
+    check()
 
     let
       file = currentSourcePath()
@@ -176,7 +186,7 @@ task newversion, "Tag new version and push it to git":
 
     let
       commitCmd = [
-        "git", "commit", "-m", &"\"[REPO] Version update {version} -> {major}.{minor}.{patch}\""]
+        "git", "commit", "-m", msg.quoteShell()]
 
       tag = &"v{major}.{minor}.{patch}"
       tagCmd = ["git", "tag", tag]
