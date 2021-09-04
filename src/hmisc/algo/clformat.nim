@@ -388,6 +388,23 @@ func toLatinAbbrChar*(ch: char): string =
     of '\r': "CarriageRet"
     else: $ch
 
+func toDescriptiveIdent*(
+    text: string,
+    override: array[char, Option[string]] =
+      default(array[char, Option[string]]),
+    allowed: set[char] = IdentChars
+  ): string =
+
+  for ch in text:
+    if ch in allowed:
+      result.add ch
+
+    elif override[ch].isSome():
+      result.add override[ch].get()
+
+    else:
+      result.add toLatinAbbrChar(ch)
+
 const subSuperMap: Table[char, (string, string)] = toTable({
                  # subscript superscript
     '0'        : ("₀",        "⁰"      ),
@@ -1024,7 +1041,7 @@ const CharBrace* = (
   # doubleCurly: (left: "⦃", right: "⦄"),
   # doubleCurly: (left: "⦃", right: "⦄"),
 )
-# White variants      
+# White variants
 
 # Western quotation “ ” ‘ ’ ‹ › « »
 # unmatched quotation „

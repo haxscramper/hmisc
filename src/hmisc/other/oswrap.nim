@@ -276,7 +276,7 @@ func `$`*(path: AnyPath): string = path.getStr()
 func `$`*(entry: FsEntry): string = entry.getStr()
 
 func hshow*(file: AnyPath,
-            opts: HDisplayOpts = defaultHDisplay): string =
+            opts: HDisplayOpts = defaultHDisplay): ColoredText =
   toGreen(file.getStr(), opts.colored)
 
 

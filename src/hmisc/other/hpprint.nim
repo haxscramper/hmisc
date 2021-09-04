@@ -144,6 +144,10 @@ func star*(main: sink PPrintGlob): PPrintGlob =
   result = main
   result.add @[PPrintGlobPart(kind: ggkAnyStar)]
 
+func one*(main: sink PPrintGlob): PPrintGlob =
+  result = main
+  result.add @[PPrintGlobPart(kind: ggkAnyOne)]
+
 
 func field*(main: sink PPrintGlob, field: string): PPrintGlob =
   result = main
@@ -161,6 +165,9 @@ func matchField*(name: varargs[string]): PPrintMatch =
 
 func matchType*(name: varargs[string]): PPrintMatch =
   mapIt(name, pglob().star().typeName(it).star()).match()
+
+func matchTypeFields*(name: string): PPrintMatch =
+  match(@[pglob().star().typeName(name).one()])
 
 func `&`*(m1, m2: PPrintMatch): PprintMatch =
   match(m1.globs & m2.globs)
@@ -216,7 +223,7 @@ func globEqCmp*(path: PPrintPathElem, glob: PPrintGlobPart): bool =
   if pk == ppkField and gk == ggkWord:
     result = path.name == glob.name
 
-  elif pk == ppkIndex and gk == ggkWord:
+  elif pk in {ppkIndex, ppkKey} and gk == ggkWord:
     result = false
 
   elif pk == ppkObject and gk == ggkWord:
@@ -868,7 +875,7 @@ proc simpleConstToPPrintTree[T](
 proc toPprintTree*[L, H](
     val: HSlice[L, H], conf: var PPrintConf, path: PPrintPath): PPrintTree =
   result = objectToPprintTree(val, conf, path)
-  result.treeType = newPPrintType(val)
+  result.treeType = newPPrintType(typeof val)
 
 
 #=============  Main implementation of the pprint converter  =============#

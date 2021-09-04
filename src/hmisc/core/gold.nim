@@ -55,7 +55,8 @@ template withMutIt*[T](val: var T, body: untyped): untyped =
 
 template notNil*(arg: untyped): bool =
   ## `not isNil(x)` shortcut
-  not isNil(arg)
+  {.line: instantiationInfo(fullPaths = true).}:
+    not isNil(arg)
 
 func `-`*[I](s: set[I], i: I): set[I] = s - {i}
 
