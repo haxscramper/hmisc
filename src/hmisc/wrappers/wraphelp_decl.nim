@@ -27,7 +27,24 @@ func getIcpp(ctx: WrapCtx, name: string, isType: bool): string =
   else:
     join(ctx.namespace & name, "::")
 
-func procDeclAux(entry: NimNode, ctx: WrapCtx): NimNode =
+func cxxTypeAux(t: NimNode): CxxType =
+  case t.kind:
+    of nnkIdent:
+      result = initCxxType(t.strVal())
+
+    of nnkEmpty:
+      result = initCxxType("void")
+
+    of nnkPtrTy:
+      result = cxxTypeAux(t[0]).wrap(ctkPtr)
+
+    else:
+      raise newImplementKindError(t)
+
+func cxxArgAux(arg: NimNode): CxxArg =
+  initCxxArg(arg[0].strVal(), arg[1].cxxTypeAux())
+
+func procDeclAux(entry: NimNode, ctx: WrapCtx): CxxProc =
   let name =
     if entry.body.kind == nnkEmpty:
       entry.name().strVal()
@@ -36,71 +53,66 @@ func procDeclAux(entry: NimNode, ctx: WrapCtx): NimNode =
       assertNodeKind(entry.body()[0], {nnkCall})
       entry.body()[0][0].strVal()
 
-  var
-    hasConst = false
-    isConstructor = false
-    filter: seq[NimNode]
+  result.nimName = name
+  result.cxxName = ctx.namespace & name
+  result.header = some initCxxHeader(ctx.header)
+
+  var filter: seq[NimNode]
+  result.returnType = entry.params()[0].cxxTypeAux()
+
+  for arg in entry.params()[1 .. ^1]:
+    result.arguments.add cxxArgAux(arg)
 
   for pr in entry.pragma:
     if pr.eqIdent("const"):
-      hasConst = true
+      result.isConst = true
 
     elif pr.eqIdent("constructor"):
-      isConstructor = true
-      filter.add pr
+      result.nimName = "new" & ctx.cxxClassName
+      result.isConstructor = true
 
     else:
       filter.add pr
 
-
   entry.pragma = nnkPragma.newTree(filter)
 
-  result = entry
-  result.body = newEmptyNode()
-
-  if ctx.inClass and not isConstructor:
+  if ctx.inClass and not result.isConstructor:
     let thisTy =
-      if hasConst:
+      if result.isConst:
         ctx.nimClassName
 
       else:
         nnkVarTy.newTree(ctx.nimClassName)
 
-    result.params.insert(1, nnkIdentDefs.newTree(
-      ident("this"), thisTy, newEmptyNode()))
-
-  var icpp: string
-  if isConstructor:
+  if result.isConstructor:
     if entry.params[0].kind == nnkPtrTy:
-      icpp = "new " & ctx.getIcpp(ctx.cxxClassName, true) & "(@)"
+      result.icpp = "new " & ctx.getIcpp(ctx.cxxClassName, true) & "(@)"
 
     else:
-      icpp = ctx.getIcpp(ctx.cxxClassName, true) & "(@)"
+      result.icpp = ctx.getIcpp(ctx.cxxClassName, true) & "(@)"
 
   else:
     if allIt(name, it in IdentChars):
-      icpp = ctx.getIcpp(name & "(@)", false)
+      result.icpp = ctx.getIcpp(name & "(@)", false)
 
     else:
-      icpp = ctx.getIcpp("operator" & name & "(@)", false)
+      result.icpp = ctx.getIcpp("operator" & name & "(@)", false)
 
 
-  result.addPragma newEcE(ident("importcpp"), newLit(icpp))
+  # result.addPragma newEcE(ident("importcpp"), newLit(icpp))
 
 
-func stmtAux(entry: NimNode, ctx: WrapCtx): NimNode
+func stmtAux(entry: NimNode, ctx: WrapCtx): seq[CxxEntry]
 
-func headerAux(name: string, body: seq[NimNode], ctx: WrapCtx): NimNode =
+func headerAux(name: string, body: seq[NimNode], ctx: WrapCtx): seq[CxxEntry] =
   var ctx = ctx
   ctx.header = name
-  result = newStmtList()
   for node in body:
     result.add stmtAux(node, ctx)
 
-func namespaceAux(name: string, body: seq[NimNode], ctx: WrapCtx): NimNode =
+func namespaceAux(name: string, body: seq[NimNode], ctx: WrapCtx): seq[CxxEntry] =
   var ctx = ctx
   ctx.namespace.add name
-  result = newStmtList()
   for node in body:
     result.add stmtAux(node, ctx)
 
@@ -131,52 +143,69 @@ func splitClassName(name: NimNode):
       raise newUnexpectedKindError(name)
 
 
+proc flatStmtList(nodes: seq[NimNode]): seq[NimNode] =
+  proc aux(node: NimNode): seq[NimNode] =
+    if node of nnkStmtList:
+      for sub in node:
+        result.add aux(sub)
 
-func classAux(name: NimNode, body: seq[NimNode], ctx: WrapCtx): NimNode =
-  var resList: seq[NimNode]
-  var fieldList = nnkRecList.newTree()
+    else:
+      result.add node
+
+  for node in nodes:
+    result.add aux(node)
+
+
+func classAux(name: NimNode, body: seq[NimNode], ctx: WrapCtx): CxxObject =
   var ctx = ctx
   let (nim, cxx, super) = splitClassName(name)
   ctx.inClass = true
   ctx.nimClassName = nim
+  if super.isSome():
+    result.parent.add cxxTypeAux(super.get())
+
   ctx.cxxClassName = cxx
 
-  var isByref: bool = false
+  result.nimName = nim.repr()
+  result.cxxName = ctx.namespace & cxx
+  result.icpp = ctx.getIcpp(ctx.cxxClassName, true)
+  result.header = some initCxxHeader(ctx.header)
 
-  for entry in body:
+  for entry in body.flatStmtList():
     case entry.kind:
       of nnkProcDef:
-        resList.add procDeclAux(entry, ctx)
+        result.methods.add procDeclAux(entry, ctx)
 
       of nnkStmtList:
         for stmt in entry:
-          resList.add stmtAux(stmt, ctx)
+          result.nested.add stmtAux(stmt, ctx)
 
       else:
         raise newImplementKindError(entry)
 
-  result = newStmtList(
-    nnkTypeSection.newTree(
-      nnkTypeDef.newTree(
-        nnkPragmaExpr.newTree(
-          nnkPostfix.newTree(ident"*", nim),
-          nnkPragma.newTree(
-            newEcE("importcpp", newLit(ctx.getIcpp(ctx.cxxClassName, true))),
-            (if isByref: ident"byref" else: ident"bycopy"),
-            ident("inheritable"),
-            newEcE("header", newLit(ctx.header)))),
-        newEmptyNode(),
-        nnkObjectTy.newTree(
-          newEmptyNode(),
-          (if super.isSome(): nnkOfInherit.newTree(super.get()) else: newEmptyNode()),
-          fieldList))) & resList)
+
+  # result = newStmtList(
+  #   nnkTypeSection.newTree(
+  #     nnkTypeDef.newTree(
+  #       nnkPragmaExpr.newTree(
+  #         nnkPostfix.newTree(ident"*", nim),
+  #         nnkPragma.newTree(
+  #           newEcE("importcpp", newLit()),
+  #           (if isByref: ident"byref" else: ident"bycopy"),
+  #           ident("inheritable"),
+  #           newEcE("header", newLit()))),
+  #       newEmptyNode(),
+  #       nnkObjectTy.newTree(
+  #         newEmptyNode(),
+  #         (if super.isSome(): nnkOfInherit.newTree(super.get()) else: newEmptyNode()),
+  #         fieldList))) & resList)
 
 
 
-func stmtAux(entry: NimNode, ctx: WrapCtx): NimNode =
+func stmtAux(entry: NimNode, ctx: WrapCtx): seq[CxxEntry] =
   case entry.kind:
     of nnkProcDef:
-      result = procDeclAux(entry, ctx)
+      result.add procDeclAux(entry, ctx)
 
     of nnkCommand:
       let kind = entry[0].strVal()
@@ -186,7 +215,7 @@ func stmtAux(entry: NimNode, ctx: WrapCtx): NimNode =
           result = namespaceAux(entry[1].strVal(), entry[2..^1], ctx)
 
         of "class":
-          result = classAux(entry[1], entry[2..^1], ctx)
+          result.add classAux(entry[1], entry[2..^1], ctx)
 
         of "static", "struct", "enum", "var", "let", "const":
           raise newImplementError(kind)
@@ -196,13 +225,95 @@ func stmtAux(entry: NimNode, ctx: WrapCtx): NimNode =
           raise newImplementKindError(kind)
 
     of nnkStmtList:
-      result = newStmtList()
       for stmt in entry:
         result.add stmtAux(stmt, ctx)
 
     else:
       raise newUnexpectedKindError(entry, treeRepr(entry))
 
+proc toNNode(t: CxxType): NimNode =
+  case t.kind:
+    of ctkIdent:
+      result = ident(t.nimName)
+
+    of ctkPtr:
+      result = nnkPtrTy.newTree(t.wrapped.toNNode())
+
+    else:
+      raise newImplementKindError(t)
+
+proc toNNode(arg: CxxArg): NimNode =
+  nnkIdentDefs.newTree(ident(arg.nimName), arg.nimType.toNNode(), newEmptyNode())
+
+proc toNNode(header: CxxHeader): NimNode =
+  newLit(header.global)
+
+
+proc toNNode(def: CxxProc): NimNode =
+  let source =
+    if def.header.isSome():
+      newEcE("header", def.header.get().toNNode())
+
+    else:
+      newEmptyNode()
+
+  nnkProcDef.newTree(
+    nnkPostfix.newTree(ident("*"), ident(def.nimName)),
+    newEmptyNode(),
+    newEmptyNode(),
+    nnkFormalParams.newTree(
+      def.returnType.toNNode() & def.arguments.map(toNNode)),
+    nnkPragma.newTree(
+      newEcE("importcpp", def.icpp.newLit()), source),
+    newEmptyNode(),
+    newEmptyNode()
+  )
+
+proc toNNode(entry: CxxEntry): NimNode =
+  result = newStmtList()
+  case entry.kind:
+    of cekObject:
+      var fieldList = nnkRecList.newTree()
+      let obj = entry.cxxObject
+      result.add nnkTypeDef.newTree(
+        nnkPragmaExpr.newTree(
+          ident(obj.nimName),
+          nnkPragma.newTree(
+              ident("inheritable"),
+              ident("byref"),
+              newEcE("header", obj.header.get().global.newLit()),
+              newEcE("importcpp", obj.icpp.newLit()))),
+        newEmptyNode(),
+        nnkObjectTy.newTree(
+          newEmptyNode(),
+          tern(
+            obj.parent.len == 0,
+            newEmptyNode(),
+            nnkOfInherit.newTree(obj.parent[0].toNNode())),
+          fieldList))
+
+
+      for meth in obj.methods:
+        result.add meth.toNNode()
+
+
+    else:
+      raise newImplementKindError(entry)
+
+
 macro wrapheader*(name: static[string], body: untyped): untyped =
-  result = headerAux(name, toSeq(body), WrapCtx())
+  let ir = headerAux(name, toSeq(body), WrapCtx())
+  var types: seq[NimNode]
+  var other: seq[NimNode]
+  for item in ir:
+    for conv in item.toNNode():
+      if conv.kind == nnkTypeDef:
+        types.add conv
+
+      else:
+        other.add conv
+
+  result = newStmtList(nnkTypeSection.newTree(types))
+  result.add other
+
   echo result.repr()

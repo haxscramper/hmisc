@@ -8,31 +8,26 @@ type
     line*, column*: int
 
 
-  CxxHeaderSpecKind* = enum
+  CxxHeaderKind* = enum
     ## Kind of the nim input header
-    nhskGlobal ## Global header file, must be installed and accessible via `includepath`
+    chkGlobal ## Global header file, must be installed and accessible via `includepath`
     ## when wrappers are compiled
-    nhskAbsolute ## Absolute path to the base header file
-    nhskPNode ## Unconstrained PNode - can be anything
-
-  CxxTypeKind* = enum
-    ## Kind of the wrapped Cxx type
-    ctkIdent ## Identifier with optional list of template parameters
-    ctkProc ## Procedural (callback) type
+    chkAbsolute ## Absolute path to the base header file
+    chkPNode ## Unconstrained PNode - can be anything
 
   LibImport* = object
     library*: string
     importPath*: seq[string]
 
   CxxHeader* = object
-    case kind*: CxxHeaderSpecKind
-      of nhskGlobal:
+    case kind*: CxxHeaderKind
+      of chkGlobal:
         global*: string
 
-      of nhskAbsolute:
+      of chkAbsolute:
         file*: AbsFile
 
-      of nhskPNode:
+      of chkPNode:
         other*: string
 
   CxxBase* = object of RootObj
@@ -46,8 +41,18 @@ type
     docComment*: seq[string]
     haxdocIdent* {.requiresinit.}: JsonNode
 
+  CxxTypeKind* = enum
+    ## Kind of the wrapped Cxx type
+    ctkIdent ## Identifier with optional list of template parameters
+    ctkProc ## Procedural (callback) type
+    ctkPtr
+
+
   CxxType* = ref object
     case kind*: CxxTypeKind
+      of ctkPtr:
+        wrapped*: CxxType
+
       of ctkIdent:
         isConst*: bool
         isMutable*: bool
@@ -76,6 +81,9 @@ type
     returnType*: CxxType
     genParams*: seq[CxxType]
     kind*: CxxProcKind
+
+    isConstructor*: bool
+    isConst*: bool
 
   CxxArg* = object of CxxBase
     nimType*: CxxType
@@ -108,10 +116,12 @@ type
 
   CxxObject* = object of CxxBase
     kind*: CxxObjectKind
+    parent*: seq[CxxType]
     genParams*: seq[CxxType]
     mfields*: seq[CxxField]
     methods*: seq[CxxProc]
     nested*: seq[CxxEntry]
+    isByref*: bool
 
   CxxForward* = object of CxxBase
 
@@ -136,25 +146,25 @@ type
   CxxEntry* = ref object
     case kind*: CxxEntryKind
       of cekEnum:
-        saveEnum*: CxxEnum
+        cxxEnum*: CxxEnum
 
       of cekProc:
-        saveProc*: CxxProc
+        cxxProc*: CxxProc
 
       of cekObject:
-        saveObject*: CxxObject
+        cxxObject*: CxxObject
 
       of cekAlias:
-        saveAlias*: CxxAlias
+        cxxAlias*: CxxAlias
 
       of cekForward:
-        saveForward*: CxxForward
+        cxxForward*: CxxForward
 
       of cekComment:
-        saveComment*: string
+        cxxComment*: string
 
       of cekMacro:
-        saveMacro*: CxxMacro
+        cxxMacro*: CxxMacro
 
       else:
         discard
@@ -163,26 +173,43 @@ type
     entries*: seq[CxxEntry]
     savePath*: LibImport
 
+func initCxxHeader*(global: string): CxxHeader =
+  CxxHeader(global: global, kind: chkGlobal)
 
-proc box*(en: CxxEnum): CxxEntry =
-  CxxEntry(kind: cekEnum, saveEnum: en)
+func initCxxArg*(name: string, argType: CxxType): CxxArg =
+  CxxArg(nimType: argType, nimName: name, haxdocIdent: newJNull())
 
-proc box*(en: CxxForward): CxxEntry =
-  CxxEntry(kind: cekForward, saveForward: en)
 
-proc box*(ob: CxxObject): CxxEntry =
-  CxxEntry(kind: cekObject, saveObject: ob)
+func wrap*(wrapped: CxxType, kind: CxxTypeKind): CxxType =
+  result = CxxType(kind: kind)
+  result.wrapped = wrapped
 
-proc box*(en: CxxProc): CxxEntry =
-  CxxEntry(kind: cekProc, saveProc: en)
+func initCxxType*(head: string): CxxType =
+  CxxType(kind: ctkIdent, nimName: head)
 
-proc box*(en: CxxAlias): CxxEntry =
-  CxxEntry(kind: cekAlias, saveAlias: en)
+func initCxxType*(arguments: seq[CxxArg], returnType: CxxType): CxxType =
+  CxxType(
+    kind: ctkProc, arguments: arguments, returnType: returnType)
 
-proc box*(en: CxxMacro): CxxEntry =
-  CxxEntry(kind: cekMacro, saveMacro: en)
+func box*(en: CxxEnum): CxxEntry =
+  CxxEntry(kind: cekEnum, cxxEnum: en)
 
-proc add*(
+func box*(en: CxxForward): CxxEntry =
+  CxxEntry(kind: cekForward, cxxForward: en)
+
+func box*(ob: CxxObject): CxxEntry =
+  CxxEntry(kind: cekObject, cxxObject: ob)
+
+func box*(en: CxxProc): CxxEntry =
+  CxxEntry(kind: cekProc, cxxProc: en)
+
+func box*(en: CxxAlias): CxxEntry =
+  CxxEntry(kind: cekAlias, cxxAlias: en)
+
+func box*(en: CxxMacro): CxxEntry =
+  CxxEntry(kind: cekMacro, cxxMacro: en)
+
+func add*(
     s: var seq[CxxEntry],
     other: CxxMacro | CxxAlias | CxxObject | CxxForward | CxxProc
   ) =
