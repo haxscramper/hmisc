@@ -1,5 +1,6 @@
 import
-  hmisc/wrappers/[wraphelp, wraphelp_gen, wraphelp_decl]
+  hmisc/wrappers/[wraphelp, wraphelp_gen, wraphelp_decl],
+  hmisc/core/all
 
 {.passc: "-fPIC".}
 {.passc: "-I/usr/include/qt".}
@@ -30,30 +31,24 @@ wrapheader "<QApplication>":
 
     proc exec()
 
-cgenInit("${cacheDir}/${file}")
+static: startHaxComp()
 
-type
-  DerivedEditor {.cgen.} = object of QTextEdit
+cgen "${cacheDir}/${file}":
+  include "<QTextEdit>"
 
+  class DerivedEditor of QTextEdit:
+    proc textChanged() {.override, slot.} =
+      echo "Signal derived changed"
 
-proc textChanged(derived: ptr DerivedEditor) {.cgen: [methodof, override].} =
-  echo "Signal derived changed"
-
-cgenHeaders(@["<QTextEdit>"])
-
-proc myMethod(arg: int) {.exportc: "myMethod".}
-proc myMethod(arg: int) = echo arg
-
-myMethod(12)
-
-cgenWrite()
+    proc new(parent: ptr QWidget): ptr DerivedEditor
+      {.constructor(QTextEdit(parent)).}
 
 var
   argc: cint = 0
   argv: cstringarray
   app = newQApplication(argc, argv)
   window = newQMainWindow()
-  edit = newQTextEdit(window)
+  edit = newDerivedEditor(window)
 
 
 

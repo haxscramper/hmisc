@@ -1,6 +1,7 @@
 import
   ../other/oswrap,
-  std/[options, macros, json]
+  ../core/all,
+  std/[options, macros, json, strutils, strformat]
 
 type
   CxxSpellingLocation* = object
@@ -82,8 +83,9 @@ type
     genParams*: seq[CxxType]
     kind*: CxxProcKind
 
-    isConstructor*: bool
+    constructorOf*: Option[string]
     isConst*: bool
+    methodOf*: Option[CxxType]
 
   CxxArg* = object of CxxBase
     nimType*: CxxType
@@ -173,23 +175,110 @@ type
     entries*: seq[CxxEntry]
     savePath*: LibImport
 
+func isConstructor*(pr: CxxProc): bool =
+  pr.constructorOf.isSome()
+
+func isMethod*(pr: CxxProc): bool =
+  pr.methodOf.isSome()
+
+func getConstructed*(pr: CxxProc): string =
+  pr.constructorOf.get()
+
+func getIcppName*(pr: CxxProc, asMethod: bool = false): string =
+  if asMethod:
+    pr.cxxName[^1]
+
+  else:
+    pr.cxxName.join("::")
+
 func initCxxHeader*(global: string): CxxHeader =
   CxxHeader(global: global, kind: chkGlobal)
+
+func initCxxHeader*(file: AbsFile): CxxHeader =
+  CxxHeader(kind: chkAbsolute, file: file)
 
 func initCxxArg*(name: string, argType: CxxType): CxxArg =
   CxxArg(nimType: argType, nimName: name, haxdocIdent: newJNull())
 
 
 func wrap*(wrapped: CxxType, kind: CxxTypeKind): CxxType =
-  result = CxxType(kind: kind)
-  result.wrapped = wrapped
+  if kind == ctkIdent:
+    result = wrapped
 
-func initCxxType*(head: string): CxxType =
-  CxxType(kind: ctkIdent, nimName: head)
+  else:
+    result = CxxType(kind: kind)
+    result.wrapped = wrapped
+
+func initCxxType*(head: string, genParams: seq[CxxType] = @[]): CxxType =
+  CxxType(kind: ctkIdent, nimName: head, genParams: @genParams)
+
+func getReturn*(
+    pr: CxxProc, onConstructor: CxxTypeKind = ctkIdent): CxxType =
+
+  if pr.isConstructor:
+    result = initCxxType(pr.getConstructed()).wrap(onConstructor)
+
+  else:
+    assertRef pr.returnType
+    result = pr.returnType
+
+func getIcpp*(
+    pr: CxxProc, onConstructor: CxxTypeKind = ctkIdent): string =
+
+  if pr.isConstructor:
+    case onConstructor:
+      of ctkIdent: result = &"{pr.getConstructed()}(@)"
+      of ctkPtr: result = &"new {pr.getConstructed()}(@)"
+      else: raise newUnexpectedKindError(onConstructor)
+
+  else:
+    if pr.isMethod:
+      result = &"#.{pr.getIcppName(true)}(@)"
+
+    else:
+      result = &"{pr.getIcppName()}()"
+
+
 
 func initCxxType*(arguments: seq[CxxArg], returnType: CxxType): CxxType =
   CxxType(
     kind: ctkProc, arguments: arguments, returnType: returnType)
+
+func initCxxObject*(nimName, cxxName: string): CxxObject =
+  CxxObject(nimName: nimName, cxxName: @[cxxName], haxdocIdent: newJNull())
+
+func initCxxProc*(
+    nimName, cxxName: string,
+    arguments: seq[CxxArg] = @[], returnType: CxxType = initCxxType("void")
+  ): CxxProc =
+
+  CxxProc(
+    nimName: nimName,
+    cxxName: @[cxxName],
+    haxdocIdent: newJNull(),
+    returnType: returnType,
+    arguments: arguments
+  )
+
+
+func add*(pr: var CxxProc, arg: CxxArg) =
+  pr.arguments.add arg
+
+func setHeaderRec*(entry: var CxxEntry, header: CxxHeader) =
+  case entry.kind:
+    of cekEnum: entry.cxxEnum.header = some header
+    of cekProc: entry.cxxProc.header = some header
+    of cekAlias: entry.cxxAlias.header = some header
+    of cekObject:
+      entry.cxxObject.header = some header
+      for meth in mitems(entry.cxxObject.methods):
+        meth.header = some header
+
+      for nest in mitems(entry.cxxObject.nested):
+        setHeaderRec(nest, header)
+
+    else:
+      discard
 
 func box*(en: CxxEnum): CxxEntry =
   CxxEntry(kind: cekEnum, cxxEnum: en)

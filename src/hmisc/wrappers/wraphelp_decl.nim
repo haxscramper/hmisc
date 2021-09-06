@@ -27,7 +27,7 @@ func getIcpp(ctx: WrapCtx, name: string, isType: bool): string =
   else:
     join(ctx.namespace & name, "::")
 
-func cxxTypeAux(t: NimNode): CxxType =
+func cxxTypeAux*(t: NimNode): CxxType =
   case t.kind:
     of nnkIdent:
       result = initCxxType(t.strVal())
@@ -69,7 +69,7 @@ func procDeclAux(entry: NimNode, ctx: WrapCtx): CxxProc =
 
     elif pr.eqIdent("constructor"):
       result.nimName = "new" & ctx.cxxClassName
-      result.isConstructor = true
+      result.constructorOf = some ctx.cxxClassName
 
     else:
       filter.add pr
@@ -246,10 +246,13 @@ proc toNNode(arg: CxxArg): NimNode =
   nnkIdentDefs.newTree(ident(arg.nimName), arg.nimType.toNNode(), newEmptyNode())
 
 proc toNNode(header: CxxHeader): NimNode =
-  newLit(header.global)
+  case header.kind:
+    of chkGlobal: newLit(header.global)
+    of chkAbsolute: newLit(header.file.string)
+    of chkPNode: newLit(header.other)
 
 
-proc toNNode(def: CxxProc): NimNode =
+proc toNNode(def: CxxProc, onConstructor: CxxTypeKind = ctkIdent): NimNode =
   let source =
     if def.header.isSome():
       newEcE("header", def.header.get().toNNode())
@@ -262,14 +265,14 @@ proc toNNode(def: CxxProc): NimNode =
     newEmptyNode(),
     newEmptyNode(),
     nnkFormalParams.newTree(
-      def.returnType.toNNode() & def.arguments.map(toNNode)),
+      def.getReturn(onConstructor).toNNode() & def.arguments.map(toNNode)),
     nnkPragma.newTree(
       newEcE("importcpp", def.icpp.newLit()), source),
     newEmptyNode(),
-    newEmptyNode()
-  )
+    newEmptyNode())
 
-proc toNNode(entry: CxxEntry): NimNode =
+
+proc toNNode*(entry: CxxEntry): NimNode =
   result = newStmtList()
   case entry.kind:
     of cekObject:
@@ -281,7 +284,7 @@ proc toNNode(entry: CxxEntry): NimNode =
           nnkPragma.newTree(
               ident("inheritable"),
               ident("byref"),
-              newEcE("header", obj.header.get().global.newLit()),
+              newEcE("header", obj.header.get().toNNode()),
               newEcE("importcpp", obj.icpp.newLit()))),
         newEmptyNode(),
         nnkObjectTy.newTree(
@@ -294,18 +297,21 @@ proc toNNode(entry: CxxEntry): NimNode =
 
 
       for meth in obj.methods:
-        result.add meth.toNNode()
+        result.add meth.toNNode(ctkPtr)
 
+      for n in obj.nested:
+        result.add n.toNNode()
+
+    of cekProc:
+      result = entry.cxxProc.toNNode()
 
     else:
       raise newImplementKindError(entry)
 
-
-macro wrapheader*(name: static[string], body: untyped): untyped =
-  let ir = headerAux(name, toSeq(body), WrapCtx())
+proc toNNode*(entries: seq[CxxEntry]): NimNode =
   var types: seq[NimNode]
   var other: seq[NimNode]
-  for item in ir:
+  for item in entries:
     for conv in item.toNNode():
       if conv.kind == nnkTypeDef:
         types.add conv
@@ -316,4 +322,7 @@ macro wrapheader*(name: static[string], body: untyped): untyped =
   result = newStmtList(nnkTypeSection.newTree(types))
   result.add other
 
+
+macro wrapheader*(name: static[string], body: untyped): untyped =
+  result = headerAux(name, toSeq(body), WrapCtx()).toNNode()
   echo result.repr()

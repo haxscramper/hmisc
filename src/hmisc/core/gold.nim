@@ -117,6 +117,8 @@ template asConst*[T](t: T): untyped =
   const tmp = t
   tmp
 
+template asExpr*(arg: untyped): untyped = arg
+
 proc asSet*[E: enum](en: E): set[E] = {en}
 proc asSet*[E: enum](en: set[E]): set[E] = en
 
