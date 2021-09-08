@@ -940,7 +940,8 @@ macro shellCmd*(cmd: untyped, args: varargs[untyped]): untyped =
 
 
 
-macro shCmd*(cmd: untyped, args: varargs[untyped]): untyped {.deprecated.} =
+macro shCmd*(cmd: untyped, args: varargs[untyped]): untyped
+  {.deprecated: "Use `shellCmd` instead".} =
   ##[
 
 DSL for consturction of the new shell commands, with syntax similar to
@@ -1051,9 +1052,6 @@ when cbackend:
       else:
         let args = cmd.opts.mapIt($it.toStr(cmd.conf, colored = false))
         let env = if env.len > 0: newStringTable(env) else: nil
-        echov args
-        echov cwd()
-        echov cmd.bin
 
         startProcess(
           cmd.bin,

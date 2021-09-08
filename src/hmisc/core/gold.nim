@@ -254,7 +254,8 @@ macro importx*(imports: untyped): untyped =
         result.add prefix & tree
 
       of nnkPrefix:
-        assert tree[0].strVal() in ["../", "./"]
+        let str = tree[0].strVal()
+        assert str.startsWith("./") or str.startsWith("../"), str
         result = aux(tree[1], prefix & ident(tree[0].strVal()[0..^2]))
 
       of nnkInfix:
@@ -278,3 +279,11 @@ macro importx*(imports: untyped): untyped =
     result.add infix
 
   echo result.repr()
+
+proc postInc*[T](value: var T): T =
+  result = value
+  inc value
+
+proc preInc*[T](value: var T): T =
+  inc value
+  value

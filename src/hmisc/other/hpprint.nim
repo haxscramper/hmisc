@@ -1321,8 +1321,16 @@ proc pstring*(
   return tree.toPPrintBlock(conf).
     toString(conf.formatOpts.rightMargin, opts = conf.formatOpts)
 
+proc getRightMargin*(): int =
+  when nimvm:
+    return 80
+
+  else:
+    return terminalWidth()
+
 proc pstring*[T](
-    obj: T, rightMargin: int = 80,
+    obj: T,
+    rightMargin: int = getRightMargin(),
     force: openarray[(PPrintMatch, PPrintLytChoice)] = @[],
     ignore: PPrintMatch = PPrintMatch(),
     conf: PPrintConf = defaultPPrintConf,
@@ -1343,10 +1351,11 @@ proc pstring*[T](
 
   return pblock.toString(conf.formatOpts.rightMargin, opts = conf.formatOpts)
 
+import std/terminal
 
 proc pprint*[T](
     obj: T,
-    rightMargin: int = 80,
+    rightMargin: int = getRightMargin(),
     force: openarray[(PPrintMatch, PPrintLytChoice)] = @[],
     ignore: PPrintMatch = PPrintMatch(),
     conf: PPrintConf = defaultPPrintConf,
@@ -1369,7 +1378,7 @@ macro pconf*(body: varargs[untyped]): untyped =
 
 
 func debugpprint*[T](
-    obj: T, rightMargin: int = 80,
+    obj: T, rightMargin: int = getRightMargin(),
     force: openarray[(PPrintMatch, PPrintLytChoice)] = @[],
     ignore: PPrintMatch = PPrintMatch(),
     conf: PPrintConf = defaultPPrintConf
