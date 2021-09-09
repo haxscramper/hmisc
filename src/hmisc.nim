@@ -61,6 +61,7 @@ import ./hmisc/types/rev_set_table
 import ./hmisc/types/colorstring
 import ./hmisc/types/htrie
 import ./hmisc/wrappers/hfswatch
+import ./hmisc/wrappers/wraphelp_decl
 import ./hmisc/wrappers/treesitter
 import ./hmisc/wrappers/wraphelp_cxx
 import ./hmisc/wrappers/wraphelp
@@ -110,3 +111,6 @@ import ./hmisc/other/cliparse
 import ./hmisc/other/colorlogger
 import ./hmisc/other/hshell
 import ./hmisc/other/strparser
+import ./hmisc/shellexec/xephyr
+import ./hmisc/shellexec/ps
+import ./hmisc/shellexec/wrap_cmd_exec
