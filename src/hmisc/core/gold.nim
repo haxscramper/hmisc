@@ -160,6 +160,9 @@ template canGet*[T](opt: Option[T], injected: untyped): untyped =
   let expr = opt
   expr.isSome() and (let injected {.inject.} = expr.get(); true)
 
+func mget*[T](opt: var Option[T], value: T = default(T)): var T =
+  if opt.isNone(): opt = some value
+  return opt.get()
 
 template last*(s: seq): untyped = s[^1]
 template last*[T](s: seq[T], item: T): untyped =

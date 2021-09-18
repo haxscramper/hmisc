@@ -40,6 +40,10 @@ type
   UArray*[T] = UncheckedArray[T]
   PUarray*[T] = ptr UncheckedArray[T]
 
+proc `or`*[T: enum](lhs: T, rhs: T): uint = lhs.ord() or rhs.ord()
+proc `and`*[T: enum](lhs: T, rhs: T): uint = lhs.ord() and rhs.ord()
+proc `not`*[T: enum](lhs: T): uint = not lhs.ord()
+
 template `+`*[T](p: ptr T, offset: SomeInteger): ptr T =
   cast[ptr type(p[])](cast[ByteAddress](p) +% int(offset) * sizeof(p[]))
 

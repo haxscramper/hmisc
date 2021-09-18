@@ -24,6 +24,38 @@ suite "Name generation":
       fixIdentName("item", "f", c, true) == "ffItem"
       fixIdentName("item", "f", c, true) == "ffItem"
 
+  test "Leading/trailing underscores":
+    var c: StringNameCache
+    check:
+      c.fixTypeName("S", "f") == "S"
+      c.fixTypeName("_S", "f") == "FS"
+      c.fixTypeName("s", "f") == "FFS"
+
+  test "Lowercase prefix":
+    var c: StringNameCache
+    check:
+      c.fixTypeName("s", "cxx") == "S"
+      c.fixTypeName("_s", "cxx") == "CxxS"
+
+      c.fixIdentName("S", "cxx") == "s"
+      c.fixIdentName("_S", "cxx") == "cxxs"
+
+  test "Known generated":
+    var c: StringNameCache
+    check:
+      c.fixTypeName("S") == "S"
+      c.knownGenerated("S")
+
+      c.fixTypeName("_S") == "S1"
+      c.knownGenerated("S1")
+
+  test "Repeated encounters":
+    var c: StringNameCache
+    check:
+      c.fixTypeName("S") == "S"
+      c.fixTypeName("_S") == "S1"
+      c.fixTypeName("__S") == "S2"
+
   test "Name gen":
     var c: StringNameCache
     check:

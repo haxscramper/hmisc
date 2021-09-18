@@ -104,10 +104,22 @@ func newRename*(
 
   cache.genNormalized.inc nimNorm(newName)
 
+func numerateGenerated*(cache: var StringNameCache, newName: string) =
+  ## Increment count of the generated normalized of `newName`. This should
+  ## be called before any other disambiguation alterations to the `newName`
+  cache.genNormalized.inc nimNorm(newName)
+
 func knownRename*(
     cache: StringNameCache, baseName: string, exact: bool = true): bool =
   ## Whether `baseName` has been renamed to something in the `cache`
-  nimNorm(baseName, not exact) in cache.renames
+  if exact:
+    baseName in cache.renames
+
+  else:
+    nimNorm(baseName) in cache.renames
+
+func generatedCount*(cache: StringNameCache, name: string): int =
+  cache.genNormalized[nimNorm(name)]
 
 func knownGenerated*(
     cache: StringNameCache, name: string): bool =
@@ -225,13 +237,20 @@ proc fixIdentName*(str: string, prefix: string): string =
   else:
     result = keepNimIdentChars(str)
 
+type
+  NameFixStrategy = enum
+    nfsPrependText
+    nfsAppendText
+    nfsNumerateNew
+    nfsDescribeDiff
+
 proc fixIdentName*(
     str, prefix: string,
     cache: var StringNameCache,
-    requirePrefix: bool = false
+    requirePrefix: bool = false,
+    lower: bool = true,
+    strategy: NameFixStrategy = nfsPrependText
   ): string =
-  # echov cache.knownRename(str), str
-  # echov cache.renames
   if cache.knownRename(str):
     return cache.getRename(str)
 
@@ -248,29 +267,65 @@ proc fixIdentName*(
   else:
     result = str.fixIdentName(prefix)
 
+
+  if lower:
+    result[0] = toLowerAscii(result[0])
+
+  else:
+    result[0] = toUpperAscii(result[0])
+
   if cache.knownGenerated(result):
-    # TODO implement different unique name generation strategies (appending
-    # new name, finding per-character differences etc.)
-    if prefix.len == 0:
-      raise newArgumentError(
-        "'", result, "' ident has already been generated, in order to ",
-        "generate new unique result non-empty prefix must be supplied, ",
-        "but `prefix` argument is empty")
+    case strategy:
+      of nfsDescribeDiff:
+        raise newImplementError()
 
-    while cache.knownGenerated(result):
-      result = prefix & result
+      of nfsNumerateNew:
+        let count = cache.generatedCount(result)
+        cache.numerateGenerated(result)
+        result = result & $count
 
-  result[0] = toLowerAscii(result[0])
+      of nfsPrependText, nfsAppendText:
+        if prefix.len == 0:
+          raise newArgumentError(
+            "'", result, "' ident has already been generated, in order to ",
+            "generate new unique result non-empty prefix must be supplied, ",
+            "but `prefix` argument is empty")
+
+        var prefix = prefix
+        if lower:
+          prefix[0] = toLowerAscii(prefix[0])
+
+        else:
+          prefix[0] = toUpperAscii(prefix[0])
+
+
+        while cache.knownGenerated(result):
+          if strategy == nfsPrependText:
+            result = prefix & result
+
+          else:
+            result.add prefix
+
   cache.newRename(str, result)
 
 
 proc fixIdentName*(
     c: var StringNameCache, str, prefix: string,
-    requirePrefix: bool = false): string =
+    requirePrefix: bool = false
+ ): string =
+ fixIdentName(str, prefix, c, requirePrefix, lower = true, nfsPrependText)
 
- fixIdentName(str, prefix, c, requirePrefix)
+proc fixTypeName*(
+    c: var StringNameCache, str, prefix: string,
+    requirePrefix: bool = false
+ ): string =
+ fixIdentName(str, prefix, c, requirePrefix, lower = false, nfsPrependText)
 
+proc fixIdentName*(c: var StringNameCache, str: string): string =
+ fixIdentName(str, "", c, false, lower = true, nfsNumerateNew)
 
+proc fixTypeName*(c: var StringNameCache, str: string): string =
+ fixIdentName(str, "", c, false, lower = false, nfsNumerateNew)
 
 
 proc fixNimTypeName*(str: string, useReserved: bool = true): string =
