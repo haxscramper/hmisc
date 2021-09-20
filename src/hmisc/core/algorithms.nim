@@ -175,7 +175,6 @@ template findIt*(s: typed, op: untyped): int =
 
   result
 
-
 template byaddr1*(lhs, typ, ex) =
   when typ is typeof(nil):
     when compiles(addr(ex)):

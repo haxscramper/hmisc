@@ -4,7 +4,7 @@ import hmisc/preludes/unittest
 testFileStarted()
 
 import std/[sugar, strutils, sequtils, strformat]
-import hmisc/algo/namegen
+import hmisc/algo/[namegen, hstring_algo]
 import hmisc/core/all
 
 
@@ -19,10 +19,10 @@ suite "Name generation":
     var c: StringNameCache
 
     check:
-      fixIdentName("iTem", "f", c, true) == "fITem"
-      fixIdentName("iTem", "f", c, true) == "fITem"
-      fixIdentName("item", "f", c, true) == "ffItem"
-      fixIdentName("item", "f", c, true) == "ffItem"
+      c.fixIdentName("iTem", "f", true) == "fITem"
+      c.fixIdentName("iTem", "f", true) == "fITem"
+      c.fixIdentName("item", "f", true) == "ffItem"
+      c.fixIdentName("item", "f", true) == "ffItem"
 
   test "Leading/trailing underscores":
     var c: StringNameCache
@@ -59,19 +59,29 @@ suite "Name generation":
   test "Name gen":
     var c: StringNameCache
     check:
-      fixIdentName("__pthread_unwind_buf_t", "", c) == "pthread_unwind_buf_t"
-      fixIdentName("_pthread_unwind_buf_t", "f", c) == "fpthread_unwind_buf_t"
+      c.fixIdentName("__pthread_unwind_buf_t", "") == "pthread_unwind_buf_t"
+      c.fixIdentName("_pthread_unwind_buf_t", "f") == "fpthread_unwind_buf_t"
 
     expect ArgumentError as err:
-      discard fixIdentName("___pthread_unwind_buf_t", "", c)
+      discard c.fixIdentName("___pthread_unwind_buf_t", "")
 
     check:
       "'pthread_unwind_buf_t'" in err.msg
 
 
     check:
-      fixIdentName("___pthread_unwind_buf_t", "f", c) ==
+      c.fixIdentName("___pthread_unwind_buf_t", "f") ==
         "ffpthread_unwind_buf_t"
+
+  test "Namegen with custom fixup logic":
+    var c: StringNameCache
+    proc fix(str: string, isType: bool): string =
+      str.dropPrefix("git_").dropSuffix("_t")
+
+    check:
+      c.fixTypeName("git_submodule", fix) == "Submodule"
+      c.fixTypeName("git_submodule", fix) == "Submodule"
+      c.fixTypeName("git_submodule", fix) == "Submodule"
 
   test "New name":
     var c: StringNameCache

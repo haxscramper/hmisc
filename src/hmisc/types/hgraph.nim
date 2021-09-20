@@ -666,6 +666,21 @@ iterator nodesId*[N, E](graph: HGraph[N, E]): int =
   for id, _ in pairs(graph.nodeMap):
     yield id
 
+proc `$`*[N, E](graph: HGraph[N, E]): string =
+  var count: int = 0
+  for edge in edges(graph):
+    if count > 0:
+      result.add "\n"
+
+    result.add $graph.sourceVal(edge)
+    result.add " -[ "
+    result.add $graph[edge]
+    result.add " ]-> "
+    result.add $graph.targetVal(edge)
+
+    inc count
+
+
 template depthFirstAux(): untyped {.dirty.} =
   discard
 

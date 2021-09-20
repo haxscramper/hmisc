@@ -216,6 +216,14 @@ template assertOption*(expr: untyped, onFail: string = ""): untyped {.dirty.} =
       {.line: instantiationInfo(fullPaths = true)}:
         raise (ref NoneArgumentError)(msg: msg)
 
+func getOr*[T](opt: Option[T], onFail: string): T =
+  if opt.isSome():
+    return opt.get()
+
+  else:
+    raise (ref NoneArgumentError)(
+      msg: "Cannot get value from none - " & onFail)
+
 template assertRefFields*[T](
     item: T, onFail: string = "string") {.dirty.} =
 

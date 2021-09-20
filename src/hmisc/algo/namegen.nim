@@ -159,7 +159,7 @@ func commonPrefix*[T](seqs: seq[seq[T]]): seq[T] =
 
 
 func isReservedNimType*(str: string): bool =
-  const nameSet = toHashSet [
+  const exactNames = toHashSet [
     "ptr", "lent", "sink", "ref", "var", "pointer",
 
     "int", "int8", "int16", "int32", "int64",
@@ -167,6 +167,15 @@ func isReservedNimType*(str: string): bool =
     "float", "float32", "float64",
     "bool", "char", "string",
 
+    # Those types are not built-in, and instead come from C++ interop
+    # wraphelp, but I don't want to complicate hcparse implementation, so I
+    # add them here.
+    "cchar32", "cchar16", "cwchar",
+
+    "seq", "set", "auto", "any", "void"
+  ]
+
+  const nameSet = toHashSet [
     "clong",
     "culong",
     "cchar",
@@ -184,16 +193,10 @@ func isReservedNimType*(str: string): bool =
     "cuint",
     "culonglong",
 
-    # Those types are not built-in, and instead come from C++ interop
-    # wraphelp, but I don't want to complicate hcparse implementation, so I
-    # add them here.
-    "cchar32", "cchar16", "cwchar",
-
-    "cstring", "openarray", "cstringarray", "seq", "set", "auto", "any",
-    "void"
+    "cstring", "openarray", "cstringarray", 
   ]
 
-  nimNorm(str) in nameSet
+  str in exactNames or nimNorm(str) in nameSet
 
 func isReservedNimIdent*(str: string): bool =
   const reserved = toHashSet [
@@ -238,95 +241,171 @@ proc fixIdentName*(str: string, prefix: string): string =
     result = keepNimIdentChars(str)
 
 type
-  NameFixStrategy = enum
+  NameFixStrategy* = enum
     nfsPrependText
     nfsAppendText
     nfsNumerateNew
     nfsDescribeDiff
 
-proc fixIdentName*(
-    str, prefix: string,
-    cache: var StringNameCache,
-    requirePrefix: bool = false,
-    lower: bool = true,
-    strategy: NameFixStrategy = nfsPrependText
+  NameFixConf* = object
+    fixWith*: proc(str: string, isType: bool): string
+    strat*: NameFixStrategy
+    prefix*: string
+    requirePrefix*: bool
+    isType*: bool
+
+proc fixDuplicated*(
+    cache: var StringNameCache, 
+    original, generated: string,
+    conf: NameFixConf
   ): string =
+  result = generated
+  case conf.strat:
+    of nfsDescribeDiff:
+      raise newImplementError()
+
+    of nfsNumerateNew:
+      let count = cache.generatedCount(result)
+      cache.numerateGenerated(result)
+      result = result & $count
+
+    of nfsPrependText, nfsAppendText:
+      if conf.prefix.len == 0:
+        raise newArgumentError(
+          "'", result, "' ident has already been generated, in order to ",
+          "generate new unique result non-empty prefix must be supplied, ",
+          "but `prefix` argument is empty")
+
+      var prefix = conf.prefix
+      if conf.isType:
+        prefix[0] = toUpperAscii(prefix[0])
+
+      else:
+        prefix[0] = toLowerAscii(prefix[0])
+
+
+      while cache.knownGenerated(result):
+        if conf.strat == nfsPrependText:
+          result = prefix & result
+
+        else:
+          result.add prefix
+
+
+proc fixInitial*(
+    str: string, conf: NameFixConf): tuple[res: string, changeFirst: bool] =
+
+  var res: string
+  var changeFirst = true
+  if (not conf.isType and str.isReservedNimWord()) or
+     (str.isReservedNimIdent()):
+    if notNil(conf.fixWith):
+      res = conf.fixWith(str, conf.isType)
+
+    else:
+      assert conf.prefix.len > 0,
+        "Reserved identifiers without existing renames must be " &
+          "converted using prefix."
+
+      res = conf.prefix & keepNimIdentChars(str).capitalizeAscii()
+      while res.isReservedNimWord():
+        res = conf.prefix & res
+
+  elif conf.isType and str.isReservedNimType():
+    changeFirst = false
+    res = str
+
+  elif conf.requirePrefix:
+    res = conf.prefix & str
+    res[conf.prefix.len] = toUpperAscii(res[conf.prefix.len])
+
+  else:
+    if isNil(conf.fixWith):
+      res = str.fixIdentName(conf.prefix)
+
+    else:
+      res = conf.fixWith(str, conf.isType)
+
+  return (res, changeFirst)
+
+
+proc fixIdentName*(
+    cache: var StringNameCache,
+    str: string,
+    conf: NameFixConf
+  ): string =
+
   if cache.knownRename(str):
     return cache.getRename(str)
 
-  if str.isReservedNimWord():
-    assert prefix.len > 0
-    result = prefix & keepNimIdentChars(str).capitalizeAscii()
-    while result.isReservedNimWord():
-      result = prefix & result
+  var (res, changeFirst) = fixInitial(str, conf)
 
-  elif requirePrefix:
-    result = prefix & str
-    result[prefix.len] = toUpperAscii(result[prefix.len])
+  if changeFirst:
+    if conf.isType:
+      res[0] = toUpperAscii(res[0])
 
-  else:
-    result = str.fixIdentName(prefix)
+    else:
+      res[0] = toLowerAscii(res[0])
 
+  if cache.knownGenerated(res):
+    res = cache.fixDuplicated(str, res, conf)
 
-  if lower:
-    result[0] = toLowerAscii(result[0])
+  cache.newRename(str, res)
+  return res
 
-  else:
-    result[0] = toUpperAscii(result[0])
+proc fixIdentName*(
+    c: var StringNameCache,
+    str: string,
+    fixWith: proc(str: string, isType: bool): string,
+    strat: NameFixStrategy = nfsNumerateNew
+ ): string =
+ c.fixIdentName(str, NameFixConf(
+   isType: false,
+   strat: strat,
+   fixWith: fixWith))
 
-  if cache.knownGenerated(result):
-    case strategy:
-      of nfsDescribeDiff:
-        raise newImplementError()
-
-      of nfsNumerateNew:
-        let count = cache.generatedCount(result)
-        cache.numerateGenerated(result)
-        result = result & $count
-
-      of nfsPrependText, nfsAppendText:
-        if prefix.len == 0:
-          raise newArgumentError(
-            "'", result, "' ident has already been generated, in order to ",
-            "generate new unique result non-empty prefix must be supplied, ",
-            "but `prefix` argument is empty")
-
-        var prefix = prefix
-        if lower:
-          prefix[0] = toLowerAscii(prefix[0])
-
-        else:
-          prefix[0] = toUpperAscii(prefix[0])
-
-
-        while cache.knownGenerated(result):
-          if strategy == nfsPrependText:
-            result = prefix & result
-
-          else:
-            result.add prefix
-
-  cache.newRename(str, result)
-
+proc fixTypeName*(
+    c: var StringNameCache,
+    str: string,
+    fixWith: proc(str: string, isType: bool): string,
+    strat: NameFixStrategy = nfsNumerateNew
+ ): string =
+ c.fixIdentName(str, NameFixConf(
+   isType: true,
+   strat: strat,
+   fixWith: fixWith))
 
 proc fixIdentName*(
     c: var StringNameCache, str, prefix: string,
     requirePrefix: bool = false
  ): string =
- fixIdentName(str, prefix, c, requirePrefix, lower = true, nfsPrependText)
+ c.fixIdentName(
+   str, NameFixConf(prefix: prefix, requirePrefix: requirePrefix, strat: nfsPrependText))
 
 proc fixTypeName*(
     c: var StringNameCache, str, prefix: string,
     requirePrefix: bool = false
  ): string =
- fixIdentName(str, prefix, c, requirePrefix, lower = false, nfsPrependText)
+ c.fixIdentName(str, NameFixConf(
+   prefix: prefix,
+   requirePrefix: requirePrefix,
+   strat: nfsPrependText,
+   isType: true))
 
 proc fixIdentName*(c: var StringNameCache, str: string): string =
- fixIdentName(str, "", c, false, lower = true, nfsNumerateNew)
+ c.fixIdentName(str, NameFixConf(strat: nfsNumerateNew))
 
 proc fixTypeName*(c: var StringNameCache, str: string): string =
- fixIdentName(str, "", c, false, lower = false, nfsNumerateNew)
+ c.fixIdentName(str, NameFixConf(strat: nfsNumerateNew, isType: true))
 
+proc fixNumerateTypeName*(
+    c: var StringNameCache, str: string, prefix: string): string =
+ c.fixIdentName(
+   str, NameFixConf(prefix: prefix, isType: true, strat: nfsNumerateNew))
+
+proc fixNumerateIdentName*(c: var StringNameCache, str: string, prefix: string): string =
+ c.fixIdentName(
+   str, NameFixConf(prefix: prefix, isType: false, strat: nfsNumerateNew))
 
 proc fixNimTypeName*(str: string, useReserved: bool = true): string =
   ## Convert possibly reserved type identifier `str` to string by

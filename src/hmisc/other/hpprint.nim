@@ -246,7 +246,7 @@ proc newPPrintType*(head: string, isVariant: bool = false): PPrintType =
   result.head = head
   result.isVariant = isVariant
 
-proc newPPrintType*[T](obj: typedesc[T]): PPrintType =
+template newPPrintTypeImpl(obj: untyped): untyped =
   let tof = $obj
   let split = tof.splitTokenize({'.', ',', '[', ']', ' '})
 
@@ -267,6 +267,9 @@ proc newPPrintType*[T](obj: typedesc[T]): PPrintType =
 
   result.head = buf
 
+
+proc newPPrintType*[T](obj: typedesc[T]): PPrintType =
+  newPPrintTypeImpl(obj)
 
 var
   instLevel* {.compiletime.}: int = 0
@@ -672,6 +675,26 @@ proc toPprintTree*[T](
 
 #=========  PPrint implementation for general object conversion ==========#
 
+const debugInst = false
+
+var
+  instDepth {.compiletime.}: int
+
+template preInst(t: untyped): untyped =
+  when debugInst:
+    const ii = instantiationInfo()
+    static:
+      inc instDepth
+      echo repeat("  ", instDepth), strutils.alignLeft($instDepth, 3), ">> ",
+        typeof(t), " ", ii.line
+
+template postInst(): untyped =
+  when debugInst:
+    static:
+      # echo repeat("  ", instDepth), "+"
+      dec instDepth
+
+
 proc objectToPprintTree*[
     T: object or ptr object or ref object or tuple or ptr tuple or ref tuple
   ](
@@ -718,6 +741,7 @@ proc objectToPprintTree*[
     for name, value in fieldPairs(entry[]):
       try:
         var err: string
+        preInst(value)
         let res =
           if isErrorDeref(value, err):
             newPPrintNil(value, path, err, conf)
@@ -725,6 +749,8 @@ proc objectToPprintTree*[
           else:
             toPPrintTree(
               value, conf, path & pathElem(ppkField, name))
+
+        postInst()
 
         if res.kind notin {ptkIgnored}:
           result.elements.add((name, res))
@@ -737,8 +763,11 @@ proc objectToPprintTree*[
 
   else:
     for name, value in fieldPairs(entry):
+      preInst(value)
       let res = toPPrintTree(
         value, conf, path & pathElem(ppkField, name))
+
+      postInst()
 
       if res.kind notin {ptkIgnored}:
         result.elements.add((name, res))
@@ -989,7 +1018,10 @@ proc toPprintTree*[T](
           else:
             items(entry[])
         ):
+          preInst(it)
           let res = toPPrintTree(it, conf, path & pathElem(idx))
+          postInst()
+
           assertValid(res)
           if res.kind notin { ptkIgnored }:
             result.elements.add(($idx, res))
@@ -1011,7 +1043,9 @@ proc toPprintTree*[T](
            (entry is ptr tuple)
          ):
 
+      preInst(entry)
       result = objectToPPrintTree(entry, conf, path)
+      postInst()
 
     elif (entry is proc):
       result = newPPrintConst(
