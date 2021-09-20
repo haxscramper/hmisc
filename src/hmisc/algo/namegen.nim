@@ -19,7 +19,7 @@ names.
 ]##
 
 import
-  std/[tables, strutils, sequtils, sets]
+  std/[tables, strutils, sequtils, sets, enumerate]
 
 import
   ./hstring_algo,
@@ -221,7 +221,7 @@ func isReservedNimWord*(str: string): bool =
 # func isValidNimIdent*(str: string): bool =
 #   str.len > 0 and isRevered
 
-proc keepNimIdentChars*(str: string): string =
+func keepNimIdentChars*(str: string): string =
   ## Remove all non-identifier characters and collapse multiple
   ## underscrores into single one. Remove all leading underscores.
   result = str[str.find(AllChars - {'_'}) .. ^1]
@@ -229,7 +229,18 @@ proc keepNimIdentChars*(str: string): string =
   while find(result, "__") != -1:
     result = result.replace("__", "_")
 
-proc fixIdentName*(str: string, prefix: string): string =
+func snakeToCamel*(str: string): string =
+  for idx, text in enumerate(str.split("_")):
+    if idx == 0:
+      result.add text
+
+    else:
+      result.add capitalizeAscii(text)
+  
+
+
+func fixIdentName*(
+    str: string, prefix: string, toCamel: bool = false): string =
   ## Convert possibly reserved identifier `str` to save identfier by
   ## prepending `prefix`.
   if str.isReservedNimWord():
@@ -238,7 +249,11 @@ proc fixIdentName*(str: string, prefix: string): string =
       result = prefix & capitalizeAscii(result)
 
   else:
-    result = keepNimIdentChars(str)
+    if toCamel:
+      result = snakeToCamel(str)
+
+    else:
+      result = keepNimIdentChars(str)
 
 type
   NameFixStrategy* = enum
@@ -250,6 +265,7 @@ type
   NameFixConf* = object
     fixWith*: proc(str: string, isType: bool): string
     strat*: NameFixStrategy
+    toCamel*: bool
     prefix*: string
     requirePrefix*: bool
     isType*: bool
@@ -321,7 +337,7 @@ proc fixInitial*(
 
   else:
     if isNil(conf.fixWith):
-      res = str.fixIdentName(conf.prefix)
+      res = fixIdentName(str, conf.prefix, conf.toCamel)
 
     else:
       res = conf.fixWith(str, conf.isType)
@@ -357,9 +373,11 @@ proc fixIdentName*(
     c: var StringNameCache,
     str: string,
     fixWith: proc(str: string, isType: bool): string,
-    strat: NameFixStrategy = nfsNumerateNew
+    strat: NameFixStrategy = nfsNumerateNew,
+    toCamel: bool = true
  ): string =
  c.fixIdentName(str, NameFixConf(
+   toCamel: toCamel,
    isType: false,
    strat: strat,
    fixWith: fixWith))
@@ -368,44 +386,54 @@ proc fixTypeName*(
     c: var StringNameCache,
     str: string,
     fixWith: proc(str: string, isType: bool): string,
-    strat: NameFixStrategy = nfsNumerateNew
+    strat: NameFixStrategy = nfsNumerateNew,
+    toCamel: bool = true
  ): string =
  c.fixIdentName(str, NameFixConf(
+   toCamel: toCamel,
    isType: true,
    strat: strat,
    fixWith: fixWith))
 
 proc fixIdentName*(
     c: var StringNameCache, str, prefix: string,
-    requirePrefix: bool = false
+    requirePrefix: bool = false,
+    toCamel: bool = true
  ): string =
  c.fixIdentName(
-   str, NameFixConf(prefix: prefix, requirePrefix: requirePrefix, strat: nfsPrependText))
+   str, NameFixConf(
+     prefix: prefix, requirePrefix: requirePrefix,
+     strat: nfsPrependText, toCamel: toCamel))
 
 proc fixTypeName*(
     c: var StringNameCache, str, prefix: string,
-    requirePrefix: bool = false
+    requirePrefix: bool = false,
+    toCamel: bool = true
  ): string =
  c.fixIdentName(str, NameFixConf(
    prefix: prefix,
    requirePrefix: requirePrefix,
-   strat: nfsPrependText,
+   strat: nfsPrependText, toCamel: toCamel,
    isType: true))
 
-proc fixIdentName*(c: var StringNameCache, str: string): string =
- c.fixIdentName(str, NameFixConf(strat: nfsNumerateNew))
+proc fixIdentName*(c: var StringNameCache, str: string,
+    toCamel: bool = true): string =
+ c.fixIdentName(str, NameFixConf(strat: nfsNumerateNew, toCamel: toCamel))
 
-proc fixTypeName*(c: var StringNameCache, str: string): string =
- c.fixIdentName(str, NameFixConf(strat: nfsNumerateNew, isType: true))
+proc fixTypeName*(c: var StringNameCache, str: string,
+    toCamel: bool = true): string =
+ c.fixIdentName(str, NameFixConf(strat: nfsNumerateNew, isType: true, toCamel: toCamel))
 
 proc fixNumerateTypeName*(
-    c: var StringNameCache, str: string, prefix: string): string =
+    c: var StringNameCache, str: string, prefix: string,
+    toCamel: bool = true): string =
  c.fixIdentName(
-   str, NameFixConf(prefix: prefix, isType: true, strat: nfsNumerateNew))
+   str, NameFixConf(prefix: prefix, isType: true, strat: nfsNumerateNew, toCamel: toCamel))
 
-proc fixNumerateIdentName*(c: var StringNameCache, str: string, prefix: string): string =
+proc fixNumerateIdentName*(c: var StringNameCache, str: string, prefix: string,
+    toCamel: bool = true): string =
  c.fixIdentName(
-   str, NameFixConf(prefix: prefix, isType: false, strat: nfsNumerateNew))
+   str, NameFixConf(prefix: prefix, isType: false, strat: nfsNumerateNew, toCamel: toCamel))
 
 proc fixNimTypeName*(str: string, useReserved: bool = true): string =
   ## Convert possibly reserved type identifier `str` to string by

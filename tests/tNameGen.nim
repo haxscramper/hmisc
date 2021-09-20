@@ -59,19 +59,19 @@ suite "Name generation":
   test "Name gen":
     var c: StringNameCache
     check:
-      c.fixIdentName("__pthread_unwind_buf_t", "") == "pthread_unwind_buf_t"
-      c.fixIdentName("_pthread_unwind_buf_t", "f") == "fpthread_unwind_buf_t"
+      c.fixIdentName("__pthread_unwind_buf_t", "") == "pthreadUnwindBufT"
+      c.fixIdentName("_pthread_unwind_buf_t", "f") == "fpthreadUnwindBufT"
 
     expect ArgumentError as err:
       discard c.fixIdentName("___pthread_unwind_buf_t", "")
 
     check:
-      "'pthread_unwind_buf_t'" in err.msg
+      "'pthreadUnwindBufT' ident has already been generated" in err.msg
 
 
     check:
       c.fixIdentName("___pthread_unwind_buf_t", "f") ==
-        "ffpthread_unwind_buf_t"
+        "ffpthreadUnwindBufT"
 
   test "Namegen with custom fixup logic":
     var c: StringNameCache
