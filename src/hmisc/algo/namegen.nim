@@ -221,22 +221,6 @@ func isReservedNimWord*(str: string): bool =
 # func isValidNimIdent*(str: string): bool =
 #   str.len > 0 and isRevered
 
-func keepNimIdentChars*(str: string): string =
-  ## Remove all non-identifier characters and collapse multiple
-  ## underscrores into single one. Remove all leading underscores.
-  result = str[str.find(AllChars - {'_'}) .. ^1]
-  result.delete(AllChars - IdentChars)
-  while find(result, "__") != -1:
-    result = result.replace("__", "_")
-
-func snakeToCamel*(str: string): string =
-  for idx, text in enumerate(str.split("_")):
-    if idx == 0:
-      result.add text
-
-    else:
-      result.add capitalizeAscii(text)
-  
 
 
 func fixIdentName*(
@@ -250,7 +234,7 @@ func fixIdentName*(
 
   else:
     if toCamel:
-      result = snakeToCamel(str)
+      result = snakeToCamelCase(str)
 
     else:
       result = keepNimIdentChars(str)
@@ -262,8 +246,9 @@ type
     nfsNumerateNew
     nfsDescribeDiff
 
+  NameFixImpl* = proc(str: string, isType: bool): string
   NameFixConf* = object
-    fixWith*: proc(str: string, isType: bool): string
+    fixWith*: NameFixImpl
     strat*: NameFixStrategy
     toCamel*: bool
     prefix*: string
@@ -345,7 +330,7 @@ proc fixInitial*(
   return (res, changeFirst)
 
 
-proc fixIdentName*(
+proc fixName*(
     cache: var StringNameCache,
     str: string,
     conf: NameFixConf
@@ -376,7 +361,7 @@ proc fixIdentName*(
     strat: NameFixStrategy = nfsNumerateNew,
     toCamel: bool = true
  ): string =
- c.fixIdentName(str, NameFixConf(
+ c.fixName(str, NameFixConf(
    toCamel: toCamel,
    isType: false,
    strat: strat,
@@ -389,7 +374,7 @@ proc fixTypeName*(
     strat: NameFixStrategy = nfsNumerateNew,
     toCamel: bool = true
  ): string =
- c.fixIdentName(str, NameFixConf(
+ c.fixName(str, NameFixConf(
    toCamel: toCamel,
    isType: true,
    strat: strat,
@@ -400,7 +385,7 @@ proc fixIdentName*(
     requirePrefix: bool = false,
     toCamel: bool = true
  ): string =
- c.fixIdentName(
+ c.fixName(
    str, NameFixConf(
      prefix: prefix, requirePrefix: requirePrefix,
      strat: nfsPrependText, toCamel: toCamel))
@@ -410,7 +395,7 @@ proc fixTypeName*(
     requirePrefix: bool = false,
     toCamel: bool = true
  ): string =
- c.fixIdentName(str, NameFixConf(
+ c.fixName(str, NameFixConf(
    prefix: prefix,
    requirePrefix: requirePrefix,
    strat: nfsPrependText, toCamel: toCamel,
@@ -418,21 +403,21 @@ proc fixTypeName*(
 
 proc fixIdentName*(c: var StringNameCache, str: string,
     toCamel: bool = true): string =
- c.fixIdentName(str, NameFixConf(strat: nfsNumerateNew, toCamel: toCamel))
+ c.fixName(str, NameFixConf(strat: nfsNumerateNew, toCamel: toCamel))
 
 proc fixTypeName*(c: var StringNameCache, str: string,
     toCamel: bool = true): string =
- c.fixIdentName(str, NameFixConf(strat: nfsNumerateNew, isType: true, toCamel: toCamel))
+ c.fixName(str, NameFixConf(strat: nfsNumerateNew, isType: true, toCamel: toCamel))
 
 proc fixNumerateTypeName*(
     c: var StringNameCache, str: string, prefix: string,
     toCamel: bool = true): string =
- c.fixIdentName(
+ c.fixName(
    str, NameFixConf(prefix: prefix, isType: true, strat: nfsNumerateNew, toCamel: toCamel))
 
 proc fixNumerateIdentName*(c: var StringNameCache, str: string, prefix: string,
     toCamel: bool = true): string =
- c.fixIdentName(
+ c.fixName(
    str, NameFixConf(prefix: prefix, isType: false, strat: nfsNumerateNew, toCamel: toCamel))
 
 proc fixNimTypeName*(str: string, useReserved: bool = true): string =

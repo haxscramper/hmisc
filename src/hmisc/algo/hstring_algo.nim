@@ -692,9 +692,39 @@ Split abbreviation as **camelCase** identifier
 func toSnakeCase*(str: string): string =
   str.splitCamel().mapIt(it.toLowerAscii()).join("_")
 
-func toSnakeCamelCase*(str: string): string =
+func toSnakeCamelCase*(str: string): string {.
+    deprecated: "Use `snakeToCamelCase` instead".} =
+
   str.split("_").filterIt(it.len > 0).mapIt(
     it.toLowerAscii().capitalizeAscii()).join("")
+
+func snakeToCamelCase*(str: string): string =
+  str.split("_").filterIt(it.len > 0).mapIt(
+    it.toLowerAscii().capitalizeAscii()).join("")
+
+func keepNimIdentChars*(str: string): string =
+  ## Remove all non-identifier characters and collapse multiple
+  ## underscrores into single one. Remove all leading underscores.
+  result = str[str.find(AllChars - {'_'}) .. ^1]
+  result.delete(AllChars - IdentChars)
+  while find(result, "__") != -1:
+    result = result.replace("__", "_")
+
+# func snakeToCamel*(str: string): string =
+#   var idx = 0
+#   for text in str.split("_"):
+#     if idx == 0:
+#       for ch in text: result.add toLowerAscii(ch)
+
+#     else:
+#       if text.len > 0:
+#         result.add toUpperAscii(text[0])
+#         for ch in text[1..^1]:
+#           result.add toLowerAscii(ch)
+
+#     if text.len > 0:
+#       inc idx
+
 
 func abbrevCamel*(
     abbrSplit: seq[string],
