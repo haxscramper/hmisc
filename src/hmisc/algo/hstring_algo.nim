@@ -4,7 +4,7 @@ import std/[
 ]
 
 import
-  ../core/exceptions,
+  ../core/[exceptions, debug],
   ./hseq_distance
 
 
@@ -167,6 +167,31 @@ func dropPrefix*(str: string, alt: string): string =
     return str[min(alt.len, str.len)..^1]
 
   return str
+
+func dropNormPrefix*(str: string, prefix: string): string =
+  var outStart = 0
+  var inPos = 0
+  var matches = true
+  while outStart < str.len and inPos < prefix.len and matches:
+    if str[outStart] in {'_'}:
+      inc outStart
+
+    elif prefix[inPos] in {'_'}:
+      inc inPos
+
+    elif str[outStart].toLowerAscii() == prefix[inPos].toLowerAscii():
+      inc outStart
+      inc inPos
+
+    else:
+      matches = false
+
+  if inPos == prefix.len:
+    return str[outStart .. ^1]
+
+  else:
+    return str
+
 
 func dropPrefix*(ss: seq[string], patt: StrPart): seq[string] =
   for s in ss:
@@ -699,8 +724,12 @@ func toSnakeCamelCase*(str: string): string {.
     it.toLowerAscii().capitalizeAscii()).join("")
 
 func snakeToCamelCase*(str: string): string =
-  str.split("_").filterIt(it.len > 0).mapIt(
-    it.toLowerAscii().capitalizeAscii()).join("")
+  for chunk in str.split("_"):
+    if chunk.len > 0:
+      result.add capitalizeAscii(chunk)
+
+  # str.split("_").filterIt(it.len > 0).mapIt(
+  #   it.toLowerAscii().capitalizeAscii()).join("")
 
 func keepNimIdentChars*(str: string): string =
   ## Remove all non-identifier characters and collapse multiple
@@ -840,3 +869,76 @@ macro fmt3*(arg: string{lit}): untyped =
   result.strVal = arg.strVal().dedent()
   let fmt = bindSym("fmt")
   result = newCall(fmt, result)
+
+
+type
+  InterpolatedExprKind* = enum
+    ## Describes for `interpolatedFragments` which part of the interpolated
+    ## string is yielded; for example in "str$$$var${expr}"
+
+    iekStr                  ## ``str`` part of the interpolated string
+    iekDollar               ## escaped ``$`` part of the interpolated string
+    iekVar                  ## ``var`` part of the interpolated string
+    iekExpr                 ## ``expr`` part of the interpolated string
+    iekIndex
+
+
+iterator interpolatedExprs*(s: string):
+  tuple[kind: InterpolatedExprKind, value: string] =
+
+  var i = 0
+  var kind: InterpolatedExprKind
+
+  while true:
+    var j = i
+    if j < s.len and s[j] == '$':
+      if j+1 < s.len and s[j+1] == '{':
+        inc j, 2
+        var nesting = 0
+        block curlies:
+          while j < s.len:
+            case s[j]:
+              of '{': inc nesting
+              of '}':
+                if nesting == 0:
+                  inc j
+                  break curlies
+                dec nesting
+              else: discard
+
+            inc j
+          raise newException(ValueError,
+            "Expected closing '}': " & substr(s, i, s.high))
+        inc i, 2 # skip ${
+        kind = iekExpr
+      elif j+1 < s.len and s[j+1] in IdentStartChars:
+        inc j, 2
+        while j < s.len and s[j] in IdentChars: inc(j)
+        inc i # skip $
+        kind = iekVar
+
+      elif j+1 < s.len and s[j+1] == '$':
+        inc j, 2
+        inc i # skip $
+        kind = iekDollar
+
+      elif j + 1 < s.len and s[j + 1] in {'0' .. '9'}:
+        inc j, 2
+        while j < s.len and s[j] in {'0' .. '9'}: inc(j)
+        inc i # skip $
+        kind = iekIndex
+
+      else:
+        raise newException(ValueError,
+          "Unable to parse a variable name at " & substr(s, i, s.high))
+    else:
+      while j < s.len and s[j] != '$': inc j
+      kind = iekStr
+
+    if j > i:
+      # do not copy the trailing } for iekExpr:
+      yield (kind, substr(s, i, j-1-ord(kind == iekExpr)))
+
+    else:
+      break
+    i = j

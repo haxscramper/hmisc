@@ -701,6 +701,11 @@ suite "String helper functions":
     check "--".dropPrefix("-") == "-"
     check "90".dropPrefix({'1', '9'}) == "0"
 
+  test "{dropNormPrefix}":
+    check:
+      dropNormPrefix("wave_contextGet", "waveContext") == "Get"
+      dropNormPrefix("wave_contextGet", "waveContext_") == "Get"
+
   test "{commonPrefix}":
     check @["00"].commonPrefix() == "00"
     check @["--+", "--="].commonPrefix() == "--"
