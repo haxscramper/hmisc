@@ -164,10 +164,10 @@ func newFileSearchError*(
     dirs: seq[string] = directories.mapIt(it.string)
     prefix = dirs.commonPrefix()
     suffix = dirs.dropCommonPrefix().mapIt("'" & it & "'")
-    dirListing = prefix & "{" & suffix.join(",") & "}"
+    dirListing = prefix & "{" & strutils.join(suffix, ",") & "}"
 
   if prefix == "" or dirs.len == 1:
-    dirListing = dirs.mapIt("'" & it & "'").join(", ")
+    dirListing = strutils.join(dirs.mapIt("'" & it & "'"), ", ")
 
   result = newException(
     FileSearchError,
@@ -628,7 +628,7 @@ template splitFileImpl(): untyped {.dirty.} =
   if multidot:
     let tmp = (name & ext).split(".")
     result.name = tmp[0]
-    result.ext = tmp[1..^1].join(".")
+    result.ext = strutils.join(tmp[1..^1], ".")
   else:
     result.name = name
     result.ext = ext.dropPrefix(".")
@@ -1531,7 +1531,7 @@ func addExt*[F: AbsFile | RelFIle](
     let (parent, file, ext) = f.splitFile()
     let exts = ext.split(".")
 
-    var resExt = join(exts[0..^2], ".")
+    var resExt = strutils.join(exts[0..^2], ".")
     if newExt.len > 0:
       resExt &= hstring_algo.addprefix(newExt, ".")
 

@@ -187,6 +187,8 @@ func dropNormPrefix*(str: string, prefix: string): string =
       matches = false
 
   if inPos == prefix.len:
+    while outStart < str.len and str[outStart] in {'_'}: inc outStart
+
     return str[outStart .. ^1]
 
   else:

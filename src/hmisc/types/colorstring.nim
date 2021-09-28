@@ -688,18 +688,18 @@ func toColoredText*(rune: ColoredRuneLine): ColoredText =
 func toColoredText*(str: string, styling: PrintStyling): ColoredText =
   str + styling
 
-converter toColoredText*(str: string): ColoredText =
+converter toColoredText*(str: string): ColoredText {.deprecated.} =
   str + defaultPrintStyling
 
-converter toColoredTextSeq*(str: seq[string]): seq[ColoredText] =
+converter toColoredTextSeq*(str: seq[string]): seq[ColoredText] {.deprecated.} =
   result = newSeqOfCap[ColoredText](str.len)
   for si in str:
     result.add toColoredText(si)
 
-converter toColoredText*(ch: char): ColoredText =
+converter toColoredText*(ch: char): ColoredText {.deprecated.} =
   toColoredText(ch + defaultPrintStyling)
 
-converter toColoredRune*(ch: char): ColoredRune =
+converter toColoredRune*(ch: char): ColoredRune {.deprecated.} =
   ch + defaultPrintStyling
 
 
@@ -730,6 +730,9 @@ func alignRight*(
     result.runes.add padding.repeat(length - text.len)
 
   result.runes.add text.runes
+
+func `|<<`*(s: sink ColoredText, l: int): ColoredText = alignLeft(s, l)
+func `|>>`*(s: sink ColoredText, l: int): ColoredText = alignRight(s, l)
 
 func `==`*(rune: ColoredRune, ch: char): bool =
   rune.rune == Rune(int(ch))

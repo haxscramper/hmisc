@@ -460,7 +460,7 @@ func `$`*[N, K](spec: AstPattern[N, K]): string =
 proc toPath*[N](ast: N, path: seq[int]): string =
   when ast is ref:
     if isNil(ast):
-      return join(path.mapIt("[" & $it & "]"), ".")
+      return strutils.join(path.mapIt("[" & $it & "]"), ".")
 
   mixin `[]`
   proc aux(a: N, path: seq[int]): seq[string] =
@@ -471,7 +471,7 @@ proc toPath*[N](ast: N, path: seq[int]): string =
     elif path.len == 1:
       result.add "[" & $path[0] & "]"
 
-  return join(aux(ast, path), ".")
+  return strutils.join(aux(ast, path), ".")
 
 proc isEmpty*[K](fail: AstCheckFail[K], withNested: bool = true): bool =
   fail.isMissing.not() and

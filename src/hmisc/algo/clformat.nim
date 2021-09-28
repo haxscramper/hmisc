@@ -1424,6 +1424,9 @@ func hShow*(
     else:
       result = toYellow("\"" & str & "\"", opts.colored)
 
+func hshow*(s: cstring, opts: HDisplayOpts = defaultHDisplay): ColoredText =
+  hshow($s, opts)
+
 func hShow*[E: enum](e: E, opts: HDisplayOpts = defaultHDisplay): ColoredText =
   if opts.dropPrefix:
     toGreen(dropLowerPrefix($e), opts.colored)
@@ -1476,6 +1479,13 @@ func wrap*(text: ColoredText, around: ColorTextConvertible): ColoredText =
   result.add around
   result.add text
   result.add around
+
+func joinc*(text: seq[ColoredText], sep: string): ColoredText =
+  for idx, item in pairs(text):
+    if 0 < idx:
+      result.add sep
+
+    result.add item
 
 func getEditVisual*[T](
     src, target: seq[T],

@@ -174,8 +174,10 @@ template last*[T](s: seq[T], item: T): untyped =
 template last2*(s: seq): untyped = s[^1][^1]
 template first*(s: seq): untyped = s[0]
 template clear*(s: seq): untyped = s.setlen(0)
-template empty*(s: seq):
- bool = len(s) == 0
+template empty*(s: seq): bool = len(s) == 0
+
+template `?`*[T](s: seq[T]): bool = len(s) > 0
+template `?`*[T](o: Option[T]): bool = o.isSome()
 
 func dollar*[T](arg: T): string =
   mixin `$`
@@ -221,6 +223,8 @@ macro lit3*(ind: static[int], str: static[string]): untyped =
 
 func add*[A, B](s: var seq[(A, B)], a: A, b: B) = s.add((a, b))
 func add*[A, B, C](s: var seq[(A, B, C)], a: A, b: B, c: C) = s.add((a, b, c))
+
+func clear*[T](o: var Option[T]) = o = none(T)
 
 proc add*[T](s: var seq[T], opt: Option[T]) =
   if opt.isSome():
