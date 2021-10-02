@@ -260,7 +260,18 @@ proc getTestContext(): TestContext =
 proc getTestLogger*(): HLogger =
   getTestContext().logger
 
+proc getTestTempFile*(ext: string): AbsFile =
+  let ctx = getTestContext()
+  var name: string
+  for ch in ctx.lastTest.get().name:
+    if ch in {'a' .. 'z', 'A' .. 'Z'}:
+      name.add ch
 
+    else:
+      name.add '_'
+
+
+  getAppTempFile(name & "." & ext)
 
 
 proc configureDefaultTestContext*(

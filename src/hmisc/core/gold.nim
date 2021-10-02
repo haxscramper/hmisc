@@ -129,6 +129,10 @@ template curIDir*(): untyped =
   bind splitFile
   splitFile(instantiationInfo(fullPaths = true).filename).dir
 
+template currentSourceDir*(): untyped =
+  bind parentDir
+  instantiationInfo(fullPaths = true).filename.parenTdir()
+
 template relToSource*(path: string): untyped =
   bind splitFile, joinPath
   joinPath(splitFile(instantiationInfo(fullPaths = true).filename).dir, path)
@@ -253,6 +257,21 @@ macro `//`*(arg: string): untyped =
 
   quote do:
     {.emit: `lit`.}
+
+macro `///`*(name: static[string], body: untyped): untyped =
+  let
+    lit1 = newLit("/* " & name & " */ /* BEGIN */")
+    lit2 = newLit("/* " & name & " */ /* END */")
+
+  quote do:
+    {.emit: `lit1`.}
+    `body`
+    {.emit: `lit2`.}
+
+template cblock*(name: static[string], body: untyped): untyped =
+  block:
+    /// name:
+      body
 
 macro importx*(imports: untyped): untyped =
   proc aux(tree: NimNode, prefix: seq[NimNode]): seq[seq[NimNode]] =

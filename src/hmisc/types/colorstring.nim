@@ -688,18 +688,18 @@ func toColoredText*(rune: ColoredRuneLine): ColoredText =
 func toColoredText*(str: string, styling: PrintStyling): ColoredText =
   str + styling
 
-converter toColoredText*(str: string): ColoredText {.deprecated.} =
+converter toColoredText*(str: string): ColoredText =
   str + defaultPrintStyling
 
-converter toColoredTextSeq*(str: seq[string]): seq[ColoredText] {.deprecated.} =
+converter toColoredTextSeq*(str: seq[string]): seq[ColoredText] =
   result = newSeqOfCap[ColoredText](str.len)
   for si in str:
     result.add toColoredText(si)
 
-converter toColoredText*(ch: char): ColoredText {.deprecated.} =
+converter toColoredText*(ch: char): ColoredText =
   toColoredText(ch + defaultPrintStyling)
 
-converter toColoredRune*(ch: char): ColoredRune {.deprecated.} =
+converter toColoredRune*(ch: char): ColoredRune =
   ch + defaultPrintStyling
 
 

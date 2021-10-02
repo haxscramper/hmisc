@@ -693,8 +693,7 @@ Split abbreviation as **camelCase** identifier
 
         elif next > start + 1 and
              next < str.high and
-             str[next + 1] notin splitset
-          :
+             str[next + 1] notin splitset:
           dec next
 
       else:
@@ -716,19 +715,33 @@ Split abbreviation as **camelCase** identifier
 
     pos = next + 1
 
+func splitSnake*(str: string): seq[string] =
+  for part in split(str, '_'):
+    if part.len > 0:
+      result.add part
+
+func abbrevSnake*(str: string): string =
+  for part in splitSnake(str):
+    result.add toLowerAscii(part[0])
+
+
+func fixCapitalizeAscii*(str: string): string =
+  ## Capitalize ascii string first character, and lowercase all other.
+  result.add toUpperAscii(str[0])
+  for ch in str[1..^1]:
+    result.add toLowerAscii(ch)
+
 func toSnakeCase*(str: string): string =
   str.splitCamel().mapIt(it.toLowerAscii()).join("_")
 
 func toSnakeCamelCase*(str: string): string {.
     deprecated: "Use `snakeToCamelCase` instead".} =
 
-  str.split("_").filterIt(it.len > 0).mapIt(
-    it.toLowerAscii().capitalizeAscii()).join("")
+  str.splitSnake().mapIt(it.fixCapitalizeAscii()).join("")
 
 func snakeToCamelCase*(str: string): string =
-  for chunk in str.split("_"):
-    if chunk.len > 0:
-      result.add capitalizeAscii(chunk)
+  for part in splitSnake(str):
+    result.add fixCapitalizeAscii(part)
 
   # str.split("_").filterIt(it.len > 0).mapIt(
   #   it.toLowerAscii().capitalizeAscii()).join("")

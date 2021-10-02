@@ -1,8 +1,8 @@
 import
   hmisc/preludes/unittest,
-  hmisc/algo/hparse_pegs
+  hmisc/algo/[hparse_pegs, hstring_algo]
 
-import std/[strutils, strtabs]
+import std/[strutils, strtabs, sequtils]
 
 suite "Base feature tests":
   test "Compile & runtime tests":
@@ -215,6 +215,86 @@ suite "Base feature tests":
           "arg0:0": "Commit",
           "arg0:1": "CommitGraph"
         }) == "needs_refresh"
+
+    proc impl(str: string, patterns: openarray[(string, string)]): string =
+      replaceInterpolAny(str, mapIt(patterns, (peg(it[0]), it[1])))
+
+    proc impl(str: string, patterns: openarray[(Peg, string)]): string =
+      replaceInterpolAny(str, @patterns)
+
+    test "Interpolated replacement with alternatives":
+      check:
+        ## Replace using first alternative
+        impl("A", {"A": "B"}) == "B"
+
+        ## Replace using second alternative
+        impl("A", {"B": "C", "A": "Q"}) == "Q"
+
+        ## No alternatives found, do no modify the text
+        impl("A", {"Z": "__"}) == "A"
+
+        ## Captured text, interpolate replacement
+        impl("A", {"{'A'}": "${toLower}"}) == "a"
+
+    test "Interpolated replacement from list":
+      let list = {
+        "GIT_OBJECT_ANY":                   "goAny",
+        "GIT_OBJECT_INVALID":               "goInvalid",
+        "GIT_OBJECT_COMMIT":                "goCommit",
+        "GIT_OBJECT_TREE":                  "goTree",
+        "GIT_OBJECT_BLOB":                  "goBlob",
+        "GIT_OBJECT_TAG":                   "goTag",
+        "GIT_OBJECT_OFS_DELTA":             "goOfsDelta",
+        "GIT_OBJECT_REF_DELTA":             "goRefDelta",
+        "GIT_REFERENCE_INVALID":            "grInvalid",
+        "GIT_REFERENCE_DIRECT":             "grDirect",
+        "GIT_REFERENCE_SYMBOLIC":           "grSymbolic",
+        "GIT_REFERENCE_ALL":                "grAll",
+        "GIT_BRANCH_LOCAL":                 "gbLocal",
+        "GIT_BRANCH_REMOTE":                "gbRemote",
+        "GIT_BRANCH_ALL":                   "gbAll",
+        "GIT_FILEMODE_UNREADABLE":          "gfUnreadable",
+        "GIT_FILEMODE_TREE":                "gfTree",
+        "GIT_FILEMODE_BLOB":                "gfBlob",
+        "GIT_FILEMODE_BLOB_EXECUTABLE":     "gfBlobExecutable",
+        "GIT_FILEMODE_LINK":                "gfLink",
+        "GIT_FILEMODE_COMMIT":              "gfCommit",
+        "GIT_SUBMODULE_UPDATE_CHECKOUT":    "gsuCheckout",
+        "GIT_SUBMODULE_UPDATE_REBASE":      "gsuRebase",
+        "GIT_SUBMODULE_UPDATE_MERGE":       "gsuMerge",
+        "GIT_SUBMODULE_UPDATE_NONE":        "gsuNone",
+        "GIT_SUBMODULE_UPDATE_DEFAULT":     "gsuDefault",
+        "GIT_SUBMODULE_IGNORE_UNSPECIFIED": "gsiUnspecified",
+        "GIT_SUBMODULE_IGNORE_NONE":        "gsiNone",
+        "GIT_SUBMODULE_IGNORE_UNTRACKED":   "gsiUntracked",
+        "GIT_SUBMODULE_IGNORE_DIRTY":       "gsiDirty",
+        "GIT_SUBMODULE_IGNORE_ALL":         "gsiAll",
+        "GIT_SUBMODULE_RECURSE_NO":         "gsrNo",
+        "GIT_SUBMODULE_RECURSE_YES":        "gsrYes",
+        "GIT_SUBMODULE_RECURSE_ONDEMAND":   "gsrOndemand"
+      }
+
+      let enumPrefixes = @[
+        "GIT_OBJECT",
+        "GIT_REFERENCE",
+        "GIT_BRANCH",
+        "GIT_FILEMODE",
+        "GIT_SUBMODULE_UPDATE",
+        "GIT_SUBMODULE_IGNORE",
+        "GIT_SUBMODULE_RECURSE"
+      ]
+
+      var renameMap: seq[(Peg, string)]
+      for prefix in enumPrefixes:
+        renameMap.add(
+          sequence(term(prefix), *term('_'), capture(*anyChar())),
+          abbrevSnake(prefix) & "${snakeToCamel}"
+        )
+
+      for (inName, outName) in list:
+        check impl(inName, renameMap) == outName
+
+
 
 
 

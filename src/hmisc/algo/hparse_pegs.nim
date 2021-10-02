@@ -19,6 +19,7 @@ const
 type
   PegCaptureRange* = range[1 .. MaxSubpatterns]
   PegMatches* = array[MaxSubpatterns, string]
+  PegReplaceHandler* = proc(match: int, cnt: int, caps: PegMatches): string
 
 type
   PegKind* = enum
@@ -283,46 +284,46 @@ func `!`*(a: Peg): Peg =
   ## constructs a "not predicate" with the PEG `a`
   result = Peg(kind: pkNotPredicate, sons: @[a])
 
-func any*: Peg {.inline.} =
+func anyChar*(): Peg {.inline.} =
   ## constructs the PEG `any character`:idx: (``.``)
   result = Peg(kind: pkAny)
 
-func anyRune*: Peg {.inline.} =
+func anyRune*(): Peg {.inline.} =
   ## constructs the PEG `any rune`:idx: (``_``)
   result = Peg(kind: pkAnyRune)
 
-func newLine*: Peg {.inline.} =
+func newLine*(): Peg {.inline.} =
   ## constructs the PEG `newline`:idx: (``\n``)
   result = Peg(kind: pkNewLine)
 
-func unicodeLetter*: Peg {.inline.} =
+func unicodeLetter*(): Peg {.inline.} =
   ## constructs the PEG ``\letter`` which matches any Unicode letter.
   result = Peg(kind: pkLetter)
 
-func unicodeLower*: Peg {.inline.} =
+func unicodeLower*(): Peg {.inline.} =
   ## constructs the PEG ``\lower`` which matches any Unicode lowercase letter.
   result = Peg(kind: pkLower)
 
-func unicodeUpper*: Peg {.inline.} =
+func unicodeUpper*(): Peg {.inline.} =
   ## constructs the PEG ``\upper`` which matches any Unicode uppercase letter.
   result = Peg(kind: pkUpper)
 
-func unicodeTitle*: Peg {.inline.} =
+func unicodeTitle*(): Peg {.inline.} =
   ## constructs the PEG ``\title`` which matches any Unicode title letter.
   result = Peg(kind: pkTitle)
 
-func unicodeWhitespace*: Peg {.inline.} =
+func unicodeWhitespace*(): Peg {.inline.} =
   ## constructs the PEG ``\white`` which matches any Unicode
   ## whitespace character.
   result = Peg(kind: pkWhitespace)
 
-func startAnchor*: Peg {.inline.} =
+func startAnchor*(): Peg {.inline.} =
   ## constructs the PEG ``^`` which matches the start of the input.
   result = Peg(kind: pkStartAnchor)
 
-func endAnchor*: Peg {.inline.} =
+func endAnchor*(): Peg {.inline.} =
   ## constructs the PEG ``$`` which matches the end of the input.
-  result = !any()
+  result = !anyChar()
 
 func capture*(a: Peg): Peg =
   ## constructs a capture with the PEG `a`
@@ -1391,10 +1392,12 @@ proc parallelReplace*(s: string, subs: varargs[
   # copy the rest:
   add(result, substr(s, i))
 
-proc replace*(s: string, sub: Peg, cb: proc(
-              match: int, cnt: int, caps: PegMatches): string,
-              env: proc(s: string): string = nil
-              ): string =
+proc replace*(
+    s: string, 
+    sub: Peg, 
+    cb: proc(match: int, cnt: int, caps: PegMatches): string, 
+    env: proc(s: string): string = nil
+  ): string =
   ## Replaces `sub` in `s` by the resulting strings from the callback. The
   ## callback proc receives the index of the found match (starting from 0)
   ## the count of captures and an open array with the captures of each
@@ -1439,24 +1442,26 @@ proc replace*(s: string, sub: Peg, cb: proc(
       inc(m)
   add(result, substr(s, i))
 
-const defaultReplacementCalls: Table[string, proc(arg: string): string] = toTable({
+const defaultReplacementCalls:
+  Table[string, proc(arg: string): string] = toTable({
+
   "toLower": proc(s: string): string {.closure.} = toLowerAscii(s),
   "toUpper": proc(s: string): string {.closure.} = toUpperAscii(s),
+  "snakeToCamel": proc(s: string): string {.closure.} = snakeToCamelCase(s)
 })
 
-proc replaceInterpol*(
-    s: string,
-    sub: Peg,
+proc interpolHandler(
     expr: string,
-    exprCalls: Table[string, proc(arg: string): string] = defaultReplacementCalls,
-    env: proc(s: string): string = nil
-  ): string =
+    exprCalls: Table[
+      string, proc(arg: string): string] = defaultReplacementCalls
+  ): PegReplaceHandler =
+
 
   var interpolated: seq[tuple[kind: InterpolatedExprKind, value: string]]
   for fragment in interpolatedExprs(expr):
     interpolated.add fragment
 
-  proc handler(match: int, cnt: int, caps: PegMatches): string =
+  return proc(match: int, cnt: int, caps: PegMatches): string =
     var partIndex = 0
     var exprIndex = 0
     for (kind, value) in interpolated:
@@ -1472,7 +1477,72 @@ proc replaceInterpol*(
 
       inc partIndex
 
+
+proc replaceInterpol*(
+    s: string,
+    sub: Peg,
+    expr: string,
+    exprCalls: Table[string, proc(arg: string): string] = defaultReplacementCalls,
+    env: proc(s: string): string = nil
+  ): string =
+
+  let handler = interpolHandler(expr, exprCalls)
   return replace(s, sub, handler, env)
+
+proc replaceInterpolAny*(
+    s: string,
+    replaceMap: seq[tuple[peg: Peg, expr: PegReplaceHandler]],
+    exprCalls: Table[string, proc(arg: string): string] = defaultReplacementCalls,
+    env: proc(s: string): string = nil
+  ): string =
+
+  var matched = false
+  block matchSearch:
+    for (peg, impl) in replaceMap:
+      var
+        temp: string
+        start = 0
+        captures: Captures
+        caps: PegMatches
+
+      while start < len(s):
+        captures.ml = 0
+        let matchLen = rawMatch(s, peg, start, captures, env)
+        if matchLen < 0:
+          temp.add s[start]
+          inc start
+
+        else:
+          fillMatches(s, caps, captures)
+          temp.add impl(0, captures.ml, caps)
+          inc(start, matchLen)
+          result = temp
+          result.add s[start .. ^1]
+          matched = true
+
+      if matched:
+        break matchSearch
+
+    if not matched:
+      result = s
+
+proc toReplaceHandlerMap*(
+    replaceMap: seq[tuple[peg: Peg, expr: string]],
+    exprCalls: Table[string, proc(arg: string): string] = defaultReplacementCalls
+  ): seq[(Peg, PegReplaceHandler)] =
+  for (peg, expr) in replaceMap:
+    result.add((peg, interpolHandler(expr, exprCalls)))
+
+
+proc replaceInterpolAny*(
+    s: string,
+    replaceMap: seq[tuple[peg: Peg, expr: string]],
+    exprCalls: Table[string, proc(arg: string): string] = defaultReplacementCalls,
+    env: proc(s: string): string = nil
+  ): string =
+
+  return replaceInterpolAny(s,
+    toReplaceHandlerMap(replaceMap, exprCalls), exprCalls, env)
 
 when not defined(js):
   proc transformFile*(infile, outfile: string,
@@ -2123,7 +2193,7 @@ proc primary(p: var PegParser): Peg =
       eat(p, tkCurlyRi)
       inc(p.captures)
     of tkAny:
-      result = any().token(p)
+      result = anyChar().token(p)
       getTok(p)
     of tkAnyRune:
       result = anyRune().token(p)
