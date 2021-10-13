@@ -260,19 +260,35 @@ proc getTestContext(): TestContext =
 proc getTestLogger*(): HLogger =
   getTestContext().logger
 
-proc getTestTempFile*(ext: string): AbsFile =
-  let ctx = getTestContext()
-  var name: string
-  for ch in ctx.lastTest.get().name:
+
+func keep(s: string): string =
+  for ch in s:
     if ch in {'a' .. 'z', 'A' .. 'Z'}:
-      name.add ch
+      result.add ch
 
     else:
-      name.add '_'
+      result.add '_'
 
+proc getScopeName(): string =
+  let ctx = getTestContext()
+  if ctx.lastTest.isSome():
+    ctx.lastTest.get().name
 
-  getAppTempFile(name & "." & ext)
+  else:
+    ctx.lastsuite.get().name
 
+proc getTestTempFile*(ext: string): AbsFile =
+  getAppTempFile(getScopeName().keep() & "." & ext)
+
+proc getTestTempFile*(name, ext: string): AbsFile =
+  let dir = getAppTempDir() / RelDir(getScopeName().keep())
+  if not exists(dir):
+    mkDir dir
+
+  return dir /. RelFile(name & "." & ext)
+
+proc getTestTempDir*(): AbsDir =
+  getAppTempDir() / getScopeName().keep()
 
 proc configureDefaultTestContext*(
     skipAfterException: bool = false,

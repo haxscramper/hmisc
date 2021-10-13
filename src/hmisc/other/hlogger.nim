@@ -738,7 +738,8 @@ proc logStackTrace*(
     let source = source and exists(AbsFile $tr.filename)
     logger.debug (filePref) & " " &
       $($tr.procname).toYellow() &
-      tern(source, "", " " & $tr.line)
+      tern(source, "", " " & $tr.line) &
+      tern(idx == maxIdx, $toCyan(" <<" & $e.name & ">> "), "")
 
     if filename == "":
       continue

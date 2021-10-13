@@ -1221,6 +1221,12 @@ func add*(
 
   updateSizes(target)
 
+func makeAlignedGrid*(blocks: seq[LytBlock]): LytBlock =
+  for b in blocks:
+    assertKind(b, {bkStack})
+
+  raise newImplementError("Aligned grid")
+
 #============================  Layout logic  =============================#
 
 proc doOptLayout*(
@@ -1702,12 +1708,22 @@ template joinItBlock*(
   res.addItBlock(item, expr, join)
   res
 
-proc toLayouts*(bl: LytBlock, opts: LytOptions = defaultFormatOpts): seq[Layout] =
+proc toLayouts*(
+    bl: LytBlock, opts: LytOptions = defaultFormatOpts): seq[Layout] =
+
+  if (bl of {bkStack, bkLine, bkChoice} and bl.elements.len == 0) or
+     (bl of {bkWrap} and bl.wrapElements.len == 0):
+    raise newArgumentError(
+      "Invalid combinator layout block passed - no nested elements ",
+      "specified, so layout is impossible. Block kind - ",
+      bl.kind
+    )
+
   var bl = bl
   let sln = none(LytSolution).withResIt do:
     bl.doOptLayout(it, opts)
 
-  assert sln.isSome(), "Could not perform layout for block " & $bl
+  assertOption(sln, "Could not perform layout for block " & $bl)
 
   return sln.get().layouts
 
@@ -1717,14 +1733,18 @@ proc toString*(
     opts: LytOptions = defaultFormatOpts
   ): string =
 
-  var bl = bl
-  let opts = opts.withIt do:
-    it.rightMargin = rightMargin
+  if bl of bkEmpty:
+    return ""
 
-  var console: OutConsole
-  let lyt = bl.toLayouts()[0]
-  lyt.printOn(console)
-  return console.outStr
+  else:
+    var bl = bl
+    let opts = opts.withIt do:
+      it.rightMargin = rightMargin
+
+    var console: OutConsole
+    let lyt = bl.toLayouts()[0]
+    lyt.printOn(console)
+    return console.outStr
 
 
 

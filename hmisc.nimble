@@ -13,7 +13,7 @@ when (1, 2, 2) < (NimMajor, NimMinor, NimPatch):
     "hmisc/scripts/hmisc_putils" : "hmisc-putils"
   }.toTable()
 
-requires "nim >= 1.4.0 <= 1.4.8"
+requires "nim >= 1.4.8"
 requires "fusion"
 requires "benchy >= 0.0.1"
 requires "jsony >= 1.0.4"

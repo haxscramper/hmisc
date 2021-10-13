@@ -14,6 +14,7 @@ template startHaxComp*() =
   static:
     doLog = true
 
+proc getHax*(): bool = doLogRuntime
 proc startHax*() = doLogRuntime = true
 proc stopHax*() = doLogRuntime = false
 
@@ -272,6 +273,12 @@ template globalTick*(): untyped =
     var tick {.global.}: int = -1
     inc tick
     tick
+
+template globalTick*(name: untyped): untyped =
+  block:
+    var name {.global, exportc.}: int = -1
+    inc name
+    name
 
 template here*(expr: untyped = ""): string =
   let (file, column, _) = instantiationInfo()

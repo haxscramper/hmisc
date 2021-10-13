@@ -1,4 +1,4 @@
-import std/[macros, strutils, options]
+import std/[macros, strutils, options, tables]
 export options
 
 ## Commonly used exceptions definitions. More target-specific errors are
@@ -76,6 +76,15 @@ type
 
 proc newLogicError*(msg: varargs[string, `$`]): ref LogicError =
   newException(LogicError, msg.join(""))
+
+template logicAssert*(cond: untyped, msg: string): untyped =
+  {.line: instantiationInfo(fullPaths = true).}:
+    if not cond:
+      raise newLogicError(
+        "Condition failed ",
+        astToStr(cond),
+        " evaluated as 'false'. ",
+        msg)
 
 proc newArgumentError*(msg: varargs[string, `$`]): ref ArgumentError =
   newException(ArgumentError, msg.join(""))
@@ -202,8 +211,17 @@ template assertRef*(expr: typed, onFail: string = ""): untyped {.dirty.} =
   mixin isNil
   when not defined(release):
     if isNil(expr):
+      let value =
+        when (expr is proc):
+          " ."
+
+        else:
+          " (" & $cast[int](expr) & ")."
+
+
+
       let msg = "expression '" & astToStr(expr) & "' of type '" &
-        $typeof(expr) & "' is nil. " & onFail
+        $typeof(expr) & "' is nil" & value & onFail
       {.line: instantiationInfo(fullPaths = true)}:
         raise (ref NilArgumentError)(msg: msg)
 
@@ -223,6 +241,16 @@ func getOr*[T](opt: Option[T], onFail: string): T =
   else:
     raise (ref NoneArgumentError)(
       msg: "Cannot get value from none - " & onFail)
+
+func getOr*[K, V](table: Table[K, V], key: K, onFail: string): V =
+  if key in table:
+    return table[key]
+
+  else:
+    raise (ref GetterError)(
+      msg: "Cannot get value for key" & (
+        when compiles($key):  " " & $key else: ""
+      ) & " - " & onFail)
 
 template assertRefFields*[T](
     item: T, onFail: string = "string") {.dirty.} =

@@ -95,8 +95,15 @@ func newRename*(
 
   let norm = nimNorm(baseName, not exact)
   if norm in cache.renames:
-    raise newArgumentError(
-      "Rename for ", baseName, " already exists in cache")
+    if cache.renames[norm] == newName:
+      discard
+
+    else:
+      raise newArgumentError(
+        "Rename for ", baseName,
+        " already exists in cache, but maps to a different name. ",
+        "Current mapping is {'", norm, "': '", cache.renames[norm],
+        "'}, but new one is {'", norm, "': '", newName)
 
   else:
     cache.renames[norm] = newName
@@ -157,6 +164,13 @@ func commonPrefix*[T](seqs: seq[seq[T]]): seq[T] =
         result = result[0 ..< prefix]
 
 
+
+func isSharedTypeName*(name: string): bool =
+  const sharedNames = toHashSet [
+    "void", "int", "float", "bool", "char", # ...
+  ]
+
+  return name in sharedNames
 
 func isReservedNimType*(str: string): bool =
   const exactNames = toHashSet [
@@ -304,9 +318,11 @@ proc fixInitial*(
       res = conf.fixWith(str, conf.isType)
 
     else:
-      assert conf.prefix.len > 0,
-        "Reserved identifiers without existing renames must be " &
-          "converted using prefix."
+      if not (0 < conf.prefix.len):
+        raise newArgumentError(
+          "Reserved identifiers without existing renames must be ",
+          "converted using prefix, but empty 'prefix' was supplied. ",
+          "identifier was '", str, "'")
 
       res = conf.prefix & keepNimIdentChars(str).capitalizeAscii()
       while res.isReservedNimWord():

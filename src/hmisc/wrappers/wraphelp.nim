@@ -91,3 +91,20 @@ iterator pairs*[T](arr: PUarray[T], size: int): (int, T) =
 
 template subArrayPtr*[T](arr: PUArray[T], idx: SomeInteger): PUarray[T] =
   toPUarray(toPtr(arr) + idx)
+
+
+proc setcast*[I: uint8 | uint16 | uint32 | uint64; E](s: set[E]): I =
+  static:
+    assert sizeof(s) <= sizeof(I),
+     "Set cast integer size mismatch - sizeof(" & $I & ") was " & $sizeof(I) &
+       ", while size of the " & $set[E] & " is " & $sizeof(s) &
+       ". Correct target type for the set would be " & (
+         case sizeof(s):
+           of 1: "uint8 or more"
+           of 2: "uint16 or more"
+           of 3: "uint32 or more"
+           of 4: "uint64 or more"
+           else: "byte array array[" & $(sizeof(s) div 8) & ", uint8]"
+       )
+
+  return cast[I](s)

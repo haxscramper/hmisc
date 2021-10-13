@@ -128,11 +128,15 @@ func newHGraph*[N, E](
   )
 
 func copyStructureHGraph*[N, E](graph: HGraph[N, E]): HGraph[N, E] =
+  ## Create graph with deep copy of the original structure, without copying
+  ## node and edge map
   HGraph[N, E](
     structure: deepCopy(graph.structure),
     edgeMap: graph.edgeMap,
     nodeMap: graph.nodeMap
   )
+
+
 
 func withMap*[N1, N2, E](
     graph: HGraph[N1, E], map: HNodeMap[N2]): HGraph[N2, E] =
@@ -159,6 +163,14 @@ func incl*(s: var HNodeSet, node: HNodeSet) =
 
 func incl*(s: var HEdgeSet, edge: HEdgeSet) =
   s.intSet.incl edge.intSet
+
+func union*(s1: sink HNodeSet, s2: HNodeSet): HNodeSet =
+  result = s1
+  result.incl s2
+
+func union*(s1: sink HEdgeSet, s2: HEdgeSet): HEdgeSet =
+  result = s1
+  result.incl s2
 
 func excl*(s: var HNodeSet, node: HNode) = s.intSet.excl node.id.int
 func excl*(s: var HNodeSet, s2: HNodeSet) = s.intSet.excl s2.intSet
@@ -356,8 +368,11 @@ func add*[E](map: var HEdgeMap[E], value: E, edge: HEdge) =
     map.reverseMap.mgetOrPut(value, @[]).add edge
 
 
-func edgeCount*[N, E](graph: HGraph[N, E]): int = graph.edgeMap.len
-func nodeCount*[N, E](graph: HGraph[N, E]): int = graph.nodeMap.len
+func edgeCount*[N, E](graph: HGraph[N, E]): int =
+  graph.structure.edgeMap.len
+
+func nodeCount*[N, E](graph: HGraph[N, E]): int =
+  graph.structure.nodeSet.len
 
 func inDeg*[N, E](graph: HGraph[N, E], node: HNode): int {.inline.} =
   ## Return in degree for @arg{node}
@@ -407,14 +422,26 @@ proc addOrGetNode*[N, E](graph: var HGraph[N, E], value: N):
   else:
     return graph.addNode(value)
 
+func addEdge*(
+    structure: var HGraphStructure, source, target: HNode,
+    edge: HEdge
+  ) =
+  assert source in structure.nodeSet
+  assert target in structure.nodeSet
+
+  structure.edgeMap[edge.id] = (source, target)
+  structure.outgoingIndex.mgetOrPut(source.id, HEdgeSet()).incl edge
+  structure.ingoingIndex.mgetOrPut(target.id, HEdgeSet()).incl edge
+
+func addNode*(structure: var HGraphStructure, node: HNode) =
+  structure.nodeSet.incl node
+
 template addEdgeImpl(N, E, post: untyped): untyped {.dirty.} =
   result = HEdge(id: HEdgeId(graph.newId()))
 
   post
 
-  graph.structure.edgeMap[result.id] = (source, target)
-  graph.structure.outgoingIndex.mgetOrPut(source.id, HEdgeSet()).incl result
-  graph.structure.ingoingIndex.mgetOrPut(target.id, HEdgeSet()).incl result
+  graph.structure.addEdge(source, target, result)
 
   # if not graph.isDirected():
 
@@ -648,12 +675,12 @@ iterator adjacent*[N, E](graph: HGraph[N, E], node: HNode): HNode =
 
 iterator edges*[N, E](graph: HGraph[N, E]): HEdge =
   ## Iterate over all edges in graph
-  for edge, value in pairs(graph.edgeMap):
-    yield edge
+  for edge, _ in pairs(graph.structure.edgeMap):
+    yield HEdge(id: edge)
 
 iterator nodes*[N, E](graph: HGraph[N, E]): HNode =
   ## Iterate over all nodes in graph
-  for node, value in pairs(graph.nodeMap):
+  for node in items(graph.structure.nodeSet):
     yield node
 
 proc nodeSet*[N, E](graph: HGraph[N, E]): HNodeSet =
@@ -666,19 +693,91 @@ iterator nodesId*[N, E](graph: HGraph[N, E]): int =
   for id, _ in pairs(graph.nodeMap):
     yield id
 
+func copySubStructure*[N, E](
+    graph: HGraph[N, E],
+    nodes: HNodeSet,
+    edges: HEdgeSet = HEdgeSet(),
+    inferEdges: bool = true,
+    inferNodes: bool = false
+  ): HGraph[N, E] =
+  ## Create new graph with subset of the based graph nodes and edges
+
+  result = newHGraph[N, E]()
+  result.edgeMap = graph.edgeMap
+  result.nodeMap = graph.nodeMap
+
+  for node in nodes:
+    result.structure.addNode(node)
+
+  # for edge in edges(result):
+  #   if edge.id.int == 2950:
+  #     echov "readded edge"
+
+  if inferEdges:
+    for edge in graph.edges():
+      let source = graph.source(edge)
+      let target = graph.target(edge)
+
+      # if edge.id.int == 2950:
+      #   echov "edge"
+      #   echov target in nodes
+      #   echov source in nodes
+
+      if target in nodes and source in nodes:
+        result.structure.addEdge(source, target, edge)
+
+  # for edge in edges(result):
+  #   if edge.id.int == 2950:
+  #     echov "readded edge"
+
+  for edge in edges:
+    let source = graph.source(edge)
+    let target = graph.target(edge)
+
+    if target notin nodes:
+      if not inferNodes:
+        raise newArgumentError(
+          "Invalid substructure specified - edge target node is not ",
+          "in the input node set")
+
+      else:
+        result.structure.addNode(target)
+
+    if source notin nodes:
+      if not inferNodes:
+        raise newArgumentError(
+          "Invalid substructure specified - edge source node is not ",
+          "in the input node set")
+
+      else:
+        result.structure.addNode(source)
+
+    result.structure.addEdge(source, target, edge)
+
+
 proc `$`*[N, E](graph: HGraph[N, E]): string =
   var count: int = 0
+  var map: seq[(string, string, string)]
   for edge in edges(graph):
-    if count > 0:
+    map.add(($graph.sourceVal(edge), $graph[edge], $graph.targetVal(edge)))
+
+  map = map.sortedByIt(it[0])
+  var sourcew = 0
+  for it in map: sourcew = max(sourcew, it[0].len)
+
+  var edgew = 0
+  for it in map: edgew = max(edgew, it[1].len)
+
+  for idx, line in map:
+    if idx > 0:
       result.add "\n"
 
-    result.add $graph.sourceVal(edge)
-    result.add " -[ "
-    result.add $graph[edge]
-    result.add " ]-> "
-    result.add $graph.targetVal(edge)
+    result.add alignLeft(line[0], sourcew)
+    result.add " -["
+    result.add alignLeft(line[1], edgeW)
+    result.add "]-> "
+    result.add line[2]
 
-    inc count
 
 
 template depthFirstAux(): untyped {.dirty.} =

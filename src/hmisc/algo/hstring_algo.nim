@@ -17,6 +17,10 @@ type
     spkSet
     spkSubstr
 
+  IdentStyle* = enum
+    idsSnake
+    idsCamel
+
 
   StrPart* = object
     case kind: StrPartKind

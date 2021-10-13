@@ -107,6 +107,9 @@ type
         sons: seq[Peg]
 
   NonTerminal* = ref NonTerminalObj
+  PegExprReplaceMap* = seq[tuple[peg: Peg, expr: string]]
+  PegCallReplaceMap* = seq[tuple[peg: Peg, expr: PegReplaceHandler]]
+
 
 proc kind*(p: Peg): PegKind = p.kind
   ## Returns the *PegKind* of a given *Peg* object.
@@ -1450,7 +1453,7 @@ const defaultReplacementCalls:
   "snakeToCamel": proc(s: string): string {.closure.} = snakeToCamelCase(s)
 })
 
-proc interpolHandler(
+proc toReplaceHandler*(
     expr: string,
     exprCalls: Table[
       string, proc(arg: string): string] = defaultReplacementCalls
@@ -1486,13 +1489,14 @@ proc replaceInterpol*(
     env: proc(s: string): string = nil
   ): string =
 
-  let handler = interpolHandler(expr, exprCalls)
+  let handler = toReplaceHandler(expr, exprCalls)
   return replace(s, sub, handler, env)
 
 proc replaceInterpolAny*(
     s: string,
     replaceMap: seq[tuple[peg: Peg, expr: PegReplaceHandler]],
-    exprCalls: Table[string, proc(arg: string): string] = defaultReplacementCalls,
+    exprCalls: Table[string, proc(arg: string): string] =
+      defaultReplacementCalls,
     env: proc(s: string): string = nil
   ): string =
 
@@ -1528,10 +1532,11 @@ proc replaceInterpolAny*(
 
 proc toReplaceHandlerMap*(
     replaceMap: seq[tuple[peg: Peg, expr: string]],
-    exprCalls: Table[string, proc(arg: string): string] = defaultReplacementCalls
+    exprCalls: Table[string, proc(arg: string): string] =
+      defaultReplacementCalls
   ): seq[(Peg, PegReplaceHandler)] =
   for (peg, expr) in replaceMap:
-    result.add((peg, interpolHandler(expr, exprCalls)))
+    result.add((peg, toReplaceHandler(expr, exprCalls)))
 
 
 proc replaceInterpolAny*(

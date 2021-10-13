@@ -1156,7 +1156,7 @@ proc toPng*(
     tmpimage: AbsFile = getAPpTempFile("dotTmpImage.png")
   ): void =
   ## Generate file from graph
-
+  assertExists resFile.dir()
   tmpfile.writeFile($graph)
 
   try:

@@ -179,13 +179,9 @@ func newFileSearchError*(
   result.basename = name
   result.extensions = extensions
 
-func newPathError*(
-  entry: FsEntry, kind: PathErrorKind, msg: string): PathError =
-  PathError(msg: msg & " (" & $kind & ")", kind: kind, entry: entry)
-
-template newPathError*(
-  entry: FsEntry, kind: PathErrorKind, msg: typed): PathError =
-  newPathError(entry, kind, fmtJoin msg)
+# template newPathError*(
+#   entry: FsEntry, kind: PathErrorKind, msg: typed): PathError =
+#   newPathError(entry, kind, fmtJoin msg)
 
 template ignorePathErrors*(
   kinds: set[PathErrorKind], body: untyped): untyped =
@@ -308,27 +304,27 @@ macro osOrNims(osCode, nimsCode: untyped): untyped =
     result = nimsCode
 
 
-converter toFsFile*(absFile: AbsFile): FsFile =
+proc toFsFile*(absFile: AbsFile): FsFile =
   result = FsFile(isRelative: false, absFile: absFile)
   if os.fileExists(absFile.string):
     result.info = some os.getFileInfo(absFile.string)
 
-converter toFsFile*(relFile: RelFile): FsFile =
+proc toFsFile*(relFile: RelFile): FsFile =
   result = FsFile(isRelative: true, relFile: relFile)
   if os.fileExists(relFile.string):
     result.info = some os.getFileInfo(relFile.string)
 
-converter toFsFile*(optFile: Option[AnyFile]): Option[FsFile] =
+proc toFsFile*(optFile: Option[AnyFile]): Option[FsFile] =
   if optFile.isSome():
     return some(toFsFile(optFile.get()))
 
-converter toFsDir*(relDir: RelDir): FsDir =
+proc toFsDir*(relDir: RelDir): FsDir =
   FsDir(isRelative: true, relDir: relDir)
 
-converter toFsDir*(absDir: AbsDir): FsDir =
+proc toFsDir*(absDir: AbsDir): FsDir =
   FsDir(isRelative: false, absDir: absDir)
 
-converter toFsDir*(dir: string): FsDir =
+proc toFsDir*(dir: string): FsDir =
   if os.isAbsolute(dir):
     FsDir(isRelative: false, absDir: AbsDir(dir))
 
@@ -336,35 +332,35 @@ converter toFsDir*(dir: string): FsDir =
     FsDir(isRelative: true, relDir: RelDir(dir))
 
 
-converter toFsFileOption*(absFile: Option[AbsFile]): Option[FsFile] =
+proc toFsFileOption*(absFile: Option[AbsFile]): Option[FsFile] =
   if absFile.isSome():
     return some FsFile(isRelative: false, absFile: absFile.get())
 
-converter toFsFileOption*(relFile: Option[RelFile]): Option[FsFile] =
+proc toFsFileOption*(relFile: Option[RelFile]): Option[FsFile] =
   if relFile.isSome():
     return some FsFile(isRelative: true, relFile: relFile.get())
 
-converter toFsDirOption*(absDir: Option[AbsDir]): Option[FsDir] =
+proc toFsDirOption*(absDir: Option[AbsDir]): Option[FsDir] =
   if absDir.isSome():
     return some FsDir(isRelative: false, absDir: absDir.get())
 
-converter toFsDirOption*(relDir: Option[RelDir]): Option[FsDir] =
+proc toFsDirOption*(relDir: Option[RelDir]): Option[FsDir] =
   if relDir.isSome():
     return some FsDir(isRelative: true, relDir: relDir.get())
 
-converter toFsDirSeq*(drs: seq[AbsDir]): seq[FsDir] =
+proc toFsDirSeq*(drs: seq[AbsDir]): seq[FsDir] =
   for d in drs:
     result.add d.toFsDir()
 
-converter toFsDirSeq*(drs: seq[RelDir]): seq[FsDir] =
+proc toFsDirSeq*(drs: seq[RelDir]): seq[FsDir] =
   for d in drs:
     result.add d.toFsDir()
 
-converter toFsFileSeq*(fls: seq[AbsFile]): seq[FsFile] =
+proc toFsFileSeq*(fls: seq[AbsFile]): seq[FsFile] =
   for f in fls:
     result.add f.toFsFile()
 
-converter toFsFileSeq*(fls: seq[RelFile]): seq[FsFile] =
+proc toFsFileSeq*(fls: seq[RelFile]): seq[FsFile] =
   for f in fls:
     result.add f.toFsFile()
 
@@ -411,8 +407,19 @@ proc toFsEntry*(path: string): FsEntry =
     else:
       toFsEntry(RelFile(path), link)
 
-converter toFsEntry*(path: AnyPath): FsEntry =
+proc toFsEntry*(path: AnyPath): FsEntry =
   toFsEntry(path, false)
+
+
+proc newPathError*(
+    entry: AnyPath,
+    kind: PathErrorKind,
+    msg: varargs[string, `$`]
+  ): PathError =
+  PathError(
+    msg: join(msg, "") & " (" & $kind & ")",
+    kind: kind,
+    entry: toFsEntry(entry))
 
 # converter toAbsDir*(str: string): AbsDir =
 #   assert os.isAbsolute(str),
@@ -513,6 +520,8 @@ proc splitDir*(dir: RelDir): tuple[head: RelDir, tail: RelDir] =
 template currentSourceDir*(): AbsDir {.dirty.} =
   splitPath(AbsFile(instantiationInfo(fullPaths = true).filename)).head
 
+template currentAbsSourceDir*(): AbsDir {.dirty.} =
+  splitPath(AbsFile(instantiationInfo(fullPaths = true).filename)).head
 
 
 proc getAbsDir*(path: string): AbsDir =
@@ -709,19 +718,20 @@ proc assertValid*(
     path: AnyPath, msg: string = ""): void =
   if path.getStr().len < 1:
     raise newPathError(
-      path, pekInvalidEntry,
+      toFsEntry(path),
+      pekInvalidEntry,
       "Path validation failed - empty string is not a valid path" & msg
     )
 
   when path is RelPath:
     if os.isAbsolute(path.getStr()):
-      raise newPathError(path, pekExpectedRel): fmtJoin:
+      raise newPathError(toFsEntry(path), pekExpectedRel): fmtJoin:
         "Path '{path.getStr()}' has type {$typeof(path)}, but"
         "contains invalid string - expected relative path. {msg}"
 
   elif path is AbsPath:
     if not os.isAbsolute(path.getStr()):
-      raise newPathError(path, pekExpectedAbs): fmtJoin:
+      raise newPathError(toFsEntry(path), pekExpectedAbs): fmtJoin:
         "Path '{path.getStr()}' has type {$typeof(path)}, but"
         "contains invalid string - expected absolute path {msg}"
 
@@ -1422,11 +1432,14 @@ proc assertExists*(file: AnyFile, onMissing: string = ""): void =
       if file.isRelative:
         msg &= &". Input file {file}, relative to {cwd()}"
 
-      raise newPathError(file, pekExpectedFile, msg)
+      raise newPathError(
+        toFsEntry(file), pekExpectedFile, msg)
 
   if not file.fileExists():
     raise newPathError(
-      file, pekNoSuchEntry, &"No such file '{path.string}'. {onMissing}")
+      toFsEntry(file),
+      pekNoSuchEntry,
+      &"No such file '{path.string}'. {onMissing}")
 
 
 proc assertExists*(dir: AnyDir, onMissing: string = ""): void =
@@ -1445,11 +1458,13 @@ proc assertExists*(dir: AnyDir, onMissing: string = ""): void =
       if dir.isRelative:
         msg &= &". Input dir {dir}, relative to {cwd()}"
 
-      raise newPathError(dir, pekExpectedDir, msg)
+      raise newPathError(toFsEntry(dir), pekExpectedDir, msg)
 
   if not dir.dirExists():
     raise newPathError(
-      dir, pekNoSuchEntry, &"No such directory '{path.string}'. {onMissing}")
+      toFsEntry(dir),
+      pekNoSuchEntry,
+      &"No such directory '{path.string}'. {onMissing}")
 
 
 
@@ -1475,7 +1490,11 @@ proc listDirs*(dir: AnyDir): seq[AbsDir] =
       if kind == pcDir:
         result.add AbsDir(path)
 
-proc listFiles*(dir: AnyDir, exts: seq[string] = @[]): seq[AbsFile] =
+proc listFiles*(
+    dir: AnyDir,
+    exts: seq[string] = @[],
+    ignoreNames: seq[string] = @[]
+  ): seq[AbsFile] =
   ## Lists all the files (non-recursively) in the directory dir.
   when defined(NimScript):
     return system.listFiles(dir)
@@ -1483,9 +1502,9 @@ proc listFiles*(dir: AnyDir, exts: seq[string] = @[]): seq[AbsFile] =
   else:
     for (kind, path) in os.walkDir(dir.getStr()):
       if kind == pcFile and
-         exts.len() == 0 or AbsFile(path).ext() in exts:
+         (exts.len() == 0 or AbsFile(path).ext() in exts) and
+         (ignoreNames.len == 0 or AbsFile(path).name() notin ignoreNames):
         result.add AbsFile(path)
-
 
 proc listAll*(dir: AbsDir): seq[FsEntry] =
   for (kind, path) in os.walkDir(dir.getStr()):
@@ -1697,7 +1716,8 @@ proc appendFile*(file: AnyFile, text: string) =
 proc writeNewFile*(file: AnyFile, text: string) =
   if exists(file):
     raise newPathError(
-      file, pekFileExists,
+      toFsEntry(file),
+      pekFileExists,
       &"Cannot write new file - '{file}' already exists")
 
   else:
@@ -1716,6 +1736,16 @@ proc rmFile*(file: AnyFile) =
     os.removeFile(file.getStr()),
     system.rmFile(file.getStr())
   )
+
+proc rmFiles*(
+    dir: AbsDir,
+    exts: seq[string] = @[],
+    ignoreNames: seq[string] = @[]
+  ) =
+
+  for file in walkDir(dir, AbsFile, exts = exts):
+    if file.name() notin ignoreNames:
+      rmFile file
 
 proc mkDir*(dir: AnyDir | string) =
   ## Creates the directory dir including all necessary subdirectories.

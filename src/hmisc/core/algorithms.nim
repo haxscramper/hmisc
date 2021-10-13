@@ -1,8 +1,9 @@
 import
-  std/[algorithm, sequtils, options]
+  std/[algorithm, sequtils, options, tables]
 
 import
-  ./gold
+  ./gold,
+  ./exceptions
 
 const
   Utf8Any*            = { '\x80' .. '\xFF' }
@@ -16,6 +17,12 @@ const
                         ## Start of the four-byte utf8 rune
   Utf8Starts*         = Utf8Starts2 + Utf8Starts3 + Utf8Starts4
                         ## Start of any utf8 rune
+
+func mgetOrDefault*[K, V](table: var Table[K, V], key: K): var V =
+  if key notin table:
+    table[key] = default(V)
+
+  return table[key]
 
 
 
@@ -240,6 +247,21 @@ func toValSeq*[K, V](map: openarray[(K, V)]): seq[V] =
 func toSet*[E: enum](vals: openarray[E]): set[E] =
   for val in vals:
     result.incl val
+
+func mapEnum*[K: enum; V](
+    key: K,
+    values: static[openarray[(K, V)]]): V =
+
+  const
+    map = toMapArray[K, V](values)
+    keys = toKeySet[K, V](values)
+
+  if key notin keys:
+    raise newUnexpectedKindError(
+      key, "Cannot map enum value - mapping not specified")
+
+  else:
+    return map[key]
 
 func toArrayKeys*[K, V](
     map: openarray[(K, V)], skipDefault: bool = true): seq[K] =
