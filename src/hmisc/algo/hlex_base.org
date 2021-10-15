@@ -1,0 +1,15 @@
+* [[code:macro!scanSlice]]
+
+Similar to string scanning DSL from [[code:std/strscans]]. Generate imperative
+scanning code from more compact DSL and return scanned slice.
+
+- Character group shorthands
+  - @edsl{\N} :: Everything but newline
+  - @edsl{\n} :: Newline
+  - @edsl{\Hex} :: Hex digits
+  - @edsl{\s} :: Horizontal space
+  - @edsl{\Id} :: Identifier characters
+- String scan patterns
+  - @edsl{@<expr>} :: Search in loop until pattern @edsl{<expr>} is found
+  - @edsl{*<expr>} :: Scan zero or more @edsl{<expr>} patterns
+  - @edsl{{<ch1>, <ch2>, ...}} :: Expect any of the character in charset

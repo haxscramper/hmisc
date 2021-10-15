@@ -158,11 +158,11 @@ func joinWords*(
 
 func joinAnyOf*(
     words: seq[ColoredText],
-    quote: char = '\'',
-    prefix: ColoredText = "any of ",
-    empty: ColoredText = "no",
-    sepWord: ColoredText = "or",
-    suffix: ColoredText = ""
+    quote: char          = '\'',
+    prefix: ColoredText  = clt("any of "),
+    empty: ColoredText   = clt("no"),
+    sepWord: ColoredText = clt("or"),
+    suffix: ColoredText  = clt("")
   ): ColoredText =
 
   case words.len:
@@ -833,8 +833,8 @@ func describeSet*[S](
     buf.add toLatinNamedChar(ch).join(" ")
 
   return $joinAnyOf(
-    words = mapIt(buf, toColoredText(it)),
-    empty = "no characters")
+    words = mapIt(buf, clt(it)),
+    empty = clt("no characters"))
 
 func describeCharset*(s: set[char]): string =
   let sets = {
@@ -1340,9 +1340,9 @@ func replaceNewlines*(
 func addIndent*(
     res: var ColoredText,
     level: int, sep: int = 2,
-    prefix: ColoredRune = ' '
+    prefix: ColoredRune = clr(' ')
   ) =
-  if sep == 2 and prefix == ' ':
+  if sep == 2 and prefix == clr(' '):
     case level:
       of 0:  res &=  toColoredTExt("")
       of 1:  res &=  toColoredTExt("  ")
@@ -1380,7 +1380,7 @@ func joinPrefix*(
     pathIndexed, positionIndexed: bool): ColoredText =
 
   if pathIndexed:
-    result = idx.join("", ("[", "]")) & "  "
+    result = clt(idx.join("", ("[", "]")) & "  ")
 
   elif positionIndexed:
     if level > 0:
@@ -1557,7 +1557,7 @@ func stringMismatchMessage*(
   let expected = deduplicate(expected)
 
   if expected.len == 0:
-    return "No matching alternatives"
+    return clt("No matching alternatives")
 
   var results: seq[tuple[
     edits: tuple[distance: int, operations: seq[LevEdit[char]]],
@@ -1581,14 +1581,14 @@ func stringMismatchMessage*(
   if best.edits.distance > int(input.len.float * 0.8):
     result = &"No close matches to {toRed(input, colored)}, possible " &
       namedItemListing(
-        "alternative",
+        clt("alternative"),
         results[0 .. min(results.high, 3)].mapIt(
           it.target.toYellow().wrap("''")),
-        "or"
+        clt("or")
       )
 
   else:
-    result = &"Did you mean to use '{toYellow(best.target, colored)}'?"
+    result = clt(&"Did you mean to use '{toYellow(best.target, colored)}'?")
 
     if fixSuggestion:
       if best.edits.operations.len < min(3, input.len div 2):
@@ -1600,7 +1600,8 @@ func stringMismatchMessage*(
         ) & ")"
 
       else:
-        result &= &" ({toRed(input, colored)} -> {toGreen(best.target, colored)})"
+        result &= clt(
+          &" ({toRed(input, colored)} -> {toGreen(best.target, colored)})")
 
     if showAll and expected.len > 1:
       result &= " ("
@@ -1614,41 +1615,98 @@ func stringMismatchMessage*(
 
 proc colorDollar*[T](arg: T): ColoredText = toColoredText($arg)
 
+func splitKeepSpaces*(str: string): seq[string] =
+  # NOTE copy-pasted from `hstring_algo/splitTokenize`. If any bugs found
+  # here, edit original implementation and copy-paste things back.
+  var prev = 0
+  var curr = 0
+  while curr < str.len:
+    if str[curr] in {' '}:
+      if prev != curr:
+        result.add str[prev ..< curr]
+
+      prev = curr
+      while curr < str.high and str[curr + 1] == str[curr]:
+        inc curr
+
+      result.add str[prev .. curr]
+      inc curr
+      prev = curr
+
+    else:
+      inc curr
+
+  if prev < curr:
+    result.add str[prev ..< curr]
+
 proc formatDiffed*[T](
     shifted: ShiftedDiff,
     oldSeq, newSeq: openarray[T],
-    strConv: proc(t: T): string = dollar[T]
+    strConv: proc(t: T): string = dollar[T],
+    maxUnchanged: int = 5,
+    showLines: bool = false,
+    wordSplit: proc(str: string): seq[string] = splitKeepSpaces
   ): ColoredText =
 
   var
     oldText, newText: seq[ColoredText]
     lhsMax = 0
 
-  template editFmt(fmt: untyped): untyped =
-    case fmt:
-      of dskDelete: "- "
-      of dskInsert: "+ "
-      of dskKeep: "~ "
-      of dskEmpty: "? "
+  let maxLhsIdx = len($shifted.oldShifted[^1].item)
+  let maxRhsIdx = len($shifted.newShifted[^1].item)
+
+  proc editFmt(fmt: DiffShiftKind, idx: int, isLhs: bool): ColoredText =
+    if showLines:
+      let num =
+        if fmt == dskEmpty:
+          alignRight(clt(" "), maxLhsIdx)
+
+        elif isLhs:
+          alignRight(clt($idx), maxLhsIdx)
+
+        else:
+          alignRight(clt($idx), maxRhsIdx)
+
+      case fmt:
+        of dskDelete: "- " & num
+        of dskInsert: "+ " & num
+        of dskKeep: "~ " & num
+        of dskEmpty: "? " & num
+
+    else:
+      case fmt:
+        of dskDelete: clt("- ")
+        of dskInsert: clt("+ ")
+        of dskKeep: clt("~ ")
+        of dskEmpty: clt("? ")
 
 
+  var unchanged = 0
   for (lhs, rhs) in zip(shifted.oldShifted, shifted.newShifted):
-    oldText.add editFmt(lhs[0])
-    newText.add editFmt(rhs[0])
+    var add = false
+    if lhs.kind == dskKeep and rhs.kind == dskKeep:
+      if unchanged < maxUnchanged:
+        add = true
+        inc unchanged
 
-    if lhs[0] == dskDelete and rhs[0] == dskInsert:
+    else:
+      add = true
+      unchanged = 0
+
+    if add:
+      oldText.add editFmt(lhs.kind, lhs.item, true)
+      newText.add editFmt(rhs.kind, rhs.item, false)
+
+    if lhs.kind == dskDelete and rhs.kind == dskInsert:
       let
-        oldSplit = strConv(oldSeq[lhs[1]]).split(" ")
-        newSplit = strConv(newSeq[rhs[1]]).split(" ")
+        oldSplit: seq[string] = wordSplit(strConv(oldSeq[lhs.item]))
+        newSplit: seq[string] = wordSplit(strConv(newSeq[rhs.item]))
 
       let (distance, ops) = levenshteinDistance[string](oldSplit, newSplit)
 
       var oldLine, newLine: Coloredtext
       for idx, op in ops:
-        if idx > 0:
-          oldLine.add ' '
-          newLine.add ' '
-
+        # echov "", (op.kind, oldSplit[op.sourcePos]), "->", (op.kind, newSplit[op.targetPos])
         case op.kind:
           of lekUnchanged:
             oldLine.add oldSplit[op.sourcePos]
@@ -1670,11 +1728,21 @@ proc formatDiffed*[T](
       oldText.last().add oldLine
       newText.last().add newLine
 
-    else:
-      oldText.last().add strConv(oldSeq[lhs[1]])
-      newText.last().add strConv(newSeq[rhs[1]])
+    elif rhs.kind == dskInsert:
+      oldText.last().add strConv(oldSeq[lhs.item])
+      newText.last().add toGreen(strConv(newSeq[rhs.item]))
 
-    lhsMax = max(oldText[^1].len, lhsMax)
+    elif lhs.kind == dskDelete:
+      oldText.last().add strConv(oldSeq[lhs.item]).toRed()
+      newText.last().add strConv(newSeq[rhs.item]).toGreen()
+
+    else:
+      if add:
+        oldText.last().add strConv(oldSeq[lhs.item])
+        newText.last().add strConv(newSeq[rhs.item])
+
+    if add:
+      lhsMax = max(oldText[^1].len, lhsMax)
 
   for (lhs, rhs) in zip(oldtext, newtext):
     result.add alignLeft(lhs, lhsMax + 3)

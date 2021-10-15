@@ -627,7 +627,7 @@ proc logLines*(
       if lineIdx == center:
         toGreen(&"{lineIdx:<4}#>")
       else:
-        &"{lineIdx:<4}  "
+        clt(&"{lineIdx:<4}  ")
 
 
     logger.debug(arrow, colorizeToStr(line, lang))
@@ -722,7 +722,7 @@ proc logStackTrace*(
       ext = ext[1 ..^ 1]
 
     var filePref: ColoredText =
-      toLink(($tr.filename, tr.line, 0), $name.alignLeft(fileW))
+      toLink(($tr.filename, tr.line, 0), $name.alignLeft(fileW)).clt()
 
     if (not foundErr) and idx + 1 < stackEntries.len:
       let next = stackEntries[idx + 1]
@@ -793,7 +793,7 @@ proc loggerErrConverter*(
   state.get().warn(stream.readLine())
 
 proc prettyShellCmd*(cmd: ShellCmd): ColoredText =
-  result = cmd.bin
+  result = clt(cmd.bin)
   let max = 80
 
   var lineLen = cmd.bin.len

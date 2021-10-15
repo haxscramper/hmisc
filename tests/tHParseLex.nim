@@ -1551,6 +1551,7 @@ suite "String scanning DSL":
     check:
       testScan("a\n\n\nb", 'a', *\n, 'b').strVal() == "a\n\n\nb"
       testScan("<___>", '<', @{'>'}, '>').strVal() == "<___>"
+      testScan("A", \N).strVal() == "A"
 
   test "Scan until":
     check:

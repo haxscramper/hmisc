@@ -302,7 +302,7 @@ func cliParse*(
     res = parseInt(arg)
 
   except ValueError as e:
-    result = some CliFail(strMsg: e.msg, kind: cfBadCliValue)
+    result = some CliFail(strMsg: clt(e.msg), kind: cfBadCliValue)
 
 func cliParse*(
   arg: string, res: var float, config: CliParseConfig): Option[CliFail] =
@@ -311,7 +311,7 @@ func cliParse*(
     res = parseFloat(arg)
 
   except ValueError as e:
-    result = some CliFail(strMsg: e.msg, kind: cfBadCliValue)
+    result = some CliFail(strMsg: clt(e.msg), kind: cfBadCliValue)
 
 func cliParse*(
   arg: string, res: var string, config: CliParseConfig): Option[CliFail] =

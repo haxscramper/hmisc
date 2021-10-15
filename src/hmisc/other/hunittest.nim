@@ -397,7 +397,7 @@ proc report(context: TestContext, report: TestReport) =
         var pref: ColoredText
         pref.add pad
         if idx == 0: pref.add pShow else: pref.add "     ] "
-        pref.add indentBody(toGreen(arg |<< w), padW, prefix = "] ")
+        pref.add indentBody(toGreen(arg |<< w), padW, prefix = clt("] "))
 
         if split.len > 1:
           echo pref, " = "
@@ -995,6 +995,7 @@ macro astdiff*(ast: typed, match: untyped, loc: TestLocation): untyped =
 
 
 macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
+
   let
     loc = newLit(loc)
     fails = genSym(nskVar, "fails")

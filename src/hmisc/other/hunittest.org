@@ -1,0 +1,66 @@
+* [[code:macro!matchdiff]]
+
+Unit test macro to determine whether @arg{obj} matches pattern @arg{match}.
+Supports two modes - matching expression against a structural pattern, or
+matching large collection of objects againts templated patern.
+
+** Single object structural match
+
+Syntax for structural matching is pretty simple and closely modeled after
+nim fusion pattern matching - ~matchdiff(<expr>, <pattern>)~ where
+~<patter>~ can be anything of
+
+- @edsl{field: value-or-pattern} :: Check ~.field~ for equality or
+  substructure
+- TODO DOC :: More patterns
+
+** Object collection matching
+
+Syntax for matching collection is more involved - ~matchdiff(@(field1,
+field2, ...), [expr1: pattern1, ...])~. This mode of checking is mostly
+used when you have a large collection of objects and you want to check
+individial one for some parameters. in this case you can put field names in
+the first ~@(list)~ and proceed to listing patterns.
+
+#+caption: Checking list of tokens for valid kinds
+#+begin_src nim :incomplete
+let str = """
+- list
+  - indented
+"""
+
+let tokens = lexAll(varStr(str), lexerImpl)
+matchdiff  @(kind,          strVal), [
+ tokens: [
+   #[ 00 ]# (osListStart,   "- "),
+   #[ 01 ]# (osText,        "list\n"),
+   #[ 02 ]# (osIndent),
+   #[ 03 ]# (osListStart,   "- "),
+   #[ 04 ]# (osText,        "indented\n"),
+   #[ 05 ]# (osSameIndent),
+ ]
+]
+#+end_src
+
+In this specific example ~tokens~ is a sequence of ~Token~ object that have
+~kind~ field and implement ~strVal~ /function/ [[fn::just like with regular
+pattern matching UFCS helps us here, allowing to test for anything that can
+be used with ~.thing~ notation]]. ~#[ NN ]#~ comments were added purely for
+visualization purposes. Pattern which tokens are matched against has to be
+a tuple [[fn::can have variable lenght if certain elements in the sequence
+don't need some properties checked]]. Tuple is 'combined' with pattern field
+list to generate structural pattern. Due to that example above is identical
+to specifying ~(kind: osListStart, strVal: "- ")~ for every element in the
+list, which noticeably more tedious.
+
+- @edsl{@(ident1, ident2, ...)} :: fist argument to a pattern - list
+  field names
+- @edsl{[pattern1, pattern2, ...]} :: second argument - list of patterns to
+  match. Each pattern can be any of
+  - @edsl{expr: (match1, match2, ...)} :: To match expression directly
+  - @edsl{expr: [(m1, m2, ...), ...)]} :: To match expression as a list
+
+  If number of patterns in tuple is less than number of identifiers in the
+  template list then matchdiff simply does nothing to them. If ther are
+  more elements to a tuple, they are substituted as-is, allowing for
+  customized ~property: value~ test just for one single item.

@@ -12,6 +12,18 @@ template tern*(predicate: bool, tBranch: untyped, fBranch: untyped): untyped =
     block:
       if predicate: tBranch else: fBranch
 
+template inWhile*(expr, body: untyped): untyped =
+  while expr:
+    body
+
+template inFor*(ident, expr, body: untyped): untyped =
+  for ident in expr:
+    body
+
+template inFor*(ident1, ident2, expr, body: untyped): untyped =
+  for ident1, ident2 in expr:
+    body
+
 template withIt*(val, body: untyped): untyped =
   ## Copy `val` to `it`, execute body and then return `it`.
   ##
@@ -181,7 +193,8 @@ template clear*(s: seq): untyped = s.setlen(0)
 template empty*(s: seq): bool = len(s) == 0
 
 template `?`*[T](s: seq[T]): bool = len(s) > 0
-template `?`*[T](o: Option[T]): bool = o.isSome()
+template `?`*(s: string): bool = len(s) > 0
+template `?`*[T](o: Option[T]): bool = isSome(o)
 
 func dollar*[T](arg: T): string =
   mixin `$`

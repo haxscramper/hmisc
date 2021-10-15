@@ -510,13 +510,13 @@ func toStr*(
 
     of cpkSubExpr:
       if part.expr.kind != sakVar:
-        return part.expr.toStr().quoteShell()
+        return clt(part.expr.toStr().quoteShell())
 
       else:
-        return part.expr.toStr()
+        return clt(part.expr.toStr())
 
 func toStrSeq*(cmd: ShellCmd): seq[ColoredText] =
-  result = @[ cmd.bin ]
+  result = @[ clt(cmd.bin) ]
   for op in cmd.opts:
     result &= op.toStr(cmd.conf)
 
@@ -533,7 +533,6 @@ macro precompute(expr, varn: untyped, args: static[openarray[int]]): untyped =
       result = newExpr
 
     elif nnode.kind in {
-      # Boring stuff, just list all nodes that cannot have subnodes
       nnkStrLit..nnkTripleStrLit, nnkFloatLit..nnkFloat64Lit, nnkCharLit..nnkUInt64Lit,
       nnkCommentStmt, nnkIdent, nnkSym, nnkNone, nnkEmpty, nnkNilLit
     }:
@@ -870,6 +869,19 @@ func toShellArgument(arg: NimNode): NimNode =
     else:
       raiseImplementError(&"{treeRepr(arg)}")
 
+
+
+func shellCmdX11*(bin: string): ShellCmd =
+  ## Create command for `X11` cli tools (single dash)
+  result.conf = X11ShellCmdConf
+  result.bin = bin
+
+func shellCmdGnu*(bin: string): ShellCmd =
+  ## Create command for CLI applications that conform to GNU standard
+  ## for command line interface `link
+  ## <https://www.gnu.org/prep/standards/html_node/Command_002dLine-Interfaces.html>`_
+  result.conf = GnuShellCmdConf
+  result.bin = bin
 
 
 macro shellCmd*(cmd: untyped, args: varargs[untyped]): untyped =
@@ -1415,11 +1427,11 @@ proc runShell*(
 
 
 proc execShell*(cmd: ShellExpr): void =
-  ## `shExec` overload for regular string.
+  ## `execShell` overload for regular string.
   ##
   ## WARNING see implicit `toShellCmd` documentation for potential
-  ## pitfalls. It is recommended to use `shExec(cmd: ShellCmd)` overload -
-  ## this version exists only for quick prototyping.
+  ## pitfalls. It is recommended to use `execShell(cmd: ShellCmd)` overload
+  ## - this version exists only for quick prototyping.
   discard runShell(cmd, discardOut = true, options = {
     poEvalCommand, poParentStreams, poUsePath})
 

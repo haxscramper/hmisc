@@ -685,21 +685,31 @@ func toColoredText*(rune: ColoredRuneLine): ColoredText =
   result.runes = rune
 
 
-func toColoredText*(str: string, styling: PrintStyling): ColoredText =
+func toColoredText*(
+    str: string,
+    styling: PrintStyling = defaultPrintStyling): ColoredText =
   str + styling
 
-converter toColoredText*(str: string): ColoredText =
-  str + defaultPrintStyling
-
-converter toColoredTextSeq*(str: seq[string]): seq[ColoredText] =
+func toColoredText*(str: seq[string]): seq[ColoredText] =
   result = newSeqOfCap[ColoredText](str.len)
   for si in str:
     result.add toColoredText(si)
 
-converter toColoredText*(ch: char): ColoredText =
+func toColoredText*(ch: char): ColoredText =
   toColoredText(ch + defaultPrintStyling)
 
-converter toColoredRune*(ch: char): ColoredRune =
+func clt*(str: string): ColoredText =
+  str + defaultPrintStyling
+
+func clt*(str: seq[string]): seq[ColoredText] =
+  result = newSeqOfCap[ColoredText](str.len)
+  for si in str:
+    result.add clt(si)
+
+func clt*(ch: char): ColoredText =
+  toColoredText(ch + defaultPrintStyling)
+
+func clr*(ch: char): ColoredRune =
   ch + defaultPrintStyling
 
 
@@ -715,7 +725,7 @@ func toLower*(text: sink ColoredText): ColoredText =
     rune.rune = toLower(rune.rune)
 
 func alignLeft*(
-    text: sink ColoredText, length: int, padding: ColoredRune = ' '
+    text: sink ColoredText, length: int, padding: ColoredRune = clr(' ')
   ): ColoredText =
 
   result = text
@@ -723,7 +733,7 @@ func alignLeft*(
     result.runes.add padding.repeat(length - result.len)
 
 func alignRight*(
-    text: ColoredText, length: int, padding: ColoredRune = ' '
+    text: ColoredText, length: int, padding: ColoredRune = clr(' ')
   ): ColoredText =
 
   if text.len < length:
@@ -820,7 +830,7 @@ func add*(colored: var ColoredText, ch: char) {.inline.} =
 func indent*(
     text: ColoredText,
     count: Natural,
-    padding: ColoredRune = ' '
+    padding: ColoredRune = clr(' ')
   ): ColoredText =
     var idx = 0
     for line in lines(text):
@@ -833,8 +843,8 @@ func indent*(
 proc indentBody*(
     str: ColoredText,
     count: int,
-    indent: ColoredText = " ",
-    prefix: ColoredText = ""
+    indent: ColoredText = clt(" "),
+    prefix: ColoredText = clt("")
   ): ColoredText =
 
   var idx = 0
@@ -860,7 +870,7 @@ func `&`*(t1: sink ColoredText, t2: ColoredText): ColoredText =
 
 func `&`*(t1: sink ColoredText, t2: string): ColoredText =
   result = t1
-  result.add toColoredText(t2)
+  result.add clt(t2)
 
 func `&`*(t1: string, t2: ColoredText): ColoredText =
   result = toColoredText(t1)

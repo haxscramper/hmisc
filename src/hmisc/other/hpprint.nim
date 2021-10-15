@@ -1534,7 +1534,7 @@ proc objectTreeRepr*(
 
   let blc = I[indent, aux(tree)]
 
-  return blc.toString()
+  return clt(blc.toString())
 
 proc pprintObjectTree*[T](obj: T) =
   echo pptree(obj).objectTreeRepr()

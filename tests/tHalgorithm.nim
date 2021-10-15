@@ -766,13 +766,24 @@ suite "String helper functions":
     check "hello.txt".dropSuffix(".txt").addSuffix(".nim") == "hello.nim"
 
   test "{splitTokenize}":
-    check "std::vector<int>".splitTokenize(@["::", "<", ">"]) == @[
-      "std", "::", "vector", "<", "int", ">"]
+    check:
+      "std::vector<int>".splitTokenize(@["::", "<", ">"]) == @[
+        "std", "::", "vector", "<", "int", ">"]
 
-    check "(())".splitTokenize(@["(", ")"]) == @["(", "(", ")", ")"]
-    check "(())".splitTokenize({'(', ')'}) == @["(", "(", ")", ")"]
-    check "hello<world>".splitTokenize({'<', '>'}) == @[
-      "hello", "<", "world", ">"]
+      "(())".splitTokenize(@["(", ")"]) == @["(", "(", ")", ")"]
+      "(())".splitTokenize({'(', ')'}) == @["(", "(", ")", ")"]
+      "hello<world>".splitTokenize({'<', '>'}) == @[
+        "hello", "<", "world", ">"]
+
+      splitTokenize(
+        "        >488174</config:config-item", {':', ' ' }, true) == @[
+        "        ", ">488174</config", ":", "config-item"]
+
+      splitTokenize(
+        "        >488174</config:config-item::", {':', ' ', ':'}, true) == @[
+        "        ", ">488174</config", ":", "config-item", "::"]
+
+
 
 import hmisc/other/strparser
 

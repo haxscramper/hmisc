@@ -379,6 +379,10 @@ template initTok*[K](
 
   res
 
+template initTok*[K](
+    posStr: PosStr, inKind: K, inStr: PosStr): HsTok[K] =
+  initTok(posStr, inStr, inKind)
+
 func initSliceTok*[K](str: var PosStr, inKind: K): HsTok[K] =
   initTok(str, str.popSlice(), inKind)
 

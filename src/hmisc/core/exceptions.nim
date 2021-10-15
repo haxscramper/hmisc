@@ -1,6 +1,9 @@
 import std/[macros, strutils, options, tables]
 export options
 
+import ./msgbuilder
+export msgbuilder
+
 ## Commonly used exceptions definitions. More target-specific errors are
 ## implemented in respective submodules such as [[code:hshell.ShellError]]
 ## for shell-related operations, [[code:oswrap.PathError]] for unexpected

@@ -910,8 +910,15 @@ proc normalizedPath*(path: RelFile): RelFile =
 proc `==`*(file1, file2: AnyFile): bool =
   (file1.getStr() == file2.getStr())
 
+proc `<`*(file1, file2: AnyFile): bool =
+  (file1.getStr() < file2.getStr())
+
 proc `==`*(dir1, dir2: AnyDir): bool =
   (dir1.getStr() == dir2.getStr())
+
+proc `<`*(dir1, dir2: AnyDir): bool =
+  (dir1.getStr() < dir2.getStr())
+
 
 # proc sameFileContent*(path1, path2: string): bool {.rtl, extern: "nos$1",
 

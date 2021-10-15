@@ -16,7 +16,8 @@ This module provides implementation of a lexer base. Note that it does not
 strive to provide most /efficient/ implementaiton, but rather one that
 allows to deal with extremely annoying syntaxes - barely specified
 'pretty-printed' outputs from various shell commands, markup langauges of
-all sorts and so on.
+all sorts and so on. Lexer automatically keeps track of current line and
+column position.
 
 Multiple helper procedures are provided to deal with majority of common use
 cases, which allows for rapid prototyping.
@@ -25,14 +26,16 @@ cases, which allows for rapid prototyping.
 
 type
   PosStrSlice* = object
-    line*: int
-    column*: int
-    start*: int
-    finish*: int
+    ## Single text slince in positional string
+    line*: int ## Slice start line
+    column*: int ## Slice start column
+    start*: int ## Start byte
+    finish*: int ## End byte
 
   LineCol* = tuple[line: int, column: int]
 
   PosStrPoint* = object
+    ## Point in positional string
     pos, line, column: int
 
   PosStr* = object
@@ -112,6 +115,7 @@ const
                         ## regular text.
 
 func lineCol*(str: PosStr): LineCol {.inline.} =
+  ## Get current line and column as tuple
   (line: str.line, column: str.column)
 
 func len*(slice: PosStrSlice): int =
@@ -127,6 +131,7 @@ func initPosStr*(str: string): PosStr =
   PosStr(baseStr: asRef(str), isSlice: false, column: 0, line: 0)
 
 template varPosStr*(str: string): PosStr =
+  ## Create temporary mutable positional string from input `str`
   var posStr = initPosStr(str)
   posStr
 
@@ -217,8 +222,12 @@ proc finished*(str: PosStr): bool =
     isNil(str.stream) or
     str.stream.atEnd())
 
-proc atStart*(str: PosStr): bool = str.pos == 0
+proc atStart*(str: PosStr): bool =
+  ## Current string position is end
+  str.pos == 0
+
 proc beforeEnd*(str: PosStr): bool =
+  ## Has exactly one character to read
   str.hasNxt(0) and not str.hasNxt(1)
 
 proc `?`*(str: PosStr): bool =
@@ -257,6 +266,9 @@ proc resetBuffer*(str) =
   str.baseStr[].setLen(0)
 
 proc `[]`*(str; idx: int = 0): char {.inline.} =
+  ## Get character at offset. Default value of offset is zero, returns
+  ## current character. Useful for `case str[]:` checks on current
+  ## character.
   fillNext(str, idx)
   if not hasNxt(str, idx):
     return '\x00'
@@ -265,6 +277,8 @@ proc `[]`*(str; idx: int = 0): char {.inline.} =
     return str.baseStr[][str.pos + idx]
 
 proc runeAt*(str; idx: int = 0): Rune =
+  ## Return rune at position with offset. Default offset value returns
+  ## current rune.
   fillNext(str, idx)
   if not hasNxt(str, idx):
     return Rune(0)
@@ -284,6 +298,7 @@ proc runeAt*(str; idx: int = 0): Rune =
       fastRuneAt(str.baseStr[], i, result)
 
 proc setLineInfo*(error: ref HLexerError, str: PosStr) =
+  ## Set positional information to lexer error from string
   error.column = str.column
   error.line = str.line
   error.pos = str.pos
@@ -293,48 +308,43 @@ proc newUnexpectedCharError*(
     expected: string = "",
     parsing: string = ""
   ): ref UnexpectedCharError =
+  ## Create new unexpected character error with expanded description
+  ## message.
 
   new(result)
   result.setLineInfo(str)
-  var e = "Unexpected character encoutered during lexing - found '"
-  if ?str:
-    if str[0] in AnyRegularAscii:
-      e.add describeChar(str[0])
+  var e = "Unexpected character encoutered during lexing - found "
+  e.mwrap("'"):
+    if ?str:
+      if str[0] in AnyRegularAscii:
+        e.madd describeChar(str[0])
+
+      else:
+        e.madd describeChar(str.runeAt(0))
 
     else:
-      e.add describeChar(str.runeAt(0))
+      e.madd "EOF (string finished)"
 
-  else:
-    e.add "EOF (string finished)"
-
-  if expected.len > 0:
-    e.add "', but expected - '"
-    e.add expected
-    e.add "'"
-
-  else:
-    e.add "'"
+  e.mexpected(expected, ?expected)
 
   if parsing.len > 0:
-    e.add " while parsing "
-    e.add parsing
+    e.madd " while parsing ", parsing
 
-  e.add " at " & $str.line & ":" & $str.column
+  e.madd " at ", str.line, ":", str.column
   if notNil(str.baseStr) and str.pos < str.baseStr[].len:
-    e.add ". Lookahead characters (from pos = "
-    e.add $str.pos
-    e.add ") ['"
+    e.madd ". Lookahead characters (from pos = ", str.pos, ") ['"
+
     for ch in str.pos .. min(str.baseStr[].high, str.pos + 10):
-      if ch > str.pos:
-        e.add "', '"
-      e.add describeChar(
+      e.msep("', '", str.pos < ch)
+      e.madd describeChar(
         str.baseStr[][ch], hdisplay(verbosity = dvMinimal))
 
-    e.add "'])"
+    e.madd "'])"
 
   result.msg = e
 
 proc `[]`*(str; slice: HSlice[int, BackwardsIndex]): string {.inline.} =
+  ## Get string slice `str.pos + slice.a .. end - slice.b`
   var next = 0
   while str.hasNxt(next):
     fillNext(str, next)
@@ -343,6 +353,7 @@ proc `[]`*(str; slice: HSlice[int, BackwardsIndex]): string {.inline.} =
   result = str.baseStr[str.pos + slice.a .. (str.pos + next - slice.b.int)]
 
 proc `[]`*(str; slice: HSlice[int, int]): string {.inline.} =
+  ## Get string slice `str.pos + slice.a .. str.pos + slice.b`
   fillNext(str, max(slice.a, slice.b))
   if str.baseStr[].len == 0:
     result = "<empty>"
@@ -358,6 +369,7 @@ proc `[]`*(str; slice: HSlice[int, int]): string {.inline.} =
 
 proc `[]`*(str; offset: int, patt: char | set[char] | string):
   bool {.inline.} =
+  ## Check if input at offset matches pattern - string/char/charset.
 
   fillNext(str, offset)
   when patt is char:
@@ -373,17 +385,26 @@ proc `[]`*(str; offset: int, patt: char | set[char] | string):
         return false
 
 proc `[]`*(str; patt: char|set[char]|string): bool {.inline.} =
+  ## Check if current position matches pattern. Useful for conditional
+  ## checks, while loops etc - `while str['-']: str.next()`.
+  ## - NOTE :: When used in `not str['?']` pattern it is *highly* recommended
+  ##   to also check if string is ended or not - e.g. `while ?str and nots str['?']`
+  ##   to avoid infinite loops at the end of input.
   str[0, patt]
 
 proc `[]`*(str; patt1, patt2: char | set[char] | string): bool {.inline.} =
+  ## Check two next positions against pattern
   str[0, patt1] and str[1, patt2]
 
 proc `[]`*(
     str; patt1, patt2, patt3: char | set[char] | string): bool {.inline.} =
+  ## Check three next positions against pattern
   str[0, patt1] and str[1, patt2] and str[2, patt3]
 
 
 proc `@`*(str): seq[char] =
+  ## Return all characters left in the base input string. Used for
+  ## debuggint purposes mostly.
   for ch in str.baseStr[str.pos .. ^1]:
     result.add ch
 
@@ -393,12 +414,15 @@ proc `@`*(str): seq[char] =
 #     result.add str[i]
 
 proc `[]`*(str; slice: HSlice[int, char]): string =
+  ## Get slice of input text starting from current position (with offset)
+  ## until end character.
   var pos = slice.a
   while not str[pos, slice.b] and hasNxt(str, pos):
     result.add str[pos]
     inc pos
 
 proc `@`*(str; slice: Slice[int]): seq[char] =
+  ## Get slice of input string as sequence of chars. Used for debugging.
   var pos = slice.a
   while hasNxt(str, pos) and pos < slice.b:
     result.add str[pos]
@@ -406,15 +430,19 @@ proc `@`*(str; slice: Slice[int]): seq[char] =
 
 
 proc `$`*(slice: PosStrSlice): string = &"{slice.start}..{slice.finish}"
+
 proc `[]`*(str; slice: PosStrSlice): string =
   str.baseStr[][
     max(slice.start, 0) .. min(slice.finish, str.baseStr[].high)]
 
 proc sliceStrings*(str): seq[string] =
+  ## Return stored slices as standalone strings
   for slice in str.slices:
     result.add str[slice]
 
 proc lineAround*(str; pos: int): tuple[line: string, pos: int] =
+  ## Get full line around current position. Can be used for debugging and
+  ## error reporting purposes to show surrounding context.
   var start = pos
   while start > 0 and str.baseStr[][start] notin {'\n'}:
     dec start
@@ -520,10 +548,13 @@ proc pushRange*(str) {.inline.} =
   else:
     str.ranges.add(str.pos, str.line, str.column)
 
-proc startSlice*(str) {.inline.} =
+proc startSlice*(str; leftShift: int = 0) {.inline.} =
   ## Start new slice in the string slice buffer.
   str.sliceBuffer.add @[
-    PosStrSlice(start: str.pos, line: str.line, column: str.column)]
+    PosStrSlice(
+      start: str.pos + leftShift,
+      line: str.line,
+      column: str.column)]
 
 proc finishSlice*(str; rightShift: int = -1) {.inline.} =
   assertHasIdx str.sliceBuffer, 0,
@@ -547,8 +578,21 @@ proc popSlice*(str; rightShift: int = -1): PosStr =
   return initPosStr(str)
 
 template asSlice*(
-    bufStr: PosStr, expr: untyped; rightShift: int = -1): untyped =
+    bufStr: PosStr, expr: untyped;
+    rightShift: int = -1,
+  ): untyped =
+
   bufStr.startSlice()
+  expr
+  bufStr.popSlice(rightShift)
+
+
+template asSlice*(
+    bufStr: PosStr, expr: untyped;
+    leftShift, rightShift: int
+  ): untyped =
+
+  bufStr.startSlice(leftShift)
   expr
   bufStr.popSlice(rightShift)
 
@@ -665,15 +709,9 @@ proc newMalformedTokenError*(
     got: PosStr, expected: string): ref MalformedTokenError =
   new(result)
   result.setLineInfo(got)
-  result.msg.add(
-    "Malformed token encountered during lexing - found '",
-    got.strVal(),
-    "', but expected ",
-    expected,
-    " at ",
-    $got.line,
-    ":",
-    $got.column)
+  result.msg = "Malformed token encountered during lexing - "
+  result.msg.mfound(got.strVal().mq(), expected)
+  result.msg.madd " at ", got.line, ":", got.column
 
 
 
@@ -712,6 +750,7 @@ proc popRange*(str; leftShift: int = 0, rightShift: int = -1):
       result.add str.baseStr[slice]
 
 template asRange*(str: PosStr, expr: untyped): untyped =
+  ## Push new range, execute expression and pop range as return value.
   str.pushRange()
   expr
   str.popRange()
@@ -719,6 +758,9 @@ template asRange*(str: PosStr, expr: untyped): untyped =
 
 proc next*(
     str; step: int = 1, byteAdvance: bool = false) =
+  ## Advance input string @arg{step} items forward
+  ## - @arg{step} :: Number of items to advance input. Can be negative
+  ## - @arg{byteAdvance} :: Advance over characters (bytes) or unicode runes
 
   if step < 0:
     for diff in 0 ..< -step:
@@ -842,6 +884,8 @@ proc popPointSlice*(
     return str.popSlice()
 
 proc skip*(str; ch: char) {.inline.} =
+  ## Advance string one character, and raise exception if data at position
+  ## does not match expected @arg{ch} character.
   if str[] != ch:
    raise newUnexpectedCharError(str, $ch)
   str.next()
@@ -868,10 +912,14 @@ proc skipBack*(str; ch: set[char]) {.inline.} =
   str.next(-1)
 
 proc peek*(str; ch: set[char]) =
+  ## Check if input data matches expected character set. If not - raise
+  ## exception.
   if str[] notin ch:
    raise newUnexpectedCharError(str, describeCharset(ch))
 
 proc trySkip*(str; s: string): bool =
+  ## If input data matches expected string advance and return true,
+  ## otherwise don't change position and rturn false.
   if str[s]:
     str.next(s.len)
     result = true
@@ -897,11 +945,15 @@ proc trySkip*(str; ch: char): bool  =
     result = true
 
 proc skipWhile*(str; chars: set[char]) {.inline.} =
+  ## Advance input string while current character matches charset
   if str[chars]:
     while str[chars]:
       str.next()
 
 proc skipUntil*(str; chars: set[char], including: bool = false) {.inline.} =
+  ## Advance input string until current character matches charset
+  ## - @arg{including} :: Matching range should also include first charcter that
+  ##   was *in* the charset
   var changed = false
   while str[AllChars - chars]:
     str.next()
@@ -917,6 +969,9 @@ proc skipToEOL*(str; including = true) =
 
 proc goToEof*(
     str; byteAdvance: bool = false; rightShift: int = 0) =
+  ## Move string to the last input character in the string. If @arg{str} is
+  ## a substring of another one, advance is only made inside allowed
+  ## ranges.
 
   if str.isSlice:
     let s = str.slices.last()
@@ -943,6 +998,9 @@ proc goToEof*(
         dec str.pos
 
 proc gotoSof*(str; byteAdvance: bool = false) =
+  ## Move string to the first input character in the string. If @arg{str}
+  ## is a substring of another one, move is only made inside of allowed
+  ## ranges.
   if str.isSlice:
     let s = str.slices.first()
     str.pos = s.start

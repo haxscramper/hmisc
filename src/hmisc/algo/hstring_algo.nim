@@ -635,7 +635,7 @@ func splitTokenize*(str: string, seps: seq[string]): seq[string] =
       inc curr
 
 
-func splitTokenize*(str: string, seps: set[char]): seq[string] =
+func splitTokenize*(str: string, seps: set[char], sweep: bool = false): seq[string] =
   var prev = 0
   var curr = 0
   while curr < str.len:
@@ -643,14 +643,25 @@ func splitTokenize*(str: string, seps: set[char]): seq[string] =
       if prev != curr:
         result.add str[prev ..< curr]
 
-      result.add $str[curr]
-      inc curr
-      prev = curr
+      if sweep:
+        prev = curr
+        while curr < str.high and str[curr + 1] == str[curr]:
+          inc curr
+
+        result.add str[prev .. curr]
+        inc curr
+        prev = curr
+
+      else:
+        result.add $str[curr]
+        inc curr
+        prev = curr
+
     else:
       inc curr
 
   if prev < curr:
-    result.add str
+    result.add str[prev ..< curr]
 
 
 func splitCamel*(

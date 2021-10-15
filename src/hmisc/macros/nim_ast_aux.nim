@@ -137,5 +137,5 @@ proc treeRepr2*(
 
 
 
-  aux(pnode, 0, @[], "")
+  aux(pnode, 0, @[], clt(""))
   endResult()
