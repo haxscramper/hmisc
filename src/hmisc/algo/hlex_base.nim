@@ -950,22 +950,65 @@ proc skipWhile*(str; chars: set[char]) {.inline.} =
     while str[chars]:
       str.next()
 
-proc skipUntil*(str; chars: set[char], including: bool = false) {.inline.} =
+
+proc skipBefore*(str; chars: set[char]) {.inline.} =
+  while str[+1, AllChars - chars]:
+    str.next()
+
+proc skipBefore*(str; chars: char) {.inline.} = skipBefore(str, {chars})
+
+proc skipTo*(str; chars: set[char]) {.inline.} =
+  while str[AllChars - chars]:
+    str.next()
+
+proc skipTo*(str; chars: char) {.inline.} = skipTo(str, {chars})
+
+proc skipUntil*(str; chars: set[char], including: bool = true) {.inline.} =
   ## Advance input string until current character matches charset
   ## - @arg{including} :: Matching range should also include first charcter that
   ##   was *in* the charset
+  if including:
+    while str[AllChars - chars]:
+      str.next()
+
+  else:
+    while str[+1, AllChars - chars]:
+      str.next()
+
+proc skipUntil*(str; chars: char, including: bool = false) {.inline.} =
+  skipUntil(str, {chars}, including)
+
+proc skipPast*(str; chars: set[char]) {.inline.} =
   var changed = false
-  while str[AllChars - chars]:
+  while ?str and not str[chars]:
     str.next()
     changed = true
 
-  if changed and including and ?str:
+  if ?str:
     str.next()
 
-proc skipToEOL*(str; including = true) =
+proc skipPast*(str; chars: char) {.inline.} = skipPast(str, {chars})
+
+
+  # if ?str and str[chars]:
+  #   if not including and changed:
+  #     str.back()
+
+
+
+
+proc skipToEOL*(str) =
   ## Skip to the end of current line. After parsing cursor is positioned on
-  ## the last character in the string, or closes newline.
-  str.skipUntil(Newline, including = including)
+  ## the last character in the string, or closest newline.
+  str.skipUntil(Newline, including = true)
+
+proc skipPastEOL*(str) =
+  str.skipUntil(Newline, including = true)
+  if ?str and str['\n']:
+    str.next()
+
+proc skipBeforeEOL*(str) =
+  str.skipBefore(Newline)
 
 proc goToEof*(
     str; byteAdvance: bool = false; rightShift: int = 0) =
@@ -1012,11 +1055,8 @@ proc gotoSof*(str; byteAdvance: bool = false) =
     str.column = 0
     str.pos = 0
 
-proc skipToNewline*(str) =
-  ## Skip until end of the current line is found. After parsing cursor is
-  ## positioned on the last character in the strign, or *before* closest
-  ## newline.
-  str.skipUntil(Newline, including = false)
+# proc skipToNewline*(str) =
+#   str.skipUntil(Newline, including = false)
 
 proc skipIndent*(str; maxIndent = high(int)): int =
   while str[HorizontalSpace]:
@@ -1061,6 +1101,9 @@ proc getIndent*(str): int =
     inc result
 
 proc hasIndent*(str; indent: int, exactIndent: bool = false): bool =
+  if not ?str:
+    return false
+
   var foundIndent = 0
   while str[foundIndent, HorizontalSpace]:
     inc foundIndent
@@ -1127,10 +1170,16 @@ proc popWhileSlice*(str; chars: set[char]): PosStr =
   str.skipWhile(chars)
   str.popSlice()
 
-proc popUntilSlice*(str; chars: set[char], including: bool = false): PosStr =
+proc popUntilSlice*(
+    str; chars: set[char],
+    including: bool = true
+  ): PosStr {.deprecated:
+    "Use `str.asSlice(str.skipUntil())` composition instead"
+.} =
+
   str.startSlice()
   str.skipUntil(chars, including)
-  str.popSlice()
+  str.popSlice(0)
 
 proc popIdentSlice*(str; chars: set[char] = IdentChars): PosStr =
   str.startSlice()
@@ -1355,5 +1404,3 @@ macro scanSlice*(str; pattern: varargs[untyped]): untyped =
     result.add genSkip(part, true)
 
   result.add newCall("popSlice", str)
-
-  # echo result.repr()

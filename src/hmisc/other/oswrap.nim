@@ -2083,7 +2083,7 @@ DSL for creating directory structures
   let file = ident("file")
   proc aux(node: NimNode): NimNode =
     case node.kind:
-      of nnkCommand:
+      of nnkCommand, nnkCall:
         if node[0].eqIdent("file"):
           result = newStmtList()
 
@@ -2112,10 +2112,11 @@ DSL for creating directory structures
             for subnode in node[2]:
               result.add aux(subnode)
 
-          result = newCall("withNewDir", newCall("RelDir", node[1].blockCall()), result)
+          result = newCall(
+            "withNewDir", newCall("RelDir", node[1].blockCall()), result)
 
         else:
-          result = node
+          result = newCall("write", file, node)
 
       of nnkStmtList:
         result = newStmtList()
@@ -2123,7 +2124,7 @@ DSL for creating directory structures
           result.add aux(subnode)
 
       of nnkCharLit .. nnkTripleStrLit, nnkPrefix, nnkIdent, nnkSym,
-         nnkCallStrLit:
+         nnkCallStrLit, nnkInfix:
         result = newCall("write", file, node)
 
       else:

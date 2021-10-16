@@ -365,7 +365,7 @@ proc treeRepr*(
         add toRed(n.tag, colored)
         add separator
         if level + 1 > maxdepth and n.len > 0:
-          result[^1] = ' '
+          result[^1] = clr(' ')
           add "... "
           add toPluralNoun("subnode", n.len)
           add separator
@@ -801,6 +801,14 @@ proc `=destroy`*(writer: var XmlWriter) = discard
   # echo "=destroy called"
   # writer.close()
 
+
+proc newXmlWriter*(): XmlWriter =
+  XmlWriter(stream: newStringStream())
+
+proc readAll*(writer): string =
+  writer.stream.setPosition(0)
+  writer.stream.readAll()
+
 proc newXmlWriter*(stream: Stream): XmlWriter =
   XmlWriter(stream: stream)
 
@@ -846,6 +854,7 @@ proc xmlStart*(writer; elem: string, indent: bool = true) =
   writer.stream.write("<", elem, ">")
   if indent: writer.line()
 
+
 proc xmlEnd*(writer; elem: string, indent: bool = true) =
   if indent: writer.writeInd()
   writer.stream.write("</", elem, ">")
@@ -855,7 +864,12 @@ proc xmlOpen*(writer; elem: string, indent: bool = true) =
   if indent: writer.writeInd()
   writer.stream.write("<", elem)
 
+
+
+
 proc xmlClose*(writer) = writer.stream.write(">")
+
+
 
 proc xmlCloseEnd*(writer; newline: bool = true) =
   writer.stream.write("/>")
@@ -904,6 +918,9 @@ proc toXmlString*(item: string): string = item
 proc toXmlString*(item: enum | bool | float): string = $item
 proc toXmlString*(item: SomeInteger): string = $item
 proc writeRaw*(writer; text: string) =
+  writer.stream.write(text)
+
+proc writeEscaped*(writer; text: string) =
   writer.stream.write(xmltree.escape text)
 
 proc xmlAttribute*(
@@ -911,12 +928,36 @@ proc xmlAttribute*(
   writer.stream.write(
     " ", key, "=\"", xmltree.escape(toXmlString(value)), "\"")
 
+proc xmlStart*(
+    writer; tag: string, table: openarray[(string, string)],
+    indent: bool = true
+  ) =
+  writer.xmlOpen(tag, indent)
+  for (key, value) in table:
+    writer.xmlAttribute(key, value)
+
+  writer.xmlClose()
+  if indent: writer.line()
+
+proc xmlSingle*(
+    writer; tag: string, table: openarray[(string, string)],
+    indent: bool = true
+  ) =
+  writer.xmlOpen(tag, indent)
+  for (key, value) in table:
+    writer.xmlAttribute(key, value)
+
+  writer.xmlCloseEnd()
+  if indent: writer.line()
+
+
 proc xmlAttribute*[T](writer; key: string, value: Option[T]) =
   if value.isSome():
     xmlAttribute(writer, key, value.get())
 
 proc xmlAttribute*[A, B](writer; key: string, value: HSlice[A, B]) =
   xmlAttribute(writer, key, toXmlString(value.a) & ":" & toXmlString(value.b))
+
 
 proc writeXml*(
   writer; value: string | SomeInteger | bool | SomeFloat | enum, tag: string) =

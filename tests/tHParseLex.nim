@@ -31,6 +31,61 @@ template varStr(inStr: string, slices: openarray[Slice[int]]): untyped =
   str
 
 suite "Primitives":
+  test "Skip until":
+    block until_including:
+      var str = varStr("___+]")
+      str.skipUntil(']', including = true)
+      check str[] == ']'
+
+    block until_excluding:
+      var str = varStr("___+]")
+      str.skipUntil(']', including = false)
+      check str[] == '+'
+
+    block to_eol:
+      var str = initPosStr("__+\n")
+      str.skipToEol()
+      check str[] == '\n'
+
+    block until_eol:
+      var str = initPosStr("__+\n__&\n")
+      str.skipBeforeEol()
+      check str[] == '+'
+
+    block past_eol:
+      var str = initPosStr("__+\n&")
+      str.skipPastEol()
+      check str[] == '&'
+
+    block pop_until_slice:
+      var s0 = varStr("[123]")
+      check s0[] == '['
+      s0.skipUntil({']'}, including = true)
+      check s0[] == ']'
+
+      var s1 = varStr("[123]")
+      check:
+        s1[] == '['
+        s1.popUntilSlice({']'}, including = false).strVal() == "[123"
+        s1[] == '3'
+
+        varStr("[123]").popUntilSlice({']'}, true).strVal() == "[123]"
+
+    block skip_before:
+      var s = varStr("_]")
+      s.skipBefore(']')
+      check s[] == '_'
+
+    block skip_to:
+      var s = varStr("_]")
+      s.skipTo(']')
+      check s[] == ']'
+
+    block skip_past:
+      var s = varStr("_]?")
+      s.skipPast(']')
+      check s[] == '?'
+
   test "Pop range while":
     var str = initPosStr("---?")
     str.pushRange()
@@ -730,7 +785,7 @@ of true:
     while str.hasIndent(indent):
       str.next(indent)
       str.startSlice()
-      str.skipToEol()
+      str.skipPastEol()
       str.finishSlice()
 
     var subStr = initPosStr(str)
@@ -861,7 +916,7 @@ suite "C preprocessor reimplementation":
         of '#':
           str.pushRange()
           str.startSlice()
-          str.skipToEOL()
+          str.skipPastEOL()
           slices.add str.popRange()
           str.finishSlice()
 
@@ -869,7 +924,7 @@ suite "C preprocessor reimplementation":
           str.pushRange()
           str.startSlice()
           while ?str and not str['#']:
-            str.skipToEol()
+            str.skipPastEol()
 
           slices.add str.popRange()
           str.finishSlice()
@@ -908,11 +963,11 @@ suite "C preprocessor reimplementation":
             names.incl name
 
 
-          str.skipToNewline()
+          str.skipToEol()
           if ?str and str[-1] == '\\':
             while ?str and str[-1] == '\\':
               str.next()
-              str.skipToNewline()
+              str.skipToEol()
 
           else:
             str.next()
@@ -928,13 +983,13 @@ suite "C preprocessor reimplementation":
           if idStr in names:
             result.add str.popSlice()
             if str['(']:
-              result.add str.popPointSlice()
+              result.add str.popPointSlice({'('})
               while ?str and not str[')']:
                 if str['(']:
                   result.add str.popBalancedSlice({'('}, {')'})
 
                 else:
-                  result.add str.popUntilSlice({',', ')'})
+                  result.add str.asSlice(str.skipUntil({',', ')'}))
 
                 if str[',']:
                   result.add str.popWhileSlice({',', ' '})
@@ -1039,7 +1094,7 @@ suite "Nim cfg parser":
           result.add str.initTok(str.popSlice(), ctStrLit)
 
         of '[':
-          result.add str.initTok(str.popUntilSlice({']'}, true), ctSection)
+          result.add str.initTok(ctSection, str.asSlice(str.skipPast(']')))
 
         of '=': result.add str.initTok(str.popPointSlice(), ctEq)
         of ':': result.add str.initTok(str.popPointSlice(), ctColon)
@@ -1064,7 +1119,7 @@ suite "Nim cfg parser":
         of ';':
           str.startSlice()
           while ?str and str[';']:
-            str.skipToEol()
+            str.skipPastEol()
 
           result.add str.initTok(str.popSlice(0), ctComment)
 
@@ -1309,7 +1364,7 @@ suite "Simple org-mode":
             str.startSlice()
             var atEnd = false
             while ?str and not atEnd:
-              str.skipToEol()
+              str.skipPastEol()
               if str.getIndent() < indent:
                 atEnd = true
 

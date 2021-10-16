@@ -1640,13 +1640,52 @@ func splitKeepSpaces*(str: string): seq[string] =
     result.add str[prev ..< curr]
 
 proc formatDiffed*[T](
+    ops: seq[LevEdit[T]],
+    oldSeq, newSeq: seq[T],
+    maxUnchanged: int = 5
+  ): tuple[oldLine, newLine: ColoredText] =
+
+  var unchanged = 0
+  for idx, op in ops:
+    case op.kind:
+      of lekUnchanged:
+        if unchanged < maxUnchanged:
+          result.oldLine.add oldSeq[op.sourcePos]
+          result.newLine.add newSeq[op.targetPos]
+          inc unchanged
+
+      of lekDelete:
+        result.oldLine.add toRed(oldSeq[op.sourcePos])
+        unchanged = 0
+
+      of lekInsert:
+        result.newLine.add toGreen(newSeq[op.targetPos])
+        unchanged = 0
+
+      of lekReplace:
+        result.oldLine.add toYellow(oldSeq[op.sourcePos])
+        result.newLine.add toYellow(newSeq[op.targetPos])
+        unchanged = 0
+
+      of lekNone:
+        raise newUnexpectedKindError(op)
+
+
+
+proc formatDiffed*[T](
     shifted: ShiftedDiff,
     oldSeq, newSeq: openarray[T],
-    strConv: proc(t: T): string = dollar[T],
-    maxUnchanged: int = 5,
-    showLines: bool = false,
-    wordSplit: proc(str: string): seq[string] = splitKeepSpaces
+    strConv: proc(t: T): string               = dollar[T],
+    maxUnchanged: int                         = 5,
+    maxUnchangedWords: int                    = high(int),
+    showLines: bool                           = false,
+    wordSplit: proc(str: string): seq[string] = splitKeepSpaces,
+    stackLongLines: int                       = high(int)
   ): ColoredText =
+
+  ## - @arg{stackLongLines} :: If any of two diffed lines are longer than
+  ##   threshold, display then one on top of another instead of side by
+  ##   side
 
   var
     oldText, newText: seq[ColoredText]
@@ -1701,32 +1740,14 @@ proc formatDiffed*[T](
       let
         oldSplit: seq[string] = wordSplit(strConv(oldSeq[lhs.item]))
         newSplit: seq[string] = wordSplit(strConv(newSeq[rhs.item]))
-
-      let (distance, ops) = levenshteinDistance[string](oldSplit, newSplit)
-
-      var oldLine, newLine: Coloredtext
-      for idx, op in ops:
-        # echov "", (op.kind, oldSplit[op.sourcePos]), "->", (op.kind, newSplit[op.targetPos])
-        case op.kind:
-          of lekUnchanged:
-            oldLine.add oldSplit[op.sourcePos]
-            newLine.add newSplit[op.targetPos]
-
-          of lekDelete:
-            oldLine.add toRed(oldSplit[op.sourcePos])
-
-          of lekInsert:
-            newLine.add toGreen(newSplit[op.targetPos])
-
-          of lekReplace:
-            oldLine.add toYellow(oldSplit[op.sourcePos])
-            newLine.add toYellow(newSplit[op.targetPos])
-
-          of lekNone:
-            raise newUnexpectedKindError(op)
+        (oldLine, newLine) = formatDiffed(
+          levenshteinDistance[string](oldSplit, newSplit).operations,
+          oldSplit, newSplit, maxUnchanged = maxUnchangedWords
+        )
 
       oldText.last().add oldLine
       newText.last().add newLine
+
 
     elif rhs.kind == dskInsert:
       oldText.last().add strConv(oldSeq[lhs.item])
@@ -1745,9 +1766,17 @@ proc formatDiffed*[T](
       lhsMax = max(oldText[^1].len, lhsMax)
 
   for (lhs, rhs) in zip(oldtext, newtext):
-    result.add alignLeft(lhs, lhsMax + 3)
-    result.add rhs
-    result.add "\n"
+    if max(len(lhs), len(rhs)) > stackLongLines:
+      result.add "@@"
+      result.add lhs
+      result.add "\n@@"
+      result.add rhs
+      result.add "\n"
+
+    else:
+      result.add alignLeft(lhs, lhsMax + 3)
+      result.add rhs
+      result.add "\n"
 
 
 
