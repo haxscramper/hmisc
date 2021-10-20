@@ -22,6 +22,7 @@ suite "Enum introspection":
         askFirst : @["head", "tail"]
       }) == "tail"
 
+
 type
   MacAstKind = enum
     akIfStmt
@@ -70,6 +71,8 @@ suite "MacAst spec":
           ## Optional trailing element
 
 
+    generateFieldEnum(spec, "akf", false)
+    assert akfCondition.toName() == "condition"
     check:
       astdiff MacAst(kind: akIfStmt), spec
 

@@ -14,9 +14,38 @@ initBlockFmtDSL()
 
 suite "Block formatting":
   test "Vertical layouts":
-    check V[T["a"], T["b"]].toString() == "a\nb"
-    check V[T["-"], T["-"], T["-"]].toString() == "-\n-\n-"
-    check V[T["*"], C[T["a"], T["b"]]].toString() == "*\na"
+    check V[T["a"], T["b"]].toString() == clt("a\nb")
+    check V[T["-"], T["-"], T["-"]].toString() == clt("-\n-\n-")
+    check V[T["*"], C[T["a"], T["b"]]].toString() == clt("*\na")
+
+  test "Aligned grid":
+    echo makeAlignedGrid(
+      @[
+        @[T["test"], T[" = "], T["value"]],
+        @[T["tes123t"], T[" = "], T["value"]]
+      ],
+      [
+        sadRight, sadCenter, sadLeft
+      ]
+    ).toString()
+
+    echo makeAlignedGrid(
+      @[
+        @[T["version*:"], T["cuint"], T[""]],
+        @[
+          T["show*:"],
+          T["git_status_show_t"],
+          V[T["## The version"], T["## Documentation comment"]]
+        ],
+        @[T["flags*:"], T["cuint"], T["## Flags"]]
+      ], [
+        sadLeft, sadLeft, sadLeft
+      ]
+    ).toString()
+
+
+    echo toString(T["1231" + fgRed]).toString(true)
+    echo toString(T["1231" + fgRed]).toString(false)
 
 
   # test "Choice":
@@ -141,31 +170,31 @@ suite "Paper examples":
   test "6.2 function name wrap":
     echo toString(H[
       H[T["FnName"], T["("]],
-      W[mapIt(1 .. 10, T[&"argument{it}, "])],
+      W[mapIt(1 .. 10, T[&"argument{it}"])],
       T[")"]
     ], 50)
 
     echo toString(H[
       H[T["FnName"], T["("]],
-      W[mapIt(1 .. 10, T[&"argument{it}, "])],
+      W[mapIt(1 .. 10, T[&"argument{it}"])],
       T[")"]
     ], 30)
 
     echo toString(H[
       H[T["AVeryLongAndDescriptiveFunctionName"], T["("]],
-      W[mapIt(1 .. 10, T[&"argument{it}, "])],
+      W[mapIt(1 .. 10, T[&"argument{it}"])],
       T[")"]
     ], 50)
 
     echo toString(C[
       H[
         H[T["AVeryLongAndDescriptiveFunctionName"], T["("]],
-        W[mapIt(1 .. 10, T[&"argument{it}, "])],
+        W[mapIt(1 .. 10, T[&"argument{it}"])],
         T[")"]
       ],
       V[
         H[T["AVeryLongAndDescriptiveFunctionName"], T["("]],
-        I[4, W[mapIt(1 .. 10, T[&"argument{it}, "])]],
+        I[4, W[mapIt(1 .. 10, T[&"argument{it}"])]],
         T[")"]
       ]
     ], 50)

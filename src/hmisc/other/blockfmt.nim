@@ -20,6 +20,8 @@ import
            hstring_algo, clformat],
   ../types/[colorstring, hmap]
 
+export StringAlignDirection
+
 const
   infty = 1024 * 1024 * 1024 * 1024
   defaultCompact: bool = true
@@ -156,7 +158,7 @@ type
     rightMargin: int
     hPos: int
     margins: seq[int]
-    outStr: string
+    outStr: ColoredText
 
 proc margin(buf: OutConsole): int = buf.margins[^1]
 
@@ -171,9 +173,12 @@ func lytStr(s: ColoredLine | ColoredRuneLine): LytStr =
 
 func lytStr(s: ColoredString): LytStr = LytStr(text: toColoredText(s))
 
+proc printStr(buf: var OutConsole, str: LytStr) =
+  buf.outStr.add str.text
+  buf.hPos += str.len
 
-proc printStr(buf: var OutConsole, str: ColoredString | string | LytStr) =
-  buf.outStr &= $str
+proc printStr(buf: var OutConsole, str: ColoredString | string) =
+  buf.outStr.add str
   buf.hPos += str.len
 
 proc printSpace(buf: var OutConsole, n: int) =
@@ -802,6 +807,10 @@ func len*(blc: LytBlock): int =
     else:
       0
 
+
+func textLen*(b: LytBlock): int =
+  b.minWidth
+
 func `[]`*(blc: LytBlock, idx: int): LytBlock =
   blc.elements[idx]
 
@@ -1221,11 +1230,63 @@ func add*(
 
   updateSizes(target)
 
-func makeAlignedGrid*(blocks: seq[LytBlock]): LytBlock =
-  for b in blocks:
-    assertKind(b, {bkStack})
+proc makeAlignedGrid*(
+    blocks: seq[seq[LytBlock]],
+    aligns: openarray[tuple[leftPad, rightPad: int, direction: StringAlignDirection]]
+  ): LytBlock =
 
-  raise newImplementError("Aligned grid")
+  for idx, row in pairs(blocks):
+    if len(aligns) < len(row):
+      raise newArgumentError(
+        "Invalid number for column alignments specified - row ",
+        idx, " has total of ", len(row), " cells, but only ",
+        len(aligns), " were specified.")
+
+  var colWidths = newSeqWith(len(aligns), 0)
+
+  for rowIdx, row in pairs(blocks):
+    for colIdx, col in pairs(row):
+      colWidths[colIdx] = max(textLen(col), colWidths[colIdx])
+
+  result = makeStackBlock([])
+  for row in items(blocks):
+    var resRow = makeLineBlock([])
+    for idx, col in pairs(row):
+      let al = aligns[idx]
+      let diff = colWidths[idx] - textLen(col)
+      case al.direction:
+        of sadLeft:
+          resRow.add makeLineBlock([
+            makeTextBlock(repeat(" ", al.leftPad)),
+            col,
+            makeTextBlock(repeat(" ", al.rightPad + diff))])
+
+        of sadRight:
+          resRow.add makeLineBlock([
+            makeTextBlock(repeat(" ", al.leftPad + diff)),
+            col,
+            makeTextBlock(repeat(" ", al.rightPad))])
+
+        of sadCenter:
+          let left = diff div 2
+          let right = diff - left
+          resRow.add makeLineBlock([
+            makeTextBlock(repeat(" ", al.leftPad + left)),
+            col,
+            makeTextBlock(repeat(" ", al.rightPad + right))])
+
+
+
+    result.add resRow
+
+
+proc makeAlignedGrid*(
+    blocks: seq[seq[LytBlock]],
+    aligns: openarray[StringAlignDirection]
+  ): LytBlock =
+
+  makeAlignedGrid(blocks, mapIt(aligns, (0, 0, it)))
+
 
 #============================  Layout logic  =============================#
 
@@ -1708,6 +1769,16 @@ template joinItBlock*(
   res.addItBlock(item, expr, join)
   res
 
+template joinItLine*(
+    item: typed,
+    expr: untyped,
+    join: LytBlock
+  ): untyped =
+
+  var res = makeBlock(bkLine)
+  res.addItBlock(item, expr, join)
+  res
+
 proc toLayouts*(
     bl: LytBlock, opts: LytOptions = defaultFormatOpts): seq[Layout] =
 
@@ -1731,10 +1802,10 @@ proc toString*(
     bl: LytBlock,
     rightMargin: int = 80,
     opts: LytOptions = defaultFormatOpts
-  ): string =
+  ): ColoredText =
 
   if bl of bkEmpty:
-    return ""
+    return clt("")
 
   else:
     var bl = bl

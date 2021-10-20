@@ -106,6 +106,7 @@ const
   Newline*            = {'\n'}
   AllSpace*           = Whitespace
   HorizontalSpace*    = AllSpace - Newline
+  DashIdentChars*     = LowerAsciiLetters + HighAsciiLetters + {'_', '-'}
   VeritcalSpace*      = Newline
   TextLineChars*      = AllChars - ControlChars + { '\t' }
                         ## Character found in regular text line. All chars
@@ -489,11 +490,59 @@ proc hshow*(str; opts: HDIsplayOpts = defaultHDisplay): ColoredText =
     result.add "["
     result.add $str.pos
     result.add ": ["
-    result.add hshow(str.baseStr[][clamp(str.pos, 0, str.baseStr[].high) .. ^1])
+    result.add hshow(
+      str.baseStr[][clamp(str.pos, 0, str.baseStr[].high) .. ^1])
     result.add "]]"
 
 
-proc `$`*(str): string = $hshow(str)
+
+func around*(str; forward: int = 10): string =
+  var res: ColoredText
+  assertRef str.baseStr
+  let b = str.basestr
+  let params = hdisplay(flags -= {dfUseCommas, dfUseQuotes})
+  if str.isSlice:
+    block:
+      var text: string
+      var sliceIdx = str.sliceIdx
+      while text.len < forward and sliceIdx < str.slices.len:
+        let slice = str.slices[sliceIdx]
+        inc sliceIdx
+        for ch in b[][
+          clamp(str.pos, slice.start, b[].high) ..
+          clamp(slice.finish, 0, b[].high)
+        ]:
+          text.add ch
+          if text.len == forward:
+            break
+
+        # text.add str.baseStr[][
+        #   str.pos .. min(min(
+        #     str.pos + forward, slice.finish), str.baseStr[].high)]
+
+      let t = hshow(@text, params)
+      res.add &"[{str.line}:{str.column}:{str.pos}: {t}]"
+
+  else:
+    # res.add hshow(
+    #   @(b[][max(str.pos - 5, 0) .. str.pos]), params)
+
+    res.add &"[{str.line}:{str.column}:{str.pos}: "
+    res.add hshow(
+      @(b[][
+        clamp(str.pos, 0, str.baseStr[].high) ..
+        min(str.pos + 10, str.baseStr[].high)]),
+      params
+    )
+
+    res.add "]"
+
+  return $res
+
+proc `$`*(str): string = around(str)
+proc `$`*(str: PosStr): string =
+  var tmp = unsafeAddr str
+  $(tmp[])
 
 func add*(str: var PosStr, other: PosStr) =
   assertArg str, str.isSlice
@@ -944,11 +993,11 @@ proc trySkip*(str; ch: char): bool  =
     str.next()
     result = true
 
-proc skipWhile*(str; chars: set[char]) {.inline.} =
+proc skipWhile*(str; chars: set[char], step: int = 1) {.inline.} =
   ## Advance input string while current character matches charset
   if str[chars]:
     while str[chars]:
-      str.next()
+      str.next(step)
 
 
 proc skipBefore*(str; chars: set[char]) {.inline.} =
@@ -1344,6 +1393,7 @@ macro scanSlice*(str; pattern: varargs[untyped]): untyped =
       of "n": bindSym"Newline"
       of "N": nnkInfix.newTree(ident"-", bindSym"AllChars", bindSym"Newline")
       of "Id": bindSym"IdentChars"
+      of "DId": bindSym"DashIdentChars"
       of "Hex": bindSym"HexDigits"
       of "s": bindSym"HorizontalSpace"
 

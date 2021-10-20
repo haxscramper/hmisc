@@ -24,6 +24,12 @@ template inFor*(ident1, ident2, expr, body: untyped): untyped =
   for ident1, ident2 in expr:
     body
 
+template dowhile*(expr, body: untyped): untyped =
+  block:
+    body
+    while expr:
+      body
+
 template withIt*(val, body: untyped): untyped =
   ## Copy `val` to `it`, execute body and then return `it`.
   ##

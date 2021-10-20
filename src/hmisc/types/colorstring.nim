@@ -987,6 +987,9 @@ func toString*(runes: seq[ColoredRune], color: bool = true): string =
       result &= $rune.rune
 
 
+func toString*(text: ColoredText, color: bool = true): string =
+  toString(text.runes, color)
+
 func toString*(strs: seq[ColoredString], color: bool = true): string =
   if color:
     var prev = initPrintStyling()

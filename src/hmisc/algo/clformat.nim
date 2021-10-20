@@ -35,6 +35,9 @@ type
     dfWithRanges
     dfSpellEmptyStrings
 
+    dfUseCommas
+    dfUseQuotes
+
   HDisplayOpts* = object
     flags*: set[HDisplayFlag]
     # colored*: bool
@@ -47,13 +50,19 @@ type
     dropPrefix*: bool
 
 const defaultHDisplay* = HDisplayOpts(
-  flags: { dfColored, dfPositionIndexed, dfSpellEmptyStrings },
+  flags: {
+    dfColored, dfPositionIndexed, dfSpellEmptyStrings,
+    dfUseCommas, dfUseQuotes
+  },
   dropPrefix: true,
   newlineBeforeMulti: true,
   maxLen: 30,
   maxDepth: 120,
   verbosity: dvNormal,
 )
+
+func contains*(opts: HDisplayOpts, flag: HDisplayFlag): bool =
+  flag in opts.flags
 
 import std/[macros]
 
@@ -1265,7 +1274,18 @@ func hFormat*[T](s: openarray[T]): string =
 
 
 func hShow*(ch: char, opts: HDisplayOpts = defaultHDisplay): ColoredText =
-  $ch + defaultPrintStyling
+  if dfUseQuotes in opts:
+    result.add "'" + fgYellow
+
+  result.add (
+    case ch:
+      of '\n': "\\n"
+      of '\t': "\\n"
+      else: extendedAsciiNames[ch]
+  ) + fgYellow
+
+  if dfUseQuotes in opts:
+    result.add "'" + fgYellow
 
 func hshow*(b: bool, opts: HDisplayOpts = defaultHDisplay): ColoredText =
   if b: $b + fgGreen else: $b + fgRed
@@ -1303,7 +1323,13 @@ func hShow*[A, B](
 func hshow*[T](s: seq[T], opts: HDisplayOpts = defaultHDisplay): ColoredText =
   result.add "["
   for idx, item in pairs(s):
-    if idx > 0: result.add ", "
+    if idx > 0:
+      if dfUseCommas in opts.flags:
+        result.add ", "
+
+      else:
+        result.add " "
+
     result.add hshow(item, opts)
 
   result.add "]"
@@ -1405,24 +1431,29 @@ func hShow*(
         toItalic("empty string", opts.colored) & ")"
 
     else:
-      result = toYellow("''")
+      if dfUseQuotes in opts:
+        result = toYellow("''")
 
   else:
     if '\n' in str:
       var str = toYellow(str)
       let onlyTail = str.onlyTailNewline()
-      if onlyTail:
+      if onlyTail and dfUseQuotes in opts:
         result.add toYellow("\"")
 
       result.add str
       replaceTailNewlines(result, uc"⮒" + (fgRed + bgDefault))
 
-      if onlyTail:
+      if onlyTail and dfUseQuotes in opts:
         result.add toYellow("\"")
 
 
     else:
-      result = toYellow("\"" & str & "\"", opts.colored)
+      if dfUseQuotes in opts:
+        result = toYellow("\"" & str & "\"", opts.colored)
+
+      else:
+        result = toYellow(str, opts.colored)
 
 func hshow*(s: cstring, opts: HDisplayOpts = defaultHDisplay): ColoredText =
   hshow($s, opts)

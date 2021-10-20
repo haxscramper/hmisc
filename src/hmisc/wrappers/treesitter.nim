@@ -1208,6 +1208,16 @@ proc treeRepr*[N, K](
     numStyle = tcDefault.bg + tcGrey54.fg
     isHts = node is HtsNode
 
+  when not isHts:
+    if len(base) == 0:
+      raise newArgumentError(
+        "Base string was not specified for `treeRepr()` of the ",
+        "tree-sitter node. Pass string explicitly as a parameter. ",
+        "NOTE: in order to get base string from HtsNode use `.getBase()`"
+      )
+
+
+
   coloredResult()
 
   proc aux(

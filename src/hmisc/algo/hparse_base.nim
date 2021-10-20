@@ -39,6 +39,7 @@ type
     # line*: uint32
     # column*: uint16
 
+    isFake*: bool
     line*: int
     column*: int
     offset*: int
@@ -328,6 +329,16 @@ template initTok*[K](
     str: $inStr,
     isSlice: false)
 
+proc initFakeTok*[K](str: PosStr, kind: K): HsTok[K] =
+  result = HsTok[K](
+    kind: kind,
+    isFake: true,
+    isSlice: false,
+    line: str.line,
+    column: str.column,
+    offset: str.pos
+  )
+
 proc initTok*[K: HsTokSelector](str: PosStr, inKind: K): HsTok[K] =
   result = HsTok[K](
     kind: inKind,
@@ -379,6 +390,15 @@ template initTok*[K](
 
   res
 
+template addInitTok*[K](
+    res: var seq[HsTok[K]],
+    str: var PosStr,
+    kind: K,
+    body: untyped
+  ): untyped =
+
+  add(res, initTok(str, kind, asSlice(str, body)))
+
 template initTok*[K](
     posStr: PosStr, inKind: K, inStr: PosStr): HsTok[K] =
   initTok(posStr, inStr, inKind)
@@ -399,6 +419,40 @@ proc initAdvanceTok*[K](
     advance = advance, expected = expected), inKind)
 
 
+func addOrJoin*[K](
+    tokens: var seq[HsTok[K]],
+    tok: HsTok[K],
+    lastKinds, newKinds: set[K]
+  ) =
+  ## Either add token to the list or join it with previous token
+
+  if tokens.len == 0 or
+     tok.kind notin newKinds or
+     tokens.last().kind notin lastKinds:
+    tokens.add tok
+
+  else:
+    if tokens.last().isSlice:
+      if tok.isSlice:
+        tokens.last().extra.add tok.extra
+        tokens.last().finish = tok.finish
+
+      else:
+        tokens.add tok
+
+    else:
+      if tok.isSlice:
+        tokens.add tok
+
+      else:
+        tokens.last().str.add tok.str
+
+func addOrJoin*[K](tokens: var seq[HsTok[K]], tok: HsTok[K]) =
+  addOrJoin(tokens, tok, {tok.kind}, {tok.kind})
+
+func addOrJoin*[K](tokens: var seq[HsTok[K]], tok: HsTok[K], kind: K) =
+  addOrJoin(tokens, tok, {kind}, {kind})
+
 func strVal*[K](tok: HsTok[K]): string =
   if tok.isSlice:
     assertRef tok.baseStr
@@ -415,6 +469,10 @@ proc initCharTok*[Cat: enum](
   initTok(ch, mapChar(ch, map))
 
 proc initPosStr*[K](tok: HsTok[K]): PosStr =
+  if tok.isFake:
+    raise newArgumentError(
+      "Cannot create new positional string from fake token")
+
   if tok.isSlice:
     result = PosStr(
       isSlice: true,
@@ -429,8 +487,6 @@ proc initPosStr*[K](tok: HsTok[K]): PosStr =
         finish: tok.finish)])
 
     result.slices.add tok.extra
-
-
 
   else:
     raise newImplementError()

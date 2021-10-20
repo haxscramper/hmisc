@@ -8,11 +8,11 @@ hcoverageEnable()
 
 import
   ../core/all,
-  ../other/[hunittest, hpprint]
+  ../other/[hunittest, hpprint, oswrap]
 
 startHax()
 
-export all, hunittest, hcoverage, hpprint
+export all, hunittest, hcoverage, hpprint, oswrap
 
 proc nim_doc_project_does_not_consider_this_file_to_be_a_part_of_the_project_unless_I_declare_at_least_one_public_symbol_so_I_have_this_proc_here*() =
   discard

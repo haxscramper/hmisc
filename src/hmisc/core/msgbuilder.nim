@@ -1,4 +1,5 @@
 import std/[strutils]
+import ./colored
 
 
 
@@ -11,6 +12,8 @@ proc msep*(ms: var string, s: string, expr: bool) =
     ms.add s
 
 func mq*[T](item: T): string = "'" & $item & "'"
+func mkind*[E: enum](item: E): string = "'" & toGreenStr($item) & "'"
+
 
 func mitem*[T](s: var string, item: T) =
   s.add "'"
@@ -34,7 +37,6 @@ func mfound*[F, E](s: var string, found: F, expected: E) =
   s.add ", but expected - '"
   s.add $expected
   s.add "'"
-
 
 func toPluralNoun*(
     noun: string, count: int,

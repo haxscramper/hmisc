@@ -21,6 +21,11 @@ type
     idsSnake
     idsCamel
 
+  StringAlignDirection* = enum
+    sadLeft
+    sadRight
+    sadCenter
+
 
   StrPart* = object
     case kind: StrPartKind

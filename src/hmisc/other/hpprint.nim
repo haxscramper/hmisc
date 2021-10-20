@@ -160,6 +160,10 @@ func typeName*(main: sink PPrintGlob, name: string): PPrintGlob =
 func match*(globs: varargs[PPrintGlob]): PPrintMatch =
   PPrintMatch(globs: toSeq(globs))
 
+
+func matchTypeField*(tname, fname: string): PPrintMatch =
+  pglob().star().field(tname).field(fname).star().match()
+
 func matchField*(name: varargs[string]): PPrintMatch =
   mapIt(name, pglob().star().field(it).star()).match()
 
@@ -406,13 +410,37 @@ proc newPPrintConst*(
     kind: ptkConst, strVal: value, treeId: id,
     styling: styling, path: path, treeType: constType)
 
+proc getId*[T](
+    conf: var PPrintConf, entry: T, forceCounter: bool = false): int =
+
+  if forceCounter:
+    result = conf.idCounter
+    inc conf.idCounter
+
+  when entry is ref or entry is ptr:
+    when nimvm:
+      when compiles(hash(entry)):
+        hash(entry)
+
+      else:
+        result = conf.idCounter
+        inc conf.idCounter
+
+    else:
+      result = cast[int](entry)
+
+  else:
+    result = conf.idCounter
+    inc conf.idCounter
+
+
 proc newPPrintNil*[T](
     value: T, path: PPrintPath, msg: string, conf: var PPrintConf
   ): PPrintTree =
     newPPrintConst(
       "[!" & msg & "!]",
       $typeof(value),
-      conf.getId(value),
+      hpprint.getId[T](conf, value),
       fgRed + bgDefault,
       path)
 
@@ -571,28 +599,6 @@ proc visit*[T](conf: var PprintConf, obj: T) =
   when obj is ref or obj is ptr:
     conf.visited.inc cast[int](obj)
 
-proc getId*[T](
-    conf: var PPrintConf, entry: T, forceCounter: bool = false): int =
-
-  if forceCounter:
-    result = conf.idCounter
-    inc conf.idCounter
-
-  when entry is ref or entry is ptr:
-    when nimvm:
-      when compiles(hash(entry)):
-        hash(entry)
-
-      else:
-        result = conf.idCounter
-        inc conf.idCounter
-
-    else:
-      result = cast[int](entry)
-
-  else:
-    result = conf.idCounter
-    inc conf.idCounter
 
 
 proc toPprintTree*(
@@ -1353,7 +1359,8 @@ proc pstring*(
   ): string =
 
   return tree.toPPrintBlock(conf).
-    toString(conf.formatOpts.rightMargin, opts = conf.formatOpts)
+    toString(conf.formatOpts.rightMargin, opts = conf.formatOpts).
+    toString()
 
 proc getRightMargin*(): int =
   when nimvm:
@@ -1383,7 +1390,9 @@ proc pstring*[T](
 
   let pblock = toPPrintTree(obj, conf, @[]).toPPrintBlock(conf)
 
-  return pblock.toString(conf.formatOpts.rightMargin, opts = conf.formatOpts)
+  return pblock.
+    toString(conf.formatOpts.rightMargin, opts = conf.formatOpts).
+    toString()
 
 import std/terminal
 
@@ -1534,7 +1543,7 @@ proc objectTreeRepr*(
 
   let blc = I[indent, aux(tree)]
 
-  return clt(blc.toString())
+  return blc.toString()
 
 proc pprintObjectTree*[T](obj: T) =
   echo pptree(obj).objectTreeRepr()

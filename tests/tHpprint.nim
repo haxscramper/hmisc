@@ -309,8 +309,6 @@ suite "Extra features":
     )
 
 
-testFileEnded()
-
 suite "Tree pprint":
   test "Simple type":
     echo pptree(12).objectTreeRepr()

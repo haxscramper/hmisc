@@ -250,6 +250,7 @@ type
     cvkCommand
     cvkNotYetDefaulted
 
+  CliOptionsTable* = Table[string, CliValue]
   CliValue* = ref object
     origin*: CliOrigin
     desc*: CliDesc
@@ -258,7 +259,7 @@ type
       of cvkCommand:
         name*: string
         positional*: seq[CliValue]
-        options*: Table[string, CliValue]
+        options*: CliOptionsTable
         subCmd*: Option[CliValue]
 
       of cvkUnparse:
@@ -328,7 +329,7 @@ const
     cvkInt: @["cliCheckFor(int)"]
   }
 
-const addErrors = true
+const addErrors = false
 
 func addOrRaise(errors: var seq[CliError], err: CliError) =
   when addErrors:
@@ -1194,6 +1195,13 @@ proc cliCheckFor*(bol: typedesc[bool]): CliCheck =
 export toMapArray
 
 proc cliCheckFor*[En: enum](
+    en: typedesc[En],
+    docs: openarray[(string, string)]
+  ): CliCheck =
+
+  return checkValues(@docs)
+
+proc cliCheckFor*[En: enum](
     en: typedesc[En], docs: array[En, string]): CliCheck =
 
   var values: seq[(string, string)]
@@ -1865,26 +1873,27 @@ proc parseOptOrFlag(
     lexer: var HsLexer[CliOpt], desc: CliDesc, errors): CliCmdTree =
 
   assertRef desc
-  # echov lexer[]
   if lexer[].key in desc.altNames:
     var cnt = 1
     let repeat = desc.check.findRepeatRange()
     result = CliCmdTree(
       kind: tern(
-        lexer[coOptionKinds] or (repeat.isSome() and 0 < repeat.get().b),
+        lexer[coOptionKinds] or
+        (repeat.isSome() and 0 < repeat.get().b) or
+        desc of coOpt,
         cctOpt,
         cctFlag),
       head: lexer.pop(), desc: desc)
 
-    # if ?lexer:
-      # echov lexer[]
-      # echov result.head.needsValue()
-      # pprint desc
-
     if ?lexer:
       if result.head.needsValue():
-        # Handle separate `--opt value` case
+        # Handle separate `--opt value` case based on the head token kind
         result.args.add lexer.popArgument(desc)
+
+      elif desc of coOpt and result.head.canAddValue():
+        # Identical check, but based on the CLI description
+        result.head.valStr = lexer[].value
+        lexer.next()
 
       if repeat.isSome():
         var idx = 0
@@ -2190,7 +2199,9 @@ proc checkedConvert(
         if str == val:
           return val
 
-      raise newImplementError()
+      errors.addOrRaise newCliError(
+        cekCheckFailure,
+        &"Value '{str}' is not in set of expected values")
 
     of cckFileExtMatches:
       let
@@ -2828,10 +2839,11 @@ proc help(app: CliApp, ignored: HashSet[string]): LytBlock =
 
 proc helpStr*(
     app: CliApp,
-    ignored: seq[string] = @[]
+    ignored: seq[string] = @[],
+    color: bool = true
   ): string =
 
-  return app.help(toHashSet(ignored)).toString()
+  return app.help(toHashSet(ignored)).toString().toString(color)
 
 proc help(err: CliError): LytBlock =
   var errmsg: string
@@ -2860,7 +2872,7 @@ proc help(err: CliError): LytBlock =
       result = T[errmsg]
 
 proc helpStr*(err: CliError): string =
-  return err.help().toString()
+  return err.help().toString().toString()
 
 
 proc showErrors*(app: CliApp, logger: HLogger) =

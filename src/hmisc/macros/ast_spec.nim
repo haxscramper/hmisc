@@ -1,3 +1,7 @@
+# HACK I dont' like current implementation, specifically how I determine if
+# there is any issues with matched tree or not. This has to be partially
+# rewritten, in order to make `formatFail` and other entries work better.
+
 import
   ../core/[all, code_errors],
   ../types/colorstring,
@@ -5,7 +9,8 @@ import
   ./argpass
 
 import
-  std/[options, macros, sequtils, strutils, parseutils, tables]
+  std/[options, macros, sequtils, strutils,
+       parseutils, tables, sets]
 
 type
   AstRangeKind = enum
@@ -16,7 +21,7 @@ type
     akMixedSlice ## `idx1 .. ^idx2`
 
 
-  AstRange = object
+  AstRange* = object
     optional*: bool
     doc*: string
     name*: string
@@ -34,6 +39,7 @@ type
     path*: seq[int]
     parent*: K
     expected*: set[K]
+    got*: Option[K]
     arange*: AstRange
     nested*: seq[AstCheckFail[K]]
 
@@ -96,11 +102,11 @@ func getNodeRanges*[N, K](spec: AstSpec[N, K]): array[K, Table[string, AstRange]
         if arange.arange.name.len > 0:
           result[kind][arange.arange.name] = arange.arange
 
-template noPositional(spec, node, name): untyped {.dirty.} =
+template noPositional(spec, kind, name): untyped {.dirty.} =
   var names: string
-  if table[node.kind].len > 0:
+  if table[kind].len > 0:
     names = "Available names - "
-    for name, _ in pairs(table[node.kind]):
+    for name, _ in pairs(table[kind]):
       names.add ", "
       names.add name
 
@@ -110,8 +116,35 @@ template noPositional(spec, node, name): untyped {.dirty.} =
 
   raise newGetterError(&[
     "Cannot get positional node with name '", name,  "' from node of kind '",
-    $node.kind, "'. ", names])
+    $kind, "'. ", names])
 
+
+func getSingleSubnodeIdx*[N, K](
+    spec: static[AstSpec[N, K]],
+    kind: K,
+    name: string,
+    nodeLen: Option[int] = none(int)
+  ): int =
+  const table = getNodeRanges(spec)
+  if name in table[kind]:
+    let arange = table[kind][name]
+    if arange.kind == akPoint:
+      return arange.idx
+
+    elif nodeLen.isSome():
+      return arange.toSlice(nodeLen.get()).a
+
+    else:
+      raise newUnexpectedKindError(
+        "Cannot get single subnode index for element ",
+        mq(name), " of node kind ", mkind(kind),
+        " - field exists, but allowed AST range is of kind ",
+        mkind(arange.kind), " and requires node lenght, but it ",
+        "wasn't specified."
+      )
+
+  else:
+    noPositional(spec, kind, name)
 
 func getSingleSubnodeIdx*[N, K](
     spec: static[AstSpec[N, K]], node: N, name: string): int =
@@ -129,7 +162,7 @@ func getSingleSubnodeIdx*[N, K](
     return slice.a
 
   else:
-    noPositional(spec, node, name)
+    noPositional(spec, node.kind, name)
 
 func getSingleSubnode*[N, K](
     spec: static[AstSpec[N, K]], node: N, name: string): N =
@@ -152,7 +185,7 @@ func getMultipleSubnode*[N, K](
       result.add node[idx]
 
   else:
-    noPositional(spec, node, name)
+    noPositional(spec, node.kind, name)
 
 func fieldRange*[N, K](
     spec: AstSpec[N, K], node: N, idx: int): Option[AstRange] =
@@ -479,8 +512,18 @@ proc isEmpty*[K](fail: AstCheckFail[K], withNested: bool = true): bool =
   fail.expected.len == 0 and
   (if withNested: fail.nested.len == 0 else: true)
 
+proc failCount*[K](fail: AstCheckFail[K]): int =
+  for nested in fail.nested:
+    result += nested.failCount
+
+  if fail.isMissing or (fail.msg.len > 0 or fail.expected.len > 0):
+    inc result
+
 proc findMissing*[N, K](
-    spec: AstPattern[N, K], node: N, path: seq[int] = @[]): AstCheckFail[K] =
+    spec: AstPattern[N, K], node: N,
+    path: seq[int] = @[]
+  ): AstCheckFail[K] =
+
   result.path = path
   # Validate all subnodes of `node` against specified subranges.
   if spec.ranges.len > 0:
@@ -532,6 +575,7 @@ proc validateAst*[N, K](
             parent: kind,
             path: path,
             expected: alt.expected,
+            got: some subnode,
             arange: arange.arange)
 
 proc treeRepr*[N, K](spec: AstSpec[N, K]): ColoredText =
@@ -570,13 +614,14 @@ proc treeRepr*[N, K](spec: AstSpec[N, K]): ColoredText =
 
 proc formatFail*[N, K](fail: AstCheckFail[K], node: N): ColoredText =
   coloredResult()
+  if failCount(fail) == 0:
+    endResult()
 
   proc aux(fail: AstCheckFail[K], level: int) =
     addIndent(level)
-    if fail.isEmpty(withNested = false):
-      discard
-
-    else:
+    var parentFailed = false
+    if not fail.isEmpty(withNested = false):
+      parentFailed = true
       if fail.msg.len > 0:
         add fail.msg
         add " "
@@ -603,14 +648,17 @@ proc formatFail*[N, K](fail: AstCheckFail[K], node: N): ColoredText =
             add toCyan(fail.arange.name)
             add ")"
 
-      else:
-        if fail.isMissing:
-          add "missing subnode "
-          add toGreen($fail.arange)
-          if fail.arange.name.len > 0:
-            add " ("
-            add toCyan(fail.arange.name)
-            add ")"
+          if fail.got.isSome():
+            add ", but got "
+            add hshow(fail.got.get())
+
+      elif fail.isMissing:
+        add "missing subnode "
+        add toGreen($fail.arange)
+        if fail.arange.name.len > 0:
+          add " ("
+          add toCyan(fail.arange.name)
+          add ")"
 
       if fail.path.len > 0:
         add " on path "
@@ -624,10 +672,12 @@ proc formatFail*[N, K](fail: AstCheckFail[K], node: N): ColoredText =
         add "\n"
         add fail.arange.doc.indent(level * 2 + 2).toYellow()
 
-    for nested in fail.nested:
-      if not nested.isEmpty():
-        add "\n"
-        aux(nested, level + 1)
+    var idx = 0
+    for nested in items(fail.nested):
+      if not nested.isEmpty() and failCount(nested) > 0:
+        if idx > 0: add "\n"
+        aux(nested, tern(parentFailed, level + 1, level))
+        inc idx
 
   aux(fail, 0)
   endResult()
@@ -637,12 +687,14 @@ proc validateAst*[N, K](
     spec: AstSpec[N, K], node: N, subnode: N, idx: int): ColoredText =
 
   if spec.spec[node.kind].isSome():
-    result.add formatFail(
-      validateAst(
-        spec.spec[node.kind].get(),
-        node.kind, subnode.kind, idx, node.len, @[idx]), node)
+    let fail1 = validateAst(
+      spec.spec[node.kind].get(),
+      node.kind, subnode.kind, idx, node.len, @[idx])
 
-    result.add "\n"
+    if failCount(fail1) > 0:
+      result.add formatFail(fail1, node)
+      result.add "\n"
+
     result.add formatFail(
       findMissing(spec.spec[node.kind].get(), node), node)
 
@@ -676,12 +728,13 @@ proc validateSub*[N, K](
 
 proc validateSelf*[N, K](
     spec: AstSpec[N, K], node: N): Option[ColoredText] =
-  if spec.spec[node.kind].isSome():
-    let fail = formatFail(
-      findMissing(spec.spec[node.kind].get(), node), node)
 
-    if fail.len() > 0:
-      return some fail
+  if spec.spec[node.kind].isSome():
+    let findMissing = findMissing(spec.spec[node.kind].get(), node)
+    if failCount(findMissing) > 0:
+      let fail = formatFail(findMissing, node)
+      if fail.len() > 0:
+        return some fail
 
 proc validateAst*[N, K](spec: AstSpec[N, K], node: N): ColoredText =
   if spec.spec[node.kind].isSome():
@@ -833,3 +886,76 @@ template generateConstructors*[N; K: enum](
     instImpl(spec, defaultable, makeVia, specId)
 
   inst(inSpec, inDefaultable, astToStr(makeVia), inSpec)
+
+proc genFieldEnumImpl[N, K](
+    spec: AstSpec[N, K],
+    specId: NimNode,
+    exported: bool,
+    prefix: string
+  ): NimNode =
+  bind newIdentNode
+  var names: HashSet[string]
+
+  proc aux(pattern: AstPattern[N, K]) =
+    for (r, pats) in pattern.ranges:
+      names.incl r.name
+      for p in pats:
+        aux(p)
+
+  for _, opt in pairs(spec.spec):
+    if opt.isSome():
+      aux(opt.get())
+
+
+  result = newStmtList()
+  var ids = nnkEnumTy.newTree(newEmptyNode())
+  var map: seq[(string, NimNode)]
+  for n in items(names):
+    let name = ident(prefix & capitalizeAscii(
+      n.split({low(char) .. high(char)} - {'a' .. 'z', 'A' .. 'Z'}).
+      mapIt(capitalizeAscii(it)).
+      join("")))
+    ids.add name
+    map.add(n, name)
+
+  let restype = ident($typeof(N) & "Field")
+  result.add nnkTypeSection.newTree(
+    nnkTypeDef.newTree(
+      if exported:
+        nnkPostfix.newTree(ident("*"), resType)
+      else:
+        restype,
+      newEmptyNode(),
+      ids
+    )
+  )
+
+  var mapcase = nnkCaseStmt.newTree(ident"arg")
+  for (key, val) in map:
+    mapcase.add nnkOfBranch.newTree(val, newLit(key))
+
+  result.add nnkProcDef.newTree(
+    if exported: nnkPostfix.newTree(ident"*", ident"toName") else: ident"toName",
+    newEmptyNode(),
+    newEmptyNode(),
+    nnkFormalParams.newTree(
+      newIdentNode("string"),
+      nnkIdentDefs.newTree(newIdentNode("arg"), restype, newEmptyNode())),
+    newEmptyNode(),
+    newEmptyNode(),
+    nnkStmtList.newTree(mapcase)
+  )
+
+  # echo result.repr()
+
+template generateFieldEnum*[N; K: enum](
+    inSpec: AstSpec[N, K]{lit | `const`},
+    prefix: static[string],
+    exported: static[bool] = true,
+  ): untyped =
+
+  bind genFieldEnumImpl
+  macro inst(spec: static[AstSpec[N, K]], specId: AstSpec[N, K]): untyped =
+    genFieldEnumImpl(spec, specId, exported, prefix)
+
+  inst(inSpec, inSpec)
