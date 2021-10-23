@@ -759,6 +759,29 @@ func toSnakeCamelCase*(str: string): string {.
 
   str.splitSnake().mapIt(it.fixCapitalizeAscii()).join("")
 
+func toDashedCase*(str: string): string =
+  var prevDash = true
+  for idx, ch in str:
+    case ch:
+      of {'a' .. 'z'}:
+        result.add ch
+        prevDash = false
+
+      of {'A' .. 'Z'}:
+        result.add toLowerAscii(ch)
+        prevDash = false
+
+      else:
+        if prevDash:
+          discard
+
+        else:
+          result.add '-'
+
+
+
+
+
 func snakeToCamelCase*(str: string): string =
   for part in splitSnake(str):
     result.add fixCapitalizeAscii(part)

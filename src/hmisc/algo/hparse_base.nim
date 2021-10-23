@@ -300,13 +300,24 @@ proc initEof*[K](str: var PosStr, kind: K): HsTok[K] =
 
 proc initTok*[K: HsTokSelector](
     str: var PosStr, kind: K, tryPop: bool = true): HsTok[K] =
-  if str.ranges.len == 0:
-    result = HsTok[K](
-      kind: kind, isSlice: false,
-      line: str.line, column: str.column)
+  if str.isSlice:
+    if str.fragmentedRanges.len == 0 or not tryPop:
+      result = HsTok[K](
+        kind: kind, isSlice: false,
+        line: str.line, column: str.column)
 
-  if str.ranges.len > 0 and tryPop:
-    result.str = str.popRange()
+    else:
+      raise newImplementError(
+        "Init token for positional string with active fragmented ranges")
+
+  else:
+    if str.ranges.len == 0:
+      result = HsTok[K](
+        kind: kind, isSlice: false,
+        line: str.line, column: str.column)
+
+    if str.ranges.len > 0 and tryPop:
+      result.str = str.popRange()
 
 proc initTok*[K](kind: K): HsTok[K] = HsTok[K](kind: kind)
 

@@ -10,7 +10,8 @@ import
   ../core/all,
   ../other/[oswrap, rx],
   ../types/colorstring,
-  ../algo/[clformat, hstring_algo]
+  ../algo/[clformat, hstring_algo],
+  ./base_writer
 
 export oswrap
 
@@ -787,92 +788,56 @@ template raiseUnexpectedToken*(
 
 type
   XmlWriter* = object
-    stream: Stream
-    indentBuf: string
-    ignoreIndent: int
+    base: BaseWriter
 
 using
   writer: var XmlWriter
   reader: var HXmlParser
 
-proc close*(writer: var XmlWriter) = writer.stream.close()
-
 proc `=destroy`*(writer: var XmlWriter) = discard
   # echo "=destroy called"
   # writer.close()
 
-
-proc newXmlWriter*(): XmlWriter =
-  XmlWriter(stream: newStringStream())
-
-proc readAll*(writer): string =
-  writer.stream.setPosition(0)
-  writer.stream.readAll()
-
-proc newXmlWriter*(stream: Stream): XmlWriter =
-  XmlWriter(stream: stream)
-
-proc newXmlWriter*(file: File): XmlWriter =
-  newXmlWriter(newFileStream(file))
-
-proc newXmlWriter*(file: AbsFile): XmlWriter =
-  assertExists(file.dir())
-  newXmlWriter(newFileStream(file, fmWrite))
-
-
-proc space*(writer) = writer.stream.write(" ")
-proc line*(writer) = writer.stream.write("\n")
-proc indent*(writer) = writer.indentBuf.add "  "
-proc dedent*(writer) =
-  writer.indentBuf.setLen(max(writer.indentBuf.len - 2, 0))
-
-proc writeInd*(writer) =
-  if writer.ignoreIndent > 0:
-    dec writer.ignoreIndent
-
-  else:
-    writer.stream.write(writer.indentBuf)
-
-proc ignoreNextIndent*(writer) = inc writer.ignoreIndent
+genBaseWriterProcs(XmlWriter)
 
 proc xmlCData*(writer; text: string) =
-  writer.stream.write("<![CDATA[")
+  writer.writeRaw("<![CDATA[")
   var start = 0
   var pos = text.find("]]>")
   while pos != -1:
-    writer.stream.write(text[start .. pos])
-    writer.stream.write("]]")
+    writer.writeRaw(text[start .. pos])
+    writer.writeRaw("]]")
     start = pos + 3
     pos = text.find("]]>", start)
-    writer.stream.write("]]><![CDATA[>")
+    writer.writeRaw("]]><![CDATA[>")
 
-  writer.stream.write(text[start .. ^1])
-  writer.stream.write("]]>")
+  writer.writeRaw(text[start .. ^1])
+  writer.writeRaw("]]>")
 
 proc xmlStart*(writer; elem: string, indent: bool = true) =
   if indent: writer.writeInd()
-  writer.stream.write("<", elem, ">")
+  writer.writeRaw("<", elem, ">")
   if indent: writer.line()
 
 
 proc xmlEnd*(writer; elem: string, indent: bool = true) =
   if indent: writer.writeInd()
-  writer.stream.write("</", elem, ">")
+  writer.writeRaw("</", elem, ">")
   if indent: writer.line()
 
 proc xmlOpen*(writer; elem: string, indent: bool = true) =
   if indent: writer.writeInd()
-  writer.stream.write("<", elem)
+  writer.writeRaw("<", elem)
 
 
 
 
-proc xmlClose*(writer) = writer.stream.write(">")
+proc xmlClose*(writer) = writer.writeRaw(">")
 
 
 
 proc xmlCloseEnd*(writer; newline: bool = true) =
-  writer.stream.write("/>")
+  writer.writeRaw("/>")
   if newline: writer.line()
 
 
@@ -906,9 +871,6 @@ proc loadEnumWithPrefix*[E](
     (kind = parseEnum[E](prefix & r.strVal()))
   )
 
-
-
-
 proc toXmlString*[T](item: Option[T]): string =
   mixin toXmlString
   if item.isSome():
@@ -917,15 +879,13 @@ proc toXmlString*[T](item: Option[T]): string =
 proc toXmlString*(item: string): string = item
 proc toXmlString*(item: enum | bool | float): string = $item
 proc toXmlString*(item: SomeInteger): string = $item
-proc writeRaw*(writer; text: string) =
-  writer.stream.write(text)
 
 proc writeEscaped*(writer; text: string) =
-  writer.stream.write(xmltree.escape text)
+  writer.writeRaw(xmltree.escape text)
 
 proc xmlAttribute*(
     writer; key: string, value: SomeInteger | bool | float | enum | string) =
-  writer.stream.write(
+  writer.writeRaw(
     " ", key, "=\"", xmltree.escape(toXmlString(value)), "\"")
 
 proc xmlStart*(
@@ -1004,6 +964,63 @@ proc writeXml*[E: enum](writer; values: set[E], tag: string) =
   writer.dedent()
   writer.xmlEnd(tag)
 
+
+proc eopen*(
+    writer; elem: string,
+    params: openarray[(string, string)] = @[];
+    indent: bool = false
+  ) =
+  writer.xmlStart(elem, params, indent)
+
+proc esingle*(
+    writer; elem: string,
+    params: openarray[(string, string)] = @[];
+    indent: bool = false
+  ) =
+  writer.xmlSingle(elem, params, indent)
+
+proc eclose*(writer; elem: string; indent: bool = true) =
+  writer.xmlEnd(elem, indent)
+
+template eindent*(writer; body): untyped =
+  indent(writer)
+  body
+  dedent(writer)
+
+template ewrap*(
+    writer; name: string;
+    params: openarray[(string, string)];
+    body: untyped
+  ): untyped =
+  eopen(writer, name, params, false)
+  body
+  eclose(writer, name, false)
+
+template ewrapl*(
+    writer; name: string;
+    params: openarray[(string, string)];
+    body: untyped
+  ): untyped =
+
+  eopen(writer, name, params, true)
+  body
+  eclose(writer, name, true)
+
+template ewrapl1*(
+    writer; name: string;
+    params: openarray[(string, string)];
+    body: untyped
+  ): untyped =
+  ## Open and close tag around body. Newline will be added after whole
+  ## block, but not inside. `ewrapl1("h1", ...)` will result in
+  ## `<h1> ... </h1>`. Existing indentation is printed out, but not
+  ## changed for body.
+
+  writeInd(writer)
+  eopen(writer, name, params, false)
+  body
+  eclose(writer, name, false)
+  line(writer)
 
 proc loadXml*[E: enum](stream: var HXmlParser, target: var E, tag: string) =
   if stream.atAttr():

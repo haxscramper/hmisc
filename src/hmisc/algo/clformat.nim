@@ -671,7 +671,7 @@ const extendedAsciiNames*: array[char, string] = [
   '\x7C': "|" ,
   '\x7D': "}" ,
   '\x7E': "~" ,
-  '\x7F': " " ,
+  '\x7F': "[DEL]" ,
   '\x80': " " ,
   '\x81': " " ,
   '\x82': "‚" ,
@@ -804,6 +804,44 @@ const extendedAsciiNames*: array[char, string] = [
 
 func asciiName*(ch: char, slash: bool = false): string =
   extendedAsciinames[ch]
+
+func unicodeName*(ch: char): string =
+  case ch:
+    of '\x00': "␀"  # "[NUL]",
+    of '\x01': "␁" # "[SOH]",
+    of '\x02': "␂" # "[STX]",
+    of '\x03': "␃" # "[ETX]",
+    of '\x04': "␄" # "[EOT]",
+    of '\x05': "␅" # "[ENQ]",
+    of '\x06': "␆" # "[ACK]",
+    of '\x07': "␇" # "[BEL]",
+    of '\x08': "␈" # "[BS]",
+    of '\x09': "␉" # "[HT]",
+    of '\x0A': "␤" # "[LF]",
+    of '\x0B': "␋" # "[VT]",
+    of '\x0C': "␌" # "[FF]",
+    of '\x0D': "␍" # "[CR]",
+    of '\x0E': "␎" # "[SO]",
+    of '\x0F': "␏" # "[SI]",
+    of '\x10': "␐" # "[DLE]",
+    of '\x11': "␑" # "[DC1]",
+    of '\x12': "␒" # "[DC2]",
+    of '\x13': "␓" # "[DC3]",
+    of '\x14': "␔" # "[DC4]",
+    of '\x15': "␕" # "[NAK]",
+    of '\x16': "␖" # "[SYN]",
+    of '\x17': "␗" # "[ETB]",
+    of '\x18': "␘" # "[CAN]",
+    of '\x19': "␙" # "[EM]",
+    of '\x1A': "␚" # "[SUB]",
+    of '\x1B': "␛" # "[ESC]",
+    of '\x1C': "␜" # "[FS]",
+    of '\x1D': "␝" # "[GS]",
+    of '\x1E': "␞" # "[RS]",
+    of '\x1F': "␟" # "[US]",
+    of '\x7f': "␡" # "[DEL]"
+    of ' ': "␣" # Space
+    else: extendedAsciiNames[ch]
 
 func describeChar*(ch: char, opts: HDisplayOpts = defaultHDisplay): string =
   case ch:
@@ -1277,12 +1315,7 @@ func hShow*(ch: char, opts: HDisplayOpts = defaultHDisplay): ColoredText =
   if dfUseQuotes in opts:
     result.add "'" + fgYellow
 
-  result.add (
-    case ch:
-      of '\n': "\\n"
-      of '\t': "\\n"
-      else: extendedAsciiNames[ch]
-  ) + fgYellow
+  result.add unicodeName(ch) + fgYellow
 
   if dfUseQuotes in opts:
     result.add "'" + fgYellow
