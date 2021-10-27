@@ -1425,7 +1425,6 @@ proc runShell*(
   if (not output.resultOk) and doRaise:
     raise output.exception
 
-
 proc execShell*(cmd: ShellExpr): void =
   ## `execShell` overload for regular string.
   ##

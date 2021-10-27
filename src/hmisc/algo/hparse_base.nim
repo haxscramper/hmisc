@@ -133,6 +133,9 @@ proc toFlag*[F](state: var HsLexerState[F], newFlag: F) =
 proc topFlag*[F](state: var HsLexerState[F]): F =
   state.flagStack[^1]
 
+proc kind*[F](state: HsLexerState[F]): F =
+  state.flagStack[^1]
+
 proc hasFlag*[F](state: HsLexerState[F], flag: F): bool =
   state.flagSet[flag] > 0
 

@@ -1,4 +1,4 @@
-import std/[streams, macros]
+import std/[streams, macros, strutils]
 import ../other/oswrap
 
 type
@@ -25,12 +25,14 @@ proc newBaseWriter*(file: AbsFile): BaseWriter =
 
 proc close*(writer) = writer.stream.close()
 proc space*(writer) = writer.stream.write(" ")
-proc line*(writer) = writer.stream.write("\n")
+proc line*(writer; repeat: int = 1) =
+  writer.stream.write(strutils.repeat("\n", repeat))
+
 proc indent*(writer) = writer.indentBuf.add "  "
 proc dedent*(writer) =
   writer.indentBuf.setLen(max(writer.indentBuf.len - 2, 0))
 
-proc writeInd*(writer) =
+proc writeIndent*(writer) =
   if writer.ignoreIndent > 0:
     dec writer.ignoreIndent
 
@@ -47,13 +49,20 @@ proc writeRaw*(writer; text: varargs[string, `$`]) =
 
 proc ignoreNextIndent*(writer) = inc writer.ignoreIndent
 
-macro genBaseWriterProcs*(wtype: untyped): untyped =
+macro genBaseWriterProcs*(wtype: untyped{nkIdent}): untyped =
   let dol = nnkAccQuoted.newTree(ident"$")
   let newn = ident("new" & wtype.strVal)
   quote do:
-    proc writeInd*(writer: var `wtype`) = writer.base.writeInd()
+    proc writeInd*(writer: var `wtype`) {.deprecated.} =
+      writer.base.writeIndent()
+
+    proc writeIndent*(writer: var `wtype`) =
+      writer.base.writeIndent()
+
     proc space*(writer:    var `wtype`) = writer.base.space()
-    proc line*(writer:     var `wtype`) = writer.base.line()
+    proc line*(writer:     var `wtype`, repeat: int = 1) =
+      writer.base.line(repeat)
+
     proc indent*(writer:   var `wtype`) = writer.base.indent()
     proc dedent*(writer:   var `wtype`) = writer.base.dedent()
     proc close*(writer:    var `wtype`) = writer.base.close()

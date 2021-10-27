@@ -127,9 +127,17 @@ func toAbsolute*(slice: PosStrSlice, offset: int): int =
   ## Get absolute position of the @arg{offset}
   slice.start + offset
 
-func initPosStr*(str: string): PosStr =
+func initPosStr*(
+    str: string,
+    pos: tuple[line, column: int] = (0, 0)
+  ): PosStr =
   ## Create new string with full buffer and `nil` input stream
-  PosStr(baseStr: asRef(str), isSlice: false, column: 0, line: 0)
+  PosStr(
+    baseStr: asRef(str),
+    isSlice: false,
+    column: pos.column,
+    line: pos.line,
+  )
 
 template varPosStr*(str: string): PosStr =
   ## Create temporary mutable positional string from input `str`
@@ -521,7 +529,7 @@ func around*(str; forward: int = 10): string =
         #     str.pos + forward, slice.finish), str.baseStr[].high)]
 
       let t = hshow(@text, params)
-      res.add &"[{str.line}:{str.column}:{str.pos}: {t}]"
+      res.add &"[{str.line}:{str.column}:{str.pos}: {t}  ]"
 
   else:
     # res.add hshow(
@@ -535,7 +543,7 @@ func around*(str; forward: int = 10): string =
       params
     )
 
-    res.add "]"
+    res.add "  ]"
 
   return $res
 
@@ -1283,7 +1291,7 @@ proc skipBalancedSlice*(
 
 proc popBalancedSlice*(
     str; openChars, closeChars: set[char],
-    endChars: set[char] = Newline,
+    endChars: set[char] = Newline + {'\x00'},
     doRaise: bool = true
   ): PosStr {.hcov.} =
 

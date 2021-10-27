@@ -895,6 +895,8 @@ func getRootCmd*(app: CliApp): CliValue =
   ##   effect
   app.value
 
+func getOptions*(app: CliApp): Table[string, CliValue] =
+  app.value.options
 
 func getCmdName*(app: CliApp): string = app.value.getCmdName()
 func getArg*(app: CliApp, pos: int = 0): CliValue = app.value.getArg(pos)

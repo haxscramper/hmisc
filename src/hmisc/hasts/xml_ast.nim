@@ -815,18 +815,18 @@ proc xmlCData*(writer; text: string) =
   writer.writeRaw("]]>")
 
 proc xmlStart*(writer; elem: string, indent: bool = true) =
-  if indent: writer.writeInd()
+  if indent: writer.writeIndent()
   writer.writeRaw("<", elem, ">")
   if indent: writer.line()
 
 
 proc xmlEnd*(writer; elem: string, indent: bool = true) =
-  if indent: writer.writeInd()
+  if indent: writer.writeIndent()
   writer.writeRaw("</", elem, ">")
   if indent: writer.line()
 
 proc xmlOpen*(writer; elem: string, indent: bool = true) =
-  if indent: writer.writeInd()
+  if indent: writer.writeIndent()
   writer.writeRaw("<", elem)
 
 
@@ -842,7 +842,7 @@ proc xmlCloseEnd*(writer; newline: bool = true) =
 
 
 proc xmlWrappedCdata*(writer; text, tag: string) =
-  writer.writeInd()
+  writer.writeIndent()
   writer.xmlStart(tag, false)
   writer.xmlCData(text)
   writer.xmlEnd(tag, false)
@@ -907,7 +907,7 @@ proc xmlSingle*(
   for (key, value) in table:
     writer.xmlAttribute(key, value)
 
-  writer.xmlCloseEnd()
+  writer.xmlCloseEnd(indent)
   if indent: writer.line()
 
 
@@ -921,7 +921,7 @@ proc xmlAttribute*[A, B](writer; key: string, value: HSlice[A, B]) =
 
 proc writeXml*(
   writer; value: string | SomeInteger | bool | SomeFloat | enum, tag: string) =
-  writer.writeInd()
+  writer.writeIndent()
   writer.xmlStart(tag, false)
   writer.stream.write(xmltree.escape $value)
   writer.xmlEnd(tag, false)
@@ -955,7 +955,7 @@ proc writeXml*(writer; value: Slice[int], tag: string) =
 proc writeXml*[E: enum](writer; values: set[E], tag: string) =
   writer.xmlStart(tag)
   writer.indent()
-  writer.writeInd()
+  writer.writeIndent()
   for item in values:
     writer.xmlOpen("item")
     writer.xmlAttribute("val", $item)
@@ -979,6 +979,18 @@ proc esingle*(
   ) =
   writer.xmlSingle(elem, params, indent)
 
+proc etagl*(
+    writer; name: string;
+    params: openarray[(string, string)] = @[];
+  ) =
+  xmlSingle(writer, name, params, true)
+
+proc etag*(
+    writer; name: string;
+    params: openarray[(string, string)] = @[];
+  ) =
+  xmlSingle(writer, name, params, false)
+
 proc eclose*(writer; elem: string; indent: bool = true) =
   writer.xmlEnd(elem, indent)
 
@@ -996,15 +1008,20 @@ template ewrap*(
   body
   eclose(writer, name, false)
 
+
 template ewrapl*(
     writer; name: string;
     params: openarray[(string, string)];
     body: untyped
   ): untyped =
 
-  eopen(writer, name, params, true)
+  writeIndent(writer)
+  eopen(writer, name, params, false)
+  line(writer)
   body
-  eclose(writer, name, true)
+  writeIndent(writer)
+  eclose(writer, name, false)
+  line(writer)
 
 template ewrapl1*(
     writer; name: string;
@@ -1016,7 +1033,7 @@ template ewrapl1*(
   ## `<h1> ... </h1>`. Existing indentation is printed out, but not
   ## changed for body.
 
-  writeInd(writer)
+  writeIndent(writer)
   eopen(writer, name, params, false)
   body
   eclose(writer, name, false)

@@ -807,7 +807,7 @@ func asciiName*(ch: char, slash: bool = false): string =
 
 func unicodeName*(ch: char): string =
   case ch:
-    of '\x00': "␀"  # "[NUL]",
+    of '\x00': "␀" # "[NUL]",
     of '\x01': "␁" # "[SOH]",
     of '\x02': "␂" # "[STX]",
     of '\x03': "␃" # "[ETX]",
@@ -1066,7 +1066,7 @@ const CharBrace* = (
 
 
   doubleRound: (left: "⦅", right: "⦆"),
-  doubleSquare: (left: "〚", right: "〛"),
+  doubleSquare: (left: "⟦", right: "⟧"),
   doubleCurly: (left: "⦃", right: "⦄"),
   doubleAngle: (left: "《", right: "》"),
 
@@ -1354,7 +1354,7 @@ func hShow*[A, B](
   "[" & hshow(slice.a, opts) & ":" & hshow(slice.b, opts) & "]"
 
 func hshow*[T](s: seq[T], opts: HDisplayOpts = defaultHDisplay): ColoredText =
-  result.add "["
+  result.add CharBrace.doubleSquare.left
   for idx, item in pairs(s):
     if idx > 0:
       if dfUseCommas in opts.flags:
@@ -1365,7 +1365,7 @@ func hshow*[T](s: seq[T], opts: HDisplayOpts = defaultHDisplay): ColoredText =
 
     result.add hshow(item, opts)
 
-  result.add "]"
+  result.add CharBrace.doubleSquare.right
 
 import std/sequtils
 

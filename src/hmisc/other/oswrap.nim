@@ -711,8 +711,11 @@ func ext*(file: AnyFile, multidot: bool = true): string =
 func name*(file: AnyFile, multidot: bool = true): string =
   file.splitFile(multidot).name
 
+func nameExt*(dir: AnyFile): string = splitFile2(dir).file
+
 func name*(dir: AnyDir): string =
   os.splitFile(dir.getStr()).name
+
 
 proc assertValid*(
     path: AnyPath, msg: string = ""): void =

@@ -186,7 +186,8 @@ func mget*[T](opt: var Option[T], value: T = default(T)): var T =
   if opt.isNone(): opt = some value
   return opt.get()
 
-template last*(s: seq): untyped = s[^1]
+template top*[T](s: seq[T]): untyped = s[^1]
+template last*[T](s: seq[T]): untyped = s[^1]
 template last*[T](s: seq[T], item: T): untyped =
   if len(s) == 0:
     s.add item
@@ -201,6 +202,9 @@ template empty*(s: seq): bool = len(s) == 0
 template `?`*[T](s: seq[T]): bool = len(s) > 0
 template `?`*(s: string): bool = len(s) > 0
 template `?`*[T](o: Option[T]): bool = isSome(o)
+
+func getOr*[T](s: seq[T], idx: int, value: T = default(T)): T =
+  if idx < s.len: s[idx] else: value
 
 func dollar*[T](arg: T): string =
   mixin `$`
@@ -322,8 +326,6 @@ macro importx*(imports: untyped): untyped =
       inc idx
 
     result.add infix
-
-  echo result.repr()
 
 proc postInc*[T](value: var T): T =
   result = value

@@ -217,6 +217,10 @@ func toMapArray*[K, V](map: openarray[(K, V)]): array[K, V] =
   for (k, v) in map:
     result[k] = v
 
+func toMapArraySome*[K, V](map: openarray[(K, V)]): array[K, V] =
+  for (k, v) in map:
+    result[k] = some(v)
+
 func toMapArray*[K, V1, V2](
     conv: proc(v1: V1): V2, map: openarray[(K, V1)]): array[K, V2] =
 
