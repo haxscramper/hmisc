@@ -21,6 +21,7 @@ import
   ../types/[colorstring, hmap]
 
 export StringAlignDirection
+export toString, `$`
 
 const
   infty = 1024 * 1024 * 1024 * 1024

@@ -90,8 +90,8 @@ pprint @[
 ]
 
 """
-        if hasCmd(shellCmd(gprof)):
-          nim_gprof.main(@[$(dir /. "main.nim")])
+    if hasCmd(shellCmd(gprof)):
+      nim_gprof.main(@[$(dir /. "main.nim")])
 
 
 testFileEnded()

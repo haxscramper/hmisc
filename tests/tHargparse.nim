@@ -254,6 +254,7 @@ suite "Convert to cli value":
          @[(AbsDir("/mnt"), AbsDir("/mnt")), (AbsDir("/tmp"), AbsDir("/tmp"))]
 
   test "Unjoined options":
+    skip()
     let arg = cmd("main", "", [
       opt("ignore", "", check = cliCheckFor(seq[string]))
     ])

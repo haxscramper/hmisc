@@ -333,13 +333,7 @@ suite "SQL schema visualization":
 suite "Latex writer":
   test "Simple escapes":
     var w = newLatexWriter(stdout)
-    w.cmd "begin", "table"
-    w.cmd "end", "table"
-
-    w.env "center", []:
-      w.indRaw "test\n"
-
-    w.use ["utf8"], "inputenc"
-
+    w.cmd "begin", ["table"]
+    w.cmd "end", ["table"]
 
 testFileEnded()

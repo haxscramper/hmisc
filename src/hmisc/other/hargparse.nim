@@ -329,7 +329,7 @@ const
     cvkInt: @["cliCheckFor(int)"]
   }
 
-const addErrors = false
+const addErrors = true
 
 func addOrRaise(errors: var seq[CliError], err: CliError) =
   when addErrors:

@@ -131,7 +131,7 @@ func newTermPoint*(start: (int, int), c: char = '+'): SPoint[char, int] =
 
 method render*(point: SPoint[char, int], buf: var TermBuf): void =
   when not defined(nimdoc):
-    buf[point.point] = toColoredRune(point.config)
+    buf[point.point] = clr(point.config)
 
 #==============================  Term rect  ==============================#
 
@@ -712,7 +712,7 @@ method render*(grid: TermMultiGrid, buf: var TermBuf): void =
       block: # Remove things in grid
         for (x, y) in (wRange, hRange):
           when not defined(nimdoc):
-            buf[x, y] = toColoredRune(' ')
+            buf[x, y] = clr(' ')
 
       block: # Fix intersections
         for x in absCellX:

@@ -10,6 +10,6 @@ import
 suite "Block formatting minimal":
   initBlockFmtDsl()
   test "Vertical layouts":
-    check V[T["a"], T["b"]].toString() == "a\nb"
+    check V[T["a"], T["b"]].toString().toString() == "a\nb"
 
 testFileEnded()

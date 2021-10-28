@@ -101,7 +101,7 @@ suite "Close colors":
 suite "Colored string":
   test "Colored string wrapping":
     check $toRed("999") == "\e[31m999\e[39m"
-    check toDefault("999") == "999"
+    check $toDefault("999") == "999"
 
   test "{termLen}":
     check termLen("hhh") == 3
