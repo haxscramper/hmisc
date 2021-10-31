@@ -266,6 +266,9 @@ func initShellCmdConf*(): ShellCmdConf = discard
 func getStdout*(shellRes: ShellResult): string =
   shellRes.execResult.stdout
 
+func isOk*(shellRes: ShellResult): bool =
+  shellRes.resultOk
+
 func getStderr*(shellRes: ShellResult): string =
   shellRes.execResult.stderr
 

@@ -14,7 +14,7 @@ when (1, 2, 2) < (NimMajor, NimMinor, NimPatch):
   }.toTable()
 
 requires "nim >= 1.4.8"
-requires "fusion"
+requires "https://github.com/nim-lang/fusion.git"
 requires "benchy >= 0.0.1"
 requires "jsony >= 1.0.4"
 requires "unicodedb >= 0.9.0"

@@ -100,9 +100,12 @@ template assertArg*(arg: untyped, cond: bool, msg: string = ""): untyped =
   if not cond:
     {.line: instantiationInfo(fullpaths = true).}:
       raise newArgumentError(
-        "Invalid value for argument ", astToStr(arg), " ",
-        "', check '", astToStr(cond), "'",
-        (if msg.len > 0: ". " & msg else: msg))
+        "Invalid value for argument '",
+        astToStr(arg),
+        "', check '",
+        astToStr(cond),
+        "'",
+        (when compiles($arg): ". Value was '" & $arg & "'" else: ""))
 
 
 proc newGetterError*(msg: varargs[string, `$`]): ref GetterError =
@@ -303,6 +306,9 @@ proc newUnexpectedKindError*[T](
   newException(UnexpectedKindError,
     "Unexpected entry kind " & kindToStr(expr) &
       prepareMsg(userMsg.join("")))
+
+proc newParseError*(userMsg: varargs[string, `$`]): ref ParseError =
+  newException(ParseError, prepareMsg(userMsg.join("")))
 
 proc newUnexpectedKindError*(userMsg: varargs[string, `$`]):
     ref UnexpectedKindError =

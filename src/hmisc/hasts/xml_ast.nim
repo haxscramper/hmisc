@@ -366,7 +366,7 @@ proc treeRepr*(
         add toRed(n.tag, colored)
         add separator
         if level + 1 > maxdepth and n.len > 0:
-          result[^1] = clr(' ')
+          # result[^1] = clr(' ')
           add "... "
           add toPluralNoun("subnode", n.len)
           add separator
@@ -437,13 +437,13 @@ proc parseXsdBoolean*(
     target: var XsdParseTarget[bool], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError("")
+  raise newImplementError("")
 
 proc parseXsdDecimal*(
     target: var XsdParseTarget[float], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError("")
+  raise newImplementError("")
 
 proc parseXsdInteger*(
     target: var XsdParseTarget[int], parser: var HXmlParser,
@@ -457,85 +457,85 @@ proc parseXsdFloat*(
     target: var XsdParseTarget[float], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError(parser.displayAt())
+  raise newImplementError(parser.displayAt())
 
 proc parseXsdDouble*(
     target: var XsdParseTarget[float], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError(parser.displayAt())
+  raise newImplementError(parser.displayAt())
 
 proc parseXsdDuration*(
     target: var XsdParseTarget[Duration], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError(parser.displayAt())
+  raise newImplementError(parser.displayAt())
 
 proc parseXsdDateTime*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError(parser.displayAt())
+  raise newImplementError(parser.displayAt())
 
 proc parseXsdTime*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError(parser.displayAt())
+  raise newImplementError(parser.displayAt())
 
 proc parseXsdDate*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError(parser.displayAt())
+  raise newImplementError(parser.displayAt())
 
 proc parseXsdGYearMonth*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError(parser.displayAt())
+  raise newImplementError(parser.displayAt())
 
 proc parseXsdGYear*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError(parser.displayAt())
+  raise newImplementError(parser.displayAt())
 
 proc paresXsdGMonthDay*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError(parser.displayAt())
+  raise newImplementError(parser.displayAt())
 
 proc parseXsdGDay*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError(parser.displayAt())
+  raise newImplementError(parser.displayAt())
 
 proc parseXsdGMonth*(
     target: var XsdParseTarget[DateTime], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError(parser.displayAt())
+  raise newImplementError(parser.displayAt())
 
 proc parseXsdHexBinary*(
     target: var XsdParseTarget[string], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError(parser.displayAt())
+  raise newImplementError(parser.displayAt())
 
 proc parseXsdBase64Binary*(
     target: var XsdParseTarget[string], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError(parser.displayAt())
+  raise newImplementError(parser.displayAt())
 
 proc parseXsdUri*(
     target: var XsdParseTarget[URI], parser: var HXmlParser,
     tag: string = ""
   ) =
-  raiseImplementError(parser.displayAt())
+  raise newImplementError(parser.displayAt())
 
 proc parseXsdAnyType*(
     target: var XmlNode, parser: var HXmlParser,
@@ -908,7 +908,14 @@ proc xmlSingle*(
     writer.xmlAttribute(key, value)
 
   writer.xmlCloseEnd(indent)
-  if indent: writer.line()
+
+proc xmlRawSingle*(writer; text: string, indent: bool = true) =
+  if indent:
+    writer.writeIndent()
+
+  writer.writeRaw(text)
+  if indent:
+    writer.line()
 
 
 proc xmlAttribute*[T](writer; key: string, value: Option[T]) =
@@ -923,7 +930,7 @@ proc writeXml*(
   writer; value: string | SomeInteger | bool | SomeFloat | enum, tag: string) =
   writer.writeIndent()
   writer.xmlStart(tag, false)
-  writer.stream.write(xmltree.escape $value)
+  writer.writeEscaped($value)
   writer.xmlEnd(tag, false)
   writer.line()
 
@@ -1001,7 +1008,7 @@ template eindent*(writer; body): untyped =
 
 template ewrap*(
     writer; name: string;
-    params: openarray[(string, string)];
+    params: openarray[(string, string)] = @[];
     body: untyped
   ): untyped =
   eopen(writer, name, params, false)
@@ -1011,21 +1018,29 @@ template ewrap*(
 
 template ewrapl*(
     writer; name: string;
-    params: openarray[(string, string)];
+    params: openarray[(string, string)] = @[];
+    indentBody: bool = true,
     body: untyped
   ): untyped =
 
   writeIndent(writer)
   eopen(writer, name, params, false)
   line(writer)
+  if indentBody:
+    writer.indent()
+
   body
+
+  if indentBody:
+    writer.dedent()
+
   writeIndent(writer)
   eclose(writer, name, false)
   line(writer)
 
 template ewrapl1*(
     writer; name: string;
-    params: openarray[(string, string)];
+    params: openarray[(string, string)] = @[];
     body: untyped
   ): untyped =
   ## Open and close tag around body. Newline will be added after whole

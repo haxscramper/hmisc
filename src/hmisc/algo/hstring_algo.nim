@@ -4,7 +4,7 @@ import std/[
 ]
 
 import
-  ../core/[exceptions, debug],
+  ../core/[exceptions, debug, gold],
   ./hseq_distance
 
 
@@ -813,7 +813,8 @@ func keepNimIdentChars*(str: string): string =
 #       inc idx
 
 
-func abbrevCamel*(
+
+proc abbrevCamel*(
     abbrSplit: seq[string],
     splitWords: seq[seq[string]],
     getExact: bool = false
@@ -822,13 +823,16 @@ func abbrevCamel*(
   ## Find all worlds that contains `abbrev` as subsequence.
   let abbr = abbrSplit.join("")
   for word in splitWords:
-    let lcs = longestCommonSubsequence(
-      abbrSplit, word,
-      itemCmp = proc(lhs, rhs: string): bool =
-                    # debugecho lhs, rhs
-                    # lhs == rhs
-                    rhs.startsWith(lhs)
-    )
+    # HACK When I switched to 1.6.0 `longestCommonSubsequence` can no
+    # longer be called due to absolutely arbitrary type mismatch error - I
+    # passed closure callback to it earlier, but now nim (for some reason)
+    # thinks this callback has calling convention `{.inline.}` *even if I
+    # move it to the toplevel, annotate with `{.nimcall.}`, or explicitly
+    # *cast* to requried signature. There is some unwanted conversion
+    # injection going on, but I can' really be sure about that, since I
+    # can't just dump typed AST to see what is going on.
+    let lcs = longestCommonSubsequenceForStringStartsWith(
+      abbrSplit, word)
 
     if lcs.len > 0:
       if lcs[0].matches.len == abbrSplit.len:
@@ -838,10 +842,11 @@ func abbrevCamel*(
         else:
           result.add word
 
-func abbrevCamel*(
-  abbrev: string,
-  words: seq[string],
-  getExact: bool = false): seq[string] =
+proc abbrevCamel*(
+    abbrev: string,
+    words: seq[string],
+    getExact: bool = false
+  ): seq[string] =
   ## Split abbreviation and all worlds as **camelCase** identifiers.
   ## Find all worlds that contains `abbrev` as subsequence. `getExact`
   ## - if any of the alternatives fully matches input word return it

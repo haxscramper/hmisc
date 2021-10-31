@@ -990,6 +990,9 @@ func toString*(runes: seq[ColoredRune], color: bool = true): string =
 func toString*(text: ColoredText, color: bool = true): string =
   toString(text.runes, color)
 
+func toPlainString*(text: ColoredText): string =
+  toString(text.runes, color = false)
+
 func toString*(strs: seq[ColoredString], color: bool = true): string =
   if color:
     var prev = initPrintStyling()

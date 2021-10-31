@@ -1,0 +1,4 @@
+- All internal procedures that use files should work with ~AbsFile~ - only
+  toplevel ones should accept ~Rel/FsFile~. This removes decision about
+  computing absolute paths from relative ones - so we no longer need to
+  think about "relative to what?"

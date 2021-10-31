@@ -46,7 +46,7 @@ type
     line, column: int
     file: string
 
-  TestFailKind = enum
+  TestFailKind* = enum
     tfkNone
     tfkException
     tfkManualFail
@@ -64,7 +64,7 @@ type
     tfkStructEq
     tfkStructNeqNoDiff
 
-  TestReportKind = enum
+  TestReportKind* = enum
     trkCheckpoint
 
     trkCheckOk
@@ -122,45 +122,48 @@ type
       of tvkString, tvkStringified, tvkTypename:
         str: string
 
-  TestReport = object
-    location {.requiresinit.}: TestLocation
-    msg: string
-    case failKind: TestFailKind
+  TestReport* = object
+    location* {.requiresinit.}: TestLocation
+    msg*: string
+    case failKind*: TestFailKind
       of tfkStructDiff, tfkStructEq:
-        structDiff: It[PPrintTree]
+        structDiff*: It[PPrintTree]
 
       of tfkException, tfkUnexpectedExceptionRaised:
-        exception: ref Exception
-        wanted: seq[string]
+        exception*: ref Exception
+        wanted*: seq[string]
 
       of tfkMatchDiff:
-        paths: seq[TestMatchFail]
+        paths*: seq[TestMatchFail]
 
       of tfkOpCheck:
-        checkOp: string
+        checkOp*: string
 
       else:
         discard
 
 
-    skipped: bool
-    strs: seq[tuple[expr: string, value: TestValue]]
-    name: string
-    case kind: TestReportKind
+    skipped*: bool
+    strs*: seq[tuple[expr: string, value: TestValue]]
+    name*: string
+    case kind*: TestReportKind
       of trkSectionKinds:
-        conf: TestConf
-        nestedFail: seq[TestReport]
+        conf*: TestConf
+        nestedFail*: seq[TestReport]
 
       of trkTimeStats:
-        stat: RunningStat
+        stat*: RunningStat
 
       of trkTestComment, trkSuiteComment, trkBlockComment:
-        text: string
+        text*: string
+
+      of trkCheckOk, trkCheckFail:
+        expr*: string
 
       else:
         discard
 
-  TestContext* = ref object
+  TestContext* = ref object of RootObj
     globs: seq[TestGlob]
     startTime: float
     sourceOnError: bool
@@ -249,8 +252,12 @@ proc getTestGlobs(): seq[TestGlob] =
       )
     )
 
+var context {.threadvar.}: TestContext
+
+proc setTestContext*(newContext: TestContext) =
+  context = newContext
+
 proc getTestContext(): TestContext =
-  var context {.global, threadvar.}: TestContext
   if isNil(context):
     context = newTestContext()
     context.globs = getTestGlobs()
@@ -310,7 +317,7 @@ proc showCoverage*(
 func toShortString(loc: TestLocation): string =
   &"{AbsFile(loc.file).name()}:{loc.line}"
 
-proc report(context: TestContext, report: TestReport) =
+method report(context: TestContext, report: TestReport) =
   let (file, line, column) = (
     report.location.file,
     report.location.line,
@@ -807,11 +814,13 @@ proc checkFailed(
     loc: TestLocation,
     strs: openarray[(string, TestValue)],
     failKind: TestFailKind,
+    expr: string,
     checkOp: string = ""
   ): TestReport =
     result = TestReport(
       kind: trkCheckFail,
       strs: @strs,
+      expr: expr,
       name: "check fail at " & loc.toName(),
       location: loc, failKind: failKind)
 
@@ -821,16 +830,27 @@ proc checkFailed(
 
 
 
-proc checkOk(loc: TestLocation): TestReport =
-  TestReport(kind: trkCheckOk, location: loc,
-    name: "check ok at " & loc.toName())
+proc checkOk(loc: TestLocation, expr: string): TestReport =
+  TestReport(
+    kind: trkCheckOk,
+    location: loc,
+    name: loc.toName(),
+    expr: expr
+  )
 
 proc matchCheckFailed(
-    loc: TestLocation, fails: seq[TestMatchFail]): TestReport =
+    loc: TestLocation,
+    fails: seq[TestMatchFail],
+    expr: string
+  ): TestReport =
+
   TestReport(
     kind: trkCheckFail, location: loc,
-    name: "match fail at " & loc.toName(),
-    failKind: tfkMatchDiff, paths: fails)
+    name: loc.toName(),
+    failKind: tfkMatchDiff,
+    paths: fails,
+    expr: expr
+  )
 
 
 func getWhen(conf: TestConf): NimNode =
@@ -931,6 +951,7 @@ macro astdiff*(ast: typed, match: untyped, loc: TestLocation): untyped =
     toPath = bindSym("toPath")
     kindPredicate = bindSym("hasKind")
 
+  let exprStr = toStrLit(match)
   proc aux(path, pattern: NimNode, pathIdx: seq[int]): NimNode =
     let idxLit = pathIdx.newLit()
     case pattern.kind:
@@ -988,10 +1009,10 @@ macro astdiff*(ast: typed, match: untyped, loc: TestLocation): untyped =
         for (path, desc, got) in `fails`:
           failDescs.add((`toPath`(`expr`, path), desc, got))
 
-        matchCheckFailed(`loc`, failDescs)
+        matchCheckFailed(`loc`, failDescs, `exprStr`)
 
       else:
-        checkOk(`loc`)
+        checkOk(`loc`, `exprStr`)
 
 
 macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
@@ -1086,7 +1107,7 @@ macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
           if not(`cmpExpr`):
             `fails`.add (`pathLit`, `valueLit`, $`path`)
 
-      of nnkPar:
+      of nnkPar, nnkTupleConstr:
         result = aux(value, path)
 
       else:
@@ -1104,7 +1125,7 @@ macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
   proc aux(pattern, path: NimNode): NimNode =
     result = newStmtList()
     case pattern.kind:
-      of nnkPar:
+      of nnkPar, nnkTupleConstr:
         for idx, check in pattern:
           result.add aux(check, path)
 
@@ -1194,7 +1215,7 @@ macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
 
   if obj.kind == nnkPrefix and
      obj[0].eqIdent("@") and
-     obj[1].kind == nnkPar:
+     obj[1].kind in {nnkPar, nnkTupleConstr}:
     let fieldlist = obj[1].toSeq()
     for f in fieldList:
       assertNodeKind(f, {nnkIdent})
@@ -1203,14 +1224,14 @@ macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
 
     for item in match:
       assertNodeKind(item, {nnkExprColonExpr})
-      assertNodeKind(item[1], {nnkPar, nnkBracket})
+      assertNodeKind(item[1], {nnkPar, nnkBracket, nnkTupleConstr})
 
       let expr = item[0]
       exprPrefix = expr.repr()
       proc getTransform(item: NimNode): NimNode =
         proc transformPar(par: NimNode): NimNode =
           if par.eqIdent("_"): return par
-          assertNodeKind(par, {nnkPar})
+          assertNodeKind(par, {nnkPar, nnkTupleConstr})
           result = newTree(nnkPar)
           if fieldList.len < par.len and
              item[fieldList.len ..^ 1].anyIt(it.kind in AtomicNodes):
@@ -1244,20 +1265,23 @@ macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
           let `tmp` = `expr`
           `matchRes`
 
+    let exprStr = toStrLit(match)
     result = quote do:
       var `fails`: seq[TestMatchFail]
       `impl`
 
       if `fails`.len > 0:
-        matchCheckFailed(`loc`, `fails`)
+        matchCheckFailed(`loc`, `fails`, `exprStr`)
 
       else:
-        checkOk(`loc`)
+        checkOk(`loc`, `exprStr`)
 
   else:
     let impl = aux(match, tmp)
 
     exprPrefix = obj.repr()
+
+    let exprStr = toStrLit(match)
 
     result = quote do:
       block:
@@ -1266,10 +1290,10 @@ macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
         `impl`
 
         if `fails`.len > 0:
-          matchCheckFailed(`loc`, `fails`)
+          matchCheckFailed(`loc`, `fails`, `exprStr`)
 
         else:
-          checkOk(`loc`)
+          checkOk(`loc`, `exprStr`)
 
 
 
@@ -1503,6 +1527,8 @@ macro test*(name: static[string], body: untyped): untyped =
             `confIdent`, loc, getCurrentException()))
 
 
+
+
 proc nowMs(): float64 =
   ## Gets current milliseconds.
   getMonoTime().ticks.float64 / 1_000_000.0
@@ -1577,6 +1603,7 @@ proc buildCheck(expr: NimNode): NimNode =
     line = lineIINfo(expr)
     loc = testLocation(expr).newLit()
     testValue = bindSym("testValue")
+    exprStr = toStrLit(expr)
 
   case expr.kind:
     of nnkInfix:
@@ -1599,7 +1626,10 @@ proc buildCheck(expr: NimNode): NimNode =
                 `report`(testContext, checkFailed(`loc`, {
                   `lhsLit`: `testValue`(typeof(`lhsId`), tvcTypeCompare),
                   `rhsLit`: `testValue`(`rhs`, tvcTypeCompare)
-                }, tfkOpCheck, checkOp = `opLit`))
+                }, tfkOpCheck, `exprStr`, checkOp = `opLit`))
+
+              else:
+                `report`(testContext, `checkOk`(`loc`, `exprStr`))
 
 
       else:
@@ -1614,7 +1644,10 @@ proc buildCheck(expr: NimNode): NimNode =
                 `report`(testContext, checkFailed(`loc`, {
                   `lhsLit`: `testValue`($`lhsId`, `context`),
                   `rhsLit`: `testValue`($`rhsId`, `context`),
-                }, tfkOpCheck, checkOp = `opLit`))
+                }, tfkOpCheck, `exprStr`, checkOp = `opLit`))
+
+              else:
+                `report`(testContext, `checkOk`(`loc`, `exprStr`))
 
 
     else:
@@ -1639,7 +1672,12 @@ proc buildCheck(expr: NimNode): NimNode =
               if not(`expr`):
                 `report`(testContext, `checkFailed`(
                   `loc`, {"expr": `testValue`(`lit`, tvcNone)},
-                  tfkPredicateFail))
+                  tfkPredicateFail,
+                  `exprStr`
+                ))
+
+              else:
+                `report`(testContext, `checkOk`(`loc`, `exprStr`))
 
 
 

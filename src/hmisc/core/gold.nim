@@ -334,3 +334,19 @@ proc postInc*[T](value: var T): T =
 proc preInc*[T](value: var T): T =
   inc value
   value
+
+macro dumpTyped*(a: typed): untyped =
+  case a.kind:
+    of nnkSym:
+      echo a.getTypeInst().treeRepr()
+
+    else:
+      echo a.treeRepr()
+
+  result = a
+
+func asgnAux[T](t: var T, s: T) = t = s
+
+template setKind*[V](target, source: V) =
+  {.cast(uncheckedAssign).}:
+    asgnAux(target, source)

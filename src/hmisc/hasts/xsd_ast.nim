@@ -29,6 +29,7 @@ type
     xekTop ## Toplevel element in schema document
     xekEnumeration ## `xsd:enumeration`
     xekPattern
+    xekWhitespace ## Configuration for the whitespace handling
 
   XsdOccursCount = object
     case isFinite*: bool
@@ -98,6 +99,12 @@ iterator pairs*(xsd): (int, XsdEntry) =
     yield (idx, item)
     inc idx
 
+
+proc treeRepr*(
+    xsd; colored: bool = true,
+    indexed: bool = false, maxdepth: int = 120
+  ): ColoredText
+
 func len*(xsd): int = xsd.subnodes.len
 func hasName*(xsd): bool = xsd.xsdName.isSome()
 func name*(xsd): string = xsd.xsdName.get()
@@ -113,28 +120,27 @@ func `[]`*(xsd; key: string): string = xsd.attrs[key]
 func getType*(xsd): string =
   ## Return type name for `xsd` - either `type=""` attribute, or name of
   ## the type itself (if xsd is a simple/complex type)
-  if xsd.kind in {xekSimpleType, xekComplexType, xekGroupDecl}:
-    xsd.name()
+  case xsd.kind:
+    of {xekSimpleType, xekComplexType, xekGroupDecl}:
+      xsd.name()
 
-  elif xsd.kind in {xekGroupRef}:
-    xsd["ref"]
+    of {xekGroupRef}:
+      xsd["ref"]
 
-  else:
-    xsd.xsdType.get()
+    of {xekAttribute}:
+      if xsd.xsdType.isSome():
+        xsd.xsdType.get()
+
+      else:
+        "string"
+
+    else:
+      xsd.xsdType.get()
 
 func hasTypeImpl*(xsd): bool = xsd.xsdTypeImpl.isSome()
 func getTypeImpl*(xsd): XsdEntry = xsd.xsdTypeImpl.get()
 func subnodes*(xsd): seq[XsdEntry] = xsd.subnodes
 
-
-template treeReprRecurse(node: typed, level: int, idx: seq[int]): untyped =
-  if len(node) > 0:
-    result &= "\n"
-
-  for newIdx, subn in pairs(node):
-    result &= aux(subn, level + 1, idx & newIdx)
-    if newIdx < len(node) - 1:
-      result &= "\n"
 
 func `$`*(occur: XsdOccursCount): string =
   if occur.isFinite:
@@ -150,7 +156,7 @@ proc treeRepr*(
 
   coloredResult()
 
-  proc aux(n: XsdEntry, level: int, idx: seq[int]): string =
+  proc aux(n: XsdEntry, level: int, idx: seq[int]) =
     template updateValue(element: typed) =
       for name, field in fieldPairs(element):
         when field is Option and
@@ -217,6 +223,15 @@ proc treeRepr*(
         discard
 
 
+    template treeReprRecurse(node: typed, level: int, idx: seq[int]): untyped =
+      if len(node) > 0:
+        add "\n"
+
+      for newIdx, subn in pairs(node):
+        aux(subn, level + 1, idx & newIdx)
+        if newIdx < len(node) - 1:
+          add "\n"
+
 
 
     case n.kind:
@@ -228,6 +243,7 @@ proc treeRepr*(
         treeReprRecurse(n, level, idx)
 
   aux(xsd, 0, @[])
+  endResult()
 
 proc newTree*(kind: XsdEntryKind, subnodes: varargs[XsdEntry]): XsdEntry =
   result = XsdEntry(kind: kind)
@@ -335,28 +351,64 @@ proc isPrimitiveExtension*(xsd): bool =
   len(xsd[0]) > 0 and xsd[0][0] == xekExtension and
   xsd[0][0].hasType()
 
+
+func hasXsdNs*(tag: string): bool =
+  tag.startsWith("xsd:") or tag.startsWith("xs:")
+
+func getNs*(tag: string): string =
+  if tag.startswith("xsd:"): "xsd:"
+  elif tag.startsWith("xs:"): "xs:"
+  else: raise newArgumentError("Tag name does not start with 'xsd:' or 'xs:'")
+
+func getNs*(node: XmlNode): string = node.tag().getNs()
+
+func dropNs*(node: XmlNode): string =
+  let tag = node.tag()
+  return tag[getNs(node).len .. ^1]
+
+func dropNs*(tag: string): string = tag[getNs(tag).len .. ^1]
+
+func safeDropNs*(node: XmlNode): string =
+  let tag = node.safeTag()
+  if tag.len == 0:
+    return tag
+
+  else:
+    return tag[getNs(node).len .. ^1]
+
+func dropNs*(tag, ns: string): string =
+  assertArg(tag, tag.startsWith(ns))
+  return tag[ns.len .. ^1]
+
+func addNs*(text: string, parent: XmlNode): string =
+  return getNs(parent) & text
+
+
 proc isPrimitiveType*(xsdType: string): bool =
-  normalize(xsdType) in [
-    "xsd:string",
-    "xsd:boolean",
-    "xsd:decimal",
-    "xsd:integer",
-    "xsd:float",
-    "xsd:double",
-    "xsd:duration",
-    "xsd:datetime",
-    "xsd:time",
-    "xsd:date",
-    "xsd:gyearmonth",
-    "xsd:gyear",
-    "xsd:gmonthday",
-    "xsd:gday",
-    "xsd:gmonth",
-    "xsd:hexbinary",
-    "xsd:base64binary",
-    "xsd:uri",
-    "xsd:anytype",
+  let h = toHashSet [
+    "string",
+    "boolean",
+    "decimal",
+    "integer",
+    "float",
+    "double",
+    "duration",
+    "datetime",
+    "time",
+    "date",
+    "gyearmonth",
+    "gyear",
+    "gmonthday",
+    "gday",
+    "gmonth",
+    "hexbinary",
+    "base64binary",
+    "uri",
+    "anytype",
+    "int"
   ]
+
+  xsdType.hasXsdNs() and normalize(xsdType.dropNs()) in h
 
 proc isAlwaysPrimitiveType*(xsd): bool =
   ##[
@@ -430,26 +482,26 @@ tag.
 ## #+endsection
 
 proc classifyPrimitiveTypeKind*(str: string): XsdTokenKind =
-  case str:
-    of "xsd:string": xtkString
-    of "xsd:boolean": xtkBoolean
-    of "xsd:decimal": xtkDecimal
-    of "xsd:integer": xtkInteger
-    of "xsd:float": xtkFloat
-    of "xsd:double": xtkDouble
-    of "xsd:duration": xtkDuration
-    of "xsd:datetime": xtkDateTime
-    of "xsd:time": xtkTime
-    of "xsd:date": xtkDate
-    of "xsd:gyearmonth": xtkGYearMonth
-    of "xsd:gyear": xtkGYear
-    of "xsd:gmonthday": xtkGMonthDay
-    of "xsd:gday": xtkGDay
-    of "xsd:gmonth": xtkGMonth
-    of "xsd:hexbinary": xtkHexBinary
-    of "xsd:base64binary": xtkBase64Binary
-    of "xsd:uri": xtkUri
-    of "xsd:anyType", "xsd:anytype": xtkAnyType
+  case str.dropNs().normalize():
+    of "string":             xtkString
+    of "boolean":            xtkBoolean
+    of "decimal":            xtkDecimal
+    of "integer", "int":     xtkInteger
+    of "float":              xtkFloat
+    of "double":             xtkDouble
+    of "duration":           xtkDuration
+    of "datetime":           xtkDateTime
+    of "time":               xtkTime
+    of "date":               xtkDate
+    of "gyearmonth":         xtkGYearMonth
+    of "gyear":              xtkGYear
+    of "gmonthday":          xtkGMonthDay
+    of "gday":               xtkGDay
+    of "gmonth":             xtkGMonth
+    of "hexbinary":          xtkHexBinary
+    of "base64binary":       xtkBase64Binary
+    of "uri":                xtkUri
+    of "anyType", "anytype": xtkAnyType
     else:
       raise newArgumentError(str)
 
@@ -720,7 +772,8 @@ Return token kind -> parser name mapping for each element in `alts`.
 proc getExtensionSection*(xsd): XsdEntry =
   assert xsd.isPrimitiveExtension()
   return xsd[0][0]
-proc xsd*(str: string): string = "xsd:" & str
+
+
 
 proc updateBaseAttrs*(xsd: var XsdEntry, node: XmlNode) =
   if isNil(node.attrs): return
@@ -790,10 +843,9 @@ proc convertGroup*(xml; context): XsdEntry =
   if xml.hasAttr("name"):
     result = xekGroupDecl.newTree()
     for node in xml:
-      case node.safeTag():
-        of xsd"choice", xsd"sequence":
+      case node.safeDropNs():
+        of "choice", "sequence":
           result.add convertSequence(node, context)
-
 
         else:
           raise newImplementError(node.safeTag())
@@ -811,20 +863,20 @@ proc convertGroup*(xml; context): XsdEntry =
 
 proc convertSequence*(xml; context): XsdEntry =
   # echo sequence
-  case xml.safeTag():
-    of xsd"sequence": result = XsdEntry(kind: xekSequence)
-    of xsd"choice": result = XsdEntry(kind: xekChoice)
+  case xml.safeDropNs():
+    of "sequence": result = XsdEntry(kind: xekSequence)
+    of "choice": result = XsdEntry(kind: xekChoice)
     else: raise newImplementError(xml.safeTag())
 
   for element in xml:
-    case element.safeTag():
-      of xsd"element":
+    case element.safeDropNs():
+      of "element":
         result.add convertElement(element)
 
-      of xsd"sequence", xsd"choice":
+      of "sequence", "choice":
         result.add convertSequence(element, context)
 
-      of xsd"group":
+      of "group":
         result.add convertGroup(element, context)
 
       else:
@@ -838,8 +890,8 @@ proc convertExtension*(xml; context): XsdEntry =
   result = newTree(xekExtension)
   updateBaseAttrs(result, xml)
   for node in xml:
-    case node.safeTag():
-      of xsd"attribute":
+    case node.safeDropNs():
+      of "attribute":
         result.add convertAttribute(node, context)
 
       else:
@@ -851,9 +903,10 @@ proc convertRestriction*(xml, context): XsdEntry =
   updateBaseAttrs(result, xml)
   for node in xml:
     let kind =
-      case node.safeTag():
-        of xsd"enumeration": xekEnumeration
-        of xsd"pattern": xekPattern
+      case node.safeDropNs():
+        of "enumeration": xekEnumeration
+        of "pattern": xekPattern
+        of "whiteSpace": xekWhitespace
         else:
           raise newImplementError(node.safeTag())
 
@@ -863,10 +916,10 @@ proc convertRestriction*(xml, context): XsdEntry =
 
 
 proc convertComplexType*(xml; context): XsdEntry =
-  if xml.find(xsd"simpleType") != -1:
+  if xml.find("simpleType".addNs(xml)) != -1:
     result = xekComplexSimpleType.newTree()
 
-  elif xml.find(xsd"complexType") != -1:
+  elif xml.find("complexType".addNs(xml)) != -1:
     result = xekComplexComplexType.newTree()
 
   else:
@@ -875,33 +928,36 @@ proc convertComplexType*(xml; context): XsdEntry =
   updateBaseAttrs(result, xml)
 
   for subnode in xml:
-    case subnode.safeTag():
-      of xsd"sequence":
+    case subnode.safeDropNs():
+      of "sequence":
         result.add convertSequence(subnode, context)
 
-      of xsd"attribute":
+      of "attribute":
         result.add convertAttribute(subnode, context)
 
-      of xsd"simpleContent":
-        case subnode[0].safeTag():
-          of xsd"extension":
+      of "simpleContent":
+        case subnode[0].safeDropNs():
+          of "extension":
             result.add xekSimpleContent.newTree(
               convertExtension(subnode[0], context))
 
-          of xsd"restriction":
+          of "restriction":
             result.add xekSimpleContent.newTree(
               convertRestriction(subnode[0], context))
 
           else:
             raise newImplementError(subnode[0].safeTag())
 
-      of xsd"choice":
+      of "choice":
         result.add convertSequence(subnode, context)
 
-      of xsd"group":
+      of "group":
         result.add convertGroup(subnode, context)
 
-      of xsd"anyAttribute":
+      of "anyAttribute":
+        discard
+
+      of "annotation":
         discard
 
       else:
@@ -915,8 +971,8 @@ proc convertComplexType*(xml; context): XsdEntry =
 proc convertSimpleType*(xml, context): XsdEntry =
   result = newTree(xekSimpleType)
   updateBaseAttrs(result, xml)
-  case xml[0].safeTag():
-    of xsd"restriction":
+  case xml[0].safeDropNs():
+    of "restriction":
       result.add convertRestriction(xml[0], context)
 
     else:
@@ -927,26 +983,31 @@ proc convertSimpleType*(xml, context): XsdEntry =
 
 
 proc convertSchema*(xml): XsdEntry =
-  assert xml.tag == xsd"schema", xml.tag
   result = newTree(xekTop)
   var context: XsdVisitContext
   for entry in xml:
     if entry.kind == xnElement:
-      case entry.tag:
-        of xsd"complexType":
+      case entry.safeDropNs():
+        of "complexType":
           result.add convertComplexType(entry, context)
 
-        of xsd"simpleType":
+        of "simpleType":
           result.add convertSimpleType(entry, context)
 
-        of xsd"import":
+        of "import":
           discard
 
-        of xsd"element":
+        of "element":
           result.startElement = convertElement(entry)
 
-        of xsd"group":
+        of "group":
           result.add convertGroup(entry, context)
+
+        of "annotation":
+          discard
+
+        else:
+          raise newImplementKindError(entry.tag)
 
   proc updateTypes(xsd) =
     if xsd.hasType() and xsd.xsdType.get() in context.types:

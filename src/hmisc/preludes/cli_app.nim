@@ -18,11 +18,11 @@ import
   ../core/all # Debug misc helpers etc.
 
 import
-  std/[strutils, tables, macros, strformat, parseutils]
+  std/[strutils, tables, macros, strformat, parseutils, with]
 
 
 export
-  strutils, tables, macros, strformat, parseutils,
+  strutils, tables, macros, strformat, parseutils, with,
   hshell,
   hlogger,
   hargparse,

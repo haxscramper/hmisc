@@ -293,6 +293,6 @@ func followPathPtr*[T](node: var T, path: TreePath): ptr T =
 #*************************************************************************#
 
 type
-  EqCmpProc*[T] = proc(x, y: T): bool
+  EqCmpProc*[T] = proc(x, y: T): bool {.closure.}
   ScoreProc*[T] = proc(x: T): int
   ScoreCmpProc*[T] = proc(x, y: T): int

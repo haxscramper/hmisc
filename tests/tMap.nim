@@ -1,3 +1,7 @@
+discard """
+joinable: true
+"""
+
 import hmisc/preludes/unittest
 
 testFileStarted()

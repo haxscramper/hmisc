@@ -1,7 +1,10 @@
+{.experimental: "strictEffects".}
+
 import std/[sequtils, tables, strformat, strutils, math, algorithm]
 import ../core/all
 import ../macros/traceif
 import ../types/hprimitives
+
 
 ## Sequence distance metrics
 
@@ -15,10 +18,17 @@ import ../types/hprimitives
 
 func zeroEqualCmp*[T](x, y: T): int = (if x == y: 0 else: -1)
 
-func longestCommonSubsequence*[T](
+proc longestCommonSubsequence*[T](
     x, y: seq[T],
-    itemCmp: EqCmpProc[T] = (proc(x, y: T): bool = x == y)
-  ): seq[tuple[matches: seq[T], xIndex, yIndex: seq[int]]] =
+    itemCmp: proc(a, b: T): bool {.closure.} =
+      (
+        proc(x, y: T): bool =
+          x == y
+      )
+  ): seq[tuple[matches: seq[T], xIndex, yIndex: seq[int]]]
+    {.effectsOf: itemCmp}
+  =
+
   ## Find longest common subsequence for `x` and `y`. Use `itemCmp` to
   ## compare for item equality. In case if there is more than one
   ## common subsequence of equal lenght return all. In most cases you
@@ -127,27 +137,33 @@ func longestCommonSubsequence*[T](
     for idx, line in grid:
       debugecho &"{idx:>2}| {line}"
 
+proc longestCommonSubsequenceForStringStartsWith*(
+    a, b: seq[string]
+  ): seq[tuple[matches: seq[string], xIndex, yIndex: seq[int]]] =
+
+  longestCommonSubsequence[string](
+    a, b, proc(lhs, rhs: string): bool {.noSideEffect.} =
+            rhs.startsWith(lhs))
 
 
+proc byCharSimilarityScore*(
+    x, y: string,
+    emptyScore: range[0.0 .. 100.0] = 100.0
+  ): range[0.0 .. 100.0] =
 
-func longestCommonSubsequence*[T](
-  x, y: openarray[T],
-  itemCmp: EqCmpProc[T] = (proc(x, y: T): bool = x == y)
-    ): seq[tuple[matches: seq[T], xIndex, yIndex: seq[int]]] =
-  longestCommonSubsequence(toSeq(x), toSeq(y), itemCmp)
-
-func byCharSimilarityScore*(
-  x, y: string, emptyScore: range[0.0 .. 100.0] = 100.0): range[0.0 .. 100.0] =
   if x.len == 0 and y.len == 0:
     emptyScore
   else:
     100 * (
-      longestCommonSubsequence(x, y)[0].matches.len /
+      longestCommonSubsequence(toSeq(x), toSeq(y))[0].matches.len /
       max(x.len, y.len)
     )
 
-func byWordSimilarityScore*(
-  x, y: string, emptyScore: range[0.0 .. 100.0] = 100.0): range[0.0 .. 100.0] =
+proc byWordSimilarityScore*(
+    x, y: string,
+    emptyScore: range[0.0 .. 100.0] = 100.0
+  ): range[0.0 .. 100.0] =
+
   let split1 = x.split(" ")
   let split2 = y.split(" ")
   if x.len == 0 and y.len == 0:
@@ -161,13 +177,13 @@ func byWordSimilarityScore*(
 
 
 proc fuzzyMatchRecursive[Seq, Item](
-  patt, other: Seq,
-  pattIdx, otherIdx: int8,
-  recLevel, maxRec: int,
-  succStart: var int, matches: var seq[int8],
-  eqCmp: EqCmpProc[Item],
-  scoreFunc: proc(patt, other: Seq, matches: seq[int]): int
-    ): tuple[ok: bool, score: int] =
+    patt, other: Seq,
+    pattIdx, otherIdx: int8,
+    recLevel, maxRec: int,
+    succStart: var int, matches: var seq[int8],
+    eqCmp: EqCmpProc[Item],
+    scoreFunc: proc(patt, other: Seq, matches: seq[int]): int
+  ): tuple[ok: bool, score: int] =
 
 
   var otherIdx = otherIdx
@@ -400,7 +416,7 @@ func apply*[T](str: var seq[T], op: LevEdit[T]) =
 
     of lekDelete:
       let start = min(str.high, op.deletePos)
-      str.delete(start, start)
+      str.delete(start .. start)
 
     of lekReplace:
       str[op.replacePos] = op.replaceItem
@@ -1395,8 +1411,6 @@ proc accept*(
         result = not glob.ign
 
 
-proc accept*(str: string, globs: seq[GitGlob]): bool {.deprecated.} =
-  globs.accept(str)
 
 
 type

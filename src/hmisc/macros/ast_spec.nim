@@ -893,7 +893,6 @@ proc genFieldEnumImpl[N, K](
     exported: bool,
     prefix: string
   ): NimNode =
-  bind newIdentNode
   var names: HashSet[string]
 
   proc aux(pattern: AstPattern[N, K]) =
@@ -939,8 +938,8 @@ proc genFieldEnumImpl[N, K](
     newEmptyNode(),
     newEmptyNode(),
     nnkFormalParams.newTree(
-      newIdentNode("string"),
-      nnkIdentDefs.newTree(newIdentNode("arg"), restype, newEmptyNode())),
+      ident"string",
+      nnkIdentDefs.newTree(ident"arg", restype, newEmptyNode())),
     newEmptyNode(),
     newEmptyNode(),
     nnkStmtList.newTree(mapcase)

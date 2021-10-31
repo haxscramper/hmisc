@@ -1493,7 +1493,12 @@ func hshow*(s: cstring, opts: HDisplayOpts = defaultHDisplay): ColoredText =
 
 func hShow*[E: enum](e: E, opts: HDisplayOpts = defaultHDisplay): ColoredText =
   if opts.dropPrefix:
-    toGreen(dropLowerPrefix($e), opts.colored)
+    let nop = dropLowerPrefix($e)
+    if nop.len > 0:
+      toGreen(nop, opts.colored)
+
+    else:
+      toGreen($e, opts.colored)
 
   else:
     toGreen($e, opts.colored)

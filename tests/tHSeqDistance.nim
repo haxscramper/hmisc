@@ -67,7 +67,7 @@ suite "String matches":
     }
 
     for (test, filter) in tests:
-      doAssert test[1] == accept(test[0], filter),
+      doAssert test[1] == filter.accept(test[0]),
         &"'{test[0]}' failed validation expected accept '{test[1]}', but " &
         &"got '{not test[1]}', for filter '{filter}'"
 
@@ -318,7 +318,7 @@ suite "Edit distance":
 suite "String distance algorithms":
   test "{longestCommonSubsequence} :generic:value:":
     template tmp(s1, s2, s3: untyped): untyped =
-      check longestCommonSubsequence(s1, s2)[0].matches == s3
+      check longestCommonSubsequence(toSeq(s1), toSeq(s2))[0].matches == s3
 
     doAssert longestCommonSubsequence(@[1], @[2, 3])[0].matches.len == 0
     doAssert longestCommonSubsequence(@["Cond"], @["Int", "Lit"])[0].matches.len == 0
@@ -335,7 +335,7 @@ suite "String distance algorithms":
   test "{longestCommonSubsequence} :generic:value:":
     template lcs(s1, s2, matches, xIdx, yIdx): untyped =
       let (lcsMatch, lcsXIdx, lcsYIdx) = longestCommonSubsequence(
-        s1, s2)[0]
+        toSeq(s1), toSeq(s2))[0]
 
       try:
         check lcsMatch == matches

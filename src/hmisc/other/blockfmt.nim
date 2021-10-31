@@ -21,7 +21,7 @@ import
   ../types/[colorstring, hmap]
 
 export StringAlignDirection
-export toString, `$`
+export clformat.`$`, clformat.toString
 
 const
   infty = 1024 * 1024 * 1024 * 1024
@@ -1233,7 +1233,8 @@ func add*(
 
 proc makeAlignedGrid*(
     blocks: seq[seq[LytBlock]],
-    aligns: openarray[tuple[leftPad, rightPad: int, direction: StringAlignDirection]]
+    aligns: openarray[tuple[
+      leftPad, rightPad: int, direction: StringAlignDirection]]
   ): LytBlock =
 
   for idx, row in pairs(blocks):

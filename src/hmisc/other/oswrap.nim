@@ -1829,6 +1829,7 @@ proc findFile*(
 
   raise newFileSearchError(paths, $name, extensions, onError)
 
+
 proc findFilesWithExt*(dir: AbsDir, ext: seq[string]): seq[AbsFile] =
   for file in walkDir(dir, AbsFile, recurse = false):
     if file.ext() in ext:
@@ -2175,7 +2176,7 @@ type
     cmds: seq[string]
     idx: int
     kind*: CmdLineKind
-    key*, val*: TaintedString
+    key*, val*: string
 
 
 
@@ -2196,7 +2197,7 @@ func parseWord(s: string, i: int, w: var string,
       inc(result)
 
 func initOptParser*(
-  cmdline: seq[TaintedString],
+  cmdline: seq[string],
   shortNoVal: set[char] = {},
   longNoVal: seq[string] = @[];
   allowWhitespaceAfterColon = true): OptParser =
@@ -2229,7 +2230,7 @@ func handleShortOption(p: var OptParser; cmd: string) =
       inc(i)
     p.inShortState = false
     while i < cmd.len and cmd[i] in {'\t', ' '}: inc(i)
-    p.val = TaintedString substr(cmd, i)
+    p.val = string substr(cmd, i)
     p.pos = 0
     inc p.idx
   else:
@@ -2282,17 +2283,16 @@ func next*(p: var OptParser) =
           inc p.idx
           i = 0
         if p.idx < p.cmds.len:
-          p.val = TaintedString p.cmds[p.idx].substr(i)
+          p.val = string p.cmds[p.idx].substr(i)
 
       elif len(p.longNoVal) > 0 and
            p.key.string notin p.longNoVal and
-           p.idx+1 < p.cmds.len
-        :
-        p.val = TaintedString p.cmds[p.idx+1]
+           p.idx+1 < p.cmds.len:
+        p.val = string p.cmds[p.idx+1]
         inc p.idx
 
       else:
-        p.val = TaintedString""
+        p.val = string""
 
       inc p.idx
       p.pos = 0
@@ -2303,20 +2303,20 @@ func next*(p: var OptParser) =
 
   else:
     p.kind = cmdArgument
-    p.key = TaintedString p.cmds[p.idx]
+    p.key = string p.cmds[p.idx]
     p.val = p.key
     inc p.idx
     p.pos = 0
 
-func cmdLineRest*(p: OptParser): TaintedString =
-  result = os.quoteShellCommand(p.cmds[p.idx .. ^1]).TaintedString
+func cmdLineRest*(p: OptParser): string =
+  result = os.quoteShellCommand(p.cmds[p.idx .. ^1]).string
 
-func remainingArgs*(p: OptParser): seq[TaintedString] =
+func remainingArgs*(p: OptParser): seq[string] =
   result = @[]
-  for i in p.idx..<p.cmds.len: result.add TaintedString(p.cmds[i])
+  for i in p.idx..<p.cmds.len: result.add p.cmds[i]
 
 iterator getopt*(p: var OptParser): tuple[kind: CmdLineKind, key,
-    val: TaintedString] =
+    val: string] =
   p.pos = 0
   p.idx = 0
   while true:
@@ -2325,10 +2325,10 @@ iterator getopt*(p: var OptParser): tuple[kind: CmdLineKind, key,
     yield (p.kind, p.key, p.val)
 
 iterator getopt*(
-    cmdline: seq[TaintedString] = paramStrs(),
+    cmdline: seq[string] = paramStrs(),
     shortNoVal: set[char] = {},
     longNoVal: seq[string] = @[]
-  ): tuple[kind: CmdLineKind, key, val: TaintedString, idx: int] =
+  ): tuple[kind: CmdLineKind, key, val: string, idx: int] =
 
   var p = initOptParser(cmdline, shortNoVal = shortNoVal,
       longNoVal = longNoVal)
@@ -2687,8 +2687,9 @@ type
 
 proc newOutStringStream*(target: var string): OutStringStream =
   result = OutStringStream(str: addr target,)
-  result.writeDataImpl = proc(
-    s: OutStringStream; buffer: pointer; bufLen: int) =
-    let len = s.str[].len
-    s.str[].setLen(s.str[].len + bufLen)
-    copyMem(addr(s.str[len]), buffer, bufLen)
+  result.writeDataImpl =
+    proc(s: Stream; buffer: pointer; bufLen: int) {.nimcall.} =
+      var s = OutStringStream(s)
+      let len = s.str[].len
+      s.str[].setLen(s.str[].len + bufLen)
+      copyMem(addr(s.str[len]), buffer, bufLen)

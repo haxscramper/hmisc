@@ -1,3 +1,7 @@
+discard """
+joinable: true
+"""
+
 import hmisc/wrappers/wraphelp
 import std/bitops
 
