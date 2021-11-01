@@ -15,7 +15,6 @@ requires "unicodedb >= 0.9.0"
 
 import std/[os, strutils, strformat, sequtils]
 
-
 task test, "Run tests":
   exec "nim r tests/runall.nim"
 
