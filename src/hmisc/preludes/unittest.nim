@@ -10,6 +10,17 @@ import
   ../core/all,
   ../other/[hunittest, hpprint, oswrap]
 
+const hmiscUnittestOut {.strdefine.}: string = ""
+
+when hmiscUNittestOut == "xml":
+  import ../other/hunittest_xml
+  setTestContext(newXUnitContext())
+
+elif hmiscUnittestOut == "json":
+  import ../other/hunittest_json
+  setTestContext(newJsonContext())
+
+
 startHax()
 
 export all, hunittest, hcoverage, hpprint, oswrap

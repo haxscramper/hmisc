@@ -1,5 +1,5 @@
 import
-  std/[strutils, strformat]
+  std/[strutils, strformat, parseutils]
 
 import
   ./halgorithm,
@@ -30,7 +30,9 @@ proc lcast*(
 proc lcast*(
     s: string,
     t: var SomeFloat,
-    opts: LexcastOpts = defaultLexcastOpts) = t.parseFloat(s)
+    opts: LexcastOpts = defaultLexcastOpts
+  ) =
+  t = parseFloat(s)
 
 proc lcast*(
     s: string,

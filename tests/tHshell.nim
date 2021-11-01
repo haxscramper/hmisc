@@ -10,14 +10,8 @@ import std/[
 import
   hmisc/core/all,
   hmisc/algo/[hlex_base, hparse_base],
-  hmisc/scripts/hmisc_putils,
   hmisc/preludes/unittest,
-  hmisc/other/[
-    hshell, hshell_convert, oswrap, hjson, nimbleutils
-  ]
-
-import
-  hmisc/scripts/hmisc_putils
+  hmisc/other/[hshell, hshell_convert, oswrap, hjson]
 
 if not toBool($$CI):
   startHax()

@@ -76,7 +76,7 @@ type
 
   HLexerError* = object of ParseError
     ## Base type for lexer errors
-    pos*, line*, column*: int
+    pos*: int
 
   UnexpectedCharError* = object of HLexerError
   UnbalancedWrapError* = object of HLexerError

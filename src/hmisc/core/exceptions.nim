@@ -20,6 +20,9 @@ type
   NilArgumentError*          = object of ArgumentError
   NoneArgumentError*         = object of ArgumentError
   ParseError*                = object of CatchableError
+    line*: int
+    column*: int
+
   LogicError*                = object of CatchableError
   UnexpectedKindError*       = object of ArgumentError
     ## More concrete specializaton of argument error for handling variant

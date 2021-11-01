@@ -1,6 +1,3 @@
-# {.passc: "-pg".}
-# {.passl: "-pg".}
-
 import hmisc/preludes/unittest
 
 testFileStarted()

@@ -306,3 +306,6 @@ proc toPretty*(j: JsonNode, maxWidth: int = 80): string =
 
 
   aux(j, result, 0)
+
+
+import std/parseutils

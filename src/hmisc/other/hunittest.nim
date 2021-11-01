@@ -993,7 +993,7 @@ macro astdiff*(ast: typed, match: untyped, loc: TestLocation): untyped =
   if match.kind == nnkIdent:
     result = quote do:
       echo validateAst(`match`, `ast`)
-      checkOk(`loc`)
+      checkOk(`loc`, `exprStr`)
 
   else:
     let impl = aux(ast, match, @[])

@@ -4,14 +4,8 @@ description   = "Collection of helper utilities"
 license       = "Apache-2.0"
 srcDir        = "src"
 packageName   = "hmisc"
-bin           = @["hmisc/scripts/hmisc_putils"]
 installExt    = @["nim", "rst"]
 binDir        = "bin"
-
-when (1, 2, 2) < (NimMajor, NimMinor, NimPatch):
-  namedBin      = {
-    "hmisc/scripts/hmisc_putils" : "hmisc-putils"
-  }.toTable()
 
 requires "nim >= 1.4.8"
 requires "https://github.com/nim-lang/fusion.git"
@@ -21,6 +15,9 @@ requires "unicodedb >= 0.9.0"
 
 import std/[os, strutils, strformat, sequtils]
 
+
+task test, "Run tests":
+  exec "nim r tests/runall.nim"
 
 task docgen, "Generate documentation":
   var files: seq[(string, string)]
@@ -201,10 +198,3 @@ task newversion, "Tag new version and push it to git":
   except OsError:
     echo "Have uncomitted changes, commit first before pushing"
     sh ["git", "--no-pager", "diff"]
-
-
-
-
-
-task dockertest, "Run tests in docker container":
-  exec("hmisc-putils dockertest --projectDir:" & thisDir())
