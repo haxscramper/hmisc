@@ -1,7 +1,7 @@
 import parseutils
 
 when not defined(NimScript):
-  import osproc, streams
+  import std/[osproc, streams]
   export ProcessOption
 
 else:
@@ -1028,6 +1028,9 @@ proc updateException(res: var ShellResult, cmd: ShellCmd, maxErrorLines: int) =
     let split = res.execResult.stderr.split("\n") &
       res.execResult.stdout.split("\n")
 
+    # echov maxErrorLines
+    # assert maxErrorLines == 12
+
     msg.add split[0 ..< min(split.len(), maxErrorLines)].join("\n")
 
     res.exception = ShellError(
@@ -1042,10 +1045,7 @@ proc updateException(res: var ShellResult, cmd: ShellCmd, maxErrorLines: int) =
     # echo "Exception"
   else:
     # echo "ALl ok"
-    res = ShellResult(
-      resultOk: true,
-      execResult: res.execResult
-    )
+    res = ShellResult(resultOk: true, execResult: res.execResult)
 
 
 when cbackend:
@@ -1305,8 +1305,15 @@ proc shellResult*(
       let outStream = pid.outputStream
       var line = ""
 
+      let inStream = pid.inputStream
+
       var outLineCount = 0
       while pid.running:
+        # echov inStream.atEnd()
+        # if inStream.atEnd():
+        #   discard pid.inputHandle.close()
+        #   # inStream.close()
+
         try:
           let streamRes = outStream.readLine(line)
           if streamRes:
@@ -1477,11 +1484,16 @@ proc evalShellStdout*(cmd: ShellAst, stdin: string = ""): string =
 
 
 
-proc evalShellStdout*(cmd: ShellCmd, stdin: string = ""): string =
+proc evalShellStdout*(
+    cmd: ShellCmd,
+    stdin: string = "",
+    maxErrorLines: int = high(int)
+  ): string =
   runShell(
     cmd,
     stdin = stdin,
     options = {poEvalCommand, poUsePath},
+    maxErrorLines = maxErrorLines
   ).stdout.strip()
 
 

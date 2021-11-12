@@ -29,3 +29,5 @@ docs/*
 *.code-workspace
 **/.gdb_*
 **/massif*
+
+nim.cfg

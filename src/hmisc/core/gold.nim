@@ -156,7 +156,7 @@ template relToSource*(path: string): untyped =
   joinPath(splitFile(instantiationInfo(fullPaths = true).filename).dir, path)
 
 
-proc `of`*[A: object or ref object; K: enum](item: A, kind: K | set[K]): bool =
+proc `of`*[A: object or ref object or distinct; K: enum](item: A, kind: K | set[K]): bool =
   ## Check if @arg{item} has @arg{kind}
   when kind is set:
     item.kind in kind
@@ -225,6 +225,7 @@ func pop*[E](s: var set[E]): E =
     result = val
     s.excl result
     return
+
 
 iterator pairs*[I](s: set[I]): (int, I) =
   var idx = 0

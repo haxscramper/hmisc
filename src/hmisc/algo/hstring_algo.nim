@@ -130,6 +130,7 @@ iterator items*(part: StrPart): StrPart =
     of spkSet:
       for ch in part.chars:
         yield toStrPart(ch)
+
     of spkSubstr:
       for s in part.strs:
         yield toStrPart(s)

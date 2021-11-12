@@ -212,6 +212,8 @@ proc logImpl*(
   logger.lastLog = level
   logger.lastEvent = event
 
+func `?`*(logger: HLogger): bool = not isNil(logger)
+
 proc indentLen*(logger: HLogger): int =
   2 * (logger.scopes.len() - 1) +
     logger.prefixLen + logger.leftAlignFiles + 1
@@ -240,6 +242,8 @@ proc openScope*(
     file: string, line, column: int,
     scopeName: string
   ) =
+
+  assertRef(logger)
 
   var scope = HLogScope(
     file: file, line: line, column: column, kind: kind)

@@ -127,6 +127,9 @@ func newHGraph*[N, E](
     edgeMap: newHEdgeMap[E]()
   )
 
+func default*[N, E](graph: typedesc[HGraph[N, E]]): HGraph[N, E] =
+  newHGraph[N, E]()
+
 func copyStructureHGraph*[N, E](graph: HGraph[N, E]): HGraph[N, E] =
   ## Create graph with deep copy of the original structure, without copying
   ## node and edge map

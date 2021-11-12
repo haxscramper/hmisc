@@ -149,7 +149,6 @@ type
     reInvalidSpec      # test had problems to parse the spec
 
   NimTestSpec* = object
-    # xxx make sure `isJoinableSpec` takes into account each field here.
     action*: NimTestAction
     file*: AbsFile
     msg*: string
@@ -173,31 +172,31 @@ type
     timeout*: float
     debugInfo*: string
 
-  NimState = object
-    paths: seq[AbsDir]
-    hints: set[NimWarning]
-    flags: seq[NimFlag]
+  NimState* = object
+    paths*: seq[AbsDir]
+    hints*: set[NimWarning]
+    flags*: seq[NimFlag]
 
-  NimReportKind = enum
+  NimReportKind* = enum
     nrHint
     nrWarning
     nrError
 
-  NimReportPart = object
-    file: string
-    line: int
-    column: int
-    text: string
+  NimReportPart* = object
+    file*: string
+    line*: int
+    column*: int
+    text*: string
 
-  NimReport = object
-    parts: seq[NimReportPart]
+  NimReport* = object
+    parts*: seq[NimReportPart]
 
     case kind*: NimReportKind
       of nrHint:
-        hint: NimHint
+        hint*: NimHint
 
       of nrWarning:
-        warning: NimWarning
+        warning*: NimWarning
 
       of nrError:
         discard
@@ -373,8 +372,8 @@ proc parseSpec*(
   # if not result.inCurrentBatch:
   #   result.err = reDisabled
 
-proc getCwdNimDump*(): NimState =
-  let j = shellCmd(nim, dump, "dump.format" = "json", "-").
+proc getCwdNimDump*(file: string = "-"): NimState =
+  let j = shellCmd(nim, dump, "dump.format" = "json", $file).
     evalShellStdout().
     parseJson()
 

@@ -1429,14 +1429,16 @@ template coloredResult*(): untyped =
     else:
       discard
 
-  template add(arg: untyped): untyped = outPtr[].add arg
-  template add(arg1, arg2: untyped): untyped = outPtr[].add(arg1, arg2)
-  template addIndent(level: int): untyped = outPtr[].addIndent(level)
+  template add(arg: untyped): untyped {.used.} = outPtr[].add arg
+  template add(arg1, arg2: untyped): untyped {.used.} = outPtr[].add(arg1, arg2)
+  template addIndent(level: int, sep: int = 2): untyped {.used.} =
+    outPtr[].addIndent(level, sep)
 
 
 func joinPrefix*(
     level: int, idx: seq[int],
-    pathIndexed, positionIndexed: bool): ColoredText =
+    pathIndexed, positionIndexed: bool
+  ): ColoredText =
 
   if pathIndexed:
     result = clt(idx.join("", ("[", "]")) & "  ")
@@ -1454,7 +1456,9 @@ func joinPrefix*(
   else:
     result.addIndent(level)
 
-
+func joinPrefix*(
+    level: int, idx: seq[int], opts: HDisplayOpts): ColoredText =
+  joinPrefix(level, idx, opts.pathIndexed(), opts.positionIndexed())
 
 func hShow*(
     str: string, opts: HDisplayOpts = defaultHDisplay): ColoredText =

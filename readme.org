@@ -25,7 +25,7 @@ annotations.
 #+begin_src nim :exports both
   {.define(plainStdout).} # Output is colored by default, disable for
                           # readme example
-  import hmisc/hexceptions
+  import hmisc/core/code_errors
 
   macro test(a: untyped): untyped =
     raise toCodeError({
@@ -139,7 +139,7 @@ else:
     comparison.
 
 #+begin_src nim :exports both
-  import hmisc/algo/halgorithm, strformat
+  import hmisc/algo/halgorithm, std/strformat
   let v = @["w234", "333"]
 
   echo ": ", &"{v.joinq()}"

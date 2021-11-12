@@ -862,6 +862,47 @@ proc indentBody*(
 
     inc idx
 
+func stripLines*(
+    text: ColoredText,
+    leading: bool = false,
+    trails: bool = true,
+    chars: set[char] = {' '}
+  ): ColoredText =
+
+  var idx = 0
+  for line in lines(text):
+    var start = 0
+    if leading:
+      while int(line[start].rune) <= ord(high(char)) and
+            char(line[start].rune) in chars and
+            start < high(line):
+        inc start
+
+    var final = high(line)
+    if trails:
+      while int(line[final].rune) <= ord(high(char)) and
+            char(line[final].rune) in chars and
+            0 < final:
+        dec final
+
+
+    if start == final and
+       int(line[final].rune) <= ord(high(char)) and
+       char(line[final].rune) in chars:
+
+      if idx > 0:
+        result.add clt("\n")
+
+    else:
+      if idx > 0:
+        result.add clt("\n")
+
+      result.add line[start .. final]
+
+    inc idx
+
+
+
 
 
 func `&`*(t1: sink ColoredText, t2: ColoredText): ColoredText =

@@ -1590,21 +1590,28 @@ proc `&.`*(file: AbsFile, ext: string): AbsFile = withExt(file, ext)
 func withoutExt*[F: AbsFile | RelFile](file: F): F =
   withExt(file, "")
 
-func addBasePrefix*[F: AbsFile | RelFile | FsFile](
-  f: var F, prefix: string) =
+
+func addToBasename*[F: AbsFile | RelFile | FsFile](
+    f: var F,
+    added: string,
+    before: bool = true
+  ) =
 
   when f is FsFile:
     if f.isRelative:
-      addBasePrefix(f.relFile, prefix)
-      # result = toFsFile(withBasePrefix(f.relFile, prefix))
+      addToBasename(f.relFile, added)
 
     else:
-      addBasePrefix(f.absFile, prefix)
-      # result = toFsFile(withBasePrefix(f.absFile, prefix))
+      addToBasename(f.absFile, added)
 
   else:
     let (parent, file, ext) = os.splitFile(f.getStr())
-    let res = os.joinpath(parent, prefix & file & ext)
+    let res =
+      if before:
+        os.joinpath(parent, added & file & ext)
+
+      else:
+        os.joinpath(parent, file & added & ext)
 
     when F is AbsFile:
       f = AbsFile(res)
@@ -1613,11 +1620,18 @@ func addBasePrefix*[F: AbsFile | RelFile | FsFile](
       f = RelFile(res)
 
 
+
 func withBasePrefix*[F: AbsFile | RelFile | FsFile](f: F, prefix: string): F =
   ## Return copy of the file path `f` with new basename for a file. E.g.
   ## `/tmp/hello.cpp + prefix_ -> /tmp/prefix_hello.cpp`
   result = f
-  addBasePrefix(result, prefix)
+  addToBasename(result, prefix, before = true)
+
+func withBaseSuffix*[F: AbsFile | RelFile | FsFile](f: F, suffix: string): F =
+  ## Return copy of the file path `f` with new basename for a file. E.g.
+  ## `/tmp/hello.cpp + _suffix -> /tmp/hello_suffix.cpp`
+  result = f
+  addToBasename(result, suffix, before = false)
 
 func withBase*(f: FsTree, base: string): FsTree {.inline.} =
   result = f

@@ -118,3 +118,13 @@ func namedItemListing*(
   else:
     result = toPluralNoun(name, words.len) &
       ": " & joinWords(words, sepWord, quote)
+
+template kindToStr*(expr: typed): untyped =
+  when expr is enum:
+    "\e[32m" & $expr & "\e[0m"
+
+  elif expr is string:
+    "\e[34m\"" & expr & "\"\e[0m"
+
+  else:
+    "\e[32m" & $expr.kind & "\e[0m for type \e[33m" & $typeof(expr) & "\e[0m"
