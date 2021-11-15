@@ -12,7 +12,8 @@ import
     xmltree,
     with,
     macros,
-    strutils
+    strutils,
+    typetraits
   ]
 
 type
@@ -108,11 +109,25 @@ proc loadXml*(reader; target: var bool, tag: string) =
     loadField = (target = reader.strVal().parseBool()),
   )
 
-proc loadXml*(reader; target: var int, tag: string) =
+proc loadXml*[I: SomeUnsignedInt](reader; target: var I, tag: string) =
   loadPrimitive(
     reader, target, tag,
-    loadAttr = (target = reader.strVal().parseInt()),
-    loadField = (target = reader.strVal().parseInt()),
+    loadAttr = (target = I(reader.strVal().parseBiggestUInt())),
+    loadField = (target = I(reader.strVal().parseBiggestUInt())),
+  )
+
+proc loadXml*[I: SomeSignedInt](reader; target: var I, tag: string) =
+  loadPrimitive(
+    reader, target, tag,
+    loadAttr = (target = I(reader.strVal().parseBiggestInt())),
+    loadField = (target = I(reader.strVal().parseBiggestInt())),
+  )
+
+proc loadXml*(reader; target: var char, tag: string) =
+  loadPrimitive(
+    reader, target, tag,
+    loadAttr = (target = reader.strVal()[0]),
+    loadField = (target = reader.strVal()[0]),
   )
 
 proc loadXml*(reader; target: var SomeFloat, tag: string) =
@@ -141,32 +156,33 @@ proc loadXml*[T](reader; target: var seq[T], tag: string) =
 proc readKeyValues[K, V, Res](reader; target: var Res, tag: string) =
   mixin loadXml
   while reader.elementName() == tag:
-    var key: K
-    var val: V
+    var key: K = default(K)
+    var val: V = default(V)
     reader.skipElementStart(tag)
     loadXml(reader, key, "key")
     loadXml(reader, val, "value")
     reader.skipElementEnd(tag)
     target[key] = val
 
-proc writeXml*[K, V](writer; table: Table[K, V], tag: string) =
+proc writeKeyValues[K, V, Res](writer; target: Res, tag: string) =
   mixin writeXml
-  for key, value in pairs(table):
+  for key, value in pairs(target):
     writer.xmlStart(tag)
+    writer.indent()
     writer.writeXml(key, "key")
     writer.writeXml(value, "value")
+    writer.dedent()
     writer.xmlEnd(tag)
+
+
+proc writeXml*[K, V](writer; table: Table[K, V], tag: string) =
+  writeKeyValues[K, V, Table[K, V]]
 
 proc loadXml*[A, B](reader; target: var Table[A, B], tag: string) =
   readKeyValues[A, B, Table[A, B]](reader, target, tag)
 
-
 proc writeXml*[R, V](writer; table: array[R, V], tag: string) =
-  for key, value in pairs(table):
-    writer.xmlStart(tag)
-    writer.writeXml(key, "key")
-    writer.writeXml(value, "value")
-    writer.xmlEnd(tag)
+  writeKeyValues[R, V, array[R, V]](writer, table, tag)
 
 proc loadXml*[R, V](reader; target: var array[R, V], tag: string) =
   readKeyValues[R, V, array[R, V]](reader, target, tag)
@@ -209,11 +225,14 @@ proc loadXml*(reader; target: var Slice[int], tag: string) =
 proc writeXml*[E: enum](writer; values: set[E], tag: string) =
   writer.xmlStart(tag)
   writer.indent()
-  writer.writeIndent()
+  if 0 < len(values):
+    writer.writeIndent()
+
   for item in values:
     writer.xmlOpen("item")
     writer.xmlAttribute("val", $item)
     writer.xmlCloseEnd()
+
 
   writer.dedent()
   writer.xmlEnd(tag)
@@ -349,7 +368,7 @@ proc knownId(state: var XmlState, id: int): bool =
 proc storeFields[T](writer; target: T, tag: string) =
   for name, field in fieldPairs(target):
     when isDiscriminantField(T, name):
-      xmlAttribute(writer, name, name)
+      xmlAttribute(writer, name, field)
 
   for name, field in fieldPairs(target):
     when hasCustomPragma(field, Attr) and not isDiscriminantField(T, name):
@@ -428,7 +447,7 @@ proc loadObject[T](reader; target: var T, tag: string) =
         new(target)
         reader.state.ptrs[id] = cast[pointer](target)
         loadFields(reader, target[], tag)
-        skipEnd(reader, tag)
+        skipElementEnd(reader, tag)
 
   else:
     let op = reader.kind == xmlElementOpen
@@ -438,10 +457,8 @@ proc loadObject[T](reader; target: var T, tag: string) =
       skipElementStart(reader, tag)
 
     loadFields(reader, target, tag)
-
     skipEnd(reader, tag)
 
-  assert reader.kind notin {xmlElementEnd, xmlElementClose}
 
 
 proc writeXml*[T: object](writer; target: T, tag: string) =
@@ -467,3 +484,23 @@ proc loadXml*[T: ref object](reader; target: var T, tag: string) =
 
 proc loadXml*[T: ref tuple](reader; target: var T, tag: string) =
   loadObject(reader, target, tag)
+
+
+proc loadXmlDistinct*[T: distinct](reader; target: var T, tag: string) =
+  type Base = distinctBase(T)
+  var base: Base = default(Base)
+  loadXml(reader, base, tag)
+  target = T(base)
+
+proc writeXmlDistinct*[T: distinct](writer; target: T, tag: string) =
+  type Base = distinctBase(T)
+  writeXml(writer, Base(target), tag)
+
+template xmlSerdeFor*(TypeName, readerCall, writerCall: untyped): untyped =
+  proc loadXml*(
+    reader: var XmlDeserializer, target: var TypeName, tag: string) =
+    readerCall(reader, target, tag)
+
+  proc writeXml*(
+    writer: var XmlSerializer, target: TypeName, tag: string) =
+    writerCall(writer, target, tag)

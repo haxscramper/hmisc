@@ -12,6 +12,8 @@ type
     used*: seq[ImCyclic]
     field: int
 
+xmlSerdeFor(ImDist, loadXmlDistinct, writeXmlDistinct)
+
 proc cyclic*(sub: varargs[ImCyclic]): ImCyclic =
   ImCyclic(used: @sub)
 
@@ -90,3 +92,4 @@ suite "Write basic types":
 
   test "Torture":
     let res = makeTorture().round()
+    echo res.toXml()

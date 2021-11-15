@@ -96,7 +96,20 @@ type
             discard
 
       of 3:
-        discard
+        fu8*: uint8
+        fi8*: int8
+
+        fu16*: uint16
+        fi16*: int16
+
+        fu32*: uint32
+        fi32*: int32
+
+        fu64*: uint64
+        fi64*: int64
+
+        ff32*: float32
+        ff64*: float64
 
 proc makeTorture*(): ImTorture =
   result = ImTorture(
@@ -104,7 +117,23 @@ proc makeTorture*(): ImTorture =
       ImTorture(kind1: 0),
       ImTorture(kind1: 1),
       ImTorture(kind1: 2),
-      ImTorture(kind1: 3),
+      ImTorture(
+        kind1: 3,
+        fu8: 0,
+        fi8: 1,
+
+        fu16: 3,
+        fi16: 12,
+
+        fu32: low(uint32),
+        fi32: low(int32),
+
+        fu64: high(uint64),
+        fi64: high(int64),
+
+        ff32: 65.12,
+        ff64: 64.31
+      ),
     ],
     kind1: 2,
     kind2: true,
