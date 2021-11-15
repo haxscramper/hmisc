@@ -1,7 +1,15 @@
 import std/[
-  xmltree, xmlparser, enumerate, strutils,
-  tables, with, strtabs, options, streams,
-  parsexml
+  xmltree,
+  xmlparser,
+  enumerate,
+  strutils,
+  tables,
+  with,
+  strtabs,
+  options,
+  streams,
+  parsexml,
+  macros
 ]
 
 export xmltree, strtabs, xmlparser, parsexml
@@ -19,7 +27,7 @@ proc parseXml*(file: AbsFile): XmlNode = parseXml(file.readFile())
 
 type
   HXmlParserEventError* = object of CatchableError
-  HXmlParser* = object
+  HXmlParser* = object of RootObj
     base*: XmlParser
     traceNext*: bool
     file*: AbsFile
@@ -210,6 +218,9 @@ proc atClose*(r: var HXmlParser): bool = r.kind in {xmlElementClose}
 proc atEnd*(r: var HXmlParser): bool = r.kind in {xmlElementEnd}
 proc atOpenStart*(r: var HXmlParser): bool =
   r.kind in {xmlElementStart, xmlElementOpen}
+
+proc isAttribute*(reader: HXmlParser): bool =
+  reader.kind == XmlEventKind.xmlAttribute
 
 proc atAttr*(r: var HXmlParser): bool = r.kind in {xmlAttr}
 proc atCdata*(r: var HXmlParser): bool = r.kind in {XmlEventKind.xmlCData}
@@ -787,8 +798,8 @@ template raiseUnexpectedToken*(
 ## * XML generation
 
 type
-  XmlWriter* = object
-    base: BaseWriter
+  XmlWriter* = object of RootObj
+    base*: BaseWriter
 
 using
   writer: var XmlWriter
@@ -849,44 +860,13 @@ proc xmlWrappedCdata*(writer; text, tag: string) =
   writer.line()
 
 
-template loadPrimitive*(
-    stream: var HXmlParser, target: typed, tag: string,
-    loadAttr: untyped, loadField: untyped
-  ): untyped =
-
-  if stream.isAttribute():
-    loadAttr
-    stream.next()
-
-  else:
-    stream.skipElementStart(tag)
-    loadField
-    stream.skipElementEnd(tag)
-
-proc loadEnumWithPrefix*[E](
-    r: var HXmlParser; kind: var E, tag, prefix: string) =
-  loadPrimitive(
-    r, kind, tag,
-    (kind = parseEnum[E](prefix & r.strVal())),
-    (kind = parseEnum[E](prefix & r.strVal()))
-  )
-
-proc toXmlString*[T](item: Option[T]): string =
-  mixin toXmlString
-  if item.isSome():
-    return toXmlString(item.get())
-
-proc toXmlString*(item: string): string = item
-proc toXmlString*(item: enum | bool | float): string = $item
-proc toXmlString*(item: SomeInteger): string = $item
 
 proc writeEscaped*(writer; text: string) =
   writer.writeRaw(xmltree.escape text)
 
-proc xmlAttribute*(
-    writer; key: string, value: SomeInteger | bool | float | enum | string) =
-  writer.writeRaw(
-    " ", key, "=\"", xmltree.escape(toXmlString(value)), "\"")
+
+proc xmlAttribute*(writer; key: string, value: string) =
+  writer.writeRaw(" ", key, "=\"", xmltree.escape(value), "\"")
 
 proc xmlStart*(
     writer; tag: string, table: openarray[(string, string)],
@@ -916,61 +896,6 @@ proc xmlRawSingle*(writer; text: string, indent: bool = true) =
   writer.writeRaw(text)
   if indent:
     writer.line()
-
-
-proc xmlAttribute*[T](writer; key: string, value: Option[T]) =
-  if value.isSome():
-    xmlAttribute(writer, key, value.get())
-
-proc xmlAttribute*[A, B](writer; key: string, value: HSlice[A, B]) =
-  xmlAttribute(writer, key, toXmlString(value.a) & ":" & toXmlString(value.b))
-
-
-proc writeXml*(
-  writer; value: string | SomeInteger | bool | SomeFloat | enum, tag: string) =
-  writer.writeIndent()
-  writer.xmlStart(tag, false)
-  writer.writeEscaped($value)
-  writer.xmlEnd(tag, false)
-  writer.line()
-
-
-proc writeXml*[T](writer; values: seq[T], tag: string) =
-  mixin writeXml
-  for it in values:
-    writer.writeXml(it, tag)
-
-proc writeXml*[K, V](writer; table: Table[K, V], tag: string) =
-  mixin writeXml
-  for key, value in pairs(table):
-    writer.xmlStart(tag)
-    writer.writeXml(key, "key")
-    writer.writeXml(value, "value")
-    writer.xmlEnd(tag)
-
-proc writeXml*[T](writer; opt: Option[T], tag: string) =
-  if opt.isSome():
-    writeXml(writer, opt.get(), tag)
-
-proc writeXml*(writer; value: Slice[int], tag: string) =
-  with writer:
-    xmlOpen(tag)
-    xmlAttribute("a", $value.a)
-    xmlAttribute("b", $value.b)
-    xmlCloseEnd()
-
-proc writeXml*[E: enum](writer; values: set[E], tag: string) =
-  writer.xmlStart(tag)
-  writer.indent()
-  writer.writeIndent()
-  for item in values:
-    writer.xmlOpen("item")
-    writer.xmlAttribute("val", $item)
-    writer.xmlCloseEnd()
-
-  writer.dedent()
-  writer.xmlEnd(tag)
-
 
 proc eopen*(
     writer; elem: string,
@@ -1053,152 +978,6 @@ template ewrapl1*(
   body
   eclose(writer, name, false)
   line(writer)
-
-proc loadXml*[E: enum](stream: var HXmlParser, target: var E, tag: string) =
-  if stream.atAttr():
-    target = parseEnum[E](stream.attrValue())
-    stream.next()
-
-  else:
-    stream.skipStart(tag)
-    target = parseEnum[E](stream.strVal())
-    stream.next()
-    stream.skipEnd(tag)
-
-proc isAttribute*(stream: HXmlParser): bool =
-  stream.kind == XmlEventKind.xmlAttribute
-
-proc loadXml*(stream: var HXmlParser, target: var bool, tag: string) =
-  loadPrimitive(
-    stream, target, tag,
-    loadAttr = (target = stream.strVal().parseBool()),
-    loadField = (target = stream.strVal().parseBool()),
-  )
-
-proc loadXml*(stream: var HXmlParser, target: var SomeFloat, tag: string) =
-  loadPrimitive(
-    stream, target, tag,
-    loadAttr = (target = stream.strVal().parseFloat()),
-    loadField = (target = stream.strVal().parseFloat()),
-  )
-
-proc loadXml*[E](stream: var HXmlParser, target: var set[E], tag: string) =
-  stream.skipElementStart(tag)
-  while stream.elementName() == "item":
-    stream.next()
-    assert stream.attrKey() == "val"
-    target.incl parseEnum[E](stream.attrValue())
-    stream.next()
-
-  stream.skipElementEnd(tag)
-
-proc loadXml*[T](stream: var HXmlParser, target: var seq[T], tag: string) =
-  mixin loadXml
-  while stream.kind in {xmlElementOpen, xmlElementStart} and
-        stream.elementName() == tag:
-    var tmp: T
-    loadXml(stream, tmp, tag)
-    target.add tmp
-
-
-template loadXml*[T](
-    stream: var HXmlParser, target: var seq[T],
-    tag: string, mixedStr: T, fieldAsgn: untyped
-  ) =
-  mixin loadXml
-  while stream.kind in {
-    xmlElementOpen, xmlElementStart, xmlCharData, xmlWhitespace
-  }:
-    case stream.kind:
-      of xmlElementOpen, xmlElementStart:
-        if stream.elementName() == tag:
-          var tmp: T
-          loadXml(stream, tmp, tag)
-          target.add tmp
-
-        else:
-          break
-
-      of xmlElementCharData, xmlWhitespace:
-        var next {.inject.} = mixedStr
-        var str: string
-        loadXml(stream, str, "")
-        fieldAsgn = str
-        target.add next
-
-      else:
-        break
-
-proc loadXml*[A, B](
-  stream: var HXmlParser, target: var Table[A, B], tag: string) =
-
-  mixin loadXml
-  while stream.elementName() == tag:
-    var key: A
-    var val: B
-    stream.skipElementStart(tag)
-    loadXml(stream, key, "key")
-    loadXml(stream, val, "value")
-    stream.skipElementEnd(tag)
-    target[key] = val
-
-
-
-proc loadXml*[T](stream: var HXmlParser, target: var Option[T], tag: string) =
-  mixin loadXml
-  if (stream.isAttribute() and stream.attrKey() == tag) or
-     (stream.elementName() == tag):
-    var tmp: T
-    loadXml(stream, tmp, tag)
-    target = some(tmp)
-
-proc loadXml*(stream: var HXmlParser, target: var string, tag: string) =
-  if stream.isAttribute():
-    target = stream.strVal()
-    stream.next()
-
-  else:
-    stream.skipElementStart(tag)
-    while stream.kind() in {xmlWhitespace, xmlCharData, XmlEventKind.xmlCData}:
-      target &= stream.strVal()
-      next(stream)
-
-    stream.skipElementEnd(tag)
-
-proc loadXml*(stream: var HXmlparser, target: var AbsFile, tag: string) =
-  var tmp: string
-  loadXml(stream, tmp, tag)
-  target = AbsFile(tmp)
-
-proc loadXml*(stream: var HXmlParser, target: var int, tag: string) =
-  if stream.isAttribute():
-    target = stream.strVal().parseInt()
-    stream.next()
-
-  else:
-    stream.skipElementStart(tag)
-    target = stream.strVal().parseInt()
-    stream.skipElementEnd(tag)
-
-
-proc loadXml*(reader; target: var Slice[int], tag: string) =
-  if reader.atAttr:
-    let val = reader.strVal().split(":")
-    target.a = parseInt(val[0])
-    target.b = parseInt(val[1])
-    reader.next()
-
-
-  else:
-    with reader:
-      skipOpen(tag)
-      loadXml(target.a, "a")
-      loadXml(target.b, "b")
-      skipClose()
-
-
-proc loadXml*(reader; target: var XmlNode, tag: string) =
-  parseXsdAnyType(target, reader, tag)
 
 
 when isMainModule:

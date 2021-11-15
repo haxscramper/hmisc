@@ -5,6 +5,8 @@ import std/[options, strutils, strformat, macros, os]
 
 type NoValue* = distinct char
 
+template Attr*() {.pragma.}
+
 template tern*(predicate: bool, tBranch: untyped, fBranch: untyped): untyped =
   ## Shorthand for inline if/else. Allows use of conditions in strformat,
   ## simplifies use in expressions. Less picky with formatting
@@ -296,6 +298,10 @@ template cblock*(name: static[string], body: untyped): untyped =
   block:
     /// name:
       body
+
+template cexpr*(name: static[string], body: untyped): untyped =
+  // name
+  body
 
 macro importx*(imports: untyped): untyped =
   proc aux(tree: NimNode, prefix: seq[NimNode]): seq[seq[NimNode]] =

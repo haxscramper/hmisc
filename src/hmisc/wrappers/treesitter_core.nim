@@ -509,9 +509,9 @@ func `[]`*[N: distinct](
 
   if check and isNil(result):
     raise newException(KeyError,
-      "No field named '" & name & "' for AST node type",
-      typeof(N), ", kind",
-      $node.kind() & ". Possible field names:",
+      "No field named '" & name & "' for AST node type" &
+      $typeof(N) & " kind" &
+      $node.kind() & ". Possible field names:" &
       $fieldNames(node)
     )
 
