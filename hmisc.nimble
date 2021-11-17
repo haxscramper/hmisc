@@ -16,7 +16,7 @@ task test, "Run tests":
   exec "nim r tests/runall.nim " & currentSourcePath() & " test -- "
 
 task docgen, "Generate documentation":
-  exec "nim r tests/runall.nim " & currentSourcePath() & " doc -- "
+  exec "nim c -r tests/runall.nim " & currentSourcePath() & " doc -- "
 
 task push, "Execute checks and push ":
   exec "nim r tests/runall.nim " & currentSourcePath() & " push -- "

@@ -3,12 +3,48 @@ import
   ../other/[oswrap, hshell]
 
 import std/[os, strutils, strformat, sequtils]
+import pkg/[jsony]
+
+type
+  NimbleVer* = object
+    kind*: string
+    ver*: string
+
+  NimbleRequires* = object
+    name*: string
+    str*: string
+    ver*: NimbleVer
+
+  NimbleManifest* = object
+    name*: string
+    version*: string
+    author*: string
+    desc*: string
+    license*: string
+    skipDirs*: seq[string]
+    skipFiles*: seq[string]
+    skipExt*: seq[string]
+    installDirs*: seq[string]
+    installFiles*: seq[string]
+    installExt*: seq[string]
+    requires*: seq[NimbleRequires]
+    bin*: seq[string]
+    binDir*: string
+    srcDir*: string
+    backend*: string
 
 startHax()
 
 let args = paramStrs()
 let project = AbsFile(args[0])
 let root = project.dir()
+
+proc getManifest(): NimbleManifest =
+  withDir root:
+    let j = shellCmd(nimble, dump, --json).evalShellStdout()
+    result = j.fromJson(NimbleManifest)
+
+let manifest = getManifest()
 
 proc sh(str: varargs[string]) =
   execShell shellCmdRaw(@str)
@@ -33,10 +69,7 @@ case args[1]:
     if exists(RelDir("src")):
       cdd = cdd / "src"
 
-    for dir in walkDir(root / cdd, RelDir):
-      echo dir
-      cdd = dir
-      break
+    cdd = cdd / manifest.name
 
     cd cdd
 
@@ -46,13 +79,13 @@ case args[1]:
 
     for path in walkDirRec(".", relative = true):
       let (dir, name, ext) = path.splitFile()
-      if name != "hmisc" and ext == ".nim":
+      if name != name and ext == ".nim":
         if dir.len > 0 and cnt < maxFiles:
           inc cnt
-          hmiscText.add &"import ./hmisc/{dir}/{name}\n"
+          hmiscText.add &"import ./{manifest.name}/{dir}/{name}\n"
 
     cd "../.."
-    writeFile("src/hmisc.nim", hmiscText)
+    writeFile(&"src/{manifest.name}.nim", hmiscText)
     var args = @[
       "nim",
       "doc2",
@@ -65,8 +98,9 @@ case args[1]:
     let ghUrl = getEnv("GITHUB_REPOSITORY", &"file://{res}")
     if ghUrl.len > 0: args.add &"--git.url:\"{ghUrl}\""
 
-    args.add "src/hmisc.nim"
+    args.add &"src/{manifest.name}.nim"
 
+    echo cwd()
     sh args
 
   of "push":
@@ -75,25 +109,15 @@ case args[1]:
 
   of "newversion":
     try:
-      let text = project.readFile()
-      var start = text.find("version") + len("version")
-
-      while text[start] in {' ', '=', '"'}:
-        inc start
-
-      let final = text.find("\"", start)
-      let version = text[start .. final]
-      echo version
-
-      let ver = version.split(".").mapIt(it.parseInt())
+      let ver = manifest.version.split(".").mapIt(it.parseInt())
       var (major, minor, patch) = (ver[0], ver[1], ver[2])
       inc patch
 
-      let commits = gorgeEx(&"git log --oneline v{version}..HEAD ").
+      let commits = gorgeEx(&"git log --oneline v{manifest.version}..HEAD ").
         output.split("\n").filterIt(it.len > 0).mapIt(&"- {it}").join("\n")
 
       let msg = &"""
-[REPO] Version update {version} -> {major}.{minor}.{patch}
+[REPO] Version update {manifest.version} -> {major}.{minor}.{patch}
 
 {commits}
 """
@@ -102,6 +126,7 @@ case args[1]:
       check()
 
       let
+        text = project.readFile()
         pos = text.find("version")
         endPos = text.find("\n", pos)
         newText = text[0 ..< pos] &

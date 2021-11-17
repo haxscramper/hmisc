@@ -876,7 +876,7 @@ func toShellArgument(arg: NimNode): NimNode =
 
 func shellCmdRaw*(args: seq[string]): ShellCmd =
   result.bin = args[0]
-  for arg in args:
+  for arg in args[1 .. ^1]:
     result.raw arg
 
 func shellCmdX11*(bin: string): ShellCmd =
