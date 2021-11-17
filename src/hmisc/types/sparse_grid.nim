@@ -1,5 +1,5 @@
-import sugar, sequtils
-import hmap
+import std/[sugar, sequtils]
+import ./hmap
 
 type
   SparseGrid*[T] = object
@@ -32,7 +32,7 @@ func prepend*[T](s: var SparseGrid[T], row: seq[T]): void =
 func rowAppend*[T](s: var SparseGrid[T], elem: T, idx: int): void =
   ## Add element to `idx` row
   if s.minRow() <= idx and idx <= s.maxRow():
-    let row = s.elems.mgetOrPut(idx, newTable[int, T]())
+    let row = s.elems.mgetOrPut(idx, newMap[int, T]())
     row[s.maxRow() + 1] = elem
   else:
     raiseAssert("Sdfasdfasdf")

@@ -1396,9 +1396,9 @@ proc parallelReplace*(s: string, subs: varargs[
   add(result, substr(s, i))
 
 proc replace*(
-    s: string, 
-    sub: Peg, 
-    cb: proc(match: int, cnt: int, caps: PegMatches): string, 
+    s: string,
+    sub: Peg,
+    cb: proc(match: int, cnt: int, caps: PegMatches): string,
     env: proc(s: string): string = nil
   ): string =
   ## Replaces `sub` in `s` by the resulting strings from the callback. The
@@ -1407,6 +1407,7 @@ proc replace*(
   ## match. Examples:
   ##
   runnableExamples:
+    import std/strutils
     proc handleMatches*(m: int, n: int, c: PegMatches): string =
       result = ""
       if m > 0: # If not the first match in the input string
