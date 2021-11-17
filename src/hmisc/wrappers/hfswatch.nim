@@ -1,10 +1,10 @@
 import
   ../other/oswrap,
   ../other/rx,
-  ../core/all
+  ../core/all,
+  ./wraphelp
 
 import std/[bitops, strformat]
-import fusion/pointers
 
 const libfswatch =
   when defined(windows): "libfswatch.dll"
@@ -226,7 +226,7 @@ proc addPath*(monitor: FsMonitor, path: string) =
 
 proc setCallback*(monitor: FsMonitor, callback: proc(event: FswEvent)) =
   let callbackWrap = proc(events: ptr FswEvent, eventNum: cint) =
-    let arr = toUncheckedArray(events)
+    let arr = toPUArray(events)
     for i in 0 ..< eventNum:
       callback(arr[i])
 

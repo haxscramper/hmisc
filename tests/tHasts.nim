@@ -196,7 +196,7 @@ import
     hmisc/other/[oswrap, hshell, hjson],
     hmisc/core/all,
     std/[strformat, parsesql, hashes],
-    fusion/matching
+    hmisc/macros/matching
 
 const sqlExample = """
 CREATE TABLE entries (

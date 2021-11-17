@@ -14,10 +14,8 @@ import
 import
   ../core/all,
   ../types/colorstring,
+  ../macros/matching,
   ../algo/[hlex_base, hparse_base, hparse_common, halgorithm]
-
-import
-  fusion/matching
 
 export hparse_base, colorstring
 

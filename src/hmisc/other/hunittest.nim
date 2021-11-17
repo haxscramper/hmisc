@@ -7,10 +7,8 @@ import
 
 export tables
 
-from fusion/matching import hasKind
-
 import
-  ../macros/[nim_ast_aux, ast_spec],
+  ../macros/[nim_ast_aux, ast_spec, matching],
   ../algo/[hseq_distance, htemplates, halgorithm, clformat],
   ../other/[hpprint],
   ../core/[all, code_errors],
