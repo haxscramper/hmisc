@@ -874,6 +874,11 @@ func toShellArgument(arg: NimNode): NimNode =
 
 
 
+func shellCmdRaw*(args: seq[string]): ShellCmd =
+  result.bin = args[0]
+  for arg in args:
+    result.raw arg
+
 func shellCmdX11*(bin: string): ShellCmd =
   ## Create command for `X11` cli tools (single dash)
   result.conf = X11ShellCmdConf

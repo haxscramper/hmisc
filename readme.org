@@ -1,6 +1,29 @@
 #+title: readme
 
-Collection of miscellaneous helper algorithms and types.
+Collection of miscellaneous helper algorithms and types. Over time this
+library accumulated a lot of functionality, not all of this is necessary
+and almost everything was made on case-by-case basis instead of being
+designed at once.
+
+Most useful parts of the library are probably
+
+1. ~hmisc/other/oswrap~ - wrapper for the ~std/os~ but with support for
+   proper ~disctinct~ types
+2. ~hmisc/other/hshell~ - shell command execution builder
+3. ~hmisc/core/gold~ or ~hmisc/core/all~ - these contain my
+   import-everywhere templates, procedures and macros.
+
+In addition to the general helpers library also contains forks of some of
+the fusion modules - specifically ~hmisc/types/hmap~ is a fork of
+~fusion/btreetables~ with saner type naming (no more type clashes all over
+the place) and couple helper routines. I also copied ~fusion/matching~
+back, since fusion can be considered effective dead and deprecated - not
+tagged (at the time of writing ~requires fusion~ still pulls 11-month old
+version, that contains *none* of the fixes that was made to pattern
+matching after that). Right now it is a simple copy, in the future I will
+clean up the implementation since I've got several ideas on how it can be
+improved. DSL will be cleaned up as well, right now it is really
+overloaded.
 
 ** Installation:
 
@@ -14,65 +37,7 @@ nimble install hmisc
 - [[https://haxscramper.github.io/hmisc/theindex.html][documentation]]
 - [[https://github.com/haxscramper/hmisc][github]]
 
-* Toplevel
-
-** ~hmisc/hexceptions~ [[https://haxscramper.github.io/hmisc/src/hmisc/hexceptions.html][documentation]]
-
-One of features of this library - easily generate annotations for
-source code. Show exact line in the source code and provide custom
-annotations.
-
-#+begin_src nim :exports both
-  {.define(plainStdout).} # Output is colored by default, disable for
-                          # readme example
-  import hmisc/core/code_errors
-
-  macro test(a: untyped): untyped =
-    raise toCodeError({
-      a[2] : "Third element in array",
-      a[0] : "Array starts here\nMultiline annotations",
-      a[5] : "Annotation for part on the different line"
-    }, "Annotation for array error")
-
-  test([1,2,3,4,
-        5,6])
-
-#+end_src
-
-#+RESULTS:
-#+begin_example
-Annotation for array error
-
- 11
- 14:10 test([1,2,3,4,
-             ^   ^
-             |   |
-             |   Third element in array
-             |
-             Array starts here
-             Multiline annotations
-
- 12   test([1,2,3,4,
- 15:8       5,6])
-              ^
-              |
-              Annotation for part on the different line
-
-
-
-Raised in :0
-
-
- [CodeError:ObjectType]
-#+end_example
-
-
 * Macros
-
-** ~hmisc/macros/obj_field_macros~ [[https://haxscramper.github.io/hmisc/src/hmisc/macros/obj_field_macros.html][documentation]]
-
-- ~parallelFieldPairs~ - iterate case object fields in parallel
-- ~getFields~ - construct sequence of [[https://haxscramper.github.io/hmisc/src/hmisc/types/hnim_ast.html#Field][Field]] types from node.
 
 ** ~hmisc/macros/iflet~
 
@@ -241,67 +206,6 @@ implementation
 
 * Types
 
-** ~hmisc/types/hprimitives~
-
-- ~StrBlock~ :: ~seq[string]~ + getting height/width
-- ~ArrSize~ :: Size of 2d array as distinct type
-- ~ArrRange~ :: range of elements in 1d array + lots of helper functions
-  - move left/right edge with correctness checks (assertions)
-  - check if position is in range
-  - count number of 'middles' in sequence
-  - check if range is a single point
-  - find overlaps between two ranges
-  - iterate over indices in cartesian product of two ranges - for
-    example all cells in particular ~[row-range] X [col-range]~.
-
-** ~hmisc/types/seq2d~
-
-*** ~Seq2D~
-
-Always-rectangular 2d sequence of items. API prevents modification
-that will make it non-rectangular.
-
-Helper functions are provided for
-
-- iterating elements
-  - columns :: ~itercols~
-  - rows :: ~iterrows~, ~items~ for row without index, ~pairs~ for
-    rows with index.
-  - itercells :: each element + global position ~(row, col)~
-  - iterSomeCells :: each cell that is not ~none(T)~ + position ~(row,
-    col)~
-- mapping elements
-  - map 2d sequence :: ~mapIt2d~ - each element is injected as ~it~
-  - maximize value over rowmns :: ~maximizeRowIt~ get value for each
-    element in row, return max one. Repeat for each row
-  - maximize value over columns :: ~maximizeColIt~ get value for each
-    element in column, return max one. Repeat for each column.
-- modification
-  - single elements :: All sorts of overload for ~[]~ and ~[]=~ operators
-  - rows :: ~appendRow~, ~insertRow~, ~addHeader~
-  - columns :: ~insertCol~
-  - whole grid :: ~fillToSize~
-
-Helper functions for getting row/col count, iterating over
-rows/columns
-
-*** ~MulticellGrid~
-
-Same as ~Seq2D~ (always rectangular with API preventing unwanted
-modifications). Supports 'mutlicell' elements.
-
-** ~hmisc/types/htrie~
-
-Implementation of =trie= data structure. Not sure about performance,
-mostly made for the sake of abstraction and API (storing list of paths
-in tree).
-
-** ~hmisc/types/hvariant~
-
-Sum type as generic in nim. Similar to ~std::variant< ... >~. Not
-really useful actually - after I wrote it there has never been a
-situation where I case objects were just 'too much'.
-
 ** ~hmisc/types/colorstring~
 
 Easier manipulation of colored strings in terminal. Support splitting
@@ -422,29 +326,6 @@ complixity of the command line interfaces, even with quite sophisticated
 logic. Several escape hatches are present, to still pass almost arbitrary
 strings for shell execution. First: ~ShellExpr~ - thin wrapper, ~distinct
 string~. Second is ~raw()~ function for setting command line arguments.
-
-
-** ~hmisc/other/blockfmt~
-
-Reimplementation of google's text formatting algorithm from [[https://github.com/google/rfmt][rfmt]].
-Combinator-based API for optimal (cost-based) string block layout.
-Supports block wrapping, stacking (horizontally and veritcally),
-forced line breaks (for example if you want to pretty-print code block
-that includes line comment)
-
-** ~hmisc/other/hjson~
-
-This module provides helper functions for working with json that don't
-silently ignore errors. If something is missing exception is raised.
-
-~as*~ functions - throw exception if node kind does not match (stdlib
-implementations silently return default value)
-
-** ~hmisc/other/nimbleutils~
-
-Helper functions for nimble packages that I use in other projects.
-Right now this is mostly automated testin in local docker container
-and some logging functions.
 
 * Contribution & development
 
