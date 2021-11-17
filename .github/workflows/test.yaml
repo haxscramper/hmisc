@@ -20,5 +20,5 @@ jobs:
           path: '../nim'
           version: ${{ matrix.nim }}
       - run: "nim --version"
-      - run: "nimble -y test"
       - run: "nimble -y install"
+      - run: "nimble -y test"
