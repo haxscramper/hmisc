@@ -79,7 +79,7 @@ case args[1]:
 
     for path in walkDirRec(".", relative = true):
       let (dir, name, ext) = path.splitFile()
-      if name != name and ext == ".nim":
+      if name != manifest.name and ext == ".nim":
         if dir.len > 0 and cnt < maxFiles:
           inc cnt
           hmiscText.add &"import ./{manifest.name}/{dir}/{name}\n"
