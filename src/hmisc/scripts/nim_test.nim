@@ -119,6 +119,10 @@ type
     nwEffect                = "Effect"
     nwUser                  = "User"
 
+  NimError* = enum
+    neNone
+    neException
+
   NimTestAction* = enum
     actionRun = "run"
     actionCompile = "compile"
@@ -182,11 +186,18 @@ type
     nrWarning
     nrError
 
+  NimReportPartKind* = enum
+    nrpNone
+    nrpInstOf
+    nrpException
+    nrpTracePart
+
   NimReportPart* = object
     file*: string
     line*: int
     column*: int
     text*: string
+    kind*: NimReportPartKind
 
   NimReport* = object
     parts*: seq[NimReportPart]
@@ -199,7 +210,7 @@ type
         warning*: NimWarning
 
       of nrError:
-        discard
+        error*: NimError
 
 
 proc parseSpec*(
@@ -495,8 +506,12 @@ proc makeJoinedCode*(runs: seq[NimRun]): string =
 proc parseReport(report: string): NimReport =
   var str = initPosStr(report)
   while ?str:
-    var part: NimReportPart
     str.skipWhile({'\n'})
+    if str["stack trace"]:
+      str.skipToEol()
+      str.skipWhile({'\n'})
+
+    var part: NimReportPart
     part.file = str.asSlice(str.skipTo('(')).strVal()
     str.skip('(')
 
@@ -526,17 +541,28 @@ proc parseReport(report: string): NimReport =
           part.text = str.asSlice((str.goToEof(); str.next())).strVal()
           result.kind.setKind(nrError)
 
+          const unhandled = "unhandled exception:"
+          if part.text.startsWith(unhandled):
+            result.error = neException
+            part.kind = nrpException
+
         else:
           raise newUnexpectedKindError(kind)
 
     else:
       part.text = str.asSlice(str.skipToEol()).strVal()
 
+    const genInst = "template/generic instantiation of"
+    if part.text.startsWith(genInst):
+      part.text = part.text[genInst.len .. ^len("from here")]
+      part.kind = nrpInstOf
+
     result.parts.add part
 
-
-
-
+  if result.kind == nrError and result.error == neException:
+    for part in mitems(result.parts):
+      if part.kind == nrpNone:
+        part.kind = nrpTracePart
 
 proc getReports(res: ShellResult, run: NimRun): seq[NimReport] =
   for part in res.getStderr().split("\31"):
@@ -550,11 +576,30 @@ proc formatShellCmd*(cmd: ShellCmd): ColoredText =
     result.add "  \\\n  "
     result.add arg.toStr(cmd.conf, true)
 
-proc reportError*(l: HLogger, report: NimReport) =
-  for part in report.parts:
+proc logLines*(l: HLogger, part: NimReportPart) =
+  if not(part of {nrpException}):
     l.err part.file, part.line, part.column
+
+  if not(part of {nrpInstOf, nrpTracePart}):
     l.err part.text
+
+  if not(part of {nrpException}):
     l.logLines(AbsFile(part.file), part.line, "nim", part.column)
+
+
+proc reportError*(l: HLogger, report: NimReport) =
+  var hadInstOf = false
+  for part in report.parts:
+    hadInstOf = true
+    if part of {nrpInstOf}:
+      l.logLines(part)
+
+  if hadInstOf:
+    l.info "---------------"
+
+  for part in report.parts:
+    if not(part of {nrpInstOf}):
+      l.logLines(part)
 
 
 proc runTestDir*(

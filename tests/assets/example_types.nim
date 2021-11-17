@@ -77,7 +77,7 @@ const enumSet* = {Two, Three}
 type
   ImTorture* = ref object
     used*: seq[ImTorture]
-    opt*: Option[ImTortuer]
+    opt*: Option[ImTorture]
     ftables*: tuple[
       tab: Table[string, string],
       otab: OrderedTable[string, string],
@@ -88,7 +88,7 @@ type
 
     fsets*: tuple[
       iset: IntSet,
-      hset: HashSet[int]
+      # hset: HashSet[int]
     ]
 
     case kind1*: range[0 .. 3]:

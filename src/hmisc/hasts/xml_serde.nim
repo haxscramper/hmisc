@@ -140,18 +140,36 @@ proc loadXml*(reader; target: var SomeFloat, tag: string) =
 
 #==========================  Built-in generics  ==========================#
 
-proc writeXml*[T](writer; values: seq[T], tag: string) =
+proc writeXmlItems*[T](writer; values: T, tag: string) =
   mixin writeXml
-  for it in values:
+  for it in items(values):
     writer.writeXml(it, tag)
 
-proc loadXml*[T](reader; target: var seq[T], tag: string) =
+
+proc writeXml*[T](writer; values: seq[T], tag: string) =
+  writeXmlItems(writer, values, tag)
+
+template loadXmlItems*[T, Res](
+    reader: var XmlDeserializer,
+    target: var Res,
+    tag: string,
+    insertCall: untyped
+  ) =
+
   mixin loadXml
   while reader.kind in {xmlElementOpen, xmlElementStart} and
         reader.elementName() == tag:
-    var tmp: T
+    # var tmp {.inject.}: T
     loadXml(reader, tmp, tag)
-    target.add tmp
+    insertCall
+    # insertCall(target, tmp)
+    # target.add tmp
+
+
+proc loadXml*[T](reader; target: var seq[T], tag: string) =
+  var tmp: T
+  loadXmlItems[T, seq[T]](reader, target, tag):
+    add(target, tmp)
 
 proc readXmlKeyValues*[K, V, Res](reader; target: var Res, tag: string) =
   mixin loadXml
@@ -175,11 +193,82 @@ proc writeXmlKeyValues*[K, V, Res](writer; target: Res, tag: string) =
     writer.xmlEnd(tag)
 
 
+proc knownRef[T](state: var XmlState, target: ref T): bool =
+  cast[int](target) in state.refs
+
+proc getRefId[T](state: var XmlState, target: ref T): int =
+  let mem = cast[int](target)
+  if mem in state.refs:
+    return state.refs[mem]
+
+  else:
+    result = len(state.refs)
+    state.refs[mem] = result
+
+const xmlRefId = "id"
+
+proc readRefId(reader): int =
+  var id: int
+  loadXml(reader, id, xmlRefId)
+  return id
+
+proc knownId(state: var XmlState, id: int): bool =
+  id in state.ptrs
+
+template wrapRefWrite*[T](
+    writer; target: T, tag: string, body: untyped): untyped =
+
+  bind getRefId
+  if isNil(target):
+    xmlOpen(writer, tag)
+    xmlCloseEnd(writer)
+
+  elif knownRef(writer.state, target):
+    xmlOpen(writer, tag)
+    xmlAttribute(writer, xmlRefId, $getRefId(writer.state, target))
+
+    xmlCloseEnd(writer)
+
+  else:
+    xmlOpen(writer, tag)
+    xmlAttribute(writer, xmlRefId, $getRefId(writer.state, target))
+    body
+    xmlEnd(writer, tag)
+
+template wrapRefLoad*[T](
+    writer; target: T, tag: string, body: untyped): untyped =
+  ## Wrap implementation of the ref type serialization.
+  bind readRefId, knownId
+  if reader.kind == xmlElementStart:
+    target = nil
+    reader.skipElementStart(tag)
+    reader.skipElementEnd(tag)
+
+  else:
+    skipOpen(reader, tag)
+    let id = readRefId(reader)
+    if knownId(reader.state, id):
+      target = cast[T](reader.state.ptrs[id])
+      skipClose(reader)
+      skipElementEnd(reader, tag)
+
+    else:
+      if reader.kind == xmlElementClose: reader.next()
+      new(target)
+      reader.state.ptrs[id] = cast[pointer](target)
+      body
+      skipElementEnd(reader, tag)
+
+
+# ~~~~ Ordered Table ~~~~ #
+
 proc writeXml*[K, V](writer; table: OrderedTable[K, V], tag: string) =
   writeXmlKeyValues[K, V, OrderedTable[K, V]](writer, table, tag)
 
 proc loadXml*[A, B](reader; target: var OrderedTable[A, B], tag: string) =
   readXmlKeyValues[A, B, OrderedTable[A, B]](reader, target, tag)
+
+# ~~~~ Table ~~~~ #
 
 proc writeXml*[K, V](writer; table: Table[K, V], tag: string) =
   writeXmlKeyValues[K, V, Table[K, V]](writer, table, tag)
@@ -187,12 +276,35 @@ proc writeXml*[K, V](writer; table: Table[K, V], tag: string) =
 proc loadXml*[A, B](reader; target: var Table[A, B], tag: string) =
   readXmlKeyValues[A, B, Table[A, B]](reader, target, tag)
 
+# ~~~~ Table ref ~~~~ #
+
+proc writeXml*[K, V](writer; table: TableRef[K, V], tag: string) =
+  wrapRefWrite(writer, table, tag):
+    writeXmlKeyValues[K, V, TableRef[K, V]](writer, table, tag)
+
+proc loadXml*[A, B](reader; target: var TableRef[A, B], tag: string) =
+  wrapRefLoad(reader, target, tag):
+    readXmlKeyValues[A, B, TableRef[A, B]](reader, target, tag)
+
+# ~~~~ Oredered table ref ~~~~ #
+
+proc writeXml*[K, V](writer; table: OrderedTableRef[K, V], tag: string) =
+  wrapRefWrite(writer, table, tag):
+    writeXmlKeyValues[K, V, OrderedTableRef[K, V]](writer, table, tag)
+
+proc loadXml*[A, B](reader; target: var OrderedTableRef[A, B], tag: string) =
+  wrapRefLoad(reader, target, tag):
+    readXmlKeyValues[A, B, OrderedTableRef[A, B]](reader, target, tag)
+
+# ~~~~ Array ~~~~ #
+
 proc writeXml*[R, V](writer; table: array[R, V], tag: string) =
   writeXmlKeyValues[R, V, array[R, V]](writer, table, tag)
 
 proc loadXml*[R, V](reader; target: var array[R, V], tag: string) =
   readXmlKeyValues[R, V, array[R, V]](reader, target, tag)
 
+# ~~~~ Option ~~~~ #
 
 proc writeXml*[T](writer; opt: Option[T], tag: string) =
   if opt.isSome():
@@ -318,15 +430,13 @@ proc loadXml*(reader; target: var AbsFile, tag: string) =
 proc loadXml*(reader; target: var XmlNode, tag: string) =
   parseXsdAnyType(target, reader, tag)
 
-
-
-
 macro isDiscriminantField*(obj: typed, name: static[string]): untyped =
   proc auxImpl(f: NimNode): NimNode =
     case f.kind:
       of nnkSym: f.getTypeImpl()
       of nnkTupleConstr, nnkObjectTy, nnkTupleTy: f
-      else: raise newUnexpectedKindError(f)
+      of nnkBracketExpr: auxImpl(f[0])
+      else: raise newUnexpectedKindError(f, treeRepr(f))
 
   proc fieldList(impl: NimNode): seq[string] =
     case impl.kind:
@@ -349,27 +459,6 @@ macro isDiscriminantField*(obj: typed, name: static[string]): untyped =
   return newLit(name in obj.auxImpl().fieldList())
 
 
-proc knownRef[T](state: var XmlState, target: ref T): bool =
-  cast[int](target) in state.refs
-
-proc getRefId[T](state: var XmlState, target: ref T): int =
-  let mem = cast[int](target)
-  if mem in state.refs:
-    return state.refs[mem]
-
-  else:
-    result = len(state.refs)
-    state.refs[mem] = result
-
-const xmlRefId = "id"
-
-proc readRefId(reader): int =
-  var id: int
-  loadXml(reader, id, xmlRefId)
-  return id
-
-proc knownId(state: var XmlState, id: int): bool =
-  id in state.ptrs
 
 proc storeFields[T](writer; target: T, tag: string) =
   for name, field in fieldPairs(target):
@@ -380,35 +469,29 @@ proc storeFields[T](writer; target: T, tag: string) =
     when hasCustomPragma(field, Attr) and not isDiscriminantField(T, name):
       xmlAttribute(writer, name, field)
 
-  xmlClose(writer)
-  line(writer)
-  indent(writer)
-  {.warning: "[TODO] if there are no regular fields make a single-line object".}
-
+  var first = true
   for name, field in fieldPairs(target):
+    if first:
+      xmlClose(writer)
+      line(writer)
+      indent(writer)
+      first = false
+
+
     when not hasCustomPragma(field, Attr) and not isDiscriminantField(T, name):
       writeXml(writer, field, name)
 
-  dedent(writer)
+  if first:
+    xmlClose(writer)
+
+  else:
+    dedent(writer)
 
 
 proc storeObject[T](writer; target: T, tag: string) =
   when target is ref:
-    if isNil(target):
-      xmlOpen(writer, tag)
-      xmlCloseEnd(writer)
-
-    elif knownRef(writer.state, target):
-      xmlOpen(writer, tag)
-      xmlAttribute(writer, xmlRefId, $writer.state.getRefId(target))
-
-      xmlCloseEnd(writer)
-
-    else:
-      xmlOpen(writer, tag)
-      xmlAttribute(writer, xmlRefId, $writer.state.getRefId(target))
+    wrapRefWrite(writer, target, tag):
       storeFields(writer, target[], tag)
-      xmlEnd(writer, tag)
 
   else:
     xmlOpen(writer, tag)
@@ -417,8 +500,6 @@ proc storeObject[T](writer; target: T, tag: string) =
 
 proc loadFields[T](reader; target: var T, tag: string) =
   {.cast(uncheckedAssign).}:
-    assert reader.kind notin {xmlElementEnd}
-
     for name, field in fieldPairs(target):
       when isDiscriminantField(T, name):
         loadXml(reader, field, name)
@@ -436,26 +517,10 @@ proc loadFields[T](reader; target: var T, tag: string) =
 
 
 proc loadObject[T](reader; target: var T, tag: string) =
+  assert reader.kind in {xmlElementOpen, xmlElementStart}, $reader
   when target is ref:
-    if reader.kind == xmlElementStart:
-      target = nil
-      reader.skipElementStart(tag)
-      reader.skipElementEnd(tag)
-
-    else:
-      skipOpen(reader, tag)
-      let id = reader.readRefId()
-      if reader.state.knownId(id):
-        target = cast[T](reader.state.ptrs[id])
-        skipClose(reader)
-        skipElementEnd(reader, tag)
-
-      else:
-        if reader.kind == xmlElementClose: reader.next()
-        new(target)
-        reader.state.ptrs[id] = cast[pointer](target)
-        loadFields(reader, target[], tag)
-        skipElementEnd(reader, tag)
+    wrapRefLoad(reader, target, tag):
+      loadFields(reader, target[], tag)
 
   else:
     let op = reader.kind == xmlElementOpen

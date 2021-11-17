@@ -1,6 +1,8 @@
 import
   hmisc/preludes/unittest
 
+import std/[intsets]
+
 import
   hmisc/hasts/xml_serde
 
@@ -20,6 +22,14 @@ proc cyclic*(sub: varargs[ImCyclic]): ImCyclic =
 proc add*(cy: var ImCyclic, other: ImCyclic) =
   cy.used.add other
 
+
+proc writeXml*(writer: var XmlSerializer, target: IntSet, tag: string) =
+  writeXmlItems(writer, target, tag)
+
+proc loadXml*(reader: var XmlDeserializer, target: var IntSet, tag: string) =
+  var tmp: int
+  loadXmlItems[int, IntSet](reader, target, tag):
+    target.incl tmp
 
 proc fromXml[T](text: string, target: typedesc[T]): T =
   var reader = newXmlDeserializer(text)

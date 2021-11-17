@@ -1,4 +1,6 @@
-## Fork of the `fusion/btreetables`
+## Fork of the `fusion/btreetables` with several additional utility
+## procedures. Renamed `Table*` to `Map*` to avoid name clashes with std
+## tables.
 
 const
   # Minimal number of elements per node.

@@ -63,81 +63,81 @@ proc sh(str: varargs[string]) =
   let str = str.join(" ")
   exec str
 
-task testall, "Merge all tests and run them":
-  let outPath = "/tmp/tmp_tests_all.nim"
-  var res: string
-  res.add """
-{.define: hunittestMerge.}
-import hmisc/other/hunittest
-{.push warning[UnusedImport]:off.}
-"""
-  let cwd = getCurrentDir()
-  var nojoin: seq[string]
-  var cnt = 0
-  for (kind, path) in walkDir("tests", relative = false):
-    if 10_000 < cnt:
-      break
-    inc cnt
+# task testall, "Merge all tests and run them":
+#   let outPath = "/tmp/tmp_tests_all.nim"
+#   var res: string
+#   res.add """
+# {.define: hunittestMerge.}
+# import hmisc/other/hunittest
+# {.push warning[UnusedImport]:off.}
+# """
+#   let cwd = getCurrentDir()
+#   var nojoin: seq[string]
+#   var cnt = 0
+#   for (kind, path) in walkDir("tests", relative = false):
+#     if 10_000 < cnt:
+#       break
+#     inc cnt
 
-    if kind == pcFile and path.splitFile().ext == ".nim":
-      let path = cwd / path
-      let content = path.readFile()
-      if content.find("joinable: false") != -1:
-        nojoin.add path
+#     if kind == pcFile and path.splitFile().ext == ".nim":
+#       let path = cwd / path
+#       let content = path.readFile()
+#       if content.find("joinable: false") != -1:
+#         nojoin.add path
 
-      else:
-        res.add "import \""
-        res.add path
-        res.add "\""
-        res.add "\n"
+#       else:
+#         res.add "import \""
+#         res.add path
+#         res.add "\""
+#         res.add "\n"
 
-  res.add "\n\nmergedFileEnded()\n"
-  outPath.writeFile(res)
+#   res.add "\n\nmergedFileEnded()\n"
+#   outPath.writeFile(res)
 
-  let withCov = false
+#   let withCov = false
 
-  if withCov:
-    let
-      dir = "/tmp/hmisc-test"
-      name = "test"
+#   if withCov:
+#     let
+#       dir = "/tmp/hmisc-test"
+#       name = "test"
 
-    mkDir dir
+#     mkDir dir
 
-    let start = getCurrentDir()
+#     let start = getCurrentDir()
 
 
-    cd dir
-    sh [
-      "nim",
-      "c",
-      "--nimcache:.",
-      "--debugger:native",
-      "--passC:--coverage",
-      "--passL:--coverage",
-      &"-o:{name}",
-      outPath
-    ]
+#     cd dir
+#     sh [
+#       "nim",
+#       "c",
+#       "--nimcache:.",
+#       "--debugger:native",
+#       "--passC:--coverage",
+#       "--passL:--coverage",
+#       &"-o:{name}",
+#       outPath
+#     ]
 
-    sh &"lcov --base-directory . --directory . --zerocounters -q"
-    sh &"./{name}"
-    sh &"lcov --base-directory . --directory . -c -o {name}.info"
+#     sh &"lcov --base-directory . --directory . --zerocounters -q"
+#     sh &"./{name}"
+#     sh &"lcov --base-directory . --directory . -c -o {name}.info"
 
-    sh [
-      "lcov",
-      "--remove", &"{name}.info", "\"lib/*\"",
-      "--remove", &"{name}.info", "\"*generated_not_to_break*\"",
-      "--remove", &"{name}.info", &"\"{dir}/*\"",
-      "-o",
-      &"{name}.info"
-    ]
+#     sh [
+#       "lcov",
+#       "--remove", &"{name}.info", "\"lib/*\"",
+#       "--remove", &"{name}.info", "\"*generated_not_to_break*\"",
+#       "--remove", &"{name}.info", &"\"{dir}/*\"",
+#       "-o",
+#       &"{name}.info"
+#     ]
 
-    sh &"genhtml -o html {name}.info"
-    cd cwd
+#     sh &"genhtml -o html {name}.info"
+#     cd cwd
 
-  else:
-    sh "nim r", outPath
-    for file in nojoin:
-      sh "nim r \"" & file & "\""
+#   else:
+#     sh "nim r", outPath
+#     for file in nojoin:
+#       sh "nim r \"" & file & "\""
 
 proc check() =
   sh ["nimble", "testall"]

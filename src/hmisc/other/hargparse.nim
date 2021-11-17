@@ -1611,7 +1611,7 @@ proc exitWith*(
   ) =
 
   for code in app.exitCodes:
-    if code.onException.isSome() and code.onException.get() == ex.name:
+    if code.onException.isSome() and code.onException.get().cstring == ex.name:
       ex.log(logger)
       logger.logStackTrace(ex)
       if doQuit:
