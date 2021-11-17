@@ -43,8 +43,6 @@ export os.quoteShellWindows
 export os.quoteShellPosix
 export os.quoteShell, os.joinPath
 
-# import fusion/matching
-
 const cbackend* = not (defined(nimscript) or defined(js))
 
 when cbackend:
