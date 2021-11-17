@@ -13,7 +13,9 @@ proc msep*(ms: var string, s: string, expr: bool) =
 
 func mq*[T](item: T): string = "'" & $item & "'"
 func mkind*[E: enum](item: E): string = "'" & toGreenStr($item) & "'"
+func mq1*[T](item: T): string = "'" & toGreenStr($item) & "'"
 
+func mcode*(str: string): string = "\e[4m" & str & "\e[24m"
 
 func mitem*[T](s: var string, item: T) =
   s.add "'"

@@ -153,7 +153,7 @@ proc loadXml*[T](reader; target: var seq[T], tag: string) =
     loadXml(reader, tmp, tag)
     target.add tmp
 
-proc readKeyValues[K, V, Res](reader; target: var Res, tag: string) =
+proc readXmlKeyValues*[K, V, Res](reader; target: var Res, tag: string) =
   mixin loadXml
   while reader.elementName() == tag:
     var key: K = default(K)
@@ -164,7 +164,7 @@ proc readKeyValues[K, V, Res](reader; target: var Res, tag: string) =
     reader.skipElementEnd(tag)
     target[key] = val
 
-proc writeKeyValues[K, V, Res](writer; target: Res, tag: string) =
+proc writeXmlKeyValues*[K, V, Res](writer; target: Res, tag: string) =
   mixin writeXml
   for key, value in pairs(target):
     writer.xmlStart(tag)
@@ -175,17 +175,23 @@ proc writeKeyValues[K, V, Res](writer; target: Res, tag: string) =
     writer.xmlEnd(tag)
 
 
+proc writeXml*[K, V](writer; table: OrderedTable[K, V], tag: string) =
+  writeXmlKeyValues[K, V, OrderedTable[K, V]](writer, table, tag)
+
+proc loadXml*[A, B](reader; target: var OrderedTable[A, B], tag: string) =
+  readXmlKeyValues[A, B, OrderedTable[A, B]](reader, target, tag)
+
 proc writeXml*[K, V](writer; table: Table[K, V], tag: string) =
-  writeKeyValues[K, V, Table[K, V]]
+  writeXmlKeyValues[K, V, Table[K, V]](writer, table, tag)
 
 proc loadXml*[A, B](reader; target: var Table[A, B], tag: string) =
-  readKeyValues[A, B, Table[A, B]](reader, target, tag)
+  readXmlKeyValues[A, B, Table[A, B]](reader, target, tag)
 
 proc writeXml*[R, V](writer; table: array[R, V], tag: string) =
-  writeKeyValues[R, V, array[R, V]](writer, table, tag)
+  writeXmlKeyValues[R, V, array[R, V]](writer, table, tag)
 
 proc loadXml*[R, V](reader; target: var array[R, V], tag: string) =
-  readKeyValues[R, V, array[R, V]](reader, target, tag)
+  readXmlKeyValues[R, V, array[R, V]](reader, target, tag)
 
 
 proc writeXml*[T](writer; opt: Option[T], tag: string) =
@@ -377,6 +383,8 @@ proc storeFields[T](writer; target: T, tag: string) =
   xmlClose(writer)
   line(writer)
   indent(writer)
+  {.warning: "[TODO] if there are no regular fields make a single-line object".}
+
   for name, field in fieldPairs(target):
     when not hasCustomPragma(field, Attr) and not isDiscriminantField(T, name):
       writeXml(writer, field, name)
@@ -504,3 +512,13 @@ template xmlSerdeFor*(TypeName, readerCall, writerCall: untyped): untyped =
   proc writeXml*(
     writer: var XmlSerializer, target: TypeName, tag: string) =
     writerCall(writer, target, tag)
+
+
+proc fromXml*[T](text: string, target: typedesc[T], tag: string): T =
+  var reader = newXmlDeserializer(text)
+  loadXml(reader, result, tag)
+
+proc toXml*[T](obj: T, tag: string): string =
+  var writer = newXmlSerializer()
+  writeXml(writer, obj, tag)
+  return writer.readAll()

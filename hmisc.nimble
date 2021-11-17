@@ -1,14 +1,13 @@
-version = "0.13.1"
-author        = "haxscramper"
-description   = "Collection of helper utilities"
-license       = "Apache-2.0"
-srcDir        = "src"
-packageName   = "hmisc"
-installExt    = @["nim", "rst"]
-binDir        = "bin"
+version     = "0.13.1"
+author      = "haxscramper"
+description = "Collection of helper utilities"
+license     = "Apache-2.0"
+srcDir      = "src"
+packageName = "hmisc"
+installExt  = @["nim", "rst"]
+binDir      = "bin"
 
 requires "nim >= 1.4.8"
-requires "https://github.com/nim-lang/fusion.git"
 requires "benchy >= 0.0.1"
 requires "jsony >= 1.0.4"
 requires "unicodedb >= 0.9.0"

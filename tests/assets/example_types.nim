@@ -1,5 +1,7 @@
 ## Example type definitions to be used in the procedure calls.
 
+import std/[tables, options, strtabs, intsets, lists, sets]
+
 type
   ImRange* = range[0 .. 10]
   ImArray* = array[3, int]
@@ -75,6 +77,20 @@ const enumSet* = {Two, Three}
 type
   ImTorture* = ref object
     used*: seq[ImTorture]
+    opt*: Option[ImTortuer]
+    ftables*: tuple[
+      tab: Table[string, string],
+      otab: OrderedTable[string, string],
+      tabr: TableRef[string, string],
+      otabr: OrderedTableRef[string, string],
+      stabr: StringTableRef,
+    ]
+
+    fsets*: tuple[
+      iset: IntSet,
+      hset: HashSet[int]
+    ]
+
     case kind1*: range[0 .. 3]:
       of 0:
         fVar: ImVariant
