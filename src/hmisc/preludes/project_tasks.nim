@@ -1,6 +1,7 @@
 import
   ../scripts/nim_test,
-  ../other/[oswrap, hshell]
+  ../other/[oswrap, hshell, hargparse, hlogger],
+  ../algo/[hseq_distance]
 
 import std/[os, strutils, strformat, sequtils]
 import pkg/[jsony]
@@ -35,8 +36,36 @@ type
 
 startHax()
 
-let args = paramStrs()
-let project = AbsFile(args[0])
+var app = newCliApp(
+  "project_tasks",
+  (0, 1, 0),
+  "haxscramper",
+  "CLI helper for nim project CI")
+
+let rootArg = arg("root", "Root project file")
+
+app.add cmd("test", "Execute full tests in the directory", @[rootArg])
+
+block:
+  app.add cmd("doc", "Generate project-wide documentation", @[
+    rootArg,
+    opt(
+      "ignore",
+      "file patterns to ignore",
+      default = cliDefault(toCliValue(newSeq[string]()), ""),
+      check = cliCheckFor(seq[string]),
+    )
+  ])
+
+app.add cmd("newversion", "Tag and release new version", @[rootArg])
+app.add cmd("push", "Run tests locally and push new commit", @[rootArg])
+
+if not app.acceptArgs():
+  app.showErrors(newTermLogger())
+  quit(1)
+
+
+let project = AbsFile(app.getCmd().getArg("root") as string)
 let root = project.dir()
 
 proc getManifest(): NimbleManifest =
@@ -53,13 +82,18 @@ proc check() =
   sh ["nimble", "test"]
   sh ["nimble", "docgen"]
 
-case args[1]:
+
+case app.getCmdName():
   of "test":
     let dir = root / "tests"
     runTestDir(dir, getCwdNimDump(), 1)
 
   of "doc":
     var files: seq[(string, string)]
+    var globs: seq[GitGlob]
+    let cmd = app.getcmd()
+    for ignore in cmd.getOpt("ignore") as seq[string]:
+      globs.add toGitGlob(ignore)
 
     let
       res = &"{root}/docs"
@@ -77,31 +111,41 @@ case args[1]:
     var resDirs: seq[string]
     var hmiscText: string
 
-    for path in walkDirRec(".", relative = true):
-      let (dir, name, ext) = path.splitFile()
-      if name != manifest.name and ext == ".nim":
-        if dir.len > 0 and cnt < maxFiles:
-          inc cnt
-          hmiscText.add &"import ./{manifest.name}/{dir}/{name}\n"
 
+    for path in walkDirRec(".", relative = true):
+      if globs.accept(path):
+        let (dir, name, ext) = path.splitFile()
+        if name != manifest.name and ext == ".nim":
+          if dir.len > 0 and cnt < maxFiles:
+            inc cnt
+            hmiscText.add &"import ./{manifest.name}/{dir}/{name}\n"
+
+      else:
+        echov "ignoring", path
+
+    let doc = &"tmp_docgen_target_{manifest.name}"
     cd "../.."
-    writeFile(&"src/{manifest.name}.nim", hmiscText)
+    writeFile(&"src/{doc}.nim", hmiscText)
     var args = @[
       "nim",
       "doc2",
       "--project",
+      "--index:on",
       "--warnings:off",
       "--errormax:1",
-      "--outdir:docs"
+      "--outdir:htmldocs"
     ]
 
     let ghUrl = getEnv("GITHUB_REPOSITORY", &"file://{res}")
     if ghUrl.len > 0: args.add &"--git.url:\"{ghUrl}\""
 
-    args.add &"src/{manifest.name}.nim"
+    args.add &"src/{doc}.nim"
 
-    echo cwd()
+    echov args
+
     sh args
+
+    rmFile RelFile(&"src/{doc}.nim")
 
   of "push":
     check()

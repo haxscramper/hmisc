@@ -614,9 +614,10 @@ proc tailDir*(path: AnyDir): string = os.tailDir(path.string)
 #   ## Checks whether a given `path` is a root directory.
 
 iterator parentDirs*(
-  path: AnyPath,
-  fromRoot: bool = false,
-  inclusive: bool = path is AnyDir): AbsDir =
+    path: AnyPath,
+    fromRoot: bool = false,
+    inclusive: bool = path is AnyDir
+  ): AbsDir =
 
   for p in os.parentDirs(path.string, fromRoot, inclusive):
     yield AbsDir(p)

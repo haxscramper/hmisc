@@ -13,13 +13,13 @@ requires "jsony >= 1.0.4"
 requires "unicodedb >= 0.9.0"
 
 task test, "Run tests":
-  exec "nim r tests/runall.nim " & currentSourcePath() & " test -- "
+  exec "nim r tests/runall.nim test " & currentSourcePath()
 
 task docgen, "Generate documentation":
-  exec "nim c -r tests/runall.nim " & currentSourcePath() & " doc -- "
+  exec "nim c -r tests/runall.nim doc " & currentSourcePath()
 
 task push, "Execute checks and push ":
-  exec "nim r tests/runall.nim " & currentSourcePath() & " push -- "
+  exec "nim r tests/runall.nim push " & currentSourcePath()
 
 task newversion, "Tag new version and push it to git":
-  exec "nim r tests/runall.nim " & currentSourcePath() & " newversion -- "
+  exec "nim r tests/runall.nim newversion " & currentSourcePath()

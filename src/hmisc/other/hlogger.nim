@@ -373,13 +373,9 @@ proc toStrSeq(s: varargs[string]): seq[string] =
     result.add item
 
 
-proc preparePDump*[T](
-  head: string, expr: T, args: sink seq[string]): seq[string] =
-
-  result.add $toGreen(head & ":")
-  result.add "\n="
-  result.add pstring(expr)
-  result.add args
+proc preparePDump*[T](head: string, expr: T): string =
+  result.add $toGreen(head & " =\n")
+  result.add pstring(expr).indent(2)
 
 proc dumpImpl*(
   logger: HLogger, pos: (string, int, int), args: seq[string]) =
@@ -390,10 +386,12 @@ template dump*(
   dumpImpl(logger, instantiationInfo(fullPaths = true),
     prepareDump(astToStr(expr), expr, toStrSeq(args)))
 
-template pdump*(
-    logger: HLogger, expr: untyped, args: varargs[string, `$`]): untyped =
-  dumpImpl(logger, instantiationInfo(fullPaths = true),
-           preparePDump(astToStr(expr), expr, toStrSeq(args)))
+template pdump*(logger: HLogger, expr: untyped): untyped =
+  dumpImpl(
+    logger,
+    instantiationInfo(fullPaths = true),
+    @[preparePDump(astToStr(expr), expr)]
+  )
 
 proc debugImpl*(
   logger: HLogger, pos: (string, int, int), args: seq[string]) =
@@ -523,9 +521,7 @@ macro loggerField*(
 
       template `pdumpId`*(o: `T`, expr: untyped, args: `vas`): untyped =
         {.line: instantiationInfo(fullPaths = true)}:
-          dumpImpl(o.`field`, `iinfo`,
-                   preparePDump(astToStr(expr), expr, toStrSeq(args)))
-          # @[astToStr(expr), "\n=", pstring(expr)] & toStrSeq(args))
+          dumpImpl(o.`field`, `iinfo`, preparePDump(astToStr(expr), expr))
 
   else:
     result.add quote do:

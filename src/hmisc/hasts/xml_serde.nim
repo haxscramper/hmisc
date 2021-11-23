@@ -173,7 +173,8 @@ proc loadXml*[T](reader; target: var seq[T], tag: string) =
 
 proc readXmlKeyValues*[K, V, Res](reader; target: var Res, tag: string) =
   mixin loadXml
-  while reader.elementName() == tag:
+  while reader.kind in {xmlElementOpen, xmlElementStart} and
+        reader.elementName() == tag:
     var key: K = default(K)
     var val: V = default(V)
     reader.skipElementStart(tag)

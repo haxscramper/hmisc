@@ -6,8 +6,6 @@
 
 ## .. include:: blockfmt-doc.rst
 
-# TODO grid layout block
-
 import std/[
   strutils, sequtils, macros, tables, strformat,
   lenientops, options, hashes, math, sugar, streams,

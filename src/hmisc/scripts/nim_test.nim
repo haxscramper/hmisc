@@ -3,6 +3,9 @@ import ../other/[hjson, hlogger]
 import ../algo/[hlex_base, lexcast]
 import std/[sequtils, streams, parsecfg, sets]
 
+export hlogger
+
+
 type
   NimFlag = enum
     nrfStrictFuncs = "strictFuncs"
@@ -122,6 +125,7 @@ type
   NimError* = enum
     neNone
     neException
+    neCannotOpen
 
   NimTestAction* = enum
     actionRun = "run"
@@ -180,6 +184,7 @@ type
     paths*: seq[AbsDir]
     hints*: set[NimWarning]
     flags*: seq[NimFlag]
+    nimblePath*: AbsDir
 
   NimReportKind* = enum
     nrHint
@@ -192,12 +197,25 @@ type
     nrpException
     nrpTracePart
 
+    nrpProcessingImports
+
   NimReportPart* = object
     file*: string
     line*: int
     column*: int
     text*: string
-    kind*: NimReportPartKind
+    case kind*: NimReportPartKind
+      of nrpProcessingImports:
+        imports*: string
+        target*: AbsFile
+        level*: int
+        isInclude*: bool
+        isToplevel*: bool
+
+      else:
+        discard
+
+
 
   NimReport* = object
     parts*: seq[NimReportPart]
@@ -383,6 +401,7 @@ proc parseSpec*(
   # if not result.inCurrentBatch:
   #   result.err = reDisabled
 
+
 proc getCwdNimDump*(file: string = "-"): NimState =
   let j = shellCmd(nim, dump, "dump.format" = "json", $file).
     evalShellStdout().
@@ -390,6 +409,16 @@ proc getCwdNimDump*(file: string = "-"): NimState =
 
   for path in j["lib_paths"]:
     result.paths.add AbsDir(path.asStr())
+
+  let code = "import std/[compilesettings, json]; " &
+    "echo %*{\"nimble\": %querySettingSeq(nimblePaths)}"
+
+  let query = shellCmd(nim, "eval" = $code).
+    evalShellStdout().
+    parseJson()
+
+  result.nimblePath = query["nimble"][0].asStr().AbsDir()
+
 
 proc makeCmd(conf: NimRun, dump: NimState): ShellCmd =
   var cmd = shellCmd(nim)
@@ -405,6 +434,10 @@ proc makeCmd(conf: NimRun, dump: NimState): ShellCmd =
     opt("unitsep", "on")
 
     opt("verbosity", "0")
+    opt("hints", "on")
+    opt("processing", "filenames")
+
+    opt("nimblePath", dump.nimblePath)
 
     flag("skipUserCfg")
     flag("skipParentCfg")
@@ -482,14 +515,15 @@ proc extractSpec(s: string, filename: AbsFile): string =
 
 proc runsFromDir*(dir: AbsDir, first: seq[AbsFile] = @[]): seq[NimRun] =
   for file in first & toSeq(walkDir(dir, AbsFile, exts = @["nim"])):
-    result.add NimRun(
-      file: file,
-      outfile: file.withExt("out")
-    )
+    if file.name().startsWith("t"):
+      result.add NimRun(
+        file: file,
+        outfile: file.withExt("out")
+      )
 
-    let text = file.readFile()
-    if text.startsWith("discard"):
-      result[^1].spec = some text.extractSpec(file).parseSpec(file)
+      let text = file.readFile()
+      if text.startsWith("discard"):
+        result[^1].spec = some text.extractSpec(file).parseSpec(file)
 
 proc getJoinable*(runs: seq[NimRun]): tuple[joinable, standalone: seq[NimRun]] =
   for run in runs:
@@ -512,45 +546,74 @@ proc parseReport(report: string): NimReport =
       str.skipWhile({'\n'})
 
     var part: NimReportPart
-    part.file = str.asSlice(str.skipTo('(')).strVal()
-    str.skip('(')
 
-    part.line = str.asSlice(str.skipWhile(Digits)).strVal().parseInt()
-    str.skip(", ")
+    if str["Hint: >"]:
+      str.skip("Hint: ")
+      part.kind.setKind(nrpProcessingImports)
+      part.level = str.asSlice(str.skipWhile({'>'})).strVal().len()
+      str.space()
+      if str["(toplevel)"]:
+        part.isToplevel = true
+        part.level = 0
 
-    part.column = str.asSlice(str.skipWhile(Digits)).strVal().parseInt()
-    str.skip(')')
+      part.imports = str.asSlice(str.skipUntil({':'})).strVal()
+      str.skip(": ")
+      if str["include"]:
+        str.skip("include: ")
+        part.isInclude = true
 
-    str.space()
+      else:
+        str.skip("import: ")
 
-    if str["Hint:"] or str["Warning:"] or str["Error:"]:
-      var kind = str.asSlice(str.skipWhile(IdentChars)).strVal()
-      str.skip(':')
-      str.skip(' ')
+      str.space()
 
-      case kind:
-        of "Hint":
-          part.text = str.asSlice(str.skipToEol()).strVal()
-          result.kind.setKind(nrHint)
+      part.target = AbsFile(str.asSlice(str.skipToEol()).strVal()[
+        0 ..< ^len(" [Processing]")])
 
-        of "Warning":
-          part.text = str.asSlice(str.skipToEol()).strVal()
-          result.kind.setKind(nrWarning)
-
-        of "Error":
-          part.text = str.asSlice((str.goToEof(); str.next())).strVal()
-          result.kind.setKind(nrError)
-
-          const unhandled = "unhandled exception:"
-          if part.text.startsWith(unhandled):
-            result.error = neException
-            part.kind = nrpException
-
-        else:
-          raise newUnexpectedKindError(kind)
+      result.kind.setKind(nrHint)
 
     else:
-      part.text = str.asSlice(str.skipToEol()).strVal()
+      part.file = str.asSlice(str.skipTo('(')).strVal()
+      str.skip('(')
+
+      part.line = str.asSlice(str.skipWhile(Digits)).strVal().parseInt()
+      str.skip(", ")
+
+      part.column = str.asSlice(str.skipWhile(Digits)).strVal().parseInt()
+      str.skip(')')
+
+      str.space()
+
+      if str["Hint:"] or str["Warning:"] or str["Error:"]:
+        var kind = str.asSlice(str.skipWhile(IdentChars)).strVal()
+        str.skip(':')
+        str.skip(' ')
+
+        case kind:
+          of "Hint":
+            part.text = str.asSlice(str.skipToEol()).strVal()
+            result.kind.setKind(nrHint)
+
+          of "Warning":
+            part.text = str.asSlice(str.skipToEol()).strVal()
+            result.kind.setKind(nrWarning)
+
+          of "Error":
+            part.text = str.asSlice((str.goToEof(); str.next())).strVal()
+            result.kind.setKind(nrError)
+
+            if part.text.startsWith("unhandled exception:"):
+              result.error = neException
+              part.kind = nrpException
+
+            elif part.text.startsWith("cannot open file:"):
+              result.error = neCannotOpen
+
+          else:
+            raise newUnexpectedKindError(kind)
+
+      else:
+        part.text = str.asSlice(str.skipToEol()).strVal()
 
     const genInst = "template/generic instantiation of"
     if part.text.startsWith(genInst):
@@ -587,7 +650,34 @@ proc logLines*(l: HLogger, part: NimReportPart) =
     l.logLines(AbsFile(part.file), part.line, "nim", part.column)
 
 
-proc reportError*(l: HLogger, report: NimReport) =
+type
+  NimReportState = object
+    importParts: seq[NimReportPart]
+
+
+
+proc register(state: var NimReportState, report: NimReport) =
+  for part in report.parts:
+    if report of nrHint and part of nrpProcessingImports:
+      if len(state.importParts) == 0:
+        doAssert part.level == 0
+        state.importParts.add part
+
+      else:
+        if part.level > state.importParts.last().level:
+          state.importParts.add part
+
+        elif part.level < state.importParts.last().level:
+          discard state.importParts.pop()
+
+
+
+
+proc reportError*(
+    l: HLogger, report: NimReport,
+    dump: NimState, state: NimReportState
+  ) =
+
   var hadInstOf = false
   for part in report.parts:
     hadInstOf = true
@@ -600,6 +690,20 @@ proc reportError*(l: HLogger, report: NimReport) =
   for part in report.parts:
     if not(part of {nrpInstOf}):
       l.logLines(part)
+
+  if report of nrError:
+    case report.error:
+      of neCannotOpen:
+        l.pdump dump.paths
+        l.pdump dump.nimblePath
+
+        if false:
+          for idx, part in state.importParts:
+            if not part.isToplevel:
+              echo "  ".repeat(idx - 1), "↳", part.target
+
+      else:
+        discard
 
 
 proc runTestDir*(
@@ -614,6 +718,7 @@ proc runTestDir*(
   let (joined, standalone) = runs.getJoinable()
 
   block joined_items:
+    var state: NimReportState
     let
       tmp = getAppTempDir()
       res = tmp /. "joined.nim"
@@ -633,26 +738,34 @@ proc runTestDir*(
 
     if reports.anyIt(it of nrError):
       for report in reports:
-        if report of nrError:
-          l.reportError(report)
+        state.register(report)
 
-      raise newImplementError()
+        if report of nrError:
+          l.reportError(report, dump, state)
 
     else:
       l.success "No errors detected"
+      for run in joined:
+        l.debug run.file
 
 
-  block split_items:
+  if standalone.len == 0:
+    l.info "No standalone files"
+
+  else:
     l.info "Running separate files"
     var failCount = maxfail
     for (res, run) in runShellResult(
       standalone.mapIt((makeCmd(it, dump), it)), maxPool = 2):
 
+      var state: NimReportState
+
       let reports = getReports(res, run)
       var hasError = false
       for report in reports:
+        state.register(report)
         if report of nrError:
-          l.reportError(report)
+          l.reportError(report, dump, state)
           inc failCount
 
           if maxFail < failCount:

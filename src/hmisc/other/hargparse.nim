@@ -813,7 +813,7 @@ macro cmdImpl*(
 
 
 macro cmd*(
-    procsym: typed,
+    procsym: typed{`proc`},
     argpass: untyped = nil,
     conf: ProcConf{`const`|lit|nkCall} = procConf()
   ): untyped =

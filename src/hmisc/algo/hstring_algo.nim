@@ -18,6 +18,8 @@ type
     spkSubstr
 
   IdentStyle* = enum
+    idsNone
+
     idsSnake
     idsCamel
 

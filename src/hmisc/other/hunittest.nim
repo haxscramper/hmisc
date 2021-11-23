@@ -292,8 +292,10 @@ proc getTestTempFile*(name, ext: string): AbsFile =
 
   return dir /. RelFile(name & "." & ext)
 
-proc getTestTempDir*(): AbsDir =
-  getAppTempDir() / getScopeName().keep()
+proc getTestTempDir*(mkDir: bool = false): AbsDir =
+  result = getAppTempDir() / getScopeName().keep()
+  if mkDir and not exists(result):
+    mkDir result
 
 proc configureDefaultTestContext*(
     skipAfterException: bool = false,

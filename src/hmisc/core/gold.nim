@@ -290,9 +290,11 @@ macro `///`*(name: static[string], body: untyped): untyped =
     lit2 = newLit("/* " & name & " */ /* END */")
 
   quote do:
+    {.emit: "\n\n\n".}
     {.emit: `lit1`.}
     `body`
     {.emit: `lit2`.}
+    {.emit: "\n\n\n".}
 
 template cblock*(name: static[string], body: untyped): untyped =
   block:
