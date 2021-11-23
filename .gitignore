@@ -30,4 +30,5 @@ docs/*
 **/.gdb_*
 **/massif*
 
+htmldocs/*
 nim.cfg

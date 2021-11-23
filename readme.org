@@ -18,12 +18,13 @@ the fusion modules - specifically ~hmisc/types/hmap~ is a fork of
 ~fusion/btreetables~ with saner type naming (no more type clashes all over
 the place) and couple helper routines. I also copied ~fusion/matching~
 back, since fusion can be considered effective dead and deprecated - not
-tagged (at the time of writing ~requires fusion~ still pulls 11-month old
+tagged (at the time of writing ~requires fusion~ still pulls 9-month old
 version, that contains *none* of the fixes that was made to pattern
-matching after that). Right now it is a simple copy, in the future I will
-clean up the implementation since I've got several ideas on how it can be
-improved. DSL will be cleaned up as well, right now it is really
-overloaded.
+matching after that. For more details see [[https://forum.nim-lang.org/t/8627#56155][forum thread]] - not especially
+interesting, but if you want more context ...). Right now it is a simple
+copy, in the future I will clean up the implementation since I've got
+several ideas on how it can be improved. DSL will be cleaned up as well,
+right now it is really overloaded.
 
 ** Installation:
 
