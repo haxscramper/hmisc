@@ -653,6 +653,11 @@ template asSlice*(
   expr
   bufStr.popSlice(rightShift)
 
+template asStrSlice*(
+  buf: PosStr, expr: untyped, rightShift: int = -1): untyped =
+  mixin strVal
+  strVal(asSlice(buf, expr, rightShift))
+
 
 proc peekSlice*(str; rightShift: int = -1): PosStr =
   finishSlice(str, rightShift)
@@ -1067,7 +1072,7 @@ proc skipPastEOL*(str) =
 proc skipBeforeEOL*(str) =
   str.skipBefore(Newline)
 
-proc goToEof*(
+proc skipToEof*(
     str; byteAdvance: bool = false; rightShift: int = 0) =
   ## Move string to the last input character in the string. If @arg{str} is
   ## a substring of another one, advance is only made inside allowed
@@ -1097,7 +1102,15 @@ proc goToEof*(
       while str.baseStr[][str.pos] in Utf8Continuations:
         dec str.pos
 
-proc gotoSof*(str; byteAdvance: bool = false) =
+
+proc goToEof*(
+    str; byteAdvance: bool = false; rightShift: int = 0) {.
+  deprecated: "Use `skipToEof` instead".} =
+
+  skipToEof(str, byteAdvance, rightShift)
+
+
+proc skipToSof*(str; byteAdvance: bool = false) =
   ## Move string to the first input character in the string. If @arg{str}
   ## is a substring of another one, move is only made inside of allowed
   ## ranges.
@@ -1111,6 +1124,12 @@ proc gotoSof*(str; byteAdvance: bool = false) =
     str.line = 0
     str.column = 0
     str.pos = 0
+
+
+proc gotoSof*(str; byteAdvance: bool = false) {.
+  deprecated: "Use `skipToSof` instead".} =
+
+  skipToSof(str, byteAdvance)
 
 # proc skipToNewline*(str) =
 #   str.skipUntil(Newline, including = false)

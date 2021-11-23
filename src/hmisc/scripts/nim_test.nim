@@ -127,6 +127,8 @@ type
     neException
     neCannotOpen
 
+    neAmbiguousCall
+
   NimTestAction* = enum
     actionRun = "run"
     actionCompile = "compile"
@@ -228,7 +230,20 @@ type
         warning*: NimWarning
 
       of nrError:
-        error*: NimError
+        case error*: NimError
+          of neAmbiguousCall:
+            definedAlts*: seq[tuple[
+              kind: string,
+              name: string,
+              definedIn: AbsFile,
+              line: int,
+              column: int
+            ]]
+
+            matchFor*: string
+
+          else:
+            discard
 
 
 proc parseSpec*(
@@ -537,6 +552,71 @@ proc makeJoinedCode*(runs: seq[NimRun]): string =
   for run in runs:
     result.add &"import \"{run.file}\"\n"
 
+proc skipFileLineCol*(str: var PosStr): tuple[file: AbsFile, line, column: int] =
+  result.file = str.asStrSlice(str.skipTo('(')).AbsFile()
+  str.skip("(")
+  echov str
+  result.line = str.asStrSlice(str.skipTo(',')).parseInt()
+  str.skip(", ")
+  echov str
+  result.column = str.asStrSlice(str.skipTo(')')).parseInt()
+  str.skip(")")
+
+proc skipKindDeclaredIn*(str: var PosStr):
+  tuple[kind: string, file: AbsFile, line, column: int] =
+
+  str.skip("[")
+  echov str
+  str.space()
+  echov str
+
+  result.kind = str.asStrSlice(str.skipTo(' '))
+  str.skip(" declared in ")
+
+  (result.file, result.line, result.column) = str.skipFileLineCol()
+
+  str.skip("]")
+
+proc parseAmbiguousCall*(text: string): NimReport =
+  result = NimReport(kind: nrError, error: neAmbiguousCall)
+  var msg = initPosStr(text)
+
+  msg.skip("ambiguous call; both")
+  msg.space()
+  for i in 0 .. 1:
+    if i == 1:
+      msg.skip(" and ")
+
+    echov msg
+    let name = msg.asStrSlice():
+      echov msg
+      msg.skipTo('[')
+      echov msg
+      if msg["[]"]:
+        echov msg
+        msg.next(2)
+        msg.skipUntil('[')
+
+      echov msg
+      msg.back()
+
+    msg.skip(' ')
+
+    let (kind, file, line, column) = msg.skipKindDeclaredIn()
+
+    result.definedAlts.add((
+      kind: kind,
+      name: name,
+      definedIn: file,
+      line: line,
+      column: column
+    ))
+
+  msg.space()
+  msg.skip("match for: ")
+  result.matchFor = msg.asStrSlice(msg.skipToEof(), 0)
+
+
 proc parseReport(report: string): NimReport =
   var str = initPosStr(report)
   while ?str:
@@ -603,11 +683,14 @@ proc parseReport(report: string): NimReport =
             result.kind.setKind(nrError)
 
             if part.text.startsWith("unhandled exception:"):
-              result.error = neException
+              result.error.setKind neException
               part.kind = nrpException
 
             elif part.text.startsWith("cannot open file:"):
-              result.error = neCannotOpen
+              result.error.setKind neCannotOpen
+
+            elif part.text.startsWith("ambiguous call;"):
+              result = parseAmbiguousCall(part.text)
 
           else:
             raise newUnexpectedKindError(kind)
@@ -701,6 +784,14 @@ proc reportError*(
           for idx, part in state.importParts:
             if not part.isToplevel:
               echo "  ".repeat(idx - 1), "↳", part.target
+
+      of neAmbiguousCall:
+        let (k1, k2) = (report.definedAlts[0], report.definedAlts[1])
+        let m = max(k1.name.len, k2.name.len)
+        l.err "ambiguous call"
+        l.info k1.name
+        l.info k2.name
+        l.info " match for ", report.matchFor
 
       else:
         discard
