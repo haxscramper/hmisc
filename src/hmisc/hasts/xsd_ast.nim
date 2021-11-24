@@ -405,7 +405,8 @@ proc isPrimitiveType*(xsdType: string): bool =
     "base64binary",
     "uri",
     "anytype",
-    "int"
+    "int",
+    "positiveinteger"
   ]
 
   xsdType.hasXsdNs() and normalize(xsdType.dropNs()) in h
@@ -487,6 +488,7 @@ proc classifyPrimitiveTypeKind*(str: string): XsdTokenKind =
     of "boolean":            xtkBoolean
     of "decimal":            xtkDecimal
     of "integer", "int":     xtkInteger
+    of "positiveinteger":    xtkNatural
     of "float":              xtkFloat
     of "double":             xtkDouble
     of "duration":           xtkDuration
@@ -534,10 +536,14 @@ proc namePrimitiveTypeKind*(
     xtkBase64Binary: "base64binary",
     xtkUri: "uri",
     xtkAnyType: "anytype",
+    xtkNatural: "Natural"
   })
+
 
   if withPrefix:
     result = "xsd:"
+
+  assert map[kind].len > 0, $kind
 
   result &= map[kind]
 
@@ -563,6 +569,7 @@ proc getNimName*(kind: XsdTokenKind): string =
     of xtkBase64Binary: "string"
     of xtkUri: "URI"
     of xtkAnyType: "XmlNode"
+    of xtkNatural: "Natural"
     else:
       raise newUnexpectedKindError(kind)
 

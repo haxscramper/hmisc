@@ -464,6 +464,14 @@ proc parseXsdInteger*(
   setValue(target, res)
   parser.next()
 
+proc parseXsdNatural*(
+    target: var XsdParseTarget[Natural], parser: var HXmlParser,
+    tag: string = ""
+  ) =
+  var tmp: int
+  parseXsdInteger(tmp, parser, tag)
+  target = Natural(tmp)
+
 proc parseXsdFloat*(
     target: var XsdParseTarget[float], parser: var HXmlParser,
     tag: string = ""
@@ -578,6 +586,7 @@ type
     xtkBoolean              ## ``xsd:boolean``
     xtkDecimal              ## ``xsd:decimal``
     xtkInteger              ## ``xsd:integer``
+    xtkNatural              ## ``xsd:positiveInteger``
     xtkFloat                ## ``xsd:float``
     xtkDouble               ## ``xsd:double``
     xtkDuration             ## ``xsd:duration``

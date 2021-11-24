@@ -418,9 +418,11 @@ proc parseSpec*(
 
 
 proc getCwdNimDump*(file: string = "-"): NimState =
-  let j = shellCmd(nim, dump, "dump.format" = "json", $file).
-    evalShellStdout().
-    parseJson()
+  let js = shellCmd(nim, dump, "dump.format" = "json", $file).
+    evalShellStdout()
+
+  # echo js
+  let j = js.parseJson()
 
   for path in j["lib_paths"]:
     result.paths.add AbsDir(path.asStr())
@@ -467,8 +469,10 @@ proc makeCmd(conf: NimRun, dump: NimState): ShellCmd =
 
   cmd.arg conf.file
 
-
   return cmd
+
+proc doRun(file: AbsFile) =
+  execShell shellCmdGnu(file.string)
 
 
 func hshow(run: NimRun, opts: HDisplayOpts = defaultHDisplay): ColoredText =
@@ -811,8 +815,8 @@ proc runTestDir*(
   block joined_items:
     var state: NimReportState
     let
-      tmp = getAppTempDir()
-      res = tmp /. "joined.nim"
+      tmp = dir
+      res = tmp /. "haxtest_joined.nim"
 
     let code = makeJoinedCode(joined)
     res.writeFile(code)
@@ -821,13 +825,19 @@ proc runTestDir*(
       run = NimRun(file: res, outfile: res.withExt("out"))
       cmd = makeCmd(run, dump)
 
-    l.info "Running joined tests"
+    l.debug res
+
+    l.info "Compiling joined tests"
+    l.dump cwd()
+
+    l.execShell(cmd)
+
     let
-      runRes = shellResult(cmd)
+      runRes = l.runShellResult(cmd)
       reports = getReports(runRes, run)
 
-
     if reports.anyIt(it of nrError):
+      l.err "Errors during compilation"
       for report in reports:
         state.register(report)
 
@@ -835,10 +845,14 @@ proc runTestDir*(
           l.reportError(report, dump, state)
 
     else:
-      l.success "No errors detected"
+      l.success "No errors detected during compilation"
       for run in joined:
         l.debug run.file
 
+      l.info "Running joined tests"
+      doRun(run.outfile)
+
+    # rmFile res
 
   if standalone.len == 0:
     l.info "No standalone files"

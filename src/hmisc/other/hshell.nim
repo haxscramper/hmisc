@@ -1307,55 +1307,56 @@ proc shellResult*(
         discard
 
     else:
-      let outStream = pid.outputStream
+      # let outStream = pid.outputStream
       var line = ""
 
       let inStream = pid.inputStream
 
-      var outLineCount = 0
       while pid.running:
-        # echov inStream.atEnd()
-        # if inStream.atEnd():
-        #   discard pid.inputHandle.close()
-        #   # inStream.close()
+        # let ch = outStream.readChar()
+        # if ch notin {'\x00', '\n'}:
+        #   line.add ch
 
-        try:
-          let streamRes = outStream.readLine(line)
-          if streamRes:
-            if outLineCount > maxOutLines:
-              discard
+        # else:
+        #   if outLineCount > maxOutLines:
+        #     discard
 
-            else:
-              if reprintOut:
-                stdout.write line, nl
+        #   else:
+        #     if reprintOut:
+        #       stdout.write line, nl
 
-              else:
-                result.execResult.stdout &= line & nl
+        #     else:
+        #       result.execResult.stdout &= line & nl
 
-              inc outLineCount
-            # WARNING remove trailing newline on the stdout
-        except IOError, OSError:
-          assert outStream.isNil
-          echo "process died" # NOTE possible place to raise exception
+        #     inc outLineCount
+        #   # WARNING remove trailing newline on the stdout
+        #   line.setLen 0
 
-      while outLineCount < maxOutLines and outStream.readLine(line):
-        if reprintOut:
-          stdout.write line, nl
+        # except IOError, OSError:
+        #   assert outStream.isNil
+        #   echo "process died" # NOTE possible place to raise exception
 
-        else:
-          result.execResult.stdout.add line & nl
+      var outLineCount = 0
+      for line in pid.outputStream.readAll().splitLines():
+        if outLineCount < maxOutLines:
+          if reprintOut:
+            stdout.write line, nl
 
-        inc outLineCount
+          else:
+            result.execResult.stdout.add line & nl
+
+          inc outLineCount
 
       var errLineCount = 0
-      while errLineCount < maxErrorLines and pid.errorStream.readLine(line):
-        if reprintOut:
-          stderr.write line, nl
+      for line in pid.errorStream.readAll().splitLines():
+        if errLineCount < maxErrorLines:
+          if reprintOut:
+            stderr.write line, nl
 
-        else:
-          result.execResult.stderr.add line & nl
+          else:
+            result.execResult.stderr.add line & nl
 
-        inc errLineCount
+          inc errLineCount
 
     result.execResult.code = pid.peekExitCode()
     close(pid)
@@ -1387,12 +1388,12 @@ proc shellResult*(
 
   if not reprintOut:
     withResIt result.execResult.stderr:
-      var idx = 1
-      if it.len > 0:
-        while it[^idx] == '\n':
-          inc idx
+      var idx = high(it)
+      while 0 <= idx and it[idx] == '\n':
+        dec idx
 
-        it.setLen(it.len - idx)
+      if 0 <= idx:
+        it.setLen(idx)
 
     withResIt result.execResult.stdout:
       var idx = 1
