@@ -1313,6 +1313,7 @@ proc shellResult*(
       let inStream = pid.inputStream
 
       while pid.running:
+        discard
         # let ch = outStream.readChar()
         # if ch notin {'\x00', '\n'}:
         #   line.add ch
@@ -1396,12 +1397,12 @@ proc shellResult*(
         it.setLen(idx)
 
     withResIt result.execResult.stdout:
-      var idx = 1
-      if it.len > 0:
-        while it[^idx] == '\n':
-          inc idx
+      var idx = high(it)
+      while 0 <= idx and it[idx] == '\n':
+        dec idx
 
-        it.setLen(it.len - idx)
+      if 0 <= idx:
+        it.setLen(idx)
 
 
   updateException(result, cmd, maxErrorLines)
