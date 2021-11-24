@@ -458,7 +458,7 @@ proc makeCmd(conf: NimRun, dump: NimState): ShellCmd =
     flag("skipParentCfg")
     flag("skipProjCfg")
 
-    opt("d", "hmiscUnittestOut=json")
+    # opt("d", "hmiscUnittestOut=json")
 
   cmd.opt("nimcache", $getNewTempDir(conf.file.name(), getAppTempDir()))
 
@@ -867,6 +867,7 @@ proc runTestDir*(
 
       if not hasError:
         l.success run.file
+        l.execShell shellCmdGnu(run.outfile.string)
 
 export oswrap, all
 

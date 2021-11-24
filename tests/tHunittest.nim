@@ -84,37 +84,4 @@ suite "Simple checks":
       let a = 2 + 3
       let b = a + 2
 
-
-
-suite "Test suite with XML reporting":
-  test "Starting test":
-    check:
-      12 == 12
-      "test" == "test"
-
-    check:
-      12 == 3
-
-  test "Raise exception":
-    raise newException(OsError, "Message")
-
-
-# suite "structdiff":
-#   test "different fields":
-#     type
-#       TestStruct = object
-#         f: string
-
-#     let
-#       s1 = TestStruct(f: "struct-1")
-#       s2 = TestStruct(f: "struct-2")
-
-#     check structdiff(s1, s2)
-
-#   test "Mismatched fields":
-#     check structdiff(
-#       newPPrintObject("head", @{"field1": newPPrintConst("12")}),
-#       newPPrintObject("head", @{"field2": newPPrintConst("12")})
-#     )
-
 testFileEnded()
