@@ -838,6 +838,8 @@ proc runTestDir*(
       for run in joined:
         l.debug run.file
 
+      l.execShell shellCmdGnu(run.outfile.string)
+
 
   if standalone.len == 0:
     l.info "No standalone files"
