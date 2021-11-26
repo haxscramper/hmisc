@@ -11,15 +11,29 @@ proc msep*(ms: var string, s: string, expr: bool) =
   if expr:
     ms.add s
 
-func mq*[T](item: T): string = "'" & $item & "'"
-func mkind*[E: enum](item: E): string = "'" & toGreenStr($item) & "'"
-func mq1*[T](item: T): string = "'" & toGreenStr($item) & "'"
+func mq*[T](item: T): string = "‘" & $item & "‘"
+func mkind*[E: enum](item: E): string = "‘" & toGreenStr($item) & "‘"
+func mq1*[T](item: T): string = "‘" & toGreenStr($item) & "‘"
 
 func wrapSplit(text, before, after: string): string =
   text.split(" ").mapIt(before & it & after).join(" ")
 
 func mcode*(str: string): string =
   wrapSplit(str, "\e[4m", "\e[24m")
+
+func mblock*(
+    str: string,
+    startN, finalN: string = "‘‘‘",
+    start1, final1: string = "‘"
+  ): string =
+
+  if '\n' in str:
+    "\n" & startN & "\n" & str.indent(2) & "\n" & finalN & "\n"
+
+  else:
+    start1 & str & final1
+
+
 
 func mitem*[T](s: var string, item: T) =
   s.add "'"

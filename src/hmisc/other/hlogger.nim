@@ -675,7 +675,9 @@ proc logStackTrace*(
     showError: bool = true,
     ignoreAssert: bool = true,
     source: bool = true,
-    skipFirst: int = 0
+    skipFirst: int = 0,
+    forceCompact: bool = false,
+    forceSuperCompact: bool = false
   ) =
 
   let (showFile, showLine, leftAlignFiles) =
@@ -696,8 +698,12 @@ proc logStackTrace*(
       getStackTraceEntries()
 
   let
-    compactPrint = terminalHeight() - 20 < stackEntries.len() * 6
-    superCompactPrint = terminalHeight() - 20 < stackEntries.len() * 4
+    compactPrint = forceCompact or (
+      terminalHeight() - 20 < stackEntries.len() * 6)
+
+    superCompactPrint = forceSuperCompact or (
+      terminalHeight() - 20 < stackEntries.len() * 4)
+
     choosenim = os.getHomeDir() & ".choosenim"
 
   var fileW = 0
@@ -777,6 +783,15 @@ proc logStackTrace*(
   logger.showFile = showFile
   logger.showLine = showLine
   logger.leftAlignFiles = leftALignFiles
+
+  if notNil(e.parent):
+    logger.notice "Exception had a parent exception specified"
+
+    logStackTrace(
+      logger, e.parent, showError, ignoreAssert, source,
+      skipFirst,
+      forceSuperCompact = true
+    )
 
 proc loggerOutConverter*(
     stream: var PosStr,

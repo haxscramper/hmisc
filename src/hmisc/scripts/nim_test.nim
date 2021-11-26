@@ -2,6 +2,7 @@ import ../preludes/cli_app
 import ../other/[hjson, hlogger]
 import ../algo/[hlex_base, lexcast]
 import std/[sequtils, streams, parsecfg, sets]
+import pkg/jsony
 
 export hlogger
 
@@ -127,7 +128,11 @@ type
     neException
     neCannotOpen
 
+    neOverloadFail
+    neInvalidIndentation
     neAmbiguousCall
+    neLdFail
+    neGccFail
 
   NimTestAction* = enum
     actionRun = "run"
@@ -140,23 +145,23 @@ type
     ocSubstr = "substr"
 
   NimResultKind* = enum
-    reNimcCrash,       # nim compiler seems to have crashed
-    reMsgsDiffer,      # error messages differ
-    reFilesDiffer,     # expected and given filenames differ
-    reLinesDiffer,     # expected and given line numbers differ
-    reOutputsDiffer,
-    reExitcodesDiffer, # exit codes of program or of valgrind differ
-    reTimeout,
-    reInvalidPeg,
-    reCodegenFailure,
-    reCodeNotFound,
-    reExeNotFound,
-    reInstallFailed    # package installation failed
-    reBuildFailed      # package building failed
-    reDisabled,        # test is disabled
-    reJoined,          # test is disabled because it was joined into the megatest
-    reSuccess          # test was successful
-    reInvalidSpec      # test had problems to parse the spec
+    reNimcCrash        ## nim compiler seems to have crashed
+    reMsgsDiffer       ## error messages differ
+    reFilesDiffer      ## expected and given filenames differ
+    reLinesDiffer      ## expected and given line numbers differ
+    reOutputsDiffer
+    reExitcodesDiffer  ## exit codes of program or of valgrind differ
+    reTimeout
+    reInvalidPeg
+    reCodegenFailure
+    reCodeNotFound
+    reExeNotFound
+    reInstallFailed    ## package installation failed
+    reBuildFailed      ## package building failed
+    reDisabled         ## test is disabled
+    reJoined           ## test is disabled because it was joined into the megatest
+    reSuccess          ## test was successful
+    reInvalidSpec      ## test had problems to parse the spec
 
   NimTestSpec* = object
     action*: NimTestAction
@@ -200,6 +205,7 @@ type
     nrpTracePart
 
     nrpProcessingImports
+    nrpLdFail
 
   NimReportPart* = object
     file*: string
@@ -219,8 +225,44 @@ type
 
 
 
+  GccPoint* = object
+    byteColumn*: int
+    displayColumn*: int
+    line*: int
+    file*: string
+    column*: int
+
+  GccReportChild = object
+    locations*: seq[GccLocation]
+    message*: string
+    kind*: string
+
+  GccLocation* = object
+    caret*: GccPoint
+    finish*: Option[GccPoint]
+
+  GccReport* = object
+    kind*: string
+    columnOrigin*: int
+    children*: seq[GccReportChild]
+    locations*: seq[GccLocation]
+    message*: string
+    options*: seq[string]
+
+  NimOverloadAlt* = object
+    signature*: string
+    argumentFail*: string
+    isOfType*: Option[string]
+
+  NimFixit* = object
+    file*: Option[AbsFile]
+    line*: Option[int]
+    column*: Option[int]
+    message*: string
+
   NimReport* = object
     parts*: seq[NimReportPart]
+    fixit*: seq[NimFixit]
 
     case kind*: NimReportKind
       of nrHint:
@@ -241,6 +283,25 @@ type
             ]]
 
             matchFor*: string
+
+          of neLdFail:
+            ldReport*: tuple[
+              message: string,
+              compile: seq[string]
+            ]
+
+          of neOverloadFail:
+            overloadContext*: tuple[
+              gotType: string,
+              alts: seq[NimOverloadAlt],
+              expression: string
+            ]
+
+          of neGccFail:
+            gccReport*: tuple[
+              diags: seq[seq[GccReport]],
+              compile: seq[string]
+            ]
 
           else:
             discard
@@ -435,7 +496,12 @@ proc getCwdNimDump*(file: string = "-"): NimState =
   result.nimblePath = query["nimble"][0].asStr().AbsDir()
 
 
-proc makeCmd(conf: NimRun, dump: NimState): ShellCmd =
+proc makeCmd(
+    conf: NimRun,
+    dump: NimState,
+    hints: bool = on
+  ): ShellCmd =
+
   var cmd = shellCmd(nim)
 
   cmd.arg "compile"
@@ -449,16 +515,19 @@ proc makeCmd(conf: NimRun, dump: NimState): ShellCmd =
     opt("unitsep", "on")
 
     opt("verbosity", "0")
-    opt("hints", "on")
-    opt("processing", "filenames")
 
     opt("nimblePath", dump.nimblePath)
 
     flag("skipUserCfg")
     flag("skipParentCfg")
     flag("skipProjCfg")
+    opt("showAllMismatches", "on")
+    opt("cc", "gcc")
+    opt("passc", "-fdiagnostics-format=json")
 
-    # opt("d", "hmiscUnittestOut=json")
+  if hints:
+    cmd.opt("hints", "on")
+    cmd.opt("processing", "filenames")
 
   cmd.opt("nimcache", $getNewTempDir(conf.file.name(), getAppTempDir()))
 
@@ -527,17 +596,22 @@ proc extractSpec(s: string, filename: AbsFile): string =
   else:
     result = ""
 
+proc runFromFile*(file: AbsFile): NimRun =
+  result = NimRun(
+    file: file,
+    outfile: file.withExt("out")
+  )
+
+  let text = file.readFile()
+  if text.startsWith("discard"):
+    result.spec = some text.extractSpec(file).parseSpec(file)
+
+
+
 proc runsFromDir*(dir: AbsDir, first: seq[AbsFile] = @[]): seq[NimRun] =
   for file in first & toSeq(walkDir(dir, AbsFile, exts = @["nim"])):
     if file.name().startsWith("t"):
-      result.add NimRun(
-        file: file,
-        outfile: file.withExt("out")
-      )
-
-      let text = file.readFile()
-      if text.startsWith("discard"):
-        result[^1].spec = some text.extractSpec(file).parseSpec(file)
+      result.add runFromFile(file)
 
 proc getJoinable*(runs: seq[NimRun]): tuple[joinable, standalone: seq[NimRun]] =
   for run in runs:
@@ -616,103 +690,274 @@ proc parseAmbiguousCall*(text: string): NimReport =
   result.matchFor = msg.asStrSlice(msg.skipToEof(), 0)
 
 
-proc parseReport(report: string): NimReport =
-  var str = initPosStr(report)
+proc parseHintProcessingImports(str: var PosStr): NimReportPart =
+  str.skip("Hint: ")
+  result.kind.setKind(nrpProcessingImports)
+  result.level = str.asSlice(str.skipWhile({'>'})).strVal().len()
+  str.space()
+  if str["(toplevel)"]:
+    result.isToplevel = true
+    result.level = 0
+
+  result.imports = str.asSlice(str.skipUntil({':'})).strVal()
+  str.skip(": ")
+  if str["include"]:
+    str.skip("include: ")
+    result.isInclude = true
+
+  else:
+    str.skip("import: ")
+
+  str.space()
+
+  result.target = AbsFile(str.asSlice(str.skipToEol()).strVal()[
+    0 ..< ^len(" [Processing]")])
+
+
+proc parseCmdCommand(str: var PosStr): seq[string] =
+  str.pushSlice()
   while ?str:
-    str.skipWhile({'\n'})
-    if str["stack trace"]:
+    case str[]:
+      of ' ':
+        result.add str.popSlice().strVal()
+        str.space()
+        str.pushSlice()
+
+      of '"': str.skipStringLit()
+      else: str.next()
+
+proc parseExecutionOf(str: var PosStr): seq[string] =
+  str.skip("Error: execution of an external ")
+  if str["compiler"]:
+    str.skip("compiler program '")
+    let slice = str.asSlice():
       str.skipToEol()
-      str.skipWhile({'\n'})
+      while str[Digits]:
+        str.back()
 
-    var part: NimReportPart
+      str.back(len("' failed with exit code: "))
 
-    if str["Hint: >"]:
-      str.skip("Hint: ")
-      part.kind.setKind(nrpProcessingImports)
-      part.level = str.asSlice(str.skipWhile({'>'})).strVal().len()
-      str.space()
-      if str["(toplevel)"]:
-        part.isToplevel = true
-        part.level = 0
+    result = slice.strVal().initPosStr().asVar().parseCmdCommand()
 
-      part.imports = str.asSlice(str.skipUntil({':'})).strVal()
-      str.skip(": ")
-      if str["include"]:
-        str.skip("include: ")
-        part.isInclude = true
+  else:
+    str.skip("program failed: '")
+    result = str.asStrSlice(str.skipToEol(), -2).
+      initPosStr().
+      asVar().
+      parseCmdCommand()
 
-      else:
-        str.skip("import: ")
 
-      str.space()
+proc parseLdReport(str: var PosStr): NimReport =
+  result = NimReport(kind: nrError, error: neLdFail)
+  str.skip("/bin/ld: ")
+  result.ldReport.message = str.asStrSlice(str.skipPastEol(), -2)
+  str.skip("collect2: ")
+  str.skipPastEol()
+  result.ldReport.compile = parseExecutionOf(str)
 
-      part.target = AbsFile(str.asSlice(str.skipToEol()).strVal()[
-        0 ..< ^len(" [Processing]")])
+proc parseGccReport(report: string): NimReport =
+  var
+    idx = 0
+    diags: seq[seq[GccReport]]
 
-      result.kind.setKind(nrHint)
+  while report[idx] in {' ', '\n'}: inc idx
+
+  while report[idx] == '[':
+    if report[idx .. idx + 1] == "[]":
+      inc idx, 3
 
     else:
-      part.file = str.asSlice(str.skipTo('(')).strVal()
-      str.skip('(')
+      var tmp: seq[GccReport]
+      parseHook(report, idx, tmp)
+      inc idx
+      diags.add tmp
 
-      part.line = str.asSlice(str.skipWhile(Digits)).strVal().parseInt()
-      str.skip(", ")
+  if report[idx .. ^1].startsWith("/bin/ld"):
+    result = initPosStr(report[idx .. ^1]).asVar().parseLdReport()
 
-      part.column = str.asSlice(str.skipWhile(Digits)).strVal().parseInt()
-      str.skip(')')
+  else:
+    result = NimReport(kind: nrError, error: neGccFail)
+    result.gccReport.diags = diags
 
-      str.space()
+    while idx < report.len and report[idx] in {' ', '\n'}: inc idx
 
-      if str["Hint:"] or str["Warning:"] or str["Error:"]:
-        var kind = str.asSlice(str.skipWhile(IdentChars)).strVal()
-        str.skip(':')
-        str.skip(' ')
+    if idx < report.len:
+      result.gccReport.compile = report[idx .. ^1].
+        initPosStr().
+        asVar().
+        parseExecutionOf()
 
-        case kind:
-          of "Hint":
-            part.text = str.asSlice(str.skipToEol()).strVal()
-            result.kind.setKind(nrHint)
 
-          of "Warning":
-            part.text = str.asSlice(str.skipToEol()).strVal()
-            result.kind.setKind(nrWarning)
+proc parseOverloadAlts(text: string): NimReport =
+  result = NimReport(kind: nrError, error: neOverloadFail)
+  var str = initPosStr(text)
+  str.skip("type mismatch: got <")
+  result.overloadContext.gotType = str.asStrSlice():
+    str.skipToEol()
+    str.back()
 
-          of "Error":
-            part.text = str.asSlice((str.goToEof(); str.next())).strVal()
-            result.kind.setKind(nrError)
 
-            if part.text.startsWith("unhandled exception:"):
-              result.error.setKind neException
-              part.kind = nrpException
+  str.skip(">\nbut expected one of:\n")
 
-            elif part.text.startsWith("cannot open file:"):
-              result.error.setKind neCannotOpen
-
-            elif part.text.startsWith("ambiguous call;"):
-              result = parseAmbiguousCall(part.text)
-
-          else:
-            raise newUnexpectedKindError(kind)
+  var expression: string
+  while str["proc"]:
+    let signature = str.asSlice():
+      if str.trySkipTo("first type mismatch at position"):
+        str.back(3)
 
       else:
-        part.text = str.asSlice(str.skipToEol()).strVal()
+        raise newParseError(
+          "Could not find correct finish of the proc signature range " &
+            text)
 
-    const genInst = "template/generic instantiation of"
-    if part.text.startsWith(genInst):
-      part.text = part.text[genInst.len .. ^len("from here")]
-      part.kind = nrpInstOf
+    var argumentFail, isOfType: string
+    str.next(3)
+    if str["first type mismatch"]:
+      str.skipPastEol()
+      str.skip("  ")
+      argumentFail = str.asStrSlice(str.skipPastEol(), -2)
+      str.skip("  ")
+      str.skip("but expression '")
+      expression = str.asStrSlice():
+        assert str.trySkipTo("' is of type: ")
 
-    result.parts.add part
+      str.skip("' is of type: ")
+      isOfType = str.asStrSlice(str.skipPastEol(), -2)
 
-  if result.kind == nrError and result.error == neException:
-    for part in mitems(result.parts):
-      if part.kind == nrpNone:
-        part.kind = nrpTracePart
+    result.overloadContext.alts.add NimOverloadAlt(
+      signature: signature.strVal(),
+      argumentFail: argumentFail,
+      isOfType: if isOfType.len > 0: some(isOfType) else: none(string)
+    )
+
+  result.overloadContext.expression = expression
+
+
+
+
+
+proc parseReportImpl(report: string): NimReport =
+  var str = initPosStr(report)
+
+  str.skipWhile({'\n'})
+  if str["/bin/ld"]:
+    result = parseLdReport(str)
+
+  elif str["["]:
+    result = parseGccReport(report)
+
+  else:
+    while ?str:
+      str.skipWhile({'\n'})
+      if str["stack trace"]:
+        str.skipToEol()
+        str.skipWhile({'\n'})
+
+      var part: NimReportPart
+
+      if str["Hint: >"]:
+        part = parseHintProcessingImports(str)
+        result.kind.setKind(nrHint)
+
+      else:
+        part.file = str.asSlice(str.skipTo('(')).strVal()
+        str.skip('(')
+
+        part.line = str.asSlice(str.skipWhile(Digits)).strVal().parseInt()
+        str.skip(", ")
+
+        part.column = str.asSlice(str.skipWhile(Digits)).strVal().parseInt()
+        str.skip(')')
+
+        str.space()
+
+        if str["Hint:"] or str["Warning:"] or str["Error:"]:
+          var kind = str.asSlice(str.skipWhile(IdentChars)).strVal()
+          str.skip(':')
+          str.skip(' ')
+
+          case kind:
+            of "Hint":
+              part.text = str.asSlice(str.skipToEol()).strVal()
+              result.kind.setKind(nrHint)
+
+            of "Warning":
+              part.text = str.asSlice(str.skipToEol()).strVal()
+              result.kind.setKind(nrWarning)
+
+            of "Error":
+              part.text = str.asSlice((str.skipToEof(); str.next())).strVal()
+              result.kind.setKind(nrError)
+
+              if part.text.startsWith("unhandled exception:"):
+                result.error.setKind neException
+                part.kind.setKind nrpException
+
+              elif part.text.startsWith("cannot open file:"):
+                result.error.setKind neCannotOpen
+
+              elif part.text.startsWith("ambiguous call;"):
+                result = parseAmbiguousCall(part.text)
+
+              elif part.text.startsWith("invalid indentation"):
+                result.error.setKind neInvalidIndentation
+                if part.text.startsWith("invalid indentation, maybe"):
+                  result.fixit.add NimFixit(
+                    message: part.text[len("invalid indentation, ") .. ^1])
+
+              elif part.text.startsWith("type mismatch"):
+                result = parseOverloadAlts(part.text)
+
+            else:
+              raise newUnexpectedKindError(kind)
+
+        else:
+          part.text = str.asSlice(str.skipToEol()).strVal()
+
+      const genInst = "template/generic instantiation of"
+      if part.text.startsWith(genInst):
+        part.text = part.text[genInst.len .. ^len("from here")]
+        part.kind.setKind nrpInstOf
+
+      if result of nrError and result.error == neOverloadFail:
+        discard
+
+      else:
+        result.parts.add part
+
+    if result.kind == nrError and result.error == neException:
+      for part in mitems(result.parts):
+        if part.kind == nrpNone:
+          part.kind.setKind nrpTracePart
+
+
+proc parseReport(report: string): NimReport =
+  try:
+    result = parseReportImpl(report)
+
+  except UnexpectedCharError as err:
+    var tmp = newParseError(
+      "Failed to parse nim compilation report. Full report text is - ",
+      mblock(report),
+      "Failure ocurred while parsing text as position - ",
+      describeStrPos(report, err.pos),
+      ". Error message was \"", $err.msg, "\"")
+
+    tmp.parent = err
+
+    raise tmp
 
 proc getReports(res: ShellResult, run: NimRun): seq[NimReport] =
   for part in res.getStderr().split("\31"):
     if part.strip().len() > 0:
-      result.add parseReport(part)
+      var report = parseReport(part)
+      if report of nrError and
+         report.error == neGccFail and
+         report.gccReport.diags.len == 0:
+        discard
+
+      else:
+        result.add report
 
 
 proc formatShellCmd*(cmd: ShellCmd): ColoredText =
@@ -795,6 +1040,23 @@ proc reportError*(
       else:
         discard
 
+
+proc getCompileReportFor*(
+    file: AbsFile,
+    dump: NimState,
+    hints: bool = on
+  ): seq[NimReport] =
+  let run = runFromFile(file)
+  let cmd = makeCmd(run, dump, hints = hints)
+  let res = shellResult(cmd)
+  return res.getReports(run)
+
+proc skipKinds*(
+    reports: sink seq[NimReport],
+    kind: set[NimReportKind] = {nrHint, nrWarning}
+  ): seq[NimReport] =
+
+  filterIt(reports, it.kind notin kind)
 
 proc runTestDir*(
     dir: AbsDir,

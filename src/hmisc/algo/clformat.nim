@@ -858,6 +858,8 @@ func describeChar*(ch: char, opts: HDisplayOpts = defaultHDisplay): string =
     result.add toLatinNamedChar(ch).join(" ")
     result.add ")"
 
+
+
 import pkg/unicodedb
 
 func describeChar*(rune: Rune): string =
@@ -1521,6 +1523,67 @@ func hShow*[I](s: set[I], opts: HDisplayOpts = defaultHDisplay): ColoredText =
     result.add hshow(item, opts)
 
   result.add toBlue("}")
+
+func describeStrPos*(
+    base: string,
+    pos: int,
+    before: int = 6,
+    after: int = 12,
+    opts: HDisplayOpts = defaultHDisplay
+  ): ColoredText =
+
+  let
+    after = base[
+      min(pos + 1, base.high) ..< min(base.len, pos + after)]
+
+    before = base[
+      max(min(pos - before, base.high), 0) ..< min(pos, base.high)]
+
+  if pos < 0:
+    result = clt("positioned before string start - " & $pos)
+
+    result.add " (first part is - "
+    if opts.colored():
+      result.add hshow(@after, opts)
+
+    else:
+      result.add after
+
+    result.add ")"
+
+  elif base.high < pos:
+    result = clt("positioned after string end - " & $pos)
+    result.add " (last part is - "
+    if opts.colored():
+      result.add hshow(@before, opts)
+
+    else:
+      result.add before
+
+    result.add ")"
+
+  else:
+    let at = base[pos]
+
+    result.add $pos
+    result.add "/"
+    result.add $base.high
+    result.add " "
+
+    if opts.colored():
+      result.add hshow(@before, opts)
+      result.add " "
+      result.add hshow(at)
+      result.add " "
+      result.add hshow(@after, opts)
+
+    else:
+      result.add before
+      result.add " "
+      result.add at
+      result.add " "
+      result.add after
+
 
 func formatStringified*(str: string): string =
   if str.len == 0:

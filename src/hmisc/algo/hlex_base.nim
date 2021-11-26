@@ -931,6 +931,19 @@ proc setPos*(str; pos: PosStrPoint) =
   ##   is out of range etc.
   str.pos = pos.pos
 
+proc trySkipTo*(str; text: string): bool =
+  let pos = str.getPos()
+  while ?str and not str[text]:
+    str.next()
+
+  if str[text]:
+    result = true
+
+  else:
+    str.setPos(pos)
+    result = false
+
+
 proc popPointSlice*(
     str;
     expected: set[char] = AllChars,

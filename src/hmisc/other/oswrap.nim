@@ -1903,12 +1903,16 @@ template withNewStreamFile*(inFile: AnyFile, body: untyped) =
       withStreamFile(inFile):
         body
 
-iterator xPatterns(pattern: string, pattChar: char = '?'): string =
+iterator xPatterns(
+    pattern: string,
+    pattChar: char = '?',
+    chars: set[char] = {'a' .. 'z', 'A' .. 'Z'}
+  ): string =
   while true:
     var next: string
     for ch in pattern:
       if ch == pattChar:
-        next.add sample({'a' .. 'z', 'A' .. 'Z'})
+        next.add sample(chars)
 
       else:
         next.add ch
@@ -1920,7 +1924,8 @@ proc getNewTempDir*(
     dirPatt: string = "????????",
     dir: AbsDir = getTempDir(),
     createDir: bool = true,
-    pattChar: char = '?'
+    pattChar: char = '?',
+    chars: set[char] = {'a' .. 'z', 'A' .. 'Z'}
   ): AbsDir =
 
   ## Get name for new temporary directory
@@ -1932,7 +1937,7 @@ proc getNewTempDir*(
       mkDir result
 
   else:
-    for next in xPatterns(dirPatt, pattChar):
+    for next in xPatterns(dirPatt, pattChar, chars):
       if not dirExists(dir / RelDir(next)):
         result = AbsDir(dir / RelDir(next))
         break
@@ -1943,18 +1948,20 @@ proc getNewTempDir*(
 proc getTempFile*(
     dir: AbsDir,
     filePatt: string,
-    assertExists: bool = true
+    assertExists: bool = true,
+    pattChar: char = '?',
+    chars: set[char] = {'a' .. 'z', 'A' .. 'Z'}
   ): AbsFile =
   ## Get path to new temporary file in directory `dir`. To set particular
   ## extension just use `XXXXXXX.yourExt` as input `filePatt`.
   ##
   ## - @arg{assertExists} :: check if input directory exists
 
-  if filePatt.count('X') == 0:
+  if filePatt.count(pattChar) == 0:
     return dir / RelFile(filePatt)
 
   assertExists(dir)
-  for next in xPatterns(filePatt):
+  for next in xPatterns(filePatt, pattChar, chars):
     if not fileExists(dir / RelFile(next)):
       return dir / RelFile(next)
 

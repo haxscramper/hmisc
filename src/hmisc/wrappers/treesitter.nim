@@ -483,7 +483,7 @@ func `[]`*[N, K](
 
   if node.isGenerated:
     assertOption node.original,
-     "Cannot get unnamed subnodes index without origina tree-sitter node"
+     "Cannot get unnamed subnodes index without original tree-sitter node"
 
     if node.len > 0:
       for idx in clamp(slice, node.high):
