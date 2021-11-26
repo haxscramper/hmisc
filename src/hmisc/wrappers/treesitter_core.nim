@@ -886,15 +886,21 @@ func `[]`*[N: distinct](
   when idx is BackwardsIndex:
     let idx = node.len(unnamed = unnamed) - idx.int + 1
 
-  assert 0 <= idx and idx < node.len(unnamed = unnamed),
-    "Cannot get subnode at index " & $idx & " - len is " &
-      $node.len(unnamed = unnamed)
-
-
   if unnamed:
-    N(ts_node_child(TSNode(node), uint32(idx)))
+    result = N(ts_node_child(TSNode(node), uint32(idx)))
+    if isNil(result):
+      raise newException(ValueError,
+        "Cannot get subnode at index " & $idx &
+          " - `ts_node_child` returned `nil`")
+
   else:
-    N(ts_node_named_child(TSNode(node), uint32(idx)))
+    result = N(ts_node_named_child(TSNode(node), uint32(idx)))
+    if isNil(result):
+      raise newException(ValueError,
+        "Cannot get subnode at index " & $idx &
+          " - `ts_node_named_child` returned `nil`")
+
+
 
 func `[]`*[N: distinct](
   node: N, slice: Slice[int],
@@ -907,15 +913,18 @@ func `[]`*[N: distinct](
   node: N, slice: HSlice[int, BackwardsIndex],
   unnamed: bool = false): seq[N] =
 
-  let maxIdx = node.len() - slice.b.int
+  let maxIdx = len(node) - slice.b.int
   for i in slice.a .. maxIdx:
     result.add node[i, unnamed]
 
 func `{}`*[N: distinct](node: N, idx: int): N =
   ## Retun node positioned at `idx` - count includes unnamed (token)
   ## subnodes.
-  assert 0 <= idx and idx < node.len(unnamed = true)
-  N(ts_node_child(TSNode(node), uint32(idx)))
+  result = N(ts_node_child(TSNode(node), uint32(idx)))
+  if isNil(result):
+    raise newException(IndexError,
+      "Node index is out of range - `ts_node_child` returned `nil` for " &
+        $idx)
 
 
 func `[]`*[N: distinct](
