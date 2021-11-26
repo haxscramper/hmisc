@@ -802,6 +802,9 @@ func isMissing*[N: distinct](node: N): bool =
 func isExtra*[N: distinct](node: N): bool =
   ts_node_is_extra(TSNode(node))
 
+func isNil*(node: TsNode): bool =
+  ts_node_is_null(node)
+
 func hasChanges*[N: distinct](node: N): bool =
   ts_node_has_changes(TSNode(node))
 
@@ -824,37 +827,37 @@ func namedChild*[N: distinct](node: N; a2: int): N =
 
 func namedChildCount*[N: distinct](node: N): int =
   ## Number of named (non-token) subnodes for a triee
-  assert not isNil(node)
+  assert not isNil(TsNode(node))
   ts_node_named_child_count(TSNode(node)).int
 
 func startPoint*[N: distinct](node: N): TSPoint =
   ## Return start point for AST node (line and column)
-  assert not isNil(node)
+  assert not isNil(TsNode(node))
   ts_node_start_point(TSNode(node))
 
 func startByte*[N: distinct](node: N): int =
   ## Return start point for AST node (line and column)
-  assert not isNil(node)
+  assert not isNil(TsNode(node))
   ts_node_start_byte(TsNode(node)).int
 
 func endByte*[N: distinct](node: N): int =
   ## Return start point for AST node (line and column)
-  assert not isNil(node)
+  assert not isNil(TsNode(node))
   ts_node_end_byte(TsNode(node)).int
 
 func slice*[N: distinct](node: N): Slice[int] =
-  assert not isNil(node)
+  assert not isNil(TsNode(node))
   {.cast(noSideEffect).}:
     ## Get range of source code **bytes** for the node
     startByte(node) ..< endByte(node)
 
 func endPoint*[N: distinct](node: N): TSPoint =
   ## Return end point for AST node (line and column)
-  assert not isNil(node)
+  assert not isNil(TsNode(node))
   ts_node_end_point(TSNode(node))
 
 func startLine*[N: distinct](node: N): int =
-  assert not isNil(node)
+  assert not isNil(TsNode(node))
   node.startPoint().row.int
 
 func endLine*[N: distinct](node: N): int =
@@ -870,7 +873,7 @@ func endColumn*[N: distinct](node: N): int =
 proc childName*[N: distinct](node: N, idx: int): string =
   if idx.uint32 <= ts_node_child_count(node.TsNode()):
     let name = ts_node_field_name_for_child(node.TsNode(), idx.uint32)
-    if not isNil(name):
+    if not isNil(TsNode(name)):
       result = $name
 
 proc fieldNames*[N: distinct](node: N): seq[string] =
@@ -888,14 +891,14 @@ func `[]`*[N: distinct](
 
   if unnamed:
     result = N(ts_node_child(TSNode(node), uint32(idx)))
-    if isNil(result):
+    if isNil(TsNode(result)):
       raise newException(ValueError,
         "Cannot get subnode at index " & $idx &
           " - `ts_node_child` returned `nil`")
 
   else:
     result = N(ts_node_named_child(TSNode(node), uint32(idx)))
-    if isNil(result):
+    if isNil(TsNode(result)):
       raise newException(ValueError,
         "Cannot get subnode at index " & $idx &
           " - `ts_node_named_child` returned `nil`")
@@ -921,7 +924,7 @@ func `{}`*[N: distinct](node: N, idx: int): N =
   ## Retun node positioned at `idx` - count includes unnamed (token)
   ## subnodes.
   result = N(ts_node_child(TSNode(node), uint32(idx)))
-  if isNil(result):
+  if isNil(TsNode(result)):
     raise newException(IndexError,
       "Node index is out of range - `ts_node_child` returned `nil` for " &
         $idx)
@@ -932,7 +935,7 @@ func `[]`*[N: distinct](
   result = N(ts_node_child_by_field_name(
     TsNode(node), name.cstring, name.len.uint32))
 
-  if check and isNil(result):
+  if check and isNil(TsNode(result)):
     raise newException(KeyError,
       "No field named '" & name & "' for AST node type" &
       $typeof(N) & " kind" &
