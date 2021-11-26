@@ -1,4 +1,4 @@
-import std/[strutils]
+import std/[strutils, sequtils]
 import ./colored
 
 
@@ -15,7 +15,11 @@ func mq*[T](item: T): string = "'" & $item & "'"
 func mkind*[E: enum](item: E): string = "'" & toGreenStr($item) & "'"
 func mq1*[T](item: T): string = "'" & toGreenStr($item) & "'"
 
-func mcode*(str: string): string = "\e[4m" & str & "\e[24m"
+func wrapSplit(text, before, after: string): string =
+  text.split(" ").mapIt(before & it & after).join(" ")
+
+func mcode*(str: string): string =
+  wrapSplit(str, "\e[4m", "\e[24m")
 
 func mitem*[T](s: var string, item: T) =
   s.add "'"

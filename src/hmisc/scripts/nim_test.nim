@@ -838,7 +838,7 @@ proc runTestDir*(
       for run in joined:
         l.debug run.file
 
-      l.execShell shellCmdGnu(run.outfile.string)
+      execShell shellCmdGnu(run.outfile.string)
 
 
   if standalone.len == 0:

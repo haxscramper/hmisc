@@ -166,15 +166,20 @@ case app.getCmdName():
 {commits}
 """
 
+      debugecho "\e[31m!!\e[39m project_tasks.nim, Line 169 "
       sh ["git", "diff-index", "--quiet", "HEAD", "--"]
+      debugecho "\e[31m!!\e[39m project_tasks.nim, Line 171 "
       check()
 
+      debugecho "\e[31m!!\e[39m project_tasks.nim, Line 174 "
       let
         text = project.readFile()
         pos = text.find("version")
         endPos = text.find("\n", pos)
         newText = text[0 ..< pos] &
           &"version = \"{major}.{minor}.{patch}\"" & text[endPos .. ^1]
+
+      debugecho "\e[31m!!\e[39m project_tasks.nim, Line 182 "
 
       project.writeFile(newText)
       sh ["git", "add", "hmisc.nimble"]

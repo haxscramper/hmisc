@@ -207,7 +207,7 @@ func isReservedNimType*(str: string): bool =
     "cuint",
     "culonglong",
 
-    "cstring", "openarray", "cstringarray", 
+    "cstring", "openarray", "cstringarray",
   ]
 
   str in exactNames or nimNorm(str) in nameSet
@@ -270,7 +270,7 @@ type
     isType*: bool
 
 proc fixDuplicated*(
-    cache: var StringNameCache, 
+    cache: var StringNameCache,
     original, generated: string,
     conf: NameFixConf
   ): string =
