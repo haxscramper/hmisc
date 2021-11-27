@@ -58,6 +58,9 @@ func mfound*[F, E](s: var string, found: F, expected: E) =
   s.add $expected
   s.add "'"
 
+func mfound*[F, E](found: F, expected: E): string =
+  mfound(result, found, expected)
+
 func toPluralNoun*(
     noun: string, count: int,
     addNum: bool = true,

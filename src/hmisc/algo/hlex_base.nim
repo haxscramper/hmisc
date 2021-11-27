@@ -401,6 +401,11 @@ proc `[]`*(str; patt: char|set[char]|string): bool {.inline.} =
   ##   to avoid infinite loops at the end of input.
   str[0, patt]
 
+proc `[]`*(str; patt: openarray[string]): bool =
+  for test in items(patt):
+    if str[test]:
+      return true
+
 proc `[]`*(str; patt1, patt2: char | set[char] | string): bool {.inline.} =
   ## Check two next positions against pattern
   str[0, patt1] and str[1, patt2]
@@ -976,6 +981,15 @@ proc skip*(str; s: string) {.inline.} =
 
   else:
     str.next(s.len)
+
+proc skip*(str; strings: openarray[string]) =
+  for idx, test in pairs(strings):
+    if str[test]:
+      str.next(test.len)
+      return
+
+  raise newUnexpectedCharError(
+    str, mfound(str[], joinAnyOf(@strings)))
 
 proc skip*(str; ch1, ch2: set[char]) {.inline.} =
   str.skip(ch1)

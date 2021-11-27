@@ -873,7 +873,7 @@ func endColumn*[N: distinct](node: N): int =
 proc childName*[N: distinct](node: N, idx: int): string =
   if idx.uint32 <= ts_node_child_count(node.TsNode()):
     let name = ts_node_field_name_for_child(node.TsNode(), idx.uint32)
-    if not isNil(TsNode(name)):
+    if not isNil(name):
       result = $name
 
 proc fieldNames*[N: distinct](node: N): seq[string] =

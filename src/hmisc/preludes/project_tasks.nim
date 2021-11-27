@@ -3,7 +3,7 @@ import
   ../other/[oswrap, hshell, hargparse, hlogger],
   ../algo/[hseq_distance]
 
-import std/[os, strutils, strformat, sequtils]
+import std/[os, strutils, strformat, sequtils, exitprocs]
 import pkg/[jsony]
 
 type
@@ -44,7 +44,14 @@ var app = newCliApp(
 
 let rootArg = arg("root", "Root project file")
 
-app.add cmd("test", "Execute full tests in the directory", @[rootArg])
+app.add cmd(
+  "test",
+  "Execute full tests in the directory", @[
+    rootArg,
+    opt("parse-errors",
+         "Parse compilation errors",
+         default = cliDefault(toCliValue(true), "true"),
+         check = cliCheckFor(bool))])
 
 block:
   app.add cmd("doc", "Generate project-wide documentation", @[
@@ -85,8 +92,19 @@ proc check() =
 
 case app.getCmdName():
   of "test":
-    let dir = root / "tests"
-    runTestDir(dir, getCwdNimDump(), 1)
+    let
+      dir = root / "tests"
+      cmd = app.getCmd()
+      parseRun = cmd.getOpt("parse-errors") as bool
+
+    if not runTestDir(
+      dir,
+      getCwdNimDump(),
+      1,
+      parseRun = parseRun,
+      hints = parseRun
+    ):
+      setProgramResult(1)
 
   of "doc":
     var files: seq[(string, string)]
@@ -141,7 +159,7 @@ case app.getCmdName():
 
     args.add &"src/{doc}.nim"
 
-    echov args
+    # echov args
 
     sh args
 
@@ -166,12 +184,12 @@ case app.getCmdName():
 {commits}
 """
 
-      debugecho "\e[31m!!\e[39m project_tasks.nim, Line 169 "
+      # debugecho "\e[31m!!\e[39m project_tasks.nim, Line 169 "
       sh ["git", "diff-index", "--quiet", "HEAD", "--"]
-      debugecho "\e[31m!!\e[39m project_tasks.nim, Line 171 "
+      # debugecho "\e[31m!!\e[39m project_tasks.nim, Line 171 "
       check()
 
-      debugecho "\e[31m!!\e[39m project_tasks.nim, Line 174 "
+      # debugecho "\e[31m!!\e[39m project_tasks.nim, Line 174 "
       let
         text = project.readFile()
         pos = text.find("version")
@@ -179,7 +197,7 @@ case app.getCmdName():
         newText = text[0 ..< pos] &
           &"version = \"{major}.{minor}.{patch}\"" & text[endPos .. ^1]
 
-      debugecho "\e[31m!!\e[39m project_tasks.nim, Line 182 "
+      # debugecho "\e[31m!!\e[39m project_tasks.nim, Line 182 "
 
       project.writeFile(newText)
       sh ["git", "add", "hmisc.nimble"]

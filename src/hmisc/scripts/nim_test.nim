@@ -737,10 +737,12 @@ proc parseExecutionOf(str: var PosStr): seq[string] =
       asVar().
       parseCmdCommand()
 
+const ldNames = ["/bin/ld", "/usr/bin/ld"]
 
 proc parseLdReport(str: var PosStr): NimReport =
   result = NimReport(kind: nrError, error: neLdFail)
-  str.skip("/bin/ld: ")
+  str.skip(ldNames)
+  str.skip(": ")
   result.ldReport.message = str.asStrSlice(str.skipPastEol(), -2)
   str.skip("collect2: ")
   str.skipPastEol()
@@ -763,7 +765,7 @@ proc parseGccReport(report: string): NimReport =
       inc idx
       diags.add tmp
 
-  if idx < report.len and report[idx .. ^1].startsWith("/bin/ld"):
+  if idx < report.len and report[idx .. ^1].startsWith(ldNames):
     result = initPosStr(report[idx .. ^1]).asVar().parseLdReport()
 
   else:
@@ -827,11 +829,11 @@ proc parseOverloadAlts(text: string): NimReport =
 
 
 
-proc parseReportImpl(report: string): NimReport =
+proc parseNimReportImpl(report: string): NimReport =
   var str = initPosStr(report)
 
   str.skipWhile({'\n'})
-  if str["/bin/ld"]:
+  if str[ldNames]:
     result = parseLdReport(str)
 
   elif str["["]:
@@ -922,9 +924,9 @@ proc parseReportImpl(report: string): NimReport =
           part.kind.setKind nrpTracePart
 
 
-proc parseReport(report: string): NimReport =
+proc parseNimReport*(report: string): NimReport =
   try:
-    result = parseReportImpl(report)
+    result = parseNimReportImpl(report)
 
   except UnexpectedCharError as err:
     var tmp = newParseError(
@@ -941,7 +943,7 @@ proc parseReport(report: string): NimReport =
 proc getReports(res: ShellResult, run: NimRun): seq[NimReport] =
   for part in res.getStderr().split("\31"):
     if part.strip().len() > 0:
-      var report = parseReport(part)
+      var report = parseNimReport(part)
       if report of nrError and
          report.error == neGccFail and
          report.gccReport.diags.len == 0:
@@ -1078,19 +1080,72 @@ proc skipKinds*(
 
   filterIt(reports, it.kind notin kind)
 
+type
+  NimRunFailDesc* = object
+    run*: NimRun
+    compileRes*: ShellResult
+    msg*: string
+
+proc processRunResult(
+    run: NimRun,
+    runRes: ShellResult,
+    dump: NimState,
+    l: HLogger,
+    parseRun: bool = true
+  ): Option[NimRunFailDesc] =
+
+  var state: NimReportState
+
+  if parseRun:
+    let reports = getReports(runRes, run)
+
+    if reports.anyIt(it of nrError):
+      result = some NimRunFailDesc(msg: "Compilation failed")
+      l.err "Errors during compilation"
+      for report in reports:
+        state.register(report)
+
+        if report of nrError:
+          l.reportError(report, dump, state)
+
+
+  elif not runRes.isOk():
+    result = some NimRunFailDesc(msg: "Compilation failed")
+    l.err runRes.getStderr()
+    l.err runRes.getStdout()
+
+  if runRes.isOk():
+    try:
+      execShell shellCmdGnu(run.outfile.string)
+
+    except ShellError as err:
+      l.err err.getStdout()
+      l.err err.getStderr()
+      result = some NimRunFailDesc(msg: "Script file execution failed")
+
+  if result.isSome():
+    result.get().run = run
+    result.get().compileRes = runRes
+
+proc reportRunFail(fail: NimRunFailDesc, l: HLogger) =
+  l.err fail.msg
+  l.pdump fail.run
+
 proc runTestDir*(
     dir: AbsDir,
     dump: NimState,
     maxfail: int = high(int),
     first: seq[AbsFile] = @[],
-    l: HLogger = newTermLogger()
-  ) =
+    l: HLogger = newTermLogger(),
+    parseRun: bool = true,
+    hints: bool = true
+  ): bool =
 
   let runs = runsFromDir(dir, first)
   let (joined, standalone) = runs.getJoinable()
+  var fails: seq[NimRunFailDesc]
 
   block joined_items:
-    var state: NimReportState
     let
       tmp = getAppTempDir()
       res = tmp /. "joined.nim"
@@ -1100,28 +1155,17 @@ proc runTestDir*(
 
     let
       run = NimRun(file: res, outfile: res.withExt("out"))
-      cmd = makeCmd(run, dump)
 
     l.info "Running joined tests"
-    let
-      runRes = shellResult(cmd)
-      reports = getReports(runRes, run)
+    if processRunResult(
+        run,
+        shellResult(makeCmd(run, dump, hints = hints)),
+        dump,
+        l,
+        parseRun
+      ).canGet(fail):
 
-    if reports.anyIt(it of nrError):
-      l.err "Errors during compilation"
-      for report in reports:
-        state.register(report)
-
-        if report of nrError:
-          l.reportError(report, dump, state)
-
-    else:
-      l.success "No errors detected during compilation"
-      for run in joined:
-        l.debug run.file
-
-      execShell shellCmdGnu(run.outfile.string)
-
+      fails.add fail
 
   if standalone.len == 0:
     l.info "No standalone files"
@@ -1130,26 +1174,30 @@ proc runTestDir*(
     l.info "Running separate files"
     var failCount = maxfail
     for (res, run) in runShellResult(
-      standalone.mapIt((makeCmd(it, dump), it)), maxPool = 2):
+      standalone.mapIt((makeCmd(it, dump, hints = hints), it)), maxPool = 2):
+      if processRunResult(run, res, dump, l, parseRun).canGet(fail):
+        fails.add fail
+      # let reports = getReports(res, run)
+      # var hasError = false
+      # for report in reports:
+      #   state.register(report)
+      #   if report of nrError:
+      #     l.reportError(report, dump, state)
+      #     inc failCount
 
-      var state: NimReportState
+      #     if maxFail < failCount:
+      #       break
 
-      let reports = getReports(res, run)
-      var hasError = false
-      for report in reports:
-        state.register(report)
-        if report of nrError:
-          l.reportError(report, dump, state)
-          inc failCount
+      #     hasError = true
 
-          if maxFail < failCount:
-            break
+      # if not hasError:
+      #   l.success run.file
+      #   l.execShell shellCmdGnu(run.outfile.string)
 
-          hasError = true
+  for fail in fails:
+    reportRunFail(fail, l)
 
-      if not hasError:
-        l.success run.file
-        l.execShell shellCmdGnu(run.outfile.string)
+  return fails.len == 0
 
 export oswrap, all
 
