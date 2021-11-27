@@ -1,0 +1,44 @@
+EditScript	hmisc/extra/treediff/edit_generator.html#EditScript	edit_generator: EditScript	
+akAddition	hmisc/extra/treediff/edit_generator.html#akAddition	ActionKind.akAddition	
+akInsert	hmisc/extra/treediff/edit_generator.html#akInsert	ActionKind.akInsert	
+akUpdate	hmisc/extra/treediff/edit_generator.html#akUpdate	ActionKind.akUpdate	
+akMove	hmisc/extra/treediff/edit_generator.html#akMove	ActionKind.akMove	
+akDelete	hmisc/extra/treediff/edit_generator.html#akDelete	ActionKind.akDelete	
+akTreeInsert	hmisc/extra/treediff/edit_generator.html#akTreeInsert	ActionKind.akTreeInsert	
+akTreeDelete	hmisc/extra/treediff/edit_generator.html#akTreeDelete	ActionKind.akTreeDelete	
+ActionKind	hmisc/extra/treediff/edit_generator.html#ActionKind	edit_generator: ActionKind	
+Action	hmisc/extra/treediff/edit_generator.html#Action	edit_generator: Action	
+EditScriptGenerator	hmisc/extra/treediff/edit_generator.html#EditScriptGenerator	edit_generator: EditScriptGenerator	
+newEditScriptGenerator	hmisc/extra/treediff/edit_generator.html#newEditScriptGenerator	edit_generator: newEditScriptGenerator(): EditScriptGenerator	
+newDelete	hmisc/extra/treediff/edit_generator.html#newDelete,Tree	edit_generator: newDelete(node: Tree): Action	
+newTreeDelete	hmisc/extra/treediff/edit_generator.html#newTreeDelete,Tree	edit_generator: newTreeDelete(node: Tree): Action	
+newAddition	hmisc/extra/treediff/edit_generator.html#newAddition,Tree,Tree,int	edit_generator: newAddition(node: Tree; parent: Tree; pos: int): Action	
+newMove	hmisc/extra/treediff/edit_generator.html#newMove,Tree,Tree,int	edit_generator: newMove(node: Tree; parent: Tree; pos: int): Action	
+newTreeInsert	hmisc/extra/treediff/edit_generator.html#newTreeInsert,Tree,Tree,int	edit_generator: newTreeInsert(node: Tree; parent: Tree; pos: int): Action	
+newInsert	hmisc/extra/treediff/edit_generator.html#newInsert,Tree,Tree,int	edit_generator: newInsert(node: Tree; parent: Tree; pos: int): Action	
+newUpdate	hmisc/extra/treediff/edit_generator.html#newUpdate,Tree,string	edit_generator: newUpdate(node: Tree; value: string): Action	
+getName	hmisc/extra/treediff/edit_generator.html#getName,Action	edit_generator: getName(this: Action): string	
+`$`	hmisc/extra/treediff/edit_generator.html#$,Action	edit_generator: `$`(action: Action): string	
+getNode	hmisc/extra/treediff/edit_generator.html#getNode,Action	edit_generator: getNode(this: Action): Tree	
+setNode	hmisc/extra/treediff/edit_generator.html#setNode,Action,Tree	edit_generator: setNode(this: Action; node: Tree): void	
+getParent	hmisc/extra/treediff/edit_generator.html#getParent,Action	edit_generator: getParent(this: Action): Tree	
+getPosition	hmisc/extra/treediff/edit_generator.html#getPosition,Action	edit_generator: getPosition(this: Action): int	
+toString	hmisc/extra/treediff/edit_generator.html#toString,Action	edit_generator: toString(this: Action): string	
+newEditScript	hmisc/extra/treediff/edit_generator.html#newEditScript	edit_generator: newEditScript(): EditScript	
+items	hmisc/extra/treediff/edit_generator.html#items.i,EditScript	edit_generator: items(this: EditScript): Action	
+add	hmisc/extra/treediff/edit_generator.html#add,EditScript,Action	edit_generator: add(this: EditScript; action: Action): void	
+add	hmisc/extra/treediff/edit_generator.html#add,EditScript,int,Action	edit_generator: add(this: EditScript; index: int; action: Action): void	
+get	hmisc/extra/treediff/edit_generator.html#get,EditScript,int	edit_generator: get(this: EditScript; index: int): Action	
+size	hmisc/extra/treediff/edit_generator.html#size,EditScript	edit_generator: size(this: EditScript): int	
+remove	hmisc/extra/treediff/edit_generator.html#remove,EditScript,Action	edit_generator: remove(this: EditScript; action: Action): bool	
+remove	hmisc/extra/treediff/edit_generator.html#remove,EditScript,int	edit_generator: remove(this: EditScript; index: int): Action	
+asList	hmisc/extra/treediff/edit_generator.html#asList,EditScript	edit_generator: asList(this: EditScript): seq[Action]	
+lastIndexOf	hmisc/extra/treediff/edit_generator.html#lastIndexOf,EditScript,Action	edit_generator: lastIndexOf(this: EditScript; action: Action): int	
+initWith	hmisc/extra/treediff/edit_generator.html#initWith,EditScriptGenerator,MappingStore	edit_generator: initWith(this: EditScriptGenerator; ms: MappingStore): void	
+findPos	hmisc/extra/treediff/edit_generator.html#findPos,EditScriptGenerator,Tree	edit_generator: findPos(this: EditScriptGenerator; x: Tree): int	
+lcs	hmisc/extra/treediff/edit_generator.html#lcs,EditScriptGenerator,seq[Tree],seq[Tree]	edit_generator: lcs(this: EditScriptGenerator; x: seq[Tree]; y: seq[Tree]): seq[Mapping]	
+alignChildren	hmisc/extra/treediff/edit_generator.html#alignChildren,EditScriptGenerator,Tree,Tree	edit_generator: alignChildren(this: EditScriptGenerator; w: Tree; x: Tree): void	
+generate	hmisc/extra/treediff/edit_generator.html#generate,EditScriptGenerator	edit_generator: generate(this: EditScriptGenerator)	
+simplify	hmisc/extra/treediff/edit_generator.html#simplify,EditScriptGenerator	edit_generator: simplify(this: EditScriptGenerator)	
+removeMovesAndUpdates	hmisc/extra/treediff/edit_generator.html#removeMovesAndUpdates,EditScriptGenerator	edit_generator: removeMovesAndUpdates(this: EditScriptGenerator): EditScript	
+computeActions	hmisc/extra/treediff/edit_generator.html#computeActions,EditScriptGenerator,MappingStore	edit_generator: computeActions(this: EditScriptGenerator; ms: MappingStore): EditScript	

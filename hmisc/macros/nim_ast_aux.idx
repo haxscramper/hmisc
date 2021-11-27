@@ -1,0 +1,8 @@
+lineIInfo	hmisc/macros/nim_ast_aux.html#lineIInfo,NimNode	nim_ast_aux: lineIInfo(node: NimNode): NimNode	
+eqIdent	hmisc/macros/nim_ast_aux.html#eqIdent,NimNode,openArray[string]	nim_ast_aux: eqIdent(node: NimNode; strs: openArray[string]): bool	
+nimAstSpec	hmisc/macros/nim_ast_aux.html#nimAstSpec	nim_ast_aux: nimAstSpec	
+newInfix	hmisc/macros/nim_ast_aux.html#newInfix,NimNode,NimNode,NimNode,NimNode	nim_ast_aux: newInfix(op: NimNode; operands_0: NimNode; operands_1: NimNode; body: NimNode): NimNode	
+newTryStmt	hmisc/macros/nim_ast_aux.html#newTryStmt,varargs[NimNode]	nim_ast_aux: newTryStmt(exceptions: varargs[NimNode]): NimNode	
+`[]`	hmisc/macros/nim_ast_aux.html#[],NimNode,string	nim_ast_aux: `[]`(node: NimNode; name: string): NimNode	
+getSub	hmisc/macros/nim_ast_aux.html#getSub,NimNode,string	nim_ast_aux: getSub(node: NimNode; name: string): seq[NimNode]	
+treeRepr2	hmisc/macros/nim_ast_aux.html#treeRepr2,NimNode,bool,bool,bool,int,bool	nim_ast_aux: treeRepr2(pnode: NimNode; colored: bool = true; pathIndexed: bool = false;\n          positionIndexed: bool = true; maxdepth: int = 120;\n          lineInfo: bool = false): ColoredText	

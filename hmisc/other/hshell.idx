@@ -1,0 +1,163 @@
+ShellError	hmisc/other/hshell.html#ShellError	hshell: ShellError	
+ShellExecResult	hmisc/other/hshell.html#ShellExecResult	hshell: ShellExecResult	
+ShellResult	hmisc/other/hshell.html#ShellResult	hshell: ShellResult	
+ccRegularFlags	hmisc/other/hshell.html#ccRegularFlags	ShellCmdFlagConf.ccRegularFlags	
+ccOneDashFlags	hmisc/other/hshell.html#ccOneDashFlags	ShellCmdFlagConf.ccOneDashFlags	
+ShellCmdFlagConf	hmisc/other/hshell.html#ShellCmdFlagConf	hshell: ShellCmdFlagConf	
+ShellCmdConf	hmisc/other/hshell.html#ShellCmdConf	hshell: ShellCmdConf	
+cpkSubCmd	hmisc/other/hshell.html#cpkSubCmd	ShellCmdPartKind.cpkSubCmd	
+cpkArgument	hmisc/other/hshell.html#cpkArgument	ShellCmdPartKind.cpkArgument	
+cpkOption	hmisc/other/hshell.html#cpkOption	ShellCmdPartKind.cpkOption	
+cpkFlag	hmisc/other/hshell.html#cpkFlag	ShellCmdPartKind.cpkFlag	
+cpkRaw	hmisc/other/hshell.html#cpkRaw	ShellCmdPartKind.cpkRaw	
+cpkSubExpr	hmisc/other/hshell.html#cpkSubExpr	ShellCmdPartKind.cpkSubExpr	
+ShellCmdPartKind	hmisc/other/hshell.html#ShellCmdPartKind	hshell: ShellCmdPartKind	
+ShellCmdPart	hmisc/other/hshell.html#ShellCmdPart	hshell: ShellCmdPart	
+ShellCmd	hmisc/other/hshell.html#ShellCmd	hshell: ShellCmd	
+ShellGlob	hmisc/other/hshell.html#ShellGlob	hshell: ShellGlob	
+sakEmpty	hmisc/other/hshell.html#sakEmpty	ShellAstKind.sakEmpty	
+sakCmd	hmisc/other/hshell.html#sakCmd	ShellAstKind.sakCmd	
+sakVar	hmisc/other/hshell.html#sakVar	ShellAstKind.sakVar	
+sakGlob	hmisc/other/hshell.html#sakGlob	ShellAstKind.sakGlob	
+sakWord	hmisc/other/hshell.html#sakWord	ShellAstKind.sakWord	
+sakArithmExpr	hmisc/other/hshell.html#sakArithmExpr	ShellAstKind.sakArithmExpr	
+sakRawExpr	hmisc/other/hshell.html#sakRawExpr	ShellAstKind.sakRawExpr	
+sakStrLit	hmisc/other/hshell.html#sakStrLit	ShellAstKind.sakStrLit	
+sakWhile	hmisc/other/hshell.html#sakWhile	ShellAstKind.sakWhile	
+sakIf	hmisc/other/hshell.html#sakIf	ShellAstKind.sakIf	
+sakCase	hmisc/other/hshell.html#sakCase	ShellAstKind.sakCase	
+sakAsgn	hmisc/other/hshell.html#sakAsgn	ShellAstKind.sakAsgn	
+sakFor	hmisc/other/hshell.html#sakFor	ShellAstKind.sakFor	
+sakMath	hmisc/other/hshell.html#sakMath	ShellAstKind.sakMath	
+sakOrList	hmisc/other/hshell.html#sakOrList	ShellAstKind.sakOrList	
+sakAndList	hmisc/other/hshell.html#sakAndList	ShellAstKind.sakAndList	
+sakSequentialList	hmisc/other/hshell.html#sakSequentialList	ShellAstKind.sakSequentialList	
+sakAsyncList	hmisc/other/hshell.html#sakAsyncList	ShellAstKind.sakAsyncList	
+sakPipeList	hmisc/other/hshell.html#sakPipeList	ShellAstKind.sakPipeList	
+sakStmtList	hmisc/other/hshell.html#sakStmtList	ShellAstKind.sakStmtList	
+sakSubcommand	hmisc/other/hshell.html#sakSubcommand	ShellAstKind.sakSubcommand	
+sakStdoutOverwrite	hmisc/other/hshell.html#sakStdoutOverwrite	ShellAstKind.sakStdoutOverwrite	
+sakStdoutAppend	hmisc/other/hshell.html#sakStdoutAppend	ShellAstKind.sakStdoutAppend	
+sakStdin	hmisc/other/hshell.html#sakStdin	ShellAstKind.sakStdin	
+ShellAstKind	hmisc/other/hshell.html#ShellAstKind	hshell: ShellAstKind	
+ShellAst	hmisc/other/hshell.html#ShellAst	hshell: ShellAst	
+GnuShellCmdConf	hmisc/other/hshell.html#GnuShellCmdConf	hshell: GnuShellCmdConf	
+SpaceShellCmdConf	hmisc/other/hshell.html#SpaceShellCmdConf	hshell: SpaceShellCmdConf	
+NimShellCmdConf	hmisc/other/hshell.html#NimShellCmdConf	hshell: NimShellCmdConf	
+X11ShellCmdConf	hmisc/other/hshell.html#X11ShellCmdConf	hshell: X11ShellCmdConf	
+sakListKinds	hmisc/other/hshell.html#sakListKinds	hshell: sakListKinds	
+initShellCmdConf	hmisc/other/hshell.html#initShellCmdConf	hshell: initShellCmdConf(): ShellCmdConf	
+isOk	hmisc/other/hshell.html#isOk,ShellResult	hshell: isOk(shellRes: ShellResult): bool	
+getStdout	hmisc/other/hshell.html#getStdout,ShellError	hshell: getStdout(err: ShellError): string	
+getStderr	hmisc/other/hshell.html#getStderr,ShellError	hshell: getStderr(err: ShellError): string	
+getStdout	hmisc/other/hshell.html#getStdout,ShellResult	hshell: getStdout(shellRes: ShellResult): string	
+getStderr	hmisc/other/hshell.html#getStderr,ShellResult	hshell: getStderr(shellRes: ShellResult): string	
+split	hmisc/other/hshell.html#split,ShellResult	hshell: split(res: ShellResult): tuple[stdout, stderr: string, code: int]	
+`[]`	hmisc/other/hshell.html#[],ShellAst,int	hshell: `[]`(sa: ShellAst; idx: int): ShellAst	
+len	hmisc/other/hshell.html#len,ShellAst	hshell: len(sa: ShellAst): int	
+toJson	hmisc/other/hshell.html#toJson,ShellGlob	hshell: toJson(v: ShellGlob): JsonNode	
+bin	hmisc/other/hshell.html#bin,ShellCmd	hshell: bin(v: ShellCmd): string	
+toShellCmd	hmisc/other/hshell.html#toShellCmd.c,ShellExpr	hshell: toShellCmd(a: ShellExpr): ShellCmd	
+initCmdOption	hmisc/other/hshell.html#initCmdOption,string,string	hshell: initCmdOption(key, val: string): ShellCmdPart	
+initCmdFlag	hmisc/other/hshell.html#initCmdFlag,string	hshell: initCmdFlag(fl: string): ShellCmdPart	
+initCmdEnvOrOption	hmisc/other/hshell.html#initCmdEnvOrOption,ShellVar,string,string,bool	hshell: initCmdEnvOrOption(env: ShellVar; key, val: string; allowEmpty: bool = false): ShellCmdPart	
+isEmpty	hmisc/other/hshell.html#isEmpty,ShellCmd	hshell: isEmpty(cmd: ShellCmd): bool	
+flag	hmisc/other/hshell.html#flag,ShellCmd,string	hshell: flag(cmd: var ShellCmd; fl: string)	
+opt	hmisc/other/hshell.html#opt,ShellCmd,string,T	hshell: opt[T](cmd: var ShellCmd; inKey: string; val: T)	
+env	hmisc/other/hshell.html#env,ShellCmd,string,string	hshell: env(cmd: var ShellCmd; key, val: string): void	
+opt	hmisc/other/hshell.html#opt,ShellCmd,openArray[tuple[string,string]]	hshell: opt(cmd: var ShellCmd; opts: openArray[tuple[key, val: string]])	
+opt	hmisc/other/hshell.html#opt,ShellCmd,string,string,string	hshell: opt(cmd: var ShellCmd; key, sep, val: string)	
+cmd	hmisc/other/hshell.html#cmd,ShellCmd,string	hshell: cmd(cmd: var ShellCmd; sub: string)	
+raw	hmisc/other/hshell.html#raw,ShellCmd,string	hshell: raw(cmd: var ShellCmd; str: string)	
+expr	hmisc/other/hshell.html#expr,ShellCmd,ShellExpr	hshell: expr(cmd: var ShellCmd; subexpr: ShellExpr)	
+expr	hmisc/other/hshell.html#expr,ShellCmd,ShellCmd	hshell: expr(cmd: var ShellCmd; subexpr: ShellCmd)	
+expr	hmisc/other/hshell.html#expr,ShellCmd,ShellAst	hshell: expr(cmd: var ShellCmd; expr: ShellAst)	
+arg	hmisc/other/hshell.html#arg,ShellCmd,	hshell: arg(cmd: var ShellCmd; arg: string | AnyPath)	
+arg	hmisc/other/hshell.html#arg,ShellCmd,int	hshell: arg(cmd: var ShellCmd; arg: int)	
+`-`	hmisc/other/hshell.html#-,ShellCmd,string	hshell: `-`(cmd: var ShellCmd; fl: string)	
+`-`	hmisc/other/hshell.html#-,ShellCmd,char	hshell: `-`(cmd: var ShellCmd; fl: char)	
+`-`	hmisc/other/hshell.html#-,ShellCmd,AnyPath	hshell: `-`(cmd: var ShellCmd; path: AnyPath)	
+`-`	hmisc/other/hshell.html#-,ShellCmd,	hshell: `-`[Path: AnyPath](cmd: var ShellCmd; kv: (string, Path))	
+`-`	hmisc/other/hshell.html#-,ShellCmd,_2	hshell: `-`(cmd: var ShellCmd; kv: (string, string))	
+`-`	hmisc/other/hshell.html#-,ShellCmd,tuple[string,string,string]	hshell: `-`(cmd: var ShellCmd; kv: tuple[key, sep, val: string])	
+makeShellCmd	hmisc/other/hshell.html#makeShellCmd,ShellCmdConf,string	hshell: makeShellCmd(conf: ShellCmdConf; bin: string): ShellCmd	
+gnuShellCmdsList	hmisc/other/hshell.html#gnuShellCmdsList	hshell: gnuShellCmdsList	
+nimShellCmdsList	hmisc/other/hshell.html#nimShellCmdsList	hshell: nimShellCmdsList	
+spaceShellCmdsList	hmisc/other/hshell.html#spaceShellCmdsList	hshell: spaceShellCmdsList	
+x11ShellCmdsList	hmisc/other/hshell.html#x11ShellCmdsList	hshell: x11ShellCmdsList	
+makeShellCmd	hmisc/other/hshell.html#makeShellCmd,string	hshell: makeShellCmd(bin: string): ShellCmd	
+makeShellCmd	hmisc/other/hshell.html#makeShellCmd,string,string,string	hshell: makeShellCmd(bin, prefix, sep: string): ShellCmd	
+makeNimShellCmd	hmisc/other/hshell.html#makeNimShellCmd,string	hshell: makeNimShellCmd(bin: string): ShellCmd	
+makeX11ShellCmd	hmisc/other/hshell.html#makeX11ShellCmd,string	hshell: makeX11ShellCmd(bin: string): ShellCmd	
+makeGnuShellCmd	hmisc/other/hshell.html#makeGnuShellCmd,string	hshell: makeGnuShellCmd(bin: string): ShellCmd	
+makeFileShellCmd	hmisc/other/hshell.html#makeFileShellCmd,string,ShellCmdConf	hshell: makeFileShellCmd(file: string; conf: ShellCmdConf = GnuShellCmdConf): ShellCmd	
+makeFileShellCmd	hmisc/other/hshell.html#makeFileShellCmd,AnyFile,ShellCmdConf	hshell: makeFileShellCmd(file: AnyFile; conf: ShellCmdConf = GnuShellCmdConf): ShellCmd	
+quoteShell	hmisc/other/hshell.html#quoteShell,string	hshell: quoteShell(str: string): string	
+toStr	hmisc/other/hshell.html#toStr,ShellCmdPart,ShellCmdConf,bool	hshell: toStr(part: ShellCmdPart; conf: ShellCmdConf; colored: bool = false): ColoredText	
+toStrSeq	hmisc/other/hshell.html#toStrSeq,ShellCmd	hshell: toStrSeq(cmd: ShellCmd): seq[ColoredText]	
+toStr	hmisc/other/hshell.html#toStr,ShellCmd	hshell: toStr(cmd: ShellCmd): string	
+`$`	hmisc/other/hshell.html#$,ShellCmd	hshell: `$`(cmd: ShellCmd): string	
+toStr	hmisc/other/hshell.html#toStr,ShellAst,bool	hshell: toStr(inAst: ShellAst; oneline: bool = false): string	
+toShellCmd	hmisc/other/hshell.html#toShellCmd,ShellAst	hshell: toShellCmd(ast: ShellAst): ShellCmd	
+items	hmisc/other/hshell.html#items.i,ShellCmd	hshell: items(cmd: ShellCmd): ShellCmdPart	
+`[]`	hmisc/other/hshell.html#[],ShellCmd,int	hshell: `[]`(cmd: ShellCmd; idx: int): ShellCmdPart	
+pairs	hmisc/other/hshell.html#pairs.i,ShellCmd	hshell: pairs(cmd: ShellCmd): (int, ShellCmdPart)	
+toLogStr	hmisc/other/hshell.html#toLogStr,ShellCmd	hshell: toLogStr(cmd: ShellCmd): ColoredText	
+splitShell	hmisc/other/hshell.html#splitShell,string	hshell: splitShell(str: string): seq[string]	
+wrapShell	hmisc/other/hshell.html#wrapShell,string,int	hshell: wrapShell(str: string; maxw: int = 80): string	
+toShellAst	hmisc/other/hshell.html#toShellAst,ShellCmd	hshell: toShellAst(cmd: ShellCmd): ShellAst	
+toShellAst	hmisc/other/hshell.html#toShellAst,ShellAst	hshell: toShellAst(ast: ShellAst): ShellAst	
+toShellAst	hmisc/other/hshell.html#toShellAst,string	hshell: toShellAst(str: string): ShellAst	
+toShellAst	hmisc/other/hshell.html#toShellAst,ShellVar	hshell: toShellAst(v: ShellVar): ShellAst	
+toShellAst	hmisc/other/hshell.html#toShellAst,int	hshell: toShellAst(i: int): ShellAst	
+`&amp;&amp;`	hmisc/other/hshell.html#&&,openArray[ShellSomething]	hshell: `&amp;&amp;`(exprs: openArray[ShellSomething]): ShellAst	
+`&amp;&amp;`	hmisc/other/hshell.html#&&,T1,T2	hshell: `&amp;&amp;`[T1, T2: ShellSomething](e1: T1; e2: T2): ShellAst	
+`||`	hmisc/other/hshell.html#||,openArray[ShellSomething]	hshell: `||`(exprs: openArray[ShellSomething]): ShellAst	
+`||`	hmisc/other/hshell.html#||,T1,T2	hshell: `||`[T1, T2: ShellSomething](e1: T1; e2: T2): ShellAst	
+`|`	hmisc/other/hshell.html#|,openArray[ShellSomething]	hshell: `|`(exprs: openArray[ShellSomething]): ShellAst	
+`|`	hmisc/other/hshell.html#|,T1,T2	hshell: `|`[T1, T2: ShellSomething](e1: T1; e2: T2): ShellAst	
+`&amp;`	hmisc/other/hshell.html#&,openArray[ShellSomething]	hshell: `&amp;`(exprs: openArray[ShellSomething]): ShellAst	
+`&amp;`	hmisc/other/hshell.html#&,T1,T2	hshell: `&amp;`[T1, T2: ShellSomething](e1: T1; e2: T2): ShellAst	
+`&amp;&amp;=`	hmisc/other/hshell.html#&&=,ShellAst,ShellSomething	hshell: `&amp;&amp;=`(e1: var ShellAst; e2: ShellSomething)	
+`||=`	hmisc/other/hshell.html#||=,ShellAst,ShellSomething	hshell: `||=`(e1: var ShellAst; e2: ShellSomething)	
+`&amp;=`	hmisc/other/hshell.html#&=,ShellAst,ShellSomething	hshell: `&amp;=`(e1: var ShellAst; e2: ShellSomething)	
+`|=`	hmisc/other/hshell.html#|=,ShellAst,ShellSomething	hshell: `|=`(e1: var ShellAst; e2: ShellSomething)	
+shAnd	hmisc/other/hshell.html#shAnd.m,varargs[untyped]	hshell: shAnd(arg: varargs[untyped]): untyped	
+shOr	hmisc/other/hshell.html#shOr.m,varargs[untyped]	hshell: shOr(arg: varargs[untyped]): untyped	
+shPipe	hmisc/other/hshell.html#shPipe.m,varargs[untyped]	hshell: shPipe(arg: varargs[untyped]): untyped	
+shAsync	hmisc/other/hshell.html#shAsync,ShellAst	hshell: shAsync(arg: ShellAst): ShellAst	
+shAsync	hmisc/other/hshell.html#shAsync,ShellCmd	hshell: shAsync(arg: ShellCmd): ShellAst	
+shStmtList	hmisc/other/hshell.html#shStmtList,varargs[ShellAst]	hshell: shStmtList(args: varargs[ShellAst]): ShellAst	
+shAsgn	hmisc/other/hshell.html#shAsgn,ShellVar,string,bool	hshell: shAsgn(v: ShellVar; expr: string; exportVar: bool = false): ShellAst	
+shAsgn	hmisc/other/hshell.html#shAsgn,ShellVar,ShellSomething,bool	hshell: shAsgn(v: ShellVar; expr: ShellSomething; exportVar: bool = false): ShellAst	
+shWhile	hmisc/other/hshell.html#shWhile,ShellAst,varargs[ShellAst,toShellAst]	hshell: shWhile(expr: ShellAst; body: varargs[ShellAst, toShellAst]): ShellAst	
+makeTestBracketCmd	hmisc/other/hshell.html#makeTestBracketCmd,ShellAst,ShellAst,string	hshell: makeTestBracketCmd(e1, e2: ShellAst; op: string): ShellAst	
+`&lt;`	hmisc/other/hshell.html#<,T1,T2	hshell: `&lt;`[T1, T2: ShellMathExpr](lhs: T1; rhs: T2): ShellAst	
+`+`	hmisc/other/hshell.html#+,T1,T2	hshell: `+`[T1, T2: ShellMathExpr](lhs: T1; rhs: T2): ShellAst	
+shellCmdRaw	hmisc/other/hshell.html#shellCmdRaw,seq[string]	hshell: shellCmdRaw(args: seq[string]): ShellCmd	
+shellCmdX11	hmisc/other/hshell.html#shellCmdX11,string	hshell: shellCmdX11(bin: string): ShellCmd	
+shellCmdGnu	hmisc/other/hshell.html#shellCmdGnu,string	hshell: shellCmdGnu(bin: string): ShellCmd	
+shellCmd	hmisc/other/hshell.html#shellCmd.m,untyped,varargs[untyped]	hshell: shellCmd(cmd: untyped; args: varargs[untyped]): untyped	
+shCmd	hmisc/other/hshell.html#shCmd.m,untyped,varargs[untyped]	hshell: shCmd(cmd: untyped; args: varargs[untyped]): untyped	
+printShellError	hmisc/other/hshell.html#printShellError	hshell: printShellError()	
+iterstdout	hmisc/other/hshell.html#iterstdout.i,ShellExpr	hshell: iterstdout(command: ShellExpr): string	
+startShell	hmisc/other/hshell.html#startShell,ShellCmd,set[ProcessOption],string	hshell: startShell(cmd: ShellCmd; options: set[ProcessOption] = {poUsePath};\n           stdin: string = &quot;&quot;): Process	
+runShellResult	hmisc/other/hshell.html#runShellResult.i,seq[tuple[ShellCmd,T]],set[ProcessOption],int,proc(ShellCmd,T)	hshell: runShellResult[T](cmds: seq[tuple[cmd: ShellCmd, data: T]];\n                  fullParams: set[ProcessOption] = {poEvalCommand};\n                  maxPool: int = 8;\n                  beforeStart: proc (cmd: ShellCmd; data: T) = nil): tuple[\n    res: ShellResult, data: T]	
+StreamConverter	hmisc/other/hshell.html#StreamConverter	hshell: StreamConverter	
+makeShellRecordIter	hmisc/other/hshell.html#makeShellRecordIter,Cmd,StreamConverter[Cmd,OutRec,State],StreamConverter[Cmd,ErrRec,State],set[ProcessOption],int,bool,Option[State],int	hshell: makeShellRecordIter[Cmd, OutRec, ErrRec, State](cmd: Cmd;\n    outConvert: StreamConverter[Cmd, OutRec, State];\n    errConvert: StreamConverter[Cmd, ErrRec, State];\n    options: set[ProcessOption] = {poEvalCommand, poUsePath};\n    maxErrorLines: int = 12; doRaise: bool = true;\n    state: Option[State] = none(State); execTimeoutMs: int = high(int)): tuple[\n    stdout: iterator (): OutRec, stderr: iterator (): ErrRec]	
+shellResult	hmisc/other/hshell.html#shellResult,ShellCmd,string,set[ProcessOption],int,int,bool,int	hshell: shellResult(cmd: ShellCmd; stdin: string = &quot;&quot;;\n            options: set[ProcessOption] = {poEvalCommand};\n            maxErrorLines: int = high(int); maxOutLines: int = high(int);\n            discardOut: bool = false; execTimeoutMs: int = high(int)): ShellResult	
+runShell	hmisc/other/hshell.html#runShell,ShellCmd,bool,string,set[ProcessOption],int,int,bool,int	hshell: runShell(cmd: ShellCmd; doRaise: bool = true; stdin: string = &quot;&quot;;\n         options: set[ProcessOption] = {poEvalCommand};\n         maxErrorLines: int = high(int); maxOutLines: int = high(int);\n         discardOut: bool = false; execTimeoutMs: int = high(int)): ShellExecResult	
+execShell	hmisc/other/hshell.html#execShell,ShellExpr	hshell: execShell(cmd: ShellExpr): void	
+hasCmd	hmisc/other/hshell.html#hasCmd,ShellCmd	hshell: hasCmd(cmd: ShellCmd): bool	
+execShell	hmisc/other/hshell.html#execShell,ShellAst	hshell: execShell(cmd: ShellAst): void	
+evalShell	hmisc/other/hshell.html#evalShell,ShellExpr	hshell: evalShell(cmd: ShellExpr): auto	
+evalShell	hmisc/other/hshell.html#evalShell,ShellAst	hshell: evalShell(ast: ShellAst): auto	
+evalShellStdout	hmisc/other/hshell.html#evalShellStdout,ShellExpr	hshell: evalShellStdout(cmd: ShellExpr): string	
+evalShellStdout	hmisc/other/hshell.html#evalShellStdout,ShellAst,string	hshell: evalShellStdout(cmd: ShellAst; stdin: string = &quot;&quot;): string	
+evalShellStdout	hmisc/other/hshell.html#evalShellStdout,ShellCmd,string,int	hshell: evalShellStdout(cmd: ShellCmd; stdin: string = &quot;&quot;;\n                maxErrorLines: int = high(int)): string	
+evalShell	hmisc/other/hshell.html#evalShell,ShellCmd,string	hshell: evalShell(cmd: ShellCmd; stdin: string = &quot;&quot;): auto	
+execShell	hmisc/other/hshell.html#execShell,ShellCmd,bool,int,int	hshell: execShell(cmd: ShellCmd; doRaise: bool = true; limitErr: int = high(int);\n          limitOut: int = high(int)): void	
+eval	hmisc/other/hshell.html#eval,ShellExpr	hshell: eval(expr: ShellExpr): string	
+eval	hmisc/other/hshell.html#eval,ShellCmd,string	hshell: eval(cmd: ShellCmd; stdin: string = &quot;&quot;): string	
+interpolateShell	hmisc/other/hshell.html#interpolateShell,ShellExpr,bool,bool	hshell: interpolateShell(expr: ShellExpr; allowEmpty: bool = false;\n                 doRaise: bool = false): Option[string]	
+initCmdInterpOrOption	hmisc/other/hshell.html#initCmdInterpOrOption,ShellExpr,string,string,bool	hshell: initCmdInterpOrOption(interpol: ShellExpr; key, val: string;\n                      allowEmpty: bool = false): ShellCmdPart	

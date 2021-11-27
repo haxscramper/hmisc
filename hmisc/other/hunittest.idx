@@ -1,0 +1,73 @@
+tfkNone	hmisc/other/hunittest.html#tfkNone	TestFailKind.tfkNone	
+tfkException	hmisc/other/hunittest.html#tfkException	TestFailKind.tfkException	
+tfkManualFail	hmisc/other/hunittest.html#tfkManualFail	TestFailKind.tfkManualFail	
+tfkOpCheck	hmisc/other/hunittest.html#tfkOpCheck	TestFailKind.tfkOpCheck	
+tfkCallCheck	hmisc/other/hunittest.html#tfkCallCheck	TestFailKind.tfkCallCheck	
+tfkPredicateFail	hmisc/other/hunittest.html#tfkPredicateFail	TestFailKind.tfkPredicateFail	
+tfkNoExceptionRaised	hmisc/other/hunittest.html#tfkNoExceptionRaised	TestFailKind.tfkNoExceptionRaised	
+tfkUnexpectedExceptionRaised	hmisc/other/hunittest.html#tfkUnexpectedExceptionRaised	TestFailKind.tfkUnexpectedExceptionRaised	
+tfkStrdiff	hmisc/other/hunittest.html#tfkStrdiff	TestFailKind.tfkStrdiff	
+tfkStructDiff	hmisc/other/hunittest.html#tfkStructDiff	TestFailKind.tfkStructDiff	
+tfkAstDiff	hmisc/other/hunittest.html#tfkAstDiff	TestFailKind.tfkAstDiff	
+tfkMatchDiff	hmisc/other/hunittest.html#tfkMatchDiff	TestFailKind.tfkMatchDiff	
+tfkStructEq	hmisc/other/hunittest.html#tfkStructEq	TestFailKind.tfkStructEq	
+tfkStructNeqNoDiff	hmisc/other/hunittest.html#tfkStructNeqNoDiff	TestFailKind.tfkStructNeqNoDiff	
+TestFailKind	hmisc/other/hunittest.html#TestFailKind	hunittest: TestFailKind	
+trkCheckpoint	hmisc/other/hunittest.html#trkCheckpoint	TestReportKind.trkCheckpoint	
+trkCheckOk	hmisc/other/hunittest.html#trkCheckOk	TestReportKind.trkCheckOk	
+trkCheckFail	hmisc/other/hunittest.html#trkCheckFail	TestReportKind.trkCheckFail	
+trkExpectOk	hmisc/other/hunittest.html#trkExpectOk	TestReportKind.trkExpectOk	
+trkExpectFail	hmisc/other/hunittest.html#trkExpectFail	TestReportKind.trkExpectFail	
+trkTestSkip	hmisc/other/hunittest.html#trkTestSkip	TestReportKind.trkTestSkip	
+trkTestStart	hmisc/other/hunittest.html#trkTestStart	TestReportKind.trkTestStart	
+trkTestEnd	hmisc/other/hunittest.html#trkTestEnd	TestReportKind.trkTestEnd	
+trkTestFail	hmisc/other/hunittest.html#trkTestFail	TestReportKind.trkTestFail	
+trkTestOk	hmisc/other/hunittest.html#trkTestOk	TestReportKind.trkTestOk	
+trkSuiteStart	hmisc/other/hunittest.html#trkSuiteStart	TestReportKind.trkSuiteStart	
+trkSuiteEnd	hmisc/other/hunittest.html#trkSuiteEnd	TestReportKind.trkSuiteEnd	
+trkSuiteFail	hmisc/other/hunittest.html#trkSuiteFail	TestReportKind.trkSuiteFail	
+trkShow	hmisc/other/hunittest.html#trkShow	TestReportKind.trkShow	
+trkBlockStart	hmisc/other/hunittest.html#trkBlockStart	TestReportKind.trkBlockStart	
+trkBlockEnd	hmisc/other/hunittest.html#trkBlockEnd	TestReportKind.trkBlockEnd	
+trkTestComment	hmisc/other/hunittest.html#trkTestComment	TestReportKind.trkTestComment	
+trkSuiteComment	hmisc/other/hunittest.html#trkSuiteComment	TestReportKind.trkSuiteComment	
+trkBlockComment	hmisc/other/hunittest.html#trkBlockComment	TestReportKind.trkBlockComment	
+trkTimeStats	hmisc/other/hunittest.html#trkTimeStats	TestReportKind.trkTimeStats	
+trkFileEnded	hmisc/other/hunittest.html#trkFileEnded	TestReportKind.trkFileEnded	
+trkFileStarted	hmisc/other/hunittest.html#trkFileStarted	TestReportKind.trkFileStarted	
+trkMergedFileEnded	hmisc/other/hunittest.html#trkMergedFileEnded	TestReportKind.trkMergedFileEnded	
+TestReportKind	hmisc/other/hunittest.html#TestReportKind	hunittest: TestReportKind	
+TestReport	hmisc/other/hunittest.html#TestReport	hunittest: TestReport	
+TestContext	hmisc/other/hunittest.html#TestContext	hunittest: TestContext	
+newTestLogger	hmisc/other/hunittest.html#newTestLogger	hunittest: newTestLogger(): HLogger	
+newTestContext	hmisc/other/hunittest.html#newTestContext	hunittest: newTestContext(): TestContext	
+setTestContext	hmisc/other/hunittest.html#setTestContext,TestContext	hunittest: setTestContext(newContext: TestContext)	
+getTestLogger	hmisc/other/hunittest.html#getTestLogger	hunittest: getTestLogger(): HLogger	
+getTestTempFile	hmisc/other/hunittest.html#getTestTempFile,string	hunittest: getTestTempFile(ext: string): AbsFile	
+getTestTempFile	hmisc/other/hunittest.html#getTestTempFile,string,string	hunittest: getTestTempFile(name, ext: string): AbsFile	
+getTestTempDir	hmisc/other/hunittest.html#getTestTempDir,bool	hunittest: getTestTempDir(mkDir: bool = false): AbsDir	
+configureDefaultTestContext	hmisc/other/hunittest.html#configureDefaultTestContext,bool,bool,bool	hunittest: configureDefaultTestContext(skipAfterException: bool = false;\n                            skipAfterManual: bool = false;\n                            skipAfterCheckFail: bool = false)	
+showCoverage	hmisc/other/hunittest.html#showCoverage,TestConf,string,bool	hunittest: showCoverage(conf: var TestConf; procname: string; onlyMissing: bool = true)	
+testFileStarted	hmisc/other/hunittest.html#testFileStarted.t	hunittest: testFileStarted()	
+testFileEnded	hmisc/other/hunittest.html#testFileEnded.t	hunittest: testFileEnded()	
+mergedFileEnded	hmisc/other/hunittest.html#mergedFileEnded.t	hunittest: mergedFileEnded()	
+show	hmisc/other/hunittest.html#show.m,varargs[untyped]	hunittest: show(args: varargs[untyped]): untyped	
+strdiff	hmisc/other/hunittest.html#strdiff.t,string,string,TestLocation	hunittest: strdiff(str1, str2: string; loc: TestLocation): TestReport	
+structdiff	hmisc/other/hunittest.html#structdiff,PPrintTree,PPrintTree,TestLocation	hunittest: structdiff(ptree1, ptree2: PPrintTree; loc: TestLocation): TestReport	
+structdiff	hmisc/other/hunittest.html#structdiff,T,T,TestLocation	hunittest: structdiff[T](struct1, struct2: T; loc: TestLocation): TestReport	
+structeq	hmisc/other/hunittest.html#structeq,T,T,TestLocation	hunittest: structeq[T](struct1, struct2: T; loc: TestLocation): TestReport	
+astdiff	hmisc/other/hunittest.html#astdiff.m,typed,untyped,TestLocation	hunittest: astdiff(ast: typed; match: untyped; loc: TestLocation): untyped	
+matchdiff	hmisc/other/hunittest.html#matchdiff.m,untyped,untyped,static[TestLocation]	hunittest: matchdiff(obj, match: untyped; loc: static[TestLocation]): untyped	
+wantContext	hmisc/other/hunittest.html#wantContext.t	hunittest: wantContext(): untyped	
+suite	hmisc/other/hunittest.html#suite.m,static[string],untyped	hunittest: suite(name: static[string]; body: untyped): untyped	
+test	hmisc/other/hunittest.html#test.m,static[string],untyped	hunittest: test(name: static[string]; body: untyped): untyped	
+timeIt	hmisc/other/hunittest.html#timeIt.t,string,seq[],untyped,untyped	hunittest: timeIt(testName: string; params: seq[(string, TestValue)]; iterations: untyped;\n       body: untyped): untyped	
+timeIt	hmisc/other/hunittest.html#timeIt.t,string,untyped	hunittest: timeIt(name: string; body: untyped): untyped	
+check	hmisc/other/hunittest.html#check.m,untyped	hunittest: check(expr: untyped): untyped	
+parametrizeOnType	hmisc/other/hunittest.html#parametrizeOnType.m,untyped,typed,untyped	hunittest: parametrizeOnType(varname: untyped; types: typed; body: untyped): untyped	
+parametrizeOnConst	hmisc/other/hunittest.html#parametrizeOnConst.m,untyped,untyped,untyped	hunittest: parametrizeOnConst(varname, values, body: untyped): untyped	
+parametrizeOnValue	hmisc/other/hunittest.html#parametrizeOnValue.m,untyped,typed,untyped	hunittest: parametrizeOnValue(varname: untyped; values: typed; body: untyped): untyped	
+expect	hmisc/other/hunittest.html#expect.m,varargs[untyped]	hunittest: expect(args: varargs[untyped]): untyped	
+skip	hmisc/other/hunittest.html#skip.t,string	hunittest: skip(msg: string = &quot;&quot;): untyped	
+fail	hmisc/other/hunittest.html#fail.t,string	hunittest: fail(msg: string = &quot;&quot;): untyped	
+checkpoint	hmisc/other/hunittest.html#checkpoint.t,string	hunittest: checkpoint(mgs: string): untyped	

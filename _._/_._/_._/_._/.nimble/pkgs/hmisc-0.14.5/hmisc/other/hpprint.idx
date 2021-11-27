@@ -1,0 +1,103 @@
+PPrintType	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#PPrintType	hpprint: PPrintType	
+ptkIgnored	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#ptkIgnored	PPrintTreeKind.ptkIgnored	
+ptkVisited	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#ptkVisited	PPrintTreeKind.ptkVisited	
+ptkNil	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#ptkNil	PPrintTreeKind.ptkNil	
+ptkAnnotation	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#ptkAnnotation	PPrintTreeKind.ptkAnnotation	
+ptkConst	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#ptkConst	PPrintTreeKind.ptkConst	
+ptkTuple	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#ptkTuple	PPrintTreeKind.ptkTuple	
+ptkList	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#ptkList	PPrintTreeKind.ptkList	
+ptkMapping	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#ptkMapping	PPrintTreeKind.ptkMapping	
+ptkObject	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#ptkObject	PPrintTreeKind.ptkObject	
+ptkNamedTuple	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#ptkNamedTuple	PPrintTreeKind.ptkNamedTuple	
+PPrintTreeKind	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#PPrintTreeKind	hpprint: PPrintTreeKind	
+PPrintPath	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#PPrintPath	hpprint: PPrintPath	
+PPrintLytChoice	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#PPrintLytChoice	hpprint: PPrintLytChoice	
+PPrintLytForce	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#PPrintLytForce	hpprint: PPrintLytForce	
+PPrintExtraField	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#PPrintExtraField	hpprint: PPrintExtraField	
+PPrintConf	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#PPrintConf	hpprint: PPrintConf	
+ptkObjectKinds	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#ptkObjectKinds	hpprint: ptkObjectKinds	
+PPrintTree	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#PPrintTree	hpprint: PPrintTree	
+globKind	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#globKind,PPrintGlobPart	hpprint: globKind(pprintGlob: PPrintGlobPart): GenGlobPartKind	
+globKind	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#globKind,PPrintPathElem	hpprint: globKind(pprintGlob: PPrintPathElem): GenGlobPartKind	
+pglob	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#pglob	hpprint: pglob(): PPrintGlob	
+star	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#star,sinkPPrintGlob	hpprint: star(main: sink PPrintGlob): PPrintGlob	
+one	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#one,sinkPPrintGlob	hpprint: one(main: sink PPrintGlob): PPrintGlob	
+field	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#field,sinkPPrintGlob,string	hpprint: field(main: sink PPrintGlob; field: string): PPrintGlob	
+typeName	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#typeName,sinkPPrintGlob,string	hpprint: typeName(main: sink PPrintGlob; name: string): PPrintGlob	
+match	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#match,varargs[PPrintGlob]	hpprint: match(globs: varargs[PPrintGlob]): PPrintMatch	
+matchTypeField	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#matchTypeField,string,string	hpprint: matchTypeField(tname, fname: string): PPrintMatch	
+matchField	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#matchField,varargs[string]	hpprint: matchField(name: varargs[string]): PPrintMatch	
+matchType	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#matchType,varargs[string]	hpprint: matchType(name: varargs[string]): PPrintMatch	
+matchTypeFields	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#matchTypeFields,string	hpprint: matchTypeFields(name: string): PPrintMatch	
+`&amp;`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#&,PPrintMatch,PPrintMatch	hpprint: `&amp;`(m1, m2: PPrintMatch): PPrintMatch	
+matchAll	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#matchAll	hpprint: matchAll(): PPrintMatch	
+forceLine	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#forceLine	hpprint: forceLine(): PPrintLytChoice	
+forceStack	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#forceStack	hpprint: forceStack(): PPrintLytChoice	
+forceChoice	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#forceChoice	hpprint: forceChoice(): PPrintLytChoice	
+pathElem	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#pathElem,PPrintPathKind,string	hpprint: pathElem(kind: PPrintPathKind; name: string): PPrintPathElem	
+pathElem	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#pathElem,PPrintType	hpprint: pathElem(typename: PPrintType): PPrintPathElem	
+pathElem	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#pathElem,int	hpprint: pathElem(idx: int): PPrintPathElem	
+pprintExtraField	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#pprintExtraField.t,untyped,string,untyped	hpprint: pprintExtraField(typename: untyped; fieldName: string; body: untyped): untyped	
+pprintExtraField	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#pprintExtraField.t,string,untyped,string,untyped	hpprint: pprintExtraField(typename: string; argtype: untyped; fieldName: string;\n                 body: untyped): untyped	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#$,PPrintGlobPart	hpprint: `$`(part: PPrintGlobPart): string	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#$,PPrintGlob	hpprint: `$`(part: PPrintGlob): string	
+globEqCmp	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#globEqCmp,PPrintPathElem,PPrintGlobPart	hpprint: globEqCmp(path: PPrintPathElem; glob: PPrintGlobPart): bool	
+matches	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#matches,PPrintMatch,PPrintPath	hpprint: matches(match: PPrintMatch; path: PPrintPath): bool	
+newPPrintType	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#newPPrintType,PPrintType,bool	hpprint: newPPrintType(head: PPrintType; _: bool = false): PPrintType	
+newPPrintType	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#newPPrintType,string,bool	hpprint: newPPrintType(head: string; isVariant: bool = false): PPrintType	
+newPPrintType	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#newPPrintType,typedesc[T]	hpprint: newPPrintType[T](obj: typedesc[T]): PPrintType	
+instLevel	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#instLevel	hpprint: instLevel	
+instCount	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#instCount	hpprint: instCount	
+newTypeInstCount	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#newTypeInstCount	hpprint: newTypeInstCount	
+newPPrintTree	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#newPPrintTree,PPrintTreeKind,int,PPrintPath,PPrintConf,PrintStyling	hpprint: newPPrintTree(kind: PPrintTreeKind; id: int; path: PPrintPath; conf: PPrintConf;\n              styling: PrintStyling = initPrintStyling()): PPrintTree	
+newPPrintNil	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#newPPrintNil,int,PPrintPath,PPrintConf	hpprint: newPPrintNil(id: int; path: PPrintPath; conf: PPrintConf): PPrintTree	
+isCommonType	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#isCommonType,PPrintType	hpprint: isCommonType(t: PPrintType): bool	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#$,PPrintType	hpprint: `$`(t: PPrintType): string	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#$,PPrintPathElem	hpprint: `$`(elem: PPrintPathElem): string	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#$,PPrintPath	hpprint: `$`(path: PPrintPath): string	
+updateCounts	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#updateCounts,PPrintTree,bool	hpprint: updateCounts(tree: var PPrintTree; sortBySize: bool = false)	
+assertValid	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#assertValid,PPrintTree	hpprint: assertValid(tree: PPrintTree)	
+updateCounts	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#updateCounts,sinkPPrintTree,bool	hpprint: updateCounts(tree: sink PPrintTree; sortBySize: bool = false): PPrintTree	
+newPPrintConst	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#newPPrintConst,string,string,int,PrintStyling,PPrintPath	hpprint: newPPrintConst(value, constType: string; id: int; styling: PrintStyling;\n               path: PPrintPath): PPrintTree	
+newPPrintConst	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#newPPrintConst,string,PPrintType,int,PrintStyling,PPrintPath	hpprint: newPPrintConst(value: string; constType: PPrintType; id: int;\n               styling: PrintStyling; path: PPrintPath): PPrintTree	
+getId	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#getId,PPrintConf,T,bool	hpprint: getId[T](conf: var PPrintConf; entry: T; forceCounter: bool = false): int	
+newPPrintNil	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#newPPrintNil,T,PPrintPath,string,PPrintConf	hpprint: newPPrintNil[T](value: T; path: PPrintPath; msg: string; conf: var PPrintConf): PPrintTree	
+newPPrintError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#newPPrintError,T,PPrintPath,string,PPrintConf	hpprint: newPPrintError[T](value: T; path: PPrintPath; msg: string; conf: var PPrintConf): PPrintTree	
+add	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#add,PPrintTree,PPrintTree	hpprint: add(this: var PPrintTree; other: PPrintTree)	
+add	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#add,PPrintTree,string,PPrintTree	hpprint: add(this: var PPrintTree; key: string; other: PPrintTree)	
+add	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#add,PPrintTree,PPrintTree,PPrintTree	hpprint: add(this: var PPrintTree; key, other: PPrintTree)	
+annotate	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#annotate,PPrintTree,ColoredText	hpprint: annotate(this: var PPrintTree; colored: ColoredText)	
+newPPrintObject	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#newPPrintObject,,seq[],PrintStyling,bool	hpprint: newPPrintObject(head: string | PPrintType;\n                elements: seq[(string, PPrintTree)] = @[];\n                styling: PrintStyling = defaultPrintStyling;\n                isVariant: bool = false): PPrintTree	
+newPPrintVariant	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#newPPrintVariant,string,seq[],PrintStyling	hpprint: newPPrintVariant(kind: string; elements: seq[(string, PPrintTree)];\n                 styling: PrintStyling = defaultPrintStyling): PPrintTree	
+newPPrintMap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#newPPrintMap,seq[],PrintStyling	hpprint: newPPrintMap(elements: seq[(PPrintTree, PPrintTree)];\n             styling: PrintStyling = defaultPrintStyling): PPrintTree	
+newPPrintConst	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#newPPrintConst,string,PrintStyling	hpprint: newPPrintConst(value: string; styling: PrintStyling = defaultPrintStyling): PPrintTree	
+newPPrintSeq	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#newPPrintSeq,seq[PPrintTree],PrintStyling	hpprint: newPPrintSeq(values: seq[PPrintTree];\n             styling: PrintStyling = defaultPrintStyling): PPrintTree	
+newPPrintAnnotation	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#newPPrintAnnotation,ColoredText,seq[PPrintTree]	hpprint: newPPrintAnnotation(text: ColoredText; elements: seq[PPrintTree] = @[]): PPrintTree	
+getField	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#getField,PPrintTree,string	hpprint: getField(tree: PPrintTree; field: string): PPrintTree	
+ignoredBy	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#ignoredBy,PPrintConf,PPrintPath	hpprint: ignoredBy(conf: PPrintConf; path: PPrintPath): bool	
+isVisited	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#isVisited,PPrintConf,T	hpprint: isVisited[T](conf: PPrintConf; obj: T): bool	
+visit	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#visit,PPrintConf,T	hpprint: visit[T](conf: var PPrintConf; obj: T)	
+toPprintTree	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#toPprintTree,JsonNode,PPrintConf,PPrintPath	hpprint: toPprintTree(val: JsonNode; conf: var PPrintConf; path: PPrintPath): PPrintTree	
+isNilEntry	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#isNilEntry,T	hpprint: isNilEntry[T](entry: T): bool	
+isErrorDeref	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#isErrorDeref,T,string	hpprint: isErrorDeref[T](entry: T; err: var string): bool	
+objectToPprintTree	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#objectToPprintTree,T,PPrintConf,PPrintPath	hpprint: objectToPprintTree[T: object or ptr object or ref object or tuple or\n    ptr tuple or\n    ref tuple](entry: T; conf: var PPrintConf; path: PPrintPath): PPrintTree	
+toPprintTree	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#toPprintTree,HSlice[L,H],PPrintConf,PPrintPath	hpprint: toPprintTree[L, H](val: HSlice[L, H]; conf: var PPrintConf; path: PPrintPath): PPrintTree	
+toPprintTree	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#toPprintTree,T,PPrintConf,PPrintPath	hpprint: toPprintTree[T](entry: T; conf: var PPrintConf; path: PPrintPath): PPrintTree	
+toPPrintTree	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#toPPrintTree,T	hpprint: toPPrintTree[T](obj: T): PPrintTree	
+toPPrintBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#toPPrintBlock,PPrintTree,PPrintConf	hpprint: toPPrintBlock(tree: PPrintTree; conf: PPrintConf): LytBlock	
+defaultPPrintConf	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#defaultPPrintConf	hpprint: defaultPPrintConf	
+pptree	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#pptree,T,PPrintConf	hpprint: pptree[T](obj: T; conf: var PPrintConf): PPrintTree	
+ppblock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#ppblock,T,PPrintConf	hpprint: ppblock[T](obj: T; conf: var PPrintConf): LytBlock	
+ppblock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#ppblock,PPrintTree,PPrintConf	hpprint: ppblock(obj: PPrintTree; conf: var PPrintConf): LytBlock	
+pptree	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#pptree,T,PPrintConf_2	hpprint: pptree[T](obj: T; conf: PPrintConf = defaultPPrintConf): PPrintTree	
+ppblock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#ppblock,T,PPrintConf_2	hpprint: ppblock[T](obj: T; conf: PPrintConf = defaultPPrintConf): LytBlock	
+ppblock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#ppblock,PPrintTree,PPrintConf_2	hpprint: ppblock(obj: PPrintTree; conf: PPrintConf = defaultPPrintConf): LytBlock	
+pstring	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#pstring,PPrintTree,PPrintConf	hpprint: pstring(tree: PPrintTree; conf: PPrintConf = defaultPPrintConf): string	
+getRightMargin	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#getRightMargin	hpprint: getRightMargin(): int	
+pstring	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#pstring,T,int,openArray[],PPrintMatch,PPrintConf,seq[PPrintExtraField]	hpprint: pstring[T](obj: T; rightMargin: int = getRightMargin();\n           force: openArray[(PPrintMatch, PPrintLytChoice)] = @[];\n           ignore: PPrintMatch = PPrintMatch();\n           conf: PPrintConf = defaultPPrintConf;\n           extraFields: seq[PPrintExtraField] = @[]): string	
+pprint	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#pprint,T,int,openArray[],PPrintMatch,PPrintConf,seq[PPrintExtraField]	hpprint: pprint[T](obj: T; rightMargin: int = getRightMargin();\n          force: openArray[(PPrintMatch, PPrintLytChoice)] = @[];\n          ignore: PPrintMatch = PPrintMatch();\n          conf: PPrintConf = defaultPPrintConf;\n          extraFields: seq[PPrintExtraField] = @[])	
+pconf	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#pconf.m,varargs[untyped]	hpprint: pconf(body: varargs[untyped]): untyped	
+debugpprint	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#debugpprint,T,int,openArray[],PPrintMatch,PPrintConf	hpprint: debugpprint[T](obj: T; rightMargin: int = getRightMargin();\n               force: openArray[(PPrintMatch, PPrintLytChoice)] = @[];\n               ignore: PPrintMatch = PPrintMatch();\n               conf: PPrintConf = defaultPPrintConf)	
+treeDiff	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#treeDiff,PPrintTree,PPrintTree	hpprint: treeDiff(t1, t2: PPrintTree): Option[PPrintTree]	
+objectTreeRepr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#objectTreeRepr,PPrintTree,PPrintConf,int	hpprint: objectTreeRepr(tree: PPrintTree; conf: PPrintConf = defaultPPrintConf;\n               indent: int = 0): ColoredText	
+pprintObjectTree	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/hpprint.html#pprintObjectTree,T	hpprint: pprintObjectTree[T](obj: T)	

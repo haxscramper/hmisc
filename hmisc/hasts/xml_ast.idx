@@ -1,0 +1,150 @@
+parseXml	hmisc/hasts/xml_ast.html#parseXml,AbsFile	xml_ast: parseXml(file: AbsFile): XmlNode	
+HXmlParserEventError	hmisc/hasts/xml_ast.html#HXmlParserEventError	xml_ast: HXmlParserEventError	
+HXmlParser	hmisc/hasts/xml_ast.html#HXmlParser	xml_ast: HXmlParser	
+xmlAttr	hmisc/hasts/xml_ast.html#xmlAttr	xml_ast: xmlAttr	
+currentEventToStr	hmisc/hasts/xml_ast.html#currentEventToStr,HXmlParser	xml_ast: currentEventToStr(parser: HXmlParser): string	
+displayAt	hmisc/hasts/xml_ast.html#displayAt,HXmlParser	xml_ast: displayAt(parser: HXmlParser): string	
+`$`	hmisc/hasts/xml_ast.html#$,HXmlParser	xml_ast: `$`(p: HXmlParser): string	
+expectAt	hmisc/hasts/xml_ast.html#expectAt.t,HXmlParser,set[XmlEventKind],string	xml_ast: expectAt(parser: HXmlParser; at: set[XmlEventKind]; procname: string): untyped	
+charData	hmisc/hasts/xml_ast.html#charData,HXmlParser	xml_ast: charData(my: HXmlParser): string	
+elementName	hmisc/hasts/xml_ast.html#elementName,HXmlParser	xml_ast: elementName(my: HXmlParser): string	
+entityName	hmisc/hasts/xml_ast.html#entityName,HXmlParser	xml_ast: entityName(my: HXmlParser): string	
+attrKey	hmisc/hasts/xml_ast.html#attrKey,HXmlParser	xml_ast: attrKey(my: HXmlParser): string	
+attrValue	hmisc/hasts/xml_ast.html#attrValue,HXmlParser	xml_ast: attrValue(my: HXmlParser): string	
+piName	hmisc/hasts/xml_ast.html#piName,HXmlParser	xml_ast: piName(my: HXmlParser): string	
+piRest	hmisc/hasts/xml_ast.html#piRest,HXmlParser	xml_ast: piRest(my: HXmlParser): string	
+kind	hmisc/hasts/xml_ast.html#kind,HXmlParser	xml_ast: kind(parser: HXmlParser): XmlEventKind	
+strVal	hmisc/hasts/xml_ast.html#strVal,HXmlParser	xml_ast: strVal(parser: HXmlParser): string	
+next	hmisc/hasts/xml_ast.html#next,HXmlParser	xml_ast: next(parser: var HXmlParser)	
+errorAt	hmisc/hasts/xml_ast.html#errorAt,HXmlParser	xml_ast: errorAt(parser: var HXmlParser): string	
+HXmlParseError	hmisc/hasts/xml_ast.html#HXmlParseError	xml_ast: HXmlParseError	
+raiseUnexpectedAttribute	hmisc/hasts/xml_ast.html#raiseUnexpectedAttribute.t,HXmlParser	xml_ast: raiseUnexpectedAttribute(parser: HXmlParser): untyped	
+raiseUnknownElement	hmisc/hasts/xml_ast.html#raiseUnknownElement.t,HXmlParser,string	xml_ast: raiseUnknownElement(parser: HXmlParser; extra: string = &quot;&quot;): untyped	
+raiseUnexpectedElement	hmisc/hasts/xml_ast.html#raiseUnexpectedElement.t,HXmlParser,string,string	xml_ast: raiseUnexpectedElement(parser: HXmlParser; tag: string; extra: string = &quot;&quot;): untyped	
+skipElementStart	hmisc/hasts/xml_ast.html#skipElementStart,HXmlParser,string	xml_ast: skipElementStart(parser: var HXmlParser; tag: string)	
+skipElementEnd	hmisc/hasts/xml_ast.html#skipElementEnd,HXmlParser,string	xml_ast: skipElementEnd(parser: var HXmlParser; tag: string)	
+`[]`	hmisc/hasts/xml_ast.html#[],HXmlParser,string	xml_ast: `[]`(r: var HXmlParser; key: string): bool	
+atClose	hmisc/hasts/xml_ast.html#atClose,HXmlParser	xml_ast: atClose(r: var HXmlParser): bool	
+atEnd	hmisc/hasts/xml_ast.html#atEnd,HXmlParser	xml_ast: atEnd(r: var HXmlParser): bool	
+atOpenStart	hmisc/hasts/xml_ast.html#atOpenStart,HXmlParser	xml_ast: atOpenStart(r: var HXmlParser): bool	
+isAttribute	hmisc/hasts/xml_ast.html#isAttribute,HXmlParser	xml_ast: isAttribute(reader: HXmlParser): bool	
+atAttr	hmisc/hasts/xml_ast.html#atAttr,HXmlParser	xml_ast: atAttr(r: var HXmlParser): bool	
+atCdata	hmisc/hasts/xml_ast.html#atCdata,HXmlParser	xml_ast: atCdata(r: var HXmlParser): bool	
+skipOpen	hmisc/hasts/xml_ast.html#skipOpen,HXmlParser,string	xml_ast: skipOpen(r: var HXmlParser; tag: string)	
+skipStart	hmisc/hasts/xml_ast.html#skipStart,HXmlParser,string	xml_ast: skipStart(r: var HXmlParser; tag: string)	
+skipClose	hmisc/hasts/xml_ast.html#skipClose,HXmlParser	xml_ast: skipClose(r: var HXmlParser)	
+skipCloseEnd	hmisc/hasts/xml_ast.html#skipCloseEnd,HXmlParser	xml_ast: skipCloseEnd(r: var HXmlParser)	
+skipEnd	hmisc/hasts/xml_ast.html#skipEnd,HXmlParser,string	xml_ast: skipEnd(r: var HXmlParser; tag: string)	
+newHXmlParser	hmisc/hasts/xml_ast.html#newHXmlParser,AbsFile,bool	xml_ast: newHXmlParser(file: AbsFile; traceNext: bool = false): HXmlParser	
+newHXmlParser	hmisc/hasts/xml_ast.html#newHXmlParser,string,bool	xml_ast: newHXmlParser(text: string; traceNext: bool = false): HXmlParser	
+close	hmisc/hasts/xml_ast.html#close,HXmlParser	xml_ast: close(parser: var HXmlParser)	
+`=destroy`	hmisc/hasts/xml_ast.html#=destroy,HXmlParser	xml_ast: `=destroy`(parser: var HXmlParser)	
+add	hmisc/hasts/xml_ast.html#add,XmlNode,Option[XmlNode]	xml_ast: add(xml: var XmlNode; optXml: Option[XmlNode])	
+newXml	hmisc/hasts/xml_ast.html#newXml,string,seq[XmlNode]	xml_ast: newXml(tag: string; args: seq[XmlNode] = @[]): XmlNode	
+wrap	hmisc/hasts/xml_ast.html#wrap,XmlNode,string	xml_ast: wrap(xml: XmlNode; tag: string): XmlNode	
+wrap	hmisc/hasts/xml_ast.html#wrap,seq[XmlNode],string	xml_ast: wrap(xml: seq[XmlNode]; tag: string): XmlNode	
+add	hmisc/hasts/xml_ast.html#add,XmlNode,seq[XmlNode]	xml_ast: add(xml: var XmlNode; sub: seq[XmlNode]): void	
+`[]=`	hmisc/hasts/xml_ast.html#[]=,XmlNode,string,string	xml_ast: `[]=`(xml: var XmlNode; attrname: string; attrval: string): void	
+pairs	hmisc/hasts/xml_ast.html#pairs.i,XmlNode	xml_ast: pairs(node: XmlNode): (int, XmlNode)	
+find	hmisc/hasts/xml_ast.html#find,XmlNode,string	xml_ast: find(node: XmlNode; subnodeTag: string): int	
+safeTag	hmisc/hasts/xml_ast.html#safeTag,XmlNode	xml_ast: safeTag(node: XmlNode): string	
+hasAttr	hmisc/hasts/xml_ast.html#hasAttr,XmlNode,string	xml_ast: hasAttr(node: XmlNode; attribute: string): bool	
+`[]`	hmisc/hasts/xml_ast.html#[],XmlNode,string	xml_ast: `[]`(node: XmlNode; property: string): string	
+optGet	hmisc/hasts/xml_ast.html#optGet,XmlNode,string	xml_ast: optGet(node: XmlNode; property: string): Option[string]	
+treeRepr	hmisc/hasts/xml_ast.html#treeRepr,XmlNode,bool,bool,int	xml_ast: treeRepr(pnode: XmlNode; colored: bool = true; indexed: bool = false;\n         maxdepth: int = 120): ColoredText	
+parseXsdString	hmisc/hasts/xml_ast.html#parseXsdString,XsdParseTarget[string],HXmlParser,string	xml_ast: parseXsdString(target: var XsdParseTarget[string]; parser: var HXmlParser;\n               tag: string = &quot;&quot;)	
+parseXsdBoolean	hmisc/hasts/xml_ast.html#parseXsdBoolean,XsdParseTarget[bool],HXmlParser,string	xml_ast: parseXsdBoolean(target: var XsdParseTarget[bool]; parser: var HXmlParser;\n                tag: string = &quot;&quot;)	
+parseXsdDecimal	hmisc/hasts/xml_ast.html#parseXsdDecimal,XsdParseTarget[float],HXmlParser,string	xml_ast: parseXsdDecimal(target: var XsdParseTarget[float]; parser: var HXmlParser;\n                tag: string = &quot;&quot;)	
+parseXsdInteger	hmisc/hasts/xml_ast.html#parseXsdInteger,XsdParseTarget[int],HXmlParser,string	xml_ast: parseXsdInteger(target: var XsdParseTarget[int]; parser: var HXmlParser;\n                tag: string = &quot;&quot;)	
+parseXsdNatural	hmisc/hasts/xml_ast.html#parseXsdNatural,XsdParseTarget[Natural],HXmlParser,string	xml_ast: parseXsdNatural(target: var XsdParseTarget[Natural]; parser: var HXmlParser;\n                tag: string = &quot;&quot;)	
+parseXsdFloat	hmisc/hasts/xml_ast.html#parseXsdFloat,XsdParseTarget[float],HXmlParser,string	xml_ast: parseXsdFloat(target: var XsdParseTarget[float]; parser: var HXmlParser;\n              tag: string = &quot;&quot;)	
+parseXsdDouble	hmisc/hasts/xml_ast.html#parseXsdDouble,XsdParseTarget[float],HXmlParser,string	xml_ast: parseXsdDouble(target: var XsdParseTarget[float]; parser: var HXmlParser;\n               tag: string = &quot;&quot;)	
+parseXsdDuration	hmisc/hasts/xml_ast.html#parseXsdDuration,XsdParseTarget[Duration],HXmlParser,string	xml_ast: parseXsdDuration(target: var XsdParseTarget[Duration]; parser: var HXmlParser;\n                 tag: string = &quot;&quot;)	
+parseXsdDateTime	hmisc/hasts/xml_ast.html#parseXsdDateTime,XsdParseTarget[DateTime],HXmlParser,string	xml_ast: parseXsdDateTime(target: var XsdParseTarget[DateTime]; parser: var HXmlParser;\n                 tag: string = &quot;&quot;)	
+parseXsdTime	hmisc/hasts/xml_ast.html#parseXsdTime,XsdParseTarget[DateTime],HXmlParser,string	xml_ast: parseXsdTime(target: var XsdParseTarget[DateTime]; parser: var HXmlParser;\n             tag: string = &quot;&quot;)	
+parseXsdDate	hmisc/hasts/xml_ast.html#parseXsdDate,XsdParseTarget[DateTime],HXmlParser,string	xml_ast: parseXsdDate(target: var XsdParseTarget[DateTime]; parser: var HXmlParser;\n             tag: string = &quot;&quot;)	
+parseXsdGYearMonth	hmisc/hasts/xml_ast.html#parseXsdGYearMonth,XsdParseTarget[DateTime],HXmlParser,string	xml_ast: parseXsdGYearMonth(target: var XsdParseTarget[DateTime]; parser: var HXmlParser;\n                   tag: string = &quot;&quot;)	
+parseXsdGYear	hmisc/hasts/xml_ast.html#parseXsdGYear,XsdParseTarget[DateTime],HXmlParser,string	xml_ast: parseXsdGYear(target: var XsdParseTarget[DateTime]; parser: var HXmlParser;\n              tag: string = &quot;&quot;)	
+paresXsdGMonthDay	hmisc/hasts/xml_ast.html#paresXsdGMonthDay,XsdParseTarget[DateTime],HXmlParser,string	xml_ast: paresXsdGMonthDay(target: var XsdParseTarget[DateTime]; parser: var HXmlParser;\n                  tag: string = &quot;&quot;)	
+parseXsdGDay	hmisc/hasts/xml_ast.html#parseXsdGDay,XsdParseTarget[DateTime],HXmlParser,string	xml_ast: parseXsdGDay(target: var XsdParseTarget[DateTime]; parser: var HXmlParser;\n             tag: string = &quot;&quot;)	
+parseXsdGMonth	hmisc/hasts/xml_ast.html#parseXsdGMonth,XsdParseTarget[DateTime],HXmlParser,string	xml_ast: parseXsdGMonth(target: var XsdParseTarget[DateTime]; parser: var HXmlParser;\n               tag: string = &quot;&quot;)	
+parseXsdHexBinary	hmisc/hasts/xml_ast.html#parseXsdHexBinary,XsdParseTarget[string],HXmlParser,string	xml_ast: parseXsdHexBinary(target: var XsdParseTarget[string]; parser: var HXmlParser;\n                  tag: string = &quot;&quot;)	
+parseXsdBase64Binary	hmisc/hasts/xml_ast.html#parseXsdBase64Binary,XsdParseTarget[string],HXmlParser,string	xml_ast: parseXsdBase64Binary(target: var XsdParseTarget[string]; parser: var HXmlParser;\n                     tag: string = &quot;&quot;)	
+parseXsdUri	hmisc/hasts/xml_ast.html#parseXsdUri,XsdParseTarget[Uri],HXmlParser,string	xml_ast: parseXsdUri(target: var XsdParseTarget[Uri]; parser: var HXmlParser;\n            tag: string = &quot;&quot;)	
+parseXsdAnyType	hmisc/hasts/xml_ast.html#parseXsdAnyType,XmlNode,HXmlParser,string	xml_ast: parseXsdAnyType(target: var XmlNode; parser: var HXmlParser; tag: string = &quot;&quot;)	
+xtkString	hmisc/hasts/xml_ast.html#xtkString	XsdTokenKind.xtkString	
+xtkBoolean	hmisc/hasts/xml_ast.html#xtkBoolean	XsdTokenKind.xtkBoolean	
+xtkDecimal	hmisc/hasts/xml_ast.html#xtkDecimal	XsdTokenKind.xtkDecimal	
+xtkInteger	hmisc/hasts/xml_ast.html#xtkInteger	XsdTokenKind.xtkInteger	
+xtkNatural	hmisc/hasts/xml_ast.html#xtkNatural	XsdTokenKind.xtkNatural	
+xtkFloat	hmisc/hasts/xml_ast.html#xtkFloat	XsdTokenKind.xtkFloat	
+xtkDouble	hmisc/hasts/xml_ast.html#xtkDouble	XsdTokenKind.xtkDouble	
+xtkDuration	hmisc/hasts/xml_ast.html#xtkDuration	XsdTokenKind.xtkDuration	
+xtkDateTime	hmisc/hasts/xml_ast.html#xtkDateTime	XsdTokenKind.xtkDateTime	
+xtkTime	hmisc/hasts/xml_ast.html#xtkTime	XsdTokenKind.xtkTime	
+xtkDate	hmisc/hasts/xml_ast.html#xtkDate	XsdTokenKind.xtkDate	
+xtkGYearMonth	hmisc/hasts/xml_ast.html#xtkGYearMonth	XsdTokenKind.xtkGYearMonth	
+xtkGYear	hmisc/hasts/xml_ast.html#xtkGYear	XsdTokenKind.xtkGYear	
+xtkGMonthDay	hmisc/hasts/xml_ast.html#xtkGMonthDay	XsdTokenKind.xtkGMonthDay	
+xtkGDay	hmisc/hasts/xml_ast.html#xtkGDay	XsdTokenKind.xtkGDay	
+xtkGMonth	hmisc/hasts/xml_ast.html#xtkGMonth	XsdTokenKind.xtkGMonth	
+xtkHexBinary	hmisc/hasts/xml_ast.html#xtkHexBinary	XsdTokenKind.xtkHexBinary	
+xtkBase64Binary	hmisc/hasts/xml_ast.html#xtkBase64Binary	XsdTokenKind.xtkBase64Binary	
+xtkUri	hmisc/hasts/xml_ast.html#xtkUri	XsdTokenKind.xtkUri	
+xtkAnyType	hmisc/hasts/xml_ast.html#xtkAnyType	XsdTokenKind.xtkAnyType	
+xtkError	hmisc/hasts/xml_ast.html#xtkError	XsdTokenKind.xtkError	
+xtkEof	hmisc/hasts/xml_ast.html#xtkEof	XsdTokenKind.xtkEof	
+xtkCharData	hmisc/hasts/xml_ast.html#xtkCharData	XsdTokenKind.xtkCharData	
+xtkWhitespace	hmisc/hasts/xml_ast.html#xtkWhitespace	XsdTokenKind.xtkWhitespace	
+xtkComment	hmisc/hasts/xml_ast.html#xtkComment	XsdTokenKind.xtkComment	
+xtkPI	hmisc/hasts/xml_ast.html#xtkPI	XsdTokenKind.xtkPI	
+xtkElementStart	hmisc/hasts/xml_ast.html#xtkElementStart	XsdTokenKind.xtkElementStart	
+xtkElementEnd	hmisc/hasts/xml_ast.html#xtkElementEnd	XsdTokenKind.xtkElementEnd	
+xtkElementOpen	hmisc/hasts/xml_ast.html#xtkElementOpen	XsdTokenKind.xtkElementOpen	
+xtkAttribute	hmisc/hasts/xml_ast.html#xtkAttribute	XsdTokenKind.xtkAttribute	
+xtkElementClose	hmisc/hasts/xml_ast.html#xtkElementClose	XsdTokenKind.xtkElementClose	
+xtkCData	hmisc/hasts/xml_ast.html#xtkCData	XsdTokenKind.xtkCData	
+xtkEntity	hmisc/hasts/xml_ast.html#xtkEntity	XsdTokenKind.xtkEntity	
+xtkSpecial	hmisc/hasts/xml_ast.html#xtkSpecial	XsdTokenKind.xtkSpecial	
+XsdTokenKind	hmisc/hasts/xml_ast.html#XsdTokenKind	xml_ast: XsdTokenKind	
+xtkNamedKinds	hmisc/hasts/xml_ast.html#xtkNamedKinds	xml_ast: xtkNamedKinds	
+XsdToken	hmisc/hasts/xml_ast.html#XsdToken	xml_ast: XsdToken	
+name	hmisc/hasts/xml_ast.html#name,XsdToken	xml_ast: name(token: XsdToken): string	
+`$`	hmisc/hasts/xml_ast.html#$,XsdToken	xml_ast: `$`(token: XsdToken): string	
+classifyXsdString	hmisc/hasts/xml_ast.html#classifyXsdString,string,set[XsdTokenKind]	xml_ast: classifyXsdString(str: string; expected: set[XsdTokenKind]): XsdTokenKind	
+xsdToken	hmisc/hasts/xml_ast.html#xsdToken,HXmlParser,set[XsdTokenKind]	xml_ast: xsdToken(parser: HXmlParser; expected: set[XsdTokenKind]): XsdToken	
+raiseUnexpectedToken	hmisc/hasts/xml_ast.html#raiseUnexpectedToken.t,HXmlParser,XsdToken	xml_ast: raiseUnexpectedToken(parser: HXmlParser; token: XsdToken): untyped	
+XmlWriter	hmisc/hasts/xml_ast.html#XmlWriter	xml_ast: XmlWriter	
+`=destroy`	hmisc/hasts/xml_ast.html#=destroy,XmlWriter	xml_ast: `=destroy`(writer: var XmlWriter)	
+writeInd	hmisc/hasts/xml_ast.html#writeInd,XmlWriter	xml_ast: writeInd(writer`gensym154: var XmlWriter)	
+writeIndent	hmisc/hasts/xml_ast.html#writeIndent,XmlWriter	xml_ast: writeIndent(writer`gensym154: var XmlWriter)	
+space	hmisc/hasts/xml_ast.html#space,XmlWriter	xml_ast: space(writer`gensym154: var XmlWriter)	
+line	hmisc/hasts/xml_ast.html#line,XmlWriter,int	xml_ast: line(writer`gensym154: var XmlWriter; repeat`gensym154: int = 1)	
+indent	hmisc/hasts/xml_ast.html#indent,XmlWriter	xml_ast: indent(writer`gensym154: var XmlWriter)	
+dedent	hmisc/hasts/xml_ast.html#dedent,XmlWriter	xml_ast: dedent(writer`gensym154: var XmlWriter)	
+close	hmisc/hasts/xml_ast.html#close,XmlWriter	xml_ast: close(writer`gensym154: var XmlWriter)	
+readAll	hmisc/hasts/xml_ast.html#readAll,XmlWriter	xml_ast: readAll(writer`gensym154: var XmlWriter): string	
+writeRaw	hmisc/hasts/xml_ast.html#writeRaw,XmlWriter,	xml_ast: writeRaw(writer`gensym154: var XmlWriter;\n         text`gensym154: varargs[string, `$`])	
+newXmlWriter	hmisc/hasts/xml_ast.html#newXmlWriter	xml_ast: newXmlWriter(stream`gensym154: Stream | File | AbsFile): XmlWriter	
+newXmlWriter	hmisc/hasts/xml_ast.html#newXmlWriter_2	xml_ast: newXmlWriter(): XmlWriter	
+xmlCData	hmisc/hasts/xml_ast.html#xmlCData,,string	xml_ast: xmlCData(writer; text: string)	
+xmlStart	hmisc/hasts/xml_ast.html#xmlStart,,string,bool	xml_ast: xmlStart(writer; elem: string; indent: bool = true)	
+xmlEnd	hmisc/hasts/xml_ast.html#xmlEnd,,string,bool	xml_ast: xmlEnd(writer; elem: string; indent: bool = true)	
+xmlOpen	hmisc/hasts/xml_ast.html#xmlOpen,,string,bool	xml_ast: xmlOpen(writer; elem: string; indent: bool = true)	
+xmlClose	hmisc/hasts/xml_ast.html#xmlClose	xml_ast: xmlClose(writer)	
+xmlCloseEnd	hmisc/hasts/xml_ast.html#xmlCloseEnd,,bool	xml_ast: xmlCloseEnd(writer; newline: bool = true)	
+xmlWrappedCdata	hmisc/hasts/xml_ast.html#xmlWrappedCdata,,string,string	xml_ast: xmlWrappedCdata(writer; text, tag: string)	
+writeEscaped	hmisc/hasts/xml_ast.html#writeEscaped,,string	xml_ast: writeEscaped(writer; text: string)	
+xmlAttribute	hmisc/hasts/xml_ast.html#xmlAttribute,,string,string	xml_ast: xmlAttribute(writer; key: string; value: string)	
+xmlStart	hmisc/hasts/xml_ast.html#xmlStart,,string,openArray[],bool	xml_ast: xmlStart(writer; tag: string; table: openArray[(string, string)];\n         indent: bool = true)	
+xmlSingle	hmisc/hasts/xml_ast.html#xmlSingle,,string,openArray[],bool	xml_ast: xmlSingle(writer; tag: string; table: openArray[(string, string)];\n          indent: bool = true)	
+xmlRawSingle	hmisc/hasts/xml_ast.html#xmlRawSingle,,string,bool	xml_ast: xmlRawSingle(writer; text: string; indent: bool = true)	
+eopen	hmisc/hasts/xml_ast.html#eopen,,string,openArray[],bool	xml_ast: eopen(writer; elem: string; params: openArray[(string, string)] = @[];\n      indent: bool = false)	
+esingle	hmisc/hasts/xml_ast.html#esingle,,string,openArray[],bool	xml_ast: esingle(writer; elem: string; params: openArray[(string, string)] = @[];\n        indent: bool = false)	
+etagl	hmisc/hasts/xml_ast.html#etagl,,string,openArray[]	xml_ast: etagl(writer; name: string; params: openArray[(string, string)] = @[])	
+etag	hmisc/hasts/xml_ast.html#etag,,string,openArray[]	xml_ast: etag(writer; name: string; params: openArray[(string, string)] = @[])	
+eclose	hmisc/hasts/xml_ast.html#eclose,,string,bool	xml_ast: eclose(writer; elem: string; indent: bool = true)	
+eindent	hmisc/hasts/xml_ast.html#eindent.t,,	xml_ast: eindent(writer; body): untyped	
+ewrap	hmisc/hasts/xml_ast.html#ewrap.t,,string,openArray[],untyped	xml_ast: ewrap(writer; name: string; params: openArray[(string, string)] = @[];\n      body: untyped): untyped	
+ewrapl	hmisc/hasts/xml_ast.html#ewrapl.t,,string,openArray[],bool,untyped	xml_ast: ewrapl(writer; name: string; params: openArray[(string, string)] = @[];\n       indentBody: bool = true; body: untyped): untyped	
+ewrapl1	hmisc/hasts/xml_ast.html#ewrapl1.t,,string,openArray[],untyped	xml_ast: ewrapl1(writer; name: string; params: openArray[(string, string)] = @[];\n        body: untyped): untyped	

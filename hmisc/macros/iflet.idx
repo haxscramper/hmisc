@@ -1,0 +1,1 @@
+ifLet	hmisc/macros/iflet.html#ifLet.m,untyped,varargs[untyped]	iflet: ifLet(head: untyped; bodies: varargs[untyped]): untyped	

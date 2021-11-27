@@ -1,0 +1,15 @@
+BaseWriter	hmisc/hasts/base_writer.html#BaseWriter	base_writer: BaseWriter	
+newBaseWriter	hmisc/hasts/base_writer.html#newBaseWriter	base_writer: newBaseWriter(): BaseWriter	
+newBaseWriter	hmisc/hasts/base_writer.html#newBaseWriter,Stream	base_writer: newBaseWriter(stream: Stream): BaseWriter	
+newBaseWriter	hmisc/hasts/base_writer.html#newBaseWriter,File	base_writer: newBaseWriter(file: File): BaseWriter	
+newBaseWriter	hmisc/hasts/base_writer.html#newBaseWriter,AbsFile	base_writer: newBaseWriter(file: AbsFile): BaseWriter	
+close	hmisc/hasts/base_writer.html#close	base_writer: close(writer)	
+space	hmisc/hasts/base_writer.html#space	base_writer: space(writer)	
+line	hmisc/hasts/base_writer.html#line,,int	base_writer: line(writer; repeat: int = 1)	
+indent	hmisc/hasts/base_writer.html#indent	base_writer: indent(writer)	
+dedent	hmisc/hasts/base_writer.html#dedent	base_writer: dedent(writer)	
+writeIndent	hmisc/hasts/base_writer.html#writeIndent	base_writer: writeIndent(writer)	
+readAll	hmisc/hasts/base_writer.html#readAll	base_writer: readAll(writer): string	
+writeRaw	hmisc/hasts/base_writer.html#writeRaw,,varargs[string,]	base_writer: writeRaw(writer; text: varargs[string, `$`])	
+ignoreNextIndent	hmisc/hasts/base_writer.html#ignoreNextIndent	base_writer: ignoreNextIndent(writer)	
+genBaseWriterProcs	hmisc/hasts/base_writer.html#genBaseWriterProcs.m	base_writer: genBaseWriterProcs(wtype: untyped{nkIdent}): untyped	

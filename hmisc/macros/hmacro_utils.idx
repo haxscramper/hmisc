@@ -1,0 +1,1 @@
+blockCall	hmisc/macros/hmacro_utils.html#blockCall,NimNode	hmacro_utils: blockCall(arg: NimNode): NimNode	

@@ -1,0 +1,10 @@
+psf_AllProcesses	hmisc/shellexec/ps.html#psf_AllProcesses	PsCommandFlag.psf_AllProcesses	
+psf_AllButLeaderProcesses	hmisc/shellexec/ps.html#psf_AllButLeaderProcesses	PsCommandFlag.psf_AllButLeaderProcesses	
+psf_AllowNoTTY	hmisc/shellexec/ps.html#psf_AllowNoTTY	PsCommandFlag.psf_AllowNoTTY	
+PsCommandFlag	hmisc/shellexec/ps.html#PsCommandFlag	ps: PsCommandFlag	
+psfCommandStrings	hmisc/shellexec/ps.html#psfCommandStrings	ps: psfCommandStrings	
+PsRecord	hmisc/shellexec/ps.html#PsRecord	ps: PsRecord	
+PsResult	hmisc/shellexec/ps.html#PsResult	ps: PsResult	
+PsCommand	hmisc/shellexec/ps.html#PsCommand	ps: PsCommand	
+toShellCmd	hmisc/shellexec/ps.html#toShellCmd,PsCommand	ps: toShellCmd(cmd: PsCommand): ShellCmd	
+exec	hmisc/shellexec/ps.html#exec,PsCommand,string	ps: exec(cmd: PsCommand; stdin: string = &quot;&quot;): PsResult	

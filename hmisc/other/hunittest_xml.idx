@@ -1,0 +1,3 @@
+XUnitContext	hmisc/other/hunittest_xml.html#XUnitContext	hunittest_xml: XUnitContext	
+report	hmisc/other/hunittest_xml.html#report.e,XUnitContext,TestReport	hunittest_xml: report(ctx: XUnitContext; report: TestReport)	
+newXUnitContext	hmisc/other/hunittest_xml.html#newXUnitContext	hunittest_xml: newXUnitContext(): XUnitContext	

@@ -1,0 +1,86 @@
+xekComplexComplexType	hmisc/hasts/xsd_ast.html#xekComplexComplexType	XsdEntryKind.xekComplexComplexType	
+xekComplexSimpleType	hmisc/hasts/xsd_ast.html#xekComplexSimpleType	XsdEntryKind.xekComplexSimpleType	
+xekComplexType	hmisc/hasts/xsd_ast.html#xekComplexType	XsdEntryKind.xekComplexType	
+xekSimpleType	hmisc/hasts/xsd_ast.html#xekSimpleType	XsdEntryKind.xekSimpleType	
+xekElement	hmisc/hasts/xsd_ast.html#xekElement	XsdEntryKind.xekElement	
+xekAttribute	hmisc/hasts/xsd_ast.html#xekAttribute	XsdEntryKind.xekAttribute	
+xekGroupDecl	hmisc/hasts/xsd_ast.html#xekGroupDecl	XsdEntryKind.xekGroupDecl	
+xekChoice	hmisc/hasts/xsd_ast.html#xekChoice	XsdEntryKind.xekChoice	
+xekGroupRef	hmisc/hasts/xsd_ast.html#xekGroupRef	XsdEntryKind.xekGroupRef	
+xekSequence	hmisc/hasts/xsd_ast.html#xekSequence	XsdEntryKind.xekSequence	
+xekExtension	hmisc/hasts/xsd_ast.html#xekExtension	XsdEntryKind.xekExtension	
+xekRestriction	hmisc/hasts/xsd_ast.html#xekRestriction	XsdEntryKind.xekRestriction	
+xekSimpleContent	hmisc/hasts/xsd_ast.html#xekSimpleContent	XsdEntryKind.xekSimpleContent	
+xekTop	hmisc/hasts/xsd_ast.html#xekTop	XsdEntryKind.xekTop	
+xekEnumeration	hmisc/hasts/xsd_ast.html#xekEnumeration	XsdEntryKind.xekEnumeration	
+xekPattern	hmisc/hasts/xsd_ast.html#xekPattern	XsdEntryKind.xekPattern	
+xekWhitespace	hmisc/hasts/xsd_ast.html#xekWhitespace	XsdEntryKind.xekWhitespace	
+XsdEntryKind	hmisc/hasts/xsd_ast.html#XsdEntryKind	xsd_ast: XsdEntryKind	
+XsdEntry	hmisc/hasts/xsd_ast.html#XsdEntry	xsd_ast: XsdEntry	
+XsdDocument	hmisc/hasts/xsd_ast.html#XsdDocument	xsd_ast: XsdDocument	
+xekGroupDeclare	hmisc/hasts/xsd_ast.html#xekGroupDeclare	xsd_ast: xekGroupDeclare	
+add	hmisc/hasts/xsd_ast.html#add,XsdEntry,XsdEntry	xsd_ast: add(xsd: var XsdEntry; subnode: XsdEntry)	
+`==`	hmisc/hasts/xsd_ast.html#==,,XsdEntryKind	xsd_ast: `==`(xsd; kind: XsdEntryKind): bool	
+`[]`	hmisc/hasts/xsd_ast.html#[],,	xsd_ast: `[]`(xsd; idx: int | BackwardsIndex): XsdEntry	
+items	hmisc/hasts/xsd_ast.html#items.i	xsd_ast: items(xsd): XsdEntry	
+pairs	hmisc/hasts/xsd_ast.html#pairs.i	xsd_ast: pairs(xsd): (int, XsdEntry)	
+len	hmisc/hasts/xsd_ast.html#len	xsd_ast: len(xsd): int	
+hasName	hmisc/hasts/xsd_ast.html#hasName	xsd_ast: hasName(xsd): bool	
+name	hmisc/hasts/xsd_ast.html#name	xsd_ast: name(xsd): string	
+hasType	hmisc/hasts/xsd_ast.html#hasType	xsd_ast: hasType(xsd): bool	
+hasAttr	hmisc/hasts/xsd_ast.html#hasAttr,,string	xsd_ast: hasAttr(xsd; attr: string): bool	
+hasAttr	hmisc/hasts/xsd_ast.html#hasAttr,,string,string	xsd_ast: hasAttr(xsd; key, value: string): bool	
+`[]`	hmisc/hasts/xsd_ast.html#[],,string	xsd_ast: `[]`(xsd; key: string): string	
+getType	hmisc/hasts/xsd_ast.html#getType	xsd_ast: getType(xsd): string	
+hasTypeImpl	hmisc/hasts/xsd_ast.html#hasTypeImpl	xsd_ast: hasTypeImpl(xsd): bool	
+getTypeImpl	hmisc/hasts/xsd_ast.html#getTypeImpl	xsd_ast: getTypeImpl(xsd): XsdEntry	
+subnodes	hmisc/hasts/xsd_ast.html#subnodes	xsd_ast: subnodes(xsd): seq[XsdEntry]	
+`$`	hmisc/hasts/xsd_ast.html#$,XsdOccursCount	xsd_ast: `$`(occur: XsdOccursCount): string	
+treeRepr	hmisc/hasts/xsd_ast.html#treeRepr,,bool,bool,int	xsd_ast: treeRepr(xsd; colored: bool = true; indexed: bool = false; maxdepth: int = 120): ColoredText	
+newTree	hmisc/hasts/xsd_ast.html#newTree,XsdEntryKind,varargs[XsdEntry]	xsd_ast: newTree(kind: XsdEntryKind; subnodes: varargs[XsdEntry]): XsdEntry	
+isEnumerationType	hmisc/hasts/xsd_ast.html#isEnumerationType	xsd_ast: isEnumerationType(xsd): bool	
+isChoiceType	hmisc/hasts/xsd_ast.html#isChoiceType	xsd_ast: isChoiceType(xsd): bool	
+isMixed	hmisc/hasts/xsd_ast.html#isMixed	xsd_ast: isMixed(xsd): bool	
+isOptional	hmisc/hasts/xsd_ast.html#isOptional	xsd_ast: isOptional(xsd): bool	
+isUnboundedRepeat	hmisc/hasts/xsd_ast.html#isUnboundedRepeat	xsd_ast: isUnboundedRepeat(xsd): bool	
+isFinite	hmisc/hasts/xsd_ast.html#isFinite	xsd_ast: isFinite(xsd): bool	
+getAttributes	hmisc/hasts/xsd_ast.html#getAttributes	xsd_ast: getAttributes(xsd): seq[XsdEntry]	
+getElements	hmisc/hasts/xsd_ast.html#getElements	xsd_ast: getElements(xsd): seq[XsdEntry]	
+isPrimitiveRestriction	hmisc/hasts/xsd_ast.html#isPrimitiveRestriction	xsd_ast: isPrimitiveRestriction(xsd): bool	
+isPrimitiveExtension	hmisc/hasts/xsd_ast.html#isPrimitiveExtension	xsd_ast: isPrimitiveExtension(xsd): bool	
+hasXsdNs	hmisc/hasts/xsd_ast.html#hasXsdNs,string	xsd_ast: hasXsdNs(tag: string): bool	
+getNs	hmisc/hasts/xsd_ast.html#getNs,string	xsd_ast: getNs(tag: string): string	
+getNs	hmisc/hasts/xsd_ast.html#getNs,XmlNode	xsd_ast: getNs(node: XmlNode): string	
+dropNs	hmisc/hasts/xsd_ast.html#dropNs,XmlNode	xsd_ast: dropNs(node: XmlNode): string	
+dropNs	hmisc/hasts/xsd_ast.html#dropNs,string	xsd_ast: dropNs(tag: string): string	
+safeDropNs	hmisc/hasts/xsd_ast.html#safeDropNs,XmlNode	xsd_ast: safeDropNs(node: XmlNode): string	
+dropNs	hmisc/hasts/xsd_ast.html#dropNs,string,string	xsd_ast: dropNs(tag, ns: string): string	
+addNs	hmisc/hasts/xsd_ast.html#addNs,string,XmlNode	xsd_ast: addNs(text: string; parent: XmlNode): string	
+isPrimitiveType	hmisc/hasts/xsd_ast.html#isPrimitiveType,string	xsd_ast: isPrimitiveType(xsdType: string): bool	
+isAlwaysPrimitiveType	hmisc/hasts/xsd_ast.html#isAlwaysPrimitiveType	xsd_ast: isAlwaysPrimitiveType(xsd): bool	
+isPossiblePrimitiveType	hmisc/hasts/xsd_ast.html#isPossiblePrimitiveType	xsd_ast: isPossiblePrimitiveType(xsd): bool	
+classifyPrimitiveTypeKind	hmisc/hasts/xsd_ast.html#classifyPrimitiveTypeKind,string	xsd_ast: classifyPrimitiveTypeKind(str: string): XsdTokenKind	
+classifyPrimitiveTypeKind	hmisc/hasts/xsd_ast.html#classifyPrimitiveTypeKind	xsd_ast: classifyPrimitiveTypeKind(xsd): XsdTokenKind	
+namePrimitiveTypeKind	hmisc/hasts/xsd_ast.html#namePrimitiveTypeKind,XsdTokenKind,bool	xsd_ast: namePrimitiveTypeKind(kind: XsdTokenKind; withPrefix: bool = false): string	
+getNimName	hmisc/hasts/xsd_ast.html#getNimName,XsdTokenKind	xsd_ast: getNimName(kind: XsdTokenKind): string	
+getParserName	hmisc/hasts/xsd_ast.html#getParserName,XsdTokenKind	xsd_ast: getParserName(kind: XsdTokenKind): string	
+getNimType	hmisc/hasts/xsd_ast.html#getNimType,string	xsd_ast: getNimType(name: string): string	
+getFirstTokens	hmisc/hasts/xsd_ast.html#getFirstTokens,,XsdEntry	xsd_ast: getFirstTokens(xsd; parent: XsdEntry = nil): seq[\n    tuple[token: XsdToken, source: Option[XsdEntry]]]	
+getFirstSet	hmisc/hasts/xsd_ast.html#getFirstSet	xsd_ast: getFirstSet(xsd): set[XsdTokenKind]	
+XsdParser	hmisc/hasts/xsd_ast.html#XsdParser	xsd_ast: XsdParser	
+XsdParsers	hmisc/hasts/xsd_ast.html#XsdParsers	xsd_ast: XsdParsers	
+getExpectedKinds	hmisc/hasts/xsd_ast.html#getExpectedKinds,XsdParsers	xsd_ast: getExpectedKinds(parsers: XsdParsers): set[XsdTokenKind]	
+getFirstParsers	hmisc/hasts/xsd_ast.html#getFirstParsers,seq[XsdEntry]	xsd_ast: getFirstParsers(alts: seq[XsdEntry]): XsdParsers	
+getExtensionSection	hmisc/hasts/xsd_ast.html#getExtensionSection	xsd_ast: getExtensionSection(xsd): XsdEntry	
+updateBaseAttrs	hmisc/hasts/xsd_ast.html#updateBaseAttrs,XsdEntry,XmlNode	xsd_ast: updateBaseAttrs(xsd: var XsdEntry; node: XmlNode)	
+convertElement	hmisc/hasts/xsd_ast.html#convertElement	xsd_ast: convertElement(xml): XsdEntry	
+convertAttribute	hmisc/hasts/xsd_ast.html#convertAttribute,,	xsd_ast: convertAttribute(xml; context): XsdEntry	
+convertGroup	hmisc/hasts/xsd_ast.html#convertGroup,,	xsd_ast: convertGroup(xml; context): XsdEntry	
+convertSequence	hmisc/hasts/xsd_ast.html#convertSequence,,	xsd_ast: convertSequence(xml; context): XsdEntry	
+convertExtension	hmisc/hasts/xsd_ast.html#convertExtension,,	xsd_ast: convertExtension(xml; context): XsdEntry	
+convertRestriction	hmisc/hasts/xsd_ast.html#convertRestriction,,	xsd_ast: convertRestriction(xml, context): XsdEntry	
+convertComplexType	hmisc/hasts/xsd_ast.html#convertComplexType,,	xsd_ast: convertComplexType(xml; context): XsdEntry	
+convertSimpleType	hmisc/hasts/xsd_ast.html#convertSimpleType,,	xsd_ast: convertSimpleType(xml, context): XsdEntry	
+convertSchema	hmisc/hasts/xsd_ast.html#convertSchema	xsd_ast: convertSchema(xml): XsdEntry	
+parseXsd	hmisc/hasts/xsd_ast.html#parseXsd,AbsFile	xsd_ast: parseXsd(file: AbsFile): XsdEntry	
+parseXsd	hmisc/hasts/xsd_ast.html#parseXsd,string	xsd_ast: parseXsd(text: string): XsdEntry	

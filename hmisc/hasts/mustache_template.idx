@@ -1,0 +1,2 @@
+newMustacheLexer	hmisc/hasts/mustache_template.html#newMustacheLexer	mustache_template: newMustacheLexer(): MLexer	
+mustacheParse	hmisc/hasts/mustache_template.html#mustacheParse,string	mustache_template: mustacheParse(str: string): MTree	

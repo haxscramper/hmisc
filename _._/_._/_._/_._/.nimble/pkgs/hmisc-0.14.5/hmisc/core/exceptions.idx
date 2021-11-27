@@ -1,0 +1,40 @@
+ArgumentError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#ArgumentError	exceptions: ArgumentError	
+EnvironmentAssertionError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#EnvironmentAssertionError	exceptions: EnvironmentAssertionError	
+GetterError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#GetterError	exceptions: GetterError	
+SetterError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#SetterError	exceptions: SetterError	
+NilArgumentError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#NilArgumentError	exceptions: NilArgumentError	
+NoneArgumentError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#NoneArgumentError	exceptions: NoneArgumentError	
+ParseError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#ParseError	exceptions: ParseError	
+LogicError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#LogicError	exceptions: LogicError	
+UnexpectedKindError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#UnexpectedKindError	exceptions: UnexpectedKindError	
+ImplementError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#ImplementError	exceptions: ImplementError	
+ImplementBaseError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#ImplementBaseError	exceptions: ImplementBaseError	
+ImplementKindError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#ImplementKindError	exceptions: ImplementKindError	
+GlobalSubstring	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#GlobalSubstring	exceptions: GlobalSubstring	
+ErrorAnnotation	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#ErrorAnnotation	exceptions: ErrorAnnotation	
+InstantiationInfo	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#InstantiationInfo	exceptions: InstantiationInfo	
+CodeError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#CodeError	exceptions: CodeError	
+newLogicError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#newLogicError,varargs[string,]	exceptions: newLogicError(msg: varargs[string, `$`]): ref LogicError	
+logicAssert	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#logicAssert.t,untyped,string	exceptions: logicAssert(cond: untyped; msg: string): untyped	
+newArgumentError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#newArgumentError,varargs[string,]	exceptions: newArgumentError(msg: varargs[string, `$`]): ref ArgumentError	
+newEnvironmentAssertionError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#newEnvironmentAssertionError,varargs[string,]	exceptions: newEnvironmentAssertionError(msg: varargs[string, `$`]): ref EnvironmentAssertionError	
+assertArg	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#assertArg.t,untyped,bool,string	exceptions: assertArg(arg: untyped; cond: bool; msg: string = &quot;&quot;): untyped	
+newGetterError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#newGetterError,varargs[string,]	exceptions: newGetterError(msg: varargs[string, `$`]): ref GetterError	
+newHException	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#newHException,typedesc[T],varargs[string,]	exceptions: newHException[T: object](ex: typedesc[T]; msg: varargs[string, `$`]): ref T	
+assertHasIdx	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#assertHasIdx.t,untyped,int,string,untyped	exceptions: assertHasIdx(item: untyped; access: int; msg: string = &quot;&quot;;\n             exception: untyped = GetterError): untyped	
+newSetterError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#newSetterError,varargs[string,]	exceptions: newSetterError(msg: varargs[string, `$`]): ref SetterError	
+newImplementError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#newImplementError,varargs[string,]	exceptions: newImplementError(msgs: varargs[string, `$`]): ref ImplementError	
+raiseImplementError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#raiseImplementError.t,string	exceptions: raiseImplementError(errMsg: string)	
+prepareMsg	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#prepareMsg,string	exceptions: prepareMsg(userMsg: string): string	
+assertKind	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#assertKind.t,untyped,untyped,string	exceptions: assertKind(inExpr, inExpected: untyped; onFail: string = &quot;&quot;)	
+assertRef	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#assertRef.t,typed,string	exceptions: assertRef(expr: typed; onFail: string = &quot;&quot;): untyped	
+assertOption	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#assertOption.t,untyped,string	exceptions: assertOption(expr: untyped; onFail: string = &quot;&quot;): untyped	
+getOr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#getOr,Option[T],string	exceptions: getOr[T](opt: Option[T]; onFail: string): T	
+getOr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#getOr,Table[K,V],K,string	exceptions: getOr[K, V](table: Table[K, V]; key: K; onFail: string): V	
+assertRefFields	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#assertRefFields.t,T,string	exceptions: assertRefFields[T](item: T; onFail: string = &quot;string&quot;)	
+newImplementKindError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#newImplementKindError,T,varargs[string,]	exceptions: newImplementKindError[T](node: T; msg: varargs[string, `$`]): ref ImplementKindError	
+newImplementBaseError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#newImplementBaseError,T,string	exceptions: newImplementBaseError[T](obj: T; name: string): ref ImplementBaseError	
+newUnexpectedKindError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#newUnexpectedKindError,T,varargs[string,]	exceptions: newUnexpectedKindError[T](expr: T; userMsg: varargs[string, `$`]): ref UnexpectedKindError	
+newParseError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#newParseError,varargs[string,]	exceptions: newParseError(userMsg: varargs[string, `$`]): ref ParseError	
+newUnexpectedKindError	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#newUnexpectedKindError,varargs[string,]	exceptions: newUnexpectedKindError(userMsg: varargs[string, `$`]): ref UnexpectedKindError	
+canImport	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/exceptions.html#canImport.t,untyped	exceptions: canImport(x: untyped): untyped	

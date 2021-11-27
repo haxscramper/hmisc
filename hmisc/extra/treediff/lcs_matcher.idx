@@ -1,0 +1,3 @@
+LcsMatcher	hmisc/extra/treediff/lcs_matcher.html#LcsMatcher	lcs_matcher: LcsMatcher	
+newLcsMatcher	hmisc/extra/treediff/lcs_matcher.html#newLcsMatcher	lcs_matcher: newLcsMatcher(): LcsMatcher	
+match	hmisc/extra/treediff/lcs_matcher.html#match.e,LcsMatcher,Tree,Tree,MappingStore	lcs_matcher: match(this: LcsMatcher; src: Tree; dst: Tree; mappings: MappingStore): MappingStore	

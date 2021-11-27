@@ -1,0 +1,14 @@
+BottomUpMatcher	hmisc/extra/treediff/bottom_up_matcher.html#BottomUpMatcher	bottom_up_matcher: BottomUpMatcher	
+CompleteBottomUpMatcher	hmisc/extra/treediff/bottom_up_matcher.html#CompleteBottomUpMatcher	bottom_up_matcher: CompleteBottomUpMatcher	
+GreedyBottomUpMatcher	hmisc/extra/treediff/bottom_up_matcher.html#GreedyBottomUpMatcher	bottom_up_matcher: GreedyBottomUpMatcher	
+newBottomUpMatcher	hmisc/extra/treediff/bottom_up_matcher.html#newBottomUpMatcher	bottom_up_matcher: newBottomUpMatcher(): BottomUpMatcher	
+getDstCandidates	hmisc/extra/treediff/bottom_up_matcher.html#getDstCandidates,BottomUpMatcher,MappingStore,Tree	bottom_up_matcher: getDstCandidates(this: BottomUpMatcher; mappings: MappingStore; src: Tree): seq[\n    Tree]	
+lastChanceMatch	hmisc/extra/treediff/bottom_up_matcher.html#lastChanceMatch,BottomUpMatcher,MappingStore,Tree,Tree	bottom_up_matcher: lastChanceMatch(this: BottomUpMatcher; mappings: MappingStore; src: Tree;\n                dst: Tree): void	
+getSizeThreshold	hmisc/extra/treediff/bottom_up_matcher.html#getSizeThreshold,BottomUpMatcher	bottom_up_matcher: getSizeThreshold(this: BottomUpMatcher): int	
+setSizeThreshold	hmisc/extra/treediff/bottom_up_matcher.html#setSizeThreshold,BottomUpMatcher,int	bottom_up_matcher: setSizeThreshold(this: BottomUpMatcher; sizeThreshold: int): void	
+getSimThreshold	hmisc/extra/treediff/bottom_up_matcher.html#getSimThreshold,BottomUpMatcher	bottom_up_matcher: getSimThreshold(this: BottomUpMatcher): float	
+setSimThreshold	hmisc/extra/treediff/bottom_up_matcher.html#setSimThreshold,BottomUpMatcher,float	bottom_up_matcher: setSimThreshold(this: BottomUpMatcher; simThreshold: float): void	
+newCompleteBottomUpMatcher	hmisc/extra/treediff/bottom_up_matcher.html#newCompleteBottomUpMatcher	bottom_up_matcher: newCompleteBottomUpMatcher(): CompleteBottomUpMatcher	
+newGreedyBottomUpMatcher	hmisc/extra/treediff/bottom_up_matcher.html#newGreedyBottomUpMatcher	bottom_up_matcher: newGreedyBottomUpMatcher(): GreedyBottomUpMatcher	
+match	hmisc/extra/treediff/bottom_up_matcher.html#match.e,CompleteBottomUpMatcher,Tree,Tree,MappingStore	bottom_up_matcher: match(this: CompleteBottomUpMatcher; src: Tree; dst: Tree;\n      mappings: MappingStore): MappingStore	
+match	hmisc/extra/treediff/bottom_up_matcher.html#match.e,GreedyBottomUpMatcher,Tree,Tree,MappingStore	bottom_up_matcher: match(this: GreedyBottomUpMatcher; src: Tree; dst: Tree; mappings: MappingStore): MappingStore	

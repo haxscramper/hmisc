@@ -1,0 +1,3 @@
+typeCondIt	hmisc/macros/cl_logic.html#typeCondIt.m,untyped,untyped	cl_logic: typeCondIt(head, body: untyped): untyped	
+cond	hmisc/macros/cl_logic.html#cond.m,untyped,varargs[untyped]	cl_logic: cond(v: untyped; conds: varargs[untyped]): untyped	
+cond2	hmisc/macros/cl_logic.html#cond2.m,varargs[untyped]	cl_logic: cond2(conds: varargs[untyped]): untyped	

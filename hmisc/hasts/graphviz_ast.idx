@@ -1,0 +1,192 @@
+dppNone	hmisc/hasts/graphviz_ast.html#dppNone	DotPortPosition.dppNone	
+dppTop	hmisc/hasts/graphviz_ast.html#dppTop	DotPortPosition.dppTop	
+dppBotton	hmisc/hasts/graphviz_ast.html#dppBotton	DotPortPosition.dppBotton	
+dppTopLeft	hmisc/hasts/graphviz_ast.html#dppTopLeft	DotPortPosition.dppTopLeft	
+dppLeft	hmisc/hasts/graphviz_ast.html#dppLeft	DotPortPosition.dppLeft	
+dppBottomLeft	hmisc/hasts/graphviz_ast.html#dppBottomLeft	DotPortPosition.dppBottomLeft	
+dppTopRight	hmisc/hasts/graphviz_ast.html#dppTopRight	DotPortPosition.dppTopRight	
+dppRight	hmisc/hasts/graphviz_ast.html#dppRight	DotPortPosition.dppRight	
+dppBottonRight	hmisc/hasts/graphviz_ast.html#dppBottonRight	DotPortPosition.dppBottonRight	
+DotPortPosition	hmisc/hasts/graphviz_ast.html#DotPortPosition	graphviz_ast: DotPortPosition	
+DotNodeId	hmisc/hasts/graphviz_ast.html#DotNodeId	graphviz_ast: DotNodeId	
+hash	hmisc/hasts/graphviz_ast.html#hash,DotNodeId	graphviz_ast: hash(id: DotNodeId): Hash	
+isRecord	hmisc/hasts/graphviz_ast.html#isRecord,DotNodeId	graphviz_ast: isRecord(id: DotNodeId): bool	
+isEmpty	hmisc/hasts/graphviz_ast.html#isEmpty,DotNodeId	graphviz_ast: isEmpty(id: DotNodeId): bool	
+toStr	hmisc/hasts/graphviz_ast.html#toStr,DotNodeId,bool	graphviz_ast: toStr(id: DotNodeId; isRecord: bool = false): string	
+toDotNodeId	hmisc/hasts/graphviz_ast.html#toDotNodeId.c	graphviz_ast: toDotNodeId(hash: Hash | int): DotNodeId	
+toDotNodeId	hmisc/hasts/graphviz_ast.html#toDotNodeId.c,seq[int]	graphviz_ast: toDotNodeId(ids: seq[int]): seq[DotNodeId]	
+toDotPath	hmisc/hasts/graphviz_ast.html#toDotPath,int,int,DotPortPosition	graphviz_ast: toDotPath(top: int; sub: int; port: DotPortPosition = dppNone): DotNodeId	
+toDotNodeId	hmisc/hasts/graphviz_ast.html#toDotNodeId.c,tuple[int,int]	graphviz_ast: toDotNodeId(path: tuple[top, sub: int]): DotNodeId	
+toDotNodeId	hmisc/hasts/graphviz_ast.html#toDotNodeId.c,tuple[int,int,DotPortPosition]	graphviz_ast: toDotNodeId(path: tuple[top, sub: int, port: DotPortPosition]): DotNodeId	
+toDotPath	hmisc/hasts/graphviz_ast.html#toDotPath,DotNodeId,DotNodeId,DotPortPosition	graphviz_ast: toDotPath(top, sub: DotNodeId; port: DotPortPosition = dppNone): DotNodeId	
+toDotNodeId	hmisc/hasts/graphviz_ast.html#toDotNodeId.c,ptr.T	graphviz_ast: toDotNodeId[T](p: ptr T): DotNodeId	
+addIdShift	hmisc/hasts/graphviz_ast.html#addIdShift,DotNodeId,int	graphviz_ast: addIdShift(node: DotNodeId; shift: int): DotNodeId	
+addRecord	hmisc/hasts/graphviz_ast.html#addRecord,DotNodeId,int	graphviz_ast: addRecord(node: DotNodeId; rec: int): DotNodeId	
+toDotNodeId	hmisc/hasts/graphviz_ast.html#toDotNodeId.c,seq[seq[int]]	graphviz_ast: toDotNodeId(ids: seq[seq[int]]): seq[DotNodeId]	
+quoteGraphviz	hmisc/hasts/graphviz_ast.html#quoteGraphviz,string	graphviz_ast: quoteGraphviz(str: string): string	
+escapeHtmlGraphviz	hmisc/hasts/graphviz_ast.html#escapeHtmlGraphviz,string	graphviz_ast: escapeHtmlGraphviz(str: string): string	
+nsaDefault	hmisc/hasts/graphviz_ast.html#nsaDefault	DotNodeShape.nsaDefault	
+nsaRecord	hmisc/hasts/graphviz_ast.html#nsaRecord	DotNodeShape.nsaRecord	
+nsaMRecord	hmisc/hasts/graphviz_ast.html#nsaMRecord	DotNodeShape.nsaMRecord	
+nsaAssembly	hmisc/hasts/graphviz_ast.html#nsaAssembly	DotNodeShape.nsaAssembly	
+nsaBox	hmisc/hasts/graphviz_ast.html#nsaBox	DotNodeShape.nsaBox	
+nsaBox3d	hmisc/hasts/graphviz_ast.html#nsaBox3d	DotNodeShape.nsaBox3d	
+nsaCds	hmisc/hasts/graphviz_ast.html#nsaCds	DotNodeShape.nsaCds	
+nsaCircle	hmisc/hasts/graphviz_ast.html#nsaCircle	DotNodeShape.nsaCircle	
+nsaComponent	hmisc/hasts/graphviz_ast.html#nsaComponent	DotNodeShape.nsaComponent	
+nsaCylinder	hmisc/hasts/graphviz_ast.html#nsaCylinder	DotNodeShape.nsaCylinder	
+nsaDiamond	hmisc/hasts/graphviz_ast.html#nsaDiamond	DotNodeShape.nsaDiamond	
+nsaDoublecircle	hmisc/hasts/graphviz_ast.html#nsaDoublecircle	DotNodeShape.nsaDoublecircle	
+nsaDoubleoctagon	hmisc/hasts/graphviz_ast.html#nsaDoubleoctagon	DotNodeShape.nsaDoubleoctagon	
+nsaEgg	hmisc/hasts/graphviz_ast.html#nsaEgg	DotNodeShape.nsaEgg	
+nsaEllipse	hmisc/hasts/graphviz_ast.html#nsaEllipse	DotNodeShape.nsaEllipse	
+nsaFivepoverhang	hmisc/hasts/graphviz_ast.html#nsaFivepoverhang	DotNodeShape.nsaFivepoverhang	
+nsaFolder	hmisc/hasts/graphviz_ast.html#nsaFolder	DotNodeShape.nsaFolder	
+nsaHexagon	hmisc/hasts/graphviz_ast.html#nsaHexagon	DotNodeShape.nsaHexagon	
+nsaHouse	hmisc/hasts/graphviz_ast.html#nsaHouse	DotNodeShape.nsaHouse	
+nsaInsulator	hmisc/hasts/graphviz_ast.html#nsaInsulator	DotNodeShape.nsaInsulator	
+nsaInvhouse	hmisc/hasts/graphviz_ast.html#nsaInvhouse	DotNodeShape.nsaInvhouse	
+nsaInvtrapezium	hmisc/hasts/graphviz_ast.html#nsaInvtrapezium	DotNodeShape.nsaInvtrapezium	
+nsaInvtriangle	hmisc/hasts/graphviz_ast.html#nsaInvtriangle	DotNodeShape.nsaInvtriangle	
+nsaLarrow	hmisc/hasts/graphviz_ast.html#nsaLarrow	DotNodeShape.nsaLarrow	
+nsaLpromoter	hmisc/hasts/graphviz_ast.html#nsaLpromoter	DotNodeShape.nsaLpromoter	
+nsaMcircle	hmisc/hasts/graphviz_ast.html#nsaMcircle	DotNodeShape.nsaMcircle	
+nsaMdiamond	hmisc/hasts/graphviz_ast.html#nsaMdiamond	DotNodeShape.nsaMdiamond	
+nsaMsquare	hmisc/hasts/graphviz_ast.html#nsaMsquare	DotNodeShape.nsaMsquare	
+nsaNone	hmisc/hasts/graphviz_ast.html#nsaNone	DotNodeShape.nsaNone	
+nsaNote	hmisc/hasts/graphviz_ast.html#nsaNote	DotNodeShape.nsaNote	
+nsaNoverhang	hmisc/hasts/graphviz_ast.html#nsaNoverhang	DotNodeShape.nsaNoverhang	
+nsaOctagon	hmisc/hasts/graphviz_ast.html#nsaOctagon	DotNodeShape.nsaOctagon	
+nsaOval	hmisc/hasts/graphviz_ast.html#nsaOval	DotNodeShape.nsaOval	
+nsaParallelogram	hmisc/hasts/graphviz_ast.html#nsaParallelogram	DotNodeShape.nsaParallelogram	
+nsaPentagon	hmisc/hasts/graphviz_ast.html#nsaPentagon	DotNodeShape.nsaPentagon	
+nsaPlain	hmisc/hasts/graphviz_ast.html#nsaPlain	DotNodeShape.nsaPlain	
+nsaPlaintext	hmisc/hasts/graphviz_ast.html#nsaPlaintext	DotNodeShape.nsaPlaintext	
+nsaPoint	hmisc/hasts/graphviz_ast.html#nsaPoint	DotNodeShape.nsaPoint	
+nsaPolygon	hmisc/hasts/graphviz_ast.html#nsaPolygon	DotNodeShape.nsaPolygon	
+nsaPrimersite	hmisc/hasts/graphviz_ast.html#nsaPrimersite	DotNodeShape.nsaPrimersite	
+nsaPromoter	hmisc/hasts/graphviz_ast.html#nsaPromoter	DotNodeShape.nsaPromoter	
+nsaProteasesite	hmisc/hasts/graphviz_ast.html#nsaProteasesite	DotNodeShape.nsaProteasesite	
+nsaProteinstab	hmisc/hasts/graphviz_ast.html#nsaProteinstab	DotNodeShape.nsaProteinstab	
+nsaRarrow	hmisc/hasts/graphviz_ast.html#nsaRarrow	DotNodeShape.nsaRarrow	
+nsaRect	hmisc/hasts/graphviz_ast.html#nsaRect	DotNodeShape.nsaRect	
+nsaRectangle	hmisc/hasts/graphviz_ast.html#nsaRectangle	DotNodeShape.nsaRectangle	
+nsaRestrictionsite	hmisc/hasts/graphviz_ast.html#nsaRestrictionsite	DotNodeShape.nsaRestrictionsite	
+nsaRibosite	hmisc/hasts/graphviz_ast.html#nsaRibosite	DotNodeShape.nsaRibosite	
+nsaRnastab	hmisc/hasts/graphviz_ast.html#nsaRnastab	DotNodeShape.nsaRnastab	
+nsaRpromoter	hmisc/hasts/graphviz_ast.html#nsaRpromoter	DotNodeShape.nsaRpromoter	
+nsaSeptagon	hmisc/hasts/graphviz_ast.html#nsaSeptagon	DotNodeShape.nsaSeptagon	
+nsaSignature	hmisc/hasts/graphviz_ast.html#nsaSignature	DotNodeShape.nsaSignature	
+nsaSquare	hmisc/hasts/graphviz_ast.html#nsaSquare	DotNodeShape.nsaSquare	
+nsaStar	hmisc/hasts/graphviz_ast.html#nsaStar	DotNodeShape.nsaStar	
+nsaTab	hmisc/hasts/graphviz_ast.html#nsaTab	DotNodeShape.nsaTab	
+nsaTerminator	hmisc/hasts/graphviz_ast.html#nsaTerminator	DotNodeShape.nsaTerminator	
+nsaThreepoverhang	hmisc/hasts/graphviz_ast.html#nsaThreepoverhang	DotNodeShape.nsaThreepoverhang	
+nsaTrapezium	hmisc/hasts/graphviz_ast.html#nsaTrapezium	DotNodeShape.nsaTrapezium	
+nsaTriangle	hmisc/hasts/graphviz_ast.html#nsaTriangle	DotNodeShape.nsaTriangle	
+nsaTripleoctagon	hmisc/hasts/graphviz_ast.html#nsaTripleoctagon	DotNodeShape.nsaTripleoctagon	
+nsaUnderline	hmisc/hasts/graphviz_ast.html#nsaUnderline	DotNodeShape.nsaUnderline	
+nsaUtr	hmisc/hasts/graphviz_ast.html#nsaUtr	DotNodeShape.nsaUtr	
+DotNodeShape	hmisc/hasts/graphviz_ast.html#DotNodeShape	graphviz_ast: DotNodeShape	
+nstDefault	hmisc/hasts/graphviz_ast.html#nstDefault	DotNodeStyle.nstDefault	
+nstFilled	hmisc/hasts/graphviz_ast.html#nstFilled	DotNodeStyle.nstFilled	
+nstInvisible	hmisc/hasts/graphviz_ast.html#nstInvisible	DotNodeStyle.nstInvisible	
+nstDiagonals	hmisc/hasts/graphviz_ast.html#nstDiagonals	DotNodeStyle.nstDiagonals	
+nstRounded	hmisc/hasts/graphviz_ast.html#nstRounded	DotNodeStyle.nstRounded	
+nstDashed	hmisc/hasts/graphviz_ast.html#nstDashed	DotNodeStyle.nstDashed	
+nstDotted	hmisc/hasts/graphviz_ast.html#nstDotted	DotNodeStyle.nstDotted	
+nstSolid	hmisc/hasts/graphviz_ast.html#nstSolid	DotNodeStyle.nstSolid	
+nstBold	hmisc/hasts/graphviz_ast.html#nstBold	DotNodeStyle.nstBold	
+nstWedged	hmisc/hasts/graphviz_ast.html#nstWedged	DotNodeStyle.nstWedged	
+nstStriped	hmisc/hasts/graphviz_ast.html#nstStriped	DotNodeStyle.nstStriped	
+DotNodeStyle	hmisc/hasts/graphviz_ast.html#DotNodeStyle	graphviz_ast: DotNodeStyle	
+nlaDefault	hmisc/hasts/graphviz_ast.html#nlaDefault	DotNodeLabelAlign.nlaDefault	
+nlaLeft	hmisc/hasts/graphviz_ast.html#nlaLeft	DotNodeLabelAlign.nlaLeft	
+nlaCenter	hmisc/hasts/graphviz_ast.html#nlaCenter	DotNodeLabelAlign.nlaCenter	
+nlaRight	hmisc/hasts/graphviz_ast.html#nlaRight	DotNodeLabelAlign.nlaRight	
+DotNodeLabelAlign	hmisc/hasts/graphviz_ast.html#DotNodeLabelAlign	graphviz_ast: DotNodeLabelAlign	
+edsDefault	hmisc/hasts/graphviz_ast.html#edsDefault	DotEdgeStyle.edsDefault	
+edsSolid	hmisc/hasts/graphviz_ast.html#edsSolid	DotEdgeStyle.edsSolid	
+edsDotted	hmisc/hasts/graphviz_ast.html#edsDotted	DotEdgeStyle.edsDotted	
+edsDashed	hmisc/hasts/graphviz_ast.html#edsDashed	DotEdgeStyle.edsDashed	
+edsBold	hmisc/hasts/graphviz_ast.html#edsBold	DotEdgeStyle.edsBold	
+edsInvis	hmisc/hasts/graphviz_ast.html#edsInvis	DotEdgeStyle.edsInvis	
+edsTapered	hmisc/hasts/graphviz_ast.html#edsTapered	DotEdgeStyle.edsTapered	
+DotEdgeStyle	hmisc/hasts/graphviz_ast.html#DotEdgeStyle	graphviz_ast: DotEdgeStyle	
+spsDefault	hmisc/hasts/graphviz_ast.html#spsDefault	DotSplineStyle.spsDefault	
+spsOrtho	hmisc/hasts/graphviz_ast.html#spsOrtho	DotSplineStyle.spsOrtho	
+spsNone	hmisc/hasts/graphviz_ast.html#spsNone	DotSplineStyle.spsNone	
+spsLine	hmisc/hasts/graphviz_ast.html#spsLine	DotSplineStyle.spsLine	
+spsPolyline	hmisc/hasts/graphviz_ast.html#spsPolyline	DotSplineStyle.spsPolyline	
+spsCurved	hmisc/hasts/graphviz_ast.html#spsCurved	DotSplineStyle.spsCurved	
+spsSplines	hmisc/hasts/graphviz_ast.html#spsSplines	DotSplineStyle.spsSplines	
+DotSplineStyle	hmisc/hasts/graphviz_ast.html#DotSplineStyle	graphviz_ast: DotSplineStyle	
+clsDefault	hmisc/hasts/graphviz_ast.html#clsDefault	ClusterStyles.clsDefault	
+clsSolid	hmisc/hasts/graphviz_ast.html#clsSolid	ClusterStyles.clsSolid	
+clsDashed	hmisc/hasts/graphviz_ast.html#clsDashed	ClusterStyles.clsDashed	
+clsStriped	hmisc/hasts/graphviz_ast.html#clsStriped	ClusterStyles.clsStriped	
+clsDotted	hmisc/hasts/graphviz_ast.html#clsDotted	ClusterStyles.clsDotted	
+clsBold	hmisc/hasts/graphviz_ast.html#clsBold	ClusterStyles.clsBold	
+clsRounded	hmisc/hasts/graphviz_ast.html#clsRounded	ClusterStyles.clsRounded	
+clsFilled	hmisc/hasts/graphviz_ast.html#clsFilled	ClusterStyles.clsFilled	
+ClusterStyles	hmisc/hasts/graphviz_ast.html#ClusterStyles	graphviz_ast: ClusterStyles	
+RecordField	hmisc/hasts/graphviz_ast.html#RecordField	graphviz_ast: RecordField	
+DotNode	hmisc/hasts/graphviz_ast.html#DotNode	graphviz_ast: DotNode	Field…
+Arrow	hmisc/hasts/graphviz_ast.html#Arrow	graphviz_ast: Arrow	Field…
+DotEdge	hmisc/hasts/graphviz_ast.html#DotEdge	graphviz_ast: DotEdge	
+dgpAutomata	hmisc/hasts/graphviz_ast.html#dgpAutomata	DotGraphPresets.dgpAutomata	
+dgpAutomataAccept	hmisc/hasts/graphviz_ast.html#dgpAutomataAccept	DotGraphPresets.dgpAutomataAccept	
+dgpRecords	hmisc/hasts/graphviz_ast.html#dgpRecords	DotGraphPresets.dgpRecords	
+DotGraphPresets	hmisc/hasts/graphviz_ast.html#DotGraphPresets	graphviz_ast: DotGraphPresets	
+gnrDefault	hmisc/hasts/graphviz_ast.html#gnrDefault	DotGraphNodeRank.gnrDefault	
+gnrSame	hmisc/hasts/graphviz_ast.html#gnrSame	DotGraphNodeRank.gnrSame	
+DotGraphNodeRank	hmisc/hasts/graphviz_ast.html#DotGraphNodeRank	graphviz_ast: DotGraphNodeRank	
+grdDefault	hmisc/hasts/graphviz_ast.html#grdDefault	DotGraphRankDir.grdDefault	
+grdTopBottom	hmisc/hasts/graphviz_ast.html#grdTopBottom	DotGraphRankDir.grdTopBottom	
+grdLeftRight	hmisc/hasts/graphviz_ast.html#grdLeftRight	DotGraphRankDir.grdLeftRight	
+DotGraphRankDir	hmisc/hasts/graphviz_ast.html#DotGraphRankDir	graphviz_ast: DotGraphRankDir	
+DotGraph	hmisc/hasts/graphviz_ast.html#DotGraph	graphviz_ast: DotGraph	
+initDotNode	hmisc/hasts/graphviz_ast.html#initDotNode	graphviz_ast: initDotNode(): DotNode	
+`[]=`	hmisc/hasts/graphviz_ast.html#[]=,DotGraph,string,string	graphviz_ast: `[]=`(graph: var DotGraph; key, value: string)	
+makeRectConsolasNode	hmisc/hasts/graphviz_ast.html#makeRectConsolasNode	graphviz_ast: makeRectConsolasNode(): DotNode	
+makeRectConsolasEdge	hmisc/hasts/graphviz_ast.html#makeRectConsolasEdge	graphviz_ast: makeRectConsolasEdge(): DotEdge	
+makeCircleConsolasNode	hmisc/hasts/graphviz_ast.html#makeCircleConsolasNode	graphviz_ast: makeCircleConsolasNode(): DotNode	
+makeDotNode	hmisc/hasts/graphviz_ast.html#makeDotNode,DotGraphPresets	graphviz_ast: makeDotNode(style: DotGraphPresets): DotNode	
+makeDotEdge	hmisc/hasts/graphviz_ast.html#makeDotEdge,DotGraphPresets	graphviz_ast: makeDotEdge(style: DotGraphPresets): DotEdge	
+makeDotEdge	hmisc/hasts/graphviz_ast.html#makeDotEdge,DotEdgeStyle	graphviz_ast: makeDotEdge(style: DotEdgeStyle): DotEdge	
+setProps	hmisc/hasts/graphviz_ast.html#setProps,sinkDotNode,DotNodeId,string	graphviz_ast: setProps(node: sink DotNode; id: DotNodeId; label: string): DotNode	
+makeDotGraph	hmisc/hasts/graphviz_ast.html#makeDotGraph,string,seq[DotNode],seq[DotEdge],DotNode,DotEdge	graphviz_ast: makeDotGraph(name: string = &quot;G&quot;; nodes: seq[DotNode] = @[];\n             edges: seq[DotEdge] = @[];\n             styleNode: DotNode = makeRectConsolasNode();\n             styleEdge: DotEdge = makeRectConsolasEdge()): DotGraph	
+makeDotGraph	hmisc/hasts/graphviz_ast.html#makeDotGraph,DotGraphPresets,string	graphviz_ast: makeDotGraph(style: DotGraphPresets; name: string = &quot;G&quot;): DotGraph	
+add	hmisc/hasts/graphviz_ast.html#add,DotGraph,DotNode	graphviz_ast: add(graph: var DotGraph; node: DotNode): void	
+add	hmisc/hasts/graphviz_ast.html#add,DotGraph,DotGraph	graphviz_ast: add(graph: var DotGraph; sub: DotGraph): void	
+addSubgraph	hmisc/hasts/graphviz_ast.html#addSubgraph,DotGraph,DotGraph	graphviz_ast: addSubgraph(graph: var DotGraph; subg: DotGraph)	
+add	hmisc/hasts/graphviz_ast.html#add,DotGraph,DotEdge	graphviz_ast: add(graph: var DotGraph; edge: DotEdge): void	
+addEdge	hmisc/hasts/graphviz_ast.html#addEdge,DotGraph,DotEdge	graphviz_ast: addEdge(graph: var DotGraph; edge: DotEdge): void	
+addNode	hmisc/hasts/graphviz_ast.html#addNode,DotGraph,DotNode	graphviz_ast: addNode(graph: var DotGraph; node: DotNode): void	
+makeDotEdge	hmisc/hasts/graphviz_ast.html#makeDotEdge,DotNodeId,DotNodeId	graphviz_ast: makeDotEdge(idFrom, idTo: DotNodeId): DotEdge	
+makeDotEdge	hmisc/hasts/graphviz_ast.html#makeDotEdge,DotNodeId,DotNodeId,string	graphviz_ast: makeDotEdge(idFrom, idTo: DotNodeId; label: string): DotEdge	
+makeAuxEdge	hmisc/hasts/graphviz_ast.html#makeAuxEdge,DotNodeId,DotNodeId	graphviz_ast: makeAuxEdge(idFrom, idTo: DotNodeId): DotEdge	
+applyStyle	hmisc/hasts/graphviz_ast.html#applyStyle,DotNode,DotNode	graphviz_ast: applyStyle(to: var DotNode; source: DotNode): void	
+makeConstraintEdge	hmisc/hasts/graphviz_ast.html#makeConstraintEdge,DotNodeId,DotNodeId	graphviz_ast: makeConstraintEdge(idFrom, idTo: DotNodeId): DotEdge	
+makeDotNode	hmisc/hasts/graphviz_ast.html#makeDotNode,DotNodeId,string,DotNodeShape,Color,DotNodeStyle,float,float,Color	graphviz_ast: makeDotNode(id: DotNodeId; label: string; shape: DotNodeShape = nsaDefault;\n            color: Color = colNoColor; style: DotNodeStyle = nstDefault;\n            width: float = -1.0; height: float = -1.0;\n            fillcolor: Color = colNoColor): DotNode	
+makeDotNode	hmisc/hasts/graphviz_ast.html#makeDotNode,DotNodeId,RawHtml	graphviz_ast: makeDotNode(id: DotNodeId; text: RawHtml): DotNode	
+makeDotNode	hmisc/hasts/graphviz_ast.html#makeDotNode,DotNodeId,HtmlElem	graphviz_ast: makeDotNode(id: DotNodeId; html: HtmlElem): DotNode	
+add	hmisc/hasts/graphviz_ast.html#add,DotNode,DotNode,openArray[]	graphviz_ast: add(node: var DotNode; other: DotNode;\n    attrs: openArray[(string, string)] = @[])	
+defaultDotBackgroundMap	hmisc/hasts/graphviz_ast.html#defaultDotBackgroundMap	graphviz_ast: defaultDotBackgroundMap	
+defaultDotForegroundMap	hmisc/hasts/graphviz_ast.html#defaultDotForegroundMap	graphviz_ast: defaultDotForegroundMap	
+lightDotForegroundMap	hmisc/hasts/graphviz_ast.html#lightDotForegroundMap	graphviz_ast: lightDotForegroundMap	
+brightDotForegroundMap	hmisc/hasts/graphviz_ast.html#brightDotForegroundMap	graphviz_ast: brightDotForegroundMap	
+dotColor	hmisc/hasts/graphviz_ast.html#dotColor,ForegroundColor,array[ForegroundColor,Color]	graphviz_ast: dotColor(col: ForegroundColor;\n         map: array[ForegroundColor, Color] = defaultDotForegroundMap): Color	
+makeHtmlDotNodeContents	hmisc/hasts/graphviz_ast.html#makeHtmlDotNodeContents,seq[HtmlElem],openArray[],openArray[]	graphviz_ast: makeHtmlDotNodeContents(cellItems: seq[HtmlElem]; tableAttrs: openArray[\n    (string, string)] = {&quot;border&quot;: &quot;1&quot;}; cellAttrs: openArray[(string, string)] = {\n    &quot;balign&quot;: &quot;left&quot;, &quot;border&quot;: &quot;0&quot;}): HtmlElem	
+makeDotNode	hmisc/hasts/graphviz_ast.html#makeDotNode,DotNodeId,string,ForegroundColor,BackgroundColor,array[BackgroundColor,Color],array[ForegroundColor,Color]	graphviz_ast: makeDotNode(id: DotNodeId; label: string; fg: ForegroundColor;\n            bg: BackgroundColor; bgColorMap: array[BackgroundColor, Color] = defaultDotBackgroundMap;\n            fgColorMap: array[ForegroundColor, Color] = defaultDotForegroundMap): DotNode	
+makeDotRecord	hmisc/hasts/graphviz_ast.html#makeDotRecord,DotNodeId,string,seq[RecordField]	graphviz_ast: makeDotRecord(id: DotNodeId; text: string; subfields: seq[RecordField] = @[]): RecordField	
+makeRecordDotNode	hmisc/hasts/graphviz_ast.html#makeRecordDotNode,DotNodeId,seq[RecordField]	graphviz_ast: makeRecordDotNode(id: DotNodeId; records: seq[RecordField]): DotNode	
+add	hmisc/hasts/graphviz_ast.html#add,DotNode,RecordField	graphviz_ast: add(node: var DotNode; field: RecordField)	
+makeColoredDotNode	hmisc/hasts/graphviz_ast.html#makeColoredDotNode,DotNodeId,string,openArray[],openArray[],DotNodeStyle	graphviz_ast: makeColoredDotNode(id: DotNodeId; label: string;\n                   tableAttrs: openArray[(string, string)] = {&quot;border&quot;: &quot;1&quot;};\n    cellAttrs: openArray[(string, string)] = {&quot;balign&quot;: &quot;left&quot;, &quot;border&quot;: &quot;0&quot;};\n                   style: DotNodeStyle = nstDefault): DotNode	
+makeTableDotNode	hmisc/hasts/graphviz_ast.html#makeTableDotNode,DotNodeId,,openArray[],openArray[],DotNodeStyle	graphviz_ast: makeTableDotNode(id: DotNodeId; label: RawHtml | string;\n                 tableAttrs: openArray[(string, string)] = {&quot;border&quot;: &quot;1&quot;};\n    cellAttrs: openArray[(string, string)] = {&quot;balign&quot;: &quot;left&quot;, &quot;border&quot;: &quot;0&quot;};\n                 style: DotNodeStyle = nstDefault): DotNode	
+`$`	hmisc/hasts/graphviz_ast.html#$,DotGraph	graphviz_ast: `$`(graph: DotGraph): string	
+toPng	hmisc/hasts/graphviz_ast.html#toPng,DotGraph,AbsFile,int,AbsFile,AbsFile	graphviz_ast: toPng(graph: DotGraph; resfile: AbsFile; resolution: int = 300;\n      tmpfile: AbsFile = getAppTempFile(&quot;dotTmpFile.dot&quot;);\n      tmpimage: AbsFile = getAppTempFile(&quot;dotTmpImage.png&quot;)): void	
+toXDot	hmisc/hasts/graphviz_ast.html#toXDot,DotGraph,AbsFile,AbsFile	graphviz_ast: toXDot(graph: DotGraph; resfile: AbsFile;\n       tmpfile: AbsFile = AbsFile &quot;/tmp/dot-file.dot&quot;): void	
+toPng	hmisc/hasts/graphviz_ast.html#toPng,DotGraph,string,int,string,string	graphviz_ast: toPng(graph: DotGraph; resfile: string; resolution: int = 300;\n      tmpfile: string = &quot;/tmp/dot-file.dot&quot;;\n      tmpimage: string = &quot;/tmp/dot-image-tmp.png&quot;): void	
+Fields	hmisc/hasts/graphviz_ast.html#fields	  Fields	
+Fields	hmisc/hasts/graphviz_ast.html#fields	  Fields	

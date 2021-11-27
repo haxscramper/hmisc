@@ -1,0 +1,40 @@
+Mapping	hmisc/extra/treediff/mapping_store.html#Mapping	mapping_store: Mapping	
+MappingStore	hmisc/extra/treediff/mapping_store.html#MappingStore	mapping_store: MappingStore	
+newMapping	hmisc/extra/treediff/mapping_store.html#newMapping,Tree,Tree	mapping_store: newMapping(a, b: Tree): Mapping	
+size	hmisc/extra/treediff/mapping_store.html#size,MappingStore	mapping_store: size(this: MappingStore): int	
+items	hmisc/extra/treediff/mapping_store.html#items.i,MappingStore	mapping_store: items(this: MappingStore): Mapping	
+pprint	hmisc/extra/treediff/mapping_store.html#pprint,MappingStore	mapping_store: pprint(this: MappingStore)	
+`$`	hmisc/extra/treediff/mapping_store.html#$,MappingStore	mapping_store: `$`(this: MappingStore): string	
+addMapping	hmisc/extra/treediff/mapping_store.html#addMapping,MappingStore,Tree,Tree	mapping_store: addMapping(this: MappingStore; src: Tree; dst: Tree): void	
+addMappingRecursively	hmisc/extra/treediff/mapping_store.html#addMappingRecursively,MappingStore,Tree,Tree	mapping_store: addMappingRecursively(this: MappingStore; src: Tree; dst: Tree): void	
+newMappingStore	hmisc/extra/treediff/mapping_store.html#newMappingStore,MappingStore	mapping_store: newMappingStore(ms: MappingStore): MappingStore	
+newMappingStore	hmisc/extra/treediff/mapping_store.html#newMappingStore,Tree,Tree	mapping_store: newMappingStore(src: Tree; dst: Tree): MappingStore	
+getDstForSrc	hmisc/extra/treediff/mapping_store.html#getDstForSrc,MappingStore,Tree	mapping_store: getDstForSrc(this: MappingStore; src: Tree): Tree	
+getSrcForDst	hmisc/extra/treediff/mapping_store.html#getSrcForDst,MappingStore,Tree	mapping_store: getSrcForDst(this: MappingStore; dst: Tree): Tree	
+isSrcMapped	hmisc/extra/treediff/mapping_store.html#isSrcMapped,MappingStore,Tree	mapping_store: isSrcMapped(this: MappingStore; src: Tree): bool	
+isDstMapped	hmisc/extra/treediff/mapping_store.html#isDstMapped,MappingStore,Tree	mapping_store: isDstMapped(this: MappingStore; dst: Tree): bool	
+areBothUnmapped	hmisc/extra/treediff/mapping_store.html#areBothUnmapped,MappingStore,Tree,Tree	mapping_store: areBothUnmapped(this: MappingStore; src: Tree; dst: Tree): bool	
+areSrcsUnmapped	hmisc/extra/treediff/mapping_store.html#areSrcsUnmapped,MappingStore,seq[Tree]	mapping_store: areSrcsUnmapped(this: MappingStore; srcs: seq[Tree]): bool	
+areDstsUnmapped	hmisc/extra/treediff/mapping_store.html#areDstsUnmapped,MappingStore,seq[Tree]	mapping_store: areDstsUnmapped(this: MappingStore; dsts: seq[Tree]): bool	
+hasUnmappedSrcChildren	hmisc/extra/treediff/mapping_store.html#hasUnmappedSrcChildren,MappingStore,Tree	mapping_store: hasUnmappedSrcChildren(this: MappingStore; t: Tree): bool	
+hasUnmappedDstChildren	hmisc/extra/treediff/mapping_store.html#hasUnmappedDstChildren,MappingStore,Tree	mapping_store: hasUnmappedDstChildren(this: MappingStore; t: Tree): bool	
+has	hmisc/extra/treediff/mapping_store.html#has,MappingStore,Tree,Tree	mapping_store: has(this: MappingStore; src: Tree; dst: Tree): bool	
+isMappingAllowed	hmisc/extra/treediff/mapping_store.html#isMappingAllowed,MappingStore,Tree,Tree	mapping_store: isMappingAllowed(this: MappingStore; src: Tree; dst: Tree): bool	
+MultiMappingStore	hmisc/extra/treediff/mapping_store.html#MultiMappingStore	mapping_store: MultiMappingStore	
+addMapping	hmisc/extra/treediff/mapping_store.html#addMapping,MultiMappingStore,Tree,Tree	mapping_store: addMapping(this: MultiMappingStore; src: Tree; dst: Tree): void	
+newMultiMappingStore	hmisc/extra/treediff/mapping_store.html#newMultiMappingStore,HashSet[Mapping]	mapping_store: newMultiMappingStore(mappings: HashSet[Mapping]): MultiMappingStore	
+newMultiMappingStore	hmisc/extra/treediff/mapping_store.html#newMultiMappingStore	mapping_store: newMultiMappingStore(): MultiMappingStore	
+getMappings	hmisc/extra/treediff/mapping_store.html#getMappings,MultiMappingStore	mapping_store: getMappings(this: MultiMappingStore): HashSet[Mapping]	
+removeMapping	hmisc/extra/treediff/mapping_store.html#removeMapping,MultiMappingStore,Tree,Tree	mapping_store: removeMapping(this: MultiMappingStore; src: Tree; dst: Tree): void	
+size	hmisc/extra/treediff/mapping_store.html#size,MultiMappingStore	mapping_store: size(this: MultiMappingStore): int	
+getDsts	hmisc/extra/treediff/mapping_store.html#getDsts,MultiMappingStore,Tree	mapping_store: getDsts(this: MultiMappingStore; src: Tree): HashSet[Tree]	
+getSrcs	hmisc/extra/treediff/mapping_store.html#getSrcs,MultiMappingStore,Tree	mapping_store: getSrcs(this: MultiMappingStore; dst: Tree): HashSet[Tree]	
+allMappedSrcs	hmisc/extra/treediff/mapping_store.html#allMappedSrcs,MultiMappingStore	mapping_store: allMappedSrcs(this: MultiMappingStore): HashSet[Tree]	
+allMappedDsts	hmisc/extra/treediff/mapping_store.html#allMappedDsts,MultiMappingStore	mapping_store: allMappedDsts(this: MultiMappingStore): HashSet[Tree]	
+hasSrc	hmisc/extra/treediff/mapping_store.html#hasSrc,MultiMappingStore,Tree	mapping_store: hasSrc(this: MultiMappingStore; src: Tree): bool	
+hasDst	hmisc/extra/treediff/mapping_store.html#hasDst,MultiMappingStore,Tree	mapping_store: hasDst(this: MultiMappingStore; dst: Tree): bool	
+has	hmisc/extra/treediff/mapping_store.html#has,MultiMappingStore,Tree,Tree	mapping_store: has(this: MultiMappingStore; src: Tree; dst: Tree): bool	
+isSrcUnique	hmisc/extra/treediff/mapping_store.html#isSrcUnique,MultiMappingStore,Tree	mapping_store: isSrcUnique(this: MultiMappingStore; src: Tree): bool	
+isDstUnique	hmisc/extra/treediff/mapping_store.html#isDstUnique,MultiMappingStore,Tree	mapping_store: isDstUnique(this: MultiMappingStore; dst: Tree): bool	
+toString	hmisc/extra/treediff/mapping_store.html#toString,MultiMappingStore	mapping_store: toString(this: MultiMappingStore): string	
+items	hmisc/extra/treediff/mapping_store.html#items.i,MultiMappingStore	mapping_store: items(this: MultiMappingStore): Mapping	

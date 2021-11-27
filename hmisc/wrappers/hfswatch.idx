@@ -1,0 +1,54 @@
+FswHandle	hmisc/wrappers/hfswatch.html#FswHandle	hfswatch: FswHandle	
+fefNoOp	hmisc/wrappers/hfswatch.html#fefNoOp	FswEventFlag.fefNoOp	
+fefPlatformSpecific	hmisc/wrappers/hfswatch.html#fefPlatformSpecific	FswEventFlag.fefPlatformSpecific	
+fefCreated	hmisc/wrappers/hfswatch.html#fefCreated	FswEventFlag.fefCreated	
+fefUpdated	hmisc/wrappers/hfswatch.html#fefUpdated	FswEventFlag.fefUpdated	
+fefRemoved	hmisc/wrappers/hfswatch.html#fefRemoved	FswEventFlag.fefRemoved	
+fefRenamed	hmisc/wrappers/hfswatch.html#fefRenamed	FswEventFlag.fefRenamed	
+fefOwnerModified	hmisc/wrappers/hfswatch.html#fefOwnerModified	FswEventFlag.fefOwnerModified	
+fefAttributeModified	hmisc/wrappers/hfswatch.html#fefAttributeModified	FswEventFlag.fefAttributeModified	
+fefMovedFrom	hmisc/wrappers/hfswatch.html#fefMovedFrom	FswEventFlag.fefMovedFrom	
+fefMovedTo	hmisc/wrappers/hfswatch.html#fefMovedTo	FswEventFlag.fefMovedTo	
+fefIsFile	hmisc/wrappers/hfswatch.html#fefIsFile	FswEventFlag.fefIsFile	
+fefIsDir	hmisc/wrappers/hfswatch.html#fefIsDir	FswEventFlag.fefIsDir	
+fefIsSymLink	hmisc/wrappers/hfswatch.html#fefIsSymLink	FswEventFlag.fefIsSymLink	
+fefLink	hmisc/wrappers/hfswatch.html#fefLink	FswEventFlag.fefLink	
+fefOverflow	hmisc/wrappers/hfswatch.html#fefOverflow	FswEventFlag.fefOverflow	
+FswEventFlag	hmisc/wrappers/hfswatch.html#FswEventFlag	hfswatch: FswEventFlag	
+FswEvent	hmisc/wrappers/hfswatch.html#FswEvent	hfswatch: FswEvent	
+FswEventTypeFilter	hmisc/wrappers/hfswatch.html#FswEventTypeFilter	hfswatch: FswEventTypeFilter	
+filterInclude	hmisc/wrappers/hfswatch.html#filterInclude	FswFilterType.filterInclude	
+filterExclude	hmisc/wrappers/hfswatch.html#filterExclude	FswFilterType.filterExclude	
+FswFilterType	hmisc/wrappers/hfswatch.html#FswFilterType	hfswatch: FswFilterType	
+FswFsMonitorFilter	hmisc/wrappers/hfswatch.html#FswFsMonitorFilter	hfswatch: FswFsMonitorFilter	
+getFlags	hmisc/wrappers/hfswatch.html#getFlags,FswEvent	hfswatch: getFlags(ev: FswEvent): set[FswEventFlag]	
+fswInitLibrary	hmisc/wrappers/hfswatch.html#fswInitLibrary	hfswatch: fswInitLibrary(): cint	
+fswInitSession	hmisc/wrappers/hfswatch.html#fswInitSession,cint	hfswatch: fswInitSession(monitor_type: cint): FswHandle	
+addPath	hmisc/wrappers/hfswatch.html#addPath,FswHandle,cstring	hfswatch: addPath(handle: FswHandle; path: cstring): cint	
+addProperty	hmisc/wrappers/hfswatch.html#addProperty,FswHandle,string,string	hfswatch: addProperty(handle: FswHandle; name: string; value: string): cint	
+setAllowOverflow	hmisc/wrappers/hfswatch.html#setAllowOverflow,FswHandle,bool	hfswatch: setAllowOverflow(handle: FswHandle; allow_overflow: bool): cint	
+setCallback	hmisc/wrappers/hfswatch.html#setCallback,FswHandle,FswEventCallback,pointer	hfswatch: setCallback(handle: FswHandle; callback: FswEventCallback; data: pointer): cint	
+setLatency	hmisc/wrappers/hfswatch.html#setLatency,FswHandle,cdouble	hfswatch: setLatency(handle: FswHandle; latency: cdouble): cint	
+setRecursive	hmisc/wrappers/hfswatch.html#setRecursive,FswHandle,bool	hfswatch: setRecursive(handle: FswHandle; recursive: bool): cint	
+setDirectoryOnly	hmisc/wrappers/hfswatch.html#setDirectoryOnly,FswHandle,bool	hfswatch: setDirectoryOnly(handle: FswHandle; directory_only: bool): cint	
+setFollowSymlinks	hmisc/wrappers/hfswatch.html#setFollowSymlinks,FswHandle,bool	hfswatch: setFollowSymlinks(handle: FswHandle; follow_symlinks: bool): cint	
+addEventTypeFilter	hmisc/wrappers/hfswatch.html#addEventTypeFilter,FswHandle,FswEventTypeFilter	hfswatch: addEventTypeFilter(handle: FswHandle; event_type: FswEventTypeFilter): cint	
+addFilter	hmisc/wrappers/hfswatch.html#addFilter,FswHandle,FswFsMonitorFilter	hfswatch: addFilter(handle: FswHandle; filter: FswFsMonitorFilter): cint	
+startFsMonitor	hmisc/wrappers/hfswatch.html#startFsMonitor,FswHandle	hfswatch: startFsMonitor(handle: FswHandle): cint	
+stopFsMonitor	hmisc/wrappers/hfswatch.html#stopFsMonitor,FswHandle	hfswatch: stopFsMonitor(handle: FswHandle): cint	
+isRunning	hmisc/wrappers/hfswatch.html#isRunning,FswHandle	hfswatch: isRunning(handle: FswHandle): bool	
+destroySession	hmisc/wrappers/hfswatch.html#destroySession,FswHandle	hfswatch: destroySession(handle: FswHandle): cint	
+fswLastError	hmisc/wrappers/hfswatch.html#fswLastError	hfswatch: fswLastError(): cint	
+fswIsVerbose	hmisc/wrappers/hfswatch.html#fswIsVerbose	hfswatch: fswIsVerbose(): bool	
+fswSetVerbose	hmisc/wrappers/hfswatch.html#fswSetVerbose,bool	hfswatch: fswSetVerbose(verbose: bool)	
+FsMonitor	hmisc/wrappers/hfswatch.html#FsMonitor	hfswatch: FsMonitor	
+addEventTypeFilter	hmisc/wrappers/hfswatch.html#addEventTypeFilter,FsMonitor,set[FswEventFlag]	hfswatch: addEventTypeFilter(monitor: FsMonitor; types: set[FswEventFlag])	
+newFsMonitor	hmisc/wrappers/hfswatch.html#newFsMonitor	hfswatch: newFsMonitor(): FsMonitor	
+addPath	hmisc/wrappers/hfswatch.html#addPath,FsMonitor,string	hfswatch: addPath(monitor: FsMonitor; path: string)	
+setCallback	hmisc/wrappers/hfswatch.html#setCallback,FsMonitor,proc(FswEvent)	hfswatch: setCallback(monitor: FsMonitor; callback: proc (event: FswEvent))	
+addFilter	hmisc/wrappers/hfswatch.html#addFilter,FsMonitor,Rx,bool,bool,bool	hfswatch: addFilter(monitor: FsMonitor; regex: Rx; inclusive: bool = false;\n          ignorecase: bool = false; extended: bool = true)	
+setFilterOnly	hmisc/wrappers/hfswatch.html#setFilterOnly,FsMonitor,seq[Rx]	hfswatch: setFilterOnly(monitor: FsMonitor; regexList: seq[Rx])	
+start	hmisc/wrappers/hfswatch.html#start,FsMonitor	hfswatch: start(monitor: FsMonitor)	
+newFsMonitor	hmisc/wrappers/hfswatch.html#newFsMonitor,AnyPath,proc(FswEvent)	hfswatch: newFsMonitor(path: AnyPath; cb: proc (event: FswEvent)): FsMonitor	
+newFsMonitorEvent	hmisc/wrappers/hfswatch.html#newFsMonitorEvent.t,AnyPath,untyped	hfswatch: newFsMonitorEvent(path: AnyPath; body: untyped): untyped	
+Path filtering	hmisc/wrappers/hfswatch.html#path-filtering	  Path filtering	

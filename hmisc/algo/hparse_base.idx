@@ -1,0 +1,140 @@
+HsTokTree	hmisc/algo/hparse_base.html#HsTokTree	hparse_base: HsTokTree	
+HsTokSelector	hmisc/algo/hparse_base.html#HsTokSelector	hparse_base: HsTokSelector	
+HsTok	hmisc/algo/hparse_base.html#HsTok	hparse_base: HsTok	
+HsLexer	hmisc/algo/hparse_base.html#HsLexer	hparse_base: HsLexer	
+likIncIndent	hmisc/algo/hparse_base.html#likIncIndent	LexerIndentKind.likIncIndent	
+likDecIndent	hmisc/algo/hparse_base.html#likDecIndent	LexerIndentKind.likDecIndent	
+likSameIndent	hmisc/algo/hparse_base.html#likSameIndent	LexerIndentKind.likSameIndent	
+likEmptyLine	hmisc/algo/hparse_base.html#likEmptyLine	LexerIndentKind.likEmptyLine	
+likNoIndent	hmisc/algo/hparse_base.html#likNoIndent	LexerIndentKind.likNoIndent	
+LexerIndentKind	hmisc/algo/hparse_base.html#LexerIndentKind	hparse_base: LexerIndentKind	
+HsLexerState	hmisc/algo/hparse_base.html#HsLexerState	hparse_base: HsLexerState	
+HsLexerStateSimple	hmisc/algo/hparse_base.html#HsLexerStateSimple	hparse_base: HsLexerStateSimple	
+HsLexCallback	hmisc/algo/hparse_base.html#HsLexCallback	hparse_base: HsLexCallback	
+HsTokPredicate	hmisc/algo/hparse_base.html#HsTokPredicate	hparse_base: HsTokPredicate	
+ParseError	hmisc/algo/hparse_base.html#ParseError	hparse_base: ParseError	
+UnexpectedTokenError	hmisc/algo/hparse_base.html#UnexpectedTokenError	hparse_base: UnexpectedTokenError	
+HsParseCallback	hmisc/algo/hparse_base.html#HsParseCallback	hparse_base: HsParseCallback	
+lift	hmisc/algo/hparse_base.html#lift,HsLexerState[F],F	hparse_base: lift[F](state: var HsLexerState[F]; flag: F)	
+drop	hmisc/algo/hparse_base.html#drop,HsLexerState[F],F	hparse_base: drop[F](state: var HsLexerState[F]; flag: F)	
+toFlag	hmisc/algo/hparse_base.html#toFlag,HsLexerState[F],F	hparse_base: toFlag[F](state: var HsLexerState[F]; newFlag: F)	
+topFlag	hmisc/algo/hparse_base.html#topFlag,HsLexerState[F]	hparse_base: topFlag[F](state: var HsLexerState[F]): F	
+kind	hmisc/algo/hparse_base.html#kind,HsLexerState[F]	hparse_base: kind[F](state: HsLexerState[F]): F	
+hasFlag	hmisc/algo/hparse_base.html#hasFlag,HsLexerState[F],F	hparse_base: hasFlag[F](state: HsLexerState[F]; flag: F): bool	
+newLexerState	hmisc/algo/hparse_base.html#newLexerState,F	hparse_base: newLexerState[F](startFlag: F): HsLexerState[F]	
+newLexerState	hmisc/algo/hparse_base.html#newLexerState	hparse_base: newLexerState(): HsLexerStateSimple	
+newUnexpectedCharError	hmisc/algo/hparse_base.html#newUnexpectedCharError,PosStr,HsLexerState[F],string	hparse_base: newUnexpectedCharError[F](str: var PosStr; state: var HsLexerState[F];\n                          expected: string = &quot;&quot;): ref UnexpectedCharError	
+newUnexpectedTokenError	hmisc/algo/hparse_base.html#newUnexpectedTokenError,HsLexer[HsTok[K]],set[K],string	hparse_base: newUnexpectedTokenError[K](lexer: var HsLexer[HsTok[K]]; expected: set[K] = {};\n                           expectedMsg: string = &quot;&quot;): UnexpectedTokenError	
+expectKind	hmisc/algo/hparse_base.html#expectKind,HsLexer[HsTok[K]],	hparse_base: expectKind[K](lex: var HsLexer[HsTok[K]]; kind: set[K] | K)	
+getIndent	hmisc/algo/hparse_base.html#getIndent,HsLexerState[F]	hparse_base: getIndent[F](state: HsLexerState[F]): int	
+setIndent	hmisc/algo/hparse_base.html#setIndent,HsLexerState[F],int	hparse_base: setIndent[F](state: var HsLexerState[F]; ind: int)	
+clearIndent	hmisc/algo/hparse_base.html#clearIndent,HsLexerState[F]	hparse_base: clearIndent[F](state: var HsLexerState[F])	
+getIndentLevels	hmisc/algo/hparse_base.html#getIndentLevels,HsLexerState[F]	hparse_base: getIndentLevels[F](state: HsLexerState[F]): int	
+clear	hmisc/algo/hparse_base.html#clear,HsLexerState[F]	hparse_base: clear[F](state: var HsLexerState[F])	
+skipIndent	hmisc/algo/hparse_base.html#skipIndent,HsLexerState[F],PosStr	hparse_base: skipIndent[F](state: var HsLexerState[F]; str: var PosStr): LexerIndentKind	
+lineCol	hmisc/algo/hparse_base.html#lineCol,HsTok[K]	hparse_base: lineCol[K](tok: HsTok[K]): LineCol	
+`==`	hmisc/algo/hparse_base.html#==,HsTok[K],tuple[K,string]	hparse_base: `==`[K](tok: HsTok[K]; other: tuple[kind: K, value: string]): bool	
+`==`	hmisc/algo/hparse_base.html#==,openArray[HsTok[K]],openArray[tuple[K,string]]	hparse_base: `==`[K](tok: openArray[HsTok[K]];\n        other: openArray[tuple[kind: K, value: string]]): bool	
+add	hmisc/algo/hparse_base.html#add,HsTokTree[R,T],HsTokTree[R,T]	hparse_base: add[R, T](tree: var HsTokTree[R, T]; sub: HsTokTree[R, T])	
+newHTree	hmisc/algo/hparse_base.html#newHTree,R,seq[HsTokTree[R,T]]	hparse_base: newHTree[R, T](kind: R; subnodes: seq[HsTokTree[R, T]]): HsTokTree[R, T]	
+newHTree	hmisc/algo/hparse_base.html#newHTree,R,T	hparse_base: newHTree[R, T](kind: R; token: T): HsTokTree[R, T]	
+newHTree	hmisc/algo/hparse_base.html#newHTree,HsLexer[T],R	hparse_base: newHTree[R, T](lexer: HsLexer[T]; kind: R): HsTokTree[R, T]	
+newHTree	hmisc/algo/hparse_base.html#newHTree,HsLexer[HsTok[T]],R,HsTok[T]	hparse_base: newHTree[R, T](lexer: HsLexer[HsTok[T]]; kind: R; tok: HsTok[T]): HsTokTree[R,\n    HsTok[T]]	
+newHTree	hmisc/algo/hparse_base.html#newHTree,HsLexer[T],R,string	hparse_base: newHTree[R, T](lexer: HsLexer[T]; kind: R; str: string): HsTokTree[R, T]	
+wrap	hmisc/algo/hparse_base.html#wrap,sinkHsTokTree[R,T],R	hparse_base: wrap[R, T](tree: sink HsTokTree[R, T]; wrap: R): HsTokTree[R, T]	
+initEof	hmisc/algo/hparse_base.html#initEof,PosStr,K	hparse_base: initEof[K](str: var PosStr; kind: K): HsTok[K]	
+initTok	hmisc/algo/hparse_base.html#initTok,PosStr,K,bool	hparse_base: initTok[K: HsTokSelector](str: var PosStr; kind: K; tryPop: bool = true): HsTok[\n    K]	
+initTok	hmisc/algo/hparse_base.html#initTok,K	hparse_base: initTok[K](kind: K): HsTok[K]	
+initTok	hmisc/algo/hparse_base.html#initTok,,K	hparse_base: initTok[K](str: char | string; kind: K): HsTok[K]	
+initTok	hmisc/algo/hparse_base.html#initTok.t,PosStr,,K	hparse_base: initTok[K](posStr: PosStr; inStr: char | string; inKind: K): HsTok[K]	
+initFakeTok	hmisc/algo/hparse_base.html#initFakeTok,PosStr,K	hparse_base: initFakeTok[K](str: PosStr; kind: K): HsTok[K]	
+initTok	hmisc/algo/hparse_base.html#initTok,PosStr,K	hparse_base: initTok[K: HsTokSelector](str: PosStr; inKind: K): HsTok[K]	
+initTok	hmisc/algo/hparse_base.html#initTok,K,PosStr	hparse_base: initTok[K: HsTokSelector](inKind: K; str: PosStr): HsTok[K]	
+initTok	hmisc/algo/hparse_base.html#initTok.t,PosStr,PosStr,K	hparse_base: initTok[K](posStr: PosStr; inStr: PosStr; inKind: K): HsTok[K]	
+addInitTok	hmisc/algo/hparse_base.html#addInitTok.t,seq[HsTok[K]],PosStr,K,untyped	hparse_base: addInitTok[K](res: var seq[HsTok[K]]; str: var PosStr; kind: K; body: untyped): untyped	
+initTok	hmisc/algo/hparse_base.html#initTok.t,PosStr,K,PosStr	hparse_base: initTok[K](posStr: PosStr; inKind: K; inStr: PosStr): HsTok[K]	
+initSliceTok	hmisc/algo/hparse_base.html#initSliceTok,PosStr,K	hparse_base: initSliceTok[K](str: var PosStr; inKind: K): HsTok[K]	
+scanTok	hmisc/algo/hparse_base.html#scanTok.t,untyped,untyped,varargs[untyped]	hparse_base: scanTok(str, inKind: untyped; pattern: varargs[untyped]): untyped	
+initAdvanceTok	hmisc/algo/hparse_base.html#initAdvanceTok,PosStr,int,K,set[char]	hparse_base: initAdvanceTok[K](str: var PosStr; advance: int; inKind: K;\n                  expected: set[char] = AllChars): HsTok[K]	
+addOrJoin	hmisc/algo/hparse_base.html#addOrJoin,seq[HsTok[K]],HsTok[K],set[K],set[K]	hparse_base: addOrJoin[K](tokens: var seq[HsTok[K]]; tok: HsTok[K];\n             lastKinds, newKinds: set[K])	
+addOrJoin	hmisc/algo/hparse_base.html#addOrJoin,seq[HsTok[K]],HsTok[K]	hparse_base: addOrJoin[K](tokens: var seq[HsTok[K]]; tok: HsTok[K])	
+addOrJoin	hmisc/algo/hparse_base.html#addOrJoin,seq[HsTok[K]],HsTok[K],K	hparse_base: addOrJoin[K](tokens: var seq[HsTok[K]]; tok: HsTok[K]; kind: K)	
+strVal	hmisc/algo/hparse_base.html#strVal,HsTok[K]	hparse_base: strVal[K](tok: HsTok[K]): string	
+initCharTok	hmisc/algo/hparse_base.html#initCharTok,PosStr,static[openArray[tuple[char,Cat]]]	hparse_base: initCharTok[Cat: enum](str: var PosStr;\n                       map: static[openArray[tuple[key: char, val: Cat]]]): HsTok[\n    Cat]	
+initPosStr	hmisc/algo/hparse_base.html#initPosStr,HsTok[K]	hparse_base: initPosStr[K](tok: HsTok[K]): PosStr	
+initPosStr	hmisc/algo/hparse_base.html#initPosStr,seq[HsTok[K]]	hparse_base: initPosStr[K](tokens: seq[HsTok[K]]): PosStr	
+isFail	hmisc/algo/hparse_base.html#isFail,ParseResult[T]	hparse_base: isFail[T](parse: ParseResult[T]): bool	
+isOk	hmisc/algo/hparse_base.html#isOk,ParseResult[T]	hparse_base: isOk[T](parse: ParseResult[T]): bool	
+initParseResult	hmisc/algo/hparse_base.html#initParseResult,T	hparse_base: initParseResult[T](value: T): ParseResult[T]	
+initParseResult	hmisc/algo/hparse_base.html#initParseResult,seq[T]	hparse_base: initParseResult[T](value: seq[T]): ParseResult[seq[T]]	
+initParseResult	hmisc/algo/hparse_base.html#initParseResult,ParseResult[Tfrom]	hparse_base: initParseResult[Tfrom, Tto](res: ParseResult[Tfrom]): ParseResult[Tto]	
+initParseResult	hmisc/algo/hparse_base.html#initParseResult,ParseFail	hparse_base: initParseResult[T](fail: ParseFail): ParseResult[T]	
+toHsParse	hmisc/algo/hparse_base.html#toHsParse,proc(HsLexer[HsTok[K]]),set[K]	hparse_base: toHsParse[K, Val](arg: proc (lexer: var HsLexer[HsTok[K]]): Val; first: set[K]): HsParseCallback[\n    HsTok[K], Val]	
+add	hmisc/algo/hparse_base.html#add,ParseResult[seq[T]],	hparse_base: add[T](res: var ParseResult[seq[T]]; value: seq[T] | T)	
+add	hmisc/algo/hparse_base.html#add,ParseResult[seq[T]],ParseResult[T]	hparse_base: add[T](res: var ParseResult[seq[T]]; value: ParseResult[T])	
+len	hmisc/algo/hparse_base.html#len,HsTokTree[R,T]	hparse_base: len[R, T](t: HsTokTree[R, T]): int	
+items	hmisc/algo/hparse_base.html#items.i,HsTokTree[R,T]	hparse_base: items[R, T](t: HsTokTree[R, T]): HsTokTree[R, T]	
+pairs	hmisc/algo/hparse_base.html#pairs.i,HsTokTree[R,T]	hparse_base: pairs[R, T](t: HsTokTree[R, T]): (int, HsTokTree[R, T])	
+`[]`	hmisc/algo/hparse_base.html#[],HsTokTree[R,T],int	hparse_base: `[]`[R, T](t: HsTokTree[R, T]; idx: int): HsTokTree[R, T]	
+get	hmisc/algo/hparse_base.html#get,ParseResult[V]	hparse_base: get[V](parseResult: ParseResult[V]): V	
+`$`	hmisc/algo/hparse_base.html#$,HsTok[K]	hparse_base: `$`[K](tok: HsTok[K]): string	
+`@`	hmisc/algo/hparse_base.html#@,HsLexer[T]	hparse_base: `@`[T](lex: HsLexer[T]): seq[T]	
+`$`	hmisc/algo/hparse_base.html#$,HsLexer[T]	hparse_base: `$`[T](lex: HsLexer[T]): string	
+resetBuffer	hmisc/algo/hparse_base.html#resetBuffer,HsLexer[T]	hparse_base: resetBuffer[T](lex: var HsLexer[T])	
+onEof	hmisc/algo/hparse_base.html#onEof,HsLexer[T]	hparse_base: onEof[T](lex: HsLexer[T]): bool	
+hasNxt	hmisc/algo/hparse_base.html#hasNxt,HsLexer[T],int	hparse_base: hasNxt[T](lex: HsLexer[T]; offset: int): bool	
+finished	hmisc/algo/hparse_base.html#finished,HsLexer[T]	hparse_base: finished[T](lex: HsLexer[T]): bool	
+`?`	hmisc/algo/hparse_base.html#?,HsLexer[T]	hparse_base: `?`[T](lex: var HsLexer[T]): bool	
+nextToken	hmisc/algo/hparse_base.html#nextToken,HsLexer[T]	hparse_base: nextToken[T](lex: var HsLexer[T]): bool	
+fillNext	hmisc/algo/hparse_base.html#fillNext,HsLexer[T],int	hparse_base: fillNext[T](lex: var HsLexer[T]; chars: int)	
+`[]`	hmisc/algo/hparse_base.html#[],HsLexer[T],int	hparse_base: `[]`[T](lex: var HsLexer[T]; offset: int = 0): T	
+`[]`	hmisc/algo/hparse_base.html#[],HsLexer[T],Slice[int]	hparse_base: `[]`[T](lex: var HsLexer[T]; slice: Slice[int]): seq[T]	
+`[]`	hmisc/algo/hparse_base.html#[],seq[HsTok[K]],int,	hparse_base: `[]`[K](tokens: seq[HsTok[K]]; offset: int; kind: set[K] | K): bool	
+`[]`	hmisc/algo/hparse_base.html#[],HsLexer[T],	hparse_base: `[]`[T, K](lex: var HsLexer[T]; kind: set[K] | K): bool	
+`[]`	hmisc/algo/hparse_base.html#[],HsLexer[T],int,	hparse_base: `[]`[T, K](lex: var HsLexer[T]; offset: int; kind: set[K] | K): bool	
+`[]`	hmisc/algo/hparse_base.html#[],HsLexer[HsTok[K]],	hparse_base: `[]`[K](lex: var HsLexer[HsTok[K]]; kind: set[K] | K): bool	
+`[]`	hmisc/algo/hparse_base.html#[],HsLexer[HsTok[K]],,	hparse_base: `[]`[K](lex: var HsLexer[HsTok[K]]; kind1, kind2: set[K] | K): bool	
+`[]`	hmisc/algo/hparse_base.html#[],HsLexer[HsTok[K]],,,	hparse_base: `[]`[K](lex: var HsLexer[HsTok[K]]; kind1, kind2, kind3: set[K] | K): bool	
+`[]`	hmisc/algo/hparse_base.html#[],seq[HsTok[K]],	hparse_base: `[]`[K](tokens: seq[HsTok[K]]; kind: set[K] | K): bool	
+`[]`	hmisc/algo/hparse_base.html#[],seq[HsTok[K]],,	hparse_base: `[]`[K](tokens: seq[HsTok[K]]; kind1, kind2: set[K] | K): bool	
+`[]`	hmisc/algo/hparse_base.html#[],seq[HsTok[K]],,,	hparse_base: `[]`[K](tokens: seq[HsTok[K]]; kind1, kind2, kind3: set[K] | K): bool	
+returnTo	hmisc/algo/hparse_base.html#returnTo,HsLexer[T],int	hparse_base: returnTo[T](lex: var HsLexer[T]; position: int)	
+getPosition	hmisc/algo/hparse_base.html#getPosition,HsLexer[T]	hparse_base: getPosition[T](lex: var HsLexer[T]): int	
+next	hmisc/algo/hparse_base.html#next,HsLexer[T],int	hparse_base: next[T](lex: var HsLexer[T]; step: int = 1)	
+advance	hmisc/algo/hparse_base.html#advance,HsLexer[T],int	hparse_base: advance[T](lex: var HsLexer[T]; step: int = 1)	
+pop	hmisc/algo/hparse_base.html#pop,HsLexer[T]	hparse_base: pop[T](lex: var HsLexer[T]): T	
+pop	hmisc/algo/hparse_base.html#pop,HsLexer[HsTok[K: enum]],	hparse_base: pop[K: enum](lex: var HsLexer[HsTok[K]]; kind: set[K] | K): HsTok[K]	
+popAsStr	hmisc/algo/hparse_base.html#popAsStr,HsLexer[HsTok[K]]	hparse_base: popAsStr[K](lex: var HsLexer[HsTok[K]]): PosStr	
+popAsStr	hmisc/algo/hparse_base.html#popAsStr,HsLexer[HsTok[K]],	hparse_base: popAsStr[K](lex: var HsLexer[HsTok[K]]; kind: set[K] | K): PosStr	
+initLexer	hmisc/algo/hparse_base.html#initLexer,PosStr,HsLexCallback[T],Option[T]	hparse_base: initLexer[T](str: PosStr; lexCb: HsLexCallback[T];\n             explicitEof: Option[T] = none(T)): HsLexer[T]	
+initLexer	hmisc/algo/hparse_base.html#initLexer,seq[T]	hparse_base: initLexer[T](tokens: seq[T]): HsLexer[T]	
+initLexer	hmisc/algo/hparse_base.html#initLexer,HsLexCallback[T],Option[T]	hparse_base: initLexer[T](lexCb: HsLexCallback[T]; explicitEof: Option[T] = none(T)): HsLexer[\n    T]	
+setStr	hmisc/algo/hparse_base.html#setStr,HsLexer[T],PosStr	hparse_base: setStr[T](lexer: var HsLexer[T]; str: PosStr)	
+skip	hmisc/algo/hparse_base.html#skip,HsLexer[T],	hparse_base: skip[T, En](lexer: var HsLexer[T]; kind: set[En] | En)	
+skip	hmisc/algo/hparse_base.html#skip,HsLexer[T],,string	hparse_base: skip[T, En](lexer: var HsLexer[T]; kind: set[En] | En; expected: string)	
+trySkip	hmisc/algo/hparse_base.html#trySkip,HsLexer[T],set[En]	hparse_base: trySkip[T, En](lexer: var HsLexer[T]; kind: set[En]): bool	
+skip	hmisc/algo/hparse_base.html#skip,HsLexer[T],set[En],set[En]	hparse_base: skip[T, En](lexer: var HsLexer[T]; kind1, kind2: set[En])	
+skip	hmisc/algo/hparse_base.html#skip,HsLexer[T],set[En],set[En],set[En]	hparse_base: skip[T, En](lexer: var HsLexer[T]; kind1, kind2, kind3: set[En])	
+skipTo	hmisc/algo/hparse_base.html#skipTo,HsLexer[T],set[char]	hparse_base: skipTo[T](lex: var HsLexer[T]; chars: set[char])	
+parseIdent	hmisc/algo/hparse_base.html#parseIdent,HsLexer[T],R	hparse_base: parseIdent[R, T](lex: var HsLexer[T]; kind: R): HsTokTree[R, T]	
+pushRange	hmisc/algo/hparse_base.html#pushRange,HsLexer[T]	hparse_base: pushRange[T](lex: var HsLexer[T])	
+popRange	hmisc/algo/hparse_base.html#popRange,HsLexer[T]	hparse_base: popRange[T](lex: var HsLexer[T]): string	
+lexAll	hmisc/algo/hparse_base.html#lexAll,HsLexer[T]	hparse_base: lexAll[T](lex: var HsLexer[T])	
+getAll	hmisc/algo/hparse_base.html#getAll,HsLexer[T]	hparse_base: getAll[T](lex: var HsLexer[T]): seq[T]	
+lexAll	hmisc/algo/hparse_base.html#lexAll,PosStr,HsLexCallback[T]	hparse_base: lexAll[T](str: var PosStr; impl: HsLexCallback[T]): seq[T]	
+initLexer	hmisc/algo/hparse_base.html#initLexer,seq[PosStr],HsLexCallback[T]	hparse_base: initLexer[T](strs: seq[PosStr]; impl: HsLexCallback[T]): HsLexer[T]	
+insideBalanced	hmisc/algo/hparse_base.html#insideBalanced,HsLexer[T],set[K],set[K],bool	hparse_base: insideBalanced[T, K](lex: var HsLexer[T]; openKinds, closeKinds: set[K];\n                     withWrap: bool = false): seq[T]	
+splitSep	hmisc/algo/hparse_base.html#splitSep,seq[T],set[K]	hparse_base: splitSep[T, K](tokens: seq[T]; sep: set[K]): seq[seq[T]]	
+splitKeyValue	hmisc/algo/hparse_base.html#splitKeyValue,seq[T],set[K],set[K]	hparse_base: splitKeyValue[T, K](tokens: seq[T]; kvDelimiter: set[K]; itemSep: set[K]): seq[\n    tuple[key, value: seq[T]]]	
+getInsideBalanced	hmisc/algo/hparse_base.html#getInsideBalanced,seq[T],set[K],set[K],bool	hparse_base: getInsideBalanced[T, K](tokens: seq[T]; openKinds, closeKinds: set[K];\n                        withWrap: bool = false): seq[T]	
+foldNested	hmisc/algo/hparse_base.html#foldNested,seq[T],set[K],set[K],set[K]	hparse_base: foldNested[T, K](tokens: seq[T]; openKinds, closeKinds, delimiterKinds: set[K]): seq[\n    HsTokTree[T, T]]	
+parsePlus	hmisc/algo/hparse_base.html#parsePlus,HsParseCallback[T,V]	hparse_base: parsePlus[T, V](parser: HsParseCallback[T, V]): HsParseCallback[T, seq[V]]	
+parseDelimitedStar	hmisc/algo/hparse_base.html#parseDelimitedStar,HsParseCallback[T,V],HsParseCallback[T,Skip]	hparse_base: parseDelimitedStar[T, V, Skip](itemParse: HsParseCallback[T, V];\n                               delimiterParse: HsParseCallback[T, Skip]): HsParseCallback[\n    T, seq[V]]	
+`^*`	hmisc/algo/hparse_base.html#^*,HsParseCallback[T,V],HsParseCallback[T,V]	hparse_base: `^*`[T, V](itemParse, delimiterParse: HsParseCallback[T, V]): HsParseCallback[T,\n    seq[V]]	
+parseToken	hmisc/algo/hparse_base.html#parseToken,T	hparse_base: parseToken[T](token: T): HsParseCallback[T, T]	
+parseTokenKind	hmisc/algo/hparse_base.html#parseTokenKind,K	hparse_base: parseTokenKind[K](kind: K): HsParseCallback[HsTok[K], HsTok[K]]	
+parseLongestMatch	hmisc/algo/hparse_base.html#parseLongestMatch,seq[HsParseCallback[T,V]]	hparse_base: parseLongestMatch[T, V](parsers: seq[HsParseCallback[T, V]]): HsParseCallback[T,\n    V]	
+parseFirstMatch	hmisc/algo/hparse_base.html#parseFirstMatch,seq[HsParseCallback[T,V]]	hparse_base: parseFirstMatch[T, V](parsers: seq[HsParseCallback[T, V]]): HsParseCallback[T, V]	
+strVal	hmisc/algo/hparse_base.html#strVal,HsTokTree[R,T]	hparse_base: strVal[R, T](tree: HsTokTree[R, T]): string	
+treeRepr	hmisc/algo/hparse_base.html#treeRepr,HsTokTree[R,T],bool,bool,bool,int,PosStr	hparse_base: treeRepr[R, T](tree: HsTokTree[R, T]; colored: bool = true;\n               pathIndexed: bool = false; positionIndexed: bool = true;\n               maxdepth: int = 120; baseStr: PosStr = PosStr(line: 0, column: 0)): ColoredText	
+toColored	hmisc/algo/hparse_base.html#toColored,seq[HsTok[K]],array[K,PrintStyling],int	hparse_base: toColored[K](toks: seq[HsTok[K]]; colorMap: array[K, PrintStyling] = default(\n    array[K, PrintStyling]); wrapLine: int = 80): ColoredRuneGrid	

@@ -1,0 +1,14 @@
+setPart	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/colored.html#setPart,seq[seq[string]],int,int,string	colored: setPart(buf: var seq[seq[string]]; row, col: int; str: string)	
+setCell	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/colored.html#setCell,seq[seq[string]],int,int,string	colored: setCell(buf: var seq[seq[string]]; row, col: int; str: string)	
+joinBuf	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/colored.html#joinBuf,seq[seq[string]]	colored: joinBuf(str: seq[seq[string]]): string	
+toRedStr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/colored.html#toRedStr,string,bool	colored: toRedStr(str: string; colored: bool = true): string	
+toMagentaStr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/colored.html#toMagentaStr,string,bool	colored: toMagentaStr(str: string; colored: bool = true): string	
+toBlueStr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/colored.html#toBlueStr,string,bool	colored: toBlueStr(str: string; colored: bool = true): string	
+toCyanStr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/colored.html#toCyanStr,string,bool	colored: toCyanStr(str: string; colored: bool = true): string	
+toGreenStr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/colored.html#toGreenStr,string,bool	colored: toGreenStr(str: string; colored: bool = true): string	
+toYellowStr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/colored.html#toYellowStr,string,bool	colored: toYellowStr(str: string; colored: bool = true): string	
+toWhiteStr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/colored.html#toWhiteStr,string,bool	colored: toWhiteStr(str: string; colored: bool = true): string	
+toBlackStr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/colored.html#toBlackStr,string,bool	colored: toBlackStr(str: string; colored: bool = true): string	
+toLink	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/colored.html#toLink,string,string	colored: toLink(link: string; desc: string = link): string	
+toLink	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/colored.html#toLink,,string	colored: toLink(pos: (string, int, int);\n       desc: string = &quot;file://&quot; &amp; pos[0] &amp; &quot;:&quot; &amp; $pos[1] &amp; &quot;:&quot; &amp; $pos[2]): string	
+stripSGR	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/colored.html#stripSGR,string	colored: stripSGR(str: string): string	

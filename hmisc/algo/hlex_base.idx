@@ -1,0 +1,169 @@
+PosStrSlice	hmisc/algo/hlex_base.html#PosStrSlice	hlex_base: PosStrSlice	
+LineCol	hmisc/algo/hlex_base.html#LineCol	hlex_base: LineCol	
+PosStrPoint	hmisc/algo/hlex_base.html#PosStrPoint	hlex_base: PosStrPoint	
+PosStr	hmisc/algo/hlex_base.html#PosStr	hlex_base: PosStr	
+HLexerError	hmisc/algo/hlex_base.html#HLexerError	hlex_base: HLexerError	
+UnexpectedCharError	hmisc/algo/hlex_base.html#UnexpectedCharError	hlex_base: UnexpectedCharError	
+UnbalancedWrapError	hmisc/algo/hlex_base.html#UnbalancedWrapError	hlex_base: UnbalancedWrapError	
+MalformedTokenError	hmisc/algo/hlex_base.html#MalformedTokenError	hlex_base: MalformedTokenError	
+LowerAsciiLetters	hmisc/algo/hlex_base.html#LowerAsciiLetters	hlex_base: LowerAsciiLetters	
+HighAsciiLetters	hmisc/algo/hlex_base.html#HighAsciiLetters	hlex_base: HighAsciiLetters	
+AsciiLetters	hmisc/algo/hlex_base.html#AsciiLetters	hlex_base: AsciiLetters	
+AnyRegularAscii	hmisc/algo/hlex_base.html#AnyRegularAscii	hlex_base: AnyRegularAscii	
+ControlChars	hmisc/algo/hlex_base.html#ControlChars	hlex_base: ControlChars	
+MaybeLetters	hmisc/algo/hlex_base.html#MaybeLetters	hlex_base: MaybeLetters	
+IntegerStartChars	hmisc/algo/hlex_base.html#IntegerStartChars	hlex_base: IntegerStartChars	
+HexDigitsLow	hmisc/algo/hlex_base.html#HexDigitsLow	hlex_base: HexDigitsLow	
+HexDigitsHigh	hmisc/algo/hlex_base.html#HexDigitsHigh	hlex_base: HexDigitsHigh	
+HexDigits	hmisc/algo/hlex_base.html#HexDigits	hlex_base: HexDigits	
+PunctOpenChars	hmisc/algo/hlex_base.html#PunctOpenChars	hlex_base: PunctOpenChars	
+PunctCloseChars	hmisc/algo/hlex_base.html#PunctCloseChars	hlex_base: PunctCloseChars	
+PunctSentenceChars	hmisc/algo/hlex_base.html#PunctSentenceChars	hlex_base: PunctSentenceChars	
+MathChars	hmisc/algo/hlex_base.html#MathChars	hlex_base: MathChars	
+PunctChars	hmisc/algo/hlex_base.html#PunctChars	hlex_base: PunctChars	
+Newline	hmisc/algo/hlex_base.html#Newline	hlex_base: Newline	
+AllSpace	hmisc/algo/hlex_base.html#AllSpace	hlex_base: AllSpace	
+HorizontalSpace	hmisc/algo/hlex_base.html#HorizontalSpace	hlex_base: HorizontalSpace	
+DashIdentChars	hmisc/algo/hlex_base.html#DashIdentChars	hlex_base: DashIdentChars	
+VeritcalSpace	hmisc/algo/hlex_base.html#VeritcalSpace	hlex_base: VeritcalSpace	
+TextLineChars	hmisc/algo/hlex_base.html#TextLineChars	hlex_base: TextLineChars	
+lineCol	hmisc/algo/hlex_base.html#lineCol,PosStr	hlex_base: lineCol(str: PosStr): LineCol	
+len	hmisc/algo/hlex_base.html#len,PosStrSlice	hlex_base: len(slice: PosStrSlice): int	
+toAbsolute	hmisc/algo/hlex_base.html#toAbsolute,PosStrSlice,int	hlex_base: toAbsolute(slice: PosStrSlice; offset: int): int	
+initPosStr	hmisc/algo/hlex_base.html#initPosStr,string,tuple[int,int]	hlex_base: initPosStr(str: string; pos: tuple[line, column: int] = (0, 0)): PosStr	
+varPosStr	hmisc/algo/hlex_base.html#varPosStr.t,string	hlex_base: varPosStr(str: string): PosStr	
+initPosStr	hmisc/algo/hlex_base.html#initPosStr,Stream	hlex_base: initPosStr(stream: Stream): PosStr	
+initPosStr	hmisc/algo/hlex_base.html#initPosStr,AbsFile	hlex_base: initPosStr(file: AbsFile): PosStr	
+initPosStr	hmisc/algo/hlex_base.html#initPosStr,,bool,bool	hlex_base: initPosStr(str; allSlice: bool = false; popSlice: bool = true): PosStr	
+initPosStr	hmisc/algo/hlex_base.html#initPosStr,,openArray[Slice[int]]	hlex_base: initPosStr(inStr: string | ref string; slices: openArray[Slice[int]]): PosStr	
+initPosStrView	hmisc/algo/hlex_base.html#initPosStrView	hlex_base: initPosStrView(str): PosStr	
+contains	hmisc/algo/hlex_base.html#contains,PosStrSlice,int	hlex_base: contains(slice: PosStrSlice; position: int): bool	
+atom	hmisc/algo/hlex_base.html#atom.t,PosStr,int,char	hlex_base: atom(input: PosStr; idx: int; c: char): bool	
+atom	hmisc/algo/hlex_base.html#atom.t,PosStr,int,set[char]	hlex_base: atom(input: PosStr; idx: int; s: set[char]): bool	
+hasNxt	hmisc/algo/hlex_base.html#hasNxt,PosStr,int	hlex_base: hasNxt(input: PosStr; idx: int): bool	
+finished	hmisc/algo/hlex_base.html#finished,PosStr	hlex_base: finished(str: PosStr): bool	
+atStart	hmisc/algo/hlex_base.html#atStart,PosStr	hlex_base: atStart(str: PosStr): bool	
+beforeEnd	hmisc/algo/hlex_base.html#beforeEnd,PosStr	hlex_base: beforeEnd(str: PosStr): bool	
+`?`	hmisc/algo/hlex_base.html#?,PosStr	hlex_base: `?`(str: PosStr): bool	
+nxt	hmisc/algo/hlex_base.html#nxt.t,PosStr,int,int	hlex_base: nxt(input: var PosStr; idx, step: int = 1)	
+scanpTemp	hmisc/algo/hlex_base.html#scanpTemp.m,typed,varargs[untyped]	hlex_base: scanpTemp(str: typed; pattern: varargs[untyped]): untyped	
+fillNext	hmisc/algo/hlex_base.html#fillNext,,int	hlex_base: fillNext(str; chars: int)	
+resetBuffer	hmisc/algo/hlex_base.html#resetBuffer	hlex_base: resetBuffer(str)	
+`[]`	hmisc/algo/hlex_base.html#[],,int	hlex_base: `[]`(str; idx: int = 0): char	
+runeAt	hmisc/algo/hlex_base.html#runeAt,,int	hlex_base: runeAt(str; idx: int = 0): Rune	
+setLineInfo	hmisc/algo/hlex_base.html#setLineInfo,ref.HLexerError,PosStr	hlex_base: setLineInfo(error: ref HLexerError; str: PosStr)	
+newUnexpectedCharError	hmisc/algo/hlex_base.html#newUnexpectedCharError,,string,string	hlex_base: newUnexpectedCharError(str; expected: string = &quot;&quot;; parsing: string = &quot;&quot;): ref UnexpectedCharError	
+`[]`	hmisc/algo/hlex_base.html#[],,HSlice[int,BackwardsIndex]	hlex_base: `[]`(str; slice: HSlice[int, BackwardsIndex]): string	
+`[]`	hmisc/algo/hlex_base.html#[],,HSlice[int,int]	hlex_base: `[]`(str; slice: HSlice[int, int]): string	
+`[]`	hmisc/algo/hlex_base.html#[],,int,	hlex_base: `[]`(str; offset: int; patt: char | set[char] | string): bool	
+`[]`	hmisc/algo/hlex_base.html#[],,	hlex_base: `[]`(str; patt: char | set[char] | string): bool	
+`[]`	hmisc/algo/hlex_base.html#[],,openArray[string]	hlex_base: `[]`(str; patt: openArray[string]): bool	
+`[]`	hmisc/algo/hlex_base.html#[],,,	hlex_base: `[]`(str; patt1, patt2: char | set[char] | string): bool	
+`[]`	hmisc/algo/hlex_base.html#[],,,,	hlex_base: `[]`(str; patt1, patt2, patt3: char | set[char] | string): bool	
+`@`	hmisc/algo/hlex_base.html#@	hlex_base: `@`(str): seq[char]	
+`[]`	hmisc/algo/hlex_base.html#[],,HSlice[int,char]	hlex_base: `[]`(str; slice: HSlice[int, char]): string	
+`@`	hmisc/algo/hlex_base.html#@,,Slice[int]	hlex_base: `@`(str; slice: Slice[int]): seq[char]	
+`$`	hmisc/algo/hlex_base.html#$,PosStrSlice	hlex_base: `$`(slice: PosStrSlice): string	
+`[]`	hmisc/algo/hlex_base.html#[],,PosStrSlice	hlex_base: `[]`(str; slice: PosStrSlice): string	
+sliceStrings	hmisc/algo/hlex_base.html#sliceStrings	hlex_base: sliceStrings(str): seq[string]	
+lineAround	hmisc/algo/hlex_base.html#lineAround,,int	hlex_base: lineAround(str; pos: int): tuple[line: string, pos: int]	
+hshow	hmisc/algo/hlex_base.html#hshow,PosStrSlice,HDisplayOpts	hlex_base: hshow(slice: PosStrSlice; opts: HDisplayOpts = defaultHDisplay): ColoredText	
+hshow	hmisc/algo/hlex_base.html#hshow,,HDisplayOpts	hlex_base: hshow(str; opts: HDisplayOpts = defaultHDisplay): ColoredText	
+around	hmisc/algo/hlex_base.html#around,,int	hlex_base: around(str; forward: int = 10): string	
+`$`	hmisc/algo/hlex_base.html#$	hlex_base: `$`(str): string	
+`$`	hmisc/algo/hlex_base.html#$,PosStr	hlex_base: `$`(str: PosStr): string	
+add	hmisc/algo/hlex_base.html#add,PosStr,PosStr	hlex_base: add(str: var PosStr; other: PosStr)	
+concat	hmisc/algo/hlex_base.html#concat,seq[PosStr]	hlex_base: concat(strs: seq[PosStr]): PosStr	
+assertAhead	hmisc/algo/hlex_base.html#assertAhead.t,PosStr,string	hlex_base: assertAhead(str: PosStr; ahead: string)	
+posStrSlice	hmisc/algo/hlex_base.html#posStrSlice,int,int,int,int	hlex_base: posStrSlice(a, b: int; line: int; column: int): PosStrSlice	
+pushRange	hmisc/algo/hlex_base.html#pushRange	hlex_base: pushRange(str)	
+startSlice	hmisc/algo/hlex_base.html#startSlice,,int	hlex_base: startSlice(str; leftShift: int = 0)	
+finishSlice	hmisc/algo/hlex_base.html#finishSlice,,int	hlex_base: finishSlice(str; rightShift: int = -1)	
+finishAllSlice	hmisc/algo/hlex_base.html#finishAllSlice,,int	hlex_base: finishAllSlice(str; rightShift: int = -1)	
+pushSlice	hmisc/algo/hlex_base.html#pushSlice	hlex_base: pushSlice(str)	
+popSlice	hmisc/algo/hlex_base.html#popSlice,,int	hlex_base: popSlice(str; rightShift: int = -1): PosStr	
+asSlice	hmisc/algo/hlex_base.html#asSlice.t,PosStr,untyped,int	hlex_base: asSlice(bufStr: PosStr; expr: untyped; rightShift: int = -1): untyped	
+asSlice	hmisc/algo/hlex_base.html#asSlice.t,PosStr,untyped,int,int	hlex_base: asSlice(bufStr: PosStr; expr: untyped; leftShift, rightShift: int): untyped	
+asStrSlice	hmisc/algo/hlex_base.html#asStrSlice.t,PosStr,untyped,int	hlex_base: asStrSlice(buf: PosStr; expr: untyped; rightShift: int = -1): untyped	
+peekSlice	hmisc/algo/hlex_base.html#peekSlice,,int	hlex_base: peekSlice(str; rightShift: int = -1): PosStr	
+sliceBetween	hmisc/algo/hlex_base.html#sliceBetween,,PosStrPoint,PosStrPoint	hlex_base: sliceBetween(str; start, finish: PosStrPoint): PosStr	
+toggleBuffer	hmisc/algo/hlex_base.html#toggleBuffer,,bool	hlex_base: toggleBuffer(str; activate: bool = not str.bufferActive)	
+`[]`	hmisc/algo/hlex_base.html#[],string,PosStrSlice	hlex_base: `[]`(str: string; slice: PosStrSlice): string	
+`==`	hmisc/algo/hlex_base.html#==,PosStrSlice,Slice[int]	hlex_base: `==`(posSlice: PosStrSlice; slice: Slice[int]): bool	
+`==`	hmisc/algo/hlex_base.html#==,Slice[int],PosStrSlice	hlex_base: `==`(slice: Slice[int]; posSlice: PosStrSlice): bool	
+`==`	hmisc/algo/hlex_base.html#==,seq[PosStrSlice],seq[Slice[int]]	hlex_base: `==`(posSlice: seq[PosStrSlice]; slice: seq[Slice[int]]): bool	
+`==`	hmisc/algo/hlex_base.html#==,seq[Slice[int]],seq[PosStrSlice]	hlex_base: `==`(slice: seq[Slice[int]]; posSlice: seq[PosStrSlice]): bool	
+topRangeIndices	hmisc/algo/hlex_base.html#topRangeIndices.i,,int,int,bool	hlex_base: topRangeIndices(str; leftShift: int = 0; rightShift: int = -1;\n                doPop: bool = true): PosStrSlice	
+popRangeIndices	hmisc/algo/hlex_base.html#popRangeIndices,,int,int	hlex_base: popRangeIndices(str; leftShift: int = 0; rightShift: int = -1): seq[PosStrSlice]	
+getRangeIndices	hmisc/algo/hlex_base.html#getRangeIndices,,int,int	hlex_base: getRangeIndices(str; leftShift: int = 0; rightShift: int = -1): seq[PosStrSlice]	
+getAll	hmisc/algo/hlex_base.html#getAll,PosStr	hlex_base: getAll(str: PosStr): string	
+strVal	hmisc/algo/hlex_base.html#strVal,PosStr	hlex_base: strVal(str: PosStr): string	
+strValNorm	hmisc/algo/hlex_base.html#strValNorm,PosStr	hlex_base: strValNorm(str: PosStr): string	
+newMalformedTokenError	hmisc/algo/hlex_base.html#newMalformedTokenError,PosStr,string	hlex_base: newMalformedTokenError(got: PosStr; expected: string): ref MalformedTokenError	
+getRange	hmisc/algo/hlex_base.html#getRange,,int,int	hlex_base: getRange(str; leftShift: int = 0; rightShift: int = -1): string	
+popRange	hmisc/algo/hlex_base.html#popRange,,int,int	hlex_base: popRange(str; leftShift: int = 0; rightShift: int = -1): string	
+asRange	hmisc/algo/hlex_base.html#asRange.t,PosStr,untyped	hlex_base: asRange(str: PosStr; expr: untyped): untyped	
+next	hmisc/algo/hlex_base.html#next,,int,bool	hlex_base: next(str; step: int = 1; byteAdvance: bool = false)	
+advance	hmisc/algo/hlex_base.html#advance,,int,bool	hlex_base: advance(str; step: int = 1; byteAdvance: bool = false)	
+back	hmisc/algo/hlex_base.html#back,,int	hlex_base: back(str; step: int = 1)	
+getPos	hmisc/algo/hlex_base.html#getPos,PosStr,int	hlex_base: getPos(str: PosStr; offset: int = 0): PosStrPoint	
+setPos	hmisc/algo/hlex_base.html#setPos,,PosStrPoint	hlex_base: setPos(str; pos: PosStrPoint)	
+trySkipTo	hmisc/algo/hlex_base.html#trySkipTo,,string	hlex_base: trySkipTo(str; text: string): bool	
+popPointSlice	hmisc/algo/hlex_base.html#popPointSlice,,set[char],int	hlex_base: popPointSlice(str; expected: set[char] = AllChars; advance: int = 1): PosStr	
+skip	hmisc/algo/hlex_base.html#skip,,char	hlex_base: skip(str; ch: char)	
+skip	hmisc/algo/hlex_base.html#skip,,set[char]	hlex_base: skip(str; ch: set[char])	
+skip	hmisc/algo/hlex_base.html#skip,,string	hlex_base: skip(str; s: string)	
+skip	hmisc/algo/hlex_base.html#skip,,openArray[string]	hlex_base: skip(str; strings: openArray[string])	
+skip	hmisc/algo/hlex_base.html#skip,,set[char],set[char]	hlex_base: skip(str; ch1, ch2: set[char])	
+skipBack	hmisc/algo/hlex_base.html#skipBack,,set[char]	hlex_base: skipBack(str; ch: set[char])	
+peek	hmisc/algo/hlex_base.html#peek,,set[char]	hlex_base: peek(str; ch: set[char])	
+trySkip	hmisc/algo/hlex_base.html#trySkip,,string	hlex_base: trySkip(str; s: string): bool	
+trySkip	hmisc/algo/hlex_base.html#trySkip,,set[char]	hlex_base: trySkip(str; ch: set[char]): bool	
+trySkip	hmisc/algo/hlex_base.html#trySkip,,char	hlex_base: trySkip(str; ch: char): bool	
+skipWhile	hmisc/algo/hlex_base.html#skipWhile,,set[char],int	hlex_base: skipWhile(str; chars: set[char]; step: int = 1)	
+skipBefore	hmisc/algo/hlex_base.html#skipBefore,,set[char]	hlex_base: skipBefore(str; chars: set[char])	
+skipBefore	hmisc/algo/hlex_base.html#skipBefore,,char	hlex_base: skipBefore(str; chars: char)	
+skipTo	hmisc/algo/hlex_base.html#skipTo,,set[char]	hlex_base: skipTo(str; chars: set[char])	
+skipTo	hmisc/algo/hlex_base.html#skipTo,,char	hlex_base: skipTo(str; chars: char)	
+skipUntil	hmisc/algo/hlex_base.html#skipUntil,,set[char],bool	hlex_base: skipUntil(str; chars: set[char]; including: bool = true)	
+skipUntil	hmisc/algo/hlex_base.html#skipUntil,,char,bool	hlex_base: skipUntil(str; chars: char; including: bool = false)	
+skipPast	hmisc/algo/hlex_base.html#skipPast,,set[char]	hlex_base: skipPast(str; chars: set[char])	
+skipPast	hmisc/algo/hlex_base.html#skipPast,,char	hlex_base: skipPast(str; chars: char)	
+skipToEOL	hmisc/algo/hlex_base.html#skipToEOL	hlex_base: skipToEOL(str)	
+skipPastEOL	hmisc/algo/hlex_base.html#skipPastEOL	hlex_base: skipPastEOL(str)	
+skipBeforeEOL	hmisc/algo/hlex_base.html#skipBeforeEOL	hlex_base: skipBeforeEOL(str)	
+skipToEof	hmisc/algo/hlex_base.html#skipToEof,,bool,int	hlex_base: skipToEof(str; byteAdvance: bool = false; rightShift: int = 0)	
+goToEof	hmisc/algo/hlex_base.html#goToEof,,bool,int	hlex_base: goToEof(str; byteAdvance: bool = false; rightShift: int = 0)	
+skipToSof	hmisc/algo/hlex_base.html#skipToSof,,bool	hlex_base: skipToSof(str; byteAdvance: bool = false)	
+gotoSof	hmisc/algo/hlex_base.html#gotoSof,,bool	hlex_base: gotoSof(str; byteAdvance: bool = false)	
+skipIndent	hmisc/algo/hlex_base.html#skipIndent	hlex_base: skipIndent(str; maxIndent = high(int)): int	
+skipSpace	hmisc/algo/hlex_base.html#skipSpace	hlex_base: skipSpace(str)	
+space	hmisc/algo/hlex_base.html#space	hlex_base: space(str)	
+popWhile	hmisc/algo/hlex_base.html#popWhile,,set[char]	hlex_base: popWhile(str; chars: set[char]): string	
+popUntil	hmisc/algo/hlex_base.html#popUntil,,	hlex_base: popUntil(str; chars: set[char] | char): string	
+startsWith	hmisc/algo/hlex_base.html#startsWith,,set[char],string	hlex_base: startsWith(str; skip: set[char]; search: string): bool	
+getIndent	hmisc/algo/hlex_base.html#getIndent	hlex_base: getIndent(str): int	
+hasIndent	hmisc/algo/hlex_base.html#hasIndent,,int,bool	hlex_base: hasIndent(str; indent: int; exactIndent: bool = false): bool	
+peekStr	hmisc/algo/hlex_base.html#peekStr,,int	hlex_base: peekStr(str; chars: int): string	
+pop	hmisc/algo/hlex_base.html#pop,PosStr	hlex_base: pop(str: var PosStr): char	
+popChar	hmisc/algo/hlex_base.html#popChar,PosStr	hlex_base: popChar(str: var PosStr): char	
+skipStringLit	hmisc/algo/hlex_base.html#skipStringLit,PosStr	hlex_base: skipStringLit(str: var PosStr)	
+popStringLit	hmisc/algo/hlex_base.html#popStringLit,PosStr	hlex_base: popStringLit(str: var PosStr): string	
+popDigit	hmisc/algo/hlex_base.html#popDigit,PosStr	hlex_base: popDigit(str: var PosStr): string	
+popIdent	hmisc/algo/hlex_base.html#popIdent,,set[char]	hlex_base: popIdent(str; chars: set[char] = IdentChars): string	
+popWhileSlice	hmisc/algo/hlex_base.html#popWhileSlice,,set[char]	hlex_base: popWhileSlice(str; chars: set[char]): PosStr	
+popUntilSlice	hmisc/algo/hlex_base.html#popUntilSlice,,set[char],bool	hlex_base: popUntilSlice(str; chars: set[char]; including: bool = true): PosStr	
+popIdentSlice	hmisc/algo/hlex_base.html#popIdentSlice,,set[char]	hlex_base: popIdentSlice(str; chars: set[char] = IdentChars): PosStr	
+skipBalancedSlice	hmisc/algo/hlex_base.html#skipBalancedSlice,,set[char],set[char],set[char],bool	hlex_base: skipBalancedSlice(str; openChars, closeChars: set[char];\n                  endChars: set[char] = Newline; doRaise: bool = true)	
+popBalancedSlice	hmisc/algo/hlex_base.html#popBalancedSlice,,set[char],set[char],set[char],bool	hlex_base: popBalancedSlice(str; openChars, closeChars: set[char];\n                 endChars: set[char] = Newline + {&apos;\x00&apos;}; doRaise: bool = true): PosStr	
+popNext	hmisc/algo/hlex_base.html#popNext,,int	hlex_base: popNext(str; count: int): string	
+popBacktickIdent	hmisc/algo/hlex_base.html#popBacktickIdent	hlex_base: popBacktickIdent(str): string	
+readLine	hmisc/algo/hlex_base.html#readLine,,bool	hlex_base: readLine(str; skipNl: bool = true): string	
+skipLine	hmisc/algo/hlex_base.html#skipLine	hlex_base: skipLine(str)	
+matchLen	hmisc/algo/hlex_base.html#matchLen,PosStr,Regex	hlex_base: matchLen(inStr: PosStr; regex: Regex): int	
+matchLen	hmisc/algo/hlex_base.html#matchLen,PosStr,Regex,openArray[string]	hlex_base: matchLen(inStr: PosStr; regex: Regex; matches: var openArray[string]): int	
+`=~`	hmisc/algo/hlex_base.html#=~.t,PosStr,Regex,int	hlex_base: `=~`(inStr: var PosStr; regex: Regex; advance: int = 128): untyped	
+`=~`	hmisc/algo/hlex_base.html#=~.t,PosStr,Regex	hlex_base: `=~`(inStr: PosStr; regex: Regex): untyped	
+`=~`	hmisc/algo/hlex_base.html#=~.t,PosStr,Rx	hlex_base: `=~`(inStr: PosStr; regex: Rx): untyped	
+cut	hmisc/algo/hlex_base.html#cut,,,int	hlex_base: cut(str; rx: Rx | Regex; fill: int = 128): string	
+scanSlice	hmisc/algo/hlex_base.html#scanSlice.m,,varargs[untyped]	hlex_base: scanSlice(str; pattern: varargs[untyped]): untyped	

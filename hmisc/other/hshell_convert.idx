@@ -1,0 +1,8 @@
+readLine	hmisc/other/hshell_convert.html#readLine,Stream	hshell_convert: readLine(stream: Stream): string	
+lslOutConverter	hmisc/other/hshell_convert.html#lslOutConverter,PosStr,ShellCmd,Option[void]	hshell_convert: lslOutConverter(stream: var PosStr; cmd: ShellCmd; state: var Option[void]): Option[\n    JsonNode]	
+lslErrConverter	hmisc/other/hshell_convert.html#lslErrConverter,PosStr,ShellCmd,Option[void]	hshell_convert: lslErrConverter(stream: var PosStr; cmd: ShellCmd; state: var Option[void]): Option[\n    JsonNode]	
+StrTok	hmisc/other/hshell_convert.html#StrTok	hshell_convert: StrTok	
+lexCall	hmisc/other/hshell_convert.html#lexCall,PosStr	hshell_convert: lexCall(str: var PosStr): seq[StrTok]	
+parseCall	hmisc/other/hshell_convert.html#parseCall,HsLexer[StrTok]	hshell_convert: parseCall(lex: var HsLexer[StrTok]): StraceRecord	
+straceOutConverter	hmisc/other/hshell_convert.html#straceOutConverter,PosStr,ShellCmd,Option[HsLexer[StrTok]]	hshell_convert: straceOutConverter(str: var PosStr; cmd: ShellCmd;\n                   state: var Option[HsLexer[StrTok]]): Option[StraceRecord]	
+straceErrConverter	hmisc/other/hshell_convert.html#straceErrConverter,PosStr,ShellCmd,Option[HsLexer[StrTok]]	hshell_convert: straceErrConverter(str: var PosStr; cmd: ShellCmd;\n                   state: var Option[HsLexer[StrTok]]): Option[StraceRecord]	

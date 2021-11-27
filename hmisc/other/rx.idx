@@ -1,0 +1,80 @@
+rxfEmacs	hmisc/other/rx.html#rxfEmacs	RxFlavor.rxfEmacs	
+rxfPerl	hmisc/other/rx.html#rxfPerl	RxFlavor.rxfPerl	
+rxfDebug	hmisc/other/rx.html#rxfDebug	RxFlavor.rxfDebug	
+rxfLisp	hmisc/other/rx.html#rxfLisp	RxFlavor.rxfLisp	
+rxfPosix	hmisc/other/rx.html#rxfPosix	RxFlavor.rxfPosix	
+rxfExtendedPosix	hmisc/other/rx.html#rxfExtendedPosix	RxFlavor.rxfExtendedPosix	
+RxFlavor	hmisc/other/rx.html#RxFlavor	rx: RxFlavor	
+rskLineStart	hmisc/other/rx.html#rskLineStart	RxSpecialKind.rskLineStart	
+rskLineEnd	hmisc/other/rx.html#rskLineEnd	RxSpecialKind.rskLineEnd	
+rskStringStart	hmisc/other/rx.html#rskStringStart	RxSpecialKind.rskStringStart	
+rskStringEnd	hmisc/other/rx.html#rskStringEnd	RxSpecialKind.rskStringEnd	
+rskStringBoundary	hmisc/other/rx.html#rskStringBoundary	RxSpecialKind.rskStringBoundary	
+rskStringOrLineEnd	hmisc/other/rx.html#rskStringOrLineEnd	RxSpecialKind.rskStringOrLineEnd	
+rskWord	hmisc/other/rx.html#rskWord	RxSpecialKind.rskWord	
+rskNotWord	hmisc/other/rx.html#rskNotWord	RxSpecialKind.rskNotWord	
+rskSpace	hmisc/other/rx.html#rskSpace	RxSpecialKind.rskSpace	
+rskNotSpace	hmisc/other/rx.html#rskNotSpace	RxSpecialKind.rskNotSpace	
+rskDigit	hmisc/other/rx.html#rskDigit	RxSpecialKind.rskDigit	
+rskNotDigit	hmisc/other/rx.html#rskNotDigit	RxSpecialKind.rskNotDigit	
+rskAny	hmisc/other/rx.html#rskAny	RxSpecialKind.rskAny	
+RxSpecialKind	hmisc/other/rx.html#RxSpecialKind	rx: RxSpecialKind	
+rxkText	hmisc/other/rx.html#rxkText	RxKind.rxkText	
+rxkCharset	hmisc/other/rx.html#rxkCharset	RxKind.rxkCharset	
+rxkSpecial	hmisc/other/rx.html#rxkSpecial	RxKind.rxkSpecial	
+rxkOneOrMoreGreedy	hmisc/other/rx.html#rxkOneOrMoreGreedy	RxKind.rxkOneOrMoreGreedy	
+rxkOneOrMoreLazy	hmisc/other/rx.html#rxkOneOrMoreLazy	RxKind.rxkOneOrMoreLazy	
+rxkZeroOrMoreGreedy	hmisc/other/rx.html#rxkZeroOrMoreGreedy	RxKind.rxkZeroOrMoreGreedy	
+rxkZeroOrMoreLazy	hmisc/other/rx.html#rxkZeroOrMoreLazy	RxKind.rxkZeroOrMoreLazy	
+rxkOptional	hmisc/other/rx.html#rxkOptional	RxKind.rxkOptional	
+rxkAlt	hmisc/other/rx.html#rxkAlt	RxKind.rxkAlt	
+rxkConcat	hmisc/other/rx.html#rxkConcat	RxKind.rxkConcat	
+rxkGroup	hmisc/other/rx.html#rxkGroup	RxKind.rxkGroup	
+rxkNonCapturingGroup	hmisc/other/rx.html#rxkNonCapturingGroup	RxKind.rxkNonCapturingGroup	
+rxkRepeatNTimes	hmisc/other/rx.html#rxkRepeatNTimes	RxKind.rxkRepeatNTimes	
+rxkRepeatNtoMTimes	hmisc/other/rx.html#rxkRepeatNtoMTimes	RxKind.rxkRepeatNtoMTimes	
+RxKind	hmisc/other/rx.html#RxKind	rx: RxKind	
+rseItem	hmisc/other/rx.html#rseItem	RxSetElemKind.rseItem	
+rseRange	hmisc/other/rx.html#rseRange	RxSetElemKind.rseRange	
+RxSetElemKind	hmisc/other/rx.html#RxSetElemKind	rx: RxSetElemKind	
+RxSetElem	hmisc/other/rx.html#RxSetElem	rx: RxSetElem	
+rxkGroupKinds	hmisc/other/rx.html#rxkGroupKinds	rx: rxkGroupKinds	
+rxkSingleArgKinds	hmisc/other/rx.html#rxkSingleArgKinds	rx: rxkSingleArgKinds	
+rxkRepeatedArgKinds	hmisc/other/rx.html#rxkRepeatedArgKinds	rx: rxkRepeatedArgKinds	
+Rx	hmisc/other/rx.html#Rx	rx: Rx	
+initRx	hmisc/other/rx.html#initRx,RxKind,varargs[Rx]	rx: initRx(kind: RxKind; args: varargs[Rx]): Rx	
+rxEscape	hmisc/other/rx.html#rxEscape.t,char	rx: rxEscape(ch: char): string	
+rxEscape	hmisc/other/rx.html#rxEscape,string	rx: rxEscape(str: string): string	
+toStr	hmisc/other/rx.html#toStr,RxSetElem	rx: toStr(elem: RxSetElem): string	
+treeRepr	hmisc/other/rx.html#treeRepr,Rx,bool,int	rx: treeRepr(rx: Rx; colored: bool = true; level: int = 0): ColoredText	
+lispRepr	hmisc/other/rx.html#lispRepr,Rx,bool,int	rx: lispRepr(rx: Rx; colored: bool = true; level: int = 0): ColoredText	
+`$`	hmisc/other/rx.html#$,Rx	rx: `$`(rx: Rx): string	
+toStr	hmisc/other/rx.html#toStr,RxSpecialKind,RxFlavor	rx: toStr(special: RxSpecialKind; flavor: RxFlavor = rxfPerl): string	
+toStr	hmisc/other/rx.html#toStr,RxKind	rx: toStr(kind: RxKind): string	
+toStr	hmisc/other/rx.html#toStr,Rx,RxFlavor	rx: toStr(rx: Rx; flavor: RxFlavor = rxfPerl): string	
+toConstStr	hmisc/other/rx.html#toConstStr.t,static[Rx],RxFlavor	rx: toConstStr(rx: static[Rx]; flavor: RxFlavor = rxfPerl): untyped	
+toRegex	hmisc/other/rx.html#toRegex,static[Rx]	rx: toRegex(rx: static[Rx]): Regex	
+toRegex	hmisc/other/rx.html#toRegex,Rx	rx: toRegex(rx: Rx): Regex	
+toRegex	hmisc/other/rx.html#toRegex,Regex	rx: toRegex(regex: Regex): Regex	
+`=~`	hmisc/other/rx.html#=~.t,string,Rx	rx: `=~`(s: string; rx: Rx): untyped	
+nrx	hmisc/other/rx.html#nrx,string	rx: nrx(text: string): Rx	
+nrx	hmisc/other/rx.html#nrx,char	rx: nrx(ch: char): Rx	
+nrx	hmisc/other/rx.html#nrx,RxSpecialKind	rx: nrx(special: RxSpecialKind): Rx	
+nrx	hmisc/other/rx.html#nrx,char,char	rx: nrx(ch1, ch2: char): Rx	
+nrx	hmisc/other/rx.html#nrx,set[char]	rx: nrx(charset: set[char]): Rx	
+`+`	hmisc/other/rx.html#+,Rx	rx: `+`(rx: Rx): Rx	
+`+?`	hmisc/other/rx.html#+?,Rx	rx: `+?`(rx: Rx): Rx	
+`*`	hmisc/other/rx.html#*,Rx	rx: `*`(rx: Rx): Rx	
+`*?`	hmisc/other/rx.html#*?,Rx	rx: `*?`(rx: Rx): Rx	
+`?`	hmisc/other/rx.html#?,Rx	rx: `?`(rx: Rx): Rx	
+`?`	hmisc/other/rx.html#?,openArray[Rx]	rx: `?`(rxItems: openArray[Rx]): Rx	
+`|`	hmisc/other/rx.html#|,Rx,Rx	rx: `|`(rhs, lhs: Rx): Rx	
+`|`	hmisc/other/rx.html#|,openArray[Rx]	rx: `|`(rxItems: openArray[Rx]): Rx	
+`&amp;`	hmisc/other/rx.html#&,Rx,Rx	rx: `&amp;`(rhs, lhs: Rx): Rx	
+`&amp;`	hmisc/other/rx.html#&,openArray[Rx]	rx: `&amp;`(rxItems: openArray[Rx]): Rx	
+group	hmisc/other/rx.html#group,varargs[Rx]	rx: group(rxSeq: varargs[Rx]): Rx	
+fullLine	hmisc/other/rx.html#fullLine,Rx	rx: fullLine(rx: Rx): Rx	
+capture	hmisc/other/rx.html#capture,varargs[Rx]	rx: capture(rxSeq: varargs[Rx]): Rx	
+repeat	hmisc/other/rx.html#repeat,Rx,int	rx: repeat(rx: Rx; repeatMin: int): Rx	
+repeat	hmisc/other/rx.html#repeat,Rx,int,int	rx: repeat(rx: Rx; repeatMin, repeatMax: int): Rx	
+atLeast	hmisc/other/rx.html#atLeast,Rx,int	rx: atLeast(rx: Rx; repeatMin: int): Rx	

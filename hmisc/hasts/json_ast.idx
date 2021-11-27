@@ -1,0 +1,35 @@
+jtkLCurly	hmisc/hasts/json_ast.html#jtkLCurly	JsonTokenKind.jtkLCurly	
+jtkRCurly	hmisc/hasts/json_ast.html#jtkRCurly	JsonTokenKind.jtkRCurly	
+jtkString	hmisc/hasts/json_ast.html#jtkString	JsonTokenKind.jtkString	
+jtkNumber	hmisc/hasts/json_ast.html#jtkNumber	JsonTokenKind.jtkNumber	
+jtkColon	hmisc/hasts/json_ast.html#jtkColon	JsonTokenKind.jtkColon	
+jtkComma	hmisc/hasts/json_ast.html#jtkComma	JsonTokenKind.jtkComma	
+jtkKey	hmisc/hasts/json_ast.html#jtkKey	JsonTokenKind.jtkKey	
+jtkLBrace	hmisc/hasts/json_ast.html#jtkLBrace	JsonTokenKind.jtkLBrace	
+jtkRBrace	hmisc/hasts/json_ast.html#jtkRBrace	JsonTokenKind.jtkRBrace	
+jtkFloat	hmisc/hasts/json_ast.html#jtkFloat	JsonTokenKind.jtkFloat	
+jtkEof	hmisc/hasts/json_ast.html#jtkEof	JsonTokenKind.jtkEof	
+JsonTokenKind	hmisc/hasts/json_ast.html#JsonTokenKind	json_ast: JsonTokenKind	
+JsonReader	hmisc/hasts/json_ast.html#JsonReader	json_ast: JsonReader	
+JsonWriter	hmisc/hasts/json_ast.html#JsonWriter	json_ast: JsonWriter	
+close	hmisc/hasts/json_ast.html#close,JsonWriter	json_ast: close(w: var JsonWriter)	
+`=destroy`	hmisc/hasts/json_ast.html#=destroy,JsonWriter	json_ast: `=destroy`(w: var JsonWriter)	
+newJsonWriter	hmisc/hasts/json_ast.html#newJsonWriter,Stream	json_ast: newJsonWriter(stream: Stream): JsonWriter	
+newJsonWriter	hmisc/hasts/json_ast.html#newJsonWriter,AbsFile	json_ast: newJsonWriter(file: AbsFile): JsonWriter	
+newJsonWriter	hmisc/hasts/json_ast.html#newJsonWriter,File	json_ast: newJsonWriter(file: File): JsonWriter	
+write	hmisc/hasts/json_ast.html#write,,string	json_ast: write(w; str: string)	
+space	hmisc/hasts/json_ast.html#space	json_ast: space(w)	
+line	hmisc/hasts/json_ast.html#line	json_ast: line(w)	
+indent	hmisc/hasts/json_ast.html#indent	json_ast: indent(w)	
+dedent	hmisc/hasts/json_ast.html#dedent	json_ast: dedent(w)	
+writeInd	hmisc/hasts/json_ast.html#writeInd	json_ast: writeInd(w)	
+kind	hmisc/hasts/json_ast.html#kind,JsonReader	json_ast: kind(r: JsonReader): JsonTokenKind	
+finished	hmisc/hasts/json_ast.html#finished	json_ast: finished(r): bool	
+next	hmisc/hasts/json_ast.html#next	json_ast: next(r)	
+newJsonReader	hmisc/hasts/json_ast.html#newJsonReader,Stream	json_ast: newJsonReader(s: Stream): JsonReader	
+newJsonReader	hmisc/hasts/json_ast.html#newJsonReader,string	json_ast: newJsonReader(s: string): JsonReader	
+jsonTokens	hmisc/hasts/json_ast.html#jsonTokens,string	json_ast: jsonTokens(str: string): seq[JsonTok]	
+writeJson	hmisc/hasts/json_ast.html#writeJson,,	json_ast: writeJson(w; val: SomeInteger | string | SomeFloat | enum | bool)	
+loadJson	hmisc/hasts/json_ast.html#loadJson,,SomeInteger	json_ast: loadJson(r; val: var SomeInteger)	
+loadJson	hmisc/hasts/json_ast.html#loadJson,,string	json_ast: loadJson(r; val: var string)	
+loadJson	hmisc/hasts/json_ast.html#loadJson,,E	json_ast: loadJson[E: enum](r; val: var E)	

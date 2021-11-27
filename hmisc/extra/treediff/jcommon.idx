@@ -1,0 +1,16 @@
+Iterable	hmisc/extra/treediff/jcommon.html#Iterable	jcommon: Iterable	
+preInc	hmisc/extra/treediff/jcommon.html#preInc,int	jcommon: preInc(arg: var int): int	
+preDec	hmisc/extra/treediff/jcommon.html#preDec,int	jcommon: preDec(arg: var int): int	
+postInc	hmisc/extra/treediff/jcommon.html#postInc,int	jcommon: postInc(arg: var int): int	
+postDec	hmisc/extra/treediff/jcommon.html#postDec,int	jcommon: postDec(arg: var int): int	
+findAny	hmisc/extra/treediff/jcommon.html#findAny,HashSet[T]	jcommon: findAny[T](s: HashSet[T]): T	
+nseq	hmisc/extra/treediff/jcommon.html#nseq,int,T	jcommon: nseq[T](dim1: int; def: T): seq[T]	
+nseq	hmisc/extra/treediff/jcommon.html#nseq,int,int,T	jcommon: nseq[T](dim1, dim2: int; def: T): seq[seq[T]]	
+nseq	hmisc/extra/treediff/jcommon.html#nseq,int,int,int,T	jcommon: nseq[T](dim1, dim2, dim3: int; def: T): seq[seq[seq[T]]]	
+narr	hmisc/extra/treediff/jcommon.html#narr,typedesc[R],T	jcommon: narr[R, T](arrRange: typedesc[R]; key: T): array[R, T]	
+fill	hmisc/extra/treediff/jcommon.html#fill,array[R,T],T	jcommon: fill[R, T](arr: var array[R, T]; key: T)	
+fill	hmisc/extra/treediff/jcommon.html#fill,seq[T],T	jcommon: fill[T](arr: var seq[T]; key: T)	
+`=*=`	hmisc/extra/treediff/jcommon.html#=*=,ref.T1,ref.T2	jcommon: `=*=`[T1, T2](o1: ref T1; o2: ref T2): bool	
+isEmpty	hmisc/extra/treediff/jcommon.html#isEmpty,seq[T]	jcommon: isEmpty[T](s: seq[T]): bool	
+remove	hmisc/extra/treediff/jcommon.html#remove,seq[T],T	jcommon: remove[T](s: var seq[T]; item: T): bool	
+remove	hmisc/extra/treediff/jcommon.html#remove,seq[T],int	jcommon: remove[T](s: var seq[T]; idx: int): T	

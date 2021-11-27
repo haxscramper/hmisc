@@ -1,0 +1,103 @@
+PPrintType	hmisc/other/hpprint.html#PPrintType	hpprint: PPrintType	
+ptkIgnored	hmisc/other/hpprint.html#ptkIgnored	PPrintTreeKind.ptkIgnored	
+ptkVisited	hmisc/other/hpprint.html#ptkVisited	PPrintTreeKind.ptkVisited	
+ptkNil	hmisc/other/hpprint.html#ptkNil	PPrintTreeKind.ptkNil	
+ptkAnnotation	hmisc/other/hpprint.html#ptkAnnotation	PPrintTreeKind.ptkAnnotation	
+ptkConst	hmisc/other/hpprint.html#ptkConst	PPrintTreeKind.ptkConst	
+ptkTuple	hmisc/other/hpprint.html#ptkTuple	PPrintTreeKind.ptkTuple	
+ptkList	hmisc/other/hpprint.html#ptkList	PPrintTreeKind.ptkList	
+ptkMapping	hmisc/other/hpprint.html#ptkMapping	PPrintTreeKind.ptkMapping	
+ptkObject	hmisc/other/hpprint.html#ptkObject	PPrintTreeKind.ptkObject	
+ptkNamedTuple	hmisc/other/hpprint.html#ptkNamedTuple	PPrintTreeKind.ptkNamedTuple	
+PPrintTreeKind	hmisc/other/hpprint.html#PPrintTreeKind	hpprint: PPrintTreeKind	
+PPrintPath	hmisc/other/hpprint.html#PPrintPath	hpprint: PPrintPath	
+PPrintLytChoice	hmisc/other/hpprint.html#PPrintLytChoice	hpprint: PPrintLytChoice	
+PPrintLytForce	hmisc/other/hpprint.html#PPrintLytForce	hpprint: PPrintLytForce	
+PPrintExtraField	hmisc/other/hpprint.html#PPrintExtraField	hpprint: PPrintExtraField	
+PPrintConf	hmisc/other/hpprint.html#PPrintConf	hpprint: PPrintConf	
+ptkObjectKinds	hmisc/other/hpprint.html#ptkObjectKinds	hpprint: ptkObjectKinds	
+PPrintTree	hmisc/other/hpprint.html#PPrintTree	hpprint: PPrintTree	
+globKind	hmisc/other/hpprint.html#globKind,PPrintGlobPart	hpprint: globKind(pprintGlob: PPrintGlobPart): GenGlobPartKind	
+globKind	hmisc/other/hpprint.html#globKind,PPrintPathElem	hpprint: globKind(pprintGlob: PPrintPathElem): GenGlobPartKind	
+pglob	hmisc/other/hpprint.html#pglob	hpprint: pglob(): PPrintGlob	
+star	hmisc/other/hpprint.html#star,sinkPPrintGlob	hpprint: star(main: sink PPrintGlob): PPrintGlob	
+one	hmisc/other/hpprint.html#one,sinkPPrintGlob	hpprint: one(main: sink PPrintGlob): PPrintGlob	
+field	hmisc/other/hpprint.html#field,sinkPPrintGlob,string	hpprint: field(main: sink PPrintGlob; field: string): PPrintGlob	
+typeName	hmisc/other/hpprint.html#typeName,sinkPPrintGlob,string	hpprint: typeName(main: sink PPrintGlob; name: string): PPrintGlob	
+match	hmisc/other/hpprint.html#match,varargs[PPrintGlob]	hpprint: match(globs: varargs[PPrintGlob]): PPrintMatch	
+matchTypeField	hmisc/other/hpprint.html#matchTypeField,string,string	hpprint: matchTypeField(tname, fname: string): PPrintMatch	
+matchField	hmisc/other/hpprint.html#matchField,varargs[string]	hpprint: matchField(name: varargs[string]): PPrintMatch	
+matchType	hmisc/other/hpprint.html#matchType,varargs[string]	hpprint: matchType(name: varargs[string]): PPrintMatch	
+matchTypeFields	hmisc/other/hpprint.html#matchTypeFields,string	hpprint: matchTypeFields(name: string): PPrintMatch	
+`&amp;`	hmisc/other/hpprint.html#&,PPrintMatch,PPrintMatch	hpprint: `&amp;`(m1, m2: PPrintMatch): PPrintMatch	
+matchAll	hmisc/other/hpprint.html#matchAll	hpprint: matchAll(): PPrintMatch	
+forceLine	hmisc/other/hpprint.html#forceLine	hpprint: forceLine(): PPrintLytChoice	
+forceStack	hmisc/other/hpprint.html#forceStack	hpprint: forceStack(): PPrintLytChoice	
+forceChoice	hmisc/other/hpprint.html#forceChoice	hpprint: forceChoice(): PPrintLytChoice	
+pathElem	hmisc/other/hpprint.html#pathElem,PPrintPathKind,string	hpprint: pathElem(kind: PPrintPathKind; name: string): PPrintPathElem	
+pathElem	hmisc/other/hpprint.html#pathElem,PPrintType	hpprint: pathElem(typename: PPrintType): PPrintPathElem	
+pathElem	hmisc/other/hpprint.html#pathElem,int	hpprint: pathElem(idx: int): PPrintPathElem	
+pprintExtraField	hmisc/other/hpprint.html#pprintExtraField.t,untyped,string,untyped	hpprint: pprintExtraField(typename: untyped; fieldName: string; body: untyped): untyped	
+pprintExtraField	hmisc/other/hpprint.html#pprintExtraField.t,string,untyped,string,untyped	hpprint: pprintExtraField(typename: string; argtype: untyped; fieldName: string;\n                 body: untyped): untyped	
+`$`	hmisc/other/hpprint.html#$,PPrintGlobPart	hpprint: `$`(part: PPrintGlobPart): string	
+`$`	hmisc/other/hpprint.html#$,PPrintGlob	hpprint: `$`(part: PPrintGlob): string	
+globEqCmp	hmisc/other/hpprint.html#globEqCmp,PPrintPathElem,PPrintGlobPart	hpprint: globEqCmp(path: PPrintPathElem; glob: PPrintGlobPart): bool	
+matches	hmisc/other/hpprint.html#matches,PPrintMatch,PPrintPath	hpprint: matches(match: PPrintMatch; path: PPrintPath): bool	
+newPPrintType	hmisc/other/hpprint.html#newPPrintType,PPrintType,bool	hpprint: newPPrintType(head: PPrintType; _: bool = false): PPrintType	
+newPPrintType	hmisc/other/hpprint.html#newPPrintType,string,bool	hpprint: newPPrintType(head: string; isVariant: bool = false): PPrintType	
+newPPrintType	hmisc/other/hpprint.html#newPPrintType,typedesc[T]	hpprint: newPPrintType[T](obj: typedesc[T]): PPrintType	
+instLevel	hmisc/other/hpprint.html#instLevel	hpprint: instLevel	
+instCount	hmisc/other/hpprint.html#instCount	hpprint: instCount	
+newTypeInstCount	hmisc/other/hpprint.html#newTypeInstCount	hpprint: newTypeInstCount	
+newPPrintTree	hmisc/other/hpprint.html#newPPrintTree,PPrintTreeKind,int,PPrintPath,PPrintConf,PrintStyling	hpprint: newPPrintTree(kind: PPrintTreeKind; id: int; path: PPrintPath; conf: PPrintConf;\n              styling: PrintStyling = initPrintStyling()): PPrintTree	
+newPPrintNil	hmisc/other/hpprint.html#newPPrintNil,int,PPrintPath,PPrintConf	hpprint: newPPrintNil(id: int; path: PPrintPath; conf: PPrintConf): PPrintTree	
+isCommonType	hmisc/other/hpprint.html#isCommonType,PPrintType	hpprint: isCommonType(t: PPrintType): bool	
+`$`	hmisc/other/hpprint.html#$,PPrintType	hpprint: `$`(t: PPrintType): string	
+`$`	hmisc/other/hpprint.html#$,PPrintPathElem	hpprint: `$`(elem: PPrintPathElem): string	
+`$`	hmisc/other/hpprint.html#$,PPrintPath	hpprint: `$`(path: PPrintPath): string	
+updateCounts	hmisc/other/hpprint.html#updateCounts,PPrintTree,bool	hpprint: updateCounts(tree: var PPrintTree; sortBySize: bool = false)	
+assertValid	hmisc/other/hpprint.html#assertValid,PPrintTree	hpprint: assertValid(tree: PPrintTree)	
+updateCounts	hmisc/other/hpprint.html#updateCounts,sinkPPrintTree,bool	hpprint: updateCounts(tree: sink PPrintTree; sortBySize: bool = false): PPrintTree	
+newPPrintConst	hmisc/other/hpprint.html#newPPrintConst,string,string,int,PrintStyling,PPrintPath	hpprint: newPPrintConst(value, constType: string; id: int; styling: PrintStyling;\n               path: PPrintPath): PPrintTree	
+newPPrintConst	hmisc/other/hpprint.html#newPPrintConst,string,PPrintType,int,PrintStyling,PPrintPath	hpprint: newPPrintConst(value: string; constType: PPrintType; id: int;\n               styling: PrintStyling; path: PPrintPath): PPrintTree	
+getId	hmisc/other/hpprint.html#getId,PPrintConf,T,bool	hpprint: getId[T](conf: var PPrintConf; entry: T; forceCounter: bool = false): int	
+newPPrintNil	hmisc/other/hpprint.html#newPPrintNil,T,PPrintPath,string,PPrintConf	hpprint: newPPrintNil[T](value: T; path: PPrintPath; msg: string; conf: var PPrintConf): PPrintTree	
+newPPrintError	hmisc/other/hpprint.html#newPPrintError,T,PPrintPath,string,PPrintConf	hpprint: newPPrintError[T](value: T; path: PPrintPath; msg: string; conf: var PPrintConf): PPrintTree	
+add	hmisc/other/hpprint.html#add,PPrintTree,PPrintTree	hpprint: add(this: var PPrintTree; other: PPrintTree)	
+add	hmisc/other/hpprint.html#add,PPrintTree,string,PPrintTree	hpprint: add(this: var PPrintTree; key: string; other: PPrintTree)	
+add	hmisc/other/hpprint.html#add,PPrintTree,PPrintTree,PPrintTree	hpprint: add(this: var PPrintTree; key, other: PPrintTree)	
+annotate	hmisc/other/hpprint.html#annotate,PPrintTree,ColoredText	hpprint: annotate(this: var PPrintTree; colored: ColoredText)	
+newPPrintObject	hmisc/other/hpprint.html#newPPrintObject,,seq[],PrintStyling,bool	hpprint: newPPrintObject(head: string | PPrintType;\n                elements: seq[(string, PPrintTree)] = @[];\n                styling: PrintStyling = defaultPrintStyling;\n                isVariant: bool = false): PPrintTree	
+newPPrintVariant	hmisc/other/hpprint.html#newPPrintVariant,string,seq[],PrintStyling	hpprint: newPPrintVariant(kind: string; elements: seq[(string, PPrintTree)];\n                 styling: PrintStyling = defaultPrintStyling): PPrintTree	
+newPPrintMap	hmisc/other/hpprint.html#newPPrintMap,seq[],PrintStyling	hpprint: newPPrintMap(elements: seq[(PPrintTree, PPrintTree)];\n             styling: PrintStyling = defaultPrintStyling): PPrintTree	
+newPPrintConst	hmisc/other/hpprint.html#newPPrintConst,string,PrintStyling	hpprint: newPPrintConst(value: string; styling: PrintStyling = defaultPrintStyling): PPrintTree	
+newPPrintSeq	hmisc/other/hpprint.html#newPPrintSeq,seq[PPrintTree],PrintStyling	hpprint: newPPrintSeq(values: seq[PPrintTree];\n             styling: PrintStyling = defaultPrintStyling): PPrintTree	
+newPPrintAnnotation	hmisc/other/hpprint.html#newPPrintAnnotation,ColoredText,seq[PPrintTree]	hpprint: newPPrintAnnotation(text: ColoredText; elements: seq[PPrintTree] = @[]): PPrintTree	
+getField	hmisc/other/hpprint.html#getField,PPrintTree,string	hpprint: getField(tree: PPrintTree; field: string): PPrintTree	
+ignoredBy	hmisc/other/hpprint.html#ignoredBy,PPrintConf,PPrintPath	hpprint: ignoredBy(conf: PPrintConf; path: PPrintPath): bool	
+isVisited	hmisc/other/hpprint.html#isVisited,PPrintConf,T	hpprint: isVisited[T](conf: PPrintConf; obj: T): bool	
+visit	hmisc/other/hpprint.html#visit,PPrintConf,T	hpprint: visit[T](conf: var PPrintConf; obj: T)	
+toPprintTree	hmisc/other/hpprint.html#toPprintTree,JsonNode,PPrintConf,PPrintPath	hpprint: toPprintTree(val: JsonNode; conf: var PPrintConf; path: PPrintPath): PPrintTree	
+isNilEntry	hmisc/other/hpprint.html#isNilEntry,T	hpprint: isNilEntry[T](entry: T): bool	
+isErrorDeref	hmisc/other/hpprint.html#isErrorDeref,T,string	hpprint: isErrorDeref[T](entry: T; err: var string): bool	
+objectToPprintTree	hmisc/other/hpprint.html#objectToPprintTree,T,PPrintConf,PPrintPath	hpprint: objectToPprintTree[T: object or ptr object or ref object or tuple or\n    ptr tuple or\n    ref tuple](entry: T; conf: var PPrintConf; path: PPrintPath): PPrintTree	
+toPprintTree	hmisc/other/hpprint.html#toPprintTree,HSlice[L,H],PPrintConf,PPrintPath	hpprint: toPprintTree[L, H](val: HSlice[L, H]; conf: var PPrintConf; path: PPrintPath): PPrintTree	
+toPprintTree	hmisc/other/hpprint.html#toPprintTree,T,PPrintConf,PPrintPath	hpprint: toPprintTree[T](entry: T; conf: var PPrintConf; path: PPrintPath): PPrintTree	
+toPPrintTree	hmisc/other/hpprint.html#toPPrintTree,T	hpprint: toPPrintTree[T](obj: T): PPrintTree	
+toPPrintBlock	hmisc/other/hpprint.html#toPPrintBlock,PPrintTree,PPrintConf	hpprint: toPPrintBlock(tree: PPrintTree; conf: PPrintConf): LytBlock	
+defaultPPrintConf	hmisc/other/hpprint.html#defaultPPrintConf	hpprint: defaultPPrintConf	
+pptree	hmisc/other/hpprint.html#pptree,T,PPrintConf	hpprint: pptree[T](obj: T; conf: var PPrintConf): PPrintTree	
+ppblock	hmisc/other/hpprint.html#ppblock,T,PPrintConf	hpprint: ppblock[T](obj: T; conf: var PPrintConf): LytBlock	
+ppblock	hmisc/other/hpprint.html#ppblock,PPrintTree,PPrintConf	hpprint: ppblock(obj: PPrintTree; conf: var PPrintConf): LytBlock	
+pptree	hmisc/other/hpprint.html#pptree,T,PPrintConf_2	hpprint: pptree[T](obj: T; conf: PPrintConf = defaultPPrintConf): PPrintTree	
+ppblock	hmisc/other/hpprint.html#ppblock,T,PPrintConf_2	hpprint: ppblock[T](obj: T; conf: PPrintConf = defaultPPrintConf): LytBlock	
+ppblock	hmisc/other/hpprint.html#ppblock,PPrintTree,PPrintConf_2	hpprint: ppblock(obj: PPrintTree; conf: PPrintConf = defaultPPrintConf): LytBlock	
+pstring	hmisc/other/hpprint.html#pstring,PPrintTree,PPrintConf	hpprint: pstring(tree: PPrintTree; conf: PPrintConf = defaultPPrintConf): string	
+getRightMargin	hmisc/other/hpprint.html#getRightMargin	hpprint: getRightMargin(): int	
+pstring	hmisc/other/hpprint.html#pstring,T,int,openArray[],PPrintMatch,PPrintConf,seq[PPrintExtraField]	hpprint: pstring[T](obj: T; rightMargin: int = getRightMargin();\n           force: openArray[(PPrintMatch, PPrintLytChoice)] = @[];\n           ignore: PPrintMatch = PPrintMatch();\n           conf: PPrintConf = defaultPPrintConf;\n           extraFields: seq[PPrintExtraField] = @[]): string	
+pprint	hmisc/other/hpprint.html#pprint,T,int,openArray[],PPrintMatch,PPrintConf,seq[PPrintExtraField]	hpprint: pprint[T](obj: T; rightMargin: int = getRightMargin();\n          force: openArray[(PPrintMatch, PPrintLytChoice)] = @[];\n          ignore: PPrintMatch = PPrintMatch();\n          conf: PPrintConf = defaultPPrintConf;\n          extraFields: seq[PPrintExtraField] = @[])	
+pconf	hmisc/other/hpprint.html#pconf.m,varargs[untyped]	hpprint: pconf(body: varargs[untyped]): untyped	
+debugpprint	hmisc/other/hpprint.html#debugpprint,T,int,openArray[],PPrintMatch,PPrintConf	hpprint: debugpprint[T](obj: T; rightMargin: int = getRightMargin();\n               force: openArray[(PPrintMatch, PPrintLytChoice)] = @[];\n               ignore: PPrintMatch = PPrintMatch();\n               conf: PPrintConf = defaultPPrintConf)	
+treeDiff	hmisc/other/hpprint.html#treeDiff,PPrintTree,PPrintTree	hpprint: treeDiff(t1, t2: PPrintTree): Option[PPrintTree]	
+objectTreeRepr	hmisc/other/hpprint.html#objectTreeRepr,PPrintTree,PPrintConf,int	hpprint: objectTreeRepr(tree: PPrintTree; conf: PPrintConf = defaultPPrintConf;\n               indent: int = 0): ColoredText	
+pprintObjectTree	hmisc/other/hpprint.html#pprintObjectTree,T	hpprint: pprintObjectTree[T](obj: T)	

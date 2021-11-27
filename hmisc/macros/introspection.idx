@@ -1,0 +1,4 @@
+directEnumName	hmisc/macros/introspection.html#directEnumName.m,typed	introspection: directEnumName(arg: typed): untyped	
+enumNamesTable	hmisc/macros/introspection.html#enumNamesTable,En,bool,bool	introspection: enumNamesTable[En: enum](arg: En; withDirectName: bool = true;\n                         withDroppedPrefix: bool = true): seq[\n    tuple[names: seq[string], value: En]]	
+enumNamesTable	hmisc/macros/introspection.html#enumNamesTable,typedesc,bool,bool	introspection: enumNamesTable(En: typedesc; withDirectName: bool = true;\n               withDroppedPrefix: bool = true): seq[\n    tuple[names: seq[string], value: En:type]]	
+namedSubnode	hmisc/macros/introspection.html#namedSubnode,T,int,static[seq[tuple[T,seq[string]]]],string	introspection: namedSubnode[T: enum](kind: T; idx: int;\n                      map: static[seq[tuple[key: T, subnames: seq[string]]]];\n                      fallback: string = &quot;&lt;&lt;fail&gt;&gt;&quot;): string	

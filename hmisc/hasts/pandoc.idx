@@ -1,0 +1,1 @@
+htmlTableToLatex	hmisc/hasts/pandoc.html#htmlTableToLatex,string	pandoc: htmlTableToLatex(htmlTable: string): string	

@@ -1,0 +1,8 @@
+sumjoin	hmisc/algo/hmath.html#sumjoin,openArray[int],int	hmath: sumjoin(a: openArray[int]; sep: int): int	
+cumsumjoin	hmisc/algo/hmath.html#cumsumjoin,openArray[int],int,bool,bool	hmath: cumsumjoin(a: openArray[int]; sep: int; addFirst: bool = false;\n           dropLast: bool = false): seq[int]	
+`..+`	hmisc/algo/hmath.html#..+,int,int	hmath: `..+`(start: int; offset: int): Slice[int]	
+order	hmisc/algo/hmath.html#order,Num,Num	hmath: order[Num](a, b: Num): (Num, Num)	
+clampLow	hmisc/algo/hmath.html#clampLow,T,T	hmath: clampLow[T](x, minval: T): T	
+modiv	hmisc/algo/hmath.html#modiv,int,int	hmath: modiv(a, b: int): tuple[val, rem: int]	
+max	hmisc/algo/hmath.html#max,openArray[T],T	hmath: max[T](x: openArray[T]; default: T): T	
+setMax	hmisc/algo/hmath.html#setMax,T,T	hmath: setMax[T](a: var T; b: T): void	

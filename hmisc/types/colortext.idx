@@ -1,0 +1,7 @@
+StyleMap	hmisc/types/colortext.html#StyleMap	colortext: StyleMap	
+colorize	hmisc/types/colortext.html#colorize,StyleMap,tuple[TokenClass,string]	colortext: colorize(map: StyleMap; tok: tuple[class: TokenClass, text: string]): ColoredString	
+colorize	hmisc/types/colortext.html#colorize,StyleMap,string,string	colortext: colorize(map: StyleMap; text: string; lang: string): seq[ColoredString]	
+cppStyleMap	hmisc/types/colortext.html#cppStyleMap	colortext: cppStyleMap	
+nimStyleMap	hmisc/types/colortext.html#nimStyleMap	colortext: nimStyleMap	
+colorizeToStr	hmisc/types/colortext.html#colorizeToStr,string,StyleMap,string	colortext: colorizeToStr(str: string; map: StyleMap; lang: string): string	
+colorizeToStr	hmisc/types/colortext.html#colorizeToStr,string,string	colortext: colorizeToStr(str: string; lang: string): string	

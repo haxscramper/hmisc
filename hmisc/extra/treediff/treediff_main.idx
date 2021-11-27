@@ -1,0 +1,5 @@
+Diff	hmisc/extra/treediff/treediff_main.html#Diff	treediff_main: Diff	
+newDiff	hmisc/extra/treediff/treediff_main.html#newDiff,Tree,Tree,MappingStore,EditScript	treediff_main: newDiff(src: Tree; dst: Tree; mappings: MappingStore; editScript: EditScript): Diff	
+diff	hmisc/extra/treediff/treediff_main.html#diff,Tree,Tree,Matcher,EditScriptGenerator	treediff_main: diff(src, dst: Tree; matcher: Matcher; generator: EditScriptGenerator): Diff	
+heightPriority	hmisc/extra/treediff/treediff_main.html#heightPriority,Tree	treediff_main: heightPriority(tree: Tree): int	
+treeFromRefAst	hmisc/extra/treediff/treediff_main.html#treeFromRefAst,N,proc(N),proc(N)	treediff_main: treeFromRefAst[N: ref object](node: N; isToken: proc (n: N): bool;\n                              getLabel: proc (n: N): string): Tree	

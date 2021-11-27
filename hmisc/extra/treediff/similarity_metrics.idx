@@ -1,0 +1,7 @@
+numberOfMappedDescendants	hmisc/extra/treediff/similarity_metrics.html#numberOfMappedDescendants,Tree,Tree,MappingStore	similarity_metrics: numberOfMappedDescendants(src: Tree; dst: Tree; mappings: MappingStore): int	
+chawatheSimilarity	hmisc/extra/treediff/similarity_metrics.html#chawatheSimilarity,Tree,Tree,MappingStore	similarity_metrics: chawatheSimilarity(src: Tree; dst: Tree; mappings: MappingStore): float	
+overlapSimilarity	hmisc/extra/treediff/similarity_metrics.html#overlapSimilarity,Tree,Tree,MappingStore	similarity_metrics: overlapSimilarity(src: Tree; dst: Tree; mappings: MappingStore): float	
+diceCoefficient	hmisc/extra/treediff/similarity_metrics.html#diceCoefficient,int,int,int	similarity_metrics: diceCoefficient(commonElementsNb: int; leftElementsNb: int; rightElementsNb: int): float	
+jaccardIndex	hmisc/extra/treediff/similarity_metrics.html#jaccardIndex,int,int,int	similarity_metrics: jaccardIndex(commonElementsNb: int; leftElementsNb: int; rightElementsNb: int): float	
+diceSimilarity	hmisc/extra/treediff/similarity_metrics.html#diceSimilarity,Tree,Tree,MappingStore	similarity_metrics: diceSimilarity(src: Tree; dst: Tree; mappings: MappingStore): float	
+jaccardSimilarity	hmisc/extra/treediff/similarity_metrics.html#jaccardSimilarity,Tree,Tree,MappingStore	similarity_metrics: jaccardSimilarity(src: Tree; dst: Tree; mappings: MappingStore): float	

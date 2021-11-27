@@ -1,0 +1,38 @@
+TermTextConf	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#TermTextConf	term_buf: TermTextConf	
+TermBuf	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#TermBuf	term_buf: TermBuf	
+emptyTermBuf	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#emptyTermBuf	term_buf: emptyTermBuf	
+width	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#width,TermBuf	term_buf: width(buf: TermBuf): int	
+height	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#height,TermBuf	term_buf: height(buf: TermBuf): int	
+toColored	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#toColored,Seq2d[Rune]	term_buf: toColored(grid: Seq2d[Rune]): Seq2d[ColoredRune]	
+toTermBufFast	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#toTermBufFast,string	term_buf: toTermBufFast(str: string): TermBuf	
+makeTermBuf	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#makeTermBuf,int,int	term_buf: makeTermBuf(w = 2; h = 1): TermBuf	
+toTermBuf	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#toTermBuf,string	term_buf: toTermBuf(str: string): TermBuf	
+toTermBuf	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#toTermBuf,seq[seq[string]]	term_buf: toTermBuf(strs: seq[seq[string]]): TermBuf	
+toTermBufGrid	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#toTermBufGrid,seq[seq[string]]	term_buf: toTermBufGrid(strs: seq[seq[string]]): Seq2d[TermBuf]	
+toTermBufGrid	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#toTermBufGrid,Seq2d[string]	term_buf: toTermBufGrid(strs: Seq2d[string]): Seq2d[TermBuf]	
+toTermBuf	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#toTermBuf,seq[seq[TermBuf]]	term_buf: toTermBuf(bufs: seq[seq[TermBuf]]): TermBuf	
+toTermBuf	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#toTermBuf,seq[TermBuf]	term_buf: toTermBuf(bufs: seq[TermBuf]): TermBuf	
+concatBufsLeft	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#concatBufsLeft,seq[TermBuf]	term_buf: concatBufsLeft(bufs: seq[TermBuf]): TermBuf	
+concatBufsTop	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#concatBufsTop,seq[TermBuf]	term_buf: concatBufsTop(bufs: seq[TermBuf]): TermBuf	
+toTermBuf	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#toTermBuf,StrBlock	term_buf: toTermBuf(strs: StrBlock): TermBuf	
+toTermBuf	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#toTermBuf,RuneBlock	term_buf: toTermBuf(strs: RuneBlock): TermBuf	
+newBuf	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#newBuf,(int, int)	term_buf: newBuf(offset: (int, int) = (0, 0)): TermBuf	
+reserve	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#reserve,TermBuf,int,int	term_buf: reserve(buf: var TermBuf; rows, cols: int): void	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#[]=,Seq2d[ColoredRune],int,int,Rune	term_buf: `[]=`(buf: var Seq2d[ColoredRune]; row, col: int; rune: Rune): void	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#[]=,TermBuf,int,int,string	term_buf: `[]=`(buf: var TermBuf; row, col: int; text: string)	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#[]=,TermBuf,int,int,ColoredRune	term_buf: `[]=`(buf: var TermBuf; x, y: int; rune: ColoredRune): void	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#[]=,TermBuf,int,int,Rune	term_buf: `[]=`(buf: var TermBuf; x, y: int; rune: Rune): void	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#[]=,TermBuf,Point[int],ColoredRune	term_buf: `[]=`(buf: var TermBuf; pos: Point[int]; c: ColoredRune)	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#[]=,TermBuf,Point[int],Rune	term_buf: `[]=`(buf: var TermBuf; pos: Point[int]; c: Rune)	
+TermGridAssign	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#TermGridAssign	term_buf: TermGridAssign	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#[]=,TermBuf,int,BackwardsIndex,TermGridAssign	term_buf: `[]=`(buf: var TermBuf; row: int; col: BackwardsIndex; text: TermGridAssign)	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#[]=,TermBuf,BackwardsIndex,int,TermGridAssign	term_buf: `[]=`(buf: var TermBuf; row: BackwardsIndex; col: int; text: TermGridAssign)	
+renderOnto	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#renderOnto,TermBuf,TermBuf,Point[int]	term_buf: renderOnto(buf: TermBuf; other: var TermBuf; pos: Point[int]): void	
+toString	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#toString,TermBuf	term_buf: toString(buf: TermBuf): string	
+sideBySide	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#sideBySide,string,string	term_buf: sideBySide(str1, str2: string): string	
+sideBySide	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#sideBySide,seq[string]	term_buf: sideBySide(bufs: seq[string]): string	
+withBufEcho	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#withBufEcho.t,untyped	term_buf: withBufEcho(body: untyped): untyped	
+withBufStr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#withBufStr.t,untyped	term_buf: withBufStr(body: untyped): untyped	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#$,TermBuf	term_buf: `$`(buf: TermBuf): string	
+toStringBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#toStringBlock,TermBuf	term_buf: toStringBlock(buf: TermBuf): StrBlock	
+toTermBuf	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/extra/hdrawing/term_buf.html#toTermBuf,Seq2d[TermBuf]	term_buf: toTermBuf(bufs: Seq2d[TermBuf]): TermBuf	

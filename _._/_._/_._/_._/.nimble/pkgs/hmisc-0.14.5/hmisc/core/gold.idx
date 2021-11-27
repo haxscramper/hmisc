@@ -1,0 +1,72 @@
+NoValue	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#NoValue	gold: NoValue	
+Attr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#Attr.t	gold: Attr()	
+tern	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#tern.t,bool,untyped,untyped	gold: tern(predicate: bool; tBranch: untyped; fBranch: untyped): untyped	
+inWhile	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#inWhile.t,untyped,untyped	gold: inWhile(expr, body: untyped): untyped	
+inFor	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#inFor.t,untyped,untyped,untyped	gold: inFor(ident, expr, body: untyped): untyped	
+inFor	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#inFor.t,untyped,untyped,untyped,untyped	gold: inFor(ident1, ident2, expr, body: untyped): untyped	
+dowhile	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#dowhile.t,untyped,untyped	gold: dowhile(expr, body: untyped): untyped	
+withIt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#withIt.t,untyped,untyped	gold: withIt(val, body: untyped): untyped	
+withDeepIt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#withDeepIt.t,untyped,untyped	gold: withDeepIt(expr, body: untyped): untyped	
+withResIt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#withResIt.t,untyped,untyped	gold: withResIt(val, body: untyped): untyped	
+withMutIt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#withMutIt.t,T,untyped	gold: withMutIt[T](val: var T; body: untyped): untyped	
+notNil	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#notNil.t,untyped	gold: notNil(arg: untyped): bool	
+`-`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#-,set[I],I	gold: `-`[I](s: set[I]; i: I): set[I]	
+nor	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#nor,varargs[bool]	gold: nor(args: varargs[bool]): bool	
+nand	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#nand,varargs[bool]	gold: nand(args: varargs[bool]): bool	
+`or`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#or,varargs[bool]	gold: `or`(args: varargs[bool]): bool	
+`and`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#and,varargs[bool]	gold: `and`(args: varargs[bool]): bool	
+`&amp;`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#&,openArray[seq[T]]	gold: `&amp;`[T](elements: openArray[seq[T]]): seq[T]	
+`&amp;`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#&,openArray[string]	gold: `&amp;`(strings: openArray[string]): string	
+`&amp;=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#&=,string,openArray[string]	gold: `&amp;=`(target: var string; args: openArray[string])	
+asRef	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#asRef,sinkT	gold: asRef[T: not ref and not ptr](t: sink T): ref T	
+asRef	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#asRef,ptr.T	gold: asRef[T: not ref and not ptr](t: ptr T): ref T	
+asRef	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#asRef,ref.T	gold: asRef[T: not ref and not ptr](t: ref T): ref T	
+asVar	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#asVar.t,T	gold: asVar[T](t: T): untyped	
+asPtr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#asPtr.t,T	gold: asPtr[T](t: T): untyped	
+asConst	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#asConst.t,T	gold: asConst[T](t: T): untyped	
+asExpr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#asExpr.t,untyped	gold: asExpr(arg: untyped): untyped	
+asSet	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#asSet,E	gold: asSet[E: enum](en: E): set[E]	
+asSet	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#asSet,set[E]	gold: asSet[E: enum](en: set[E]): set[E]	
+currIInfo	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#currIInfo.t	gold: currIInfo(): untyped	
+curIDir	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#curIDir.t	gold: curIDir(): untyped	
+currentSourceDir	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#currentSourceDir.t	gold: currentSourceDir(): untyped	
+relToSource	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#relToSource.t,string	gold: relToSource(path: string): untyped	
+`of`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#of,A,	gold: `of`[A: object or ref object or distinct; K: enum](item: A; kind: K | set[K]): bool	
+`of`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#of,En,	gold: `of`[En: enum](item: En; kind: En | set[En]): bool	
+getSomeIt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#getSomeIt.t,Option[T],untyped,untyped	gold: getSomeIt[T](opt: Option[T]; value, default: untyped): untyped	
+canGet	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#canGet.t,Option[T],untyped	gold: canGet[T](opt: Option[T]; injected: untyped): untyped	
+mget	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#mget,Option[T],T	gold: mget[T](opt: var Option[T]; value: T = default(T)): var T	
+top	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#top.t,seq[T]	gold: top[T](s: seq[T]): untyped	
+last	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#last.t,seq[T]	gold: last[T](s: seq[T]): untyped	
+last	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#last.t,seq[T],T	gold: last[T](s: seq[T]; item: T): untyped	
+last2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#last2.t,seq	gold: last2(s: seq): untyped	
+first	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#first.t,seq	gold: first(s: seq): untyped	
+clear	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#clear.t,seq	gold: clear(s: seq): untyped	
+empty	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#empty.t,seq	gold: empty(s: seq): bool	
+`?`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#?.t,seq[T]	gold: `?`[T](s: seq[T]): bool	
+`?`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#?.t,string	gold: `?`(s: string): bool	
+`?`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#?.t,Option[T]	gold: `?`[T](o: Option[T]): bool	
+getOr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#getOr,seq[T],int,T	gold: getOr[T](s: seq[T]; idx: int; value: T = default(T)): T	
+dollar	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#dollar,T	gold: dollar[T](arg: T): string	
+`not`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#not,set[K]	gold: `not`[K](s: set[K]): set[K]	
+first	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#first,set[E]	gold: first[E](s: set[E]): E	
+pop	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#pop,set[E]	gold: pop[E](s: var set[E]): E	
+pairs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#pairs.i,set[I]	gold: pairs[I](s: set[I]): (int, I)	
+lit3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#lit3.m,static[string]	gold: lit3(str: static[string]): untyped	
+lit3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#lit3.m,static[int],static[string]	gold: lit3(ind: static[int]; str: static[string]): untyped	
+add	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#add,seq[],A,B	gold: add[A, B](s: var seq[(A, B)]; a: A; b: B)	
+add	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#add,seq[],A,B,C	gold: add[A, B, C](s: var seq[(A, B, C)]; a: A; b: B; c: C)	
+clear	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#clear,Option[T]	gold: clear[T](o: var Option[T])	
+add	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#add,seq[T],Option[T]	gold: add[T](s: var seq[T]; opt: Option[T])	
+add	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#add,string,string,string,varargs[string]	gold: add(s: var string; s1, s2: string; other: varargs[string])	
+procIt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#procIt.t,untyped	gold: procIt[T](procname: untyped): untyped	
+procIt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#procIt.t,untyped,untyped	gold: procIt[T](procname: untyped; arg1: untyped): untyped	
+`//`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#//.m,string	gold: `//`(arg: string): untyped	
+`///`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#///.m,static[string],untyped	gold: `///`(name: static[string]; body: untyped): untyped	
+cblock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#cblock.t,static[string],untyped	gold: cblock(name: static[string]; body: untyped): untyped	
+cexpr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#cexpr.t,static[string],untyped	gold: cexpr(name: static[string]; body: untyped): untyped	
+importx	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#importx.m,untyped	gold: importx(imports: untyped): untyped	
+postInc	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#postInc,T	gold: postInc[T](value: var T): T	
+preInc	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#preInc,T	gold: preInc[T](value: var T): T	
+dumpTyped	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#dumpTyped.m,typed	gold: dumpTyped(a: typed): untyped	
+setKind	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/gold.html#setKind.t,V,V	gold: setKind[V](target, source: V)	

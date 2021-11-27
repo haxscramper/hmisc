@@ -1,0 +1,8 @@
+ProcBox	hmisc/algo/procbox.html#ProcBox	procbox: ProcBox	
+Vtable	hmisc/algo/procbox.html#Vtable	procbox: Vtable	
+`$`	hmisc/algo/procbox.html#$,ProcBox	procbox: `$`(box: ProcBox): string	
+newVtable	hmisc/algo/procbox.html#newVtable,openArray[ProcBox]	procbox: newVtable(procs: openArray[ProcBox]): Vtable	
+`[]`	hmisc/algo/procbox.html#[].t,Vtable,int	procbox: `[]`(vt: Vtable; idx: int): untyped	
+isClosure	hmisc/algo/procbox.html#isClosure.m,typed	procbox: isClosure(t: typed): untyped	
+toProcBox	hmisc/algo/procbox.html#toProcBox,proc	procbox: toProcBox(pr: proc): ProcBox	
+callAs	hmisc/algo/procbox.html#callAs.t,ProcBox,typedesc[proc(A1)],A1	procbox: callAs[A1, R](box: ProcBox; sign: typedesc[proc (a1: A1): R]; arg1: A1): R	

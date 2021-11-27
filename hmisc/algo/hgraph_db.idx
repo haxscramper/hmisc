@@ -1,0 +1,14 @@
+Value	hmisc/algo/hgraph_db.html#Value	hgraph_db: Value	
+newQuery	hmisc/algo/hgraph_db.html#newQuery	hgraph_db: newQuery(): Query	
+makePull	hmisc/algo/hgraph_db.html#makePull	hgraph_db: makePull(): OptGremlin	
+makeYield	hmisc/algo/hgraph_db.html#makeYield,Gremlin	hgraph_db: makeYield(gremlin: Gremlin): OptGremlin	
+makeDone	hmisc/algo/hgraph_db.html#makeDone	hgraph_db: makeDone(): OptGremlin	
+makeFalse	hmisc/algo/hgraph_db.html#makeFalse	hgraph_db: makeFalse(): OptGremlin	
+run	hmisc/algo/hgraph_db.html#run,Query,DGraph	hgraph_db: run(query: var Query; graph: DGraph): seq[QueryResult]	
+unique	hmisc/algo/hgraph_db.html#unique,Query	hgraph_db: unique(query: var Query): var Query	
+filter	hmisc/algo/hgraph_db.html#filter,Query,VertexFilter	hgraph_db: filter(query: var Query; filter: VertexFilter): var Query	
+start	hmisc/algo/hgraph_db.html#start,Query,HNode	hgraph_db: start(query: var Query; node: HNode): var Query	
+inNodes	hmisc/algo/hgraph_db.html#inNodes,Query	hgraph_db: inNodes(query: var Query): var Query	
+outNodes	hmisc/algo/hgraph_db.html#outNodes,Query	hgraph_db: outNodes(query: var Query): var Query	
+asTag	hmisc/algo/hgraph_db.html#asTag,Query,string	hgraph_db: asTag(query: var Query; name: string): var Query	
+merge	hmisc/algo/hgraph_db.html#merge,Query,varargs[string]	hgraph_db: merge(query: var Query; toMerge: varargs[string]): var Query	

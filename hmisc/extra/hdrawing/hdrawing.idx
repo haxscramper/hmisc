@@ -1,0 +1,77 @@
+renderLine	hmisc/extra/hdrawing/hdrawing.html#renderLine,Point[int],int,int,TermBuf,ColoredRune	hdrawing: renderLine(p: Point[int]; w, h: int; buf: var TermBuf; c: ColoredRune): void	
+Shape	hmisc/extra/hdrawing/hdrawing.html#Shape	hdrawing: Shape	
+render	hmisc/extra/hdrawing/hdrawing.html#render.e,Shape,TermBuf	hdrawing: render(s: Shape; buf: var TermBuf): void	
+Multishape	hmisc/extra/hdrawing/hdrawing.html#Multishape	hdrawing: Multishape	
+nthShape	hmisc/extra/hdrawing/hdrawing.html#nthShape,Multishape,int	hdrawing: nthShape(mshape: Multishape; idx: int = 0): Shape	
+render	hmisc/extra/hdrawing/hdrawing.html#render.e,Multishape,TermBuf	hdrawing: render(multi: Multishape; buf: var TermBuf): void	
+SLine	hmisc/extra/hdrawing/hdrawing.html#SLine	hdrawing: SLine	
+render	hmisc/extra/hdrawing/hdrawing.html#render.e,SLine[char,int],TermBuf	hdrawing: render(line: SLine[char, int]; buf: var TermBuf): void	
+newTermVline	hmisc/extra/hdrawing/hdrawing.html#newTermVline,,int,char,bool	hdrawing: newTermVline(start: (int, int); length: int; c: char = &apos;|&apos;; isDown: bool = true): auto	
+newTermHline	hmisc/extra/hdrawing/hdrawing.html#newTermHline,,int,char,bool	hdrawing: newTermHline(start: (int, int); length: int; c: char = &apos;-&apos;; isRight: bool = true): auto	
+SPoint	hmisc/extra/hdrawing/hdrawing.html#SPoint	hdrawing: SPoint	
+x	hmisc/extra/hdrawing/hdrawing.html#x,SPoint[T,Num]	hdrawing: x[T, Num](p: SPoint[T, Num]): Num	
+y	hmisc/extra/hdrawing/hdrawing.html#y,SPoint[T,Num]	hdrawing: y[T, Num](p: SPoint[T, Num]): Num	
+newTermPoint	hmisc/extra/hdrawing/hdrawing.html#newTermPoint,,char	hdrawing: newTermPoint(start: (int, int); c: char = &apos;+&apos;): SPoint[char, int]	
+render	hmisc/extra/hdrawing/hdrawing.html#render.e,SPoint[char,int],TermBuf	hdrawing: render(point: SPoint[char, int]; buf: var TermBuf): void	
+rpoLeftEdge	hmisc/extra/hdrawing/hdrawing.html#rpoLeftEdge	RectPoint.rpoLeftEdge	
+rpoRightEdge	hmisc/extra/hdrawing/hdrawing.html#rpoRightEdge	RectPoint.rpoRightEdge	
+rpoBottomEdge	hmisc/extra/hdrawing/hdrawing.html#rpoBottomEdge	RectPoint.rpoBottomEdge	
+rpoTopEdge	hmisc/extra/hdrawing/hdrawing.html#rpoTopEdge	RectPoint.rpoTopEdge	
+rpoTopLeft	hmisc/extra/hdrawing/hdrawing.html#rpoTopLeft	RectPoint.rpoTopLeft	
+rpoTopRight	hmisc/extra/hdrawing/hdrawing.html#rpoTopRight	RectPoint.rpoTopRight	
+rpoBottomLeft	hmisc/extra/hdrawing/hdrawing.html#rpoBottomLeft	RectPoint.rpoBottomLeft	
+rpoBottomRight	hmisc/extra/hdrawing/hdrawing.html#rpoBottomRight	RectPoint.rpoBottomRight	
+RectPoint	hmisc/extra/hdrawing/hdrawing.html#RectPoint	hdrawing: RectPoint	
+SRect	hmisc/extra/hdrawing/hdrawing.html#SRect	hdrawing: SRect	
+TermRectConf	hmisc/extra/hdrawing/hdrawing.html#TermRectConf	hdrawing: TermRectConf	
+TermRect	hmisc/extra/hdrawing/hdrawing.html#TermRect	hdrawing: TermRect	
+makeTwoLineRectBorder	hmisc/extra/hdrawing/hdrawing.html#makeTwoLineRectBorder	hdrawing: makeTwoLineRectBorder(): TermRectConf	
+makeAsciiRectBorder	hmisc/extra/hdrawing/hdrawing.html#makeAsciiRectBorder	hdrawing: makeAsciiRectBorder(): TermRectConf	
+newTermRect	hmisc/extra/hdrawing/hdrawing.html#newTermRect,,int,int,char	hdrawing: newTermRect(start: (int, int); width, height: int; border: char = &apos;+&apos;): SRect[\n    char, int]	
+newTermRect	hmisc/extra/hdrawing/hdrawing.html#newTermRect,,int,int,TermRectConf	hdrawing: newTermRect(start: (int, int); width, height: int; conf: TermRectConf): TermRect	
+render	hmisc/extra/hdrawing/hdrawing.html#render.e,SRect[char,int],TermBuf	hdrawing: render(rect: SRect[char, int]; buf: var TermBuf): void	
+render	hmisc/extra/hdrawing/hdrawing.html#render.e,TermRect,TermBuf	hdrawing: render(rect: TermRect; buf: var TermBuf): void	
+SText	hmisc/extra/hdrawing/hdrawing.html#SText	hdrawing: SText	
+width	hmisc/extra/hdrawing/hdrawing.html#width,SText[int]	hdrawing: width(text: SText[int]): int	
+height	hmisc/extra/hdrawing/hdrawing.html#height,SText[int]	hdrawing: height(text: SText[int]): int	
+newTermText	hmisc/extra/hdrawing/hdrawing.html#newTermText,,RuneBlock	hdrawing: newTermText(start: (int, int); text: RuneBlock): SText[int]	
+newTermText	hmisc/extra/hdrawing/hdrawing.html#newTermText,,TermBuf	hdrawing: newTermText(start: (int, int); text: TermBuf): SText[int]	
+newBoxedTermText	hmisc/extra/hdrawing/hdrawing.html#newBoxedTermText,,seq[RuneSeq],char	hdrawing: newBoxedTermText(start: (int, int); text: seq[RuneSeq]; boxc: char = &apos;#&apos;): Multishape	
+newBoxedTermText	hmisc/extra/hdrawing/hdrawing.html#newBoxedTermText,,seq[RuneSeq],TermRectConf,(int, int)	hdrawing: newBoxedTermText(start: (int, int); text: seq[RuneSeq]; conf: TermRectConf;\n                 size: (int, int) = (-1, -1)): Multishape	
+render	hmisc/extra/hdrawing/hdrawing.html#render.e,SText[int],TermBuf	hdrawing: render(text: SText[int]; buf: var TermBuf): void	
+gpoIntersection	hmisc/extra/hdrawing/hdrawing.html#gpoIntersection	GridPoint.gpoIntersection	
+gpoTopLeft	hmisc/extra/hdrawing/hdrawing.html#gpoTopLeft	GridPoint.gpoTopLeft	
+gpoTopRight	hmisc/extra/hdrawing/hdrawing.html#gpoTopRight	GridPoint.gpoTopRight	
+gpoBottomLeft	hmisc/extra/hdrawing/hdrawing.html#gpoBottomLeft	GridPoint.gpoBottomLeft	
+gpoBottomRight	hmisc/extra/hdrawing/hdrawing.html#gpoBottomRight	GridPoint.gpoBottomRight	
+gpoLeftBorder	hmisc/extra/hdrawing/hdrawing.html#gpoLeftBorder	GridPoint.gpoLeftBorder	
+gpoLeftIntersection	hmisc/extra/hdrawing/hdrawing.html#gpoLeftIntersection	GridPoint.gpoLeftIntersection	
+gpoRightBorder	hmisc/extra/hdrawing/hdrawing.html#gpoRightBorder	GridPoint.gpoRightBorder	
+gpoRightIntersection	hmisc/extra/hdrawing/hdrawing.html#gpoRightIntersection	GridPoint.gpoRightIntersection	
+gpoTopBorder	hmisc/extra/hdrawing/hdrawing.html#gpoTopBorder	GridPoint.gpoTopBorder	
+gpoTopIntersection	hmisc/extra/hdrawing/hdrawing.html#gpoTopIntersection	GridPoint.gpoTopIntersection	
+gpoBottomBorder	hmisc/extra/hdrawing/hdrawing.html#gpoBottomBorder	GridPoint.gpoBottomBorder	
+gpoBottomIntersection	hmisc/extra/hdrawing/hdrawing.html#gpoBottomIntersection	GridPoint.gpoBottomIntersection	
+gpoHorizontalGap	hmisc/extra/hdrawing/hdrawing.html#gpoHorizontalGap	GridPoint.gpoHorizontalGap	
+gpoVerticalGap	hmisc/extra/hdrawing/hdrawing.html#gpoVerticalGap	GridPoint.gpoVerticalGap	
+GridPoint	hmisc/extra/hdrawing/hdrawing.html#GridPoint	hdrawing: GridPoint	
+SGrid	hmisc/extra/hdrawing/hdrawing.html#SGrid	hdrawing: SGrid	
+TermGridConf	hmisc/extra/hdrawing/hdrawing.html#TermGridConf	hdrawing: TermGridConf	
+TermGrid	hmisc/extra/hdrawing/hdrawing.html#TermGrid	hdrawing: TermGrid	
+makeThinLineGridBorders	hmisc/extra/hdrawing/hdrawing.html#makeThinLineGridBorders,PrintStyling	hdrawing: makeThinLineGridBorders(styling: PrintStyling = initPrintStyling()): TermGridConf	
+makeAsciiGridBorders	hmisc/extra/hdrawing/hdrawing.html#makeAsciiGridBorders,PrintStyling	hdrawing: makeAsciiGridBorders(styling: PrintStyling = initPrintStyling()): TermGridConf	
+spacingDimensions	hmisc/extra/hdrawing/hdrawing.html#spacingDimensions,TermGridConf	hdrawing: spacingDimensions(rc: TermGridConf): tuple[\n    vSpacing, hSpacing, left, right, top, bottom: int]	
+gridDimensions	hmisc/extra/hdrawing/hdrawing.html#gridDimensions,TermGrid	hdrawing: gridDimensions(grid: TermGrid): tuple[vSpacing, hSpacing, totalW, totalH: int]	
+makeEmptyGridBorders	hmisc/extra/hdrawing/hdrawing.html#makeEmptyGridBorders	hdrawing: makeEmptyGridBorders(): TermGridConf	
+newTermGrid	hmisc/extra/hdrawing/hdrawing.html#newTermGrid,,seq[int],seq[int],TermGridConf	hdrawing: newTermGrid(start: (int, int); cellws: seq[int]; cellhs: seq[int];\n            conf: TermGridConf): TermGrid	
+newTermGrid	hmisc/extra/hdrawing/hdrawing.html#newTermGrid,,Seq2d[TermBuf],TermGridConf	hdrawing: newTermGrid(start: (int, int); cells: Seq2d[TermBuf]; conf: TermGridConf): Multishape	
+newTermGridVert	hmisc/extra/hdrawing/hdrawing.html#newTermGridVert,,char	hdrawing: newTermGridVert(cells: seq[string] | seq[StrBlock]; sep: char = &apos;-&apos;): Multishape	
+newTermGridHoriz	hmisc/extra/hdrawing/hdrawing.html#newTermGridHoriz,,char	hdrawing: newTermGridHoriz(cells: seq[string] | seq[StrBlock]; sep: char = &apos;|&apos;): Multishape	
+render	hmisc/extra/hdrawing/hdrawing.html#render.e,TermGrid,TermBuf	hdrawing: render(rect: TermGrid; buf: var TermBuf): void	
+TermMultiGrid	hmisc/extra/hdrawing/hdrawing.html#TermMultiGrid	hdrawing: TermMultiGrid	
+newTermMultiGrid	hmisc/extra/hdrawing/hdrawing.html#newTermMultiGrid,,Seq2d[Option[ArrSize]],seq[int],seq[int],TermGridConf	hdrawing: newTermMultiGrid(start: (int, int); cells: Seq2d[Option[ArrSize]];\n                 widths: seq[int]; heights: seq[int]; config: TermGridConf): TermMultiGrid	
+newTermMultiGrid	hmisc/extra/hdrawing/hdrawing.html#newTermMultiGrid,,Seq2d[Option[]],TermGridConf	hdrawing: newTermMultiGrid(start: (int, int); blocks: Seq2d[Option[(ArrSize, TermBuf)]];\n                 config: TermGridConf): Multishape	
+render	hmisc/extra/hdrawing/hdrawing.html#render.e,TermMultiGrid,TermBuf	hdrawing: render(grid: TermMultiGrid; buf: var TermBuf): void	
+toStringBlock	hmisc/extra/hdrawing/hdrawing.html#toStringBlock,Shape	hdrawing: toStringBlock(shape: Shape): seq[string]	
+toStringBlock	hmisc/extra/hdrawing/hdrawing.html#toStringBlock,Seq2d[string]	hdrawing: toStringBlock(grid: Seq2d[string]): seq[string]	
+toTermBuf	hmisc/extra/hdrawing/hdrawing.html#toTermBuf,Shape	hdrawing: toTermBuf(shape: Shape): TermBuf	

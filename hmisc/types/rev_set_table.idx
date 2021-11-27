@@ -1,0 +1,9 @@
+RevSetTable	hmisc/types/rev_set_table.html#RevSetTable	rev_set_table: RevSetTable	
+addPair	hmisc/types/rev_set_table.html#addPair,RevSetTable[K,V],K,V	rev_set_table: addPair[K, V](table: var RevSetTable[K, V]; key: K; val: V)	
+getKeys	hmisc/types/rev_set_table.html#getKeys,RevSetTable[K,V],V	rev_set_table: getKeys[K, V](table: RevSetTable[K, V]; val: V): seq[K]	
+getValue	hmisc/types/rev_set_table.html#getValue,RevSetTable[K,V],K	rev_set_table: getValue[K, V](table: RevSetTable[K, V]; key: K): V	
+otherKeys	hmisc/types/rev_set_table.html#otherKeys,RevSetTable[K,V],K	rev_set_table: otherKeys[K, V](table: RevSetTable[K, V]; key: K): seq[K]	
+keyValueGroup	hmisc/types/rev_set_table.html#keyValueGroup,RevSetTable[K,V],K	rev_set_table: keyValueGroup[K, V](table: RevSetTable[K, V]; key: K): tuple[keys: seq[K],\n    value: V]	
+`[]`	hmisc/types/rev_set_table.html#[],RevSetTable[K,V],K	rev_set_table: `[]`[K, V](table: RevSetTable[K, V]; key: K): V	
+`[]=`	hmisc/types/rev_set_table.html#[]=,RevSetTable[K,V],K,V	rev_set_table: `[]=`[K, V](table: var RevSetTable[K, V]; key: K; val: V)	
+contains	hmisc/types/rev_set_table.html#contains,RevSetTable[K,V],K	rev_set_table: contains[K, V](table: RevSetTable[K, V]; key: K): bool	

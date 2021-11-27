@@ -1,0 +1,15 @@
+orElse	hmisc/algo/htemplates.html#orElse.t,untyped,bool,untyped	htemplates: orElse(value: untyped; predicate: bool; fallback: untyped): untyped	
+setIf	hmisc/algo/htemplates.html#setIf.t,untyped,bool,untyped	htemplates: setIf(lhs: untyped; predicate: bool; value: untyped): untyped	
+splitOnIt	hmisc/algo/htemplates.html#splitOnIt.t,seq[T],untyped	htemplates: splitOnIt[T](s: seq[T]; op: untyped): tuple[before, after: seq[T]]	
+anyOfIt	hmisc/algo/htemplates.html#anyOfIt.t,typed,untyped	htemplates: anyOfIt(sequence: typed; predicate: untyped): bool	
+allOfIt	hmisc/algo/htemplates.html#allOfIt.t,untyped,untyped	htemplates: allOfIt(s: untyped; op: untyped): bool	
+getIterOpType	hmisc/algo/htemplates.html#getIterOpType.t,untyped,untyped	htemplates: getIterOpType(s, op: untyped): untyped	
+mapIt1	hmisc/algo/htemplates.html#mapIt1.t,untyped,untyped	htemplates: mapIt1(s, op: untyped): untyped	
+maxIt	hmisc/algo/htemplates.html#maxIt.t,untyped,untyped	htemplates: maxIt(s: untyped; op: untyped): untyped	
+minIt	hmisc/algo/htemplates.html#minIt.t,untyped,untyped	htemplates: minIt(s: untyped; op: untyped): untyped	
+findMaxIt	hmisc/algo/htemplates.html#findMaxIt.t,untyped,untyped	htemplates: findMaxIt(s: untyped; op: untyped): untyped	
+getMaxIt	hmisc/algo/htemplates.html#getMaxIt.t,untyped,untyped	htemplates: getMaxIt(s: untyped; op: untyped): untyped	
+findMinIt	hmisc/algo/htemplates.html#findMinIt.t,untyped,untyped	htemplates: findMinIt(s: untyped; op: untyped): untyped	
+getMinIt	hmisc/algo/htemplates.html#getMinIt.t,untyped,untyped	htemplates: getMinIt(s: untyped; op: untyped): untyped	
+sumIt	hmisc/algo/htemplates.html#sumIt.t,untyped,untyped	htemplates: sumIt(s: untyped; op: untyped): untyped	
+noneOfIt	hmisc/algo/htemplates.html#noneOfIt.t,untyped,untyped	htemplates: noneOfIt(s: untyped; op: untyped): bool	

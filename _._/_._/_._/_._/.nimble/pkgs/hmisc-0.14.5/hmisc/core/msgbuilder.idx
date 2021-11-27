@@ -1,0 +1,17 @@
+madd	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/msgbuilder.html#madd,string,varargs[string,]	msgbuilder: madd(ms: var string; args: varargs[string, `$`])	
+msep	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/msgbuilder.html#msep,string,string,bool	msgbuilder: msep(ms: var string; s: string; expr: bool)	
+mq	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/msgbuilder.html#mq,T	msgbuilder: mq[T](item: T): string	
+mkind	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/msgbuilder.html#mkind,E	msgbuilder: mkind[E: enum](item: E): string	
+mq1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/msgbuilder.html#mq1,T	msgbuilder: mq1[T](item: T): string	
+mcode	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/msgbuilder.html#mcode,string	msgbuilder: mcode(str: string): string	
+mblock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/msgbuilder.html#mblock,string,string,string,string,string	msgbuilder: mblock(str: string; startN, finalN: string = &quot;‘‘‘&quot;;\n       start1, final1: string = &quot;‘&quot;): string	
+mitem	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/msgbuilder.html#mitem,string,T	msgbuilder: mitem[T](s: var string; item: T)	
+mwrap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/msgbuilder.html#mwrap.t,string,string,untyped	msgbuilder: mwrap(s: var string; wrap: string; body: untyped): untyped	
+mexpected	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/msgbuilder.html#mexpected,string,T,bool	msgbuilder: mexpected[T](s: var string; item: T; expr: bool = true)	
+mfound	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/msgbuilder.html#mfound,string,F,E	msgbuilder: mfound[F, E](s: var string; found: F; expected: E)	
+mfound	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/msgbuilder.html#mfound,F,E	msgbuilder: mfound[F, E](found: F; expected: E): string	
+toPluralNoun	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/msgbuilder.html#toPluralNoun,string,int,bool,string	msgbuilder: toPluralNoun(noun: string; count: int; addNum: bool = true; plural: string = &quot;&quot;): string	
+joinWords	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/msgbuilder.html#joinWords,seq[string],string,char,string	msgbuilder: joinWords(words: seq[string]; sepWord: string; quote: char = &apos;\&apos;&apos;;\n          empty: string = default(string)): string	
+joinAnyOf	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/msgbuilder.html#joinAnyOf,seq[string],char,string,string,string,string	msgbuilder: joinAnyOf(words: seq[string]; quote: char = &apos;\&apos;&apos;; prefix: string = &quot;any of &quot;;\n          empty: string = &quot;no&quot;; sepWord: string = &quot;or&quot;; suffix: string = &quot;&quot;): string	
+namedItemListing	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/msgbuilder.html#namedItemListing,string,seq[string],string,char	msgbuilder: namedItemListing(name: string; words: seq[string]; sepWord: string;\n                 quote: char = &apos;\x00&apos;): string	
+kindToStr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/msgbuilder.html#kindToStr.t,typed	msgbuilder: kindToStr(expr: typed): untyped	

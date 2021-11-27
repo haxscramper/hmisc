@@ -1,0 +1,19 @@
+VariantAccessError	hmisc/types/hvariant.html#VariantAccessError	hvariant: VariantAccessError	
+Var4	hmisc/types/hvariant.html#Var4	hvariant: Var4	
+Var3	hmisc/types/hvariant.html#Var3	hvariant: Var3	
+Var2	hmisc/types/hvariant.html#Var2	hvariant: Var2	
+getTypeName	hmisc/types/hvariant.html#getTypeName,Var4[T0,T1,T2,T3]	hvariant: getTypeName[T0, T1, T2, T3](v: Var4[T0, T1, T2, T3]): string	
+get	hmisc/types/hvariant.html#get.t,Var4[T0,T1,T2,T3],typed	hvariant: get[T0, T1, T2, T3](v: Var4[T0, T1, T2, T3]; t: typed): auto	
+idx	hmisc/types/hvariant.html#idx,Var4[T0,T1,T2,T3]	hvariant: idx[T0, T1, T2, T3](v: Var4[T0, T1, T2, T3]): int	
+hasType	hmisc/types/hvariant.html#hasType.t,Var4[T0,T1,T2,T3],typed	hvariant: hasType[T0, T1, T2, T3](invar: Var4[T0, T1, T2, T3]; t: typed): bool	
+setv	hmisc/types/hvariant.html#setv,Var4[T0,T1,T2,T3],	hvariant: setv[T0, T1, T2, T3](v: var Var4[T0, T1, T2, T3]; val: T0 | T1 | T2 | T3)	
+vmapIt	hmisc/types/hvariant.html#vmapIt.t,Var2[T0,T1],untyped,untyped	hvariant: vmapIt[T0, T1](v: Var2[T0, T1]; t0Op, t1op: untyped): untyped	
+add	hmisc/types/hvariant.html#add,seq[Var4[T0,T1,T2,T3]],	hvariant: add[T0, T1, T2, T3](v: var seq[Var4[T0, T1, T2, T3]]; val: T0 | T1 | T2 | T3)	
+`&amp;=`	hmisc/types/hvariant.html#&=.t,seq[Var4[T0,T1,T2,T3]],typed	hvariant: `&amp;=`[T0, T1, T2, T3](v: var seq[Var4[T0, T1, T2, T3]]; val: typed)	
+toVar3	hmisc/types/hvariant.html#toVar3,T0	hvariant: toVar3[T0, T1, T2](val: T0): Var3[T0, T1, T2]	
+toVar3	hmisc/types/hvariant.html#toVar3,T1	hvariant: toVar3[T0, T1, T2](val: T1): Var3[T0, T1, T2]	
+toVar3	hmisc/types/hvariant.html#toVar3,T2	hvariant: toVar3[T0, T1, T2](val: T2): Var3[T0, T1, T2]	
+toVar2	hmisc/types/hvariant.html#toVar2,T0	hvariant: toVar2[T0, T1](val: T0): Var2[T0, T1]	
+toVar2	hmisc/types/hvariant.html#toVar2,T1	hvariant: toVar2[T0, T1](val: T1): Var2[T0, T1]	
+toVar2	hmisc/types/hvariant.html#toVar2	hvariant: toVar2[T0, T1](val: seq[T0] | seq[T1]): seq[Var2[T0, T1]]	
+typeTuple	hmisc/types/hvariant.html#typeTuple,Var4[T0,T1,T2,T3]	hvariant: typeTuple[T0, T1, T2, T3](v: Var4[T0, T1, T2, T3]): auto	

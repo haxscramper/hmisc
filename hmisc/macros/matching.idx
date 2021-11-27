@@ -1,0 +1,86 @@
+nnkStrKinds	hmisc/macros/matching.html#nnkStrKinds	matching: nnkStrKinds	
+nnkIntKinds	hmisc/macros/matching.html#nnkIntKinds	matching: nnkIntKinds	
+nnkFloatKinds	hmisc/macros/matching.html#nnkFloatKinds	matching: nnkFloatKinds	
+nnkIdentKinds	hmisc/macros/matching.html#nnkIdentKinds	matching: nnkIdentKinds	
+nnkTokenKinds	hmisc/macros/matching.html#nnkTokenKinds	matching: nnkTokenKinds	
+varOfIteration	hmisc/macros/matching.html#varOfIteration.t,untyped	matching: varOfIteration(arg: untyped): untyped	
+getKindNames	hmisc/macros/matching.html#getKindNames,NimNode	matching: getKindNames(head: NimNode): (string, seq[string])	
+hasKindImpl	hmisc/macros/matching.html#hasKindImpl.m,typed,untyped	matching: hasKindImpl(head: typed; kind: untyped): untyped	
+hasKind	hmisc/macros/matching.html#hasKind.t,untyped,untyped	matching: hasKind(head, kindExpr: untyped): untyped	
+FieldIndex	hmisc/macros/matching.html#FieldIndex	matching: FieldIndex	
+`==`	hmisc/macros/matching.html#==,FieldIndex,SomeInteger	matching: `==`(idx: FieldIndex; i: SomeInteger): bool	
+`[]`	hmisc/macros/matching.html#[].t,,static[FieldIndex]	matching: `[]`(t: tuple; idx: static[FieldIndex]): untyped	
+kItem	hmisc/macros/matching.html#kItem	MatchKind.kItem	
+kSeq	hmisc/macros/matching.html#kSeq	MatchKind.kSeq	
+kTuple	hmisc/macros/matching.html#kTuple	MatchKind.kTuple	
+kPairs	hmisc/macros/matching.html#kPairs	MatchKind.kPairs	
+kObject	hmisc/macros/matching.html#kObject	MatchKind.kObject	
+kSet	hmisc/macros/matching.html#kSet	MatchKind.kSet	
+kAlt	hmisc/macros/matching.html#kAlt	MatchKind.kAlt	
+MatchKind	hmisc/macros/matching.html#MatchKind	matching: MatchKind	
+lkAny	hmisc/macros/matching.html#lkAny	SeqKeyword.lkAny	
+lkAll	hmisc/macros/matching.html#lkAll	SeqKeyword.lkAll	
+lkNone	hmisc/macros/matching.html#lkNone	SeqKeyword.lkNone	
+lkOpt	hmisc/macros/matching.html#lkOpt	SeqKeyword.lkOpt	
+lkUntil	hmisc/macros/matching.html#lkUntil	SeqKeyword.lkUntil	
+lkPref	hmisc/macros/matching.html#lkPref	SeqKeyword.lkPref	
+lkPos	hmisc/macros/matching.html#lkPos	SeqKeyword.lkPos	
+lkSlice	hmisc/macros/matching.html#lkSlice	SeqKeyword.lkSlice	
+lkTrail	hmisc/macros/matching.html#lkTrail	SeqKeyword.lkTrail	
+SeqKeyword	hmisc/macros/matching.html#SeqKeyword	matching: SeqKeyword	
+SeqStructure	hmisc/macros/matching.html#SeqStructure	matching: SeqStructure	
+imkInfixEq	hmisc/macros/matching.html#imkInfixEq	ItemMatchKind.imkInfixEq	
+imkSubPattern	hmisc/macros/matching.html#imkSubPattern	ItemMatchKind.imkSubPattern	
+imkPredicate	hmisc/macros/matching.html#imkPredicate	ItemMatchKind.imkPredicate	
+ItemMatchKind	hmisc/macros/matching.html#ItemMatchKind	matching: ItemMatchKind	
+KVPair	hmisc/macros/matching.html#KVPair	matching: KVPair	
+MatchError	hmisc/macros/matching.html#MatchError	matching: MatchError	
+Match	hmisc/macros/matching.html#Match	matching: Match	
+vkRegular	hmisc/macros/matching.html#vkRegular	VarKind.vkRegular	
+vkSequence	hmisc/macros/matching.html#vkSequence	VarKind.vkSequence	
+vkOption	hmisc/macros/matching.html#vkOption	VarKind.vkOption	
+vkSet	hmisc/macros/matching.html#vkSet	VarKind.vkSet	
+vkAlt	hmisc/macros/matching.html#vkAlt	VarKind.vkAlt	
+VarKind	hmisc/macros/matching.html#VarKind	matching: VarKind	
+VarSpec	hmisc/macros/matching.html#VarSpec	matching: VarSpec	
+`$`	hmisc/macros/matching.html#$,Path	matching: `$`(path: Path): string	
+`$`	hmisc/macros/matching.html#$,KVPair	matching: `$`(kvp: KVPair): string	
+`$`	hmisc/macros/matching.html#$,SeqStructure	matching: `$`(ss: SeqStructure): string	
+`$`	hmisc/macros/matching.html#$,Match	matching: `$`(match: Match): string	
+toAccs	hmisc/macros/matching.html#toAccs,Path,NimNode,bool	matching: toAccs(path: Path; name: NimNode; pathForType: bool): NimNode	
+parseMatchExpr	hmisc/macros/matching.html#parseMatchExpr,NimNode	matching: parseMatchExpr(n: NimNode): Match	
+makeMatchExpr	hmisc/macros/matching.html#makeMatchExpr,Match,NimNode,bool,NimNode	matching: makeMatchExpr(m: Match; mainExpr: NimNode; doRaise: bool;\n              originalMainExpr: NimNode): tuple[expr: NimNode, vtable: VarTable,\n    mixident: seq[string]]	
+expand	hmisc/macros/matching.html#expand.m,typed	matching: expand(body: typed): untyped	
+`case`	hmisc/macros/matching.html#case.m,untyped	matching: `case`(n: untyped): untyped	
+assertMatch	hmisc/macros/matching.html#assertMatch.m,untyped,untyped	matching: assertMatch(input, pattern: untyped): untyped	
+matches	hmisc/macros/matching.html#matches.m,untyped,untyped	matching: matches(input, pattern: untyped): untyped	
+kind=	hmisc/macros/matching.html#kind=,NimNode,NimNodeKind	matching: kind=(node: var NimNode; kind: NimNodeKind)	
+str	hmisc/macros/matching.html#str,NimNode	matching: str(node: NimNode): string	
+str=	hmisc/macros/matching.html#str=,NimNode,string	matching: str=(node: var NimNode; val: string)	
+makeTree	hmisc/macros/matching.html#makeTree.t,typed,untyped	matching: makeTree(T: typed; pattern: untyped): untyped	
+`:=`	hmisc/macros/matching.html#:=.t,untyped,untyped	matching: `:=`(lhs, rhs: untyped): untyped	
+`?=`	hmisc/macros/matching.html#?=.t,untyped,untyped	matching: `?=`(lhs, rhs: untyped): untyped	
+Quick reference	hmisc/macros/matching.html#quick-reference	 Quick reference	
+Supported match elements	hmisc/macros/matching.html#supported-match-elements	 Supported match elements	
+Element access	hmisc/macros/matching.html#element-access	 Element access	
+Checks	hmisc/macros/matching.html#checks	 Checks	
+Examples	hmisc/macros/matching.html#checks-examples	  Examples	
+Variable binding	hmisc/macros/matching.html#variable-binding	 Variable binding	
+Bind order	hmisc/macros/matching.html#variable-binding-bind-order	  Bind order	
+Bind variable type	hmisc/macros/matching.html#variable-binding-bind-variable-type	  Bind variable type	
+Matching different things	hmisc/macros/matching.html#matching-different-things	 Matching different things	
+Sequence matching	hmisc/macros/matching.html#matching-different-things-sequence-matching	  Sequence matching	
+Use examples	hmisc/macros/matching.html#sequence-matching-use-examples	   Use examples	
+Tuple matching	hmisc/macros/matching.html#matching-different-things-tuple-matching	  Tuple matching	
+Object matching	hmisc/macros/matching.html#matching-different-things-object-matching	  Object matching	
+Variant object matching	hmisc/macros/matching.html#matching-different-things-variant-object-matching	  Variant object matching	
+Custom unpackers	hmisc/macros/matching.html#matching-different-things-custom-unpackers	  Custom unpackers	
+Predicates and infix operators	hmisc/macros/matching.html#matching-different-things-predicates-and-infix-operators	  Predicates and infix operators	
+Infix operators	hmisc/macros/matching.html#predicates-and-infix-operators-infix-operators	   Infix operators	
+Custom predicates	hmisc/macros/matching.html#predicates-and-infix-operators-custom-predicates	   Custom predicates	
+Ref object matching	hmisc/macros/matching.html#matching-different-things-ref-object-matching	  Ref object matching	
+KV-pairs matching	hmisc/macros/matching.html#matching-different-things-kvminuspairs-matching	  KV-pairs matching	
+Option matching	hmisc/macros/matching.html#matching-different-things-option-matching	  Option matching	
+Difference between Some()/None() and opt	hmisc/macros/matching.html#option-matching-difference-between-some-slashnone-and-opt	   Difference between <tt class="docutils literal"><span class="pre">Some()/None()</span></tt> and <tt class="docutils literal"><span class="pre">opt</span></tt>	
+Tree matching	hmisc/macros/matching.html#tree-matching	 Tree matching	
+Tree construction	hmisc/macros/matching.html#tree-construction	 Tree construction	

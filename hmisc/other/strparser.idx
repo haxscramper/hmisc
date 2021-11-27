@@ -1,0 +1,11 @@
+toInt	hmisc/other/strparser.html#toInt,string	strparser: toInt(str: string): int	
+toStr	hmisc/other/strparser.html#toStr,string	strparser: toStr(str: string): string	
+toBool	hmisc/other/strparser.html#toBool,string	strparser: toBool(str: string): bool	
+fmtArgs	hmisc/other/strparser.html#fmtArgs,string,string,seq[string]	strparser: fmtArgs(str: string; until: string; default: seq[string] = @[]): tuple[\n    args: seq[string], argl: int]	
+toStrSeq	hmisc/other/strparser.html#toStrSeq,string	strparser: toStrSeq(str: string): seq[string]	
+toIntSeq	hmisc/other/strparser.html#toIntSeq,string	strparser: toIntSeq(str: string): seq[int]	
+parseTo	hmisc/other/strparser.html#parseTo,string,string	strparser: parseTo(val: string; t: string): Option[string]	
+parseTo	hmisc/other/strparser.html#parseTo,string,int	strparser: parseTo(str: string; t: int): Option[int]	
+parseTo	hmisc/other/strparser.html#parseTo,string,seq[string]	strparser: parseTo(str: string; t: seq[string]): Option[seq[string]]	
+tupleSplit	hmisc/other/strparser.html#tupleSplit,string,string	strparser: tupleSplit(str: string; delim: string): (string, string)	
+toTuple	hmisc/other/strparser.html#toTuple,string	strparser: toTuple[A](str: string): (A, A)	

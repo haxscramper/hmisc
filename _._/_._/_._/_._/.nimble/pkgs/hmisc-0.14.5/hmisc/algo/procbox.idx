@@ -1,0 +1,8 @@
+ProcBox	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/procbox.html#ProcBox	procbox: ProcBox	
+Vtable	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/procbox.html#Vtable	procbox: Vtable	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/procbox.html#$,ProcBox	procbox: `$`(box: ProcBox): string	
+newVtable	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/procbox.html#newVtable,openArray[ProcBox]	procbox: newVtable(procs: openArray[ProcBox]): Vtable	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/procbox.html#[].t,Vtable,int	procbox: `[]`(vt: Vtable; idx: int): untyped	
+isClosure	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/procbox.html#isClosure.m,typed	procbox: isClosure(t: typed): untyped	
+toProcBox	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/procbox.html#toProcBox,proc	procbox: toProcBox(pr: proc): ProcBox	
+callAs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/procbox.html#callAs.t,ProcBox,typedesc[proc(A1)],A1	procbox: callAs[A1, R](box: ProcBox; sign: typedesc[proc (a1: A1): R]; arg1: A1): R	

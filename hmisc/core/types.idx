@@ -1,0 +1,16 @@
+SliceTypes	hmisc/core/types.html#SliceTypes	types: SliceTypes	
+IndexTypes	hmisc/core/types.html#IndexTypes	types: IndexTypes	
+startFor	hmisc/core/types.html#startFor,SliceTypes,int	types: startFor(slice: SliceTypes; base: int): int	
+endFor	hmisc/core/types.html#endFor,SliceTypes,int	types: endFor(slice: SliceTypes; base: int): int	
+intersect	hmisc/core/types.html#intersect,Slice[int],Slice[int]	types: intersect(slice1, slice2: Slice[int]): Slice[int]	
+clamp	hmisc/core/types.html#clamp,SliceTypes,int	types: clamp(slice: SliceTypes; base: int): Slice[int]	
+clamp	hmisc/core/types.html#clamp,SliceTypes,Slice[int]	types: clamp(slice: SliceTypes; base: Slice[int]): Slice[int]	
+getClamped	hmisc/core/types.html#getClamped,seq[T],IndexTypes	types: getClamped[T](s: seq[T]; idx: IndexTypes): T	
+`@`	hmisc/core/types.html#@,Slice[int]	types: `@`(slice: Slice[int]): seq[int]	
+clampIdx	hmisc/core/types.html#clampIdx,int	types: clampIdx(val: int): int	
+It	hmisc/core/types.html#It	types: It	
+getIt	hmisc/core/types.html#getIt,It[T]	types: getIt[T](it: It[T]): T	
+setIt	hmisc/core/types.html#setIt,It[T],T	types: setIt[T](it: var It[T]; val: T): void	
+getIt	hmisc/core/types.html#getIt,It[T]_2	types: getIt[T](it: var It[T]): var T	
+newIt	hmisc/core/types.html#newIt,T	types: newIt[T](it: T): It[T]	
+toT	hmisc/core/types.html#toT.c,It[T]	types: toT[T](it: It[T]): T	

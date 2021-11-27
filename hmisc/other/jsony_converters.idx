@@ -1,0 +1,3 @@
+dumpHook	hmisc/other/jsony_converters.html#dumpHook,string,cstring	jsony_converters: dumpHook(s: var string; c: cstring)	
+dumpHook	hmisc/other/jsony_converters.html#dumpHook,string,set[I]	jsony_converters: dumpHook[I](s: var string; ins: set[I])	
+parseHook	hmisc/other/jsony_converters.html#parseHook,string,int,set[I]	jsony_converters: parseHook[I](s: string; i: var int; res: var set[I])	

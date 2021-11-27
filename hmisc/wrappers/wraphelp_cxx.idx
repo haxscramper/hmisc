@@ -1,0 +1,18 @@
+StdInitializerList	hmisc/wrappers/wraphelp_cxx.html#StdInitializerList	wraphelp_cxx: StdInitializerList	
+CxxTemplateUndefined	hmisc/wrappers/wraphelp_cxx.html#CxxTemplateUndefined	wraphelp_cxx: CxxTemplateUndefined	
+CxxTemplateApproximate	hmisc/wrappers/wraphelp_cxx.html#CxxTemplateApproximate	wraphelp_cxx: CxxTemplateApproximate	
+StdNullptrT	hmisc/wrappers/wraphelp_cxx.html#StdNullptrT	wraphelp_cxx: StdNullptrT	
+StdSizeT	hmisc/wrappers/wraphelp_cxx.html#StdSizeT	wraphelp_cxx: StdSizeT	
+StdPtrdiffT	hmisc/wrappers/wraphelp_cxx.html#StdPtrdiffT	wraphelp_cxx: StdPtrdiffT	
+StdException	hmisc/wrappers/wraphelp_cxx.html#StdException	wraphelp_cxx: StdException	
+what	hmisc/wrappers/wraphelp_cxx.html#what,StdException	wraphelp_cxx: what(ex: StdException): cstring	
+`as`	hmisc/wrappers/wraphelp_cxx.html#as,CxxTemplateApproximate[T1],typedesc[T2]	wraphelp_cxx: `as`[T1, T2](approx: CxxTemplateApproximate[T1]; asTarget: typedesc[T2]): T2	
+`as`	hmisc/wrappers/wraphelp_cxx.html#as,T1,typedesc[CxxTemplateApproximate[T2]]	wraphelp_cxx: `as`[T1, T2](asSource: T1; target: typedesc[CxxTemplateApproximate[T2]]): CxxTemplateUndefined	
+toT	hmisc/wrappers/wraphelp_cxx.html#toT.c,CxxTemplateApproximate[T]	wraphelp_cxx: toT[T](approx: CxxTemplateApproximate[T]): T	
+toCxxTemplateApproximate	hmisc/wrappers/wraphelp_cxx.html#toCxxTemplateApproximate.c,T	wraphelp_cxx: toCxxTemplateApproximate[T](base: T): CxxTemplateApproximate[T]	
+`as`	hmisc/wrappers/wraphelp_cxx.html#as,CxxTemplateUndefined,typedesc[T]	wraphelp_cxx: `as`[T](undef: CxxTemplateUndefined; asTarget: typedesc[T]): T	
+`as`	hmisc/wrappers/wraphelp_cxx.html#as,T,typedesc[CxxTemplateUndefined]	wraphelp_cxx: `as`[T](asSource: T; target: typedesc[CxxTemplateUndefined]): CxxTemplateUndefined	
+lc	hmisc/wrappers/wraphelp_cxx.html#lc	wraphelp_cxx: lc	
+cxxInitList	hmisc/wrappers/wraphelp_cxx.html#cxxInitList,T	wraphelp_cxx: cxxInitList[T](args: T)	
+`[]`	hmisc/wrappers/wraphelp_cxx.html#[].m,StdInitializerListBuilder,varargs[untyped]	wraphelp_cxx: `[]`(lc: StdInitializerListBuilder; a: varargs[untyped]): untyped	
+newImportAux	hmisc/wrappers/wraphelp_cxx.html#newImportAux	wraphelp_cxx: newImportAux()	

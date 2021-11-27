@@ -1,0 +1,100 @@
+dvMinimal	hmisc/algo/clformat.html#dvMinimal	HDisplayVerbosity.dvMinimal	
+dvNormal	hmisc/algo/clformat.html#dvNormal	HDisplayVerbosity.dvNormal	
+dvVerbose	hmisc/algo/clformat.html#dvVerbose	HDisplayVerbosity.dvVerbose	
+dvDataDump	hmisc/algo/clformat.html#dvDataDump	HDisplayVerbosity.dvDataDump	
+HDisplayVerbosity	hmisc/algo/clformat.html#HDisplayVerbosity	clformat: HDisplayVerbosity	
+dfColored	hmisc/algo/clformat.html#dfColored	HDisplayFlag.dfColored	
+dfPositionIndexed	hmisc/algo/clformat.html#dfPositionIndexed	HDisplayFlag.dfPositionIndexed	
+dfPathIndexed	hmisc/algo/clformat.html#dfPathIndexed	HDisplayFlag.dfPathIndexed	
+dfUnicodeNewlines	hmisc/algo/clformat.html#dfUnicodeNewlines	HDisplayFlag.dfUnicodeNewlines	
+dfUnicodePPrint	hmisc/algo/clformat.html#dfUnicodePPrint	HDisplayFlag.dfUnicodePPrint	
+dfWithRanges	hmisc/algo/clformat.html#dfWithRanges	HDisplayFlag.dfWithRanges	
+dfSpellEmptyStrings	hmisc/algo/clformat.html#dfSpellEmptyStrings	HDisplayFlag.dfSpellEmptyStrings	
+dfUseCommas	hmisc/algo/clformat.html#dfUseCommas	HDisplayFlag.dfUseCommas	
+dfUseQuotes	hmisc/algo/clformat.html#dfUseQuotes	HDisplayFlag.dfUseQuotes	
+HDisplayFlag	hmisc/algo/clformat.html#HDisplayFlag	clformat: HDisplayFlag	
+HDisplayOpts	hmisc/algo/clformat.html#HDisplayOpts	clformat: HDisplayOpts	
+defaultHDisplay	hmisc/algo/clformat.html#defaultHDisplay	clformat: defaultHDisplay	
+contains	hmisc/algo/clformat.html#contains,HDisplayOpts,HDisplayFlag	clformat: contains(opts: HDisplayOpts; flag: HDisplayFlag): bool	
+hdisplay	hmisc/algo/clformat.html#hdisplay.m,varargs[untyped]	clformat: hdisplay(body: varargs[untyped]): untyped	
+colored	hmisc/algo/clformat.html#colored,HDisplayOpts	clformat: colored(opts: HDisplayOpts): bool	
+positionIndexed	hmisc/algo/clformat.html#positionIndexed,HDisplayOpts	clformat: positionIndexed(opts: HDisplayOpts): bool	
+pathIndexed	hmisc/algo/clformat.html#pathIndexed,HDisplayOpts	clformat: pathIndexed(opts: HDisplayOpts): bool	
+withRanges	hmisc/algo/clformat.html#withRanges,HDisplayOpts	clformat: withRanges(opts: HDisplayOpts): bool	
+toRomanNumeral	hmisc/algo/clformat.html#toRomanNumeral,int	clformat: toRomanNumeral(x: int): string	
+toPluralNoun	hmisc/algo/clformat.html#toPluralNoun,ColoredText,int,bool,ColoredText	clformat: toPluralNoun(noun: ColoredText; count: int; addNum: bool = true;\n             plural: ColoredText = default(ColoredText)): ColoredText	
+joinWords	hmisc/algo/clformat.html#joinWords,seq[ColoredText],ColoredText,char,ColoredText	clformat: joinWords(words: seq[ColoredText]; sepWord: ColoredText; quote: char = &apos;\&apos;&apos;;\n          empty: ColoredText = default(ColoredText)): ColoredText	
+joinAnyOf	hmisc/algo/clformat.html#joinAnyOf,seq[ColoredText],char,ColoredText,ColoredText,ColoredText,ColoredText	clformat: joinAnyOf(words: seq[ColoredText]; quote: char = &apos;\&apos;&apos;;\n          prefix: ColoredText = clt(&quot;any of &quot;); empty: ColoredText = clt(&quot;no&quot;);\n          sepWord: ColoredText = clt(&quot;or&quot;); suffix: ColoredText = clt(&quot;&quot;)): ColoredText	
+namedItemListing	hmisc/algo/clformat.html#namedItemListing,ColoredText,seq[ColoredText],ColoredText,char	clformat: namedItemListing(name: ColoredText; words: seq[ColoredText];\n                 sepWord: ColoredText; quote: char = &apos;\x00&apos;): ColoredText	
+toLatinNamedChar	hmisc/algo/clformat.html#toLatinNamedChar,char	clformat: toLatinNamedChar(ch: char): seq[string]	
+toLatinAbbrChar	hmisc/algo/clformat.html#toLatinAbbrChar,char	clformat: toLatinAbbrChar(ch: char): string	
+toDescriptiveIdent	hmisc/algo/clformat.html#toDescriptiveIdent,string,array[char,Option[string]],set[char]	clformat: toDescriptiveIdent(text: string; override: array[char, Option[string]] = default(\n    array[char, Option[string]]); allowed: set[char] = IdentChars): string	
+toUnicodeSubChar	hmisc/algo/clformat.html#toUnicodeSubChar,char	clformat: toUnicodeSubChar(c: char): string	
+toUnicodeSupChar	hmisc/algo/clformat.html#toUnicodeSupChar,char	clformat: toUnicodeSupChar(c: char): string	
+texIdents	hmisc/algo/clformat.html#texIdents	clformat: texIdents	
+extendedAsciiNames	hmisc/algo/clformat.html#extendedAsciiNames	clformat: extendedAsciiNames	
+asciiName	hmisc/algo/clformat.html#asciiName,char,bool	clformat: asciiName(ch: char; slash: bool = false): string	
+unicodeName	hmisc/algo/clformat.html#unicodeName,char	clformat: unicodeName(ch: char): string	
+describeChar	hmisc/algo/clformat.html#describeChar,char,HDisplayOpts	clformat: describeChar(ch: char; opts: HDisplayOpts = defaultHDisplay): string	
+describeChar	hmisc/algo/clformat.html#describeChar,Rune	clformat: describeChar(rune: Rune): string	
+describeSet	hmisc/algo/clformat.html#describeSet,set[S],openArray[]	clformat: describeSet[S](s: set[S]; sets: openArray[(set[S], string)]): string	
+describeCharset	hmisc/algo/clformat.html#describeCharset,set[char]	clformat: describeCharset(s: set[char]): string	
+AsciiMath	hmisc/algo/clformat.html#AsciiMath	clformat: AsciiMath	
+fromTexToUnicodeMath	hmisc/algo/clformat.html#fromTexToUnicodeMath,string	clformat: fromTexToUnicodeMath(tex: string): string	
+CharBox	hmisc/algo/clformat.html#CharBox	clformat: CharBox	
+CharBrace	hmisc/algo/clformat.html#CharBrace	clformat: CharBrace	
+asRegular	hmisc/algo/clformat.html#asRegular	AsciiStyle.asRegular	
+asInverted	hmisc/algo/clformat.html#asInverted	AsciiStyle.asInverted	
+asFraktur	hmisc/algo/clformat.html#asFraktur	AsciiStyle.asFraktur	
+asBoldFraktur	hmisc/algo/clformat.html#asBoldFraktur	AsciiStyle.asBoldFraktur	
+asDoubleStruck	hmisc/algo/clformat.html#asDoubleStruck	AsciiStyle.asDoubleStruck	
+asBold	hmisc/algo/clformat.html#asBold	AsciiStyle.asBold	
+asItalic	hmisc/algo/clformat.html#asItalic	AsciiStyle.asItalic	
+asBoldItalic	hmisc/algo/clformat.html#asBoldItalic	AsciiStyle.asBoldItalic	
+asScript	hmisc/algo/clformat.html#asScript	AsciiStyle.asScript	
+asBoldScript	hmisc/algo/clformat.html#asBoldScript	AsciiStyle.asBoldScript	
+asSansSerif	hmisc/algo/clformat.html#asSansSerif	AsciiStyle.asSansSerif	
+asBoldSansSerif	hmisc/algo/clformat.html#asBoldSansSerif	AsciiStyle.asBoldSansSerif	
+asItalicSansSerif	hmisc/algo/clformat.html#asItalicSansSerif	AsciiStyle.asItalicSansSerif	
+asItalicBoldSansSerif	hmisc/algo/clformat.html#asItalicBoldSansSerif	AsciiStyle.asItalicBoldSansSerif	
+asMonospace	hmisc/algo/clformat.html#asMonospace	AsciiStyle.asMonospace	
+AsciiStyle	hmisc/algo/clformat.html#AsciiStyle	clformat: AsciiStyle	
+isTextChar	hmisc/algo/clformat.html#isTextChar,char	clformat: isTextChar(c: char): bool	
+toStylizedAscii	hmisc/algo/clformat.html#toStylizedAscii,char,AsciiStyle	clformat: toStylizedAscii(c: char; style: AsciiStyle): string	
+namedCardinal	hmisc/algo/clformat.html#namedCardinal,int	clformat: namedCardinal(num: int): string	
+namedNumTuple	hmisc/algo/clformat.html#namedNumTuple,int	clformat: namedNumTuple(num: int): string	
+toNamedMultichar	hmisc/algo/clformat.html#toNamedMultichar,string	clformat: toNamedMultichar(str: string): seq[(string, string, int)]	
+toNamedMulticharJoin	hmisc/algo/clformat.html#toNamedMulticharJoin,string,bool,bool	clformat: toNamedMulticharJoin(str: string; lowerStart: bool = true;\n                     singlename: bool = false): string	
+fromTexToUnicode	hmisc/algo/clformat.html#fromTexToUnicode,string,bool,bool	clformat: fromTexToUnicode(str: string; isSub: bool = false; isSup: bool = false): string	
+unicodifyIdent	hmisc/algo/clformat.html#unicodifyIdent,string	clformat: unicodifyIdent(str: string): string	
+hFormat	hmisc/algo/clformat.html#hFormat,openArray[T]	clformat: hFormat[T](s: openArray[T]): string	
+hShow	hmisc/algo/clformat.html#hShow,char,HDisplayOpts	clformat: hShow(ch: char; opts: HDisplayOpts = defaultHDisplay): ColoredText	
+hshow	hmisc/algo/clformat.html#hshow,bool,HDisplayOpts	clformat: hshow(b: bool; opts: HDisplayOpts = defaultHDisplay): ColoredText	
+hShow	hmisc/algo/clformat.html#hShow,SomeInteger,HDisplayOpts	clformat: hShow(ch: SomeInteger; opts: HDisplayOpts = defaultHDisplay): ColoredText	
+hshow	hmisc/algo/clformat.html#hshow,BackwardsIndex,HDisplayOpts	clformat: hshow(i: BackwardsIndex; opts: HDisplayOpts = defaultHDisplay): ColoredText	
+hshow	hmisc/algo/clformat.html#hshow,float,HDisplayOpts	clformat: hshow(ch: float; opts: HDisplayOpts = defaultHDisplay): ColoredText	
+hShow	hmisc/algo/clformat.html#hShow,Slice[int],HDisplayOpts	clformat: hShow(ch: Slice[int]; opts: HDisplayOpts = defaultHDisplay): ColoredText	
+hShow	hmisc/algo/clformat.html#hShow,HSlice[A,B],HDisplayOpts	clformat: hShow[A, B](slice: HSlice[A, B]; opts: HDisplayOpts = defaultHDisplay): ColoredText	
+hshow	hmisc/algo/clformat.html#hshow,seq[T],HDisplayOpts	clformat: hshow[T](s: seq[T]; opts: HDisplayOpts = defaultHDisplay): ColoredText	
+replaceTailNewlines	hmisc/algo/clformat.html#replaceTailNewlines,ColoredText,ColoredRune	clformat: replaceTailNewlines(buf: var ColoredText;\n                    replaceWith: ColoredRune = uc&quot;⮒&quot; + defaultPrintStyling): int	
+replaceNewlines	hmisc/algo/clformat.html#replaceNewlines,ColoredText,ColoredRune	clformat: replaceNewlines(buf: ColoredText;\n                replaceWith: ColoredRune = uc&quot;⮒&quot; + defaultPrintStyling): ColoredText	
+addIndent	hmisc/algo/clformat.html#addIndent,ColoredText,int,int,ColoredRune	clformat: addIndent(res: var ColoredText; level: int; sep: int = 2;\n          prefix: ColoredRune = clr(&apos; &apos;))	
+coloredResult	hmisc/algo/clformat.html#coloredResult.t	clformat: coloredResult(): untyped	
+joinPrefix	hmisc/algo/clformat.html#joinPrefix,int,seq[int],bool,bool	clformat: joinPrefix(level: int; idx: seq[int]; pathIndexed, positionIndexed: bool): ColoredText	
+joinPrefix	hmisc/algo/clformat.html#joinPrefix,int,seq[int],HDisplayOpts	clformat: joinPrefix(level: int; idx: seq[int]; opts: HDisplayOpts): ColoredText	
+hShow	hmisc/algo/clformat.html#hShow,string,HDisplayOpts	clformat: hShow(str: string; opts: HDisplayOpts = defaultHDisplay): ColoredText	
+hshow	hmisc/algo/clformat.html#hshow,cstring,HDisplayOpts	clformat: hshow(s: cstring; opts: HDisplayOpts = defaultHDisplay): ColoredText	
+hShow	hmisc/algo/clformat.html#hShow,E,HDisplayOpts	clformat: hShow[E: enum](e: E; opts: HDisplayOpts = defaultHDisplay): ColoredText	
+hshow	hmisc/algo/clformat.html#hshow,,HDisplayOpts	clformat: hshow(n: typeof(nil); opts: HDisplayOpts = defaultHDisplay): ColoredText	
+hShow	hmisc/algo/clformat.html#hShow,set[I],HDisplayOpts	clformat: hShow[I](s: set[I]; opts: HDisplayOpts = defaultHDisplay): ColoredText	
+describeStrPos	hmisc/algo/clformat.html#describeStrPos,string,int,int,int,HDisplayOpts	clformat: describeStrPos(base: string; pos: int; before: int = 6; after: int = 12;\n               opts: HDisplayOpts = defaultHDisplay): ColoredText	
+formatStringified	hmisc/algo/clformat.html#formatStringified,string	clformat: formatStringified(str: string): string	
+wrap	hmisc/algo/clformat.html#wrap,ColoredText,ColorTextConvertible	clformat: wrap(text: ColoredText; around: ColorTextConvertible): ColoredText	
+joinc	hmisc/algo/clformat.html#joinc,seq[ColoredText],string	clformat: joinc(text: seq[ColoredText]; sep: string): ColoredText	
+getEditVisual	hmisc/algo/clformat.html#getEditVisual,seq[T],seq[T],seq[LevEdit],proc(T),HDisplayOpts	clformat: getEditVisual[T](src, target: seq[T]; ops: seq[LevEdit];\n                 conv: proc (t: T): string; opts: HDisplayOpts = defaultHDisplay): ColoredText	
+stringEditMessage	hmisc/algo/clformat.html#stringEditMessage,string,string,bool,int,int	clformat: stringEditMessage(source, target: string; detailed: bool = true;\n                  windowSize: int = 4; longThreshold: int = 6): ColoredText	
+stringMismatchMessage	hmisc/algo/clformat.html#stringMismatchMessage,string,openArray[string],bool,bool,bool	clformat: stringMismatchMessage(input: string; expected: openArray[string];\n                      colored: bool = true; fixSuggestion: bool = true;\n                      showAll: bool = false): ColoredText	
+colorDollar	hmisc/algo/clformat.html#colorDollar,T	clformat: colorDollar[T](arg: T): ColoredText	
+splitKeepSpaces	hmisc/algo/clformat.html#splitKeepSpaces,string	clformat: splitKeepSpaces(str: string): seq[string]	
+formatDiffed	hmisc/algo/clformat.html#formatDiffed,seq[LevEdit[T]],seq[T],seq[T],int	clformat: formatDiffed[T](ops: seq[LevEdit[T]]; oldSeq, newSeq: seq[T];\n                maxUnchanged: int = 5): tuple[oldLine, newLine: ColoredText]	
+formatDiffed	hmisc/algo/clformat.html#formatDiffed,ShiftedDiff,openArray[T],openArray[T],proc(T),int,int,bool,proc(string),int	clformat: formatDiffed[T](shifted: ShiftedDiff; oldSeq, newSeq: openArray[T];\n                strConv: proc (t: T): string = dollar[T]; maxUnchanged: int = 5;\n                maxUnchangedWords: int = high(int); showLines: bool = false;\n                wordSplit: proc (str: string): seq[string] = splitKeepSpaces;\n                stackLongLines: int = high(int)): ColoredText	

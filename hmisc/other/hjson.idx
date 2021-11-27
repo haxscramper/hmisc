@@ -1,0 +1,21 @@
+asBool	hmisc/other/hjson.html#asBool,JsonNode	hjson: asBool(node: JsonNode): bool	
+asStr	hmisc/other/hjson.html#asStr,JsonNode	hjson: asStr(node: JsonNode): string	
+asInt	hmisc/other/hjson.html#asInt,JsonNode	hjson: asInt(node: JsonNode): int	
+asFloat	hmisc/other/hjson.html#asFloat,JsonNode	hjson: asFloat(node: JsonNode): float	
+asSeq	hmisc/other/hjson.html#asSeq,JsonNode	hjson: asSeq(node: JsonNode): seq[JsonNode]	
+asTable	hmisc/other/hjson.html#asTable,JsonNode	hjson: asTable(node: JsonNode): OrderedTable[string, JsonNode]	
+items	hmisc/other/hjson.html#items.i,JsonNode	hjson: items(node: JsonNode): JsonNode	
+joinArr	hmisc/other/hjson.html#joinArr,JsonNode	hjson: joinArr(node: JsonNode): string	
+asStrSeq	hmisc/other/hjson.html#asStrSeq,JsonNode	hjson: asStrSeq(node: JsonNode): seq[string]	
+`%`	hmisc/other/hjson.html#%,char	hjson: `%`(c: char): JsonNode	
+JsonConvertOpts	hmisc/other/hjson.html#JsonConvertOpts	hjson: JsonConvertOpts	
+defaultJsonConvertOptions	hmisc/other/hjson.html#defaultJsonConvertOptions	hjson: defaultJsonConvertOptions	
+toJson	hmisc/other/hjson.html#toJson,,JsonConvertOpts	hjson: toJson(arg: string | SomeInteger | bool | float | char;\n       opts: JsonConvertOpts = defaultJsonConvertOptions): JsonNode	
+toJson	hmisc/other/hjson.html#toJson,,JsonConvertOpts_2	hjson: toJson[T](arg: seq[T] | openArray[T] | set[T];\n          opts: JsonConvertOpts = defaultJsonConvertOptions): JsonNode	
+toJson	hmisc/other/hjson.html#toJson,Table[K,V]	hjson: toJson[K, V](table: Table[K, V]): JsonNode	
+toJson	hmisc/other/hjson.html#toJson,,JsonConvertOpts_3	hjson: toJson[T](arg: openArray[(string, T)] | seq[(string, T)];\n          opts: JsonConvertOpts = defaultJsonConvertOptions): JsonNode	
+toJson	hmisc/other/hjson.html#toJson,openArray[],JsonConvertOpts	hjson: toJson(arg: openArray[(string, JsonNode)];\n       opts: JsonConvertOpts = defaultJsonConvertOptions): JsonNode	
+toJson	hmisc/other/hjson.html#toJson,,JsonConvertOpts_4	hjson: toJson(arg: enum; opts: JsonConvertOpts = defaultJsonConvertOptions): JsonNode	
+toJson	hmisc/other/hjson.html#toJson,,static[seq[string]],JsonConvertOpts	hjson: toJson(arg: object | tuple | ref object | ref tuple;\n       ignoreFields: static[seq[string]];\n       opts: JsonConvertOpts = defaultJsonConvertOptions): JsonNode	
+toJson	hmisc/other/hjson.html#toJson,,JsonConvertOpts_5	hjson: toJson(arg: object | tuple | ref object | ref tuple;\n       opts: JsonConvertOpts = defaultJsonConvertOptions): JsonNode	
+toPretty	hmisc/other/hjson.html#toPretty,JsonNode,int	hjson: toPretty(j: JsonNode; maxWidth: int = 80): string	

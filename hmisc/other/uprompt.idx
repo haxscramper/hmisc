@@ -1,0 +1,2 @@
+getInt	hmisc/other/uprompt.html#getInt,string,(int, int),Option[int]	uprompt: getInt(prompt: string; valRange: (int, int) = (0, 100);\n       defaultTo: Option[int] = some(0)): int	
+promptYN	hmisc/other/uprompt.html#promptYN,string,string	uprompt: promptYN(prompt: string; default: string = &quot;Y&quot;): bool	

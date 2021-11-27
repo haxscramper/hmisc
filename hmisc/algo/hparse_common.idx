@@ -1,0 +1,35 @@
+etkLBrack	hmisc/algo/hparse_common.html#etkLBrack	ExprTokKind.etkLBrack	
+etkRBrack	hmisc/algo/hparse_common.html#etkRBrack	ExprTokKind.etkRBrack	
+etkLPar	hmisc/algo/hparse_common.html#etkLPar	ExprTokKind.etkLPar	
+etkRPar	hmisc/algo/hparse_common.html#etkRPar	ExprTokKind.etkRPar	
+etkIdentName	hmisc/algo/hparse_common.html#etkIdentName	ExprTokKind.etkIdentName	
+etkIdentOp	hmisc/algo/hparse_common.html#etkIdentOp	ExprTokKind.etkIdentOp	
+etkDot	hmisc/algo/hparse_common.html#etkDot	ExprTokKind.etkDot	
+etkComma	hmisc/algo/hparse_common.html#etkComma	ExprTokKind.etkComma	
+etkSemicolon	hmisc/algo/hparse_common.html#etkSemicolon	ExprTokKind.etkSemicolon	
+etkFloat	hmisc/algo/hparse_common.html#etkFloat	ExprTokKind.etkFloat	
+etkIntLit	hmisc/algo/hparse_common.html#etkIntLit	ExprTokKind.etkIntLit	
+etkStrLit	hmisc/algo/hparse_common.html#etkStrLit	ExprTokKind.etkStrLit	
+etkFloatLit	hmisc/algo/hparse_common.html#etkFloatLit	ExprTokKind.etkFloatLit	
+etkBoolLit	hmisc/algo/hparse_common.html#etkBoolLit	ExprTokKind.etkBoolLit	
+etkCharLit	hmisc/algo/hparse_common.html#etkCharLit	ExprTokKind.etkCharLit	
+etkExprClose	hmisc/algo/hparse_common.html#etkExprClose	ExprTokKind.etkExprClose	
+ExprTokKind	hmisc/algo/hparse_common.html#ExprTokKind	hparse_common: ExprTokKind	
+enkCall	hmisc/algo/hparse_common.html#enkCall	ExprNodeKind.enkCall	
+enkBracket	hmisc/algo/hparse_common.html#enkBracket	ExprNodeKind.enkBracket	
+enkBracketExpr	hmisc/algo/hparse_common.html#enkBracketExpr	ExprNodeKind.enkBracketExpr	
+enkDotExpr	hmisc/algo/hparse_common.html#enkDotExpr	ExprNodeKind.enkDotExpr	
+enkInfix	hmisc/algo/hparse_common.html#enkInfix	ExprNodeKind.enkInfix	
+enkPrefix	hmisc/algo/hparse_common.html#enkPrefix	ExprNodeKind.enkPrefix	
+enkTuple	hmisc/algo/hparse_common.html#enkTuple	ExprNodeKind.enkTuple	
+enkIdent	hmisc/algo/hparse_common.html#enkIdent	ExprNodeKind.enkIdent	
+enkIntLit	hmisc/algo/hparse_common.html#enkIntLit	ExprNodeKind.enkIntLit	
+enkStrLit	hmisc/algo/hparse_common.html#enkStrLit	ExprNodeKind.enkStrLit	
+enkFloatLit	hmisc/algo/hparse_common.html#enkFloatLit	ExprNodeKind.enkFloatLit	
+enkCharLit	hmisc/algo/hparse_common.html#enkCharLit	ExprNodeKind.enkCharLit	
+enkBoolLit	hmisc/algo/hparse_common.html#enkBoolLit	ExprNodeKind.enkBoolLit	
+ExprNodeKind	hmisc/algo/hparse_common.html#ExprNodeKind	hparse_common: ExprNodeKind	
+CommonParseContext	hmisc/algo/hparse_common.html#CommonParseContext	hparse_common: CommonParseContext	
+commonPrecLevel	hmisc/algo/hparse_common.html#commonPrecLevel,HsTokTree[N,HsTok[T]]	hparse_common: commonPrecLevel[N, T](tok: HsTokTree[N, HsTok[T]]): int	
+initCommonExprContext	hmisc/algo/hparse_common.html#initCommonExprContext,openArray[],openArray[],proc(HsTokTree[N,HsTok[T]])	hparse_common: initCommonExprContext[N, T](tokenMap: openArray[(T, ExprTokKind)];\n                            treeMap: openArray[(ExprNodeKind, N)];\n                            precLevel: proc (tok: HsTokTree[N, HsTok[T]]): int): CommonParseContext[\n    N, T]	
+parseCommonExpr	hmisc/algo/hparse_common.html#parseCommonExpr,HsLexer[HsTok[T]],CommonParseContext[N,T]	hparse_common: parseCommonExpr[N, T](lex: var HsLexer[HsTok[T]]; ctx: CommonParseContext[N, T]): HsTokTree[\n    N, HsTok[T]]	

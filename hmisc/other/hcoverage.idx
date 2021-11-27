@@ -1,0 +1,15 @@
+CovProcName	hmisc/other/hcoverage.html#CovProcName	hcoverage: CovProcName	
+cckExecuted	hmisc/other/hcoverage.html#cckExecuted	CovChunkKind.cckExecuted	
+cckNotExecuted	hmisc/other/hcoverage.html#cckNotExecuted	CovChunkKind.cckNotExecuted	
+cckEmpty	hmisc/other/hcoverage.html#cckEmpty	CovChunkKind.cckEmpty	
+CovChunkKind	hmisc/other/hcoverage.html#CovChunkKind	hcoverage: CovChunkKind	
+CovChunk	hmisc/other/hcoverage.html#CovChunk	hcoverage: CovChunk	
+CovReport	hmisc/other/hcoverage.html#CovReport	hcoverage: CovReport	
+CovProcInfo	hmisc/other/hcoverage.html#CovProcInfo	hcoverage: CovProcInfo	
+`==`	hmisc/other/hcoverage.html#==,CovProcId,CovProcId	hcoverage: `==`(p1, p2: CovProcId): bool	
+`==`	hmisc/other/hcoverage.html#==,CovFileId,CovFileId	hcoverage: `==`(p1, p2: CovFileId): bool	
+`==`	hmisc/other/hcoverage.html#==,CovLineId,CovLineId	hcoverage: `==`(p1, p2: CovLineId): bool	
+getCoverage	hmisc/other/hcoverage.html#getCoverage,CovProcName	hcoverage: getCoverage(procname: CovProcName): CovReport	
+nohcov	hmisc/other/hcoverage.html#nohcov.t,untyped	hcoverage: nohcov(body: untyped): untyped	
+hcoverageEnable	hmisc/other/hcoverage.html#hcoverageEnable.m	hcoverage: hcoverageEnable()	
+hcov	hmisc/other/hcoverage.html#hcov.m,untyped	hcoverage: hcov(impl: untyped): untyped	

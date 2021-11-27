@@ -1,0 +1,151 @@
+PegCaptureRange	hmisc/algo/hparse_pegs.html#PegCaptureRange	hparse_pegs: PegCaptureRange	
+PegMatches	hmisc/algo/hparse_pegs.html#PegMatches	hparse_pegs: PegMatches	
+PegReplaceHandler	hmisc/algo/hparse_pegs.html#PegReplaceHandler	hparse_pegs: PegReplaceHandler	
+pkEmpty	hmisc/algo/hparse_pegs.html#pkEmpty	PegKind.pkEmpty	
+pkAny	hmisc/algo/hparse_pegs.html#pkAny	PegKind.pkAny	
+pkAnyRune	hmisc/algo/hparse_pegs.html#pkAnyRune	PegKind.pkAnyRune	
+pkNewLine	hmisc/algo/hparse_pegs.html#pkNewLine	PegKind.pkNewLine	
+pkLetter	hmisc/algo/hparse_pegs.html#pkLetter	PegKind.pkLetter	
+pkLower	hmisc/algo/hparse_pegs.html#pkLower	PegKind.pkLower	
+pkUpper	hmisc/algo/hparse_pegs.html#pkUpper	PegKind.pkUpper	
+pkTitle	hmisc/algo/hparse_pegs.html#pkTitle	PegKind.pkTitle	
+pkWhitespace	hmisc/algo/hparse_pegs.html#pkWhitespace	PegKind.pkWhitespace	
+pkTerminal	hmisc/algo/hparse_pegs.html#pkTerminal	PegKind.pkTerminal	
+pkTerminalIgnoreCase	hmisc/algo/hparse_pegs.html#pkTerminalIgnoreCase	PegKind.pkTerminalIgnoreCase	
+pkTerminalFullIgnoreStyle	hmisc/algo/hparse_pegs.html#pkTerminalFullIgnoreStyle	PegKind.pkTerminalFullIgnoreStyle	
+pkTerminalNimIgnoreStyle	hmisc/algo/hparse_pegs.html#pkTerminalNimIgnoreStyle	PegKind.pkTerminalNimIgnoreStyle	
+pkChar	hmisc/algo/hparse_pegs.html#pkChar	PegKind.pkChar	
+pkCharChoice	hmisc/algo/hparse_pegs.html#pkCharChoice	PegKind.pkCharChoice	
+pkNonTerminal	hmisc/algo/hparse_pegs.html#pkNonTerminal	PegKind.pkNonTerminal	
+pkSequence	hmisc/algo/hparse_pegs.html#pkSequence	PegKind.pkSequence	
+pkOrderedChoice	hmisc/algo/hparse_pegs.html#pkOrderedChoice	PegKind.pkOrderedChoice	
+pkGreedyRep	hmisc/algo/hparse_pegs.html#pkGreedyRep	PegKind.pkGreedyRep	
+pkGreedyRepChar	hmisc/algo/hparse_pegs.html#pkGreedyRepChar	PegKind.pkGreedyRepChar	
+pkGreedyRepSet	hmisc/algo/hparse_pegs.html#pkGreedyRepSet	PegKind.pkGreedyRepSet	
+pkGreedyAny	hmisc/algo/hparse_pegs.html#pkGreedyAny	PegKind.pkGreedyAny	
+pkOption	hmisc/algo/hparse_pegs.html#pkOption	PegKind.pkOption	
+pkAndPredicate	hmisc/algo/hparse_pegs.html#pkAndPredicate	PegKind.pkAndPredicate	
+pkNotPredicate	hmisc/algo/hparse_pegs.html#pkNotPredicate	PegKind.pkNotPredicate	
+pkCapture	hmisc/algo/hparse_pegs.html#pkCapture	PegKind.pkCapture	
+pkBackRef	hmisc/algo/hparse_pegs.html#pkBackRef	PegKind.pkBackRef	
+pkBackRefIgnoreCase	hmisc/algo/hparse_pegs.html#pkBackRefIgnoreCase	PegKind.pkBackRefIgnoreCase	
+pkBackRefFullIgnoreStyle	hmisc/algo/hparse_pegs.html#pkBackRefFullIgnoreStyle	PegKind.pkBackRefFullIgnoreStyle	
+pkBackRefNimIgnoreStyle	hmisc/algo/hparse_pegs.html#pkBackRefNimIgnoreStyle	PegKind.pkBackRefNimIgnoreStyle	
+pkSearch	hmisc/algo/hparse_pegs.html#pkSearch	PegKind.pkSearch	
+pkCapturedSearch	hmisc/algo/hparse_pegs.html#pkCapturedSearch	PegKind.pkCapturedSearch	
+pkRule	hmisc/algo/hparse_pegs.html#pkRule	PegKind.pkRule	
+pkList	hmisc/algo/hparse_pegs.html#pkList	PegKind.pkList	
+pkStartAnchor	hmisc/algo/hparse_pegs.html#pkStartAnchor	PegKind.pkStartAnchor	
+pkInterpolateRef	hmisc/algo/hparse_pegs.html#pkInterpolateRef	PegKind.pkInterpolateRef	
+pkInterpolateRefIgnoreCase	hmisc/algo/hparse_pegs.html#pkInterpolateRefIgnoreCase	PegKind.pkInterpolateRefIgnoreCase	
+pkInterpolateRefFullIgnoreStyle	hmisc/algo/hparse_pegs.html#pkInterpolateRefFullIgnoreStyle	PegKind.pkInterpolateRefFullIgnoreStyle	
+pkInterpolateRefNimIgnoreStyle	hmisc/algo/hparse_pegs.html#pkInterpolateRefNimIgnoreStyle	PegKind.pkInterpolateRefNimIgnoreStyle	
+PegKind	hmisc/algo/hparse_pegs.html#PegKind	hparse_pegs: PegKind	
+pkTerminalKinds	hmisc/algo/hparse_pegs.html#pkTerminalKinds	hparse_pegs: pkTerminalKinds	
+pkBackrefKinds	hmisc/algo/hparse_pegs.html#pkBackrefKinds	hparse_pegs: pkBackrefKinds	
+pkInterpolateRefKinds	hmisc/algo/hparse_pegs.html#pkInterpolateRefKinds	hparse_pegs: pkInterpolateRefKinds	
+pkRuntimeValueKinds	hmisc/algo/hparse_pegs.html#pkRuntimeValueKinds	hparse_pegs: pkRuntimeValueKinds	
+ntDeclared	hmisc/algo/hparse_pegs.html#ntDeclared	NonTerminalFlag.ntDeclared	
+ntUsed	hmisc/algo/hparse_pegs.html#ntUsed	NonTerminalFlag.ntUsed	
+NonTerminalFlag	hmisc/algo/hparse_pegs.html#NonTerminalFlag	hparse_pegs: NonTerminalFlag	
+Peg	hmisc/algo/hparse_pegs.html#Peg	hparse_pegs: Peg	
+NonTerminal	hmisc/algo/hparse_pegs.html#NonTerminal	hparse_pegs: NonTerminal	
+PegExprReplaceMap	hmisc/algo/hparse_pegs.html#PegExprReplaceMap	hparse_pegs: PegExprReplaceMap	
+PegCallReplaceMap	hmisc/algo/hparse_pegs.html#PegCallReplaceMap	hparse_pegs: PegCallReplaceMap	
+kind	hmisc/algo/hparse_pegs.html#kind,Peg	hparse_pegs: kind(p: Peg): PegKind	
+term	hmisc/algo/hparse_pegs.html#term,Peg	hparse_pegs: term(p: Peg): string	
+ch	hmisc/algo/hparse_pegs.html#ch,Peg	hparse_pegs: ch(p: Peg): char	
+charChoice	hmisc/algo/hparse_pegs.html#charChoice,Peg	hparse_pegs: charChoice(p: Peg): ref set[char]	
+nt	hmisc/algo/hparse_pegs.html#nt,Peg	hparse_pegs: nt(p: Peg): NonTerminal	
+index	hmisc/algo/hparse_pegs.html#index,Peg	hparse_pegs: index(p: Peg): range[0 .. high(int)]	
+items	hmisc/algo/hparse_pegs.html#items.i,Peg	hparse_pegs: items(p: Peg): Peg	
+pairs	hmisc/algo/hparse_pegs.html#pairs.i,Peg	hparse_pegs: pairs(p: Peg): (int, Peg)	
+name	hmisc/algo/hparse_pegs.html#name,NonTerminal	hparse_pegs: name(nt: NonTerminal): string	
+line	hmisc/algo/hparse_pegs.html#line,NonTerminal	hparse_pegs: line(nt: NonTerminal): int	
+col	hmisc/algo/hparse_pegs.html#col,NonTerminal	hparse_pegs: col(nt: NonTerminal): int	
+flags	hmisc/algo/hparse_pegs.html#flags,NonTerminal	hparse_pegs: flags(nt: NonTerminal): set[NonTerminalFlag]	
+rule	hmisc/algo/hparse_pegs.html#rule,NonTerminal	hparse_pegs: rule(nt: NonTerminal): Peg	
+term	hmisc/algo/hparse_pegs.html#term,string	hparse_pegs: term(t: string): Peg	
+termIgnoreCase	hmisc/algo/hparse_pegs.html#termIgnoreCase,string	hparse_pegs: termIgnoreCase(t: string): Peg	
+termFullIgnoreStyle	hmisc/algo/hparse_pegs.html#termFullIgnoreStyle,string	hparse_pegs: termFullIgnoreStyle(t: string): Peg	
+termNimIgnoreStyle	hmisc/algo/hparse_pegs.html#termNimIgnoreStyle,string	hparse_pegs: termNimIgnoreStyle(t: string): Peg	
+term	hmisc/algo/hparse_pegs.html#term,char	hparse_pegs: term(t: char): Peg	
+charSet	hmisc/algo/hparse_pegs.html#charSet,set[char]	hparse_pegs: charSet(s: set[char]): Peg	
+len	hmisc/algo/hparse_pegs.html#len,Peg	hparse_pegs: len(a: Peg): int	
+add	hmisc/algo/hparse_pegs.html#add,Peg,Peg	hparse_pegs: add(d: var Peg; s: Peg)	
+`/`	hmisc/algo/hparse_pegs.html#/,varargs[Peg]	hparse_pegs: `/`(a: varargs[Peg]): Peg	
+sequence	hmisc/algo/hparse_pegs.html#sequence,varargs[Peg]	hparse_pegs: sequence(a: varargs[Peg]): Peg	
+`?`	hmisc/algo/hparse_pegs.html#?,Peg	hparse_pegs: `?`(a: Peg): Peg	
+`*`	hmisc/algo/hparse_pegs.html#*,Peg	hparse_pegs: `*`(a: Peg): Peg	
+`!*`	hmisc/algo/hparse_pegs.html#!*,Peg	hparse_pegs: `!*`(a: Peg): Peg	
+`!*\`	hmisc/algo/hparse_pegs.html#!*\,Peg	hparse_pegs: `!*\`(a: Peg): Peg	
+`+`	hmisc/algo/hparse_pegs.html#+,Peg	hparse_pegs: `+`(a: Peg): Peg	
+`&amp;`	hmisc/algo/hparse_pegs.html#&,Peg	hparse_pegs: `&amp;`(a: Peg): Peg	
+`!`	hmisc/algo/hparse_pegs.html#!,Peg	hparse_pegs: `!`(a: Peg): Peg	
+anyChar	hmisc/algo/hparse_pegs.html#anyChar	hparse_pegs: anyChar(): Peg	
+anyRune	hmisc/algo/hparse_pegs.html#anyRune	hparse_pegs: anyRune(): Peg	
+newLine	hmisc/algo/hparse_pegs.html#newLine	hparse_pegs: newLine(): Peg	
+unicodeLetter	hmisc/algo/hparse_pegs.html#unicodeLetter	hparse_pegs: unicodeLetter(): Peg	
+unicodeLower	hmisc/algo/hparse_pegs.html#unicodeLower	hparse_pegs: unicodeLower(): Peg	
+unicodeUpper	hmisc/algo/hparse_pegs.html#unicodeUpper	hparse_pegs: unicodeUpper(): Peg	
+unicodeTitle	hmisc/algo/hparse_pegs.html#unicodeTitle	hparse_pegs: unicodeTitle(): Peg	
+unicodeWhitespace	hmisc/algo/hparse_pegs.html#unicodeWhitespace	hparse_pegs: unicodeWhitespace(): Peg	
+startAnchor	hmisc/algo/hparse_pegs.html#startAnchor	hparse_pegs: startAnchor(): Peg	
+endAnchor	hmisc/algo/hparse_pegs.html#endAnchor	hparse_pegs: endAnchor(): Peg	
+capture	hmisc/algo/hparse_pegs.html#capture,Peg	hparse_pegs: capture(a: Peg): Peg	
+backref	hmisc/algo/hparse_pegs.html#backref,Natural	hparse_pegs: backref(index: Natural): Peg	
+backrefIgnoreCase	hmisc/algo/hparse_pegs.html#backrefIgnoreCase,Natural	hparse_pegs: backrefIgnoreCase(index: Natural): Peg	
+backrefFullIgnoreStyle	hmisc/algo/hparse_pegs.html#backrefFullIgnoreStyle,Natural	hparse_pegs: backrefFullIgnoreStyle(index: Natural): Peg	
+backrefNimIgnoreStyle	hmisc/algo/hparse_pegs.html#backrefNimIgnoreStyle,Natural	hparse_pegs: backrefNimIgnoreStyle(index: Natural): Peg	
+interpolateref	hmisc/algo/hparse_pegs.html#interpolateref,string	hparse_pegs: interpolateref(expr: string): Peg	
+interpolaterefIgnoreCase	hmisc/algo/hparse_pegs.html#interpolaterefIgnoreCase,string	hparse_pegs: interpolaterefIgnoreCase(expr: string): Peg	
+interpolaterefFullIgnoreStyle	hmisc/algo/hparse_pegs.html#interpolaterefFullIgnoreStyle,string	hparse_pegs: interpolaterefFullIgnoreStyle(expr: string): Peg	
+interpolaterefNimIgnoreStyle	hmisc/algo/hparse_pegs.html#interpolaterefNimIgnoreStyle,string	hparse_pegs: interpolaterefNimIgnoreStyle(expr: string): Peg	
+nonterminal	hmisc/algo/hparse_pegs.html#nonterminal,NonTerminal	hparse_pegs: nonterminal(n: NonTerminal): Peg	
+newNonTerminal	hmisc/algo/hparse_pegs.html#newNonTerminal,string,int,int	hparse_pegs: newNonTerminal(name: string; line, column: int): NonTerminal	
+letters	hmisc/algo/hparse_pegs.html#letters.t	hparse_pegs: letters(): Peg	
+digits	hmisc/algo/hparse_pegs.html#digits.t	hparse_pegs: digits(): Peg	
+whitespace	hmisc/algo/hparse_pegs.html#whitespace.t	hparse_pegs: whitespace(): Peg	
+identChars	hmisc/algo/hparse_pegs.html#identChars.t	hparse_pegs: identChars(): Peg	
+identStartChars	hmisc/algo/hparse_pegs.html#identStartChars.t	hparse_pegs: identStartChars(): Peg	
+ident	hmisc/algo/hparse_pegs.html#ident.t	hparse_pegs: ident(): Peg	
+natural	hmisc/algo/hparse_pegs.html#natural.t	hparse_pegs: natural(): Peg	
+`$`	hmisc/algo/hparse_pegs.html#$,Peg	hparse_pegs: `$`(r: Peg): string	
+Captures	hmisc/algo/hparse_pegs.html#Captures	hparse_pegs: Captures	
+bounds	hmisc/algo/hparse_pegs.html#bounds,Captures,int	hparse_pegs: bounds(c: Captures; i: int): tuple[first, last: int]	
+rawMatch	hmisc/algo/hparse_pegs.html#rawMatch,string,Peg,int,Captures,proc(string)	hparse_pegs: rawMatch(s: string; p: Peg; start: int; c: var Captures;\n         env: proc (s: string): string = nil): int	
+eventParser	hmisc/algo/hparse_pegs.html#eventParser.t,untyped,untyped	hparse_pegs: eventParser(pegAst, handlers: untyped): (\n    proc (s: string; env: proc (s: string): string): int)	
+matchLen	hmisc/algo/hparse_pegs.html#matchLen,string,Peg,PegMatches,proc(string),int	hparse_pegs: matchLen(s: string; pattern: Peg; matches: var PegMatches;\n         env: proc (s: string): string = nil; start = 0): int	
+matchLen	hmisc/algo/hparse_pegs.html#matchLen,string,Peg,proc(string),int	hparse_pegs: matchLen(s: string; pattern: Peg; env: proc (s: string): string = nil; start = 0): int	
+match	hmisc/algo/hparse_pegs.html#match,string,Peg,PegMatches,proc(string),int	hparse_pegs: match(s: string; pattern: Peg; matches: var PegMatches;\n      env: proc (s: string): string = nil; start = 0): bool	
+match	hmisc/algo/hparse_pegs.html#match,string,Peg,proc(string),int	hparse_pegs: match(s: string; pattern: Peg; env: proc (s: string): string = nil; start = 0): bool	
+find	hmisc/algo/hparse_pegs.html#find,string,Peg,PegMatches,proc(string),int	hparse_pegs: find(s: string; pattern: Peg; matches: var PegMatches;\n     env: proc (s: string): string = nil; start = 0): int	
+findBounds	hmisc/algo/hparse_pegs.html#findBounds,string,Peg,PegMatches,proc(string),int	hparse_pegs: findBounds(s: string; pattern: Peg; matches: var PegMatches;\n           env: proc (s: string): string = nil; start = 0): tuple[\n    first, last: int]	
+find	hmisc/algo/hparse_pegs.html#find,string,Peg,proc(string),int	hparse_pegs: find(s: string; pattern: Peg; env: proc (s: string): string = nil; start = 0): int	
+findAll	hmisc/algo/hparse_pegs.html#findAll.i,string,Peg,proc(string),int	hparse_pegs: findAll(s: string; pattern: Peg; env: proc (s: string): string = nil; start = 0): string	
+findAll	hmisc/algo/hparse_pegs.html#findAll,string,Peg,proc(string),int	hparse_pegs: findAll(s: string; pattern: Peg; env: proc (s: string): string = nil; start = 0): seq[\n    string]	
+`=~`	hmisc/algo/hparse_pegs.html#=~.t,string,Peg	hparse_pegs: `=~`(s: string; pattern: Peg): bool	
+injectMatch	hmisc/algo/hparse_pegs.html#injectMatch.t,string,Peg,proc(string)	hparse_pegs: injectMatch(s: string; pattern: Peg; env: proc (s: string): string = nil): bool	
+contains	hmisc/algo/hparse_pegs.html#contains,string,Peg,proc(string),int	hparse_pegs: contains(s: string; pattern: Peg; env: proc (s: string): string = nil; start = 0): bool	
+contains	hmisc/algo/hparse_pegs.html#contains,string,Peg,PegMatches,proc(string),int	hparse_pegs: contains(s: string; pattern: Peg; matches: var PegMatches;\n         env: proc (s: string): string; start = 0): bool	
+startsWith	hmisc/algo/hparse_pegs.html#startsWith,string,Peg,proc(string),int	hparse_pegs: startsWith(s: string; prefix: Peg; env: proc (s: string): string = nil;\n           start = 0): bool	
+endsWith	hmisc/algo/hparse_pegs.html#endsWith,string,Peg,proc(string),int	hparse_pegs: endsWith(s: string; suffix: Peg; env: proc (s: string): string = nil; start = 0): bool	
+replacef	hmisc/algo/hparse_pegs.html#replacef,string,Peg,string,proc(string)	hparse_pegs: replacef(s: string; sub: Peg; by: string; env: proc (s: string): string = nil): string	
+replace	hmisc/algo/hparse_pegs.html#replace,string,Peg,string,proc(string)	hparse_pegs: replace(s: string; sub: Peg; by: string = &quot;&quot;;\n        env: proc (s: string): string = nil): string	
+parallelReplace	hmisc/algo/hparse_pegs.html#parallelReplace,string,varargs[tuple[Peg,string]],proc(string)	hparse_pegs: parallelReplace(s: string; subs: varargs[tuple[pattern: Peg, repl: string]];\n                env: proc (s: string): string): string	
+replace	hmisc/algo/hparse_pegs.html#replace,string,Peg,proc(int,int,PegMatches),proc(string)	hparse_pegs: replace(s: string; sub: Peg;\n        cb: proc (match: int; cnt: int; caps: PegMatches): string;\n        env: proc (s: string): string = nil): string	
+toReplaceHandler	hmisc/algo/hparse_pegs.html#toReplaceHandler,string,Table[string,proc(string)]	hparse_pegs: toReplaceHandler(expr: string; exprCalls: Table[string,\n    proc (arg: string): string] = defaultReplacementCalls): PegReplaceHandler	
+replaceInterpol	hmisc/algo/hparse_pegs.html#replaceInterpol,string,Peg,string,Table[string,proc(string)],proc(string)	hparse_pegs: replaceInterpol(s: string; sub: Peg; expr: string; exprCalls: Table[string,\n    proc (arg: string): string] = defaultReplacementCalls;\n                env: proc (s: string): string = nil): string	
+replaceInterpolAny	hmisc/algo/hparse_pegs.html#replaceInterpolAny,string,seq[tuple[Peg,PegReplaceHandler]],Table[string,proc(string)],proc(string)	hparse_pegs: replaceInterpolAny(s: string;\n                   replaceMap: seq[tuple[peg: Peg, expr: PegReplaceHandler]];\n    exprCalls: Table[string, proc (arg: string): string] = defaultReplacementCalls;\n                   env: proc (s: string): string = nil): string	
+toReplaceHandlerMap	hmisc/algo/hparse_pegs.html#toReplaceHandlerMap,seq[tuple[Peg,string]],Table[string,proc(string)]	hparse_pegs: toReplaceHandlerMap(replaceMap: seq[tuple[peg: Peg, expr: string]]; exprCalls: Table[\n    string, proc (arg: string): string] = defaultReplacementCalls): seq[\n    (Peg, PegReplaceHandler)]	
+replaceInterpolAny	hmisc/algo/hparse_pegs.html#replaceInterpolAny,string,seq[tuple[Peg,string]],Table[string,proc(string)],proc(string)	hparse_pegs: replaceInterpolAny(s: string; replaceMap: seq[tuple[peg: Peg, expr: string]];\n    exprCalls: Table[string, proc (arg: string): string] = defaultReplacementCalls;\n                   env: proc (s: string): string = nil): string	
+transformFile	hmisc/algo/hparse_pegs.html#transformFile,string,string,varargs[tuple[Peg,string]],proc(string)	hparse_pegs: transformFile(infile, outfile: string;\n              subs: varargs[tuple[pattern: Peg, repl: string]];\n              env: proc (s: string): string)	
+split	hmisc/algo/hparse_pegs.html#split.i,string,Peg,proc(string)	hparse_pegs: split(s: string; sep: Peg; env: proc (s: string): string = nil): string	
+split	hmisc/algo/hparse_pegs.html#split,string,Peg,proc(string)	hparse_pegs: split(s: string; sep: Peg; env: proc (s: string): string): seq[string]	
+EInvalidPeg	hmisc/algo/hparse_pegs.html#EInvalidPeg	hparse_pegs: EInvalidPeg	
+parsePeg	hmisc/algo/hparse_pegs.html#parsePeg,string,string,int,int	hparse_pegs: parsePeg(pattern: string; filename = &quot;pattern&quot;; line = 1; col = 0): Peg	
+peg	hmisc/algo/hparse_pegs.html#peg,string	hparse_pegs: peg(pattern: string): Peg	
+escapePeg	hmisc/algo/hparse_pegs.html#escapePeg,string	hparse_pegs: escapePeg(s: string): string	
+any character	hparse_pegs.html#any-character_1	Module hparse_pegs	
+any rune	hparse_pegs.html#any-rune_1	Module hparse_pegs	
+newline	hparse_pegs.html#newline_1	Module hparse_pegs	

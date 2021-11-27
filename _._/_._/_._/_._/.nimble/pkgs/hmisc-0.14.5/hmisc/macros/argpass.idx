@@ -1,0 +1,11 @@
+withFieldAssignsTo	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/macros/argpass.html#withFieldAssignsTo,NimNode,NimNode,bool,bool	argpass: withFieldAssignsTo(target, body: NimNode; withTmp: bool = false;\n                   asExpr: bool = false): NimNode	
+withFields	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/macros/argpass.html#withFields.m,varargs[untyped]	argpass: withFields(args: varargs[untyped]): untyped	
+argpass	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/macros/argpass.html#argpass.m,varargs[untyped]	argpass: argpass(other: varargs[untyped]): untyped	
+newEqE	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/macros/argpass.html#newEqE,NimNode,NimNode	argpass: newEqE(lhs, rhs: NimNode): NimNode	
+newEcE	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/macros/argpass.html#newEcE,NimNode,NimNode	argpass: newEcE(lhs, rhs: NimNode): NimNode	
+newEqE	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/macros/argpass.html#newEqE,string,NimNode	argpass: newEqE(lhs: string; rhs: NimNode): NimNode	
+newEcE	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/macros/argpass.html#newEcE,string,NimNode	argpass: newEcE(lhs: string; rhs: NimNode): NimNode	
+addArg	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/macros/argpass.html#addArg,NimNode,string,NimNode	argpass: addArg(call: NimNode; name: string; value: NimNode)	
+isArgpass	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/macros/argpass.html#isArgpass,NimNode	argpass: isArgpass(call: NimNode): bool	
+addArgpass	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/macros/argpass.html#addArgpass,NimNode,NimNode	argpass: addArgpass(call, pass: NimNode)	
+mergeArgs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/macros/argpass.html#mergeArgs,NimNode,seq[NimNode]	argpass: mergeArgs(call: NimNode; args: seq[NimNode])	

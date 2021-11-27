@@ -1,0 +1,325 @@
+cbackend	hmisc/other/oswrap.html#cbackend	oswrap: cbackend	
+ShellVar	hmisc/other/oswrap.html#ShellVar	oswrap: ShellVar	
+ShellExpr	hmisc/other/oswrap.html#ShellExpr	oswrap: ShellExpr	
+AbsFile	hmisc/other/oswrap.html#AbsFile	oswrap: AbsFile	
+AbsDir	hmisc/other/oswrap.html#AbsDir	oswrap: AbsDir	
+AbsPath	hmisc/other/oswrap.html#AbsPath	oswrap: AbsPath	
+RelFile	hmisc/other/oswrap.html#RelFile	oswrap: RelFile	
+RelDir	hmisc/other/oswrap.html#RelDir	oswrap: RelDir	
+RelPath	hmisc/other/oswrap.html#RelPath	oswrap: RelPath	
+FsFile	hmisc/other/oswrap.html#FsFile	oswrap: FsFile	
+FsDir	hmisc/other/oswrap.html#FsDir	oswrap: FsDir	
+FsEntry	hmisc/other/oswrap.html#FsEntry	oswrap: FsEntry	
+FsTree	hmisc/other/oswrap.html#FsTree	oswrap: FsTree	
+pekDefault	hmisc/other/oswrap.html#pekDefault	PathErrorKind.pekDefault	
+pekExpectedDir	hmisc/other/oswrap.html#pekExpectedDir	PathErrorKind.pekExpectedDir	
+pekExpectedFile	hmisc/other/oswrap.html#pekExpectedFile	PathErrorKind.pekExpectedFile	
+pekExpectedAbs	hmisc/other/oswrap.html#pekExpectedAbs	PathErrorKind.pekExpectedAbs	
+pekExpectedRel	hmisc/other/oswrap.html#pekExpectedRel	PathErrorKind.pekExpectedRel	
+pekNoSuchEntry	hmisc/other/oswrap.html#pekNoSuchEntry	PathErrorKind.pekNoSuchEntry	
+pekFileExists	hmisc/other/oswrap.html#pekFileExists	PathErrorKind.pekFileExists	
+pekInvalidEntry	hmisc/other/oswrap.html#pekInvalidEntry	PathErrorKind.pekInvalidEntry	
+PathErrorKind	hmisc/other/oswrap.html#PathErrorKind	oswrap: PathErrorKind	
+PathError	hmisc/other/oswrap.html#PathError	oswrap: PathError	
+EnvVarError	hmisc/other/oswrap.html#EnvVarError	oswrap: EnvVarError	
+AnyPath	hmisc/other/oswrap.html#AnyPath	oswrap: AnyPath	
+AnyDir	hmisc/other/oswrap.html#AnyDir	oswrap: AnyDir	
+AnyFile	hmisc/other/oswrap.html#AnyFile	oswrap: AnyFile	
+newFileSearchError	hmisc/other/oswrap.html#newFileSearchError,seq[AbsDir],string,seq[GitGlob],string	oswrap: newFileSearchError(directories: seq[AbsDir]; name: string;\n                   extensions: seq[GitGlob]; userMsg: string): ref FileSearchError	
+ignorePathErrors	hmisc/other/oswrap.html#ignorePathErrors.t,set[PathErrorKind],untyped	oswrap: ignorePathErrors(kinds: set[PathErrorKind]; body: untyped): untyped	
+`==`	hmisc/other/oswrap.html#==,ShellExpr,ShellExpr	oswrap: `==`(se1, se2: ShellExpr): bool	
+getStr	hmisc/other/oswrap.html#getStr.t,string	oswrap: getStr(str: string): string	
+getStr	hmisc/other/oswrap.html#getStr	oswrap: getStr(path: AnyPath | string): string	
+hash	hmisc/other/oswrap.html#hash,AnyPath	oswrap: hash(path: AnyPath): Hash	
+len	hmisc/other/oswrap.html#len,AnyPath	oswrap: len(path: AnyPath): int	
+`&lt;`	hmisc/other/oswrap.html#<,AnyPath,AnyPath	oswrap: `&lt;`(a, b: AnyPath): bool	
+contains	hmisc/other/oswrap.html#contains,AnyPath,string	oswrap: contains(path: AnyPath; substr: string): bool	
+contains	hmisc/other/oswrap.html#contains,AbsDir,AbsPath	oswrap: contains(dir: AbsDir; path: AbsPath): bool	
+endsWith	hmisc/other/oswrap.html#endsWith.t,AnyPath,typed	oswrap: endsWith(path: AnyPath; expr: typed): bool	
+startsWith	hmisc/other/oswrap.html#startsWith.t,AnyPath,typed	oswrap: startsWith(path: AnyPath; expr: typed): bool	
+CurDir	hmisc/other/oswrap.html#CurDir	oswrap: CurDir	
+ParDir	hmisc/other/oswrap.html#ParDir	oswrap: ParDir	
+DirSep	hmisc/other/oswrap.html#DirSep	oswrap: DirSep	
+AltSep	hmisc/other/oswrap.html#AltSep	oswrap: AltSep	
+PathSep	hmisc/other/oswrap.html#PathSep	oswrap: PathSep	
+ExeExts	hmisc/other/oswrap.html#ExeExts	oswrap: ExeExts	
+parseFsFile	hmisc/other/oswrap.html#parseFsFile,string	oswrap: parseFsFile(file: string): FsFile	
+parseFsDir	hmisc/other/oswrap.html#parseFsDir,string	oswrap: parseFsDir(dir: string): FsDir	
+`$`	hmisc/other/oswrap.html#$,AnyPath	oswrap: `$`(path: AnyPath): string	
+`$`	hmisc/other/oswrap.html#$,FsEntry	oswrap: `$`(entry: FsEntry): string	
+hshow	hmisc/other/oswrap.html#hshow,AnyPath,HDisplayOpts	oswrap: hshow(file: AnyPath; opts: HDisplayOpts = defaultHDisplay): ColoredText	
+toJson	hmisc/other/oswrap.html#toJson,ShellVar	oswrap: toJson(v: ShellVar): JsonNode	
+osAndNims	hmisc/other/oswrap.html#osAndNims.m,untyped	oswrap: osAndNims(code: untyped): untyped	
+toFsFile	hmisc/other/oswrap.html#toFsFile,AbsFile	oswrap: toFsFile(absFile: AbsFile): FsFile	
+toFsFile	hmisc/other/oswrap.html#toFsFile,RelFile	oswrap: toFsFile(relFile: RelFile): FsFile	
+toFsFile	hmisc/other/oswrap.html#toFsFile,Option[AnyFile]	oswrap: toFsFile(optFile: Option[AnyFile]): Option[FsFile]	
+toFsDir	hmisc/other/oswrap.html#toFsDir,RelDir	oswrap: toFsDir(relDir: RelDir): FsDir	
+toFsDir	hmisc/other/oswrap.html#toFsDir,AbsDir	oswrap: toFsDir(absDir: AbsDir): FsDir	
+toFsDir	hmisc/other/oswrap.html#toFsDir,string	oswrap: toFsDir(dir: string): FsDir	
+toFsFileOption	hmisc/other/oswrap.html#toFsFileOption,Option[AbsFile]	oswrap: toFsFileOption(absFile: Option[AbsFile]): Option[FsFile]	
+toFsFileOption	hmisc/other/oswrap.html#toFsFileOption,Option[RelFile]	oswrap: toFsFileOption(relFile: Option[RelFile]): Option[FsFile]	
+toFsDirOption	hmisc/other/oswrap.html#toFsDirOption,Option[AbsDir]	oswrap: toFsDirOption(absDir: Option[AbsDir]): Option[FsDir]	
+toFsDirOption	hmisc/other/oswrap.html#toFsDirOption,Option[RelDir]	oswrap: toFsDirOption(relDir: Option[RelDir]): Option[FsDir]	
+toFsDirSeq	hmisc/other/oswrap.html#toFsDirSeq,seq[AbsDir]	oswrap: toFsDirSeq(drs: seq[AbsDir]): seq[FsDir]	
+toFsDirSeq	hmisc/other/oswrap.html#toFsDirSeq,seq[RelDir]	oswrap: toFsDirSeq(drs: seq[RelDir]): seq[FsDir]	
+toFsFileSeq	hmisc/other/oswrap.html#toFsFileSeq,seq[AbsFile]	oswrap: toFsFileSeq(fls: seq[AbsFile]): seq[FsFile]	
+toFsFileSeq	hmisc/other/oswrap.html#toFsFileSeq,seq[RelFile]	oswrap: toFsFileSeq(fls: seq[RelFile]): seq[FsFile]	
+toFsEntry	hmisc/other/oswrap.html#toFsEntry,AnyPath,bool	oswrap: toFsEntry(path: AnyPath; isLink: bool): FsEntry	
+toFsEntry	hmisc/other/oswrap.html#toFsEntry,string	oswrap: toFsEntry(path: string): FsEntry	
+toFsEntry	hmisc/other/oswrap.html#toFsEntry,AnyPath	oswrap: toFsEntry(path: AnyPath): FsEntry	
+newPathError	hmisc/other/oswrap.html#newPathError,AnyPath,PathErrorKind,varargs[string,]	oswrap: newPathError(entry: AnyPath; kind: PathErrorKind; msg: varargs[string, `$`]): PathError	
+getCurrentDir	hmisc/other/oswrap.html#getCurrentDir	oswrap: getCurrentDir(): AbsDir	
+getCurrentCompilerExe	hmisc/other/oswrap.html#getCurrentCompilerExe	oswrap: getCurrentCompilerExe(): AbsFile	
+cwd	hmisc/other/oswrap.html#cwd	oswrap: cwd(): AbsDir	
+normalizePathEnd	hmisc/other/oswrap.html#normalizePathEnd,AnyPath	oswrap: normalizePathEnd(path: var AnyPath; trailingSep = false): void	
+joinPath	hmisc/other/oswrap.html#joinPath,AbsDir,RelFile	oswrap: joinPath(head: AbsDir; tail: RelFile): AbsFile	
+joinPath	hmisc/other/oswrap.html#joinPath,RelDir,RelDir	oswrap: joinPath(head: RelDir; tail: RelDir): RelDir	
+joinPath	hmisc/other/oswrap.html#joinPath,AbsDir,RelDir	oswrap: joinPath(head: AbsDir; tail: RelDir): AbsDir	
+joinPath	hmisc/other/oswrap.html#joinPath,RelDir,RelFile	oswrap: joinPath(head: RelDir; tail: RelFile): RelFile	
+joinPath	hmisc/other/oswrap.html#joinPath,AbsDir,seq[string]	oswrap: joinPath(head: AbsDir; tail: seq[string]): AbsDir	
+joinPath	hmisc/other/oswrap.html#joinPath,FsDir,RelFile	oswrap: joinPath(dir: FsDir; relFile: RelFile): FsFile	
+joinPath	hmisc/other/oswrap.html#joinPath,FsDir,RelDir	oswrap: joinPath(dir: FsDir; relDir: RelDir): FsDir	
+`/`	hmisc/other/oswrap.html#/.t,,	oswrap: `/`(head, tail: AnyPath | string): untyped	
+`/`	hmisc/other/oswrap.html#/.t,AbsDir,seq[string]	oswrap: `/`(head: AbsDir; tail: seq[string]): untyped	
+`/`	hmisc/other/oswrap.html#/.t,AnyDir,RelFile	oswrap: `/`(head: AnyDir; tail: RelFile): untyped	
+`/.`	hmisc/other/oswrap.html#/..t,AnyPath,	oswrap: `/.`(head: AnyPath; file: RelFile | string): untyped	
+splitPath	hmisc/other/oswrap.html#splitPath,AbsFile	oswrap: splitPath(path: AbsFile): tuple[head: AbsDir, tail: RelFile]	
+splitDir	hmisc/other/oswrap.html#splitDir,AbsDir	oswrap: splitDir(dir: AbsDir): tuple[head: AbsDir, tail: RelDir]	
+dropSuffix	hmisc/other/oswrap.html#dropSuffix,AbsDir,string	oswrap: dropSuffix(dir: AbsDir; suffix: string): AbsDir	
+splitDir	hmisc/other/oswrap.html#splitDir,RelDir	oswrap: splitDir(dir: RelDir): tuple[head: RelDir, tail: RelDir]	
+currentSourceDir	hmisc/other/oswrap.html#currentSourceDir.t	oswrap: currentSourceDir(): AbsDir	
+currentAbsSourceDir	hmisc/other/oswrap.html#currentAbsSourceDir.t	oswrap: currentAbsSourceDir(): AbsDir	
+getAbsDir	hmisc/other/oswrap.html#getAbsDir,string	oswrap: getAbsDir(path: string): AbsDir	
+startsWith	hmisc/other/oswrap.html#startsWith,AnyPath,AnyPath	oswrap: startsWith(path: AnyPath; prefix: AnyPath): bool	
+startsWith	hmisc/other/oswrap.html#startsWith,AnyPath,string	oswrap: startsWith(path: AnyPath; str: string): bool	
+relativePath	hmisc/other/oswrap.html#relativePath,AbsDir,	oswrap: relativePath(path: AbsDir; base: AbsDir | AbsDir): RelDir	
+relativePath	hmisc/other/oswrap.html#relativePath,AbsFile,	oswrap: relativePath(path: AbsFile; base: AbsFile | AbsDir): RelFile	
+relativeUpCount	hmisc/other/oswrap.html#relativeUpCount,P1,P2	oswrap: relativeUpCount[P1: AbsPath; P2: AbsPath](inCurrent: P1; inTarget: P2): int	
+parentDir	hmisc/other/oswrap.html#parentDir,AbsPath	oswrap: parentDir(path: AbsPath): AbsDir	
+parentDir	hmisc/other/oswrap.html#parentDir,RelPath	oswrap: parentDir(path: RelPath): RelDir	
+parentDir	hmisc/other/oswrap.html#parentDir,FsFile	oswrap: parentDir(path: FsFile): FsDir	
+parentDir	hmisc/other/oswrap.html#parentDir,FsDir	oswrap: parentDir(path: FsDir): FsDir	
+dir	hmisc/other/oswrap.html#dir,FsFile	oswrap: dir(file: FsFile): FsDir	
+dir	hmisc/other/oswrap.html#dir,AbsFile	oswrap: dir(file: AbsFile): AbsDir	
+dir	hmisc/other/oswrap.html#dir,RelFile	oswrap: dir(file: RelFile): RelDir	
+dir	hmisc/other/oswrap.html#dir,AbsDir	oswrap: dir(dir: AbsDir): AbsDir	
+dir	hmisc/other/oswrap.html#dir,RelDir	oswrap: dir(dir: RelDir): RelDir	
+dir	hmisc/other/oswrap.html#dir,FsDir	oswrap: dir(dir: FsDir): FsDir	
+tailDir	hmisc/other/oswrap.html#tailDir,AnyDir	oswrap: tailDir(path: AnyDir): string	
+parentDirs	hmisc/other/oswrap.html#parentDirs.i,AnyPath,bool,bool	oswrap: parentDirs(path: AnyPath; fromRoot: bool = false;\n           inclusive: bool = path is AnyDir): AbsDir	
+`/../`	hmisc/other/oswrap.html#/../,AbsDir,int	oswrap: `/../`(head: AbsDir; repeat: int): AbsDir	
+`/../`	hmisc/other/oswrap.html#/../,AbsDir,RelDir	oswrap: `/../`(head: AbsDir; tail: RelDir): AbsDir	
+searchExtPos	hmisc/other/oswrap.html#searchExtPos,AnyFile	oswrap: searchExtPos(path: AnyFile): int	
+splitFile	hmisc/other/oswrap.html#splitFile,AbsFile,bool	oswrap: splitFile(path: AbsFile; multidot: bool = true): tuple[dir: AbsDir,\n    name, ext: string]	
+splitFile	hmisc/other/oswrap.html#splitFile,RelFile,bool	oswrap: splitFile(path: RelFile; multidot: bool = true): tuple[dir: RelDir,\n    name, ext: string]	
+splitFile2	hmisc/other/oswrap.html#splitFile2,RelFile	oswrap: splitFile2(file: RelFile): tuple[dir: RelDir, file: string]	
+splitFile2	hmisc/other/oswrap.html#splitFile2,AbsFile	oswrap: splitFile2(file: AbsFile): tuple[dir: AbsDir, file: string]	
+importSplit	hmisc/other/oswrap.html#importSplit,AbsFile,AbsFile	oswrap: importSplit(inCurrent, inTarget: AbsFile): tuple[depth: int, path: seq[string]]	
+hasExt	hmisc/other/oswrap.html#hasExt,AnyFile,openArray[string]	oswrap: hasExt(file: AnyFile; exts: openArray[string] = @[]): bool	
+hasExt	hmisc/other/oswrap.html#hasExt,AnyFile,string	oswrap: hasExt(file: AnyFile; ext: string): bool	
+ext	hmisc/other/oswrap.html#ext,AnyFile,bool	oswrap: ext(file: AnyFile; multidot: bool = true): string	
+name	hmisc/other/oswrap.html#name,AnyFile,bool	oswrap: name(file: AnyFile; multidot: bool = true): string	
+nameExt	hmisc/other/oswrap.html#nameExt,AnyFile	oswrap: nameExt(dir: AnyFile): string	
+name	hmisc/other/oswrap.html#name,AnyDir	oswrap: name(dir: AnyDir): string	
+assertValid	hmisc/other/oswrap.html#assertValid,AnyPath,string	oswrap: assertValid(path: AnyPath; msg: string = &quot;&quot;): void	
+extractFilename	hmisc/other/oswrap.html#extractFilename,AnyFile	oswrap: extractFilename(path: AnyFile): string	
+lastPathPart	hmisc/other/oswrap.html#lastPathPart,AnyPath	oswrap: lastPathPart(path: AnyPath): string	
+changeFileExt	hmisc/other/oswrap.html#changeFileExt,AbsFile,string	oswrap: changeFileExt(filename: AbsFile; ext: string): AbsFile	
+changeFileExt	hmisc/other/oswrap.html#changeFileExt,RelFile,string	oswrap: changeFileExt(filename: RelFile; ext: string): RelFile	
+addFileExt	hmisc/other/oswrap.html#addFileExt,AbsFile,string	oswrap: addFileExt(filename: AbsFile; ext: string): AbsFile	
+addFileExt	hmisc/other/oswrap.html#addFileExt,RelFile,string	oswrap: addFileExt(filename: RelFile; ext: string): RelFile	
+cmpPaths	hmisc/other/oswrap.html#cmpPaths,AnyPath,AnyPath	oswrap: cmpPaths(pathA, pathB: AnyPath): int	
+getHomeDir	hmisc/other/oswrap.html#getHomeDir	oswrap: getHomeDir(): AbsDir	
+getConfigDir	hmisc/other/oswrap.html#getConfigDir	oswrap: getConfigDir(): AbsDir	
+getTempDir	hmisc/other/oswrap.html#getTempDir	oswrap: getTempDir(): AbsDir	
+isRelative	hmisc/other/oswrap.html#isRelative,AnyPath	oswrap: isRelative(file: AnyPath): bool	
+symlinkExists	hmisc/other/oswrap.html#symlinkExists,AnyPath	oswrap: symlinkExists(link: AnyPath): bool	
+getLastModificationTime	hmisc/other/oswrap.html#getLastModificationTime,AnyFile	oswrap: getLastModificationTime(file: AnyFile): times.Time	
+getLastAccessTime	hmisc/other/oswrap.html#getLastAccessTime,AnyFile	oswrap: getLastAccessTime(file: AnyFile): times.Time	
+getCreationTime	hmisc/other/oswrap.html#getCreationTime,AnyFile	oswrap: getCreationTime(file: AnyFile): times.Time	
+fileNewer	hmisc/other/oswrap.html#fileNewer,AnyFile,AnyFile	oswrap: fileNewer(base, other: AnyFile): bool	
+absolute	hmisc/other/oswrap.html#absolute,RelDir,AbsDir	oswrap: absolute(dir: RelDir; root: AbsDir = getCurrentDir()): AbsDir	
+isAbsolute	hmisc/other/oswrap.html#isAbsolute,AnyPath	oswrap: isAbsolute(path: AnyPath): bool	
+isAbsolute	hmisc/other/oswrap.html#isAbsolute,string	oswrap: isAbsolute(path: string): bool	
+absolute	hmisc/other/oswrap.html#absolute,RelFile,AbsDir	oswrap: absolute(file: RelFile; root: AbsDir = getCurrentDir()): AbsFile	
+realpath	hmisc/other/oswrap.html#realpath,string	oswrap: realpath(path: string): string	
+realpath	hmisc/other/oswrap.html#realpath,AbsFile	oswrap: realpath(path: AbsFile): AbsFile	
+normalize	hmisc/other/oswrap.html#normalize,AbsDir	oswrap: normalize(path: AbsDir): AbsDir	
+normalize	hmisc/other/oswrap.html#normalize,AbsFile	oswrap: normalize(path: AbsFile): AbsFile	
+sameFile	hmisc/other/oswrap.html#sameFile,AnyFile,AnyFile	oswrap: sameFile(file1, file2: AnyFile): bool	
+sameDir	hmisc/other/oswrap.html#sameDir,AnyDir,AnyDir	oswrap: sameDir(dir1, dir2: AnyDir): bool	
+getFilePermissions	hmisc/other/oswrap.html#getFilePermissions,AnyFile	oswrap: getFilePermissions(filename: AnyFile): set[os.FilePermission]	
+setFilePermissions	hmisc/other/oswrap.html#setFilePermissions,AnyFile,set[]	oswrap: setFilePermissions(filename: AnyFile; permissions: set[os.FilePermission])	
+toAbsFile	hmisc/other/oswrap.html#toAbsFile,,bool,bool,AbsDir	oswrap: toAbsFile(file: AnyFile | string; checkExists: bool = false;\n          normalize: bool = true; root: AbsDir = getCurrentDir()): AbsFile	
+toAbsDir	hmisc/other/oswrap.html#toAbsDir,,bool,bool,AbsDir	oswrap: toAbsDir(dir: AnyDir | string; checkExists: bool = false;\n         normalize: bool = true; root: AbsDir = getCurrentDir()): AbsDir	
+normalizePath	hmisc/other/oswrap.html#normalizePath,AnyPath	oswrap: normalizePath(path: var AnyPath)	
+normalizedPath	hmisc/other/oswrap.html#normalizedPath,AbsDir	oswrap: normalizedPath(path: AbsDir): AbsDir	
+normalizedPath	hmisc/other/oswrap.html#normalizedPath,RelDir	oswrap: normalizedPath(path: RelDir): RelDir	
+normalizedPath	hmisc/other/oswrap.html#normalizedPath,AbsFile	oswrap: normalizedPath(path: AbsFile): AbsFile	
+normalizedPath	hmisc/other/oswrap.html#normalizedPath,RelFile	oswrap: normalizedPath(path: RelFile): RelFile	
+`==`	hmisc/other/oswrap.html#==,AnyFile,AnyFile	oswrap: `==`(file1, file2: AnyFile): bool	
+`&lt;`	hmisc/other/oswrap.html#<,AnyFile,AnyFile	oswrap: `&lt;`(file1, file2: AnyFile): bool	
+`==`	hmisc/other/oswrap.html#==,AnyDir,AnyDir	oswrap: `==`(dir1, dir2: AnyDir): bool	
+`&lt;`	hmisc/other/oswrap.html#<,AnyDir,AnyDir	oswrap: `&lt;`(dir1, dir2: AnyDir): bool	
+walkDir	hmisc/other/oswrap.html#walkDir.i,AnyDir,bool,seq[GitGlob]	oswrap: walkDir(dir: AnyDir; relative: bool = false; yieldFilter = {pcFile};\n        globs: seq[GitGlob] = @[]): FsEntry	
+walkDirRec	hmisc/other/oswrap.html#walkDirRec.i,AnyDir,seq[GitGlob]	oswrap: walkDirRec(dir: AnyDir; yieldFilter = {pcFile}; followFilter = {pcDir};\n           relative = false; checkDir = false; globs: seq[GitGlob] = @[]): FsEntry	
+walkDir	hmisc/other/oswrap.html#walkDir.i,AnyDir,typedesc[T],bool,bool,seq[string],seq[GitGlob],bool	oswrap: walkDir[T: AnyPath](dir: AnyDir; resType: typedesc[T]; recurse: bool = false;\n                    yieldLinks: bool = true; exts: seq[string] = @[];\n                    globs: seq[GitGlob] = @[]; assertExists: bool = true): T	
+existsOrCreateDir	hmisc/other/oswrap.html#existsOrCreateDir,AnyDir	oswrap: existsOrCreateDir(dir: AnyDir): bool	
+createSymlink	hmisc/other/oswrap.html#createSymlink,Src,Dest	oswrap: createSymlink[Src: AnyPath; Dest: AnyPath](src: Src; dest: Dest)	
+createHardlink	hmisc/other/oswrap.html#createHardlink,Src,Dest	oswrap: createHardlink[Src: AnyPath; Dest: AnyPath](src: Src; dest: Dest)	
+copyFileWithPermissions	hmisc/other/oswrap.html#copyFileWithPermissions,AnyFile,AnyFile	oswrap: copyFileWithPermissions(source, dest: AnyFile; ignorePermissionErrors = true)	
+copyDirWithPermissions	hmisc/other/oswrap.html#copyDirWithPermissions,AnyDir,AnyDir	oswrap: copyDirWithPermissions(source, dest: AnyDir; ignorePermissionErrors = true)	
+inclFilePermissions	hmisc/other/oswrap.html#inclFilePermissions,AnyFile,set[]	oswrap: inclFilePermissions(filename: AnyFile; permissions: set[os.FilePermission])	
+exclFilePermissions	hmisc/other/oswrap.html#exclFilePermissions,AnyFile,set[]	oswrap: exclFilePermissions(filename: AnyFile; permissions: set[os.FilePermission])	
+expandSymlink	hmisc/other/oswrap.html#expandSymlink,AbsDir	oswrap: expandSymlink(path: AbsDir): AbsDir	
+expandSymlink	hmisc/other/oswrap.html#expandSymlink,AbsFile	oswrap: expandSymlink(path: AbsFile): AbsFile	
+getAppFilename	hmisc/other/oswrap.html#getAppFilename	oswrap: getAppFilename(): AbsFile	
+getAppBasename	hmisc/other/oswrap.html#getAppBasename,bool,bool	oswrap: getAppBasename(withoutExt: bool = true; multidot: bool = true): string	
+getAppDir	hmisc/other/oswrap.html#getAppDir	oswrap: getAppDir(): AbsDir	
+getFileSize	hmisc/other/oswrap.html#getFileSize,AnyFile	oswrap: getFileSize(file: AnyFile): BiggestInt	
+getFileInfo	hmisc/other/oswrap.html#getFileInfo,FileHandle	oswrap: getFileInfo(handle: FileHandle): os.FileInfo	
+getFileInfo	hmisc/other/oswrap.html#getFileInfo,AnyFile	oswrap: getFileInfo(file: AnyFile): os.FileInfo	
+getFileInfo	hmisc/other/oswrap.html#getFileInfo,AnyFile,bool	oswrap: getFileInfo(path: AnyFile; followSymlink: bool = true): os.FileInfo	
+isHidden	hmisc/other/oswrap.html#isHidden,AnyPath	oswrap: isHidden(path: AnyPath): bool	
+setLastModificationTime	hmisc/other/oswrap.html#setLastModificationTime,AnyFile,	oswrap: setLastModificationTime(file: AnyFile; t: times.Time)	
+isValidFilename	hmisc/other/oswrap.html#isValidFilename,AbsFile	oswrap: isValidFilename(filename: AbsFile; maxLen = 259.Positive): bool	
+splitCmdLine	hmisc/other/oswrap.html#splitCmdLine,string	oswrap: splitCmdLine(c: string): seq[string]	
+paramStr	hmisc/other/oswrap.html#paramStr,int,bool	oswrap: paramStr(i: int; addBin: bool = false): string	
+paramCount	hmisc/other/oswrap.html#paramCount	oswrap: paramCount(): int	
+paramStrs	hmisc/other/oswrap.html#paramStrs,bool	oswrap: paramStrs(addBin: bool = false): seq[string]	
+`$$`	hmisc/other/oswrap.html#$$.t,untyped	oswrap: `$$`(v: untyped): untyped	
+getEnv	hmisc/other/oswrap.html#getEnv,ShellVar,string	oswrap: getEnv(key: ShellVar; default = &quot;&quot;): string	
+existsEnv	hmisc/other/oswrap.html#existsEnv,ShellVar	oswrap: existsEnv(key: ShellVar): bool	
+putEnv	hmisc/other/oswrap.html#putEnv,ShellVar,string	oswrap: putEnv(key: ShellVar; val: string): void	
+setEnv	hmisc/other/oswrap.html#setEnv,ShellVar,string	oswrap: setEnv(key: ShellVar; val: string): void	
+delEnv	hmisc/other/oswrap.html#delEnv,ShellVar	oswrap: delEnv(key: ShellVar)	
+get	hmisc/other/oswrap.html#get,ShellVar	oswrap: get(v: ShellVar): string	
+del	hmisc/other/oswrap.html#del,ShellVar	oswrap: del(v: ShellVar)	
+set	hmisc/other/oswrap.html#set,ShellVar,string	oswrap: set(v: ShellVar; val: string)	
+ShellVarType	hmisc/other/oswrap.html#ShellVarType	oswrap: ShellVarType	
+get	hmisc/other/oswrap.html#get,ShellVar,typedesc[T]	oswrap: get[T: ShellVarType](v: ShellVar; TArg: typedesc[T]): auto	
+put	hmisc/other/oswrap.html#put,ShellVar,	oswrap: put[T: ShellVarType](v: ShellVar; val: T | seq[T])	
+exists	hmisc/other/oswrap.html#exists,ShellVar	oswrap: exists(v: ShellVar): bool	
+`==`	hmisc/other/oswrap.html#==,ShellVar,ShellVarType	oswrap: `==`(v: ShellVar; val: ShellVarType): bool	
+toBool	hmisc/other/oswrap.html#toBool,ShellVar,bool,bool	oswrap: toBool(v: ShellVar; raiseInvalid: bool = true; fallback: bool = false): bool	
+shellHaxOn	hmisc/other/oswrap.html#shellHaxOn	oswrap: shellHaxOn(): bool	
+`~`	hmisc/other/oswrap.html#~	oswrap: `~`(path: string | RelDir): AbsDir	
+`~&amp;`	hmisc/other/oswrap.html#~&.t,string	oswrap: `~&amp;`(path: string): AbsDir	
+existsEnvTo	hmisc/other/oswrap.html#existsEnvTo.t,ShellVar,untyped	oswrap: existsEnvTo(env: ShellVar; varname: untyped): untyped	
+existsEnvOrDefault	hmisc/other/oswrap.html#existsEnvOrDefault.t,ShellVar,untyped,untyped	oswrap: existsEnvOrDefault(varname: ShellVar; ifExists, default: untyped): untyped	
+getUserRuntimeDir	hmisc/other/oswrap.html#getUserRuntimeDir	oswrap: getUserRuntimeDir(): AbsDir	
+getUserCacheDir	hmisc/other/oswrap.html#getUserCacheDir	oswrap: getUserCacheDir(): AbsDir	
+getUserConfigDir	hmisc/other/oswrap.html#getUserConfigDir	oswrap: getUserConfigDir(): AbsDir	
+getUserDataDir	hmisc/other/oswrap.html#getUserDataDir	oswrap: getUserDataDir(): AbsDir	
+getAppCacheDir	hmisc/other/oswrap.html#getAppCacheDir	oswrap: getAppCacheDir(): AbsDir	
+getAppConfigDir	hmisc/other/oswrap.html#getAppConfigDir	oswrap: getAppConfigDir(): AbsDir	
+getAppDataDir	hmisc/other/oswrap.html#getAppDataDir	oswrap: getAppDataDir(): AbsDir	
+getAppRuntimeDir	hmisc/other/oswrap.html#getAppRuntimeDir	oswrap: getAppRuntimeDir(): AbsDir	
+getAppConfRc	hmisc/other/oswrap.html#getAppConfRc,string,bool	oswrap: getAppConfRc(ext: string; hidden: bool = false): AbsFile	
+fileExists	hmisc/other/oswrap.html#fileExists,AnyFile	oswrap: fileExists(filename: AnyFile): bool	
+dirExists	hmisc/other/oswrap.html#dirExists,AnyDir	oswrap: dirExists(dir: AnyDir): bool	
+exists	hmisc/other/oswrap.html#exists,AnyPath	oswrap: exists(path: AnyPath): bool	
+exists	hmisc/other/oswrap.html#exists,FsFile	oswrap: exists(fs: FsFile): bool	
+fsEntryExists	hmisc/other/oswrap.html#fsEntryExists,string	oswrap: fsEntryExists(e: string): bool	
+exists	hmisc/other/oswrap.html#exists,FsDir	oswrap: exists(fs: FsDir): bool	
+exists	hmisc/other/oswrap.html#exists,FsEntry	oswrap: exists(fs: FsEntry): bool	
+getPermissions	hmisc/other/oswrap.html#getPermissions,AnyFile	oswrap: getPermissions(file: AnyFile): set[os.FilePermission]	
+getPermissions	hmisc/other/oswrap.html#getPermissions,FsFile	oswrap: getPermissions(file: FsFile): set[os.FilePermission]	
+assertExists	hmisc/other/oswrap.html#assertExists,AnyFile,string	oswrap: assertExists(file: AnyFile; onMissing: string = &quot;&quot;): void	
+assertExists	hmisc/other/oswrap.html#assertExists,AnyDir,string	oswrap: assertExists(dir: AnyDir; onMissing: string = &quot;&quot;): void	
+toExe	hmisc/other/oswrap.html#toExe,string	oswrap: toExe(filename: string): string	
+toDll	hmisc/other/oswrap.html#toDll,string	oswrap: toDll(filename: string): string	
+listDirs	hmisc/other/oswrap.html#listDirs,AnyDir	oswrap: listDirs(dir: AnyDir): seq[AbsDir]	
+listFiles	hmisc/other/oswrap.html#listFiles,AnyDir,seq[string],seq[string]	oswrap: listFiles(dir: AnyDir; exts: seq[string] = @[]; ignoreNames: seq[string] = @[]): seq[\n    AbsFile]	
+listAll	hmisc/other/oswrap.html#listAll,AbsDir	oswrap: listAll(dir: AbsDir): seq[FsEntry]	
+flatFiles	hmisc/other/oswrap.html#flatFiles,FsTree	oswrap: flatFiles(tree: FsTree): seq[FsTree]	
+withoutPrefix	hmisc/other/oswrap.html#withoutPrefix,AbsFile,AbsDir	oswrap: withoutPrefix(file: AbsFile; pref: AbsDir): RelFile	
+withoutRoot	hmisc/other/oswrap.html#withoutRoot,AbsFile,AbsDir	oswrap: withoutRoot(file: AbsFile; root: AbsDir): RelFile	
+withExt	hmisc/other/oswrap.html#withExt,FsTree,string	oswrap: withExt(f: FsTree; ext: string): FsTree	
+addExt	hmisc/other/oswrap.html#addExt,F,string,bool	oswrap: addExt[F: AbsFile | RelFile](f: var F; newExt: string; replace: bool = true)	
+withExt	hmisc/other/oswrap.html#withExt,F,string,bool	oswrap: withExt[F: AbsFile | RelFile](f: F; newExt: string; replace: bool = true): F	
+withExt	hmisc/other/oswrap.html#withExt,sinkFsFile,string,bool	oswrap: withExt(fs: sink FsFile; ext: string; replace: bool = true): FsFile	
+`&amp;.`	hmisc/other/oswrap.html#&.,AbsFile,string	oswrap: `&amp;.`(file: AbsFile; ext: string): AbsFile	
+withoutExt	hmisc/other/oswrap.html#withoutExt,F	oswrap: withoutExt[F: AbsFile | RelFile](file: F): F	
+addToBasename	hmisc/other/oswrap.html#addToBasename,F,string,bool	oswrap: addToBasename[F: AbsFile | RelFile | FsFile](f: var F; added: string;\n    before: bool = true)	
+withBasePrefix	hmisc/other/oswrap.html#withBasePrefix,F,string	oswrap: withBasePrefix[F: AbsFile | RelFile | FsFile](f: F; prefix: string): F	
+withBaseSuffix	hmisc/other/oswrap.html#withBaseSuffix,F,string	oswrap: withBaseSuffix[F: AbsFile | RelFile | FsFile](f: F; suffix: string): F	
+withBase	hmisc/other/oswrap.html#withBase,FsTree,string	oswrap: withBase(f: FsTree; base: string): FsTree	
+withoutBasePrefix	hmisc/other/oswrap.html#withoutBasePrefix,FsTree,string	oswrap: withoutBasePrefix(f: FsTree; pref: string): FsTree	
+withParent	hmisc/other/oswrap.html#withParent,FsTree,seq[string],bool	oswrap: withParent(f: FsTree; parent: seq[string]; isAbs: bool = true): FsTree	
+withoutParent	hmisc/other/oswrap.html#withoutParent,FsTree	oswrap: withoutParent(f: FsTree): FsTree	
+withoutParent	hmisc/other/oswrap.html#withoutParent,FsTree,seq[string]	oswrap: withoutParent(f: FsTree; pref: seq[string]): FsTree	
+withoutNParents	hmisc/other/oswrap.html#withoutNParents,FsTree,int	oswrap: withoutNParents(f: FsTree; cut: int): FsTree	
+toFsTree	hmisc/other/oswrap.html#toFsTree,AbsDir	oswrap: toFsTree(str: AbsDir): FsTree	
+pathLen	hmisc/other/oswrap.html#pathLen,FsTree	oswrap: pathLen(fst: FsTree): int	
+buildFsTree	hmisc/other/oswrap.html#buildFsTree,AnyDir,seq[string],seq[string]	oswrap: buildFsTree(start: AnyDir = getCurrentDir(); allowExts: seq[string] = @[];\n            blockExts: seq[string] = @[]): seq[FsTree]	
+readFile	hmisc/other/oswrap.html#readFile.t,AnyFile	oswrap: readFile(file: AnyFile): untyped	
+open	hmisc/other/oswrap.html#open,AnyFile,FileMode	oswrap: open(file: AnyFile; mode: FileMode = fmRead): File	
+writeFile	hmisc/other/oswrap.html#writeFile.t,AnyFile,string	oswrap: writeFile(file: AnyFile; text: string): untyped	
+appendFile	hmisc/other/oswrap.html#appendFile,AnyFile,string	oswrap: appendFile(file: AnyFile; text: string)	
+writeNewFile	hmisc/other/oswrap.html#writeNewFile,AnyFile,string	oswrap: writeNewFile(file: AnyFile; text: string)	
+rmDir	hmisc/other/oswrap.html#rmDir	oswrap: rmDir(dir: AnyDir | string; checkDir = false)	
+rmFile	hmisc/other/oswrap.html#rmFile,AnyFile	oswrap: rmFile(file: AnyFile)	
+rmFiles	hmisc/other/oswrap.html#rmFiles,AbsDir,seq[string],seq[string]	oswrap: rmFiles(dir: AbsDir; exts: seq[string] = @[]; ignoreNames: seq[string] = @[])	
+mkDir	hmisc/other/oswrap.html#mkDir	oswrap: mkDir(dir: AnyDir | string)	
+ensureDir	hmisc/other/oswrap.html#ensureDir,AbsFile	oswrap: ensureDir(file: AbsFile)	
+mvFile	hmisc/other/oswrap.html#mvFile,AnyFile,AnyFile	oswrap: mvFile(source, dest: AnyFile)	
+mvDir	hmisc/other/oswrap.html#mvDir,AnyDir,AnyDir	oswrap: mvDir(source, dest: AnyDir)	
+cpFile	hmisc/other/oswrap.html#cpFile,F1,F2	oswrap: cpFile[F1, F2: AnyFile](source: F1; dest: F2)	
+cpDir	hmisc/other/oswrap.html#cpDir,AnyDir,AnyDir	oswrap: cpDir(source, dest: AnyDir)	
+cd	hmisc/other/oswrap.html#cd	oswrap: cd(dir: AnyDir | string)	
+cmkd	hmisc/other/oswrap.html#cmkd,AnyDir	oswrap: cmkd(dir: AnyDir)	
+findExe	hmisc/other/oswrap.html#findExe,string	oswrap: findExe(bin: string): AbsFile	
+findFile	hmisc/other/oswrap.html#findFile,seq[AbsDir],string,seq[GitGlob],string	oswrap: findFile(paths: seq[AbsDir]; name: string; extensions: seq[GitGlob];\n         onError: string = &quot;&quot;): AbsFile	
+findFilesWithExt	hmisc/other/oswrap.html#findFilesWithExt,AbsDir,seq[string]	oswrap: findFilesWithExt(dir: AbsDir; ext: seq[string]): seq[AbsFile]	
+findFile	hmisc/other/oswrap.html#findFile,AbsDir,GitGlob,string	oswrap: findFile(dir: AbsDir; name: GitGlob; onError: string = &quot;&quot;): AbsFile	
+`&amp;&amp;`	hmisc/other/oswrap.html#&&,string,string	oswrap: `&amp;&amp;`(lhs, rhs: string): string	
+`&amp;&amp;`	hmisc/other/oswrap.html#&&,ShellExpr,ShellExpr	oswrap: `&amp;&amp;`(ex1, ex2: ShellExpr): ShellExpr	
+`&amp;&amp;`	hmisc/other/oswrap.html#&&,ShellExpr,string	oswrap: `&amp;&amp;`(ex1: ShellExpr; ex2: string): ShellExpr	
+`&amp;&amp;=`	hmisc/other/oswrap.html#&&=,ShellExpr,ShellExpr	oswrap: `&amp;&amp;=`(ex: var ShellExpr; ex2: ShellExpr)	
+withStreamFile	hmisc/other/oswrap.html#withStreamFile.t,AnyFile,untyped	oswrap: withStreamFile(inFile: AnyFile; body: untyped)	
+withNewStreamFile	hmisc/other/oswrap.html#withNewStreamFile.t,AnyFile,untyped	oswrap: withNewStreamFile(inFile: AnyFile; body: untyped)	
+getNewTempDir	hmisc/other/oswrap.html#getNewTempDir,string,AbsDir,bool,char,set[char]	oswrap: getNewTempDir(dirPatt: string = &quot;????????&quot;; dir: AbsDir = getTempDir();\n              createDir: bool = true; pattChar: char = &apos;?&apos;;\n              chars: set[char] = {&apos;a&apos; .. &apos;z&apos;, &apos;A&apos; .. &apos;Z&apos;}): AbsDir	
+getTempFile	hmisc/other/oswrap.html#getTempFile,AbsDir,string,bool,char,set[char]	oswrap: getTempFile(dir: AbsDir; filePatt: string; assertExists: bool = true;\n            pattChar: char = &apos;?&apos;; chars: set[char] = {&apos;a&apos; .. &apos;z&apos;, &apos;A&apos; .. &apos;Z&apos;}): AbsFile	
+getAppTempDir	hmisc/other/oswrap.html#getAppTempDir	oswrap: getAppTempDir(): AbsDir	
+getAppTempFile	hmisc/other/oswrap.html#getAppTempFile,string	oswrap: getAppTempFile(filePattern: string): AbsFile	
+writeTempFile	hmisc/other/oswrap.html#writeTempFile,string,string	oswrap: writeTempFile(text: string; pattern: string = &quot;XXXXXXXXXXX&quot;): AbsFile	
+withDir	hmisc/other/oswrap.html#withDir.t,AnyDir,untyped	oswrap: withDir(dir: AnyDir; body: untyped): untyped	
+withNewDir	hmisc/other/oswrap.html#withNewDir.t,AnyDir,untyped	oswrap: withNewDir(dir: AnyDir; body: untyped): untyped	
+withTempDir	hmisc/other/oswrap.html#withTempDir.t,bool,untyped,untyped	oswrap: withTempDir(clean: bool; setup, body: untyped): untyped	
+withTempDir	hmisc/other/oswrap.html#withTempDir.t,bool,untyped	oswrap: withTempDir(clean: bool; body: untyped): untyped	
+withTempDir	hmisc/other/oswrap.html#withTempDir.t,untyped	oswrap: withTempDir(body: untyped): untyped	
+withCleanDir	hmisc/other/oswrap.html#withCleanDir.t,untyped,untyped	oswrap: withCleanDir(dirname, body: untyped): untyped	
+withTempFile	hmisc/other/oswrap.html#withTempFile.t,untyped,string,untyped	oswrap: withTempFile(dirname: untyped; pattern: string; body: untyped): untyped	
+withEnv	hmisc/other/oswrap.html#withEnv.t,openArray[],untyped	oswrap: withEnv(envs: openArray[(ShellVar, string)]; body: untyped): untyped	
+mkDirStructure	hmisc/other/oswrap.html#mkDirStructure.m,untyped	oswrap: mkDirStructure(body: untyped): untyped	
+mkWithDirStructure	hmisc/other/oswrap.html#mkWithDirStructure.t,AbsDir,untyped	oswrap: mkWithDirStructure(dir: AbsDir; body: untyped): untyped	
+cmdEnd	hmisc/other/oswrap.html#cmdEnd	CmdLineKind.cmdEnd	
+cmdArgument	hmisc/other/oswrap.html#cmdArgument	CmdLineKind.cmdArgument	
+cmdLongOption	hmisc/other/oswrap.html#cmdLongOption	CmdLineKind.cmdLongOption	
+cmdShortOption	hmisc/other/oswrap.html#cmdShortOption	CmdLineKind.cmdShortOption	
+CmdLineKind	hmisc/other/oswrap.html#CmdLineKind	oswrap: CmdLineKind	
+OptParser	hmisc/other/oswrap.html#OptParser	oswrap: OptParser	
+initOptParser	hmisc/other/oswrap.html#initOptParser,seq[string],set[char],seq[string]	oswrap: initOptParser(cmdline: seq[string]; shortNoVal: set[char] = {};\n              longNoVal: seq[string] = @[]; allowWhitespaceAfterColon = true): OptParser	
+next	hmisc/other/oswrap.html#next,OptParser	oswrap: next(p: var OptParser)	
+cmdLineRest	hmisc/other/oswrap.html#cmdLineRest,OptParser	oswrap: cmdLineRest(p: OptParser): string	
+remainingArgs	hmisc/other/oswrap.html#remainingArgs,OptParser	oswrap: remainingArgs(p: OptParser): seq[string]	
+getopt	hmisc/other/oswrap.html#getopt.i,OptParser	oswrap: getopt(p: var OptParser): tuple[kind: CmdLineKind, key, val: string]	
+getopt	hmisc/other/oswrap.html#getopt.i,seq[string],set[char],seq[string]	oswrap: getopt(cmdline: seq[string] = paramStrs(); shortNoVal: set[char] = {};\n       longNoVal: seq[string] = @[]): tuple[kind: CmdLineKind, key, val: string,\n    idx: int]	
+splitCmdLine	hmisc/other/oswrap.html#splitCmdLine,seq[string],set[char],seq[string]	oswrap: splitCmdLine(cmdline: seq[string]; shortNoVal: set[char] = {};\n             longNoVal: seq[string] = @[]; allowWhitespaceAfterColon = true): tuple[\n    args: seq[string], opts: Table[string, seq[string]]]	
+paramVal	hmisc/other/oswrap.html#paramVal,string	oswrap: paramVal(param: string): seq[string]	
+paramVal	hmisc/other/oswrap.html#paramVal,string,seq[string]	oswrap: paramVal(param: string; default: seq[string]): seq[string]	
+DistributionGenericOsNames	hmisc/other/oswrap.html#DistributionGenericOsNames	oswrap: DistributionGenericOsNames	
+DistributionDebianDerivatives	hmisc/other/oswrap.html#DistributionDebianDerivatives	oswrap: DistributionDebianDerivatives	
+detectOs	hmisc/other/oswrap.html#detectOs,Distribution,array[,string]	oswrap: detectOs(d: Distribution; cache: var array[4, string]): bool	
+getCurrentOs	hmisc/other/oswrap.html#getCurrentOs	oswrap: getCurrentOs(): set[Distribution]	
+getOsPackageManagerCmd	hmisc/other/oswrap.html#getOsPackageManagerCmd	oswrap: getOsPackageManagerCmd(): (string, bool)	
+getInstallCmd	hmisc/other/oswrap.html#getInstallCmd,string	oswrap: getInstallCmd(package: string): string	
+getInstalledPackagesCmd	hmisc/other/oswrap.html#getInstalledPackagesCmd	oswrap: getInstalledPackagesCmd(): string	
+isPackageInstalled	hmisc/other/oswrap.html#isPackageInstalled,string	oswrap: isPackageInstalled(pack: string): bool	
+getMissingDependencies	hmisc/other/oswrap.html#getMissingDependencies,openArray[tuple[set[Distribution],seq[string]]]	oswrap: getMissingDependencies(deplist: openArray[\n    tuple[distros: set[Distribution], packgs: seq[string]]]): seq[\n    tuple[package, installCmd: string]]	
+parseJson	hmisc/other/oswrap.html#parseJson,AnyFile	oswrap: parseJson(file: AnyFile): JsonNode	
+newFileStream	hmisc/other/oswrap.html#newFileStream,,FileMode,int	oswrap: newFileStream(filename: AbsFile | RelFile; mode: FileMode = fmRead;\n              bufSize: int = -1): owned FileStream	
+newWriteStream	hmisc/other/oswrap.html#newWriteStream	oswrap: newWriteStream(file: AbsFile | RelFile): FileStream	
+OutStringStream	hmisc/other/oswrap.html#OutStringStream	oswrap: OutStringStream	
+newOutStringStream	hmisc/other/oswrap.html#newOutStringStream,string	oswrap: newOutStringStream(target: var string): OutStringStream	

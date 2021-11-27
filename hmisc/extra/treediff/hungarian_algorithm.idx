@@ -1,0 +1,11 @@
+HungarianAlgorithm	hmisc/extra/treediff/hungarian_algorithm.html#HungarianAlgorithm	hungarian_algorithm: HungarianAlgorithm	
+newHungarianAlgorithm	hmisc/extra/treediff/hungarian_algorithm.html#newHungarianAlgorithm,seq[seq[float]]	hungarian_algorithm: newHungarianAlgorithm(costMatrix: seq[seq[float]]): HungarianAlgorithm	
+computeInitialFeasibleSolution	hmisc/extra/treediff/hungarian_algorithm.html#computeInitialFeasibleSolution,HungarianAlgorithm	hungarian_algorithm: computeInitialFeasibleSolution(this: HungarianAlgorithm): void	
+reduce	hmisc/extra/treediff/hungarian_algorithm.html#reduce,HungarianAlgorithm	hungarian_algorithm: reduce(this: HungarianAlgorithm): void	
+match	hmisc/extra/treediff/hungarian_algorithm.html#match,HungarianAlgorithm,int,int	hungarian_algorithm: match(this: HungarianAlgorithm; w: int; j: int): void	
+greedyMatch	hmisc/extra/treediff/hungarian_algorithm.html#greedyMatch,HungarianAlgorithm	hungarian_algorithm: greedyMatch(this: HungarianAlgorithm): void	
+updateLabeling	hmisc/extra/treediff/hungarian_algorithm.html#updateLabeling,HungarianAlgorithm,float	hungarian_algorithm: updateLabeling(this: HungarianAlgorithm; slack: float): void	
+executePhase	hmisc/extra/treediff/hungarian_algorithm.html#executePhase,HungarianAlgorithm	hungarian_algorithm: executePhase(this: HungarianAlgorithm): void	
+fetchUnmatchedWorker	hmisc/extra/treediff/hungarian_algorithm.html#fetchUnmatchedWorker,HungarianAlgorithm	hungarian_algorithm: fetchUnmatchedWorker(this: HungarianAlgorithm): int	
+initializePhase	hmisc/extra/treediff/hungarian_algorithm.html#initializePhase,HungarianAlgorithm,int	hungarian_algorithm: initializePhase(this: HungarianAlgorithm; w: int): void	
+execute	hmisc/extra/treediff/hungarian_algorithm.html#execute,HungarianAlgorithm	hungarian_algorithm: execute(this: HungarianAlgorithm): seq[int]	

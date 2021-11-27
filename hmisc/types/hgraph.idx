@@ -1,0 +1,162 @@
+NoProperty	hmisc/types/hgraph.html#NoProperty	hgraph: NoProperty	
+HNodeId	hmisc/types/hgraph.html#HNodeId	hgraph: HNodeId	
+HEdgeId	hmisc/types/hgraph.html#HEdgeId	hgraph: HEdgeId	
+HNodeSet	hmisc/types/hgraph.html#HNodeSet	hgraph: HNodeSet	
+HEdgeSet	hmisc/types/hgraph.html#HEdgeSet	hgraph: HEdgeSet	
+HNode	hmisc/types/hgraph.html#HNode	hgraph: HNode	
+HEdge	hmisc/types/hgraph.html#HEdge	hgraph: HEdge	
+gpDirected	hmisc/types/hgraph.html#gpDirected	HGraphProperty.gpDirected	
+gpUndirected	hmisc/types/hgraph.html#gpUndirected	HGraphProperty.gpUndirected	
+gpAllowSelfLoops	hmisc/types/hgraph.html#gpAllowSelfLoops	HGraphProperty.gpAllowSelfLoops	
+gpIgnoreSelfLoops	hmisc/types/hgraph.html#gpIgnoreSelfLoops	HGraphProperty.gpIgnoreSelfLoops	
+HGraphProperty	hmisc/types/hgraph.html#HGraphProperty	hgraph: HGraphProperty	
+HGraphStructure	hmisc/types/hgraph.html#HGraphStructure	hgraph: HGraphStructure	
+HNodeMap	hmisc/types/hgraph.html#HNodeMap	hgraph: HNodeMap	
+HEdgeMap	hmisc/types/hgraph.html#HEdgeMap	hgraph: HEdgeMap	
+HGraph	hmisc/types/hgraph.html#HGraph	hgraph: HGraph	
+HGraphPath	hmisc/types/hgraph.html#HGraphPath	hgraph: HGraphPath	
+HNodeStack	hmisc/types/hgraph.html#HNodeStack	hgraph: HNodeStack	
+HGraphError	hmisc/types/hgraph.html#HGraphError	hgraph: HGraphError	
+HGraphCyclesError	hmisc/types/hgraph.html#HGraphCyclesError	hgraph: HGraphCyclesError	
+newHEdgeMap	hmisc/types/hgraph.html#newHEdgeMap,bool	hgraph: newHEdgeMap[E](keepReverseIndex: bool = true): HEdgeMap[E]	
+newHNodeMap	hmisc/types/hgraph.html#newHNodeMap,bool	hgraph: newHNodeMap[E](keepReverseIndex: bool = true): HNodeMap[E]	
+initHNode	hmisc/types/hgraph.html#initHNode,int	hgraph: initHNode(id: int): HNode	
+initHEdge	hmisc/types/hgraph.html#initHEdge,int	hgraph: initHEdge(id: int): HEdge	
+toDotNodeId	hmisc/types/hgraph.html#toDotNodeId.c,HNodeId	hgraph: toDotNodeId(id: HNodeId): DotNodeId	
+toDotNodeId	hmisc/types/hgraph.html#toDotNodeId.c,HNode	hgraph: toDotNodeId(id: HNode): DotNodeId	
+toDotNodeId	hmisc/types/hgraph.html#toDotNodeId.c,seq[]	hgraph: toDotNodeId(id: seq[HNode | HNodeId]): seq[DotNodeId]	
+newHGraph	hmisc/types/hgraph.html#newHGraph,set[HGraphProperty]	hgraph: newHGraph[N, E](properties: set[HGraphProperty] = {gpDirected, gpAllowSelfLoops}): HGraph[\n    N, E]	
+default	hmisc/types/hgraph.html#default,typedesc[HGraph[N,E]]	hgraph: default[N, E](graph: typedesc[HGraph[N, E]]): HGraph[N, E]	
+copyStructureHGraph	hmisc/types/hgraph.html#copyStructureHGraph,HGraph[N,E]	hgraph: copyStructureHGraph[N, E](graph: HGraph[N, E]): HGraph[N, E]	
+withMap	hmisc/types/hgraph.html#withMap,HGraph[N1,E],HNodeMap[N2]	hgraph: withMap[N1, N2, E](graph: HGraph[N1, E]; map: HNodeMap[N2]): HGraph[N2, E]	
+withMap	hmisc/types/hgraph.html#withMap,HGraph[N,E1],HEdgeMap[E2]	hgraph: withMap[N, E1, E2](graph: HGraph[N, E1]; map: HEdgeMap[E2]): HGraph[N, E2]	
+incl	hmisc/types/hgraph.html#incl,HNodeSet,HNode	hgraph: incl(s: var HNodeSet; node: HNode)	
+incl	hmisc/types/hgraph.html#incl,HEdgeSet,HEdge	hgraph: incl(s: var HEdgeSet; edge: HEdge)	
+incl	hmisc/types/hgraph.html#incl,HNodeSet,HNodeSet	hgraph: incl(s: var HNodeSet; node: HNodeSet)	
+incl	hmisc/types/hgraph.html#incl,HEdgeSet,HEdgeSet	hgraph: incl(s: var HEdgeSet; edge: HEdgeSet)	
+union	hmisc/types/hgraph.html#union,sinkHNodeSet,HNodeSet	hgraph: union(s1: sink HNodeSet; s2: HNodeSet): HNodeSet	
+union	hmisc/types/hgraph.html#union,sinkHEdgeSet,HEdgeSet	hgraph: union(s1: sink HEdgeSet; s2: HEdgeSet): HEdgeSet	
+excl	hmisc/types/hgraph.html#excl,HNodeSet,HNode	hgraph: excl(s: var HNodeSet; node: HNode)	
+excl	hmisc/types/hgraph.html#excl,HNodeSet,HNodeSet	hgraph: excl(s: var HNodeSet; s2: HNodeSet)	
+excl	hmisc/types/hgraph.html#excl,HEdgeSet,HEdge	hgraph: excl(s: var HEdgeSet; edge: HEdge)	
+excl	hmisc/types/hgraph.html#excl,HEdgeSet,HEdgeSet	hgraph: excl(s: var HEdgeSet; s2: HEdgeSet)	
+`&lt;`	hmisc/types/hgraph.html#<,S,S	hgraph: `&lt;`[S: HEdgeSet | HNodeSet](s1, s2: S): bool	
+`+`	hmisc/types/hgraph.html#+,HNodeSet,HNodeSet	hgraph: `+`(s1, s2: HNodeSet): HNodeSet	
+`*`	hmisc/types/hgraph.html#*,HNodeSet,HNodeSet	hgraph: `*`(s1, s2: HNodeSet): HNodeSet	
+`+`	hmisc/types/hgraph.html#+,HEdgeSet,HEdgeSet	hgraph: `+`(s1, s2: HEdgeSet): HEdgeSet	
+`*`	hmisc/types/hgraph.html#*,HEdgeSet,HEdgeSet	hgraph: `*`(s1, s2: HEdgeSet): HEdgeSet	
+`&lt;=`	hmisc/types/hgraph.html#<=,S,S	hgraph: `&lt;=`[S: HEdgeSet | HNodeSet](s1, s2: S): bool	
+items	hmisc/types/hgraph.html#items.i,HEdgeSet	hgraph: items(s: HEdgeSet): HEdge	
+contains	hmisc/types/hgraph.html#contains,HEdgeSet,HEdgeId	hgraph: contains(s: HEdgeSet; id: HEdgeId): bool	
+contains	hmisc/types/hgraph.html#contains,HNodeSet,HNodeId	hgraph: contains(s: HNodeSet; id: HNodeId): bool	
+contains	hmisc/types/hgraph.html#contains,HNodeSet,HNode	hgraph: contains(s: HNodeSet; node: HNode): bool	
+contains	hmisc/types/hgraph.html#contains,HEdgeSet,HEdge	hgraph: contains(s: HEdgeSet; node: HEdge): bool	
+len	hmisc/types/hgraph.html#len	hgraph: len(s: HNodeSet | HEdgeSet): int	
+hash	hmisc/types/hgraph.html#hash	hgraph: hash(s: HNodeSet | HEdgeSet): Hash	
+contains	hmisc/types/hgraph.html#contains,HGraph[N,E],HNode	hgraph: contains[N, E](graph: HGraph[N, E]; node: HNode): bool	
+pop	hmisc/types/hgraph.html#pop,HNodeSet	hgraph: pop(s: var HNodeSet): HNode	
+items	hmisc/types/hgraph.html#items.i,HNodeSet	hgraph: items(s: HNodeSet): HNode	
+`$`	hmisc/types/hgraph.html#$	hgraph: `$`(id: HNodeId | HEdgeId): string	
+`$`	hmisc/types/hgraph.html#$,HNodeSet	hgraph: `$`(id: HNodeSet): string	
+`$`	hmisc/types/hgraph.html#$,HEdgeSet	hgraph: `$`(id: HEdgeSet): string	
+`==`	hmisc/types/hgraph.html#==,,	hgraph: `==`(id1, id2: HNodeId | HEdgeId): bool	
+`==`	hmisc/types/hgraph.html#==,NoProperty,NoProperty	hgraph: `==`(n1, n2: NoProperty): bool	
+hash	hmisc/types/hgraph.html#hash_2	hgraph: hash(id: HNodeId | HEdgeId): Hash	
+hash	hmisc/types/hgraph.html#hash,HNode	hgraph: hash(node: HNode): Hash	
+hash	hmisc/types/hgraph.html#hash,HEdge	hgraph: hash(edge: HEdge): Hash	
+toSet	hmisc/types/hgraph.html#toSet,HGraphPath	hgraph: toSet(path: HGraphPath): HNodeSet	
+toSet	hmisc/types/hgraph.html#toSet,seq[HGraphPath]	hgraph: toSet(paths: seq[HGraphPath]): seq[HNodeSet]	
+len	hmisc/types/hgraph.html#len,HNodeStack	hgraph: len(stack: HNodeStack): int	
+top	hmisc/types/hgraph.html#top,HNodeStack	hgraph: top(stack: HNodeStack): HNode	
+add	hmisc/types/hgraph.html#add,HNodeStack,HNode	hgraph: add(stack: var HNodeStack; node: HNode)	
+pop	hmisc/types/hgraph.html#pop,HNodeStack	hgraph: pop(stack: var HNodeStack): HNode	
+contains	hmisc/types/hgraph.html#contains,HNodeStack,HNode	hgraph: contains(stack: HNodeStack; node: HNode): bool	
+`[]`	hmisc/types/hgraph.html#[],HGraph[N,E],HNode	hgraph: `[]`[N, E](g: HGraph[N, E]; node: HNode): N	
+`[]`	hmisc/types/hgraph.html#[],HGraph[N,E],HNodeSet	hgraph: `[]`[N, E](g: HGraph[N, E]; idSet: HNodeSet): seq[N]	
+`[]`	hmisc/types/hgraph.html#[],HGraph[N,E],HEdge	hgraph: `[]`[N, E](g: HGraph[N, E]; edge: HEdge): E	
+`[]`	hmisc/types/hgraph.html#[],HGraph[N,E],HNode_2	hgraph: `[]`[N, E](g: var HGraph[N, E]; node: HNode): var N	
+`[]`	hmisc/types/hgraph.html#[],HGraph[N,E],HEdge_2	hgraph: `[]`[N, E](g: var HGraph[N, E]; edge: HEdge): var E	
+target	hmisc/types/hgraph.html#target,HGraph[N,E],HEdge	hgraph: target[N, E](g: HGraph[N, E]; edge: HEdge): HNode	
+source	hmisc/types/hgraph.html#source,HGraph[N,E],HEdge	hgraph: source[N, E](g: HGraph[N, E]; edge: HEdge): HNode	
+targetVal	hmisc/types/hgraph.html#targetVal,HGraph[N,E],HEdge	hgraph: targetVal[N, E](g: HGraph[N, E]; edge: HEdge): N	
+sourceVal	hmisc/types/hgraph.html#sourceVal,HGraph[N,E],HEdge	hgraph: sourceVal[N, E](g: HGraph[N, E]; edge: HEdge): N	
+targetVal	hmisc/types/hgraph.html#targetVal,HGraph[N,E],HEdge_2	hgraph: targetVal[N, E](g: var HGraph[N, E]; edge: HEdge): var N	
+sourceVal	hmisc/types/hgraph.html#sourceVal,HGraph[N,E],HEdge_2	hgraph: sourceVal[N, E](g: var HGraph[N, E]; edge: HEdge): var N	
+contains	hmisc/types/hgraph.html#contains,HNodeMap[N],N	hgraph: contains[N](map: HNodeMap[N]; value: N): bool	
+contains	hmisc/types/hgraph.html#contains,HNodeMap[N],HNode	hgraph: contains[N](map: HNodeMap[N]; node: HNode): bool	
+contains	hmisc/types/hgraph.html#contains,HGraph[N,E],	hgraph: contains[N, E](graph: HGraph[N, E]; edge: (HNode, HNode)): bool	
+getEdge	hmisc/types/hgraph.html#getEdge,HGraph[N,E],HNode,HNode	hgraph: getEdge[N, E](graph: HGraph[N, E]; source, target: HNode): HEdge	
+len	hmisc/types/hgraph.html#len,HEdgeMap[N]	hgraph: len[N](map: HEdgeMap[N]): int	
+len	hmisc/types/hgraph.html#len,HNodeMap[E]	hgraph: len[E](map: HNodeMap[E]): int	
+del	hmisc/types/hgraph.html#del,HEdgeMap[N],HEdge	hgraph: del[N](map: var HEdgeMap[N]; edge: HEdge)	
+`[]`	hmisc/types/hgraph.html#[],HNodeMap[N],N	hgraph: `[]`[N](map: HNodeMap[N]; value: N): HNode	
+`[]`	hmisc/types/hgraph.html#[],HGraph[N,E],N	hgraph: `[]`[N, E](graph: HGraph[N, E]; value: N): HNode	
+`[]`	hmisc/types/hgraph.html#[],HNodeMap[N],HNode	hgraph: `[]`[N](map: HNodeMap[N]; node: HNode): N	
+`[]`	hmisc/types/hgraph.html#[],HNodeMap[N],HNode_2	hgraph: `[]`[N](map: var HNodeMap[N]; node: HNode): var N	
+`[]=`	hmisc/types/hgraph.html#[]=,HNodeMap[N],HNode,N	hgraph: `[]=`[N](map: var HNodeMap[N]; node: HNode; value: N)	
+pairs	hmisc/types/hgraph.html#pairs.i,HNodeMap[N]	hgraph: pairs[N](map: HNodeMap[N]): (HNode, N)	
+pairs	hmisc/types/hgraph.html#pairs.i,HEdgeMap[N]	hgraph: pairs[N](map: HEdgeMap[N]): (HEdge, N)	
+`$`	hmisc/types/hgraph.html#$,HNodeMap[N]	hgraph: `$`[N](map: HNodeMap[N]): string	
+add	hmisc/types/hgraph.html#add,HNodeMap[N],N,HNode	hgraph: add[N](map: var HNodeMap[N]; value: N; node: HNode)	
+add	hmisc/types/hgraph.html#add,HEdgeMap[E],E,HEdge	hgraph: add[E](map: var HEdgeMap[E]; value: E; edge: HEdge)	
+edgeCount	hmisc/types/hgraph.html#edgeCount,HGraph[N,E]	hgraph: edgeCount[N, E](graph: HGraph[N, E]): int	
+nodeCount	hmisc/types/hgraph.html#nodeCount,HGraph[N,E]	hgraph: nodeCount[N, E](graph: HGraph[N, E]): int	
+inDeg	hmisc/types/hgraph.html#inDeg,HGraph[N,E],HNode	hgraph: inDeg[N, E](graph: HGraph[N, E]; node: HNode): int	
+outDeg	hmisc/types/hgraph.html#outDeg,HGraph[N,E],HNode	hgraph: outDeg[N, E](graph: HGraph[N, E]; node: HNode): int	
+isDirected	hmisc/types/hgraph.html#isDirected,HGraph[N,E]	hgraph: isDirected[N, E](graph: HGraph[N, E]): bool	
+addNode	hmisc/types/hgraph.html#addNode,HGraph[N,E],N	hgraph: addNode[N, E](graph: var HGraph[N, E]; value: N): HNode	
+addNode	hmisc/types/hgraph.html#addNode,HGraph[N,E],HNode,N	hgraph: addNode[N, E](graph: var HGraph[N, E]; node: HNode; value: N): HNode	
+addOrGetNode	hmisc/types/hgraph.html#addOrGetNode,HGraph[N,E],N	hgraph: addOrGetNode[N, E](graph: var HGraph[N, E]; value: N): HNode	
+addEdge	hmisc/types/hgraph.html#addEdge,HGraphStructure,HNode,HNode,HEdge	hgraph: addEdge(structure: var HGraphStructure; source, target: HNode; edge: HEdge)	
+addNode	hmisc/types/hgraph.html#addNode,HGraphStructure,HNode	hgraph: addNode(structure: var HGraphStructure; node: HNode)	
+addEdge	hmisc/types/hgraph.html#addEdge,HGraph[N,E],HNode,HNode,E	hgraph: addEdge[N, E](graph: var HGraph[N, E]; source, target: HNode; value: E): HEdge	
+addEdge	hmisc/types/hgraph.html#addEdge,HGraph[N,NoProperty],HNode,HNode	hgraph: addEdge[N](graph: var HGraph[N, NoProperty]; source, target: HNode): HEdge	
+addEdge	hmisc/types/hgraph.html#addEdge,HGraph[N,E],N,N,E	hgraph: addEdge[N, E](graph: var HGraph[N, E]; sourceValue, targetValue: N; edgeValue: E): HEdge	
+addEdge	hmisc/types/hgraph.html#addEdge,HGraph[N,NoProperty],N,N	hgraph: addEdge[N, NoProperty](graph: var HGraph[N, NoProperty];\n                       sourceValue, targetValue: N): HEdge	
+addOrGetEdge	hmisc/types/hgraph.html#addOrGetEdge,HGraph[N,E],N,N,E	hgraph: addOrGetEdge[N, E](graph: var HGraph[N, E]; sourceValue, targetValue: N;\n                   edgeValue: E): HEdge	
+addOrGetEdge	hmisc/types/hgraph.html#addOrGetEdge,HGraph[N,NoProperty],HNode,HNode	hgraph: addOrGetEdge[N, NoProperty](graph: var HGraph[N, NoProperty];\n                            source, target: HNode): HEdge	
+addOrGetEdge	hmisc/types/hgraph.html#addOrGetEdge,HGraph[N,E],HNode,HNode,E	hgraph: addOrGetEdge[N, E](graph: var HGraph[N, E]; source, target: HNode; edge: E): HEdge	
+addOrGetEdge	hmisc/types/hgraph.html#addOrGetEdge,HGraph[N,E],N,N	hgraph: addOrGetEdge[N, E](graph: var HGraph[N, E]; sourceValue, targetValue: N): HEdge	
+addOrGetEdge	hmisc/types/hgraph.html#addOrGetEdge,HGraph[N,E],openArray[tuple[tuple[N,N],E]]	hgraph: addOrGetEdge[N, E](graph: var HGraph[N, E]; edgePairs: openArray[\n    tuple[edgePair: tuple[sourceValue, targetValue: N], edgeValue: E]]): seq[\n    HEdge]	
+removeNode	hmisc/types/hgraph.html#removeNode,HGraph[N,E],HNode	hgraph: removeNode[N, E](graph: var HGraph[N, E]; node: HNode)	
+removeEdge	hmisc/types/hgraph.html#removeEdge,HGraph[N,E],HEdge	hgraph: removeEdge[N, E](graph: var HGraph[N, E]; edge: HEdge)	
+newHGraphForRef	hmisc/types/hgraph.html#newHGraphForRef,T	hgraph: newHGraphForRef[T: ref](t: T): HGraph[T, NoProperty]	
+getNode	hmisc/types/hgraph.html#getNode,HGraph[N,E],N	hgraph: getNode[N, E](graph: HGraph[N, E]; value: N): HNode	
+getNodeId	hmisc/types/hgraph.html#getNodeId,HNode	hgraph: getNodeId(node: HNode): HNodeId	
+getNodeById	hmisc/types/hgraph.html#getNodeById,HGraph[N,E],int	hgraph: getNodeById[N, E](graph: HGraph[N, E]; id: int): HNode	
+isAdjacent	hmisc/types/hgraph.html#isAdjacent,HGraph[N,E],HNode,HNode	hgraph: isAdjacent[N, E](graph: HGraph[N, E]; node1, node2: HNode): bool	
+outEdges	hmisc/types/hgraph.html#outEdges.i,HGraph[N,E],HNode	hgraph: outEdges[N, E](graph: HGraph[N, E]; source: HNode): HEdge	
+inEdges	hmisc/types/hgraph.html#inEdges.i,HGraph[N,E],HNode	hgraph: inEdges[N, E](graph: HGraph[N, E]; target: HNode): HEdge	
+outNodes	hmisc/types/hgraph.html#outNodes.i,HGraph[N,E],HNode,bool	hgraph: outNodes[N, E](graph: HGraph[N, E]; source: HNode; yieldMultiedge: bool = false): HNode	
+inNodes	hmisc/types/hgraph.html#inNodes.i,HGraph[N,E],HNode,bool	hgraph: inNodes[N, E](graph: HGraph[N, E]; source: HNode; yieldMultiedge: bool = false): HNode	
+inNodes	hmisc/types/hgraph.html#inNodes.i,HGraph[N,E],HNodeSet,bool	hgraph: inNodes[N, E](graph: HGraph[N, E]; source: HNodeSet;\n              yieldMultiedge: bool = false): HNode	
+adjacent	hmisc/types/hgraph.html#adjacent.i,HGraph[N,E],HNode	hgraph: adjacent[N, E](graph: HGraph[N, E]; node: HNode): HNode	
+edges	hmisc/types/hgraph.html#edges.i,HGraph[N,E]	hgraph: edges[N, E](graph: HGraph[N, E]): HEdge	
+nodes	hmisc/types/hgraph.html#nodes.i,HGraph[N,E]	hgraph: nodes[N, E](graph: HGraph[N, E]): HNode	
+nodeSet	hmisc/types/hgraph.html#nodeSet,HGraph[N,E]	hgraph: nodeSet[N, E](graph: HGraph[N, E]): HNodeSet	
+nodesId	hmisc/types/hgraph.html#nodesId.i,HGraph[N,E]	hgraph: nodesId[N, E](graph: HGraph[N, E]): int	
+copySubStructure	hmisc/types/hgraph.html#copySubStructure,HGraph[N,E],HNodeSet,HEdgeSet,bool,bool	hgraph: copySubStructure[N, E](graph: HGraph[N, E]; nodes: HNodeSet;\n                       edges: HEdgeSet = HEdgeSet(); inferEdges: bool = true;\n                       inferNodes: bool = false): HGraph[N, E]	
+`$`	hmisc/types/hgraph.html#$,HGraph[N,E]	hgraph: `$`[N, E](graph: HGraph[N, E]): string	
+depthFirst	hmisc/types/hgraph.html#depthFirst.i,HGraph[N,E],HNode,bool	hgraph: depthFirst[N, E](graph: HGraph[N, E]; root: HNode; preorderYield: bool = true): HNode	
+depthFirst	hmisc/types/hgraph.html#depthFirst.i,HGraph[N,E],HNode,bool_2	hgraph: depthFirst[N, E](graph: var HGraph[N, E]; root: HNode;\n                 preorderYield: bool = true): HNode	
+breadthFirst	hmisc/types/hgraph.html#breadthFirst.i,HGraph[N,E],HNode	hgraph: breadthFirst[N, E](graph: HGraph[N, E]; root: HNode): HNode	
+breadthFirst	hmisc/types/hgraph.html#breadthFirst.i,HGraph[N,E],HNode_2	hgraph: breadthFirst[N, E](graph: var HGraph[N, E]; root: HNode): var HNode	
+topologicalOrdering	hmisc/types/hgraph.html#topologicalOrdering,HGraph[N,E]	hgraph: topologicalOrdering[N, E](graph: HGraph[N, E]): seq[HNode]	
+dependencyOrdering	hmisc/types/hgraph.html#dependencyOrdering,HGraph[N,E],HNode,bool	hgraph: dependencyOrdering[N, E](graph: HGraph[N, E]; root: HNode;\n                         leafFirst: bool = true): seq[HNode]	
+colorizeDSatur	hmisc/types/hgraph.html#colorizeDSatur,HGraph[N,E]	hgraph: colorizeDSatur[N, E](graph: HGraph[N, E]): tuple[maxColors: int,\n    colorMap: HNodeMap[int]]	
+colorizeRLF	hmisc/types/hgraph.html#colorizeRLF,HGraph[N,E]	hgraph: colorizeRLF[N, E](graph: HGraph[N, E])	
+minimalSpanningTree	hmisc/types/hgraph.html#minimalSpanningTree,HGraph[N,E]	hgraph: minimalSpanningTree[N, E](graph: HGraph[N, E]): HGraph[N, E]	
+findCycles	hmisc/types/hgraph.html#findCycles,HGraph[N,E],bool,bool,bool	hgraph: findCycles[N, E](graph: HGraph[N, E]; ignoreSelf: bool = false;\n                 overrideDirected: bool = false; yieldMultiedge: bool = false): seq[\n    HGraphPath]	
+mergeCycleSets	hmisc/types/hgraph.html#mergeCycleSets,seq[HGraphPath]	hgraph: mergeCycleSets(cycles: seq[HGraphPath]): seq[HNodeSet]	
+connectedComponents	hmisc/types/hgraph.html#connectedComponents,HGraph[N,E],bool	hgraph: connectedComponents[N, E](graph: HGraph[N, E]; overrideDirected: bool = false): seq[\n    HNodeSet]	
+extendOutgoing	hmisc/types/hgraph.html#extendOutgoing,HGraph[N,E],HNodeSet,proc(HNode)	hgraph: extendOutgoing[N, E](graph: HGraph[N, E]; nodes: HNodeSet;\n                     accept: proc (node: HNode): bool = nil): HNodeSet	
+extendOutgoing	hmisc/types/hgraph.html#extendOutgoing,HGraph[N,E],HNodeSet,,proc(HNode)	hgraph: extendOutgoing[N, E, V](graph: HGraph[N, E]; nodes: HNodeSet; existingGroups: var Table[\n    HNodeSet, V] |\n    var TableRef[HNodeSet, V]; accept: proc (node: HNode): bool = nil): HNodeSet	
+extendOutgoing	hmisc/types/hgraph.html#extendOutgoing,HGraph[N,E],HNodeSet,seq[],proc(HNode)	hgraph: extendOutgoing[N, E, V](graph: HGraph[N, E]; nodes: HNodeSet;\n                        existingGroups: var seq[(HNodeSet, V)];\n                        accept: proc (node: HNode): bool = nil): HNodeSet	
+orthoLayout	hmisc/types/hgraph.html#orthoLayout,HGraph[N,E]	hgraph: orthoLayout[N, E](graph: HGraph[N, E]): OrthoLayoutData	
+drawOrthoLayout	hmisc/types/hgraph.html#drawOrthoLayout,OrthoLayoutData	hgraph: drawOrthoLayout(layoutData: OrthoLayoutData): seq[seq[string]]	
+dotRepr	hmisc/types/hgraph.html#dotRepr,HGraph[N,E],proc(N,HNode),proc(E,HEdge),Option[DotGraph],seq[tuple[HNodeSet,string]]	hgraph: dotRepr[N, E](graph: HGraph[N, E];\n              nodeDotRepr: proc (node: N; hnode: HNode): DotNode;\n              edgeDotRepr: proc (edge: E; hedge: HEdge): DotEdge = nil;\n              baseGraph: Option[DotGraph] = none(DotGraph);\n              clusters: seq[tuple[nodes: HNodeSet, name: string]] = @[]): DotGraph	
+dotReprDollarNode	hmisc/types/hgraph.html#dotReprDollarNode,N,HNode	hgraph: dotReprDollarNode[N](node: N; hnode: HNode): DotNode	
+dotReprCollapseEdgesNoLabel	hmisc/types/hgraph.html#dotReprCollapseEdgesNoLabel,seq[tuple[E,HEdge]]	hgraph: dotReprCollapseEdgesNoLabel[E](edges: seq[tuple[edge: E, hedge: HEdge]]): DotEdge	
+dotReprCollapseEdgesJoin	hmisc/types/hgraph.html#dotReprCollapseEdgesJoin,seq[tuple[E,HEdge]]	hgraph: dotReprCollapseEdgesJoin[E](edges: seq[tuple[edge: E, hedge: HEdge]]): DotEdge	
+dotRepr	hmisc/types/hgraph.html#dotRepr,HGraph[N,E],proc(N,HNode),proc(seq[tuple[E,HEdge]]),Option[DotGraph],seq[tuple[HNodeSet,string]]	hgraph: dotRepr[N, E](graph: HGraph[N, E];\n              nodeDotRepr: proc (node: N; hnode: HNode): DotNode; edgeDotRepr: proc (\n    edges: seq[tuple[edge: E, hedge: HEdge]]): DotEdge = nil;\n              baseGraph: Option[DotGraph] = none(DotGraph);\n              clusters: seq[tuple[nodes: HNodeSet, name: string]] = @[]): DotGraph	
+dotRepr	hmisc/types/hgraph.html#dotRepr,HGraph[N,E],Option[DotGraph],seq[tuple[HNodeSet,string]]	hgraph: dotRepr[N, E](graph: HGraph[N, E]; baseGraph: Option[DotGraph] = none(DotGraph);\n              clusters: seq[tuple[nodes: HNodeSet, name: string]] = @[]): DotGraph	

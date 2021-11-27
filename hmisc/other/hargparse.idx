@@ -1,0 +1,180 @@
+cctFlag	hmisc/other/hargparse.html#cctFlag	CliCmdTreeKind.cctFlag	
+cctOpt	hmisc/other/hargparse.html#cctOpt	CliCmdTreeKind.cctOpt	
+cctArgument	hmisc/other/hargparse.html#cctArgument	CliCmdTreeKind.cctArgument	
+cctCommand	hmisc/other/hargparse.html#cctCommand	CliCmdTreeKind.cctCommand	
+cctGrouped	hmisc/other/hargparse.html#cctGrouped	CliCmdTreeKind.cctGrouped	
+CliCmdTreeKind	hmisc/other/hargparse.html#CliCmdTreeKind	hargparse: CliCmdTreeKind	
+CliCmdTree	hmisc/other/hargparse.html#CliCmdTree	hargparse: CliCmdTree	
+CliError	hmisc/other/hargparse.html#CliError	hargparse: CliError	
+CliCheck	hmisc/other/hargparse.html#CliCheck	hargparse: CliCheck	
+CliOrigin	hmisc/other/hargparse.html#CliOrigin	hargparse: CliOrigin	
+CliCompletion	hmisc/other/hargparse.html#CliCompletion	hargparse: CliCompletion	
+CliDoc	hmisc/other/hargparse.html#CliDoc	hargparse: CliDoc	
+CliDocTree	hmisc/other/hargparse.html#CliDocTree	hargparse: CliDocTree	
+CliDesc	hmisc/other/hargparse.html#CliDesc	hargparse: CliDesc	
+cvkString	hmisc/other/hargparse.html#cvkString	CliValueKind.cvkString	
+cvkInt	hmisc/other/hargparse.html#cvkInt	CliValueKind.cvkInt	
+cvkFloat	hmisc/other/hargparse.html#cvkFloat	CliValueKind.cvkFloat	
+cvkFsEntry	hmisc/other/hargparse.html#cvkFsEntry	CliValueKind.cvkFsEntry	
+cvkBool	hmisc/other/hargparse.html#cvkBool	CliValueKind.cvkBool	
+cvkSeq	hmisc/other/hargparse.html#cvkSeq	CliValueKind.cvkSeq	
+cvkRecord	hmisc/other/hargparse.html#cvkRecord	CliValueKind.cvkRecord	
+cvkUnparse	hmisc/other/hargparse.html#cvkUnparse	CliValueKind.cvkUnparse	
+cvkSpecialString	hmisc/other/hargparse.html#cvkSpecialString	CliValueKind.cvkSpecialString	
+cvkCommand	hmisc/other/hargparse.html#cvkCommand	CliValueKind.cvkCommand	
+cvkNotYetDefaulted	hmisc/other/hargparse.html#cvkNotYetDefaulted	CliValueKind.cvkNotYetDefaulted	
+CliValueKind	hmisc/other/hargparse.html#CliValueKind	hargparse: CliValueKind	
+CliOptionsTable	hmisc/other/hargparse.html#CliOptionsTable	hargparse: CliOptionsTable	
+CliValue	hmisc/other/hargparse.html#CliValue	hargparse: CliValue	
+CliApp	hmisc/other/hargparse.html#CliApp	hargparse: CliApp	
+cctDashedKinds	hmisc/other/hargparse.html#cctDashedKinds	hargparse: cctDashedKinds	
+cvkValidatorNames	hmisc/other/hargparse.html#cvkValidatorNames	hargparse: cvkValidatorNames	
+treeRepr	hmisc/other/hargparse.html#treeRepr,CliCmdTree	hargparse: treeRepr(tree: CliCmdTree): ColoredText	
+treeRepr	hmisc/other/hargparse.html#treeRepr,CliValue	hargparse: treeRepr(tree: CliValue): ColoredText	
+add	hmisc/other/hargparse.html#add,CliDesc,CliDesc	hargparse: add(desc: var CliDesc; other: CliDesc)	
+add	hmisc/other/hargparse.html#add,CliApp,CliDesc	hargparse: add(app: var CliApp; cmd: CliDesc)	
+root	hmisc/other/hargparse.html#root,CliApp	hargparse: root(app: CliApp): CliDesc	
+root	hmisc/other/hargparse.html#root,CliApp_2	hargparse: root(app: var CliApp): var CliDesc	
+cliValue	hmisc/other/hargparse.html#cliValue,string,string,string	hargparse: cliValue(val: string; doc: string; disabled: string = &quot;&quot;): CliValue	
+checkValues	hmisc/other/hargparse.html#checkValues,openArray[],string	hargparse: checkValues(values: openArray[(string, string)]; disabled: string = &quot;&quot;): CliCheck	
+checkExtensions	hmisc/other/hargparse.html#checkExtensions,openArray[]	hargparse: checkExtensions(exts: openArray[(string, string)]): CliCheck	
+checkFileReadable	hmisc/other/hargparse.html#checkFileReadable	hargparse: checkFileReadable(): CliCheck	
+checkDirExists	hmisc/other/hargparse.html#checkDirExists	hargparse: checkDirExists(): CliCheck	
+checkDirCreatable	hmisc/other/hargparse.html#checkDirCreatable	hargparse: checkDirCreatable(): CliCheck	
+checkOr	hmisc/other/hargparse.html#checkOr,CliCheck,CliCheck,varargs[CliCheck]	hargparse: checkOr(or1, or2: CliCheck; other: varargs[CliCheck]): CliCheck	
+checkAliased	hmisc/other/hargparse.html#checkAliased	hargparse: checkAliased(): CliCheck	
+checkRepeat	hmisc/other/hargparse.html#checkRepeat,int,int	hargparse: checkRepeat(minRepeat, maxRepeat: int): CliCheck	
+checkRepeat	hmisc/other/hargparse.html#checkRepeat,Slice[int]	hargparse: checkRepeat(repeat: Slice[int]): CliCheck	
+checkNo	hmisc/other/hargparse.html#checkNo	hargparse: checkNo(): CliCheck	
+checkAnd	hmisc/other/hargparse.html#checkAnd,CliCheck,CliCheck,varargs[CliCheck]	hargparse: checkAnd(and1, and2: CliCheck; other: varargs[CliCheck]): CliCheck	
+checkAndPos	hmisc/other/hargparse.html#checkAndPos,varargs[CliCheck]	hargparse: checkAndPos(checks: varargs[CliCheck]): CliCheck	
+checkAnyOf	hmisc/other/hargparse.html#checkAnyOf,CliCheck	hargparse: checkAnyOf(sub: CliCheck): CliCheck	
+checkAllOf	hmisc/other/hargparse.html#checkAllOf,CliCheck	hargparse: checkAllOf(sub: CliCheck): CliCheck	
+checkAcceptAll	hmisc/other/hargparse.html#checkAcceptAll	hargparse: checkAcceptAll(): CliCheck	
+checkKind	hmisc/other/hargparse.html#checkKind,CliCheckKind	hargparse: checkKind(kind: CliCheckKind): CliCheck	
+cliComplete	hmisc/other/hargparse.html#cliComplete,string,string,string	hargparse: cliComplete(key, doc: string; docFull: string = &quot;&quot;): CliCompletion	
+setDisabled	hmisc/other/hargparse.html#setDisabled,CliDesc,string	hargparse: setDisabled(desc: CliDesc; disabled: string)	
+opt	hmisc/other/hargparse.html#opt,string,string,CliDefault,openArray[],string,seq[string],CliDefault,CliOptKind,string,int,CliOpt,CliCheck,CliCheck,string	hargparse: opt(name, doc: string; default: CliDefault = nil;\n    values: openArray[(string, string)] = @[]; docFull: string = &quot;&quot;;\n    alt: seq[string] = @[]; defaultAsFlag: CliDefault = nil;\n    groupKind: CliOptKind = coOpt; varname: string = name; maxRepeat: int = 1;\n    aliasof: CliOpt = CliOpt(); selector: CliCheck = nil; check: CliCheck = nil;\n    disabled: string = &quot;&quot;): CliDesc	
+cmd	hmisc/other/hargparse.html#cmd,string,string,openArray[CliDesc],seq[string],string,seq[string]	hargparse: cmd(name, docBrief: string; subparts: openArray[CliDesc] = @[];\n    alt: seq[string] = @[]; docFull: string = &quot;&quot;;\n    commonArguments: seq[string] = @[]): CliDesc	
+ProcConf	hmisc/other/hargparse.html#ProcConf	hargparse: ProcConf	
+procConf	hmisc/other/hargparse.html#procConf,seq[string],seq[string],openArray[tuple[string,string]],openArray[string],openArray[string]	hargparse: procConf(alt: seq[string] = @[]; ignore: seq[string] = @[];\n         help: openArray[tuple[name, doc: string]] = @[];\n         commonArguments: openArray[string] = @[];\n         positional: openArray[string] = @[]): ProcConf	
+getHelpStr	hmisc/other/hargparse.html#getHelpStr,ProcConf,string	hargparse: getHelpStr(conf: ProcConf; arg: string): string	
+toValue	hmisc/other/hargparse.html#toValue,T	hargparse: toValue[T](arg: T): T	
+cmdImpl	hmisc/other/hargparse.html#cmdImpl.m,typed,untyped,static[ProcConf]	hargparse: cmdImpl(procSym: typed; argpass: untyped; conf: static[ProcConf]): untyped	
+cmd	hmisc/other/hargparse.html#cmd.m,,untyped	hargparse: cmd(procsym: typed{`proc`}; argpass: untyped = nil;\n    conf: ProcConf{`const` | lit | nkCall} = procConf()): untyped	
+flag	hmisc/other/hargparse.html#flag,string,string,CliOpt,string	hargparse: flag(name, doc: string; aliasof: CliOpt = CliOpt(); disabled: string = &quot;&quot;): CliDesc	
+docTree	hmisc/other/hargparse.html#docTree,string,openArray[]	hargparse: docTree(doc: string; sub: openArray[(string, CliDocTree)]): CliDocTree	
+docTree	hmisc/other/hargparse.html#docTree,string	hargparse: docTree(doc: string): CliDocTree	
+getCmdName	hmisc/other/hargparse.html#getCmdName,CliValue	hargparse: getCmdName(val: CliValue): string	
+getName	hmisc/other/hargparse.html#getName,CliValue	hargparse: getName(val: CliValue): string	
+getCmd	hmisc/other/hargparse.html#getCmd,CliValue	hargparse: getCmd(val: CliValue): CliValue	
+getArg	hmisc/other/hargparse.html#getArg,CliValue,int	hargparse: getArg(val: CliValue; pos: int = 0): CliValue	
+getCmd	hmisc/other/hargparse.html#getCmd,CliApp	hargparse: getCmd(app: CliApp): CliValue	
+getRootCmd	hmisc/other/hargparse.html#getRootCmd,CliApp	hargparse: getRootCmd(app: CliApp): CliValue	
+getOptions	hmisc/other/hargparse.html#getOptions,CliApp	hargparse: getOptions(app: CliApp): Table[string, CliValue]	
+getCmdName	hmisc/other/hargparse.html#getCmdName,CliApp	hargparse: getCmdName(app: CliApp): string	
+getArg	hmisc/other/hargparse.html#getArg,CliApp,int	hargparse: getArg(app: CliApp; pos: int = 0): CliValue	
+getOpt	hmisc/other/hargparse.html#getOpt,CliValue,string,bool	hargparse: getOpt(val: CliValue; name: string; optional: bool = false): CliValue	
+getOpt	hmisc/other/hargparse.html#getOpt,CliApp,string	hargparse: getOpt(app: CliApp; name: string): CliValue	
+getArg	hmisc/other/hargparse.html#getArg,CliValue,string	hargparse: getArg(val: CliValue; name: string): CliValue	
+getAtPath	hmisc/other/hargparse.html#getAtPath,CliValue,seq[string]	hargparse: getAtPath(val: CliValue; path: seq[string]): CliValue	
+getAtPath	hmisc/other/hargparse.html#getAtPath,CliApp,seq[string]	hargparse: getAtPath(app: CliApp; path: seq[string]): CliValue	
+getArg	hmisc/other/hargparse.html#getArg,CliApp,string	hargparse: getArg(app: CliApp; name: string): CliValue	
+hasCmd	hmisc/other/hargparse.html#hasCmd,CliValue	hargparse: hasCmd(val: CliValue): bool	
+assertKind	hmisc/other/hargparse.html#assertKind.t,CliValue,set[CliValueKind]	hargparse: assertKind(val: CliValue; target: set[CliValueKind]): untyped	
+fromCliValue	hmisc/other/hargparse.html#fromCliValue,CliValue,AbsFile	hargparse: fromCliValue(val: CliValue; result: var AbsFile)	
+fromCliValue	hmisc/other/hargparse.html#fromCliValue,CliValue,AbsDir	hargparse: fromCliValue(val: CliValue; result: var AbsDir)	
+fromCliValue	hmisc/other/hargparse.html#fromCliValue,CliValue,RelFile	hargparse: fromCliValue(val: CliValue; result: var RelFile)	
+fromCliValue	hmisc/other/hargparse.html#fromCliValue,CliValue,FsDir	hargparse: fromCliValue(val: CliValue; result: var FsDir)	
+fromCliValue	hmisc/other/hargparse.html#fromCliValue,CliValue,FsFile	hargparse: fromCliValue(val: CliValue; result: var FsFile)	
+fromCLiValue	hmisc/other/hargparse.html#fromCLiValue,CliValue,E	hargparse: fromCLiValue[E: enum](val: CliValue; result: var E)	
+fromCliValue	hmisc/other/hargparse.html#fromCliValue,CliValue,seq[T]	hargparse: fromCliValue[T](val: CliValue; result: var seq[T])	
+fromCliValue	hmisc/other/hargparse.html#fromCliValue,CliValue,	hargparse: fromCliValue[A, B](val: CliValue; result: var (A, B))	
+fromCliValue	hmisc/other/hargparse.html#fromCliValue,CliValue,Option[T]	hargparse: fromCliValue[T](val: CliValue; result: var Option[T])	
+fromCliValue	hmisc/other/hargparse.html#fromCliValue,CliValue,string	hargparse: fromCliValue(val: CliValue; result: var string)	
+fromCliValue	hmisc/other/hargparse.html#fromCliValue,CliValue,int	hargparse: fromCliValue(val: CliValue; result: var int)	
+fromCliValue	hmisc/other/hargparse.html#fromCliValue,CliValue,float	hargparse: fromCliValue(val: CliValue; result: var float)	
+fromCliValue	hmisc/other/hargparse.html#fromCliValue,CliValue,bool	hargparse: fromCliValue(val: CliValue; result: var bool)	
+fromCliValue	hmisc/other/hargparse.html#fromCliValue,CliValue,ShellExpr	hargparse: fromCliValue(val: CliValue; target: var ShellExpr)	
+`as`	hmisc/other/hargparse.html#as,CliValue,typedesc[T]	hargparse: `as`[T](val: CliValue; target: typedesc[T]): T	
+updateCliValue	hmisc/other/hargparse.html#updateCliValue.t,CliValue,string,CliDesc	hargparse: updateCliValue(value: CliValue; inDoc: string; inDesc: CliDesc)	
+specialStringCliValue	hmisc/other/hargparse.html#specialStringCliValue.t,string,string,CliDesc	hargparse: specialStringCliValue(value, inDoc: string; inDesc: CliDesc)	
+toCliValue	hmisc/other/hargparse.html#toCliValue,ShellExpr,string,CliDesc	hargparse: toCliValue(shell: ShellExpr; doc: string = &quot;&quot;; desc: CliDesc = nil): CliValue	
+toCliValue	hmisc/other/hargparse.html#toCliValue,FsEntry,string,CliDesc	hargparse: toCliValue(cli: FsEntry; doc: string = &quot;&quot;; desc: CliDesc = nil): CliValue	
+toCliValue	hmisc/other/hargparse.html#toCliValue,,string,CliDesc	hargparse: toCliValue(cli: FsFile or FsDir; doc: string = &quot;&quot;; desc: CliDesc = nil): CliValue	
+toCliValue	hmisc/other/hargparse.html#toCliValue,,string,CliDesc_2	hargparse: toCliValue(cli: AbsFile or RelFile; doc: string = &quot;&quot;; desc: CliDesc = nil): CliValue	
+toCliValue	hmisc/other/hargparse.html#toCliValue,,string,CliDesc_3	hargparse: toCliValue(cli: AbsDir or RelDir; doc: string = &quot;&quot;; desc: CliDesc = nil): CliValue	
+toCliValue	hmisc/other/hargparse.html#toCliValue,seq[T],string,CliDesc	hargparse: toCliValue[T](cli: seq[T]; doc: string = &quot;&quot;; desc: CliDesc = nil): CliValue	
+toCliValue	hmisc/other/hargparse.html#toCliValue,,string,CliDesc_4	hargparse: toCliValue[A, B](cli: (A, B); doc: string = &quot;&quot;; desc: CliDesc = nil): CliValue	
+toCliValue	hmisc/other/hargparse.html#toCliValue,Option[T],string,CliDesc	hargparse: toCliValue[T](cli: Option[T]; doc: string = &quot;&quot;; desc: CliDesc = nil): CliValue	
+toCliValue	hmisc/other/hargparse.html#toCliValue,string,string,CliDesc	hargparse: toCliValue(cli: string; doc: string = &quot;&quot;; desc: CliDesc = nil): CliValue	
+toCliValue	hmisc/other/hargparse.html#toCliValue,int,string,CliDesc	hargparse: toCliValue(cli: int; doc: string = &quot;&quot;; desc: CliDesc = nil): CliValue	
+toCliValue	hmisc/other/hargparse.html#toCliValue,bool,string,CliDesc	hargparse: toCliValue(cli: bool; doc: string = &quot;&quot;; desc: CliDesc = nil): CliValue	
+cliCheckFor	hmisc/other/hargparse.html#cliCheckFor,typedesc[seq[T]]	hargparse: cliCheckFor[T](value: typedesc[seq[T]]): CliCheck	
+cliCheckFor	hmisc/other/hargparse.html#cliCheckFor,typedesc[]	hargparse: cliCheckFor[A, B](value: typedesc[(A, B)]): CliCheck	
+cliCheckFor	hmisc/other/hargparse.html#cliCheckFor,typedesc[Option[T]]	hargparse: cliCheckFor[T](value: typedesc[Option[T]]): CliCheck	
+cliCheckFor	hmisc/other/hargparse.html#cliCheckFor,typedesc[FsFile]	hargparse: cliCheckFor(f: typedesc[FsFile]): CliCheck	
+cliCheckFor	hmisc/other/hargparse.html#cliCheckFor,typedesc[AbsFile]	hargparse: cliCheckFor(f: typedesc[AbsFile]): CliCheck	
+cliCheckFor	hmisc/other/hargparse.html#cliCheckFor,typedesc[RelFile]	hargparse: cliCheckFor(f: typedesc[RelFile]): CliCheck	
+cliCheckFor	hmisc/other/hargparse.html#cliCheckFor,typedesc[AbsDir]	hargparse: cliCheckFor(f: typedesc[AbsDir]): CliCheck	
+cliCheckFor	hmisc/other/hargparse.html#cliCheckFor,typedesc[FsDir]	hargparse: cliCheckFor(f: typedesc[FsDir]): CliCheck	
+cliCheckFor	hmisc/other/hargparse.html#cliCheckFor,typedesc[string]	hargparse: cliCheckFor(str: typedesc[string]): CliCheck	
+cliCheckFor	hmisc/other/hargparse.html#cliCheckFor,typedesc[ShellExpr]	hargparse: cliCheckFor(shell: typedesc[ShellExpr]): CliCheck	
+cliCheckFor	hmisc/other/hargparse.html#cliCheckFor,typedesc[int]	hargparse: cliCheckFor(str: typedesc[int]): CliCheck	
+cliCheckFor	hmisc/other/hargparse.html#cliCheckFor,typedesc[bool]	hargparse: cliCheckFor(bol: typedesc[bool]): CliCheck	
+cliCheckFor	hmisc/other/hargparse.html#cliCheckFor,typedesc[En],openArray[]	hargparse: cliCheckFor[En: enum](en: typedesc[En]; docs: openArray[(string, string)]): CliCheck	
+cliCheckFor	hmisc/other/hargparse.html#cliCheckFor,typedesc[En],array[En,string]	hargparse: cliCheckFor[En: enum](en: typedesc[En]; docs: array[En, string]): CliCheck	
+cliDefault	hmisc/other/hargparse.html#cliDefault,string	hargparse: cliDefault(str: string): CliDefault	
+cliDefault	hmisc/other/hargparse.html#cliDefault,CliValue,string	hargparse: cliDefault(val: CliValue; defaultRepr: string = &quot;&quot;): CliDefault	
+cliDefaultFromArg	hmisc/other/hargparse.html#cliDefaultFromArg,string,string,proc(CliValue)	hargparse: cliDefaultFromArg(arg, convertRepr: string;\n                  convert: proc (val: CliValue): CliValue): CliDefault	
+chmOff	hmisc/other/hargparse.html#chmOff	CliHelpModes.chmOff	
+chmOn	hmisc/other/hargparse.html#chmOn	CliHelpModes.chmOn	
+chmJson	hmisc/other/hargparse.html#chmJson	CliHelpModes.chmJson	
+chmCompact	hmisc/other/hargparse.html#chmCompact	CliHelpModes.chmCompact	
+chmVerbose	hmisc/other/hargparse.html#chmVerbose	CliHelpModes.chmVerbose	
+chmCmd	hmisc/other/hargparse.html#chmCmd	CliHelpModes.chmCmd	
+CliHelpModes	hmisc/other/hargparse.html#CliHelpModes	hargparse: CliHelpModes	
+getDefaultCliConfig	hmisc/other/hargparse.html#getDefaultCliConfig,seq[string]	hargparse: getDefaultCliConfig(ignored: seq[string] = @[]): seq[CliDesc]	
+cliNoLoggerConfig	hmisc/other/hargparse.html#cliNoLoggerConfig	hargparse: cliNoLoggerConfig	
+cliDefaultHelpOnly	hmisc/other/hargparse.html#cliDefaultHelpOnly	hargparse: cliDefaultHelpOnly	
+cliNoDefaultOpts	hmisc/other/hargparse.html#cliNoDefaultOpts	hargparse: cliNoDefaultOpts	
+newCliApp	hmisc/other/hargparse.html#newCliApp,string,,string,string,seq[string],seq[CliDesc]	hargparse: newCliApp(name: string; version: (int, int, int); author: string;\n          docBrief: string; noDefault: seq[string] = @[];\n          options: seq[CliDesc] = getDefaultCliConfig(noDefault)): CliApp	
+exitException	hmisc/other/hargparse.html#exitException,CliExitValueRange,string,string,string	hargparse: exitException(code: CliExitValueRange; name: string; doc: string;\n              docFull: string = &quot;&quot;): CliExitCode	
+add	hmisc/other/hargparse.html#add,CliApp,CliExitCode	hargparse: add(app: var CliApp; code: CliExitCode)	
+add	hmisc/other/hargparse.html#add,CliCmdTree,CliCmdTree,int	hargparse: add(tree: var CliCmdTree; other: CliCmdTree; pathLevel: int = 0)	
+get	hmisc/other/hargparse.html#get,CliValue,string,bool	hargparse: get(tree: CliValue; name: string; doRaise: bool = true): CliValue	
+fromCli	hmisc/other/hargparse.html#fromCli,T,CliValue	hargparse: fromCli[T](obj: var T; cli: CliValue)	
+len	hmisc/other/hargparse.html#len,CliCmdTree	hargparse: len(tree: CliCmdTree): int	
+items	hmisc/other/hargparse.html#items.i,CliCmdTree	hargparse: items(tree: CliCmdTree): CliCmdTree	
+`[]`	hmisc/other/hargparse.html#[],CliCmdTree,int	hargparse: `[]`(tree: CliCmdTree; idx: int): CliCmdTree	
+items	hmisc/other/hargparse.html#items.i,CliDesc	hargparse: items(desc: CliDesc): CliDesc	
+isDisabled	hmisc/other/hargparse.html#isDisabled,CliValue	hargparse: isDisabled(val: CliValue): bool	
+isEmpty	hmisc/other/hargparse.html#isEmpty,CliValue	hargparse: isEmpty(val: CliValue): bool	
+contains	hmisc/other/hargparse.html#contains,CliValue,string	hargparse: contains(val: CliValue; key: string): bool	
+raisesAsExit	hmisc/other/hargparse.html#raisesAsExit.m,CliApp,typed,static[openArray[]]	hargparse: raisesAsExit(app: var CliApp; mainProc: typed;\n             exceptions: static[openArray[(string, (int, string))]]): untyped	
+exitWith	hmisc/other/hargparse.html#exitWith,CliApp,ref.Exception,HLogger,bool	hargparse: exitWith(app: CliApp; ex: ref Exception; logger: HLogger; doQuit: bool = true)	
+runMain	hmisc/other/hargparse.html#runMain.m,CliApp,typed,HLogger,bool,typeof(nil)	hargparse: runMain(app: CliApp; mainProc: typed; logger: HLogger; doQuit: bool = true;\n        argpass: untyped{nkCall} = nil): untyped	
+acceptArgsAndRunBody	hmisc/other/hargparse.html#acceptArgsAndRunBody.t,CliApp,HLogger,untyped,untyped	hargparse: acceptArgsAndRunBody(app: CliApp; logger: HLogger; args, body: untyped): untyped	
+runDispatchedProc	hmisc/other/hargparse.html#runDispatchedProc.m,CliApp,typed,HLogger,bool,untyped,static[ProcConf]	hargparse: runDispatchedProc(app: CliApp; procsym: typed; logger: HLogger; doQuit: bool;\n                  argpass: untyped; conf: static[ProcConf]): untyped	
+runDispatched	hmisc/other/hargparse.html#runDispatched.m,CliApp,,HLogger,bool	hargparse: runDispatched(app: CliApp; proclist: untyped{nkBracket}; logger: HLogger;\n              doQuit: bool): untyped	
+arg	hmisc/other/hargparse.html#arg,string,string,bool,CliCheck,string	hargparse: arg(name: string; doc: string; required: bool = true;\n    check: CliCheck = checkAcceptAll(); docFull: string = &quot;&quot;): CliDesc	
+strVal	hmisc/other/hargparse.html#strVal,CliCmdTree	hargparse: strVal(tree: CliCmdTree): string	
+name	hmisc/other/hargparse.html#name,CliCmdTree	hargparse: name(tree: CliCmdTree): string	
+select	hmisc/other/hargparse.html#select,CliCmdTree	hargparse: select(tree: CliCmdTree): string	
+newCliError	hmisc/other/hargparse.html#newCliError.t,string,CliDesc,CliOpt,CliErrorKind	hargparse: newCliError(inMsg: string; inDesc: CliDesc; inGot: CliOpt;\n            inKind: CliErrorKind = cekFailedParse): CliError	
+newCliError	hmisc/other/hargparse.html#newCliError.t,string,CliErrorKind	hargparse: newCliError(inMsg: string; inKind: CliErrorKind): CliError	
+newCliError	hmisc/other/hargparse.html#newCliError.t,string,CliDesc,CliErrorKind	hargparse: newCliError(inMsg: string; desc: CliDesc; inKind: CliErrorKind): CliError	
+structureSplit	hmisc/other/hargparse.html#structureSplit,seq[CliOpt],CliDesc,	hargparse: structureSplit(opts: seq[CliOpt]; desc: CliDesc; errors): CliCmdTree	
+`==`	hmisc/other/hargparse.html#==,string,CliValue	hargparse: `==`(str: string; val: CliValue): bool	
+splitSeqVal	hmisc/other/hargparse.html#splitSeqVal,CliCmdTree	hargparse: splitSeqVal(tree: CliCmdTree): CliCmdTree	
+toCliValue	hmisc/other/hargparse.html#toCliValue,CliCmdTree,	hargparse: toCliValue(tree: CliCmdTree; errors): CliValue	
+mergeConfigs	hmisc/other/hargparse.html#mergeConfigs,CliCmdTree,seq[CliValue],	hargparse: mergeConfigs(tree: CliCmdTree; configs: seq[CliValue]; errors)	
+finalizeDefaults	hmisc/other/hargparse.html#finalizeDefaults,CliApp	hargparse: finalizeDefaults(app: var CliApp)	
+acceptArgs	hmisc/other/hargparse.html#acceptArgs,CliApp,seq[string]	hargparse: acceptArgs(app: var CliApp; params: seq[string] = paramStrs()): bool	
+version	hmisc/other/hargparse.html#version,CliApp	hargparse: version(app: CliApp): string	
+`$`	hmisc/other/hargparse.html#$,CliValue	hargparse: `$`(val: CliValue): string	
+helpStr	hmisc/other/hargparse.html#helpStr,CliApp,seq[string],bool	hargparse: helpStr(app: CliApp; ignored: seq[string] = @[]; color: bool = true): string	
+helpStr	hmisc/other/hargparse.html#helpStr,CliError	hargparse: helpStr(err: CliError): string	
+showErrors	hmisc/other/hargparse.html#showErrors,CliApp,HLogger	hargparse: showErrors(app: CliApp; logger: HLogger)	
+builtinActionRequested	hmisc/other/hargparse.html#builtinActionRequested,CliApp	hargparse: builtinActionRequested(app: CliApp): bool	
+showBuiltin	hmisc/other/hargparse.html#showBuiltin,CliApp,HLogger	hargparse: showBuiltin(app: CliApp; logger: HLogger)	

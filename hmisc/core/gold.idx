@@ -1,0 +1,72 @@
+NoValue	hmisc/core/gold.html#NoValue	gold: NoValue	
+Attr	hmisc/core/gold.html#Attr.t	gold: Attr()	
+tern	hmisc/core/gold.html#tern.t,bool,untyped,untyped	gold: tern(predicate: bool; tBranch: untyped; fBranch: untyped): untyped	
+inWhile	hmisc/core/gold.html#inWhile.t,untyped,untyped	gold: inWhile(expr, body: untyped): untyped	
+inFor	hmisc/core/gold.html#inFor.t,untyped,untyped,untyped	gold: inFor(ident, expr, body: untyped): untyped	
+inFor	hmisc/core/gold.html#inFor.t,untyped,untyped,untyped,untyped	gold: inFor(ident1, ident2, expr, body: untyped): untyped	
+dowhile	hmisc/core/gold.html#dowhile.t,untyped,untyped	gold: dowhile(expr, body: untyped): untyped	
+withIt	hmisc/core/gold.html#withIt.t,untyped,untyped	gold: withIt(val, body: untyped): untyped	
+withDeepIt	hmisc/core/gold.html#withDeepIt.t,untyped,untyped	gold: withDeepIt(expr, body: untyped): untyped	
+withResIt	hmisc/core/gold.html#withResIt.t,untyped,untyped	gold: withResIt(val, body: untyped): untyped	
+withMutIt	hmisc/core/gold.html#withMutIt.t,T,untyped	gold: withMutIt[T](val: var T; body: untyped): untyped	
+notNil	hmisc/core/gold.html#notNil.t,untyped	gold: notNil(arg: untyped): bool	
+`-`	hmisc/core/gold.html#-,set[I],I	gold: `-`[I](s: set[I]; i: I): set[I]	
+nor	hmisc/core/gold.html#nor,varargs[bool]	gold: nor(args: varargs[bool]): bool	
+nand	hmisc/core/gold.html#nand,varargs[bool]	gold: nand(args: varargs[bool]): bool	
+`or`	hmisc/core/gold.html#or,varargs[bool]	gold: `or`(args: varargs[bool]): bool	
+`and`	hmisc/core/gold.html#and,varargs[bool]	gold: `and`(args: varargs[bool]): bool	
+`&amp;`	hmisc/core/gold.html#&,openArray[seq[T]]	gold: `&amp;`[T](elements: openArray[seq[T]]): seq[T]	
+`&amp;`	hmisc/core/gold.html#&,openArray[string]	gold: `&amp;`(strings: openArray[string]): string	
+`&amp;=`	hmisc/core/gold.html#&=,string,openArray[string]	gold: `&amp;=`(target: var string; args: openArray[string])	
+asRef	hmisc/core/gold.html#asRef,sinkT	gold: asRef[T: not ref and not ptr](t: sink T): ref T	
+asRef	hmisc/core/gold.html#asRef,ptr.T	gold: asRef[T: not ref and not ptr](t: ptr T): ref T	
+asRef	hmisc/core/gold.html#asRef,ref.T	gold: asRef[T: not ref and not ptr](t: ref T): ref T	
+asVar	hmisc/core/gold.html#asVar.t,T	gold: asVar[T](t: T): untyped	
+asPtr	hmisc/core/gold.html#asPtr.t,T	gold: asPtr[T](t: T): untyped	
+asConst	hmisc/core/gold.html#asConst.t,T	gold: asConst[T](t: T): untyped	
+asExpr	hmisc/core/gold.html#asExpr.t,untyped	gold: asExpr(arg: untyped): untyped	
+asSet	hmisc/core/gold.html#asSet,E	gold: asSet[E: enum](en: E): set[E]	
+asSet	hmisc/core/gold.html#asSet,set[E]	gold: asSet[E: enum](en: set[E]): set[E]	
+currIInfo	hmisc/core/gold.html#currIInfo.t	gold: currIInfo(): untyped	
+curIDir	hmisc/core/gold.html#curIDir.t	gold: curIDir(): untyped	
+currentSourceDir	hmisc/core/gold.html#currentSourceDir.t	gold: currentSourceDir(): untyped	
+relToSource	hmisc/core/gold.html#relToSource.t,string	gold: relToSource(path: string): untyped	
+`of`	hmisc/core/gold.html#of,A,	gold: `of`[A: object or ref object or distinct; K: enum](item: A; kind: K | set[K]): bool	
+`of`	hmisc/core/gold.html#of,En,	gold: `of`[En: enum](item: En; kind: En | set[En]): bool	
+getSomeIt	hmisc/core/gold.html#getSomeIt.t,Option[T],untyped,untyped	gold: getSomeIt[T](opt: Option[T]; value, default: untyped): untyped	
+canGet	hmisc/core/gold.html#canGet.t,Option[T],untyped	gold: canGet[T](opt: Option[T]; injected: untyped): untyped	
+mget	hmisc/core/gold.html#mget,Option[T],T	gold: mget[T](opt: var Option[T]; value: T = default(T)): var T	
+top	hmisc/core/gold.html#top.t,seq[T]	gold: top[T](s: seq[T]): untyped	
+last	hmisc/core/gold.html#last.t,seq[T]	gold: last[T](s: seq[T]): untyped	
+last	hmisc/core/gold.html#last.t,seq[T],T	gold: last[T](s: seq[T]; item: T): untyped	
+last2	hmisc/core/gold.html#last2.t,seq	gold: last2(s: seq): untyped	
+first	hmisc/core/gold.html#first.t,seq	gold: first(s: seq): untyped	
+clear	hmisc/core/gold.html#clear.t,seq	gold: clear(s: seq): untyped	
+empty	hmisc/core/gold.html#empty.t,seq	gold: empty(s: seq): bool	
+`?`	hmisc/core/gold.html#?.t,seq[T]	gold: `?`[T](s: seq[T]): bool	
+`?`	hmisc/core/gold.html#?.t,string	gold: `?`(s: string): bool	
+`?`	hmisc/core/gold.html#?.t,Option[T]	gold: `?`[T](o: Option[T]): bool	
+getOr	hmisc/core/gold.html#getOr,seq[T],int,T	gold: getOr[T](s: seq[T]; idx: int; value: T = default(T)): T	
+dollar	hmisc/core/gold.html#dollar,T	gold: dollar[T](arg: T): string	
+`not`	hmisc/core/gold.html#not,set[K]	gold: `not`[K](s: set[K]): set[K]	
+first	hmisc/core/gold.html#first,set[E]	gold: first[E](s: set[E]): E	
+pop	hmisc/core/gold.html#pop,set[E]	gold: pop[E](s: var set[E]): E	
+pairs	hmisc/core/gold.html#pairs.i,set[I]	gold: pairs[I](s: set[I]): (int, I)	
+lit3	hmisc/core/gold.html#lit3.m,static[string]	gold: lit3(str: static[string]): untyped	
+lit3	hmisc/core/gold.html#lit3.m,static[int],static[string]	gold: lit3(ind: static[int]; str: static[string]): untyped	
+add	hmisc/core/gold.html#add,seq[],A,B	gold: add[A, B](s: var seq[(A, B)]; a: A; b: B)	
+add	hmisc/core/gold.html#add,seq[],A,B,C	gold: add[A, B, C](s: var seq[(A, B, C)]; a: A; b: B; c: C)	
+clear	hmisc/core/gold.html#clear,Option[T]	gold: clear[T](o: var Option[T])	
+add	hmisc/core/gold.html#add,seq[T],Option[T]	gold: add[T](s: var seq[T]; opt: Option[T])	
+add	hmisc/core/gold.html#add,string,string,string,varargs[string]	gold: add(s: var string; s1, s2: string; other: varargs[string])	
+procIt	hmisc/core/gold.html#procIt.t,untyped	gold: procIt[T](procname: untyped): untyped	
+procIt	hmisc/core/gold.html#procIt.t,untyped,untyped	gold: procIt[T](procname: untyped; arg1: untyped): untyped	
+`//`	hmisc/core/gold.html#//.m,string	gold: `//`(arg: string): untyped	
+`///`	hmisc/core/gold.html#///.m,static[string],untyped	gold: `///`(name: static[string]; body: untyped): untyped	
+cblock	hmisc/core/gold.html#cblock.t,static[string],untyped	gold: cblock(name: static[string]; body: untyped): untyped	
+cexpr	hmisc/core/gold.html#cexpr.t,static[string],untyped	gold: cexpr(name: static[string]; body: untyped): untyped	
+importx	hmisc/core/gold.html#importx.m,untyped	gold: importx(imports: untyped): untyped	
+postInc	hmisc/core/gold.html#postInc,T	gold: postInc[T](value: var T): T	
+preInc	hmisc/core/gold.html#preInc,T	gold: preInc[T](value: var T): T	
+dumpTyped	hmisc/core/gold.html#dumpTyped.m,typed	gold: dumpTyped(a: typed): untyped	
+setKind	hmisc/core/gold.html#setKind.t,V,V	gold: setKind[V](target, source: V)	

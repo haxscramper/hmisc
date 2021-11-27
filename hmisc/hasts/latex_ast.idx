@@ -1,0 +1,30 @@
+lacLuaLatex	hmisc/hasts/latex_ast.html#lacLuaLatex	LatexCompiler.lacLuaLatex	
+lacPdflatex	hmisc/hasts/latex_ast.html#lacPdflatex	LatexCompiler.lacPdflatex	
+lacLatexMk	hmisc/hasts/latex_ast.html#lacLatexMk	LatexCompiler.lacLatexMk	
+LatexCompiler	hmisc/hasts/latex_ast.html#LatexCompiler	latex_ast: LatexCompiler	
+lnkMacro	hmisc/hasts/latex_ast.html#lnkMacro	LAstNodeKind.lnkMacro	
+lnkEnv	hmisc/hasts/latex_ast.html#lnkEnv	LAstNodeKind.lnkEnv	
+lnkTable	hmisc/hasts/latex_ast.html#lnkTable	LAstNodeKind.lnkTable	
+lnkPlaintext	hmisc/hasts/latex_ast.html#lnkPlaintext	LAstNodeKind.lnkPlaintext	
+lnkStmtList	hmisc/hasts/latex_ast.html#lnkStmtList	LAstNodeKind.lnkStmtList	
+LAstNodeKind	hmisc/hasts/latex_ast.html#LAstNodeKind	latex_ast: LAstNodeKind	
+LAstGroup	hmisc/hasts/latex_ast.html#LAstGroup	latex_ast: LAstGroup	
+lalLeft	hmisc/hasts/latex_ast.html#lalLeft	LACellAlign.lalLeft	
+lalRight	hmisc/hasts/latex_ast.html#lalRight	LACellAlign.lalRight	
+lalCenter	hmisc/hasts/latex_ast.html#lalCenter	LACellAlign.lalCenter	
+LACellAlign	hmisc/hasts/latex_ast.html#LACellAlign	latex_ast: LACellAlign	
+LACellSpec	hmisc/hasts/latex_ast.html#LACellSpec	latex_ast: LACellSpec	
+LAstNode	hmisc/hasts/latex_ast.html#LAstNode	latex_ast: LAstNode	
+makeBraceGroup	hmisc/hasts/latex_ast.html#makeBraceGroup,LAstNode	latex_ast: makeBraceGroup(body: LAstNode): LAstGroup	
+group	hmisc/hasts/latex_ast.html#group,,seq[LAstNode]	latex_ast: group(delims: (string, string); body: seq[LAstNode]): LAstGroup	
+makePlaintext	hmisc/hasts/latex_ast.html#makePlaintext,string	latex_ast: makePlaintext(text: string): LAstNode	
+makeMacroCall	hmisc/hasts/latex_ast.html#makeMacroCall,string	latex_ast: makeMacroCall(name: string): LAstNode	
+makeMacroCall	hmisc/hasts/latex_ast.html#makeMacroCall,string,seq[LAstNode]	latex_ast: makeMacroCall(name: string; args: seq[LAstNode]): LAstNode	
+makeMacroCall	hmisc/hasts/latex_ast.html#makeMacroCall,string,seq[LAstGroup]	latex_ast: makeMacroCall(name: string; args: seq[LAstGroup]): LAstNode	
+makeMacroCall	hmisc/hasts/latex_ast.html#makeMacroCall,string,seq[string],string	latex_ast: makeMacroCall(name: string; params: seq[string]; arg: string): LAstNode	
+makeEnv	hmisc/hasts/latex_ast.html#makeEnv,string,seq[LAstNode],seq[LAstGroup]	latex_ast: makeEnv(envname: string; body: seq[LAstNode]; args: seq[LAstGroup] = @[]): LAstNode	
+makeStmtList	hmisc/hasts/latex_ast.html#makeStmtList,seq[LAstNode]	latex_ast: makeStmtList(nodes: seq[LAstNode]): LAstNode	
+makeDocument	hmisc/hasts/latex_ast.html#makeDocument,seq[LAstNode]	latex_ast: makeDocument(nodes: seq[LAstNode]): LAstNode	
+toRope	hmisc/hasts/latex_ast.html#toRope,LAstGroup	latex_ast: toRope(group: LAstGroup): Rope	
+toRope	hmisc/hasts/latex_ast.html#toRope,LAstNode	latex_ast: toRope(node: LAstNode): Rope	
+compileToPdf	hmisc/hasts/latex_ast.html#compileToPdf,LAstNode,string,LatexCompiler	latex_ast: compileToPdf(document: LAstNode; tmpfile: string = &quot;/tmp/latextmp.tex&quot;;\n             compiler: LatexCompiler = lacPdflatex): string	

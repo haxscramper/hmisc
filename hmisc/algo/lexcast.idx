@@ -1,0 +1,12 @@
+LexcastError	hmisc/algo/lexcast.html#LexcastError	lexcast: LexcastError	
+lfNone	hmisc/algo/lexcast.html#lfNone	LexcastFlags.lfNone	
+LexcastFlags	hmisc/algo/lexcast.html#LexcastFlags	lexcast: LexcastFlags	
+LexcastOpts	hmisc/algo/lexcast.html#LexcastOpts	lexcast: LexcastOpts	
+defaultLexcastOpts	hmisc/algo/lexcast.html#defaultLexcastOpts	lexcast: defaultLexcastOpts	
+lcast	hmisc/algo/lexcast.html#lcast,string,SomeInteger,LexcastOpts	lexcast: lcast(s: string; t: var SomeInteger; opts: LexcastOpts = defaultLexcastOpts)	
+lcast	hmisc/algo/lexcast.html#lcast,string,SomeFloat,LexcastOpts	lexcast: lcast(s: string; t: var SomeFloat; opts: LexcastOpts = defaultLexcastOpts)	
+lcast	hmisc/algo/lexcast.html#lcast,string,bool,LexcastOpts	lexcast: lcast(s: string; t: var bool; opts: LexcastOpts = defaultLexcastOpts)	
+lcast	hmisc/algo/lexcast.html#lcast,string,seq[T],LexcastOpts	lexcast: lcast[T](s: string; t: var seq[T]; opts: LexcastOpts = defaultLexcastOpts)	
+lcast	hmisc/algo/lexcast.html#lcast,string,HSlice[R1,R2],LexcastOpts	lexcast: lcast[R1, R2](s: string; slice: var HSlice[R1, R2];\n              opts: LexcastOpts = defaultLexcastOpts)	
+lexcast	hmisc/algo/lexcast.html#lexcast.t,untyped,LexcastOpts	lexcast: lexcast[Target](base: untyped; opts: LexcastOpts = defaultLexcastOpts): Target	
+lexcast	hmisc/algo/lexcast.html#lexcast.t,T,LexcastOpts	lexcast: lexcast[T](base: T; opts: LexcastOpts = defaultLexcastOpts): string	

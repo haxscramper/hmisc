@@ -1,0 +1,36 @@
+ifHaxComp	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#ifHaxComp.t,untyped	debug: ifHaxComp(body: untyped): untyped	
+startHaxComp	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#startHaxComp.t	debug: startHaxComp()	
+getHax	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#getHax	debug: getHax(): bool	
+startHax	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#startHax	debug: startHax()	
+stopHax	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#stopHax	debug: stopHax()	
+pushHax	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#pushHax,bool	debug: pushHax(doLog: bool)	
+popHax	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#popHax,bool	debug: popHax(fall: bool = true)	
+getHaxStack	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#getHaxStack	debug: getHaxStack(): seq[bool]	
+haxRunning	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#haxRunning.t	debug: haxRunning(): bool	
+haxRunningComp	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#haxRunningComp.t	debug: haxRunningComp(): bool	
+stopHaxComp	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#stopHaxComp.t	debug: stopHaxComp()	
+workHax	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#workHax.t,static[bool],untyped	debug: workHax(doIt: static[bool]; body: untyped): untyped	
+workHaxComp	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#workHaxComp.t,static[bool],untyped	debug: workHaxComp(doIt: static[bool]; body: untyped): untyped	
+haxc	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#haxc.t,untyped	debug: haxc(body: untyped): untyped	
+haxThis	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#haxThis.t,untyped	debug: haxThis(a: untyped): untyped	
+dieHereComp	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#dieHereComp.t	debug: dieHereComp(): untyped	
+dieHereMacro	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#dieHereMacro.t	debug: dieHereMacro(): untyped	
+dieHere	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#dieHere.t	debug: dieHere(): untyped	
+colorPrint	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#colorPrint,NimNode,string,bool	debug: colorPrint(node: NimNode; tmpfile: string = &quot;/tmp/nimast_tmp.nim&quot;;\n           doPrint: bool = true): void	
+d	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#d,varargs[string,]	debug: d(text: varargs[string, `$`]): void	
+de	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#de.t,untyped,varargs[string,]	debug: de(expr: untyped; text: varargs[string, `$`]): void	
+dev	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#dev.t,untyped	debug: dev(expr: untyped): untyped	
+printCpuTime	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#printCpuTime.t,untyped	debug: printCpuTime(body: untyped): untyped	
+expectType	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#expectType.t,untyped,untyped	debug: expectType(op, t: untyped): untyped	
+echoi	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#echoi.t,int,varargs[string,]	debug: echoi(indent: int; message: varargs[string, `$`]): void	
+debugechoi	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#debugechoi,int,string	debug: debugechoi(indent: int; message: string): void	
+dechofmt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#dechofmt.t,string	debug: dechofmt(arg: string): untyped	
+echoi	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#echoi,varargs[string,]	debug: echoi(message: varargs[string, `$`]): void	
+`@`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#@,ptr	debug: `@`(p: ptr): string	
+echov	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#echov.t,untyped,varargs[string,]	debug: echov(variable: untyped; other: varargs[string, `$`]): untyped	
+ploc	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#ploc.t,string	debug: ploc(msg: string = &quot;&quot;): untyped	
+plog	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#plog.t,untyped	debug: plog(body: untyped): untyped	
+echove	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#echove.t,untyped	debug: echove(body: untyped): untyped	
+globalTick	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#globalTick.t	debug: globalTick(): untyped	
+globalTick	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#globalTick.t,untyped	debug: globalTick(name: untyped): untyped	
+here	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/debug.html#here.t,untyped	debug: here(expr: untyped = &quot;&quot;): string	

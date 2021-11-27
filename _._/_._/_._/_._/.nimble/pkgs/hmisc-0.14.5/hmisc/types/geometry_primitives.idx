@@ -1,0 +1,59 @@
+inRange	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#inRange,float,	geometry_primitives: inRange(val: float; rng: (float, float)): bool	
+isNanOrInf	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#isNanOrInf,float	geometry_primitives: isNanOrInf(f: float): bool	
+Point	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#Point	geometry_primitives: Point	
+makePoint	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#makePoint,Num,Num	geometry_primitives: makePoint[Num](x, y: Num): auto	
+makePoint	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#makePoint	geometry_primitives: makePoint[Num](pos: (Num, Num)): auto	
+shiftX	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#shiftX,Point[Num],Num	geometry_primitives: shiftX[Num](p: Point[Num]; dx: Num): Point[Num]	
+shiftY	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#shiftY,Point[Num],Num	geometry_primitives: shiftY[Num](p: Point[Num]; dy: Num): Point[Num]	
+unpack	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#unpack,Point[Num]	geometry_primitives: unpack[Num](p: Point[Num]): (Num, Num)	
+shiftXY	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#shiftXY,Point[Num],Num,Num	geometry_primitives: shiftXY[Num](p: Point[Num]; dx: Num; dy: Num): Point[Num]	
+shiftXY	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#shiftXY,,Num,Num	geometry_primitives: shiftXY[Num](p: (Num, Num); dx: Num; dy: Num): (Num, Num)	
+Radian	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#Radian	geometry_primitives: Radian	
+cos	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#cos,Radian	geometry_primitives: cos(r: Radian): float	
+sin	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#sin,Radian	geometry_primitives: sin(r: Radian): float	
+invert	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#invert,RelPos	geometry_primitives: invert(pos: RelPos): RelPos	
+Vec	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#Vec	geometry_primitives: Vec	
+makeVec	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#makeVec,,	geometry_primitives: makeVec(x, y: int | float): Vec	
+`-`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#-,Vec,Vec	geometry_primitives: `-`(a, b: Vec): Vec	
+`+`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#+,Vec,Vec	geometry_primitives: `+`(a, b: Vec): Vec	
+`*`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#*,Vec,float	geometry_primitives: `*`(a: Vec; s: float): Vec	
+`*`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#*,float,Vec	geometry_primitives: `*`(s: float; a: Vec): Vec	
+toVec	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#toVec.c	geometry_primitives: toVec[N: float | int](pos: (N, N)): Vec	
+arg	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#arg,Vec	geometry_primitives: arg(p: Vec): float	
+scalar	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#scalar,Vec,Vec	geometry_primitives: scalar(a, b: Vec): float	
+magnitude	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#magnitude,Vec	geometry_primitives: magnitude(p: Vec): float	
+`/`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#/,Vec,float	geometry_primitives: `/`(p: Vec; a: float): Vec	
+norm	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#norm,Vec	geometry_primitives: norm(p: Vec): Vec	
+perp	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#perp,Vec	geometry_primitives: perp(v: Vec): Vec	
+flip	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#flip,Vec	geometry_primitives: flip(v: Vec): Vec	
+rotate	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#rotate,Vec,float	geometry_primitives: rotate(v: Vec; a: float): Vec	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#$,Vec	geometry_primitives: `$`(v: Vec): string	
+Line	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#Line	geometry_primitives: Line	
+makeLine	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#makeLine,Vec,Vec	geometry_primitives: makeLine(a, b: Vec): Line	
+makeLine	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#makeLine	geometry_primitives: makeLine(p: (Vec, Vec)): Line	
+begin	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#begin,Line	geometry_primitives: begin(l: Line): Vec	
+final	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#final,Line	geometry_primitives: final(l: Line): Vec	
+toVec	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#toVec,Line	geometry_primitives: toVec(l: Line): Vec	
+onSegment	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#onSegment,Vec,Line	geometry_primitives: onSegment(p: Vec; l: Line): bool	
+intersect	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#intersect,Line,Line	geometry_primitives: intersect(l1, l2: Line): Option[Vec]	
+intersect	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#intersect	geometry_primitives: intersect(l: (Line, Line)): Option[Vec]	
+moveAlong	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#moveAlong,Line,Vec,float	geometry_primitives: moveAlong(l: Line; v: Vec; distance: float): Line	
+shiftNormal	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#shiftNormal,Line,float	geometry_primitives: shiftNormal(l: Line; distance: float): Line	
+magnitude	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#magnitude,Line	geometry_primitives: magnitude(l: Line): float	
+len	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#len,Line	geometry_primitives: len(l: Line): float	
+flip	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#flip,Line	geometry_primitives: flip(l: Line): Line	
+Vec3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#Vec3	geometry_primitives: Vec3	
+Line3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#Line3	geometry_primitives: Line3	
+makeVec3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#makeVec3,float,float,float	geometry_primitives: makeVec3(x: float = 0.0; y: float = 0.0; z: float = 0.0): Vec3	
+makeVec3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#makeVec3,int,int,int	geometry_primitives: makeVec3(x: int = 0; y: int = 0; z: int = 0): Vec3	
+toVec3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#toVec3,Vec	geometry_primitives: toVec3(pos: Vec): Vec3	
+`+`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#+,Vec3,Vec3	geometry_primitives: `+`(a, b: Vec3): Vec3	
+magnitude	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#magnitude,Vec3	geometry_primitives: magnitude(a: Vec3): float	
+`/`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#/,Vec3,float	geometry_primitives: `/`(a: Vec3; denom: float): Vec3	
+norm	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#norm,Vec3	geometry_primitives: norm(a: Vec3): Vec3	
+norm	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#norm,Line	geometry_primitives: norm(l: Line): Vec	
+nperp	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#nperp,Line	geometry_primitives: nperp(l: Line): Vec	
+arg	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#arg,Line	geometry_primitives: arg(l: Line): float	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#$,Line	geometry_primitives: `$`(l: Line): string	
+Size3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#Size3	geometry_primitives: Size3	
+makeSize3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/geometry_primitives.html#makeSize3,,,	geometry_primitives: makeSize3(w, d, h: int | float): Size3	

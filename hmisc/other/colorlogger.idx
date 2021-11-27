@@ -1,0 +1,18 @@
+err	hmisc/other/colorlogger.html#err.m,varargs[untyped]	colorlogger: err(args: varargs[untyped]): untyped	
+indentLog	hmisc/other/colorlogger.html#indentLog	colorlogger: indentLog()	
+identLog	hmisc/other/colorlogger.html#identLog	colorlogger: identLog()	
+dedentLog	hmisc/other/colorlogger.html#dedentLog	colorlogger: dedentLog()	
+getIdent	hmisc/other/colorlogger.html#getIdent	colorlogger: getIdent(): int	
+logIndented	hmisc/other/colorlogger.html#logIndented.t,untyped	colorlogger: logIndented(body: untyped): untyped	
+startColorLogger	hmisc/other/colorlogger.html#startColorLogger,Level,bool	colorlogger: startColorLogger(level: Level = lvlAll; showfile: bool = false): void	
+log	hmisc/other/colorlogger.html#log.e,ColorLogger,Level,varargs[string,]	colorlogger: log(logger: ColorLogger; level: Level; args: varargs[string, `$`])	
+debug	hmisc/other/colorlogger.html#debug.t,varargs[string,]	colorlogger: debug(args: varargs[string, `$`])	
+info	hmisc/other/colorlogger.html#info.t,varargs[string,]	colorlogger: info(args: varargs[string, `$`])	
+notice	hmisc/other/colorlogger.html#notice.t,varargs[string,]	colorlogger: notice(args: varargs[string, `$`])	
+warn	hmisc/other/colorlogger.html#warn.t,varargs[string,]	colorlogger: warn(args: varargs[string, `$`])	
+err	hmisc/other/colorlogger.html#err.t,varargs[string,]	colorlogger: err(args: varargs[string, `$`])	
+fatal	hmisc/other/colorlogger.html#fatal.t,varargs[string,]	colorlogger: fatal(args: varargs[string, `$`])	
+logDefer	hmisc/other/colorlogger.html#logDefer.t,untyped,varargs[string,]	colorlogger: logDefer(logCmd: untyped; args: varargs[string, `$`]): untyped	
+logError	hmisc/other/colorlogger.html#logError,varargs[string,]	colorlogger: logError(args: varargs[string, `$`]): void	
+typedArgs	hmisc/other/colorlogger.html#typedArgs,NimNode	colorlogger: typedArgs(call: NimNode): seq[NimNode]	
+logcall	hmisc/other/colorlogger.html#logcall.m,typed,bool,static[Level]	colorlogger: logcall(inCall: typed; testRun: bool = false; lvl: static[Level] = lvlInfo): untyped	

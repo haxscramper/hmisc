@@ -1,0 +1,61 @@
+RawHtml	hmisc/hasts/html_ast.html#RawHtml	html_ast: RawHtml	
+Xml	hmisc/hasts/html_ast.html#Xml	html_ast: Xml	
+hekTable	hmisc/hasts/html_ast.html#hekTable	HtmlElemKind.hekTable	
+hekRow	hmisc/hasts/html_ast.html#hekRow	HtmlElemKind.hekRow	
+hekCell	hmisc/hasts/html_ast.html#hekCell	HtmlElemKind.hekCell	
+hekElemList	hmisc/hasts/html_ast.html#hekElemList	HtmlElemKind.hekElemList	
+hekImage	hmisc/hasts/html_ast.html#hekImage	HtmlElemKind.hekImage	
+hekOther	hmisc/hasts/html_ast.html#hekOther	HtmlElemKind.hekOther	
+hekText	hmisc/hasts/html_ast.html#hekText	HtmlElemKind.hekText	
+hekRaw	hmisc/hasts/html_ast.html#hekRaw	HtmlElemKind.hekRaw	
+HtmlElemKind	hmisc/hasts/html_ast.html#HtmlElemKind	html_ast: HtmlElemKind	
+htpNone	hmisc/hasts/html_ast.html#htpNone	HtmlTextProp.htpNone	
+htpBold	hmisc/hasts/html_ast.html#htpBold	HtmlTextProp.htpBold	
+htpUnderline	hmisc/hasts/html_ast.html#htpUnderline	HtmlTextProp.htpUnderline	
+htpItalic	hmisc/hasts/html_ast.html#htpItalic	HtmlTextProp.htpItalic	
+HtmlTextProp	hmisc/hasts/html_ast.html#HtmlTextProp	html_ast: HtmlTextProp	
+HtmlElem	hmisc/hasts/html_ast.html#HtmlElem	html_ast: HtmlElem	
+`[]`	hmisc/hasts/html_ast.html#[],HtmlElem,int	html_ast: `[]`(html: HtmlElem; idx: int): HtmlElem	
+`[]`	hmisc/hasts/html_ast.html#[],HtmlElem,int_2	html_ast: `[]`(html: var HtmlElem; idx: int): var HtmlElem	
+`[]=`	hmisc/hasts/html_ast.html#[]=,HtmlElem,int,HtmlElem	html_ast: `[]=`(html: var HtmlElem; idx: int; other: HtmlElem): void	
+`[]=`	hmisc/hasts/html_ast.html#[]=,HtmlElem,string,string	html_ast: `[]=`(html: var HtmlElem; attrname: string; attrval: string): void	
+add	hmisc/hasts/html_ast.html#add,HtmlElem,	html_ast: add(html: var HtmlElem; other: HtmlElem | seq[HtmlElem]): void	
+len	hmisc/hasts/html_ast.html#len,HtmlElem	html_ast: len(html: HtmlElem): int	
+toHtmlText	hmisc/hasts/html_ast.html#toHtmlText,string,Color,set[HtmlTextProp],Color	html_ast: toHtmlText(text: string; color: Color = colNoColor;\n           props: set[HtmlTextProp] = {}; bgColor: Color = colNoColor): HtmlElem	
+newElementHtml	hmisc/hasts/html_ast.html#newElementHtml,string	html_ast: newElementHtml(tag: string): HtmlElem	
+newHtmlText	hmisc/hasts/html_ast.html#newHtmlText,string	html_ast: newHtmlText(text: string): HtmlElem	
+newHtmlRaw	hmisc/hasts/html_ast.html#newHtmlRaw	html_ast: newHtmlRaw(text: string | RawHtml): HtmlElem	
+xmlSeqTag	hmisc/hasts/html_ast.html#xmlSeqTag	html_ast: xmlSeqTag	
+newXmlSeq	hmisc/hasts/html_ast.html#newXmlSeq,seq[Xml]	html_ast: newXmlSeq(elems: seq[Xml] = @[]): Xml	
+newHtmlPre	hmisc/hasts/html_ast.html#newHtmlPre,string	html_ast: newHtmlPre(text: string): HtmlElem	
+newHtmlCode	hmisc/hasts/html_ast.html#newHtmlCode,string	html_ast: newHtmlCode(text: string): Xml	
+newTree	hmisc/hasts/html_ast.html#newTree,string,openArray[HtmlElem],openArray[]	html_ast: newTree(tag: string; subitems: openArray[HtmlElem];\n        attrs: openArray[(string, string)] = @[]): HtmlElem	
+newHtmlLink	hmisc/hasts/html_ast.html#newHtmlLink,string,Option[seq[HtmlElem]]	html_ast: newHtmlLink(target: string;\n            description: Option[seq[HtmlElem]] = none(seq[HtmlElem])): HtmlElem	
+newTree	hmisc/hasts/html_ast.html#newTree,seq[HtmlElem],string	html_ast: newTree(subitems: seq[HtmlElem]; tag: string): HtmlElem	
+newElemList	hmisc/hasts/html_ast.html#newElemList	html_ast: newElemList(): HtmlElem	
+toHtmlCell	hmisc/hasts/html_ast.html#toHtmlCell,HtmlElem	html_ast: toHtmlCell(content: HtmlElem): HtmlElem	
+toHtmlCell	hmisc/hasts/html_ast.html#toHtmlCell,string	html_ast: toHtmlCell(strbl: string): HtmlElem	
+toHtmlCell	hmisc/hasts/html_ast.html#toHtmlCell,StrBlock	html_ast: toHtmlCell(strbl: StrBlock): HtmlElem	
+toHtmlRow	hmisc/hasts/html_ast.html#toHtmlRow,HtmlElem	html_ast: toHtmlRow(cell: HtmlElem): HtmlElem	
+toHtmlRow	hmisc/hasts/html_ast.html#toHtmlRow,seq[HtmlElem]	html_ast: toHtmlRow(cells: seq[HtmlElem]): HtmlElem	
+toHtmlTable	hmisc/hasts/html_ast.html#toHtmlTable,seq[seq[HtmlElem]]	html_ast: toHtmlTable(cells: seq[seq[HtmlElem]]): HtmlElem	
+toHtmlTableHoriz	hmisc/hasts/html_ast.html#toHtmlTableHoriz,seq[HtmlElem]	html_ast: toHtmlTableHoriz(cells: seq[HtmlElem]): HtmlElem	
+toHtmlTableVert	hmisc/hasts/html_ast.html#toHtmlTableVert,seq[HtmlElem]	html_ast: toHtmlTableVert(cells: seq[HtmlElem]): HtmlElem	
+setOrAddCell	hmisc/hasts/html_ast.html#setOrAddCell,HtmlElem,ArrPos,HtmlElem	html_ast: setOrAddCell(table: var HtmlElem; pos: ArrPos; cell: HtmlElem): void	
+wrap	hmisc/hasts/html_ast.html#wrap,HtmlElem,string	html_ast: wrap(xml: HtmlElem; tag: string): HtmlElem	
+wrap	hmisc/hasts/html_ast.html#wrap,seq[HtmlElem],string	html_ast: wrap(xml: seq[HtmlElem]; tag: string): HtmlElem	
+orCond	hmisc/hasts/html_ast.html#orCond.m,untyped	html_ast: orCond(body: untyped): untyped	
+condIncl	hmisc/hasts/html_ast.html#condIncl.m,untyped,untyped	html_ast: condIncl(rtype, body: untyped): untyped	
+add2	hmisc/hasts/html_ast.html#add2,string,XmlNode,int,int,bool	html_ast: add2(result: var string; n: XmlNode; level = 0; indWidth = 2;\n     addNewLines = true; escape: bool = true)	
+toPrettyStr	hmisc/hasts/html_ast.html#toPrettyStr,XmlNode	html_ast: toPrettyStr(n: XmlNode): string	
+toFlatStr	hmisc/hasts/html_ast.html#toFlatStr,XmlNode,bool	html_ast: toFlatStr(n: XmlNode; escape: bool = true): string	
+toPrettyStr	hmisc/hasts/html_ast.html#toPrettyStr,HtmlElem	html_ast: toPrettyStr(n: HtmlElem): string	
+toFlatStr	hmisc/hasts/html_ast.html#toFlatStr,HtmlElem,bool	html_ast: toFlatStr(n: HtmlElem; escape: bool = true): string	
+toXml	hmisc/hasts/html_ast.html#toXml,HtmlElem	html_ast: toXml(html: HtmlElem): seq[XmlNode]	
+`$`	hmisc/hasts/html_ast.html#$,HtmlElem	html_ast: `$`(html: HtmlElem): string	
+toHtmlDoc	hmisc/hasts/html_ast.html#toHtmlDoc,HtmlElem	html_ast: toHtmlDoc(html: HtmlElem): string	
+toDocument	hmisc/hasts/html_ast.html#toDocument,HtmlElem,string	html_ast: toDocument(html: HtmlElem; styleSection: string = &quot;&quot;): string	
+toDocument	hmisc/hasts/html_ast.html#toDocument,seq[HtmlElem],string	html_ast: toDocument(html: seq[HtmlElem]; styleSection: string = &quot;&quot;): string	
+toHTML	hmisc/hasts/html_ast.html#toHTML,ColoredString,bool	html_ast: toHTML(str: ColoredString; selector: bool = true): HtmlElem	
+toHtml	hmisc/hasts/html_ast.html#toHtml,openArray[ColoredString],bool	html_ast: toHtml(strs: openArray[ColoredString]; selector: bool = true): HtmlElem	
+toHtml	hmisc/hasts/html_ast.html#toHtml,seq[seq[ColoredString]],bool	html_ast: toHtml(strs: seq[seq[ColoredString]]; selector: bool = true): HtmlElem	

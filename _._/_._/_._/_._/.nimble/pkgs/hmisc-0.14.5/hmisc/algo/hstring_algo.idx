@@ -1,0 +1,114 @@
+StrBackIndex	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#StrBackIndex	hstring_algo: StrBackIndex	
+CharBackIndex	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#CharBackIndex	hstring_algo: CharBackIndex	
+spkSet	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#spkSet	StrPartKind.spkSet	
+spkSubstr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#spkSubstr	StrPartKind.spkSubstr	
+StrPartKind	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#StrPartKind	hstring_algo: StrPartKind	
+idsNone	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#idsNone	IdentStyle.idsNone	
+idsSnake	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#idsSnake	IdentStyle.idsSnake	
+idsCamel	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#idsCamel	IdentStyle.idsCamel	
+IdentStyle	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#IdentStyle	hstring_algo: IdentStyle	
+sadLeft	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#sadLeft	StringAlignDirection.sadLeft	
+sadRight	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#sadRight	StringAlignDirection.sadRight	
+sadCenter	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#sadCenter	StringAlignDirection.sadCenter	
+StringAlignDirection	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#StringAlignDirection	hstring_algo: StringAlignDirection	
+StrPart	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#StrPart	hstring_algo: StrPart	
+StrPartTuple	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#StrPartTuple	hstring_algo: StrPartTuple	
+StrPartConv	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#StrPartConv	hstring_algo: StrPartConv	
+toStrPart	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#toStrPart.c,char	hstring_algo: toStrPart(c: char): StrPart	
+toStrPart	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#toStrPart.c,string	hstring_algo: toStrPart(s: string): StrPart	
+toStrPart	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#toStrPart.c,openArray[string]	hstring_algo: toStrPart(s: openArray[string]): StrPart	
+toStrPart	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#toStrPart.c,set[char]	hstring_algo: toStrPart(cs: set[char]): StrPart	
+toStrPartTuple	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#toStrPartTuple.c	hstring_algo: toStrPartTuple[A: StrPartConv; B: StrPartConv](indata: (A, B)): StrPartTuple	
+startsWith	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#startsWith,string,StrPart	hstring_algo: startsWith(s: string; part: StrPart): bool	
+skip1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#skip1,string,StrPart	hstring_algo: skip1(s: string; part: StrPart): int	
+endsWith	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#endsWith,string,StrPart	hstring_algo: endsWith(s: string; part: StrPart): bool	
+`^`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#^,string	hstring_algo: `^`(s: string): StrBackIndex	
+`^`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#^,char	hstring_algo: `^`(s: char): CharBackIndex	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#[],string,StrBackIndex	hstring_algo: `[]`(ins: string; back: StrBackIndex): bool	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#[],string,CharBackIndex	hstring_algo: `[]`(ins: string; back: CharBackIndex): bool	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#[],string,	hstring_algo: `[]`(ins: string; forward: string | char): bool	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#[],string,openArray[string]	hstring_algo: `[]`(ins: string; strs: openArray[string]): bool	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#[],string,StrPart,StrPartConv	hstring_algo: `[]`(ins: string; beg: StrPart; final: StrPartConv): bool	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#[],string,StrPart,openArray[string]	hstring_algo: `[]`(ins: string; beg: StrPart; final: openArray[string]): bool	
+items	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#items.i,StrPart	hstring_algo: items(part: StrPart): StrPart	
+len	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#len,StrPart	hstring_algo: len(part: StrPart): int	
+contains	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#contains,string,varargs[StrPart,toStrPart]	hstring_algo: contains(str: string; parts: varargs[StrPart, toStrPart]): bool	
+dropPrefix	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#dropPrefix,string,StrPart	hstring_algo: dropPrefix(str: string; part: StrPart): string	
+dropPrefix	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#dropPrefix,string,string	hstring_algo: dropPrefix(str: string; alt: string): string	
+dropNormPrefix	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#dropNormPrefix,string,string	hstring_algo: dropNormPrefix(str: string; prefix: string): string	
+dropPrefix	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#dropPrefix,seq[string],StrPart	hstring_algo: dropPrefix(ss: seq[string]; patt: StrPart): seq[string]	
+dropSuffix	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#dropSuffix,string,StrPart	hstring_algo: dropSuffix(str: string; part: StrPart): string	
+toUpperAscii	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#toUpperAscii,seq[string]	hstring_algo: toUpperAscii(strs: seq[string]): seq[string]	
+startsWith	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#startsWith,string,set[char],string	hstring_algo: startsWith(str: string; skip: set[char]; pref: string): bool	
+startsWith	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#startsWith,string,set[char],set[char]	hstring_algo: startsWith(str: string; skip: set[char]; pref: set[char]): bool	
+startsWith	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#startsWith,string,varargs[string]	hstring_algo: startsWith(str: string; pref: varargs[string]): bool	
+endsWith	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#endsWith,string,varargs[string]	hstring_algo: endsWith(str: string; suffixes: varargs[string]): bool	
+findEnd	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#findEnd,string,string,Natural,int	hstring_algo: findEnd(str: string; sub: string; start: Natural = 0; last = 0): int	
+addIndent	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#addIndent,string,int,int,char	hstring_algo: addIndent(res: var string; level: int; sep: int = 2; prefix: char = &apos; &apos;)	
+getIndent	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#getIndent,int,int,char	hstring_algo: getIndent(level: int; sep: int = 2; prefix: char = &apos; &apos;): string	
+join	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#join,openArray[],string	hstring_algo: join(text: openArray[(string, string)]; sep: string = &quot; &quot;): string	
+join	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#join,openArray[string],char	hstring_algo: join(text: openArray[string]; sep: char = &apos; &apos;): string	
+wrap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#wrap,string,tuple[string,string]	hstring_algo: wrap(str: string; delim: tuple[left, right: string]): string	
+wrap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#wrap,string,string,string	hstring_algo: wrap(str, left, right: string): string	
+wrap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#wrap,string,string	hstring_algo: wrap(str: string; delim: string): string	
+wrap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#wrap,string,char,char	hstring_algo: wrap(str: string; left, right: char): string	
+joinl	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#joinl,openArray[string]	hstring_algo: joinl(inseq: openArray[string]): string	
+joinql	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#joinql,openArray[string],int,string,string	hstring_algo: joinql(inseq: openArray[string]; ident: int = 1; wrap: string = &quot;\&quot;&quot;;\n       identStr: string = &quot;  &quot;): string	
+joinkv	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#joinkv,openArray[],string	hstring_algo: joinkv[K, V](t: openArray[(K, V)]; eqTok: string = &quot;=&quot;): seq[string]	
+joinw	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#joinw,openArray[string],string	hstring_algo: joinw(inseq: openArray[string]; sep = &quot; &quot;): string	
+joinq	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#joinq,openArray[string],string,string	hstring_algo: joinq(inseq: openArray[string]; sep: string = &quot; &quot;; wrap: string = &quot;\&quot;&quot;): string	
+join	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#join,T,string,	hstring_algo: join[T](obj: T; sep: string; wrap: (string, string)): string	
+indentBody	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#indentBody,string,int,string,string	hstring_algo: indentBody(str: string; count: int; indent: string = &quot; &quot;; prefix: string = &quot;&quot;): string	
+`|&lt;&lt;`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#|<<,string,int	hstring_algo: `|&lt;&lt;`(str: string; align: int): string	
+`|&gt;&gt;`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#|>>,string,int	hstring_algo: `|&gt;&gt;`(str: string; align: int): string	
+`|&lt;&lt;`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#|<<,string,	hstring_algo: `|&lt;&lt;`(str: string; align: (int, char)): string	
+`|&gt;&gt;`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#|>>,string,	hstring_algo: `|&gt;&gt;`(str: string; align: (int, char)): string	
+`|&lt;&gt;`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#|<>,string,	hstring_algo: `|&lt;&gt;`(str: string; align: (int, char, char)): string	
+msgjoinImpl	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#msgjoinImpl,seq[string]	hstring_algo: msgjoinImpl(args: seq[string]): string	
+msgjoin	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#msgjoin,varargs[string,]	hstring_algo: msgjoin(args: varargs[string, `$`]): string	
+addSuffix	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#addSuffix,string,string	hstring_algo: addSuffix(str, suff: string): string	
+addPrefix	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#addPrefix,string,string	hstring_algo: addPrefix(str: var string; pref: string): void	
+addPrefix	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#addPrefix,string,string_2	hstring_algo: addPrefix(str, pref: string): string	
+addPrefix	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#addPrefix,seq[string],string	hstring_algo: addPrefix(str: seq[string]; pref: string): seq[string]	
+commonPrefix	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#commonPrefix,seq[string]	hstring_algo: commonPrefix(strs: seq[string]): string	
+delete	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#delete,string,set[char]	hstring_algo: delete(str: string; chars: set[char]): string	
+delete	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#delete,string,set[char]_2	hstring_algo: delete(str: var string; chars: set[char])	
+enclosedIn	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#enclosedIn,string,StrPartTuple	hstring_algo: enclosedIn(str: string; delim: StrPartTuple): bool	
+enclosedIn	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#enclosedIn,string,StrPart	hstring_algo: enclosedIn(str: string; delim: StrPart): bool	
+filterPrefix	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#filterPrefix,seq[string],StrPart	hstring_algo: filterPrefix(str: seq[string]; pref: StrPart): seq[string]	
+joinLiteral	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#joinLiteral.m,untyped	hstring_algo: joinLiteral(body: untyped): untyped	
+fmtJoin	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#fmtJoin.t,untyped	hstring_algo: fmtJoin(body: untyped): untyped	
+getKeys	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#getKeys	hstring_algo: getKeys[K, V](t: Table[K, V] | TableRef[K, V]): seq[K]	
+escapeHTML	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#escapeHTML,string	hstring_algo: escapeHTML(input: string): string	
+escapeStrLit	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#escapeStrLit,string	hstring_algo: escapeStrLit(input: string): string	
+enclosedIn	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#enclosedIn,string,string	hstring_algo: enclosedIn(s: string; delim: string): bool	
+getRandomBase64	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#getRandomBase64,int	hstring_algo: getRandomBase64(length: int): string	
+dropCommonPrefix	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#dropCommonPrefix,seq[string],bool	hstring_algo: dropCommonPrefix(strs: seq[string]; dropSingle: bool = true): seq[string]	
+splitTokenize	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#splitTokenize,string,seq[string]	hstring_algo: splitTokenize(str: string; seps: seq[string]): seq[string]	
+splitTokenize	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#splitTokenize,string,set[char],bool	hstring_algo: splitTokenize(str: string; seps: set[char]; sweep: bool = false): seq[string]	
+splitCamel	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#splitCamel,string,bool,bool,bool,bool	hstring_algo: splitCamel(str: string; dropUnderscore: bool = true;\n           splitUnderscores: bool = true; mergeCapitalized: bool = true;\n           adaptiveMerge: bool = true): seq[string]	
+splitSnake	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#splitSnake,string	hstring_algo: splitSnake(str: string): seq[string]	
+abbrevSnake	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#abbrevSnake,string	hstring_algo: abbrevSnake(str: string): string	
+fixCapitalizeAscii	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#fixCapitalizeAscii,string	hstring_algo: fixCapitalizeAscii(str: string): string	
+toSnakeCase	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#toSnakeCase,string	hstring_algo: toSnakeCase(str: string): string	
+toSnakeCamelCase	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#toSnakeCamelCase,string	hstring_algo: toSnakeCamelCase(str: string): string	
+toDashedCase	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#toDashedCase,string	hstring_algo: toDashedCase(str: string): string	
+snakeToCamelCase	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#snakeToCamelCase,string	hstring_algo: snakeToCamelCase(str: string): string	
+keepNimIdentChars	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#keepNimIdentChars,string	hstring_algo: keepNimIdentChars(str: string): string	
+abbrevCamel	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#abbrevCamel,seq[string],seq[seq[string]],bool	hstring_algo: abbrevCamel(abbrSplit: seq[string]; splitWords: seq[seq[string]];\n            getExact: bool = false): seq[string]	
+abbrevCamel	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#abbrevCamel,string,seq[string],bool	hstring_algo: abbrevCamel(abbrev: string; words: seq[string]; getExact: bool = false): seq[\n    string]	
+posString	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#posString,NimNode	hstring_algo: posString(node: NimNode): string	
+mismatchStart	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#mismatchStart,string,string	hstring_algo: mismatchStart(str1, str2: string): int	
+joinCamel	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#joinCamel,openArray[string]	hstring_algo: joinCamel(ins: openArray[string]): string	
+replaceN	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#replaceN,string,int,char	hstring_algo: replaceN(str: string; n: int; subst: char = &apos; &apos;): string	
+dashedWords	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#dashedWords,string,set[char],set[char]	hstring_algo: dashedWords(str: string;\n            toDash: set[char] = {&apos;-&apos;, &apos;_&apos;, &apos; &apos;, &apos;.&apos;, &apos;,&apos;, &apos;;&apos;, &apos;:&apos;};\n            toLower: set[char] = {&apos;a&apos; .. &apos;z&apos;, &apos;A&apos; .. &apos;Z&apos;, &apos;0&apos; .. &apos;9&apos;}): string	
+makeCommentSection	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#makeCommentSection,string,range[]	hstring_algo: makeCommentSection(str: string; level: range[0 .. 2]): string	
+lit3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#lit3.m	hstring_algo: lit3(arg: string{lit}): untyped	
+fmt3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#fmt3.m	hstring_algo: fmt3(arg: string{lit}): untyped	
+iekStr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#iekStr	InterpolatedExprKind.iekStr	
+iekDollar	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#iekDollar	InterpolatedExprKind.iekDollar	
+iekVar	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#iekVar	InterpolatedExprKind.iekVar	
+iekExpr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#iekExpr	InterpolatedExprKind.iekExpr	
+iekIndex	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#iekIndex	InterpolatedExprKind.iekIndex	
+InterpolatedExprKind	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#InterpolatedExprKind	hstring_algo: InterpolatedExprKind	
+interpolatedExprs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hstring_algo.html#interpolatedExprs.i,string	hstring_algo: interpolatedExprs(s: string): tuple[kind: InterpolatedExprKind, value: string]	

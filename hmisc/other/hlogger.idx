@@ -1,0 +1,99 @@
+logAll	hmisc/other/hlogger.html#logAll	HLogLevel.logAll	
+logTrace	hmisc/other/hlogger.html#logTrace	HLogLevel.logTrace	
+logDebug	hmisc/other/hlogger.html#logDebug	HLogLevel.logDebug	
+logInfo	hmisc/other/hlogger.html#logInfo	HLogLevel.logInfo	
+logNotice	hmisc/other/hlogger.html#logNotice	HLogLevel.logNotice	
+logWarn	hmisc/other/hlogger.html#logWarn	HLogLevel.logWarn	
+logError	hmisc/other/hlogger.html#logError	HLogLevel.logError	
+logFatal	hmisc/other/hlogger.html#logFatal	HLogLevel.logFatal	
+logNone	hmisc/other/hlogger.html#logNone	HLogLevel.logNone	
+HLogLevel	hmisc/other/hlogger.html#HLogLevel	hlogger: HLogLevel	
+logEvNone	hmisc/other/hlogger.html#logEvNone	HLogEvent.logEvNone	
+logEvPass	hmisc/other/hlogger.html#logEvPass	HLogEvent.logEvPass	
+logEvSuccess	hmisc/other/hlogger.html#logEvSuccess	HLogEvent.logEvSuccess	
+logEvFail	hmisc/other/hlogger.html#logEvFail	HLogEvent.logEvFail	
+logEvWaitStart	hmisc/other/hlogger.html#logEvWaitStart	HLogEvent.logEvWaitStart	
+logEvWaitDone	hmisc/other/hlogger.html#logEvWaitDone	HLogEvent.logEvWaitDone	
+logEvExprDump	hmisc/other/hlogger.html#logEvExprDump	HLogEvent.logEvExprDump	
+logEvProcCall	hmisc/other/hlogger.html#logEvProcCall	HLogEvent.logEvProcCall	
+HLogEvent	hmisc/other/hlogger.html#HLogEvent	hlogger: HLogEvent	
+hskTask	hmisc/other/hlogger.html#hskTask	HLogScopeKind.hskTask	
+hskScope	hmisc/other/hlogger.html#hskScope	HLogScopeKind.hskScope	
+hskIndent	hmisc/other/hlogger.html#hskIndent	HLogScopeKind.hskIndent	
+hskChDir	hmisc/other/hlogger.html#hskChDir	HLogScopeKind.hskChDir	
+hskMain	hmisc/other/hlogger.html#hskMain	HLogScopeKind.hskMain	
+HLogScopeKind	hmisc/other/hlogger.html#HLogScopeKind	hlogger: HLogScopeKind	
+HLogScope	hmisc/other/hlogger.html#HLogScope	hlogger: HLogScope	
+HLogger	hmisc/other/hlogger.html#HLogger	hlogger: HLogger	
+format	hmisc/other/hlogger.html#format,ColoredText	hlogger: format(str: ColoredText): HLogFormat	
+newTermLogger	hmisc/other/hlogger.html#newTermLogger,bool,bool	hlogger: newTermLogger(file: bool = false; line: bool = false): HLogger	
+prepareText	hmisc/other/hlogger.html#prepareText,HLogger,varargs[string],string	hlogger: prepareText(logger: HLogger; text: varargs[string]; join: string): string	
+logImpl	hmisc/other/hlogger.html#logImpl,HLogger,HLogLevel,HLogEvent,,seq[string],string	hlogger: logImpl(logger: HLogger; level: HLogLevel; event: HLogEvent;\n        position: (string, int, int); args: seq[string]; join: string = &quot; &quot;)	
+`?`	hmisc/other/hlogger.html#?,HLogger	hlogger: `?`(logger: HLogger): bool	
+indentLen	hmisc/other/hlogger.html#indentLen,HLogger	hlogger: indentLen(logger: HLogger): int	
+separator0	hmisc/other/hlogger.html#separator0,HLogger	hlogger: separator0(logger: HLogger)	
+separator1	hmisc/other/hlogger.html#separator1,HLogger	hlogger: separator1(logger: HLogger)	
+writeln	hmisc/other/hlogger.html#writeln,HLogger,varargs[string,]	hlogger: writeln(logger: HLogger; text: varargs[string, `$`])	
+write	hmisc/other/hlogger.html#write,HLogger,varargs[string,]	hlogger: write(logger: HLogger; text: varargs[string, `$`])	
+skipNl	hmisc/other/hlogger.html#skipNl,HLogger,int	hlogger: skipNl(logger: HLogger; count: int = 1)	
+openScope	hmisc/other/hlogger.html#openScope,HLogger,HLogScopeKind,string,int,int,string	hlogger: openScope(logger: HLogger; kind: HLogScopeKind; file: string; line, column: int;\n          scopeName: string)	
+closeScope	hmisc/other/hlogger.html#closeScope,HLogger	hlogger: closeScope(logger: HLogger)	
+thisScope	hmisc/other/hlogger.html#thisScope.t,HLogger,string,HLogScopeKind	hlogger: thisScope(logger: HLogger; name: string; kind: HLogScopeKind = hskScope): untyped	
+enableInScopeIf	hmisc/other/hlogger.html#enableInScopeIf.t,HLogger,bool	hlogger: enableInScopeIf(logger: HLogger; expr: bool): untyped	
+indent	hmisc/other/hlogger.html#indent,HLogger	hlogger: indent(logger: HLogger)	
+dedent	hmisc/other/hlogger.html#dedent,HLogger	hlogger: dedent(logger: HLogger)	
+indented	hmisc/other/hlogger.html#indented.t,HLogger,untyped	hlogger: indented(logger: HLogger; body: untyped): untyped	
+withPositions	hmisc/other/hlogger.html#withPositions.t,untyped	hlogger: withPositions(logger: untyped): untyped	
+openScope	hmisc/other/hlogger.html#openScope.t,HLogger,HLogScopeKind,string	hlogger: openScope(logger: HLogger; kind: HLogScopeKind; name: string)	
+initLogScope	hmisc/other/hlogger.html#initLogScope,HLogScopeKind	hlogger: initLogScope(kind: HLogScopeKind): HLogScope	
+logScope	hmisc/other/hlogger.html#logScope.m,untyped,untyped	hlogger: logScope(varname: untyped; pr: untyped): untyped	
+prepareDump	hmisc/other/hlogger.html#prepareDump,string,T,sinkseq[string]	hlogger: prepareDump[T](head: string; expr: T; other: sink seq[string]): seq[string]	
+preparePDump	hmisc/other/hlogger.html#preparePDump,string,T	hlogger: preparePDump[T](head: string; expr: T): string	
+dumpImpl	hmisc/other/hlogger.html#dumpImpl,HLogger,,seq[string]	hlogger: dumpImpl(logger: HLogger; pos: (string, int, int); args: seq[string])	
+dump	hmisc/other/hlogger.html#dump.t,HLogger,untyped,varargs[string,]	hlogger: dump(logger: HLogger; expr: untyped; args: varargs[string, `$`]): untyped	
+pdump	hmisc/other/hlogger.html#pdump.t,HLogger,untyped	hlogger: pdump(logger: HLogger; expr: untyped): untyped	
+debugImpl	hmisc/other/hlogger.html#debugImpl,HLogger,,seq[string]	hlogger: debugImpl(logger: HLogger; pos: (string, int, int); args: seq[string])	
+debug	hmisc/other/hlogger.html#debug.t,HLogger,varargs[string,]	hlogger: debug(logger: HLogger; args: varargs[string, `$`]): untyped	
+traceImpl	hmisc/other/hlogger.html#traceImpl,HLogger,,seq[string]	hlogger: traceImpl(logger: HLogger; pos: (string, int, int); args: seq[string])	
+trace	hmisc/other/hlogger.html#trace.t,HLogger,varargs[string,]	hlogger: trace(logger: HLogger; args: varargs[string, `$`]): untyped	
+infoImpl	hmisc/other/hlogger.html#infoImpl,HLogger,,seq[string]	hlogger: infoImpl(logger: HLogger; pos: (string, int, int); args: seq[string])	
+passImpl	hmisc/other/hlogger.html#passImpl,HLogger,,seq[string]	hlogger: passImpl(logger: HLogger; pos: (string, int, int); args: seq[string])	
+info	hmisc/other/hlogger.html#info.t,HLogger,varargs[string,]	hlogger: info(logger: HLogger; args: varargs[string, `$`]): untyped	
+noticeImpl	hmisc/other/hlogger.html#noticeImpl,HLogger,,seq[string]	hlogger: noticeImpl(logger: HLogger; pos: (string, int, int); args: seq[string])	
+notice	hmisc/other/hlogger.html#notice.t,HLogger,varargs[string,]	hlogger: notice(logger: HLogger; args: varargs[string, `$`]): untyped	
+warnImpl	hmisc/other/hlogger.html#warnImpl,HLogger,,seq[string]	hlogger: warnImpl(logger: HLogger; pos: (string, int, int); args: seq[string])	
+warn	hmisc/other/hlogger.html#warn.t,HLogger,varargs[string,]	hlogger: warn(logger: HLogger; args: varargs[string, `$`]): untyped	
+errImpl	hmisc/other/hlogger.html#errImpl,HLogger,,seq[string]	hlogger: errImpl(logger: HLogger; pos: (string, int, int); args: seq[string])	
+err	hmisc/other/hlogger.html#err.t,HLogger,varargs[string,]	hlogger: err(logger: HLogger; args: varargs[string, `$`]): untyped	
+fatalImpl	hmisc/other/hlogger.html#fatalImpl,HLogger,,seq[string]	hlogger: fatalImpl(logger: HLogger; pos: (string, int, int); args: seq[string])	
+fatal	hmisc/other/hlogger.html#fatal.t,HLogger,varargs[string,]	hlogger: fatal(logger: HLogger; args: varargs[string, `$`]): untyped	
+waitImpl	hmisc/other/hlogger.html#waitImpl,HLogger,,seq[string]	hlogger: waitImpl(logger: HLogger; pos: (string, int, int); args: seq[string])	
+wait	hmisc/other/hlogger.html#wait.t,HLogger,varargs[string,]	hlogger: wait(logger: HLogger; args: varargs[string, `$`]): untyped	
+doneImpl	hmisc/other/hlogger.html#doneImpl,HLogger,,seq[string]	hlogger: doneImpl(logger: HLogger; pos: (string, int, int); args: seq[string])	
+done	hmisc/other/hlogger.html#done.t,HLogger,varargs[string,]	hlogger: done(logger: HLogger; args: varargs[string, `$`]): untyped	
+failImpl	hmisc/other/hlogger.html#failImpl,HLogger,,seq[string]	hlogger: failImpl(logger: HLogger; pos: (string, int, int); args: seq[string])	
+fail	hmisc/other/hlogger.html#fail.t,HLogger,varargs[string,]	hlogger: fail(logger: HLogger; args: varargs[string, `$`]): untyped	
+successImpl	hmisc/other/hlogger.html#successImpl,HLogger,,seq[string]	hlogger: successImpl(logger: HLogger; pos: (string, int, int); args: seq[string])	
+success	hmisc/other/hlogger.html#success.t,HLogger,varargs[string,]	hlogger: success(logger: HLogger; args: varargs[string, `$`]): untyped	
+waitFor	hmisc/other/hlogger.html#waitFor.t,HLogger,string	hlogger: waitFor(logger: HLogger; name: string): untyped	
+loggerField	hmisc/other/hlogger.html#loggerField.m,typed,untyped,static[bool],string	hlogger: loggerField(T: typed; field: untyped; doExport: static[bool] = false;\n            module: string = &quot;hlogger&quot;): untyped	
+changeDir	hmisc/other/hlogger.html#changeDir.t,HLogger,AbsDir,untyped	hlogger: changeDir(logger: HLogger; dir: AbsDir; body: untyped): untyped	
+findLineRange	hmisc/other/hlogger.html#findLineRange,string,Slice[int],(int, int)	hlogger: findLineRange(base: string; start: Slice[int]; around: (int, int) = (0, 0)): Slice[\n    int]	
+lineTextAround	hmisc/other/hlogger.html#lineTextAround,string,Slice[int],(int, int)	hlogger: lineTextAround(base: string; charRange: Slice[int];\n               around: (int, int) = (1, 1)): tuple[text: string,\n    startPos, endPos: int]	
+linesAround	hmisc/other/hlogger.html#linesAround,string,int,(int, int)	hlogger: linesAround(base: string; line: int; around: (int, int) = (1, 1)): seq[string]	
+logLines	hmisc/other/hlogger.html#logLines,HLogger,string,int,string,int,(int, int)	hlogger: logLines(logger: HLogger; base: string; center: int; lang: string;\n         column: int = -1; around: (int, int) = (1, 1))	
+logLines	hmisc/other/hlogger.html#logLines,HLogger,AbsFile,int,string,int,(int, int)	hlogger: logLines(logger: HLogger; file: AbsFile; center: int; lang: string;\n         column: int = -1; around: (int, int) = (1, 1))	
+log	hmisc/other/hlogger.html#log.e,ref.Exception,HLogger	hlogger: log(ex: ref Exception; logger: HLogger)	
+log	hmisc/other/hlogger.html#log.e,ShellError,HLogger	hlogger: log(ex: ShellError; logger: HLogger)	
+logStackTrace	hmisc/other/hlogger.html#logStackTrace,HLogger,ref.Exception,bool,bool,bool,int,bool,bool	hlogger: logStackTrace(logger: HLogger; e: ref Exception; showError: bool = true;\n              ignoreAssert: bool = true; source: bool = true;\n              skipFirst: int = 0; forceCompact: bool = false;\n              forceSuperCompact: bool = false)	
+loggerOutConverter	hmisc/other/hlogger.html#loggerOutConverter,PosStr,ShellCmd,Option[HLogger]	hlogger: loggerOutConverter(stream: var PosStr; cmd: ShellCmd; state: var Option[HLogger]): Option[\n    bool]	
+loggerErrConverter	hmisc/other/hlogger.html#loggerErrConverter,PosStr,ShellCmd,Option[HLogger]	hlogger: loggerErrConverter(stream: var PosStr; cmd: ShellCmd; state: var Option[HLogger]): Option[\n    bool]	
+prettyShellCmd	hmisc/other/hlogger.html#prettyShellCmd,ShellCmd	hlogger: prettyShellCmd(cmd: ShellCmd): ColoredText	
+execShell	hmisc/other/hlogger.html#execShell,HLogger,,ShellCmd,StreamConverter[ShellCmd,bool,HLogger],StreamConverter[ShellCmd,bool,HLogger],bool,int	hlogger: execShell(logger: HLogger; pos: (string, int, int); shellCmd: ShellCmd; outLog: StreamConverter[\n    ShellCmd, bool, HLogger] = loggerOutConverter; errLog: StreamConverter[\n    ShellCmd, bool, HLogger] = loggerErrConverter; logRaised: bool = false;\n          execTimeoutMs: int = high(int))	
+execShell	hmisc/other/hlogger.html#execShell.t,HLogger,ShellCmd	hlogger: execShell(logger: HLogger; shellCmd: ShellCmd): untyped	
+runShell	hmisc/other/hlogger.html#runShell,HLogger,,ShellCmd,string	hlogger: runShell(logger: HLogger; pos: (string, int, int); shellCmd: ShellCmd;\n         stdin: string = &quot;&quot;): ShellExecResult	
+runShellResult	hmisc/other/hlogger.html#runShellResult,HLogger,,ShellCmd,string,int	hlogger: runShellResult(logger: HLogger; pos: (string, int, int); shellCmd: ShellCmd;\n               stdin: string = &quot;&quot;; execTimeoutMs: int = high(int)): ShellResult	
+runShell	hmisc/other/hlogger.html#runShell.t,HLogger,ShellCmd,string	hlogger: runShell(logger: HLogger; shellCmd: ShellCmd; stdin: string = &quot;&quot;): ShellExecResult	
+runShellResult	hmisc/other/hlogger.html#runShellResult.t,HLogger,ShellCmd,string,int	hlogger: runShellResult(logger: HLogger; shellCmd: ShellCmd; stdin: string = &quot;&quot;;\n               execTimeoutMs: int = high(int)): ShellResult	
+typedArgs	hmisc/other/hlogger.html#typedArgs,NimNode	hlogger: typedArgs(call: NimNode): seq[NimNode]	
+execCode	hmisc/other/hlogger.html#execCode.m,HLogger,typed,bool,static[HLogLevel]	hlogger: execCode(logger: HLogger; inCall: typed; dryRun: bool = false;\n         lvl: static[HLogLevel] = logInfo): untyped	

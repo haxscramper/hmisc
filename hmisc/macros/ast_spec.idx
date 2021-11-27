@@ -1,0 +1,42 @@
+AstRange	hmisc/macros/ast_spec.html#AstRange	ast_spec: AstRange	
+AstCheckProc	hmisc/macros/ast_spec.html#AstCheckProc	ast_spec: AstCheckProc	
+AstPattern	hmisc/macros/ast_spec.html#AstPattern	ast_spec: AstPattern	
+astPattern	hmisc/macros/ast_spec.html#astPattern,set[K],AstCheckProc[N,K],string	ast_spec: astPattern[N, K](expected: set[K]; check: AstCheckProc[N, K] = nil;\n                 doc: string = &quot;&quot;): AstPattern[N, K]	
+astPattern	hmisc/macros/ast_spec.html#astPattern,set[K],openArray[AstPatternRange[N,K]],AstCheckProc[N,K],string	ast_spec: astPattern[N, K](expected: set[K]; alts: openArray[AstPatternRange[N, K]];\n                 check: AstCheckProc[N, K] = nil; doc: string = &quot;&quot;): AstPattern[\n    N, K]	
+astPattern	hmisc/macros/ast_spec.html#astPattern,openArray[AstPatternRange[N,K]],AstCheckProc[N,K],string	ast_spec: astPattern[N, K](alts: openArray[AstPatternRange[N, K]];\n                 check: AstCheckProc[N, K] = nil; doc: string = &quot;&quot;): AstPattern[\n    N, K]	
+astPattern	hmisc/macros/ast_spec.html#astPattern,string	ast_spec: astPattern[N, K](doc: string = &quot;&quot;): AstPattern[N, K]	
+astSpec	hmisc/macros/ast_spec.html#astSpec,openArray[]	ast_spec: astSpec[N, K](patterns: openArray[(K, AstPattern[N, K])]): AstSpec[N, K]	
+getPattern	hmisc/macros/ast_spec.html#getPattern,AstSpec[N,K],K	ast_spec: getPattern[N, K](spec: AstSpec[N, K]; kind: K): AstPattern[N, K]	
+getNodeRanges	hmisc/macros/ast_spec.html#getNodeRanges,AstSpec[N,K]	ast_spec: getNodeRanges[N, K](spec: AstSpec[N, K]): array[K, Table[string, AstRange]]	
+getSingleSubnodeIdx	hmisc/macros/ast_spec.html#getSingleSubnodeIdx,static[AstSpec[N,K]],K,string,Option[int]	ast_spec: getSingleSubnodeIdx[N, K](spec: static[AstSpec[N, K]]; kind: K; name: string;\n                          nodeLen: Option[int] = none(int)): int	
+getSingleSubnodeIdx	hmisc/macros/ast_spec.html#getSingleSubnodeIdx,static[AstSpec[N,K]],N,string	ast_spec: getSingleSubnodeIdx[N, K](spec: static[AstSpec[N, K]]; node: N; name: string): int	
+getSingleSubnode	hmisc/macros/ast_spec.html#getSingleSubnode,static[AstSpec[N,K]],N,string	ast_spec: getSingleSubnode[N, K](spec: static[AstSpec[N, K]]; node: N; name: string): N	
+getMultipleSubnode	hmisc/macros/ast_spec.html#getMultipleSubnode,static[AstSpec[N,K]],N,string	ast_spec: getMultipleSubnode[N, K](spec: static[AstSpec[N, K]]; node: N; name: string): seq[\n    N]	
+fieldRange	hmisc/macros/ast_spec.html#fieldRange,AstSpec[N,K],N,int	ast_spec: fieldRange[N, K](spec: AstSpec[N, K]; node: N; idx: int): Option[AstRange]	
+fieldName	hmisc/macros/ast_spec.html#fieldName,AstSpec[N,K],N,int	ast_spec: fieldName[N, K](spec: AstSpec[N, K]; node: N; idx: int): Option[string]	
+fieldDoc	hmisc/macros/ast_spec.html#fieldDoc,AstSpec[N,K],N,int	ast_spec: fieldDoc[N, K](spec: AstSpec[N, K]; node: N; idx: int): Option[string]	
+astRange	hmisc/macros/ast_spec.html#astRange,int,bool,string,string	ast_spec: astRange(idx: int; optional: bool = false; doc: string = &quot;&quot;; name: string = &quot;&quot;): AstRange	
+astRange	hmisc/macros/ast_spec.html#astRange,BackwardsIndex,bool,string,string	ast_spec: astRange(idx: BackwardsIndex; optional: bool = false; doc: string = &quot;&quot;;\n         name: string = &quot;&quot;): AstRange	
+astRange	hmisc/macros/ast_spec.html#astRange,Slice[int],bool,string,string	ast_spec: astRange(slice: Slice[int]; optional: bool = false; doc: string = &quot;&quot;;\n         name: string = &quot;&quot;): AstRange	
+astRange	hmisc/macros/ast_spec.html#astRange,HSlice[int,BackwardsIndex],bool,string,string	ast_spec: astRange(slice: HSlice[int, BackwardsIndex]; optional: bool = false;\n         doc: string = &quot;&quot;; name: string = &quot;&quot;): AstRange	
+astRange	hmisc/macros/ast_spec.html#astRange,Slice[BackwardsIndex],bool,string,string	ast_spec: astRange(slice: Slice[BackwardsIndex]; optional: bool = false; doc: string = &quot;&quot;;\n         name: string = &quot;&quot;): AstRange	
+astSpec	hmisc/macros/ast_spec.html#astSpec.m,untyped,untyped,untyped	ast_spec: astSpec(nodeType, kindType, body: untyped): untyped	
+toSlice	hmisc/macros/ast_spec.html#toSlice,AstRange,int	ast_spec: toSlice(arange: AstRange; maxLen: int): Slice[int]	
+contains	hmisc/macros/ast_spec.html#contains,AstRange,int,int	ast_spec: contains(arange: AstRange; idx, maxLen: int): bool	
+`$`	hmisc/macros/ast_spec.html#$,AstRange	ast_spec: `$`(arange: AstRange): string	
+`$`	hmisc/macros/ast_spec.html#$,AstPattern[N,K]	ast_spec: `$`[N, K](spec: AstPattern[N, K]): string	
+toPath	hmisc/macros/ast_spec.html#toPath,N,seq[int]	ast_spec: toPath[N](ast: N; path: seq[int]): string	
+isEmpty	hmisc/macros/ast_spec.html#isEmpty,AstCheckFail[K],bool	ast_spec: isEmpty[K](fail: AstCheckFail[K]; withNested: bool = true): bool	
+failCount	hmisc/macros/ast_spec.html#failCount,AstCheckFail[K]	ast_spec: failCount[K](fail: AstCheckFail[K]): int	
+findMissing	hmisc/macros/ast_spec.html#findMissing,AstPattern[N,K],N,seq[int]	ast_spec: findMissing[N, K](spec: AstPattern[N, K]; node: N; path: seq[int] = @[]): AstCheckFail[\n    K]	
+validateAst	hmisc/macros/ast_spec.html#validateAst,AstPattern[N,K],K,K,int,int,seq[int]	ast_spec: validateAst[N, K](spec: AstPattern[N, K]; kind, subnode: K; idx: int;\n                  maxLen: int; path: seq[int] = @[]): AstCheckFail[K]	
+treeRepr	hmisc/macros/ast_spec.html#treeRepr,AstSpec[N,K]	ast_spec: treeRepr[N, K](spec: AstSpec[N, K]): ColoredText	
+formatFail	hmisc/macros/ast_spec.html#formatFail,AstCheckFail[K],N	ast_spec: formatFail[N, K](fail: AstCheckFail[K]; node: N): ColoredText	
+validateAst	hmisc/macros/ast_spec.html#validateAst,AstSpec[N,K],N,N,int	ast_spec: validateAst[N, K](spec: AstSpec[N, K]; node: N; subnode: N; idx: int): ColoredText	
+validateSub	hmisc/macros/ast_spec.html#validateSub,AstPattern[N,K],K,K,int,int	ast_spec: validateSub[N, K](spec: AstPattern[N, K]; node, sub: K; idx, maxIdx: int): Option[\n    ColoredText]	
+validateSub	hmisc/macros/ast_spec.html#validateSub,AstSpec[N,K],N,int,N	ast_spec: validateSub[N, K](spec: AstSpec[N, K]; node: N; idx: int; sub: N): Option[\n    ColoredText]	
+validateSub	hmisc/macros/ast_spec.html#validateSub,AstSpec[N,K],N,int	ast_spec: validateSub[N, K](spec: AstSpec[N, K]; node: N; idx: int): Option[ColoredText]	
+validateSelf	hmisc/macros/ast_spec.html#validateSelf,AstSpec[N,K],N	ast_spec: validateSelf[N, K](spec: AstSpec[N, K]; node: N): Option[ColoredText]	
+validateAst	hmisc/macros/ast_spec.html#validateAst,AstSpec[N,K],N	ast_spec: validateAst[N, K](spec: AstSpec[N, K]; node: N): ColoredText	
+generateConstructors	hmisc/macros/ast_spec.html#generateConstructors.t,,set[K],	ast_spec: generateConstructors[N; K: enum](inSpec: AstSpec[N, K]{lit | `const`};\n                                 inDefaultable: set[K]; makeVia: untyped{ident}): untyped	
+generateFieldEnum	hmisc/macros/ast_spec.html#generateFieldEnum.t,,static[string],static[bool]	ast_spec: generateFieldEnum[N; K: enum](inSpec: AstSpec[N, K]{lit | `const`};\n                              prefix: static[string];\n                              exported: static[bool] = true): untyped	

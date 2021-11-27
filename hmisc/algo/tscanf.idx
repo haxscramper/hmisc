@@ -1,0 +1,8 @@
+matcherTypeGetter_Impl	hmisc/algo/tscanf.html#matcherTypeGetter_Impl,proc(string,T,int)	tscanf: matcherTypeGetter_Impl[T](arg: proc (s: string; arg: var T; start: int): int): T	
+matcherTypeGetter_Impl	hmisc/algo/tscanf.html#matcherTypeGetter_Impl,proc(string,T,int,T1)	tscanf: matcherTypeGetter_Impl[T, T1](arg: proc (s: string; arg: var T; start: int;\n    a1: T1): int): T	
+matcherTypeGetter_Impl	hmisc/algo/tscanf.html#matcherTypeGetter_Impl,proc(string,T,int,T1,T2)	tscanf: matcherTypeGetter_Impl[T, T1, T2](arg: proc (s: string; arg: var T; start: int;\n    a1: T1; a2: T2): int): T	
+matcherTypeGetter_Impl	hmisc/algo/tscanf.html#matcherTypeGetter_Impl,proc(string,T,int,T1,T2,T3)	tscanf: matcherTypeGetter_Impl[T, T1, T2, T3](arg: proc (s: string; arg: var T;\n    start: int; a1: T1; a2: T2; a3: T3): int): T	
+anything	hmisc/algo/tscanf.html#anything,string,string,int	tscanf: anything(input: string; argument: var string; start: int): int	
+anything	hmisc/algo/tscanf.html#anything,string,int	tscanf: anything(input: string; start: int): int	
+until	hmisc/algo/tscanf.html#until,string,string,int,set[char]	tscanf: until(input: string; argument: var string; start: int; stop: set[char]): int	
+tscanf	hmisc/algo/tscanf.html#tscanf.m,string,string	tscanf: tscanf(input, pattNode: string): untyped	

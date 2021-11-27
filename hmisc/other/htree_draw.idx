@@ -1,0 +1,2 @@
+reversed	hmisc/other/htree_draw.html#reversed.i,seq[T]	htree_draw: reversed[T](s: seq[T]): T	
+toString	hmisc/other/htree_draw.html#toString,DrawTree[T]	htree_draw: toString[T](dt: DrawTree[T]): string	

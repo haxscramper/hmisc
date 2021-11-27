@@ -1,0 +1,10 @@
+nthType1	hmisc/algo/hseq_mapping.html#nthType1	hseq_mapping: nthType1[T1, T2](a: (T1, T2)): T1	
+nthType2	hmisc/algo/hseq_mapping.html#nthType2	hseq_mapping: nthType2[T1, T2](a: (T1, T2)): T2	
+mapPairs	hmisc/algo/hseq_mapping.html#mapPairs.m,untyped,untyped,untyped	hseq_mapping: mapPairs(inseq: untyped; op: untyped; injectNames: untyped): untyped	
+mapPairs	hmisc/algo/hseq_mapping.html#mapPairs.t,untyped,untyped	hseq_mapping: mapPairs(inseq: untyped; op: untyped): untyped	
+mutMapIt	hmisc/algo/hseq_mapping.html#mutMapIt.t,typed,untyped	hseq_mapping: mutMapIt(s: typed; op: untyped): untyped	
+foldlTuple	hmisc/algo/hseq_mapping.html#foldlTuple.t,untyped,untyped	hseq_mapping: foldlTuple(sequence, operation: untyped): untyped	
+concatSide	hmisc/algo/hseq_mapping.html#concatSide	hseq_mapping: concatSide[A, B](arg: (A, seq[seq[B]])): (A, seq[B])	
+rfindIt	hmisc/algo/hseq_mapping.html#rfindIt.t,typed,untyped	hseq_mapping: rfindIt(s: typed; op: untyped): untyped	
+findItFirst	hmisc/algo/hseq_mapping.html#findItFirst.t,typed,untyped	hseq_mapping: findItFirst(s: typed; op: untyped): untyped	
+findItFirstOpt	hmisc/algo/hseq_mapping.html#findItFirstOpt.t,typed,untyped	hseq_mapping: findItFirstOpt(s: typed; op: untyped): untyped	

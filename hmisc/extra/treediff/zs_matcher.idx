@@ -1,0 +1,18 @@
+ZsMatcher	hmisc/extra/treediff/zs_matcher.html#ZsMatcher	zs_matcher: ZsMatcher	
+ZsTree	hmisc/extra/treediff/zs_matcher.html#ZsTree	zs_matcher: ZsTree	
+newZsMatcher	hmisc/extra/treediff/zs_matcher.html#newZsMatcher	zs_matcher: newZsMatcher(): ZsMatcher	
+setITree	hmisc/extra/treediff/zs_matcher.html#setITree,ZsTree,int,Tree	zs_matcher: setITree(this: ZsTree; i: int; tree: Tree): void	
+setLld	hmisc/extra/treediff/zs_matcher.html#setLld,ZsTree,int,int	zs_matcher: setLld(this: ZsTree; i: int; lld: int): void	
+lld	hmisc/extra/treediff/zs_matcher.html#lld,ZsTree,int	zs_matcher: lld(this: ZsTree; i: int): int	
+isLeaf	hmisc/extra/treediff/zs_matcher.html#isLeaf,ZsTree,int	zs_matcher: isLeaf(this: ZsTree; i: int): bool	
+tree	hmisc/extra/treediff/zs_matcher.html#tree,ZsTree,int	zs_matcher: tree(this: ZsTree; i: int): Tree	
+getFirstLeaf	hmisc/extra/treediff/zs_matcher.html#getFirstLeaf,ZsMatcher,Tree	zs_matcher: getFirstLeaf(this: ZsMatcher; t: Tree): Tree	
+setKeyRoots	hmisc/extra/treediff/zs_matcher.html#setKeyRoots,ZsTree	zs_matcher: setKeyRoots(this: ZsTree): void	
+newZsTree	hmisc/extra/treediff/zs_matcher.html#newZsTree,ZsMatcher,Tree	zs_matcher: newZsTree(matcher: ZsMatcher; t: Tree): ZsTree	
+getDeletionCost	hmisc/extra/treediff/zs_matcher.html#getDeletionCost,ZsMatcher,Tree	zs_matcher: getDeletionCost(this: ZsMatcher; n: Tree): float	
+getInsertionCost	hmisc/extra/treediff/zs_matcher.html#getInsertionCost,ZsMatcher,Tree	zs_matcher: getInsertionCost(this: ZsMatcher; n: Tree): float	
+getUpdateCost	hmisc/extra/treediff/zs_matcher.html#getUpdateCost,ZsMatcher,Tree,Tree	zs_matcher: getUpdateCost(this: ZsMatcher; n1: Tree; n2: Tree): float	
+forestDist	hmisc/extra/treediff/zs_matcher.html#forestDist,ZsMatcher,int,int	zs_matcher: forestDist(this: ZsMatcher; i: int; j: int): void	
+computeTreeDist	hmisc/extra/treediff/zs_matcher.html#computeTreeDist,ZsMatcher	zs_matcher: computeTreeDist(this: ZsMatcher): seq[seq[float]]	
+match	hmisc/extra/treediff/zs_matcher.html#match,ZsMatcher	zs_matcher: match(this: ZsMatcher): void	
+match	hmisc/extra/treediff/zs_matcher.html#match.e,ZsMatcher,Tree,Tree,MappingStore	zs_matcher: match(this: ZsMatcher; src: Tree; dst: Tree; mappings: MappingStore): MappingStore	

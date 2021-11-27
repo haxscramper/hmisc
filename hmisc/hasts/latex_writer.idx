@@ -1,0 +1,19 @@
+LatexWriter	hmisc/hasts/latex_writer.html#LatexWriter	latex_writer: LatexWriter	
+writeInd	hmisc/hasts/latex_writer.html#writeInd,LatexWriter	latex_writer: writeInd(writer`gensym0: var LatexWriter)	
+writeIndent	hmisc/hasts/latex_writer.html#writeIndent,LatexWriter	latex_writer: writeIndent(writer`gensym0: var LatexWriter)	
+space	hmisc/hasts/latex_writer.html#space,LatexWriter	latex_writer: space(writer`gensym0: var LatexWriter)	
+line	hmisc/hasts/latex_writer.html#line,LatexWriter,int	latex_writer: line(writer`gensym0: var LatexWriter; repeat`gensym0: int = 1)	
+indent	hmisc/hasts/latex_writer.html#indent,LatexWriter	latex_writer: indent(writer`gensym0: var LatexWriter)	
+dedent	hmisc/hasts/latex_writer.html#dedent,LatexWriter	latex_writer: dedent(writer`gensym0: var LatexWriter)	
+close	hmisc/hasts/latex_writer.html#close,LatexWriter	latex_writer: close(writer`gensym0: var LatexWriter)	
+readAll	hmisc/hasts/latex_writer.html#readAll,LatexWriter	latex_writer: readAll(writer`gensym0: var LatexWriter): string	
+writeRaw	hmisc/hasts/latex_writer.html#writeRaw,LatexWriter,	latex_writer: writeRaw(writer`gensym0: var LatexWriter; text`gensym0: varargs[string, `$`])	
+newLatexWriter	hmisc/hasts/latex_writer.html#newLatexWriter	latex_writer: newLatexWriter(stream`gensym0: Stream | File | AbsFile): LatexWriter	
+newLatexWriter	hmisc/hasts/latex_writer.html#newLatexWriter_2	latex_writer: newLatexWriter(): LatexWriter	
+writeIndRaw	hmisc/hasts/latex_writer.html#writeIndRaw,,varargs[string,]	latex_writer: writeIndRaw(writer; text: varargs[string, `$`])	
+comment	hmisc/hasts/latex_writer.html#comment,,string	latex_writer: comment(writer; text: string)	
+`%`	hmisc/hasts/latex_writer.html#%,,string	latex_writer: `%`(writer; text: string)	
+cmd	hmisc/hasts/latex_writer.html#cmd,,string,openArray[string],openArray[string],string,bool	latex_writer: cmd(writer; cmdName: string; cmdParams: openArray[string];\n    args: openArray[string]; post: string = &quot;&quot;; inline: bool = false)	
+cmd	hmisc/hasts/latex_writer.html#cmd,,string,openArray[string],string,bool	latex_writer: cmd(writer; name: string; args: openArray[string] = []; post: string = &quot;&quot;;\n    inline: bool = false)	
+env	hmisc/hasts/latex_writer.html#env.t,,string,openArray[string],untyped	latex_writer: env(writer; envName: string; args: openArray[string] = []; body: untyped): untyped	
+flatEnv	hmisc/hasts/latex_writer.html#flatEnv.t,,string,openArray[string],untyped	latex_writer: flatEnv(writer; envName: string; args: openArray[string] = []; body: untyped): untyped	

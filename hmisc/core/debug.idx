@@ -1,0 +1,36 @@
+ifHaxComp	hmisc/core/debug.html#ifHaxComp.t,untyped	debug: ifHaxComp(body: untyped): untyped	
+startHaxComp	hmisc/core/debug.html#startHaxComp.t	debug: startHaxComp()	
+getHax	hmisc/core/debug.html#getHax	debug: getHax(): bool	
+startHax	hmisc/core/debug.html#startHax	debug: startHax()	
+stopHax	hmisc/core/debug.html#stopHax	debug: stopHax()	
+pushHax	hmisc/core/debug.html#pushHax,bool	debug: pushHax(doLog: bool)	
+popHax	hmisc/core/debug.html#popHax,bool	debug: popHax(fall: bool = true)	
+getHaxStack	hmisc/core/debug.html#getHaxStack	debug: getHaxStack(): seq[bool]	
+haxRunning	hmisc/core/debug.html#haxRunning.t	debug: haxRunning(): bool	
+haxRunningComp	hmisc/core/debug.html#haxRunningComp.t	debug: haxRunningComp(): bool	
+stopHaxComp	hmisc/core/debug.html#stopHaxComp.t	debug: stopHaxComp()	
+workHax	hmisc/core/debug.html#workHax.t,static[bool],untyped	debug: workHax(doIt: static[bool]; body: untyped): untyped	
+workHaxComp	hmisc/core/debug.html#workHaxComp.t,static[bool],untyped	debug: workHaxComp(doIt: static[bool]; body: untyped): untyped	
+haxc	hmisc/core/debug.html#haxc.t,untyped	debug: haxc(body: untyped): untyped	
+haxThis	hmisc/core/debug.html#haxThis.t,untyped	debug: haxThis(a: untyped): untyped	
+dieHereComp	hmisc/core/debug.html#dieHereComp.t	debug: dieHereComp(): untyped	
+dieHereMacro	hmisc/core/debug.html#dieHereMacro.t	debug: dieHereMacro(): untyped	
+dieHere	hmisc/core/debug.html#dieHere.t	debug: dieHere(): untyped	
+colorPrint	hmisc/core/debug.html#colorPrint,NimNode,string,bool	debug: colorPrint(node: NimNode; tmpfile: string = &quot;/tmp/nimast_tmp.nim&quot;;\n           doPrint: bool = true): void	
+d	hmisc/core/debug.html#d,varargs[string,]	debug: d(text: varargs[string, `$`]): void	
+de	hmisc/core/debug.html#de.t,untyped,varargs[string,]	debug: de(expr: untyped; text: varargs[string, `$`]): void	
+dev	hmisc/core/debug.html#dev.t,untyped	debug: dev(expr: untyped): untyped	
+printCpuTime	hmisc/core/debug.html#printCpuTime.t,untyped	debug: printCpuTime(body: untyped): untyped	
+expectType	hmisc/core/debug.html#expectType.t,untyped,untyped	debug: expectType(op, t: untyped): untyped	
+echoi	hmisc/core/debug.html#echoi.t,int,varargs[string,]	debug: echoi(indent: int; message: varargs[string, `$`]): void	
+debugechoi	hmisc/core/debug.html#debugechoi,int,string	debug: debugechoi(indent: int; message: string): void	
+dechofmt	hmisc/core/debug.html#dechofmt.t,string	debug: dechofmt(arg: string): untyped	
+echoi	hmisc/core/debug.html#echoi,varargs[string,]	debug: echoi(message: varargs[string, `$`]): void	
+`@`	hmisc/core/debug.html#@,ptr	debug: `@`(p: ptr): string	
+echov	hmisc/core/debug.html#echov.t,untyped,varargs[string,]	debug: echov(variable: untyped; other: varargs[string, `$`]): untyped	
+ploc	hmisc/core/debug.html#ploc.t,string	debug: ploc(msg: string = &quot;&quot;): untyped	
+plog	hmisc/core/debug.html#plog.t,untyped	debug: plog(body: untyped): untyped	
+echove	hmisc/core/debug.html#echove.t,untyped	debug: echove(body: untyped): untyped	
+globalTick	hmisc/core/debug.html#globalTick.t	debug: globalTick(): untyped	
+globalTick	hmisc/core/debug.html#globalTick.t,untyped	debug: globalTick(name: untyped): untyped	
+here	hmisc/core/debug.html#here.t,untyped	debug: here(expr: untyped = &quot;&quot;): string	

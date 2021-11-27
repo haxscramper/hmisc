@@ -1,0 +1,163 @@
+NimRun	hmisc/scripts/nim_test.html#NimRun	nim_test: NimRun	
+nfSuccess	hmisc/scripts/nim_test.html#nfSuccess	NimHint.nfSuccess	
+nfSuccessX	hmisc/scripts/nim_test.html#nfSuccessX	NimHint.nfSuccessX	
+nfCC	hmisc/scripts/nim_test.html#nfCC	NimHint.nfCC	
+nfLineTooLong	hmisc/scripts/nim_test.html#nfLineTooLong	NimHint.nfLineTooLong	
+nfXDeclaredButNotUsed	hmisc/scripts/nim_test.html#nfXDeclaredButNotUsed	NimHint.nfXDeclaredButNotUsed	
+nfDuplicateModuleImport	hmisc/scripts/nim_test.html#nfDuplicateModuleImport	NimHint.nfDuplicateModuleImport	
+nfXCannotRaiseY	hmisc/scripts/nim_test.html#nfXCannotRaiseY	NimHint.nfXCannotRaiseY	
+nfConvToBaseNotNeeded	hmisc/scripts/nim_test.html#nfConvToBaseNotNeeded	NimHint.nfConvToBaseNotNeeded	
+nfConvFromXtoItselfNotNeeded	hmisc/scripts/nim_test.html#nfConvFromXtoItselfNotNeeded	NimHint.nfConvFromXtoItselfNotNeeded	
+nfExprAlwaysX	hmisc/scripts/nim_test.html#nfExprAlwaysX	NimHint.nfExprAlwaysX	
+nfQuitCalled	hmisc/scripts/nim_test.html#nfQuitCalled	NimHint.nfQuitCalled	
+nfProcessing	hmisc/scripts/nim_test.html#nfProcessing	NimHint.nfProcessing	
+nfProcessingStmt	hmisc/scripts/nim_test.html#nfProcessingStmt	NimHint.nfProcessingStmt	
+nfCodeBegin	hmisc/scripts/nim_test.html#nfCodeBegin	NimHint.nfCodeBegin	
+nfCodeEnd	hmisc/scripts/nim_test.html#nfCodeEnd	NimHint.nfCodeEnd	
+nfConf	hmisc/scripts/nim_test.html#nfConf	NimHint.nfConf	
+nfPath	hmisc/scripts/nim_test.html#nfPath	NimHint.nfPath	
+nfCondTrue	hmisc/scripts/nim_test.html#nfCondTrue	NimHint.nfCondTrue	
+nfCondFalse	hmisc/scripts/nim_test.html#nfCondFalse	NimHint.nfCondFalse	
+nfName	hmisc/scripts/nim_test.html#nfName	NimHint.nfName	
+nfPattern	hmisc/scripts/nim_test.html#nfPattern	NimHint.nfPattern	
+nfExec	hmisc/scripts/nim_test.html#nfExec	NimHint.nfExec	
+nfLink	hmisc/scripts/nim_test.html#nfLink	NimHint.nfLink	
+nfDependency	hmisc/scripts/nim_test.html#nfDependency	NimHint.nfDependency	
+nfSource	hmisc/scripts/nim_test.html#nfSource	NimHint.nfSource	
+nfPerformance	hmisc/scripts/nim_test.html#nfPerformance	NimHint.nfPerformance	
+nfStackTrace	hmisc/scripts/nim_test.html#nfStackTrace	NimHint.nfStackTrace	
+nfGCStats	hmisc/scripts/nim_test.html#nfGCStats	NimHint.nfGCStats	
+nfGlobalVar	hmisc/scripts/nim_test.html#nfGlobalVar	NimHint.nfGlobalVar	
+nfExpandMacro	hmisc/scripts/nim_test.html#nfExpandMacro	NimHint.nfExpandMacro	
+nfUser	hmisc/scripts/nim_test.html#nfUser	NimHint.nfUser	
+nfUserRaw	hmisc/scripts/nim_test.html#nfUserRaw	NimHint.nfUserRaw	
+nfExtendedContext	hmisc/scripts/nim_test.html#nfExtendedContext	NimHint.nfExtendedContext	
+nfMsgOrigin	hmisc/scripts/nim_test.html#nfMsgOrigin	NimHint.nfMsgOrigin	
+nfDeclaredLoc	hmisc/scripts/nim_test.html#nfDeclaredLoc	NimHint.nfDeclaredLoc	
+NimHint	hmisc/scripts/nim_test.html#NimHint	nim_test: NimHint	
+nwCannotOpenFile	hmisc/scripts/nim_test.html#nwCannotOpenFile	NimWarning.nwCannotOpenFile	
+nwOctalEscape	hmisc/scripts/nim_test.html#nwOctalEscape	NimWarning.nwOctalEscape	
+nwXIsNeverRead	hmisc/scripts/nim_test.html#nwXIsNeverRead	NimWarning.nwXIsNeverRead	
+nwXmightNotBeenInit	hmisc/scripts/nim_test.html#nwXmightNotBeenInit	NimWarning.nwXmightNotBeenInit	
+nwDeprecated	hmisc/scripts/nim_test.html#nwDeprecated	NimWarning.nwDeprecated	
+nwConfigDeprecated	hmisc/scripts/nim_test.html#nwConfigDeprecated	NimWarning.nwConfigDeprecated	
+nwDotLikeOps	hmisc/scripts/nim_test.html#nwDotLikeOps	NimWarning.nwDotLikeOps	
+nwSmallLshouldNotBeUsed	hmisc/scripts/nim_test.html#nwSmallLshouldNotBeUsed	NimWarning.nwSmallLshouldNotBeUsed	
+nwUnknownMagic	hmisc/scripts/nim_test.html#nwUnknownMagic	NimWarning.nwUnknownMagic	
+nwRedefinitionOfLabel	hmisc/scripts/nim_test.html#nwRedefinitionOfLabel	NimWarning.nwRedefinitionOfLabel	
+nwUnknownSubstitutionX	hmisc/scripts/nim_test.html#nwUnknownSubstitutionX	NimWarning.nwUnknownSubstitutionX	
+nwBrokenLink	hmisc/scripts/nim_test.html#nwBrokenLink	NimWarning.nwBrokenLink	
+nwLanguageXNotSupported	hmisc/scripts/nim_test.html#nwLanguageXNotSupported	NimWarning.nwLanguageXNotSupported	
+nwFieldXNotSupported	hmisc/scripts/nim_test.html#nwFieldXNotSupported	NimWarning.nwFieldXNotSupported	
+nwWarnRstStyle	hmisc/scripts/nim_test.html#nwWarnRstStyle	NimWarning.nwWarnRstStyle	
+nwCommentXIgnored	hmisc/scripts/nim_test.html#nwCommentXIgnored	NimWarning.nwCommentXIgnored	
+nwTypelessParam	hmisc/scripts/nim_test.html#nwTypelessParam	NimWarning.nwTypelessParam	
+nwUseBase	hmisc/scripts/nim_test.html#nwUseBase	NimWarning.nwUseBase	
+nwWriteToForeignHeap	hmisc/scripts/nim_test.html#nwWriteToForeignHeap	NimWarning.nwWriteToForeignHeap	
+nwUnsafeCode	hmisc/scripts/nim_test.html#nwUnsafeCode	NimWarning.nwUnsafeCode	
+nwUnusedImport	hmisc/scripts/nim_test.html#nwUnusedImport	NimWarning.nwUnusedImport	
+nwInheritFromException	hmisc/scripts/nim_test.html#nwInheritFromException	NimWarning.nwInheritFromException	
+nwEachIdentIsTuple	hmisc/scripts/nim_test.html#nwEachIdentIsTuple	NimWarning.nwEachIdentIsTuple	
+nwUnsafeSetLen	hmisc/scripts/nim_test.html#nwUnsafeSetLen	NimWarning.nwUnsafeSetLen	
+nwUnsafeDefault	hmisc/scripts/nim_test.html#nwUnsafeDefault	NimWarning.nwUnsafeDefault	
+nwProveInit	hmisc/scripts/nim_test.html#nwProveInit	NimWarning.nwProveInit	
+nwProveField	hmisc/scripts/nim_test.html#nwProveField	NimWarning.nwProveField	
+nwProveIndex	hmisc/scripts/nim_test.html#nwProveIndex	NimWarning.nwProveIndex	
+nwUnreachableElse	hmisc/scripts/nim_test.html#nwUnreachableElse	NimWarning.nwUnreachableElse	
+nwUnreachableCode	hmisc/scripts/nim_test.html#nwUnreachableCode	NimWarning.nwUnreachableCode	
+nwIndexCheck	hmisc/scripts/nim_test.html#nwIndexCheck	NimWarning.nwIndexCheck	
+nwGcUnsafe	hmisc/scripts/nim_test.html#nwGcUnsafe	NimWarning.nwGcUnsafe	
+nwGcUnsafe2	hmisc/scripts/nim_test.html#nwGcUnsafe2	NimWarning.nwGcUnsafe2	
+nwUninit	hmisc/scripts/nim_test.html#nwUninit	NimWarning.nwUninit	
+nwGcMem	hmisc/scripts/nim_test.html#nwGcMem	NimWarning.nwGcMem	
+nwDestructor	hmisc/scripts/nim_test.html#nwDestructor	NimWarning.nwDestructor	
+nwLockLevel	hmisc/scripts/nim_test.html#nwLockLevel	NimWarning.nwLockLevel	
+nwResultShadowed	hmisc/scripts/nim_test.html#nwResultShadowed	NimWarning.nwResultShadowed	
+nwSpacing	hmisc/scripts/nim_test.html#nwSpacing	NimWarning.nwSpacing	
+nwCaseTransition	hmisc/scripts/nim_test.html#nwCaseTransition	NimWarning.nwCaseTransition	
+nwCycleCreated	hmisc/scripts/nim_test.html#nwCycleCreated	NimWarning.nwCycleCreated	
+nwObservableStores	hmisc/scripts/nim_test.html#nwObservableStores	NimWarning.nwObservableStores	
+nwStrictNotNil	hmisc/scripts/nim_test.html#nwStrictNotNil	NimWarning.nwStrictNotNil	
+nwResultUsed	hmisc/scripts/nim_test.html#nwResultUsed	NimWarning.nwResultUsed	
+nwCannotOpen	hmisc/scripts/nim_test.html#nwCannotOpen	NimWarning.nwCannotOpen	
+nwFileChanged	hmisc/scripts/nim_test.html#nwFileChanged	NimWarning.nwFileChanged	
+nwEnumConv	hmisc/scripts/nim_test.html#nwEnumConv	NimWarning.nwEnumConv	
+nwAnyEnumConv	hmisc/scripts/nim_test.html#nwAnyEnumConv	NimWarning.nwAnyEnumConv	
+nwHoleEnumConv	hmisc/scripts/nim_test.html#nwHoleEnumConv	NimWarning.nwHoleEnumConv	
+nwCStringConv	hmisc/scripts/nim_test.html#nwCStringConv	NimWarning.nwCStringConv	
+nwEffect	hmisc/scripts/nim_test.html#nwEffect	NimWarning.nwEffect	
+nwUser	hmisc/scripts/nim_test.html#nwUser	NimWarning.nwUser	
+NimWarning	hmisc/scripts/nim_test.html#NimWarning	nim_test: NimWarning	
+neNone	hmisc/scripts/nim_test.html#neNone	NimError.neNone	
+neException	hmisc/scripts/nim_test.html#neException	NimError.neException	
+neCannotOpen	hmisc/scripts/nim_test.html#neCannotOpen	NimError.neCannotOpen	
+neOverloadFail	hmisc/scripts/nim_test.html#neOverloadFail	NimError.neOverloadFail	
+neInvalidIndentation	hmisc/scripts/nim_test.html#neInvalidIndentation	NimError.neInvalidIndentation	
+neAmbiguousCall	hmisc/scripts/nim_test.html#neAmbiguousCall	NimError.neAmbiguousCall	
+neLdFail	hmisc/scripts/nim_test.html#neLdFail	NimError.neLdFail	
+neGccFail	hmisc/scripts/nim_test.html#neGccFail	NimError.neGccFail	
+NimError	hmisc/scripts/nim_test.html#NimError	nim_test: NimError	
+actionRun	hmisc/scripts/nim_test.html#actionRun	NimTestAction.actionRun	
+actionCompile	hmisc/scripts/nim_test.html#actionCompile	NimTestAction.actionCompile	
+actionReject	hmisc/scripts/nim_test.html#actionReject	NimTestAction.actionReject	
+NimTestAction	hmisc/scripts/nim_test.html#NimTestAction	nim_test: NimTestAction	
+ocIgnore	hmisc/scripts/nim_test.html#ocIgnore	NimOutputCheck.ocIgnore	
+ocEqual	hmisc/scripts/nim_test.html#ocEqual	NimOutputCheck.ocEqual	
+ocSubstr	hmisc/scripts/nim_test.html#ocSubstr	NimOutputCheck.ocSubstr	
+NimOutputCheck	hmisc/scripts/nim_test.html#NimOutputCheck	nim_test: NimOutputCheck	
+reNimcCrash	hmisc/scripts/nim_test.html#reNimcCrash	NimResultKind.reNimcCrash	
+reMsgsDiffer	hmisc/scripts/nim_test.html#reMsgsDiffer	NimResultKind.reMsgsDiffer	
+reFilesDiffer	hmisc/scripts/nim_test.html#reFilesDiffer	NimResultKind.reFilesDiffer	
+reLinesDiffer	hmisc/scripts/nim_test.html#reLinesDiffer	NimResultKind.reLinesDiffer	
+reOutputsDiffer	hmisc/scripts/nim_test.html#reOutputsDiffer	NimResultKind.reOutputsDiffer	
+reExitcodesDiffer	hmisc/scripts/nim_test.html#reExitcodesDiffer	NimResultKind.reExitcodesDiffer	
+reTimeout	hmisc/scripts/nim_test.html#reTimeout	NimResultKind.reTimeout	
+reInvalidPeg	hmisc/scripts/nim_test.html#reInvalidPeg	NimResultKind.reInvalidPeg	
+reCodegenFailure	hmisc/scripts/nim_test.html#reCodegenFailure	NimResultKind.reCodegenFailure	
+reCodeNotFound	hmisc/scripts/nim_test.html#reCodeNotFound	NimResultKind.reCodeNotFound	
+reExeNotFound	hmisc/scripts/nim_test.html#reExeNotFound	NimResultKind.reExeNotFound	
+reInstallFailed	hmisc/scripts/nim_test.html#reInstallFailed	NimResultKind.reInstallFailed	
+reBuildFailed	hmisc/scripts/nim_test.html#reBuildFailed	NimResultKind.reBuildFailed	
+reDisabled	hmisc/scripts/nim_test.html#reDisabled	NimResultKind.reDisabled	
+reJoined	hmisc/scripts/nim_test.html#reJoined	NimResultKind.reJoined	
+reSuccess	hmisc/scripts/nim_test.html#reSuccess	NimResultKind.reSuccess	
+reInvalidSpec	hmisc/scripts/nim_test.html#reInvalidSpec	NimResultKind.reInvalidSpec	
+NimResultKind	hmisc/scripts/nim_test.html#NimResultKind	nim_test: NimResultKind	
+NimTestSpec	hmisc/scripts/nim_test.html#NimTestSpec	nim_test: NimTestSpec	
+NimState	hmisc/scripts/nim_test.html#NimState	nim_test: NimState	
+nrHint	hmisc/scripts/nim_test.html#nrHint	NimReportKind.nrHint	
+nrWarning	hmisc/scripts/nim_test.html#nrWarning	NimReportKind.nrWarning	
+nrError	hmisc/scripts/nim_test.html#nrError	NimReportKind.nrError	
+NimReportKind	hmisc/scripts/nim_test.html#NimReportKind	nim_test: NimReportKind	
+nrpNone	hmisc/scripts/nim_test.html#nrpNone	NimReportPartKind.nrpNone	
+nrpInstOf	hmisc/scripts/nim_test.html#nrpInstOf	NimReportPartKind.nrpInstOf	
+nrpException	hmisc/scripts/nim_test.html#nrpException	NimReportPartKind.nrpException	
+nrpTracePart	hmisc/scripts/nim_test.html#nrpTracePart	NimReportPartKind.nrpTracePart	
+nrpProcessingImports	hmisc/scripts/nim_test.html#nrpProcessingImports	NimReportPartKind.nrpProcessingImports	
+nrpLdFail	hmisc/scripts/nim_test.html#nrpLdFail	NimReportPartKind.nrpLdFail	
+NimReportPartKind	hmisc/scripts/nim_test.html#NimReportPartKind	nim_test: NimReportPartKind	
+NimReportPart	hmisc/scripts/nim_test.html#NimReportPart	nim_test: NimReportPart	
+GccPoint	hmisc/scripts/nim_test.html#GccPoint	nim_test: GccPoint	
+GccLocation	hmisc/scripts/nim_test.html#GccLocation	nim_test: GccLocation	
+GccReport	hmisc/scripts/nim_test.html#GccReport	nim_test: GccReport	
+NimOverloadAlt	hmisc/scripts/nim_test.html#NimOverloadAlt	nim_test: NimOverloadAlt	
+NimFixit	hmisc/scripts/nim_test.html#NimFixit	nim_test: NimFixit	
+NimReport	hmisc/scripts/nim_test.html#NimReport	nim_test: NimReport	
+parseSpec	hmisc/scripts/nim_test.html#parseSpec,string,AbsFile,seq[AbsFile]	nim_test: parseSpec(spec: string; file: AbsFile; skipFiles: seq[AbsFile] = @[]): NimTestSpec	
+getCwdNimDump	hmisc/scripts/nim_test.html#getCwdNimDump,string	nim_test: getCwdNimDump(file: string = &quot;-&quot;): NimState	
+`$`	hmisc/scripts/nim_test.html#$,NimRun	nim_test: `$`(run: NimRun): string	
+runFromFile	hmisc/scripts/nim_test.html#runFromFile,AbsFile	nim_test: runFromFile(file: AbsFile): NimRun	
+runsFromDir	hmisc/scripts/nim_test.html#runsFromDir,AbsDir,seq[AbsFile]	nim_test: runsFromDir(dir: AbsDir; first: seq[AbsFile] = @[]): seq[NimRun]	
+getJoinable	hmisc/scripts/nim_test.html#getJoinable,seq[NimRun]	nim_test: getJoinable(runs: seq[NimRun]): tuple[joinable, standalone: seq[NimRun]]	
+makeJoinedCode	hmisc/scripts/nim_test.html#makeJoinedCode,seq[NimRun]	nim_test: makeJoinedCode(runs: seq[NimRun]): string	
+skipFileLineCol	hmisc/scripts/nim_test.html#skipFileLineCol,PosStr	nim_test: skipFileLineCol(str: var PosStr): tuple[file: AbsFile, line, column: int]	
+skipKindDeclaredIn	hmisc/scripts/nim_test.html#skipKindDeclaredIn,PosStr	nim_test: skipKindDeclaredIn(str: var PosStr): tuple[kind: string, file: AbsFile,\n    line, column: int]	
+parseAmbiguousCall	hmisc/scripts/nim_test.html#parseAmbiguousCall,string	nim_test: parseAmbiguousCall(text: string): NimReport	
+parseNimReport	hmisc/scripts/nim_test.html#parseNimReport,string	nim_test: parseNimReport(report: string): NimReport	
+formatShellCmd	hmisc/scripts/nim_test.html#formatShellCmd,ShellCmd	nim_test: formatShellCmd(cmd: ShellCmd): ColoredText	
+logLines	hmisc/scripts/nim_test.html#logLines,HLogger,NimReportPart	nim_test: logLines(l: HLogger; part: NimReportPart)	
+reportError	hmisc/scripts/nim_test.html#reportError,HLogger,NimReport,NimState,NimReportState	nim_test: reportError(l: HLogger; report: NimReport; dump: NimState;\n            state: NimReportState = NimReportState())	
+getCompileReportFor	hmisc/scripts/nim_test.html#getCompileReportFor,AbsFile,NimState,bool	nim_test: getCompileReportFor(file: AbsFile; dump: NimState; hints: bool = on): seq[\n    NimReport]	
+skipKinds	hmisc/scripts/nim_test.html#skipKinds,sinkseq[NimReport],set[NimReportKind]	nim_test: skipKinds(reports: sink seq[NimReport];\n          kind: set[NimReportKind] = {nrHint, nrWarning}): seq[NimReport]	
+NimRunFailDesc	hmisc/scripts/nim_test.html#NimRunFailDesc	nim_test: NimRunFailDesc	
+runTestDir	hmisc/scripts/nim_test.html#runTestDir,AbsDir,NimState,int,seq[AbsFile],HLogger,bool,bool	nim_test: runTestDir(dir: AbsDir; dump: NimState; maxfail: int = high(int);\n           first: seq[AbsFile] = @[]; l: HLogger = newTermLogger();\n           parseRun: bool = true; hints: bool = true): bool	

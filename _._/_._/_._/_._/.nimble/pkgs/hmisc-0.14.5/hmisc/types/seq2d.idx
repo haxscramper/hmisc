@@ -1,0 +1,51 @@
+Seq2d	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#Seq2d	seq2d: Seq2d	
+rowlen	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#rowlen,Seq2d[T],int	seq2d: rowlen[T](s: Seq2d[T]; row: int): void	
+rowNum	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#rowNum,Seq2d[T]	seq2d: rowNum[T](s: Seq2d[T]): int	
+usafeColNum	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#usafeColNum,Seq2d[T]	seq2d: usafeColNum[T](s: Seq2d[T]): int	
+colNum	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#colNum,Seq2d[T]	seq2d: colNum[T](s: Seq2d[T]): int	
+size	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#size,Seq2d[T]	seq2d: size[T](s: Seq2d[T]): ArrSize	
+fillToSize	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#fillToSize,Seq2d[T],ArrSize,T	seq2d: fillToSize[T](grid: var Seq2d[T]; size: ArrSize; val: T): void	
+fillToSize	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#fillToSize,Seq2d[T],int,int,T	seq2d: fillToSize[T](grid: var Seq2d[T]; rows, cols: int; default: T): void	
+setOrAdd	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#setOrAdd,Seq2d[T],ArrPos,T,T	seq2d: setOrAdd[T](grid: var Seq2d[T]; pos: ArrPos; val: T; default: T): void	
+len	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#len,Seq2d[T]	seq2d: len[T](s: Seq2d[T]): int	
+insertRow	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#insertRow,Seq2d[T],seq[T],int	seq2d: insertRow[T](grid: var Seq2d[T]; row: seq[T]; idx: int = 0): void	
+appendRow	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#appendRow,Seq2d[T],seq[T],T	seq2d: appendRow[T](grid: var Seq2d[T]; row: seq[T]; default: T): void	
+appendRow	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#appendRow,Seq2d[T],seq[T]	seq2d: appendRow[T](grid: var Seq2d[T]; row: seq[T]): void	
+insertCol	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#insertCol,Seq2d[T],seq[T],int	seq2d: insertCol[T](grid: var Seq2d[T]; col: seq[T]; idx: int = 0): void	
+makeSeq2D	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#makeSeq2D,seq[seq[T]],T	seq2d: makeSeq2D[T](s: seq[seq[T]]; default: T): Seq2d[T]	
+makeSeq2D	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#makeSeq2D,seq[seq[T]]	seq2d: makeSeq2D[T](s: seq[seq[T]]): Seq2d[T]	
+makeSeq2D	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#makeSeq2D,seq[T]	seq2d: makeSeq2D[T](row: seq[T]): Seq2d[T]	
+items	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#items.i,Seq2d[T]	seq2d: items[T](s: Seq2d[T]): seq[T]	
+pairs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#pairs.i,Seq2d[T]	seq2d: pairs[T](s: Seq2d[T]): (int, seq[T])	
+columns	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#columns.i,Seq2d[T],int	seq2d: columns[T](s: Seq2d[T]; row: int): T	
+iterrows	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#iterrows.i,Seq2d[T]	seq2d: iterrows[T](s: Seq2d[T]): seq[T]	
+itercols	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#itercols.i,Seq2d[T]	seq2d: itercols[T](s: Seq2d[T]): seq[T]	
+itercells	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#itercells.i,Seq2d[T]	seq2d: itercells[T](s: Seq2d[T]): ((int, int), T)	
+iterSomeCells	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#iterSomeCells.i,Seq2d[Option[T]]	seq2d: iterSomeCells[T](s: Seq2d[Option[T]]): ((int, int), T)	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#[],Seq2d[T],int,int	seq2d: `[]`[T](grid: Seq2d[T]; row, col: int): T	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#[],Seq2d[T],	seq2d: `[]`[T](grid: Seq2d[T]; cell: (int, int)): T	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#[],Seq2d[T],ArrPos	seq2d: `[]`[T](grid: Seq2d[T]; pos: ArrPos): T	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#[]=,Seq2d[T],,T	seq2d: `[]=`[T](grid: var Seq2d[T]; cell: (int, int); val: T): void	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#[]=,Seq2d[T],int,int,T	seq2d: `[]=`[T](grid: var Seq2d[T]; row, col: int; val: T): void	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#[]=,Seq2d[T],ArrPos,T	seq2d: `[]=`[T](grid: var Seq2d[T]; pos: ArrPos; val: T): void	
+concat	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#concat,Seq2d[T]	seq2d: concat[T](inseq: Seq2d[T]): seq[T]	
+mapIt2d	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#mapIt2d.t,Seq2d[T],untyped	seq2d: mapIt2d[T](inseq: Seq2d[T]; op: untyped): untyped	
+mapIt2d	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#mapIt2d.t,Seq2d[T],untyped,typed	seq2d: mapIt2d[T](inseq: Seq2d[T]; op: untyped; default: typed): untyped	
+maximizeColIt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#maximizeColIt.t,Seq2d[T],untyped	seq2d: maximizeColIt[T](inseq: Seq2d[T]; op: untyped): seq[int]	
+maximizeRowIt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#maximizeRowIt.t,Seq2d[T],untyped	seq2d: maximizeRowIt[T](inseq: Seq2d[T]; op: untyped): seq[int]	
+contains	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#contains,Seq2d[T],ArrPos	seq2d: contains[T](grid: Seq2d[T]; pos: ArrPos): bool	
+checkIfIt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#checkIfIt.t,Seq2d[Option[T]],ArrPos,untyped	seq2d: checkIfIt[T](grid: Seq2d[Option[T]]; pos: ArrPos; op: untyped): bool	
+toStrGrid	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#toStrGrid,seq[seq[string]],StrBlock	seq2d: toStrGrid(grid: seq[seq[string]]; default: StrBlock): Seq2d[StrBlock]	
+join	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#join,Seq2d[Rune],string	seq2d: join(grid: Seq2d[Rune]; rowsep: string = &quot;\n&quot;): string	
+MulticellLookup	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#MulticellLookup	seq2d: MulticellLookup	
+MulticellGrid	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#MulticellGrid	seq2d: MulticellGrid	
+makeLookup	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#makeLookup,Seq2d[Option[ArrSize]]	seq2d: makeLookup(grid: Seq2d[Option[ArrSize]]): MulticellLookup	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#[]=,MulticellGrid[T],ArrRect,T	seq2d: `[]=`[T](grid: var MulticellGrid[T]; rect: ArrRect; val: T): void	
+cellsAround	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#cellsAround.i,MulticellLookup,ArrPos	seq2d: cellsAround(lookup: MulticellLookup; pos: ArrPos): tuple[pos: ArrPos,\n    size: ArrSize, rp: RelPos]	
+fillToSize	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#fillToSize,MulticellGrid[T],ArrSize	seq2d: fillToSize[T](grid: var MulticellGrid[T]; size: ArrSize): void	
+makeMulticell	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#makeMulticell,int,int	seq2d: makeMulticell[T](rows, cols: int): MulticellGrid[T]	
+addHeader	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#addHeader,MulticellGrid[T],int,int,T	seq2d: addHeader[T](grid: var MulticellGrid[T]; colIdx, width: int; val: T): void	
+insertRow	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#insertRow,MulticellGrid[T],int,seq[T]	seq2d: insertRow[T](grid: var MulticellGrid[T]; rowIdx: int; row: seq[T]): void	
+setOrAdd	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#setOrAdd,MulticellGrid[T],ArrPos,T	seq2d: setOrAdd[T](grid: var MulticellGrid[T]; pos: ArrPos; item: T): void	
+toMulticell	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#toMulticell,Seq2d[T]	seq2d: toMulticell[T](grid: Seq2d[T]): MulticellGrid[T]	
+toMulticell	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/seq2d.html#toMulticell,T,ArrSize	seq2d: toMulticell[T](header: T; size: ArrSize): MulticellGrid[T]	

@@ -1,0 +1,4 @@
+cmdExecFlags	hmisc/shellexec/wrap_cmd_exec.html#cmdExecFlags	wrap_cmd_exec: cmdExecFlags	
+CmdExecResult	hmisc/shellexec/wrap_cmd_exec.html#CmdExecResult	wrap_cmd_exec: CmdExecResult	
+splitRecords	hmisc/shellexec/wrap_cmd_exec.html#splitRecords.i,string	wrap_cmd_exec: splitRecords(text: string): seq[string]	
+addFlags	hmisc/shellexec/wrap_cmd_exec.html#addFlags,ShellCmd,set[F],array[F,string]	wrap_cmd_exec: addFlags[F: enum](cmd: var ShellCmd; flags: set[F]; map: array[F, string])	

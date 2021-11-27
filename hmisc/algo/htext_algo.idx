@@ -1,0 +1,31 @@
+wkText	hmisc/algo/htext_algo.html#wkText	WordKind.wkText	
+wkNewline	hmisc/algo/htext_algo.html#wkNewline	WordKind.wkNewline	
+wkPunctuation	hmisc/algo/htext_algo.html#wkPunctuation	WordKind.wkPunctuation	
+wkSpace	hmisc/algo/htext_algo.html#wkSpace	WordKind.wkSpace	
+wkMarkup	hmisc/algo/htext_algo.html#wkMarkup	WordKind.wkMarkup	
+WordKind	hmisc/algo/htext_algo.html#WordKind	htext_algo: WordKind	
+Word	hmisc/algo/htext_algo.html#Word	htext_algo: Word	
+TermWord	hmisc/algo/htext_algo.html#TermWord	htext_algo: TermWord	
+TextWord	hmisc/algo/htext_algo.html#TextWord	htext_algo: TextWord	
+UnicodeWord	hmisc/algo/htext_algo.html#UnicodeWord	htext_algo: UnicodeWord	
+initTextWord	hmisc/algo/htext_algo.html#initTextWord,string,A,WordKind	htext_algo: initTextWord[A](text: string; attr: A; kind: WordKind = wkText): TextWord[A]	
+isMarkup	hmisc/algo/htext_algo.html#isMarkup,Word[T,A]	htext_algo: isMarkup[T, A](w: Word[T, A]): bool	
+splitMark	hmisc/algo/htext_algo.html#splitMark,string	htext_algo: splitMark(str: string): seq[MarkWord]	
+splitText	hmisc/algo/htext_algo.html#splitText,string	htext_algo: splitText[T](str: string): seq[TextWord[T]]	
+len	hmisc/algo/htext_algo.html#len,Word[T,A]	htext_algo: len[T, A](w: Word[T, A]): int	
+`$`	hmisc/algo/htext_algo.html#$,MarkWord	htext_algo: `$`(mw: MarkWord): string	
+`$`	hmisc/algo/htext_algo.html#$,TextWord	htext_algo: `$`(mw: TextWord): string	
+`$`	hmisc/algo/htext_algo.html#$,OrgWord	htext_algo: `$`(mw: OrgWord): string	
+prevTextWordIdx	hmisc/algo/htext_algo.html#prevTextWordIdx,seq[Word[T,A]],int	htext_algo: prevTextWordIdx[T, A](words: seq[Word[T, A]]; idx: int): int	
+prevTextWord	hmisc/algo/htext_algo.html#prevTextWord,seq[Word[T,A]],int	htext_algo: prevTextWord[T, A](words: seq[Word[T, A]]; idx: int): Option[Word[T, A]]	
+wrapText	hmisc/algo/htext_algo.html#wrapText,seq[Word[T,A]],int	htext_algo: wrapText[T, A](words: seq[Word[T, A]]; width: int): seq[seq[Word[T, A]]]	
+wrapTextSimple	hmisc/algo/htext_algo.html#wrapTextSimple,seq[Word[T,A]],int	htext_algo: wrapTextSimple[T, A](words: seq[Word[T, A]]; width: int): seq[seq[Word[T, A]]]	
+joinText	hmisc/algo/htext_algo.html#joinText,seq[seq[Word[T,A]]],proc(Word[T,A])	htext_algo: joinText[T, A](wrapped: seq[seq[Word[T, A]]]; toStr: proc (w: Word[T, A]): string = (proc (\n    w: Word[T, A]): string =\n  $w)): string	
+wrapMarkLines	hmisc/algo/htext_algo.html#wrapMarkLines,string,int	htext_algo: wrapMarkLines(str: string; width: int): seq[string]	
+splitOrg	hmisc/algo/htext_algo.html#splitOrg,string	htext_algo: splitOrg(str: string): seq[OrgWord]	
+wrapOrgLines	hmisc/algo/htext_algo.html#wrapOrgLines,string,int,bool	htext_algo: wrapOrgLines(str: string; width: int; simple: bool = false): seq[string]	
+defaultHyphenPattTree	hmisc/algo/htext_algo.html#defaultHyphenPattTree	htext_algo: defaultHyphenPattTree	
+defaultHyphenExceptionList	hmisc/algo/htext_algo.html#defaultHyphenExceptionList	htext_algo: defaultHyphenExceptionList	
+hyphenate	hmisc/algo/htext_algo.html#hyphenate,TextWord[A],PattTree,Table[string,seq[int]]	htext_algo: hyphenate[A](word: TextWord[A]; tree: PattTree = defaultHyphenPattTree;\n             exceptions: Table[string, seq[int]] = defaultHyphenExceptionList): seq[\n    TextWord[A]]	
+hyphenate	hmisc/algo/htext_algo.html#hyphenate,string	htext_algo: hyphenate(str: string): seq[string]	
+hyphenate	hmisc/algo/htext_algo.html#hyphenate,openArray[string]	htext_algo: hyphenate(strs: openArray[string]): seq[seq[string]]	

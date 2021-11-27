@@ -1,0 +1,61 @@
+coFlag	hmisc/other/cliparse.html#coFlag	CliOptKind.coFlag	
+coDotFlag	hmisc/other/cliparse.html#coDotFlag	CliOptKind.coDotFlag	
+coBracketFlag	hmisc/other/cliparse.html#coBracketFlag	CliOptKind.coBracketFlag	
+coOpt	hmisc/other/cliparse.html#coOpt	CliOptKind.coOpt	
+coDotOpt	hmisc/other/cliparse.html#coDotOpt	CliOptKind.coDotOpt	
+coBracketOpt	hmisc/other/cliparse.html#coBracketOpt	CliOptKind.coBracketOpt	
+coArgument	hmisc/other/cliparse.html#coArgument	CliOptKind.coArgument	
+coSpecial	hmisc/other/cliparse.html#coSpecial	CliOptKind.coSpecial	
+coCommand	hmisc/other/cliparse.html#coCommand	CliOptKind.coCommand	
+CliOptKind	hmisc/other/cliparse.html#CliOptKind	cliparse: CliOptKind	
+coFlagKinds	hmisc/other/cliparse.html#coFlagKinds	cliparse: coFlagKinds	
+coOptionKinds	hmisc/other/cliparse.html#coOptionKinds	cliparse: coOptionKinds	
+coBracketKinds	hmisc/other/cliparse.html#coBracketKinds	cliparse: coBracketKinds	
+coDashedKinds	hmisc/other/cliparse.html#coDashedKinds	cliparse: coDashedKinds	
+caEqual	hmisc/other/cliparse.html#caEqual	CliAddKind.caEqual	
+caPlusEqual	hmisc/other/cliparse.html#caPlusEqual	CliAddKind.caPlusEqual	
+caColon	hmisc/other/cliparse.html#caColon	CliAddKind.caColon	
+caMinusEqual	hmisc/other/cliparse.html#caMinusEqual	CliAddKind.caMinusEqual	
+caNoSep	hmisc/other/cliparse.html#caNoSep	CliAddKind.caNoSep	
+caCarentEqual	hmisc/other/cliparse.html#caCarentEqual	CliAddKind.caCarentEqual	
+caEqualNone	hmisc/other/cliparse.html#caEqualNone	CliAddKind.caEqualNone	
+CliAddKind	hmisc/other/cliparse.html#CliAddKind	cliparse: CliAddKind	
+cskVerbatimNext	hmisc/other/cliparse.html#cskVerbatimNext	CliSpecialKind.cskVerbatimNext	
+cskStdinAlias	hmisc/other/cliparse.html#cskStdinAlias	CliSpecialKind.cskStdinAlias	
+CliSpecialKind	hmisc/other/cliparse.html#CliSpecialKind	cliparse: CliSpecialKind	
+CliOpt	hmisc/other/cliparse.html#CliOpt	cliparse: CliOpt	
+ceColorDiagnostics	hmisc/other/cliparse.html#ceColorDiagnostics	CliErrPolicy.ceColorDiagnostics	
+ceJsonDiagnostics	hmisc/other/cliparse.html#ceJsonDiagnostics	CliErrPolicy.ceJsonDiagnostics	
+CliErrPolicy	hmisc/other/cliparse.html#CliErrPolicy	cliparse: CliErrPolicy	
+CliParseConfig	hmisc/other/cliparse.html#CliParseConfig	cliparse: CliParseConfig	
+cfNoSuchOption	hmisc/other/cliparse.html#cfNoSuchOption	CliFailKind.cfNoSuchOption	
+cfNoSuchSelector	hmisc/other/cliparse.html#cfNoSuchSelector	CliFailKind.cfNoSuchSelector	
+cfBadCliSyntax	hmisc/other/cliparse.html#cfBadCliSyntax	CliFailKind.cfBadCliSyntax	
+cfBadCliValue	hmisc/other/cliparse.html#cfBadCliValue	CliFailKind.cfBadCliValue	
+cfMissingValue	hmisc/other/cliparse.html#cfMissingValue	CliFailKind.cfMissingValue	
+cfMultiFail	hmisc/other/cliparse.html#cfMultiFail	CliFailKind.cfMultiFail	
+CliFailKind	hmisc/other/cliparse.html#CliFailKind	cliparse: CliFailKind	
+CliFail	hmisc/other/cliparse.html#CliFail	cliparse: CliFail	
+key	hmisc/other/cliparse.html#key,CliOpt	cliparse: key(opt: CliOpt): string	
+value	hmisc/other/cliparse.html#value,CliOpt	cliparse: value(opt: CliOpt): string	
+needsValue	hmisc/other/cliparse.html#needsValue,CliOpt	cliparse: needsValue(opt: CliOpt): bool	
+canAddValue	hmisc/other/cliparse.html#canAddValue,CliOpt	cliparse: canAddValue(opt: CliOpt): bool	
+scanpFull	hmisc/other/cliparse.html#scanpFull.m,typed,int,varargs[untyped]	cliparse: scanpFull(str: typed; start: int; pattern: varargs[untyped]): untyped	
+scanpFull	hmisc/other/cliparse.html#scanpFull.m,typed,varargs[untyped]	cliparse: scanpFull(str: typed; pattern: varargs[untyped]): untyped	
+classifyCliArg	hmisc/other/cliparse.html#classifyCliArg,string,CliParseConfig	cliparse: classifyCliArg(arg: string; config: CliParseConfig): CliOptKind	
+splitCliArgs	hmisc/other/cliparse.html#splitCliArgs,seq[string],CliParseConfig	cliparse: splitCliArgs(args: seq[string]; config: CliParseConfig): seq[string]	
+splitFlag	hmisc/other/cliparse.html#splitFlag,string,CliParseConfig	cliparse: splitFlag(arg: string; config: CliParseConfig): tuple[keyPath: seq[string],\n    keySelector: string, value: string, dashes: string]	
+parseFlag	hmisc/other/cliparse.html#parseFlag,string,CliParseConfig	cliparse: parseFlag(arg: string; config: CliParseConfig): CliOpt	
+parseOpt	hmisc/other/cliparse.html#parseOpt,string,CliParseConfig	cliparse: parseOpt(arg: string; config: CliParseConfig): CliOpt	
+parseArgument	hmisc/other/cliparse.html#parseArgument,string,CliParseConfig	cliparse: parseArgument(arg: string; config: CliParseConfig): CliOpt	
+parseSpecial	hmisc/other/cliparse.html#parseSpecial,string,CliParseConfig	cliparse: parseSpecial(arg: string; config: CliParseConfig): CliOpt	
+parseCommand	hmisc/other/cliparse.html#parseCommand,string,CliParseConfig	cliparse: parseCommand(arg: string; config: CliParseConfig): CliOpt	
+parseCliOpts	hmisc/other/cliparse.html#parseCliOpts,seq[string],CliParseConfig	cliparse: parseCliOpts(args: seq[string]; config: CliParseConfig = CliParseConfig()): tuple[\n    parsed: seq[CliOpt], failed: seq[CliFail]]	
+cliParse	hmisc/other/cliparse.html#cliParse,string,int,CliParseConfig	cliparse: cliParse(arg: string; res: var int; config: CliParseConfig): Option[CliFail]	
+cliParse	hmisc/other/cliparse.html#cliParse,string,float,CliParseConfig	cliparse: cliParse(arg: string; res: var float; config: CliParseConfig): Option[CliFail]	
+cliParse	hmisc/other/cliparse.html#cliParse,string,string,CliParseConfig	cliparse: cliParse(arg: string; res: var string; config: CliParseConfig): Option[CliFail]	
+cliParse	hmisc/other/cliparse.html#cliParse,string,seq[T],CliParseConfig	cliparse: cliParse[T](arg: string; res: var seq[T]; config: CliParseConfig): Option[\n    CliFail]	
+cliParse	hmisc/other/cliparse.html#cliParse,string,En,CliParseConfig	cliparse: cliParse[En: enum](arg: string; res: var En; config: CliParseConfig): Option[\n    CliFail]	
+defaulCliParseConfig	hmisc/other/cliparse.html#defaulCliParseConfig	cliparse: defaulCliParseConfig	
+lispRepr	hmisc/other/cliparse.html#lispRepr,CliOpt	cliparse: lispRepr(cli: CliOpt): ColoredText	
+`$`	hmisc/other/cliparse.html#$,CliOpt	cliparse: `$`(cli: CliOpt): string	

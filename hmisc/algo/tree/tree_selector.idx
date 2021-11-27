@@ -1,0 +1,57 @@
+ParseError	hmisc/algo/tree/tree_selector.html#ParseError	tree_selector: ParseError	
+tkInvalid	hmisc/algo/tree/tree_selector.html#tkInvalid	TokenKind.tkInvalid	
+tkBracketStart	hmisc/algo/tree/tree_selector.html#tkBracketStart	TokenKind.tkBracketStart	
+tkBracketEnd	hmisc/algo/tree/tree_selector.html#tkBracketEnd	TokenKind.tkBracketEnd	
+tkParam	hmisc/algo/tree/tree_selector.html#tkParam	TokenKind.tkParam	
+tkComma	hmisc/algo/tree/tree_selector.html#tkComma	TokenKind.tkComma	
+tkIdentifier	hmisc/algo/tree/tree_selector.html#tkIdentifier	TokenKind.tkIdentifier	
+tkString	hmisc/algo/tree/tree_selector.html#tkString	TokenKind.tkString	
+tkClass	hmisc/algo/tree/tree_selector.html#tkClass	TokenKind.tkClass	
+tkId	hmisc/algo/tree/tree_selector.html#tkId	TokenKind.tkId	
+tkElement	hmisc/algo/tree/tree_selector.html#tkElement	TokenKind.tkElement	
+tkCombinatorDescendents	hmisc/algo/tree/tree_selector.html#tkCombinatorDescendents	TokenKind.tkCombinatorDescendents	
+tkCombinatorChildren	hmisc/algo/tree/tree_selector.html#tkCombinatorChildren	TokenKind.tkCombinatorChildren	
+tkCombinatorNextSibling	hmisc/algo/tree/tree_selector.html#tkCombinatorNextSibling	TokenKind.tkCombinatorNextSibling	
+tkCombinatorSiblings	hmisc/algo/tree/tree_selector.html#tkCombinatorSiblings	TokenKind.tkCombinatorSiblings	
+tkPseudoNthChild	hmisc/algo/tree/tree_selector.html#tkPseudoNthChild	TokenKind.tkPseudoNthChild	
+tkPseudoNthLastChild	hmisc/algo/tree/tree_selector.html#tkPseudoNthLastChild	TokenKind.tkPseudoNthLastChild	
+tkPseudoNthOfType	hmisc/algo/tree/tree_selector.html#tkPseudoNthOfType	TokenKind.tkPseudoNthOfType	
+tkPseudoNthLastOfType	hmisc/algo/tree/tree_selector.html#tkPseudoNthLastOfType	TokenKind.tkPseudoNthLastOfType	
+tkPseudoFirstOfType	hmisc/algo/tree/tree_selector.html#tkPseudoFirstOfType	TokenKind.tkPseudoFirstOfType	
+tkPseudoLastOfType	hmisc/algo/tree/tree_selector.html#tkPseudoLastOfType	TokenKind.tkPseudoLastOfType	
+tkPseudoOnlyChild	hmisc/algo/tree/tree_selector.html#tkPseudoOnlyChild	TokenKind.tkPseudoOnlyChild	
+tkPseudoOnlyOfType	hmisc/algo/tree/tree_selector.html#tkPseudoOnlyOfType	TokenKind.tkPseudoOnlyOfType	
+tkPseudoEmpty	hmisc/algo/tree/tree_selector.html#tkPseudoEmpty	TokenKind.tkPseudoEmpty	
+tkPseudoFirstChild	hmisc/algo/tree/tree_selector.html#tkPseudoFirstChild	TokenKind.tkPseudoFirstChild	
+tkPseudoLastChild	hmisc/algo/tree/tree_selector.html#tkPseudoLastChild	TokenKind.tkPseudoLastChild	
+tkPseudoNot	hmisc/algo/tree/tree_selector.html#tkPseudoNot	TokenKind.tkPseudoNot	
+tkPredicate	hmisc/algo/tree/tree_selector.html#tkPredicate	TokenKind.tkPredicate	
+tkEoi	hmisc/algo/tree/tree_selector.html#tkEoi	TokenKind.tkEoi	
+TokenKind	hmisc/algo/tree/tree_selector.html#TokenKind	tree_selector: TokenKind	
+cmDescendants	hmisc/algo/tree/tree_selector.html#cmDescendants	Combinator.cmDescendants	
+cmChildren	hmisc/algo/tree/tree_selector.html#cmChildren	Combinator.cmChildren	
+cmNextSibling	hmisc/algo/tree/tree_selector.html#cmNextSibling	Combinator.cmNextSibling	
+cmSiblings	hmisc/algo/tree/tree_selector.html#cmSiblings	Combinator.cmSiblings	
+cmLeaf	hmisc/algo/tree/tree_selector.html#cmLeaf	Combinator.cmLeaf	
+Combinator	hmisc/algo/tree/tree_selector.html#Combinator	tree_selector: Combinator	
+optUniqueIds	hmisc/algo/tree/tree_selector.html#optUniqueIds	QueryOption.optUniqueIds	
+optUnicodeIdentifiers	hmisc/algo/tree/tree_selector.html#optUnicodeIdentifiers	QueryOption.optUnicodeIdentifiers	
+optSimpleNot	hmisc/algo/tree/tree_selector.html#optSimpleNot	QueryOption.optSimpleNot	
+QueryOption	hmisc/algo/tree/tree_selector.html#QueryOption	tree_selector: QueryOption	
+Query	hmisc/algo/tree/tree_selector.html#Query	tree_selector: Query	
+QueryCtx	hmisc/algo/tree/tree_selector.html#QueryCtx	tree_selector: QueryCtx	
+DefaultQueryOptions	hmisc/algo/tree/tree_selector.html#DefaultQueryOptions	tree_selector: DefaultQueryOptions	
+initElementDemand	hmisc/algo/tree/tree_selector.html#initElementDemand,K	tree_selector: initElementDemand[N, K](element: K): Demand[N, K]	
+initPseudoDemand	hmisc/algo/tree/tree_selector.html#initPseudoDemand,TokenKind	tree_selector: initPseudoDemand[N, K](kind: TokenKind): Demand[N, K]	
+initPredicateDemand	hmisc/algo/tree/tree_selector.html#initPredicateDemand,proc(N)	tree_selector: initPredicateDemand[N, K](predicate: proc (node: N): bool): Demand[N, K]	
+predicate	hmisc/algo/tree/tree_selector.html#predicate.t,QueryCtx[N,K],untyped	tree_selector: predicate[N, K](ctx: QueryCtx[N, K]; predicate: untyped): untyped	
+initQueryPart	hmisc/algo/tree/tree_selector.html#initQueryPart,seq[Demand[N,K]],Combinator	tree_selector: initQueryPart[N, K](demands: seq[Demand[N, K]]; combinator: Combinator): QueryPart[\n    N, K]	
+initQuery	hmisc/algo/tree/tree_selector.html#initQuery,seq[QueryPart[N,K]],set[QueryOption]	tree_selector: initQuery[N, K](parts: seq[QueryPart[N, K]];\n                options: set[QueryOption] = DefaultQueryOptions): Query[N, K]	
+initQueryCtx	hmisc/algo/tree/tree_selector.html#initQueryCtx,proc(N),proc(N,K),proc(N,N)	tree_selector: initQueryCtx[N, K](wrapNode: proc (node: N): N;\n                   eqElement: proc (node: N; element: K): bool;\n                   eqKind: proc (node1, node2: N): bool): QueryCtx[N, K]	
+initWithParent	hmisc/algo/tree/tree_selector.html#initWithParent,N,int,int	tree_selector: initWithParent[N, K](parent: N; index: int; elementIndex: int): NodeWithParent[\n    N, K]	
+query	hmisc/algo/tree/tree_selector.html#query,Demand[N,K]	tree_selector: query[N, K](demand: Demand[N, K]): Query[N, K]	
+initNthChildDemand	hmisc/algo/tree/tree_selector.html#initNthChildDemand,TokenKind,int,int	tree_selector: initNthChildDemand[N, K](kind: TokenKind; a, b: int): Demand[N, K]	
+`$`	hmisc/algo/tree/tree_selector.html#$,Demand[N,K]	tree_selector: `$`[N, K](demand: Demand[N, K]): string	
+`==`	hmisc/algo/tree/tree_selector.html#==,Demand,Demand	tree_selector: `==`(d1, d2: Demand): bool	
+exec	hmisc/algo/tree/tree_selector.html#exec,Query[N,K],N,QueryCtx[N,K]	tree_selector: exec[N, K](query: Query[N, K]; root: N; ctx: QueryCtx[N, K]): seq[N]	
+execWithCtx	hmisc/algo/tree/tree_selector.html#execWithCtx.t,N,QueryCtx[N,K],untyped	tree_selector: execWithCtx[N, K](tree: N; inCtx: QueryCtx[N, K]; body: untyped): untyped	

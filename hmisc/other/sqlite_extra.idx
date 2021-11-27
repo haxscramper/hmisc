@@ -1,0 +1,21 @@
+sqliteOpen	hmisc/other/sqlite_extra.html#sqliteOpen,AnyFile	sqlite_extra: sqliteOpen(file: AnyFile): DbConn	
+sqliteOpenNew	hmisc/other/sqlite_extra.html#sqliteOpenNew,AnyFile	sqlite_extra: sqliteOpenNew(file: AnyFile): DbConn	
+toSqlite	hmisc/other/sqlite_extra.html#toSqlite,typedesc[int]	sqlite_extra: toSqlite(t: typedesc[int]): string	
+toSqlite	hmisc/other/sqlite_extra.html#toSqlite,typedesc[bool]	sqlite_extra: toSqlite(t: typedesc[bool]): string	
+toSqlite	hmisc/other/sqlite_extra.html#toSqlite,typedesc[string]	sqlite_extra: toSqlite(t: typedesc[string]): string	
+toSqlite	hmisc/other/sqlite_extra.html#toSqlite,typedesc[]	sqlite_extra: toSqlite(t: typedesc[enum]): string	
+toSqlite	hmisc/other/sqlite_extra.html#toSqlite,typedesc[Option[T]]	sqlite_extra: toSqlite[T](t: typedesc[Option[T]]): string	
+sq	hmisc/other/sqlite_extra.html#sq.t,untyped	sqlite_extra: sq(expr: untyped): untyped	
+sqPrimaryKey	hmisc/other/sqlite_extra.html#sqPrimaryKey	sqlite_extra: sqPrimaryKey	
+`$`	hmisc/other/sqlite_extra.html#$,SqlPrepared	sqlite_extra: `$`(pstmt: SqlPrepared): string	
+connError	hmisc/other/sqlite_extra.html#connError,DbConn	sqlite_extra: connError(conn: DbConn): string	
+bindParam	hmisc/other/sqlite_extra.html#bindParam,SqlPrepared,int,Option[T]	sqlite_extra: bindParam[T](ps: SqlPrepared; idx: int; opt: Option[T])	
+newInsert	hmisc/other/sqlite_extra.html#newInsert,string,openArray[]	sqlite_extra: newInsert(table: string; columns: openArray[(string, int)]): string	
+newTable	hmisc/other/sqlite_extra.html#newTable,string,openArray[]	sqlite_extra: newTable(table: string; columns: openArray[(string, string)]): SqlQuery	
+beginTransaction	hmisc/other/sqlite_extra.html#beginTransaction,DbConn	sqlite_extra: beginTransaction(db: DbConn)	
+endTransaction	hmisc/other/sqlite_extra.html#endTransaction,DbConn	sqlite_extra: endTransaction(db: DbConn)	
+disableSync	hmisc/other/sqlite_extra.html#disableSync,DbConn	sqlite_extra: disableSync(db: DbConn)	
+journalMemory	hmisc/other/sqlite_extra.html#journalMemory,DbConn	sqlite_extra: journalMemory(db: DbConn)	
+bindParam	hmisc/other/sqlite_extra.html#bindParam,SqlPrepared,int,E	sqlite_extra: bindParam[E: enum](ps: SqlPrepared; idx: int; opt: E)	
+reset	hmisc/other/sqlite_extra.html#reset,SqlPrepared	sqlite_extra: reset(p: SqlPrepared)	
+doExec	hmisc/other/sqlite_extra.html#doExec,DbConn,SqlPrepared	sqlite_extra: doExec(sq: DbConn; prep: SqlPrepared)	

@@ -1,0 +1,5 @@
+Matcher	hmisc/extra/treediff/matcher.html#Matcher	matcher: Matcher	
+CompositeMatcher	hmisc/extra/treediff/matcher.html#CompositeMatcher	matcher: CompositeMatcher	
+match	hmisc/extra/treediff/matcher.html#match.e,Matcher,Tree,Tree,MappingStore	matcher: match(matcher: Matcher; src, dst: Tree; mappings: MappingStore): MappingStore	
+match	hmisc/extra/treediff/matcher.html#match.e,CompositeMatcher,Tree,Tree,MappingStore	matcher: match(this: CompositeMatcher; src: Tree; dst: Tree; mappings: MappingStore): MappingStore	
+newCompositeMatcher	hmisc/extra/treediff/matcher.html#newCompositeMatcher,varargs[Matcher]	matcher: newCompositeMatcher(matcher: varargs[Matcher]): CompositeMatcher	

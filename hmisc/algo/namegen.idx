@@ -1,0 +1,41 @@
+StringNameCache	hmisc/algo/namegen.html#StringNameCache	namegen: StringNameCache	
+nimNorm	hmisc/algo/namegen.html#nimNorm,string,bool	namegen: nimNorm(str: string; normalize: bool = true): string	
+hasExactName	hmisc/algo/namegen.html#hasExactName,StringNameCache,string	namegen: hasExactName(cache: StringNameCache; name: string): bool	
+newName	hmisc/algo/namegen.html#newName,StringNameCache,string,bool,string,bool	namegen: newName(cache: var StringNameCache; str: string; normalize: bool = true;\n        extra: string = &quot;&quot;; forceRename: bool = false): string	
+getName	hmisc/algo/namegen.html#getName,StringNameCache,string	namegen: getName(cache: var StringNameCache; str: string): string	
+newRename	hmisc/algo/namegen.html#newRename,StringNameCache,string,string,bool	namegen: newRename(cache: var StringNameCache; baseName, newName: string;\n          exact: bool = true)	
+numerateGenerated	hmisc/algo/namegen.html#numerateGenerated,StringNameCache,string	namegen: numerateGenerated(cache: var StringNameCache; newName: string)	
+knownRename	hmisc/algo/namegen.html#knownRename,StringNameCache,string,bool	namegen: knownRename(cache: StringNameCache; baseName: string; exact: bool = true): bool	
+generatedCount	hmisc/algo/namegen.html#generatedCount,StringNameCache,string	namegen: generatedCount(cache: StringNameCache; name: string): int	
+knownGenerated	hmisc/algo/namegen.html#knownGenerated,StringNameCache,string	namegen: knownGenerated(cache: StringNameCache; name: string): bool	
+knownName	hmisc/algo/namegen.html#knownName,StringNameCache,string	namegen: knownName(cache: StringNameCache; name: string): bool	
+getRename	hmisc/algo/namegen.html#getRename,StringNameCache,string,bool	namegen: getRename(cache: StringNameCache; baseName: string; exact: bool = true): string	
+commonPrefix	hmisc/algo/namegen.html#commonPrefix,seq[seq[T]]	namegen: commonPrefix[T](seqs: seq[seq[T]]): seq[T]	
+isSharedTypeName	hmisc/algo/namegen.html#isSharedTypeName,string	namegen: isSharedTypeName(name: string): bool	
+isReservedNimType	hmisc/algo/namegen.html#isReservedNimType,string	namegen: isReservedNimType(str: string): bool	
+isReservedNimIdent	hmisc/algo/namegen.html#isReservedNimIdent,string	namegen: isReservedNimIdent(str: string): bool	
+isReservedNimWord	hmisc/algo/namegen.html#isReservedNimWord,string	namegen: isReservedNimWord(str: string): bool	
+fixIdentName	hmisc/algo/namegen.html#fixIdentName,string,string,bool	namegen: fixIdentName(str: string; prefix: string; toCamel: bool = false): string	
+nfsPrependText	hmisc/algo/namegen.html#nfsPrependText	NameFixStrategy.nfsPrependText	
+nfsAppendText	hmisc/algo/namegen.html#nfsAppendText	NameFixStrategy.nfsAppendText	
+nfsNumerateNew	hmisc/algo/namegen.html#nfsNumerateNew	NameFixStrategy.nfsNumerateNew	
+nfsDescribeDiff	hmisc/algo/namegen.html#nfsDescribeDiff	NameFixStrategy.nfsDescribeDiff	
+NameFixStrategy	hmisc/algo/namegen.html#NameFixStrategy	namegen: NameFixStrategy	
+NameFixImpl	hmisc/algo/namegen.html#NameFixImpl	namegen: NameFixImpl	
+NameFixConf	hmisc/algo/namegen.html#NameFixConf	namegen: NameFixConf	
+fixDuplicated	hmisc/algo/namegen.html#fixDuplicated,StringNameCache,string,string,NameFixConf	namegen: fixDuplicated(cache: var StringNameCache; original, generated: string;\n              conf: NameFixConf): string	
+fixInitial	hmisc/algo/namegen.html#fixInitial,string,NameFixConf	namegen: fixInitial(str: string; conf: NameFixConf): tuple[res: string, changeFirst: bool]	
+fixName	hmisc/algo/namegen.html#fixName,StringNameCache,string,NameFixConf	namegen: fixName(cache: var StringNameCache; str: string; conf: NameFixConf): string	
+fixIdentName	hmisc/algo/namegen.html#fixIdentName,StringNameCache,string,proc(string,bool),NameFixStrategy,bool	namegen: fixIdentName(c: var StringNameCache; str: string;\n             fixWith: proc (str: string; isType: bool): string;\n             strat: NameFixStrategy = nfsNumerateNew; toCamel: bool = true): string	
+fixTypeName	hmisc/algo/namegen.html#fixTypeName,StringNameCache,string,proc(string,bool),NameFixStrategy,bool	namegen: fixTypeName(c: var StringNameCache; str: string;\n            fixWith: proc (str: string; isType: bool): string;\n            strat: NameFixStrategy = nfsNumerateNew; toCamel: bool = true): string	
+fixIdentName	hmisc/algo/namegen.html#fixIdentName,StringNameCache,string,string,bool,bool	namegen: fixIdentName(c: var StringNameCache; str, prefix: string;\n             requirePrefix: bool = false; toCamel: bool = true): string	
+fixTypeName	hmisc/algo/namegen.html#fixTypeName,StringNameCache,string,string,bool,bool	namegen: fixTypeName(c: var StringNameCache; str, prefix: string;\n            requirePrefix: bool = false; toCamel: bool = true): string	
+fixIdentName	hmisc/algo/namegen.html#fixIdentName,StringNameCache,string,bool	namegen: fixIdentName(c: var StringNameCache; str: string; toCamel: bool = true): string	
+fixTypeName	hmisc/algo/namegen.html#fixTypeName,StringNameCache,string,bool	namegen: fixTypeName(c: var StringNameCache; str: string; toCamel: bool = true): string	
+fixNumerateTypeName	hmisc/algo/namegen.html#fixNumerateTypeName,StringNameCache,string,string,bool	namegen: fixNumerateTypeName(c: var StringNameCache; str: string; prefix: string;\n                    toCamel: bool = true): string	
+fixNumerateIdentName	hmisc/algo/namegen.html#fixNumerateIdentName,StringNameCache,string,string,bool	namegen: fixNumerateIdentName(c: var StringNameCache; str: string; prefix: string;\n                     toCamel: bool = true): string	
+fixNimTypeName	hmisc/algo/namegen.html#fixNimTypeName,string,bool	namegen: fixNimTypeName(str: string; useReserved: bool = true): string	
+enumPrefixForCamel	hmisc/algo/namegen.html#enumPrefixForCamel,string	namegen: enumPrefixForCamel(camel: string): string	
+enumPrefixForCamel	hmisc/algo/namegen.html#enumPrefixForCamel,string,StringNameCache	namegen: enumPrefixForCamel(camel: string; cache: var StringNameCache): string	
+kindEnumName	hmisc/algo/namegen.html#kindEnumName,string,string	namegen: kindEnumName(name, parent: string): string	
+kindEnumName	hmisc/algo/namegen.html#kindEnumName,string,string,StringNameCache,bool	namegen: kindEnumName(name, parent: string; cache: var StringNameCache;\n             addPrefix: bool = true): string	

@@ -1,0 +1,473 @@
+tcBlack	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcBlack	TermColor8Bit.tcBlack	
+tcMaroon	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMaroon	TermColor8Bit.tcMaroon	
+tcGreen	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGreen	TermColor8Bit.tcGreen	
+tcOlive	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcOlive	TermColor8Bit.tcOlive	
+tcNavy	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcNavy	TermColor8Bit.tcNavy	
+tcPurple	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcPurple	TermColor8Bit.tcPurple	
+tcTeal	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcTeal	TermColor8Bit.tcTeal	
+tcSilver	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSilver	TermColor8Bit.tcSilver	
+tcGrey	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey	TermColor8Bit.tcGrey	
+tcRed	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcRed	TermColor8Bit.tcRed	
+tcLime	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLime	TermColor8Bit.tcLime	
+tcYellow	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcYellow	TermColor8Bit.tcYellow	
+tcBlue	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcBlue	TermColor8Bit.tcBlue	
+tcFuchsia	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcFuchsia	TermColor8Bit.tcFuchsia	
+tcAqua	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcAqua	TermColor8Bit.tcAqua	
+tcWhite	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcWhite	TermColor8Bit.tcWhite	
+tcGrey0	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey0	TermColor8Bit.tcGrey0	
+tcNavyBlue	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcNavyBlue	TermColor8Bit.tcNavyBlue	
+tcDarkBlue	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkBlue	TermColor8Bit.tcDarkBlue	
+tcBlue3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcBlue3	TermColor8Bit.tcBlue3	
+tcBlue3_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcBlue3_1	TermColor8Bit.tcBlue3_1	
+tcBlue1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcBlue1	TermColor8Bit.tcBlue1	
+tcDarkGreen	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkGreen	TermColor8Bit.tcDarkGreen	
+tcDeepSkyBlue4	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDeepSkyBlue4	TermColor8Bit.tcDeepSkyBlue4	
+tcDeepSkyBlue4_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDeepSkyBlue4_1	TermColor8Bit.tcDeepSkyBlue4_1	
+tcDeepSkyBlue4_2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDeepSkyBlue4_2	TermColor8Bit.tcDeepSkyBlue4_2	
+tcDodgerBlue3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDodgerBlue3	TermColor8Bit.tcDodgerBlue3	
+tcDodgerBlue2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDodgerBlue2	TermColor8Bit.tcDodgerBlue2	
+tcGreen4	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGreen4	TermColor8Bit.tcGreen4	
+tcSpringGreen4	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSpringGreen4	TermColor8Bit.tcSpringGreen4	
+tcTurquoise4	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcTurquoise4	TermColor8Bit.tcTurquoise4	
+tcDeepSkyBlue3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDeepSkyBlue3	TermColor8Bit.tcDeepSkyBlue3	
+tcDeepSkyBlue3_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDeepSkyBlue3_1	TermColor8Bit.tcDeepSkyBlue3_1	
+tcDodgerBlue1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDodgerBlue1	TermColor8Bit.tcDodgerBlue1	
+tcGreen3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGreen3	TermColor8Bit.tcGreen3	
+tcSpringGreen3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSpringGreen3	TermColor8Bit.tcSpringGreen3	
+tcDarkCyan	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkCyan	TermColor8Bit.tcDarkCyan	
+tcLightSeaGreen	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightSeaGreen	TermColor8Bit.tcLightSeaGreen	
+tcDeepSkyBlue2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDeepSkyBlue2	TermColor8Bit.tcDeepSkyBlue2	
+tcDeepSkyBlue1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDeepSkyBlue1	TermColor8Bit.tcDeepSkyBlue1	
+tcGreen3_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGreen3_1	TermColor8Bit.tcGreen3_1	
+tcSpringGreen3_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSpringGreen3_1	TermColor8Bit.tcSpringGreen3_1	
+tcSpringGreen2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSpringGreen2	TermColor8Bit.tcSpringGreen2	
+tcCyan3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcCyan3	TermColor8Bit.tcCyan3	
+tcDarkTurquoise	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkTurquoise	TermColor8Bit.tcDarkTurquoise	
+tcTurquoise2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcTurquoise2	TermColor8Bit.tcTurquoise2	
+tcGreen1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGreen1	TermColor8Bit.tcGreen1	
+tcSpringGreen2_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSpringGreen2_1	TermColor8Bit.tcSpringGreen2_1	
+tcSpringGreen1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSpringGreen1	TermColor8Bit.tcSpringGreen1	
+tcMediumSpringGreen	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMediumSpringGreen	TermColor8Bit.tcMediumSpringGreen	
+tcCyan2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcCyan2	TermColor8Bit.tcCyan2	
+tcCyan1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcCyan1	TermColor8Bit.tcCyan1	
+tcDarkRed	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkRed	TermColor8Bit.tcDarkRed	
+tcDeepPink4	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDeepPink4	TermColor8Bit.tcDeepPink4	
+tcPurple4	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcPurple4	TermColor8Bit.tcPurple4	
+tcPurple4_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcPurple4_1	TermColor8Bit.tcPurple4_1	
+tcPurple3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcPurple3	TermColor8Bit.tcPurple3	
+tcBlueViolet	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcBlueViolet	TermColor8Bit.tcBlueViolet	
+tcOrange4	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcOrange4	TermColor8Bit.tcOrange4	
+tcGrey37	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey37	TermColor8Bit.tcGrey37	
+tcMediumPurple4	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMediumPurple4	TermColor8Bit.tcMediumPurple4	
+tcSlateBlue3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSlateBlue3	TermColor8Bit.tcSlateBlue3	
+tcSlateBlue3_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSlateBlue3_1	TermColor8Bit.tcSlateBlue3_1	
+tcRoyalBlue1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcRoyalBlue1	TermColor8Bit.tcRoyalBlue1	
+tcChartreuse4	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcChartreuse4	TermColor8Bit.tcChartreuse4	
+tcDarkSeaGreen4	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkSeaGreen4	TermColor8Bit.tcDarkSeaGreen4	
+tcPaleTurquoise4	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcPaleTurquoise4	TermColor8Bit.tcPaleTurquoise4	
+tcSteelBlue	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSteelBlue	TermColor8Bit.tcSteelBlue	
+tcSteelBlue3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSteelBlue3	TermColor8Bit.tcSteelBlue3	
+tcCornflowerBlue	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcCornflowerBlue	TermColor8Bit.tcCornflowerBlue	
+tcChartreuse3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcChartreuse3	TermColor8Bit.tcChartreuse3	
+tcDarkSeaGreen4_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkSeaGreen4_1	TermColor8Bit.tcDarkSeaGreen4_1	
+tcCadetBlue	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcCadetBlue	TermColor8Bit.tcCadetBlue	
+tcCadetBlue_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcCadetBlue_1	TermColor8Bit.tcCadetBlue_1	
+tcSkyBlue3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSkyBlue3	TermColor8Bit.tcSkyBlue3	
+tcSteelBlue1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSteelBlue1	TermColor8Bit.tcSteelBlue1	
+tcChartreuse3_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcChartreuse3_1	TermColor8Bit.tcChartreuse3_1	
+tcPaleGreen3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcPaleGreen3	TermColor8Bit.tcPaleGreen3	
+tcSeaGreen3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSeaGreen3	TermColor8Bit.tcSeaGreen3	
+tcAquamarine3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcAquamarine3	TermColor8Bit.tcAquamarine3	
+tcMediumTurquoise	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMediumTurquoise	TermColor8Bit.tcMediumTurquoise	
+tcSteelBlue1_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSteelBlue1_1	TermColor8Bit.tcSteelBlue1_1	
+tcChartreuse2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcChartreuse2	TermColor8Bit.tcChartreuse2	
+tcSeaGreen2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSeaGreen2	TermColor8Bit.tcSeaGreen2	
+tcSeaGreen1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSeaGreen1	TermColor8Bit.tcSeaGreen1	
+tcSeaGreen1_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSeaGreen1_1	TermColor8Bit.tcSeaGreen1_1	
+tcAquamarine1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcAquamarine1	TermColor8Bit.tcAquamarine1	
+tcDarkSlateGray2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkSlateGray2	TermColor8Bit.tcDarkSlateGray2	
+tcDarkRed_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkRed_1	TermColor8Bit.tcDarkRed_1	
+tcDeepPink4_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDeepPink4_1	TermColor8Bit.tcDeepPink4_1	
+tcDarkMagenta	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkMagenta	TermColor8Bit.tcDarkMagenta	
+tcDarkMagenta_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkMagenta_1	TermColor8Bit.tcDarkMagenta_1	
+tcDarkViolet	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkViolet	TermColor8Bit.tcDarkViolet	
+tcPurple_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcPurple_1	TermColor8Bit.tcPurple_1	
+tcOrange4_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcOrange4_1	TermColor8Bit.tcOrange4_1	
+tcLightPink4	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightPink4	TermColor8Bit.tcLightPink4	
+tcPlum4	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcPlum4	TermColor8Bit.tcPlum4	
+tcMediumPurple3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMediumPurple3	TermColor8Bit.tcMediumPurple3	
+tcMediumPurple3_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMediumPurple3_1	TermColor8Bit.tcMediumPurple3_1	
+tcSlateBlue1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSlateBlue1	TermColor8Bit.tcSlateBlue1	
+tcYellow4	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcYellow4	TermColor8Bit.tcYellow4	
+tcWheat4	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcWheat4	TermColor8Bit.tcWheat4	
+tcGrey53	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey53	TermColor8Bit.tcGrey53	
+tcLightSlateGrey	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightSlateGrey	TermColor8Bit.tcLightSlateGrey	
+tcMediumPurple	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMediumPurple	TermColor8Bit.tcMediumPurple	
+tcLightSlateBlue	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightSlateBlue	TermColor8Bit.tcLightSlateBlue	
+tcYellow4_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcYellow4_1	TermColor8Bit.tcYellow4_1	
+tcDarkOliveGreen3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkOliveGreen3	TermColor8Bit.tcDarkOliveGreen3	
+tcDarkSeaGreen	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkSeaGreen	TermColor8Bit.tcDarkSeaGreen	
+tcLightSkyBlue3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightSkyBlue3	TermColor8Bit.tcLightSkyBlue3	
+tcLightSkyBlue3_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightSkyBlue3_1	TermColor8Bit.tcLightSkyBlue3_1	
+tcSkyBlue2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSkyBlue2	TermColor8Bit.tcSkyBlue2	
+tcChartreuse2_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcChartreuse2_1	TermColor8Bit.tcChartreuse2_1	
+tcDarkOliveGreen3_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkOliveGreen3_1	TermColor8Bit.tcDarkOliveGreen3_1	
+tcPaleGreen3_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcPaleGreen3_1	TermColor8Bit.tcPaleGreen3_1	
+tcDarkSeaGreen3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkSeaGreen3	TermColor8Bit.tcDarkSeaGreen3	
+tcDarkSlateGray3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkSlateGray3	TermColor8Bit.tcDarkSlateGray3	
+tcSkyBlue1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSkyBlue1	TermColor8Bit.tcSkyBlue1	
+tcChartreuse1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcChartreuse1	TermColor8Bit.tcChartreuse1	
+tcLightGreen	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightGreen	TermColor8Bit.tcLightGreen	
+tcLightGreen_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightGreen_1	TermColor8Bit.tcLightGreen_1	
+tcPaleGreen1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcPaleGreen1	TermColor8Bit.tcPaleGreen1	
+tcAquamarine1_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcAquamarine1_1	TermColor8Bit.tcAquamarine1_1	
+tcDarkSlateGray1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkSlateGray1	TermColor8Bit.tcDarkSlateGray1	
+tcRed3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcRed3	TermColor8Bit.tcRed3	
+tcDeepPink4_2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDeepPink4_2	TermColor8Bit.tcDeepPink4_2	
+tcMediumVioletRed	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMediumVioletRed	TermColor8Bit.tcMediumVioletRed	
+tcMagenta3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMagenta3	TermColor8Bit.tcMagenta3	
+tcDarkViolet_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkViolet_1	TermColor8Bit.tcDarkViolet_1	
+tcPurple_2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcPurple_2	TermColor8Bit.tcPurple_2	
+tcDarkOrange3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkOrange3	TermColor8Bit.tcDarkOrange3	
+tcIndianRed	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcIndianRed	TermColor8Bit.tcIndianRed	
+tcHotPink3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcHotPink3	TermColor8Bit.tcHotPink3	
+tcMediumOrchid3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMediumOrchid3	TermColor8Bit.tcMediumOrchid3	
+tcMediumOrchid	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMediumOrchid	TermColor8Bit.tcMediumOrchid	
+tcMediumPurple2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMediumPurple2	TermColor8Bit.tcMediumPurple2	
+tcDarkGoldenrod	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkGoldenrod	TermColor8Bit.tcDarkGoldenrod	
+tcLightSalmon3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightSalmon3	TermColor8Bit.tcLightSalmon3	
+tcRosyBrown	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcRosyBrown	TermColor8Bit.tcRosyBrown	
+tcGrey63	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey63	TermColor8Bit.tcGrey63	
+tcMediumPurple2_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMediumPurple2_1	TermColor8Bit.tcMediumPurple2_1	
+tcMediumPurple1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMediumPurple1	TermColor8Bit.tcMediumPurple1	
+tcGold3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGold3	TermColor8Bit.tcGold3	
+tcDarkKhaki	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkKhaki	TermColor8Bit.tcDarkKhaki	
+tcNavajoWhite3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcNavajoWhite3	TermColor8Bit.tcNavajoWhite3	
+tcGrey69	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey69	TermColor8Bit.tcGrey69	
+tcLightSteelBlue3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightSteelBlue3	TermColor8Bit.tcLightSteelBlue3	
+tcLightSteelBlue	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightSteelBlue	TermColor8Bit.tcLightSteelBlue	
+tcYellow3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcYellow3	TermColor8Bit.tcYellow3	
+tcDarkOliveGreen3_2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkOliveGreen3_2	TermColor8Bit.tcDarkOliveGreen3_2	
+tcDarkSeaGreen3_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkSeaGreen3_1	TermColor8Bit.tcDarkSeaGreen3_1	
+tcDarkSeaGreen2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkSeaGreen2	TermColor8Bit.tcDarkSeaGreen2	
+tcLightCyan3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightCyan3	TermColor8Bit.tcLightCyan3	
+tcLightSkyBlue1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightSkyBlue1	TermColor8Bit.tcLightSkyBlue1	
+tcGreenYellow	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGreenYellow	TermColor8Bit.tcGreenYellow	
+tcDarkOliveGreen2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkOliveGreen2	TermColor8Bit.tcDarkOliveGreen2	
+tcPaleGreen1_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcPaleGreen1_1	TermColor8Bit.tcPaleGreen1_1	
+tcDarkSeaGreen2_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkSeaGreen2_1	TermColor8Bit.tcDarkSeaGreen2_1	
+tcDarkSeaGreen1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkSeaGreen1	TermColor8Bit.tcDarkSeaGreen1	
+tcPaleTurquoise1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcPaleTurquoise1	TermColor8Bit.tcPaleTurquoise1	
+tcRed3_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcRed3_1	TermColor8Bit.tcRed3_1	
+tcDeepPink3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDeepPink3	TermColor8Bit.tcDeepPink3	
+tcDeepPink3_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDeepPink3_1	TermColor8Bit.tcDeepPink3_1	
+tcMagenta3_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMagenta3_1	TermColor8Bit.tcMagenta3_1	
+tcMagenta3_2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMagenta3_2	TermColor8Bit.tcMagenta3_2	
+tcMagenta2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMagenta2	TermColor8Bit.tcMagenta2	
+tcDarkOrange3_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkOrange3_1	TermColor8Bit.tcDarkOrange3_1	
+tcIndianRed_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcIndianRed_1	TermColor8Bit.tcIndianRed_1	
+tcHotPink3_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcHotPink3_1	TermColor8Bit.tcHotPink3_1	
+tcHotPink2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcHotPink2	TermColor8Bit.tcHotPink2	
+tcOrchid	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcOrchid	TermColor8Bit.tcOrchid	
+tcMediumOrchid1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMediumOrchid1	TermColor8Bit.tcMediumOrchid1	
+tcOrange3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcOrange3	TermColor8Bit.tcOrange3	
+tcLightSalmon3_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightSalmon3_1	TermColor8Bit.tcLightSalmon3_1	
+tcLightPink3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightPink3	TermColor8Bit.tcLightPink3	
+tcPink3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcPink3	TermColor8Bit.tcPink3	
+tcPlum3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcPlum3	TermColor8Bit.tcPlum3	
+tcViolet	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcViolet	TermColor8Bit.tcViolet	
+tcGold3_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGold3_1	TermColor8Bit.tcGold3_1	
+tcLightGoldenrod3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightGoldenrod3	TermColor8Bit.tcLightGoldenrod3	
+tcTan	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcTan	TermColor8Bit.tcTan	
+tcMistyRose3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMistyRose3	TermColor8Bit.tcMistyRose3	
+tcThistle3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcThistle3	TermColor8Bit.tcThistle3	
+tcPlum2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcPlum2	TermColor8Bit.tcPlum2	
+tcYellow3_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcYellow3_1	TermColor8Bit.tcYellow3_1	
+tcKhaki3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcKhaki3	TermColor8Bit.tcKhaki3	
+tcLightGoldenrod2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightGoldenrod2	TermColor8Bit.tcLightGoldenrod2	
+tcLightYellow3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightYellow3	TermColor8Bit.tcLightYellow3	
+tcGrey84	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey84	TermColor8Bit.tcGrey84	
+tcLightSteelBlue1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightSteelBlue1	TermColor8Bit.tcLightSteelBlue1	
+tcYellow2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcYellow2	TermColor8Bit.tcYellow2	
+tcDarkOliveGreen1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkOliveGreen1	TermColor8Bit.tcDarkOliveGreen1	
+tcDarkOliveGreen1_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkOliveGreen1_1	TermColor8Bit.tcDarkOliveGreen1_1	
+tcDarkSeaGreen1_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkSeaGreen1_1	TermColor8Bit.tcDarkSeaGreen1_1	
+tcHoneydew2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcHoneydew2	TermColor8Bit.tcHoneydew2	
+tcLightCyan1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightCyan1	TermColor8Bit.tcLightCyan1	
+tcRed1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcRed1	TermColor8Bit.tcRed1	
+tcDeepPink2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDeepPink2	TermColor8Bit.tcDeepPink2	
+tcDeepPink1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDeepPink1	TermColor8Bit.tcDeepPink1	
+tcDeepPink1_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDeepPink1_1	TermColor8Bit.tcDeepPink1_1	
+tcMagenta2_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMagenta2_1	TermColor8Bit.tcMagenta2_1	
+tcMagenta1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMagenta1	TermColor8Bit.tcMagenta1	
+tcOrangeRed1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcOrangeRed1	TermColor8Bit.tcOrangeRed1	
+tcIndianRed1_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcIndianRed1_1	TermColor8Bit.tcIndianRed1_1	
+tcIndianRed1_2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcIndianRed1_2	TermColor8Bit.tcIndianRed1_2	
+tcHotPink	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcHotPink	TermColor8Bit.tcHotPink	
+tcHotPink_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcHotPink_1	TermColor8Bit.tcHotPink_1	
+tcMediumOrchid1_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMediumOrchid1_1	TermColor8Bit.tcMediumOrchid1_1	
+tcDarkOrange	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDarkOrange	TermColor8Bit.tcDarkOrange	
+tcSalmon1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSalmon1	TermColor8Bit.tcSalmon1	
+tcLightCoral	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightCoral	TermColor8Bit.tcLightCoral	
+tcPaleVioletRed1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcPaleVioletRed1	TermColor8Bit.tcPaleVioletRed1	
+tcOrchid2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcOrchid2	TermColor8Bit.tcOrchid2	
+tcOrchid1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcOrchid1	TermColor8Bit.tcOrchid1	
+tcOrange1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcOrange1	TermColor8Bit.tcOrange1	
+tcSandyBrown	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcSandyBrown	TermColor8Bit.tcSandyBrown	
+tcLightSalmon1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightSalmon1	TermColor8Bit.tcLightSalmon1	
+tcLightPink1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightPink1	TermColor8Bit.tcLightPink1	
+tcPink1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcPink1	TermColor8Bit.tcPink1	
+tcPlum1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcPlum1	TermColor8Bit.tcPlum1	
+tcGold1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGold1	TermColor8Bit.tcGold1	
+tcLightGoldenrod2_1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightGoldenrod2_1	TermColor8Bit.tcLightGoldenrod2_1	
+tcLightGoldenrod2_2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightGoldenrod2_2	TermColor8Bit.tcLightGoldenrod2_2	
+tcNavajoWhite1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcNavajoWhite1	TermColor8Bit.tcNavajoWhite1	
+tcMistyRose1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcMistyRose1	TermColor8Bit.tcMistyRose1	
+tcThistle1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcThistle1	TermColor8Bit.tcThistle1	
+tcYellow1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcYellow1	TermColor8Bit.tcYellow1	
+tcLightGoldenrod1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcLightGoldenrod1	TermColor8Bit.tcLightGoldenrod1	
+tcKhaki1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcKhaki1	TermColor8Bit.tcKhaki1	
+tcWheat1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcWheat1	TermColor8Bit.tcWheat1	
+tcCornsilk1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcCornsilk1	TermColor8Bit.tcCornsilk1	
+tcGrey100	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey100	TermColor8Bit.tcGrey100	
+tcGrey3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey3	TermColor8Bit.tcGrey3	
+tcGrey7	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey7	TermColor8Bit.tcGrey7	
+tcGrey11	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey11	TermColor8Bit.tcGrey11	
+tcGrey15	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey15	TermColor8Bit.tcGrey15	
+tcGrey19	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey19	TermColor8Bit.tcGrey19	
+tcGrey23	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey23	TermColor8Bit.tcGrey23	
+tcGrey27	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey27	TermColor8Bit.tcGrey27	
+tcGrey30	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey30	TermColor8Bit.tcGrey30	
+tcGrey35	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey35	TermColor8Bit.tcGrey35	
+tcGrey39	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey39	TermColor8Bit.tcGrey39	
+tcGrey42	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey42	TermColor8Bit.tcGrey42	
+tcGrey46	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey46	TermColor8Bit.tcGrey46	
+tcGrey50	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey50	TermColor8Bit.tcGrey50	
+tcGrey54	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey54	TermColor8Bit.tcGrey54	
+tcGrey58	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey58	TermColor8Bit.tcGrey58	
+tcGrey62	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey62	TermColor8Bit.tcGrey62	
+tcGrey66	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey66	TermColor8Bit.tcGrey66	
+tcGrey70	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey70	TermColor8Bit.tcGrey70	
+tcGrey74	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey74	TermColor8Bit.tcGrey74	
+tcGrey78	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey78	TermColor8Bit.tcGrey78	
+tcGrey82	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey82	TermColor8Bit.tcGrey82	
+tcGrey85	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey85	TermColor8Bit.tcGrey85	
+tcGrey89	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey89	TermColor8Bit.tcGrey89	
+tcGrey93	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGrey93	TermColor8Bit.tcGrey93	
+TermColor8Bit	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#TermColor8Bit	colorstring: TermColor8Bit	
+tcGreyColors	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcGreyColors	colorstring: tcGreyColors	
+tcDefault	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tcDefault	colorstring: tcDefault	
+bg	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#bg,TermColor8Bit	colorstring: bg(color: TermColor8Bit): TermColor8BitBg	
+fg	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#fg,TermColor8Bit	colorstring: fg(color: TermColor8Bit): TermColor8BitFg	
+PrintStyling	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#PrintStyling	colorstring: PrintStyling	
+ColoredString	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#ColoredString	colorstring: ColoredString	
+ColoredLine	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#ColoredLine	colorstring: ColoredLine	
+ColoredRune	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#ColoredRune	colorstring: ColoredRune	
+ColoredText	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#ColoredText	colorstring: ColoredText	
+ColoredRuneLine	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#ColoredRuneLine	colorstring: ColoredRuneLine	
+ColoredRuneGrid	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#ColoredRuneGrid	colorstring: ColoredRuneGrid	
+ColorTextConvertible	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#ColorTextConvertible	colorstring: ColorTextConvertible	
+isValid	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#isValid,PrintStyling	colorstring: isValid(style: PrintStyling): bool	
+isValid	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#isValid,ColoredRune	colorstring: isValid(rune: ColoredRune): bool	
+`==`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#==,PrintStyling,PrintStyling	colorstring: `==`(s1, s2: PrintStyling): bool	
+contains	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#contains,PrintStyling,Style	colorstring: contains(ps: PrintStyling; s: Style): bool	
+contains	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#contains,ColoredString,char	colorstring: contains(s: ColoredString; c: char): bool	
+initPrintStyling	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#initPrintStyling,ForegroundColor,BackgroundColor,set[Style]	colorstring: initPrintStyling(fg: ForegroundColor = fgDefault;\n                 bg: BackgroundColor = bgDefault; style: set[Style] = {}): PrintStyling	
+defaultPrintStyling	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#defaultPrintStyling	colorstring: defaultPrintStyling	
+default	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#default,typedesc[ColoredRune]	colorstring: default(rune: typedesc[ColoredRune]): ColoredRune	
+initStyleBg	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#initStyleBg,TermColor8Bit	colorstring: initStyleBg(term: TermColor8Bit): PrintStyling	
+initStyleFg	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#initStyleFg,TermColor8Bit	colorstring: initStyleFg(term: TermColor8Bit): PrintStyling	
+initStyle	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#initStyle,TermColor8Bit,TermColor8Bit	colorstring: initStyle(fg, bg: TermColor8Bit): PrintStyling	
+initStyle	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#initStyle.m,varargs[typed]	colorstring: initStyle(args: varargs[typed]): PrintStyling	
+initColored	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#initColored.m,string,varargs[typed]	colorstring: initColored(str: string; args: varargs[typed]): untyped	
+uc	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#uc,static[string]	colorstring: uc(s: static[string]): Rune	
+coloredWhitespaceRune	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#coloredWhitespaceRune	colorstring: coloredWhitespaceRune	
+initColoredRune	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#initColoredRune,Rune,PrintStyling	colorstring: initColoredRune(rune: Rune; styling: PrintStyling = initPrintStyling()): ColoredRune	
+toColored	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toColored,Rune	colorstring: toColored(rune: Rune): ColoredRune	
+toColored	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toColored,char,PrintStyling,bool	colorstring: toColored(ch: char; styling: PrintStyling = initPrintStyling();\n          colorize: bool = true): ColoredRune	
+toColored	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toColored,ColoredRune,PrintStyling	colorstring: toColored(rune: ColoredRune; styling: PrintStyling): ColoredRune	
+toColored	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toColored,Rune,PrintStyling,bool	colorstring: toColored(ch: Rune; styling: PrintStyling = initPrintStyling();\n          colorize: bool = true): ColoredRune	
+initColoredString	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#initColoredString,string,BackgroundColor,ForegroundColor,set[Style]	colorstring: initColoredString(str: string; bg: BackgroundColor = bgDefault;\n                  fg: ForegroundColor = fgDefault; style: set[Style] = {}): ColoredString	
+initColoredText	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#initColoredText,string,BackgroundColor,ForegroundColor,set[Style]	colorstring: initColoredText(str: string; bg: BackgroundColor = bgDefault;\n                fg: ForegroundColor = fgDefault; style: set[Style] = {}): ColoredText	
+hash	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#hash,ColoredText	colorstring: hash(text: ColoredText): Hash	
+`+`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#+,TermColor8BitBg,TermColor8BitFg	colorstring: `+`(bg: TermColor8BitBg; fg: TermColor8BitFg): PrintStyling	
+`+`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#+,TermColor8BitFg,TermColor8BitBg	colorstring: `+`(fg: TermColor8BitFg; bg: TermColor8BitBg): PrintStyling	
+`+`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#+,BackgroundColor,ForegroundColor	colorstring: `+`(bg: BackgroundColor; fg: ForegroundColor): PrintStyling	
+`+`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#+,ForegroundColor,BackgroundColor	colorstring: `+`(fg: ForegroundColor; bg: BackgroundColor): PrintStyling	
+`+`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#+,sinkPrintStyling,BackgroundColor	colorstring: `+`(style: sink PrintStyling; bg: BackgroundColor): PrintStyling	
+`+`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#+,sinkPrintStyling,ForegroundColor	colorstring: `+`(style: sink PrintStyling; fg: ForegroundColor): PrintStyling	
+`+`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#+,sinkPrintStyling,Style	colorstring: `+`(style: sink PrintStyling; s: Style): PrintStyling	
+`+`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#+,char,PrintStyling	colorstring: `+`(ch: char; style: PrintStyling): ColoredRune	
+`+`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#+,Rune,PrintStyling	colorstring: `+`(rune: Rune; style: PrintStyling): ColoredRune	
+`+`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#+,string,PrintStyling	colorstring: `+`(str: string; style: PrintStyling): ColoredText	
+`+`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#+,string,ForegroundColor	colorstring: `+`(str: string; fg: ForegroundColor): ColoredText	
+`+`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#+,ColoredRune,PrintStyling	colorstring: `+`(rune: ColoredRune; style: PrintStyling): ColoredRune	
+`+`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#+,ColoredRuneLine,PrintStyling	colorstring: `+`(text: ColoredRuneLine; style: PrintStyling): ColoredRuneLine	
+isDefaultColor	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#isDefaultColor,PrintStyling	colorstring: isDefaultColor(styling: PrintStyling): bool	
+isDefaultColorFg	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#isDefaultColorFg,PrintStyling	colorstring: isDefaultColorFg(styling: PrintStyling): bool	
+isDefaultColorBg	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#isDefaultColorBg,PrintStyling	colorstring: isDefaultColorBg(styling: PrintStyling): bool	
+isDefaultFormat	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#isDefaultFormat,PrintStyling	colorstring: isDefaultFormat(styling: PrintStyling): bool	
+setStyle	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#setStyle,ColoredText,PrintStyling,bool,bool	colorstring: setStyle(text: var ColoredText; style: PrintStyling; overrideColor: bool = true;\n         overrideFormat: bool = true)	
+`+=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#+=,ColoredText,PrintStyling	colorstring: `+=`(text: var ColoredText; style: PrintStyling)	
+`+=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#+=,ColoredText,ForegroundColor	colorstring: `+=`(text: var ColoredText; fg: ForegroundColor)	
+`+`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#+,sinkColoredText,PrintStyling	colorstring: `+`(text: sink ColoredText; style: PrintStyling): ColoredText	
+`+`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#+,sinkColoredText,TermColor8Bit	colorstring: `+`(text: sink ColoredText; fg: TermColor8Bit): ColoredText	
+toColoredText	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toColoredText,ColoredText	colorstring: toColoredText(text: ColoredText): ColoredText	
+toColoredText	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toColoredText,ColoredRune	colorstring: toColoredText(rune: ColoredRune): ColoredText	
+toColoredText	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toColoredText,ColoredString	colorstring: toColoredText(str: ColoredString): ColoredText	
+toColoredText	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toColoredText,ColoredLine	colorstring: toColoredText(rune: ColoredLine): ColoredText	
+toColoredText	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toColoredText,ColoredRuneLine	colorstring: toColoredText(rune: ColoredRuneLine): ColoredText	
+toColoredText	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toColoredText,string,PrintStyling	colorstring: toColoredText(str: string; styling: PrintStyling = defaultPrintStyling): ColoredText	
+toColoredText	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toColoredText,seq[string]	colorstring: toColoredText(str: seq[string]): seq[ColoredText]	
+toColoredText	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toColoredText,char	colorstring: toColoredText(ch: char): ColoredText	
+clt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#clt,string	colorstring: clt(str: string): ColoredText	
+clt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#clt,seq[string]	colorstring: clt(str: seq[string]): seq[ColoredText]	
+clt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#clt,char	colorstring: clt(ch: char): ColoredText	
+clr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#clr,char	colorstring: clr(ch: char): ColoredRune	
+`@`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#@,ColoredText	colorstring: `@`(main`gensym23: ColoredText): seq[ColoredRune]	
+len	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#len,ColoredText	colorstring: len(main`gensym24: ColoredText): int	
+high	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#high,ColoredText	colorstring: high(main`gensym25: ColoredText): int	
+add	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#add,ColoredText,	colorstring: add(main`gensym26: var ColoredText;\n    other`gensym26: ColoredRune | seq[ColoredRune])	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#[],ColoredText,IndexTypes	colorstring: `[]`(main`gensym27: ColoredText; index`gensym27: IndexTypes): ColoredRune	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#[],ColoredText,SliceTypes	colorstring: `[]`(main`gensym27: ColoredText; slice`gensym27: SliceTypes): seq[ColoredRune]	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#[]=,ColoredText,IndexTypes,ColoredRune	colorstring: `[]=`(main`gensym28: var ColoredText; index`gensym28: IndexTypes;\n      value`gensym28: ColoredRune)	
+rpairs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#rpairs.i,ColoredText	colorstring: rpairs(main`gensym29: ColoredText): (int, ColoredRune)	
+pairs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#pairs.i,ColoredText	colorstring: pairs(main`gensym30: ColoredText): (int, ColoredRune)	
+pairs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#pairs.i,ColoredText,SliceTypes	colorstring: pairs(main`gensym30: ColoredText; slice`gensym30: SliceTypes): (int, ColoredRune)	
+ritems	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#ritems.i,ColoredText	colorstring: ritems(main`gensym31: ColoredText): ColoredRune	
+items	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#items.i,ColoredText	colorstring: items(main`gensym32: ColoredText): ColoredRune	
+items	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#items.i,ColoredText,SliceTypes	colorstring: items(main`gensym32: ColoredText; slice`gensym32: SliceTypes): ColoredRune	
+mitems	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#mitems.i,ColoredText	colorstring: mitems(main`gensym33: var ColoredText): var ColoredRune	
+isNewline	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#isNewline,ColoredRune	colorstring: isNewline(rune: ColoredRune): bool	
+toLower	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toLower,sinkColoredText	colorstring: toLower(text: sink ColoredText): ColoredText	
+alignLeft	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#alignLeft,sinkColoredText,int,ColoredRune	colorstring: alignLeft(text: sink ColoredText; length: int; padding: ColoredRune = clr(&apos; &apos;)): ColoredText	
+alignRight	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#alignRight,ColoredText,int,ColoredRune	colorstring: alignRight(text: ColoredText; length: int; padding: ColoredRune = clr(&apos; &apos;)): ColoredText	
+`|&lt;&lt;`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#|<<,sinkColoredText,int	colorstring: `|&lt;&lt;`(s: sink ColoredText; l: int): ColoredText	
+`|&gt;&gt;`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#|>>,sinkColoredText,int	colorstring: `|&gt;&gt;`(s: sink ColoredText; l: int): ColoredText	
+`==`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#==,ColoredRune,char	colorstring: `==`(rune: ColoredRune; ch: char): bool	
+hasNewline	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#hasNewline,ColoredText	colorstring: hasNewline(text: ColoredText): bool	
+onlyTailNewline	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#onlyTailNewline,ColoredText	colorstring: onlyTailNewline(text: ColoredText): bool	
+newline	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#newline,ColoredText	colorstring: newline(text: var ColoredText)	
+lines	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#lines.i,ColoredText	colorstring: lines(text: ColoredText): ColoredRuneLine	
+width	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#width,ColoredText	colorstring: width(text: ColoredText): int	
+toRuneGrid	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toRuneGrid,ColoredText	colorstring: toRuneGrid(text: ColoredText): ColoredRuneGrid	
+toRuneLine	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toRuneLine,ColoredText	colorstring: toRuneLine(text: ColoredText): ColoredRuneLine	
+add	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#add,ColoredText,ColoredText	colorstring: add(colored: var ColoredText; other: ColoredText)	
+add	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#add,ColoredText,ColoredRuneLine	colorstring: add(colored: var ColoredText; other: ColoredRuneLine)	
+add	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#add,ColoredText,ColoredString	colorstring: add(colored: var ColoredText; str: ColoredString)	
+add	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#add,ColoredText,ColoredRune	colorstring: add(colored: var ColoredText; rune: ColoredRune)	
+add	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#add,ColoredText,string	colorstring: add(colored: var ColoredText; ch: string)	
+add	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#add,ColoredText,string,PrintStyling	colorstring: add(colored: var ColoredText; ch: string; styling: PrintStyling)	
+add	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#add,ColoredText,char	colorstring: add(colored: var ColoredText; ch: char)	
+indent	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#indent,ColoredText,Natural,ColoredRune	colorstring: indent(text: ColoredText; count: Natural; padding: ColoredRune = clr(&apos; &apos;)): ColoredText	
+indentBody	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#indentBody,ColoredText,int,ColoredText,ColoredText	colorstring: indentBody(str: ColoredText; count: int; indent: ColoredText = clt(&quot; &quot;);\n           prefix: ColoredText = clt(&quot;&quot;)): ColoredText	
+stripLines	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#stripLines,ColoredText,bool,bool,set[char]	colorstring: stripLines(text: ColoredText; leading: bool = false; trails: bool = true;\n           chars: set[char] = {&apos; &apos;}): ColoredText	
+`&amp;`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#&,sinkColoredText,ColoredText	colorstring: `&amp;`(t1: sink ColoredText; t2: ColoredText): ColoredText	
+`&amp;`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#&,sinkColoredText,string	colorstring: `&amp;`(t1: sink ColoredText; t2: string): ColoredText	
+`&amp;`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#&,string,ColoredText	colorstring: `&amp;`(t1: string; t2: ColoredText): ColoredText	
+colored	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#colored,varargs[ColoredText,toColoredText]	colorstring: colored(chunks: varargs[ColoredText, toColoredText]): ColoredText	
+`??`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#??,sinkPrintStyling,bool	colorstring: `??`(style: sink PrintStyling; expr: bool): PrintStyling	
+toPrintStyling	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toPrintStyling.c,BackgroundColor	colorstring: toPrintStyling(bg: BackgroundColor): PrintStyling	
+toPrintStyling	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toPrintStyling.c,ForegroundColor	colorstring: toPrintStyling(fg: ForegroundColor): PrintStyling	
+initColoredString	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#initColoredString,string,PrintStyling	colorstring: initColoredString(str: string; styling: PrintStyling): ColoredString	
+toColored	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toColored,string,PrintStyling,bool	colorstring: toColored(str: string; styling: PrintStyling = initPrintStyling();\n          doColor: bool = true): ColoredString	
+`&amp;`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#&,ColoredString,string	colorstring: `&amp;`(col: ColoredString; str: string): ColoredLine	
+`&amp;`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#&,ColoredString,ColoredString	colorstring: `&amp;`(col1, col2: ColoredString): ColoredLine	
+`&amp;`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#&,string,ColoredString	colorstring: `&amp;`(str: string; col: ColoredString): ColoredLine	
+`&amp;`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#&,sinkColoredLine,string	colorstring: `&amp;`(col: sink ColoredLine; str: string): ColoredLine	
+fg	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#fg,ColoredString	colorstring: fg(cs: ColoredString): ForegroundColor	
+bg	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#bg,ColoredString	colorstring: bg(cs: ColoredString): BackgroundColor	
+style	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#style,ColoredString	colorstring: style(cs: ColoredString): set[Style]	
+style	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#style,ColoredString_2	colorstring: style(cs: var ColoredString): var set[Style]	
+fg=	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#fg=,ColoredString,ForegroundColor	colorstring: fg=(cs: var ColoredString; arg: ForegroundColor)	
+bg=	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#bg=,ColoredString,BackgroundColor	colorstring: bg=(cs: var ColoredString; arg: BackgroundColor)	
+style=	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#style=,ColoredString,set[Style]	colorstring: style=(cs: var ColoredString; arg: set[Style])	
+wrapcode	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#wrapcode,string,int,int	colorstring: wrapcode(str: string; start, finish: int): string	
+ansiEsc	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#ansiEsc,int	colorstring: ansiEsc(code: int): string	
+reEsc	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#reEsc,string	colorstring: reEsc(str: string): string	
+ansiEsc	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#ansiEsc,TermColor8Bit,bool	colorstring: ansiEsc(bit8: TermColor8Bit; fg: bool): string	
+ansiDiff	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#ansiDiff,PrintStyling,PrintStyling	colorstring: ansiDiff(s1, s2: PrintStyling): string	
+toString	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toString,ColoredRune,bool	colorstring: toString(rune: ColoredRune; color: bool = true): string	
+toString	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toString,seq[ColoredRune],bool	colorstring: toString(runes: seq[ColoredRune]; color: bool = true): string	
+toString	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toString,ColoredText,bool	colorstring: toString(text: ColoredText; color: bool = true): string	
+toPlainString	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toPlainString,ColoredText	colorstring: toPlainString(text: ColoredText): string	
+toString	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toString,seq[ColoredString],bool	colorstring: toString(strs: seq[ColoredString]; color: bool = true): string	
+add	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#add,string,string,PrintStyling	colorstring: add(outStr: var string; newStr: string; styling: PrintStyling)	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#$	colorstring: `$`(colored: ColoredString | ColoredRune): string	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#$,ColoredLine	colorstring: `$`(line: ColoredLine): string	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#$,seq[ColoredRune]	colorstring: `$`(colr: seq[ColoredRune]): string	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#$,ColoredText	colorstring: `$`(text: ColoredText): string	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#$,seq[seq[ColoredRune]]	colorstring: `$`(colr: seq[seq[ColoredRune]]): string	
+lispRepr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#lispRepr,ColoredString	colorstring: lispRepr(colstr: ColoredString): string	
+openLit	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#openLit,ForegroundColor	colorstring: openLit(color: ForegroundColor): string	
+closeLit	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#closeLit,ForegroundColor	colorstring: closeLit(color: ForegroundColor): string	
+openLit	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#openLit,BackgroundColor	colorstring: openLit(color: BackgroundColor): string	
+closeLit	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#closeLit,BackgroundColor	colorstring: closeLit(color: BackgroundColor): string	
+toStyled	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toStyled,string,PrintStyling,bool	colorstring: toStyled(str: string; style: PrintStyling; colorize: bool = not false): string	
+toRed	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toRed,string,set[Style]	colorstring: toRed(str: string; style: set[Style] = {}): ColoredText	
+toGreen	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toGreen,string,set[Style]	colorstring: toGreen(str: string; style: set[Style] = {}): ColoredText	
+toBlue	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toBlue,string,set[Style]	colorstring: toBlue(str: string; style: set[Style] = {}): ColoredText	
+toYellow	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toYellow,string,set[Style]	colorstring: toYellow(str: string; style: set[Style] = {}): ColoredText	
+toWhite	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toWhite,string,set[Style]	colorstring: toWhite(str: string; style: set[Style] = {}): ColoredText	
+toCyan	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toCyan,string,set[Style]	colorstring: toCyan(str: string; style: set[Style] = {}): ColoredText	
+toMagenta	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toMagenta,string,set[Style]	colorstring: toMagenta(str: string; style: set[Style] = {}): ColoredText	
+toDefault	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toDefault,string,set[Style],bool	colorstring: toDefault(str: string; style: set[Style] = {}; colorize: bool = true): ColoredText	
+toBlue	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toBlue,string,bool	colorstring: toBlue(str: string; color: bool): ColoredText	
+toRed	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toRed,string,bool	colorstring: toRed(str: string; color: bool): ColoredText	
+toGreen	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toGreen,string,bool	colorstring: toGreen(str: string; color: bool): ColoredText	
+toYellow	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toYellow,string,bool	colorstring: toYellow(str: string; color: bool): ColoredText	
+toWhite	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toWhite,string,bool	colorstring: toWhite(str: string; color: bool): ColoredText	
+toCyan	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toCyan,string,bool	colorstring: toCyan(str: string; color: bool): ColoredText	
+toMagenta	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toMagenta,string,bool	colorstring: toMagenta(str: string; color: bool): ColoredText	
+toItalic	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toItalic,string,bool	colorstring: toItalic(str: string; color: bool): ColoredText	
+toBlue	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toBlue,sinkColoredText,bool	colorstring: toBlue(str: sink ColoredText; override: bool = false): ColoredText	
+toGreen	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toGreen,sinkColoredText,bool	colorstring: toGreen(str: sink ColoredText; override: bool = false): ColoredText	
+toUndescore	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toUndescore,string,bool	colorstring: toUndescore(str: string; color: bool): ColoredText	
+toItalic	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toItalic,string	colorstring: toItalic(str: string): ColoredText	
+toUndescore	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toUndescore,string	colorstring: toUndescore(str: string): ColoredText	
+to8Bit	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#to8Bit,string,TermColor8Bit	colorstring: to8Bit(str: string; color: TermColor8Bit): ColoredText	
+to8BitBg	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#to8BitBg,string,TermColor8Bit	colorstring: to8BitBg(str: string; color: TermColor8Bit): ColoredText	
+to8Bit	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#to8Bit,string,range[],range[],range[],bool	colorstring: to8Bit(str: string; r, g, b: range[0 .. 5]; colored: bool = true): ColoredText	
+to8Bit	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#to8Bit,string,range[],bool	colorstring: to8Bit(str: string; gray: range[0 .. 23]; colored: bool = true): ColoredText	
+to8BitBg	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#to8BitBg,string,range[],range[],range[],bool	colorstring: to8BitBg(str: string; r, g, b: range[0 .. 5]; colored: bool = true): ColoredText	
+to8BitBg	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#to8BitBg,string,range[],bool	colorstring: to8BitBg(str: string; gray: range[0 .. 23]; colored: bool = true): ColoredText	
+term8Bit	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#term8Bit,range[],range[],range[]	colorstring: term8Bit(r, g, b: range[0 .. 5]): TermColor8Bit	
+term8Bit	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#term8Bit,Color	colorstring: term8Bit(color: Color): TermColor8Bit	
+term8Bit	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#term8Bit,range[]	colorstring: term8Bit(gray: range[0 .. 23]): TermColor8Bit	
+toRGB	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toRGB,TermColor8Bit	colorstring: toRGB(color: TermColor8Bit): tuple[r, g, b: range[0 .. 5]]	
+TermHSV	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#TermHSV	colorstring: TermHSV	
+toColor	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toColor,TermColor8Bit	colorstring: toColor(color: TermColor8Bit): Color	
+toHSV	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toHSV,TermColor8Bit	colorstring: toHSV(color: TermColor8Bit): TermHSV	
+complementary	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#complementary,TermColor8Bit	colorstring: complementary(col: TermColor8Bit): tuple[main, complement: TermColor8Bit]	
+splitComplementary	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#splitComplementary,TermColor8Bit	colorstring: splitComplementary(col: TermColor8Bit): tuple[\n    main, compUp, compDown: TermColor8Bit]	
+triad	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#triad,TermColor8Bit	colorstring: triad(col: TermColor8Bit): array[3, TermColor8Bit]	
+tetradic	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#tetradic,TermColor8Bit	colorstring: tetradic(col: TermColor8Bit): array[4, TermColor8Bit]	
+square	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#square,TermColor8Bit	colorstring: square(col: TermColor8Bit): array[4, TermColor8Bit]	
+analog	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#analog,TermColor8Bit,int	colorstring: analog(col: TermColor8Bit; shift: int = 5): array[3, TermColor8Bit]	
+colorMix	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#colorMix,Color,Color,float	colorstring: colorMix(c1, c2: Color; ratio: float): Color	
+interpolGradient	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#interpolGradient,TermColor8Bit,TermColor8Bit	colorstring: interpolGradient(start, finish: TermColor8Bit): seq[TermColor8Bit]	
+complement	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#complement,TermColor8Bit	colorstring: complement(color: TermColor8Bit): TermColor8Bit	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#$,TermColor8Bit	colorstring: `$`(col: TermColor8Bit): string	
+initStyleBg	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#initStyleBg,range[],range[],range[]	colorstring: initStyleBg(r, g, b: range[0 .. 5]): PrintStyling	
+initStyleFg	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#initStyleFg,range[],range[],range[]	colorstring: initStyleFg(r, g, b: range[0 .. 5]): PrintStyling	
+len	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#len,ColoredString	colorstring: len(str: ColoredString): int	
+textLen	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#textLen,ColoredLine	colorstring: textLen(str: ColoredLine): int	
+termLen	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#termLen,string	colorstring: termLen(str: string): int	
+termAlignLeft	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#termAlignLeft,string,int,char	colorstring: termAlignLeft(str: string; length: int; padding: char = &apos; &apos;): string	
+alignLeft	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#alignLeft,sinkColoredString,int,char	colorstring: alignLeft(str: sink ColoredString; length: int; padding: char = &apos; &apos;): ColoredLine	
+alignRight	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#alignRight,sinkColoredString,int,char	colorstring: alignRight(str: sink ColoredString; length: int; padding: char = &apos; &apos;): ColoredLine	
+join	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#join,openArray[ColoredString],ColoredString	colorstring: join(strs: openArray[ColoredString]; sep: ColoredString): ColoredLine	
+splitSGR	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#splitSGR,string	colorstring: splitSGR(str: string): seq[ColoredString]	
+stripSgr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#stripSgr,string	colorstring: stripSgr(str: string): string	
+split	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#split,ColoredString,string	colorstring: split(str: ColoredString; sep: string): seq[ColoredString]	
+splitLines	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#splitLines,ColoredString,bool	colorstring: splitLines(str: ColoredString; keepEol: bool = false): seq[ColoredString]	
+splitColor	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#splitColor,string,string	colorstring: splitColor(str: string; sep: string): seq[string]	
+splitSGR_sep	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#splitSGR_sep,string,string	colorstring: splitSGR_sep(str: string; sep: string = &quot;\n&quot;): seq[seq[ColoredString]]	
+toRuneGrid	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toRuneGrid,seq[seq[ColoredString]]	colorstring: toRuneGrid(sseq: seq[seq[ColoredString]]): seq[seq[ColoredRune]]	
+toColoredRuneGrid	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#toColoredRuneGrid,string	colorstring: toColoredRuneGrid(str: string): seq[seq[ColoredRune]]	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#[]=,seq[seq[ColoredRune]],R1,R2,ColoredRune	colorstring: `[]=`[R1, R2: openArray[int] | Slice[int] | int](buf: var seq[seq[ColoredRune]];\n    rowIdx: R1; colIdx: R2; ch: ColoredRune): void	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#[]=,ColoredRuneGrid,int,int,ColoredString	colorstring: `[]=`(buf: var ColoredRuneGrid; row, col: int; str: ColoredString)	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#[]=,ColoredRuneGrid,int,int,string	colorstring: `[]=`(buf: var ColoredRuneGrid; row, col: int; str: string)	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#[]=,ColoredRuneGrid,int,int,char	colorstring: `[]=`(buf: var ColoredRuneGrid; row, col: int; ch: char)	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#[],ColoredRuneGrid,int,int	colorstring: `[]`(buf: ColoredRuneGrid; row, col: int): ColoredRune	
+initRuneGrid	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/colorstring.html#initRuneGrid	colorstring: initRuneGrid(): ColoredRuneGrid	

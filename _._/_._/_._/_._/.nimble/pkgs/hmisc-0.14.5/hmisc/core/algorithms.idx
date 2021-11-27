@@ -1,0 +1,32 @@
+Utf8Any	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#Utf8Any	algorithms: Utf8Any	
+Utf8Continuations	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#Utf8Continuations	algorithms: Utf8Continuations	
+Utf8Starts2	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#Utf8Starts2	algorithms: Utf8Starts2	
+Utf8Starts3	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#Utf8Starts3	algorithms: Utf8Starts3	
+Utf8Starts4	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#Utf8Starts4	algorithms: Utf8Starts4	
+Utf8Starts	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#Utf8Starts	algorithms: Utf8Starts	
+mgetOrDefault	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#mgetOrDefault,Table[K,V],K	algorithms: mgetOrDefault[K, V](table: var Table[K, V]; key: K): var V	
+mergeUniqByIt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#mergeUniqByIt.t,untyped,untyped	algorithms: mergeUniqByIt(sequence, operation: untyped): untyped	
+deduplicateIt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#deduplicateIt.t,seq[T],untyped,bool	algorithms: deduplicateIt[T](inseq: seq[T]; op: untyped; isSorted: bool = false): seq[T]	
+sortIt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#sortIt.t,seq[T],untyped	algorithms: sortIt[T](sequence: var seq[T]; expr: untyped): untyped	
+groupByIt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#groupByIt.t,untyped,untyped	algorithms: groupByIt(sequence, op: untyped): untyped	
+sweepGroupByIt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#sweepGroupByIt.t,untyped,untyped	algorithms: sweepGroupByIt(sequence, op: untyped): untyped	
+twoPassSortByIt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#twoPassSortByIt.t,untyped,untyped,untyped	algorithms: twoPassSortByIt(sequence, operation1, operation2: untyped): untyped	
+subnodesEq	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#subnodesEq.t,untyped,untyped,untyped	algorithms: subnodesEq(lhs, rhs, field: untyped): untyped	
+findIt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#findIt.t,typed,untyped	algorithms: findIt(s: typed; op: untyped): int	
+byaddr1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#byaddr1.t,,,	algorithms: byaddr1(lhs, typ, ex)	
+takesOnlyMutable	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#takesOnlyMutable,T	algorithms: takesOnlyMutable[T](v: var T)	
+isMutable	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#isMutable.t,typed	algorithms: isMutable(v: typed): untyped	
+toString	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#toString	algorithms: toString(x: enum): string	
+toMapArray	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#toMapArray,openArray[]	algorithms: toMapArray[K, V](map: openArray[(K, V)]): array[K, V]	
+toMapArraySome	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#toMapArraySome,openArray[]	algorithms: toMapArraySome[K, V](map: openArray[(K, V)]): array[K, V]	
+toMapArray	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#toMapArray,proc(V1),openArray[]	algorithms: toMapArray[K, V1, V2](conv: proc (v1: V1): V2; map: openArray[(K, V1)]): array[\n    K, V2]	
+toRevMapArray	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#toRevMapArray,openArray[]	algorithms: toRevMapArray[K, V](map: openArray[(K, V)]): array[V, K]	
+toMapArray	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#toMapArray,openArray[]_2	algorithms: toMapArray[K, V](map: openArray[(set[K], V)]): array[K, V]	
+toKeySet	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#toKeySet,openArray[]	algorithms: toKeySet[K, V](map: openArray[(K, V)]): set[K]	
+toValSet	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#toValSet,openArray[]	algorithms: toValSet[K, V](map: openArray[(K, V)]): set[V]	
+toValSeq	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#toValSeq,openArray[]	algorithms: toValSeq[K, V](map: openArray[(K, V)]): seq[V]	
+toSet	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#toSet,openArray[E]	algorithms: toSet[E: enum](vals: openArray[E]): set[E]	
+mapEnum	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#mapEnum,K,static[openArray[]]	algorithms: mapEnum[K: enum; V](key: K; values: static[openArray[(K, V)]]): V	
+toArrayKeys	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#toArrayKeys,openArray[],bool	algorithms: toArrayKeys[K, V](map: openArray[(K, V)]; skipDefault: bool = true): seq[K]	
+eachIt	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#eachIt.t,untyped,untyped	algorithms: eachIt(main, expr: untyped)	
+width	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/core/algorithms.html#width,string	algorithms: width(s: string): int	

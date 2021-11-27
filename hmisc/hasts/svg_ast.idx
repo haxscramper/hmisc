@@ -1,0 +1,17 @@
+svgMulti	hmisc/hasts/svg_ast.html#svgMulti	svg_ast: svgMulti	
+toSVGsize	hmisc/hasts/svg_ast.html#toSVGsize,float	svg_ast: toSVGsize(num: float): string	
+`&lt;-&gt;`	hmisc/hasts/svg_ast.html#<->,string	svg_ast: `&lt;-&gt;`(comm: string): XmlNode	
+newXmlTree	hmisc/hasts/svg_ast.html#newXmlTree,string,openArray[XmlNode],varargs[tuple[string,string]]	svg_ast: newXmlTree(node: string; children: openArray[XmlNode];\n           attributes: varargs[tuple[key, val: string]]): XmlNode	
+flipUp	hmisc/hasts/svg_ast.html#flipUp,XmlNode	svg_ast: flipUp(node: XmlNode): XmlNode	
+svgScale	hmisc/hasts/svg_ast.html#svgScale,XmlNode,	svg_ast: svgScale(node: XmlNode; scale: (float, float)): XmlNode	
+svgScale	hmisc/hasts/svg_ast.html#svgScale,XmlNode,,	svg_ast: svgScale(node: XmlNode; x, y: float | int): XmlNode	
+svgRotate	hmisc/hasts/svg_ast.html#svgRotate,XmlNode,	svg_ast: svgRotate(node: XmlNode; deg: int | float): XmlNode	
+makeSVGGroup	hmisc/hasts/svg_ast.html#makeSVGGroup,openArray[XmlNode]	svg_ast: makeSVGGroup(nodes: openArray[XmlNode]): XmlNode	
+svgTranslate	hmisc/hasts/svg_ast.html#svgTranslate,XmlNode,,	svg_ast: svgTranslate(node: XmlNode; x, y: int | float | string): XmlNode	
+makeSVG	hmisc/hasts/svg_ast.html#makeSVG,string,varargs[tuple[string,string]],Option[string]	svg_ast: makeSVG(name: string; attributes: varargs[tuple[key, val: string]];\n        text: Option[string] = none(string)): XmlNode	
+makeStyle	hmisc/hasts/svg_ast.html#makeStyle,varargs[tuple[string,string]]	svg_ast: makeStyle(input: varargs[tuple[key: string, val: string]]): string	
+makeText	hmisc/hasts/svg_ast.html#makeText,string,Vec,string	svg_ast: makeText(text: string; p: Vec; textClass = &quot;coordinate&quot;): XmlNode	
+`&amp;`	hmisc/hasts/svg_ast.html#&,XmlAttributes,XmlAttributes	svg_ast: `&amp;`(attrs, addition: XmlAttributes): XmlAttributes	
+toSVG	hmisc/hasts/svg_ast.html#toSVG,Vec,static[char],Option[string]	svg_ast: toSVG(p: Vec; annotate: static[char] = &apos;n&apos;; style: Option[string] = none(string)): XmlNode	
+toSVG	hmisc/hasts/svg_ast.html#toSVG,Line	svg_ast: toSVG(line: Line): XmlNode	
+toSVGImage	hmisc/hasts/svg_ast.html#toSVGImage,seq[XmlNode],int,int	svg_ast: toSVGImage(body: seq[XmlNode]; width: int = 480; height: int = 480): XmlNode	

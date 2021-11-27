@@ -1,0 +1,83 @@
+colNoColor	hmisc/types/hprimitives.html#colNoColor	hprimitives: colNoColor	
+StrBlock	hmisc/types/hprimitives.html#StrBlock	hprimitives: StrBlock	
+toBlock	hmisc/types/hprimitives.html#toBlock,string	hprimitives: toBlock(s: string): StrBlock	
+toBlock	hmisc/types/hprimitives.html#toBlock,seq[string]	hprimitives: toBlock(s: seq[string]): StrBlock	
+height	hmisc/types/hprimitives.html#height,StrBlock	hprimitives: height(s: StrBlock): int	
+width	hmisc/types/hprimitives.html#width,StrBlock	hprimitives: width(s: StrBlock): int	
+RuneSeq	hmisc/types/hprimitives.html#RuneSeq	hprimitives: RuneSeq	
+RuneBlock	hmisc/types/hprimitives.html#RuneBlock	hprimitives: RuneBlock	
+toRunes	hmisc/types/hprimitives.html#toRunes,StrBlock	hprimitives: toRunes(s: StrBlock): RuneBlock	
+toRune	hmisc/types/hprimitives.html#toRune.c,char	hprimitives: toRune(c: char): Rune	
+whitespaceRune	hmisc/types/hprimitives.html#whitespaceRune	hprimitives: whitespaceRune	
+emptyRune	hmisc/types/hprimitives.html#emptyRune	hprimitives: emptyRune	
+ArrSize	hmisc/types/hprimitives.html#ArrSize	hprimitives: ArrSize	
+size1x1	hmisc/types/hprimitives.html#size1x1	hprimitives: size1x1	
+width	hmisc/types/hprimitives.html#width,ArrSize	hprimitives: width(size: ArrSize): int	
+height	hmisc/types/hprimitives.html#height,ArrSize	hprimitives: height(size: ArrSize): int	
+makeArrSize	hmisc/types/hprimitives.html#makeArrSize,int,int	hprimitives: makeArrSize(w, h: int): ArrSize	
+makeArrSize	hmisc/types/hprimitives.html#makeArrSize	hprimitives: makeArrSize(widthHeight: (int, int)): ArrSize	
+ArrRange	hmisc/types/hprimitives.html#ArrRange	hprimitives: ArrRange	
+makeArrRange	hmisc/types/hprimitives.html#makeArrRange,int,int	hprimitives: makeArrRange(a, b: int): ArrRange	
+toRange	hmisc/types/hprimitives.html#toRange,int,int	hprimitives: toRange(a, b: int): ArrRange	
+toArrRange	hmisc/types/hprimitives.html#toArrRange,int,int	hprimitives: toArrRange(a, b: int): ArrRange	
+hash	hmisc/types/hprimitives.html#hash,ArrRange	hprimitives: hash(r: ArrRange): Hash	
+decRight	hmisc/types/hprimitives.html#decRight,ArrRange,int	hprimitives: decRight(r: ArrRange; diff: int = 1): ArrRange	
+incLeft	hmisc/types/hprimitives.html#incLeft,ArrRange,int	hprimitives: incLeft(r: ArrRange; diff: int = 1): ArrRange	
+contains	hmisc/types/hprimitives.html#contains,ArrRange,int	hprimitives: contains(r: ArrRange; item: int): bool	
+middles	hmisc/types/hprimitives.html#middles,ArrRange	hprimitives: middles(r: ArrRange): int	
+isPoint	hmisc/types/hprimitives.html#isPoint,ArrRange	hprimitives: isPoint(r: ArrRange): bool	
+unpack	hmisc/types/hprimitives.html#unpack,ArrRange	hprimitives: unpack(r: ArrRange): (int, int)	
+point	hmisc/types/hprimitives.html#point,ArrRange	hprimitives: point(r: ArrRange): int	
+sumjoin	hmisc/types/hprimitives.html#sumjoin,openArray[int],ArrRange,int	hprimitives: sumjoin(a: openArray[int]; r: ArrRange; sep: int): int	
+isValid	hmisc/types/hprimitives.html#isValid,ArrRange	hprimitives: isValid(r: ArrRange): bool	
+overlap	hmisc/types/hprimitives.html#overlap,ArrRange,ArrRange	hprimitives: overlap(r1, r2: ArrRange): ArrRange	
+`$`	hmisc/types/hprimitives.html#$,ArrRange	hprimitives: `$`(r: ArrRange): string	
+len	hmisc/types/hprimitives.html#len,ArrRange	hprimitives: len(r: ArrRange): int	
+contains	hmisc/types/hprimitives.html#contains,Slice[int],ArrRange	hprimitives: contains(sl: Slice[int]; arr: ArrRange): bool	
+hasOverlap	hmisc/types/hprimitives.html#hasOverlap,ArrRange,ArrRange	hprimitives: hasOverlap(a, b: ArrRange): bool	
+geCmpPositions	hmisc/types/hprimitives.html#geCmpPositions,ArrRange,ArrRange	hprimitives: geCmpPositions(lhs, rhs: ArrRange): bool	
+geqCmpPositions	hmisc/types/hprimitives.html#geqCmpPositions,ArrRange,ArrRange	hprimitives: geqCmpPositions(lhs, rhs: ArrRange): bool	
+leCmpPositions	hmisc/types/hprimitives.html#leCmpPositions,ArrRange,ArrRange	hprimitives: leCmpPositions(lhs, rhs: ArrRange): bool	
+leqCmpPositions	hmisc/types/hprimitives.html#leqCmpPositions,ArrRange,ArrRange	hprimitives: leqCmpPositions(lhs, rhs: ArrRange): bool	
+items	hmisc/types/hprimitives.html#items.i,ArrRange	hprimitives: items(r: ArrRange): int	
+items	hmisc/types/hprimitives.html#items.i	hprimitives: items(r: (ArrRange, ArrRange)): (int, int)	
+`[]`	hmisc/types/hprimitives.html#[].i,seq[T],ArrRange	hprimitives: `[]`[T](s: seq[T]; r: ArrRange): T	
+inrange	hmisc/types/hprimitives.html#inrange.i,seq[int],ArrRange,int,int	hprimitives: inrange(s: seq[int]; r: ArrRange; lDiff, rDiff: int = 0): int	
+ArrPos	hmisc/types/hprimitives.html#ArrPos	hprimitives: ArrPos	
+makeArrPos	hmisc/types/hprimitives.html#makeArrPos,int,int	hprimitives: makeArrPos(row, col: int): ArrPos	
+makeArrPos	hmisc/types/hprimitives.html#makeArrPos	hprimitives: makeArrPos(pos: (int, int)): ArrPos	
+toPos	hmisc/types/hprimitives.html#toPos,int,int	hprimitives: toPos(row, col: int): ArrPos	
+isValid	hmisc/types/hprimitives.html#isValid,ArrPos	hprimitives: isValid(pos: ArrPos): bool	
+expandSize	hmisc/types/hprimitives.html#expandSize,ArrPos,ArrSize	hprimitives: expandSize(pos: ArrPos; size: ArrSize): ArrSize	
+shiftRC	hmisc/types/hprimitives.html#shiftRC,ArrPos,int,int	hprimitives: shiftRC(pos: ArrPos; dRow: int = 1; dCol: int = 1): ArrPos	
+shiftRc	hmisc/types/hprimitives.html#shiftRc,ArrPos,(int, int)	hprimitives: shiftRc(pos: ArrPos; dRC: (int, int) = (1, 1)): ArrPos	
+shiftC	hmisc/types/hprimitives.html#shiftC,ArrPos,int	hprimitives: shiftC(pos: ArrPos; dCol: int = 1): ArrPos	
+shiftR	hmisc/types/hprimitives.html#shiftR,ArrPos,int	hprimitives: shiftR(pos: ArrPos; dRow: int = 1): ArrPos	
+toArrPos	hmisc/types/hprimitives.html#toArrPos.c	hprimitives: toArrPos(pos: (int, int)): ArrPos	
+toArrSize	hmisc/types/hprimitives.html#toArrSize,ArrPos	hprimitives: toArrSize(pos: ArrPos): ArrSize	
+unpack	hmisc/types/hprimitives.html#unpack,ArrPos	hprimitives: unpack(pos: ArrPos): tuple[row, col: int]	
+rpLeft	hmisc/types/hprimitives.html#rpLeft	RelPos.rpLeft	
+rpRight	hmisc/types/hprimitives.html#rpRight	RelPos.rpRight	
+rpBottom	hmisc/types/hprimitives.html#rpBottom	RelPos.rpBottom	
+rpTop	hmisc/types/hprimitives.html#rpTop	RelPos.rpTop	
+RelPos	hmisc/types/hprimitives.html#RelPos	hprimitives: RelPos	
+toDiffRC	hmisc/types/hprimitives.html#toDiffRC,RelPos	hprimitives: toDiffRC(rp: RelPos): (int, int)	
+ArrRect	hmisc/types/hprimitives.html#ArrRect	hprimitives: ArrRect	
+makeArrRect	hmisc/types/hprimitives.html#makeArrRect,,int,int	hprimitives: makeArrRect(pos: (int, int); w, h: int): ArrRect	
+makeArrRect	hmisc/types/hprimitives.html#makeArrRect,,ArrSize	hprimitives: makeArrRect(pos: (int, int); size: ArrSize): ArrRect	
+makeArrRect	hmisc/types/hprimitives.html#makeArrRect,ArrPos,ArrSize	hprimitives: makeArrRect(pos: ArrPos; size: ArrSize): ArrRect	
+rowRange	hmisc/types/hprimitives.html#rowRange,ArrRect	hprimitives: rowRange(rect: ArrRect): ArrRange	
+colRange	hmisc/types/hprimitives.html#colRange,ArrRect	hprimitives: colRange(rect: ArrRect): ArrRange	
+itercells	hmisc/types/hprimitives.html#itercells.i,ArrRect	hprimitives: itercells(rect: ArrRect): (int, int)	
+rowRange	hmisc/types/hprimitives.html#rowRange,ArrPos,ArrSize	hprimitives: rowRange(pos: ArrPos; size: ArrSize): ArrRange	
+colRange	hmisc/types/hprimitives.html#colRange,ArrPos,ArrSize	hprimitives: colRange(pos: ArrPos; size: ArrSize): ArrRange	
+TreePath	hmisc/types/hprimitives.html#TreePath	hprimitives: TreePath	
+rootTreePath	hmisc/types/hprimitives.html#rootTreePath	hprimitives: rootTreePath	
+pathTail	hmisc/types/hprimitives.html#pathTail,TreePath	hprimitives: pathTail(path: TreePath): TreePath	
+`&amp;`	hmisc/types/hprimitives.html#&,TreePath,int	hprimitives: `&amp;`(path: TreePath; newIdx: int): TreePath	
+followPath	hmisc/types/hprimitives.html#followPath,T,TreePath	hprimitives: followPath[T](node: T; path: TreePath): T	
+followPathPtr	hmisc/types/hprimitives.html#followPathPtr,T,TreePath	hprimitives: followPathPtr[T](node: T; path: TreePath): ptr T	
+followPathPtr	hmisc/types/hprimitives.html#followPathPtr,T,TreePath_2	hprimitives: followPathPtr[T](node: var T; path: TreePath): ptr T	
+EqCmpProc	hmisc/types/hprimitives.html#EqCmpProc	hprimitives: EqCmpProc	
+ScoreProc	hmisc/types/hprimitives.html#ScoreProc	hprimitives: ScoreProc	
+ScoreCmpProc	hmisc/types/hprimitives.html#ScoreCmpProc	hprimitives: ScoreCmpProc	

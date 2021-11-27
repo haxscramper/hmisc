@@ -1,0 +1,6 @@
+makeRstCodeBlock	hmisc/algo/make_rst.html#makeRstCodeBlock,string,string	make_rst: makeRstCodeBlock(str: string; lang: string = &quot;nim&quot;): string	
+makeRstSection	hmisc/algo/make_rst.html#makeRstSection,string,string,int	make_rst: makeRstSection(body, header: string; level: int): string	
+makeRstSection	hmisc/algo/make_rst.html#makeRstSection,int,string,varargs[string]	make_rst: makeRstSection(level: int; header: string; body: varargs[string]): string	
+makeRstList	hmisc/algo/make_rst.html#makeRstList,seq[string],int	make_rst: makeRstList(elems: seq[string]; ident: int = 0): string	
+makeRstImage	hmisc/algo/make_rst.html#makeRstImage,string,bool	make_rst: makeRstImage(img: string; center: bool = true): string	
+rst2html	hmisc/algo/make_rst.html#rst2html,string,string	make_rst: rst2html(str: string; file: string): void	

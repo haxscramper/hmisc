@@ -1,0 +1,71 @@
+TreeMetrics	hmisc/extra/treediff/tree.html#TreeMetrics	tree: TreeMetrics	
+Tree	hmisc/extra/treediff/tree.html#Tree	tree: Tree	
+Type	hmisc/extra/treediff/tree.html#Type	tree: Type	
+TreeImpl	hmisc/extra/treediff/tree.html#TreeImpl	tree: TreeImpl	
+newTreeType	hmisc/extra/treediff/tree.html#newTreeType,int	tree: newTreeType(name: int): Type	
+newTree	hmisc/extra/treediff/tree.html#newTree,Type,Tree,TreeImpl,openArray[]	tree: newTree(treeType: Type; parent: Tree; impl: TreeImpl;\n        metadata: openArray[(string, pointer)] = @[]): Tree	
+newFakeTree	hmisc/extra/treediff/tree.html#newFakeTree,string,varargs[Tree]	tree: newFakeTree(name: string; trees: varargs[Tree]): Tree	
+newFakeTree	hmisc/extra/treediff/tree.html#newFakeTree,varargs[Tree]	tree: newFakeTree(trees: varargs[Tree]): Tree	
+preOrder	hmisc/extra/treediff/tree.html#preOrder,Tree	tree: preOrder(this: Tree): Iterable[Tree]	
+postOrder	hmisc/extra/treediff/tree.html#postOrder,Tree	tree: postOrder(this: Tree): Iterable[Tree]	
+breadthFirst	hmisc/extra/treediff/tree.html#breadthFirst,Tree	tree: breadthFirst(this: Tree): Iterable[Tree]	
+addChild	hmisc/extra/treediff/tree.html#addChild,Tree,Tree	tree: addChild(this: Tree; t: Tree)	
+setChildren	hmisc/extra/treediff/tree.html#setChildren,Tree,seq[Tree]	tree: setChildren(this: Tree; children: seq[Tree])	
+getChildren	hmisc/extra/treediff/tree.html#getChildren,Tree	tree: getChildren(this: Tree): var seq[Tree]	
+items	hmisc/extra/treediff/tree.html#items.i,Tree	tree: items(tree: Tree): Tree	
+pairs	hmisc/extra/treediff/tree.html#pairs.i,Tree	tree: pairs(tree: Tree): (int, Tree)	
+high	hmisc/extra/treediff/tree.html#high,Tree	tree: high(tree: Tree): int	
+getParent	hmisc/extra/treediff/tree.html#getParent,Tree	tree: getParent(this: Tree): Tree	
+isRoot	hmisc/extra/treediff/tree.html#isRoot,Tree	tree: isRoot(this: Tree): bool	
+getParents	hmisc/extra/treediff/tree.html#getParents,Tree	tree: getParents(this: Tree): seq[Tree]	
+`$`	hmisc/extra/treediff/tree.html#$,Tree	tree: `$`(this: Tree): string	
+treeRepr	hmisc/extra/treediff/tree.html#treeRepr,Tree,bool,int	tree: treeRepr(tree: Tree; fullIdent: bool = false; maxdepth: int = high(int)): string	
+insertChild	hmisc/extra/treediff/tree.html#insertChild,Tree,Tree,int	tree: insertChild(this: Tree; t: Tree; position: int)	
+getChildPosition	hmisc/extra/treediff/tree.html#getChildPosition,Tree,Tree	tree: getChildPosition(this: Tree; child: Tree): int	
+getChild	hmisc/extra/treediff/tree.html#getChild,Tree,int	tree: getChild(this: Tree; position: int): Tree	
+getPos	hmisc/extra/treediff/tree.html#getPos,Tree	tree: getPos(this: Tree): int	
+setPos	hmisc/extra/treediff/tree.html#setPos,Tree,int	tree: setPos(this: Tree; pos: int)	
+getLength	hmisc/extra/treediff/tree.html#getLength,Tree	tree: getLength(this: Tree): int	
+setLength	hmisc/extra/treediff/tree.html#setLength,Tree,int	tree: setLength(this: Tree; length: int)	
+getLabel	hmisc/extra/treediff/tree.html#getLabel,Tree	tree: getLabel(this: Tree): string	
+hasLabel	hmisc/extra/treediff/tree.html#hasLabel,Tree	tree: hasLabel(this: Tree): bool	
+setLabel	hmisc/extra/treediff/tree.html#setLabel,Tree,string	tree: setLabel(this: Tree; label: string)	
+getEndPos	hmisc/extra/treediff/tree.html#getEndPos,Tree	tree: getEndPos(this: Tree): int	
+getType	hmisc/extra/treediff/tree.html#getType,Tree	tree: getType(this: Tree): Type	
+setType	hmisc/extra/treediff/tree.html#setType,Tree,Type	tree: setType(this: Tree; jtype: Type)	
+hasSameType	hmisc/extra/treediff/tree.html#hasSameType,Tree,Tree	tree: hasSameType(this: Tree; t: Tree): bool	
+hash	hmisc/extra/treediff/tree.html#hash,Tree	tree: hash(tree: Tree): Hash	
+hasSameTypeAndLabel	hmisc/extra/treediff/tree.html#hasSameTypeAndLabel,Tree,Tree	tree: hasSameTypeAndLabel(this: Tree; t: Tree): bool	
+deepCopy	hmisc/extra/treediff/tree.html#deepCopy,Tree	tree: deepCopy(this: Tree): Tree	
+`==`	hmisc/extra/treediff/tree.html#==,Tree,Tree	tree: `==`(tree1, tree2: Tree): bool	
+getTreesBetweenPositions	hmisc/extra/treediff/tree.html#getTreesBetweenPositions,Tree,int,int	tree: getTreesBetweenPositions(this: Tree; position: int; endPosition: int): seq[Tree]	
+isLeaf	hmisc/extra/treediff/tree.html#isLeaf,Tree	tree: isLeaf(this: Tree): bool	
+newTreeMetrics	hmisc/extra/treediff/tree.html#newTreeMetrics,int,int,int,int,int,int	tree: newTreeMetrics(size: int; height: int; hash: int; structureHash: int;\n               depth: int; position: int): TreeMetrics	
+getMetrics	hmisc/extra/treediff/tree.html#getMetrics,Tree	tree: getMetrics(this: Tree): TreeMetrics	
+setMetrics	hmisc/extra/treediff/tree.html#setMetrics,Tree,TreeMetrics	tree: setMetrics(this: Tree; metrics: TreeMetrics)	
+getMetadata	hmisc/extra/treediff/tree.html#getMetadata,Tree,string	tree: getMetadata(this: Tree; key: string): pointer	
+setMetadata	hmisc/extra/treediff/tree.html#setMetadata,Tree,string,pointer	tree: setMetadata(this: Tree; key: string; value: pointer)	
+getMetadata	hmisc/extra/treediff/tree.html#getMetadata,Tree	tree: getMetadata(this: Tree): Table[string, pointer]	
+isIsomorphicTo	hmisc/extra/treediff/tree.html#isIsomorphicTo,Tree,Tree	tree: isIsomorphicTo(this: Tree; tree: Tree): bool	
+isIsoStructuralTo	hmisc/extra/treediff/tree.html#isIsoStructuralTo,Tree,Tree	tree: isIsoStructuralTo(this: Tree; tree: Tree): bool	
+searchSubtree	hmisc/extra/treediff/tree.html#searchSubtree,Tree,Tree	tree: searchSubtree(this: Tree; subtree: Tree): seq[Tree]	
+getDescendants	hmisc/extra/treediff/tree.html#getDescendants,Tree	tree: getDescendants(this: Tree): seq[Tree]	
+setParent	hmisc/extra/treediff/tree.html#setParent,Tree,Tree	tree: setParent(this: Tree; parent: Tree)	
+setNodeRef	hmisc/extra/treediff/tree.html#setNodeRef,Tree,N	tree: setNodeRef[N: ref object](this: Tree; node: N)	
+setParentAndUpdateChildren	hmisc/extra/treediff/tree.html#setParentAndUpdateChildren,Tree,Tree	tree: setParentAndUpdateChildren(this: Tree; parent: Tree)	
+getRoot	hmisc/extra/treediff/tree.html#getRoot,Tree	tree: getRoot(this: Tree): Tree	
+positionInParent	hmisc/extra/treediff/tree.html#positionInParent,Tree	tree: positionInParent(this: Tree): int	
+toString	hmisc/extra/treediff/tree.html#toString,Tree	tree: toString(this: Tree): string	
+TreeMetricComputer	hmisc/extra/treediff/tree.html#TreeMetricComputer	tree: TreeMetricComputer	
+fastExponentiation	hmisc/extra/treediff/tree.html#fastExponentiation,int,int	tree: fastExponentiation(base: int; exponent: int): int	
+hashFactor	hmisc/extra/treediff/tree.html#hashFactor,TreeMetricComputer,int	tree: hashFactor(this: TreeMetricComputer; exponent: int): int	
+startInnerNode	hmisc/extra/treediff/tree.html#startInnerNode,TreeMetricComputer,Tree	tree: startInnerNode(this: TreeMetricComputer; tree: Tree)	
+hash	hmisc/extra/treediff/tree.html#hash,Type	tree: hash(t: Type): Hash	
+innerNodeStructureHash	hmisc/extra/treediff/tree.html#innerNodeStructureHash,TreeMetricComputer,Tree,int,Hash	tree: innerNodeStructureHash(this: TreeMetricComputer; tree: Tree; size: int;\n                       middleHash: Hash): Hash	
+innerNodeHash	hmisc/extra/treediff/tree.html#innerNodeHash,TreeMetricComputer,Tree,int,int	tree: innerNodeHash(this: TreeMetricComputer; tree: Tree; size: int; middleHash: int): int	
+leafHash	hmisc/extra/treediff/tree.html#leafHash,TreeMetricComputer,Tree	tree: leafHash(this: TreeMetricComputer; tree: Tree): int	
+leafStructureHash	hmisc/extra/treediff/tree.html#leafStructureHash,TreeMetricComputer,Tree	tree: leafStructureHash(this: TreeMetricComputer; tree: Tree): int	
+visitLeaf	hmisc/extra/treediff/tree.html#visitLeaf,TreeMetricComputer,Tree	tree: visitLeaf(this: TreeMetricComputer; tree: Tree)	
+endInnerNode	hmisc/extra/treediff/tree.html#endInnerNode,TreeMetricComputer,Tree	tree: endInnerNode(this: TreeMetricComputer; tree: Tree)	
+updateMetrics	hmisc/extra/treediff/tree.html#updateMetrics,Tree	tree: updateMetrics(root: Tree)	
+newMetrics	hmisc/extra/treediff/tree.html#newMetrics,Tree	tree: newMetrics(tree: Tree): TreeMetrics	

@@ -1,0 +1,74 @@
+currRune	hmisc/wrappers/treesitter.html#currRune,TSLexer	treesitter: currRune(lex: var TSLexer): Rune	
+`[]`	hmisc/wrappers/treesitter.html#[],TSLexer	treesitter: `[]`(lex: var TSLexer): Rune	
+`[]`	hmisc/wrappers/treesitter.html#[],TSLexer,char	treesitter: `[]`(lex: var TSLexer; ch: char): bool	
+advance	hmisc/wrappers/treesitter.html#advance,TSLexer	treesitter: advance(lex: var TSLexer)	
+skip	hmisc/wrappers/treesitter.html#skip,TSLexer	treesitter: skip(lex: var TSLexer)	
+markEnd	hmisc/wrappers/treesitter.html#markEnd,TSLexer	treesitter: markEnd(lex: var TSLexer)	
+setTokenKind	hmisc/wrappers/treesitter.html#setTokenKind,TSLexer,	treesitter: setTokenKind(lex: var TSLexer; kind: enum)	
+finished	hmisc/wrappers/treesitter.html#finished,TSLexer	treesitter: finished(lex: var TSLexer): bool	
+column	hmisc/wrappers/treesitter.html#column,TSLexer	treesitter: column(lex: var TSLexer): int	
+`==`	hmisc/wrappers/treesitter.html#==,Rune,char	treesitter: `==`(rune: Rune; ch: char): bool	
+Cursor	hmisc/wrappers/treesitter.html#Cursor	treesitter: Cursor	
+cursor	hmisc/wrappers/treesitter.html#cursor,N	treesitter: cursor[N](node: N): Cursor[N]	
+node	hmisc/wrappers/treesitter.html#node,Cursor[N]	treesitter: node[N](cursor: Cursor[N]): N	
+next	hmisc/wrappers/treesitter.html#next,Cursor[N]	treesitter: next[N](cursor: Cursor[N]): bool	
+items	hmisc/wrappers/treesitter.html#items.i,Cursor[N]	treesitter: items[N](cursor: Cursor[N]): int	
+down	hmisc/wrappers/treesitter.html#down,Cursor[N]	treesitter: down[N](cursor: Cursor[N]): bool	
+up	hmisc/wrappers/treesitter.html#up,Cursor[N]	treesitter: up[N](cursor: Cursor[N]): bool	
+fieldName	hmisc/wrappers/treesitter.html#fieldName,Cursor[N]	treesitter: fieldName[N](cursor: Cursor[N]): string	
+isField	hmisc/wrappers/treesitter.html#isField,Cursor[N]	treesitter: isField[N](cursor: Cursor[N]): bool	
+fieldMap	hmisc/wrappers/treesitter.html#fieldMap,PtsLanguage,uint32	treesitter: fieldMap(lang: PtsLanguage; productionId: uint32): TsFieldMap	
+pairs	hmisc/wrappers/treesitter.html#pairs.i,TsFieldMap	treesitter: pairs(map: TsFieldMap): (int, TSFieldMapEntry)	
+items	hmisc/wrappers/treesitter.html#items.i,TsFieldMap	treesitter: items(map: TsFieldMap): TSFieldMapEntry	
+tsInitScanner	hmisc/wrappers/treesitter.html#tsInitScanner.m,untyped,typed	treesitter: tsInitScanner(langname: untyped; scannerType: typed = void): untyped	
+tskDefault	hmisc/wrappers/treesitter.html#tskDefault	TsBaseNodeKind.tskDefault	
+tskKeyword	hmisc/wrappers/treesitter.html#tskKeyword	TsBaseNodeKind.tskKeyword	
+tskComment	hmisc/wrappers/treesitter.html#tskComment	TsBaseNodeKind.tskComment	
+tskIdent	hmisc/wrappers/treesitter.html#tskIdent	TsBaseNodeKind.tskIdent	
+tskPrefixOp	hmisc/wrappers/treesitter.html#tskPrefixOp	TsBaseNodeKind.tskPrefixOp	
+tskInfixOp	hmisc/wrappers/treesitter.html#tskInfixOp	TsBaseNodeKind.tskInfixOp	
+tskPrimitiveType	hmisc/wrappers/treesitter.html#tskPrimitiveType	TsBaseNodeKind.tskPrimitiveType	
+TsBaseNodeKind	hmisc/wrappers/treesitter.html#TsBaseNodeKind	treesitter: TsBaseNodeKind	
+TsKindMap	hmisc/wrappers/treesitter.html#TsKindMap	treesitter: TsKindMap	
+TsColorMap	hmisc/wrappers/treesitter.html#TsColorMap	treesitter: TsColorMap	
+baseColorMap	hmisc/wrappers/treesitter.html#baseColorMap	treesitter: baseColorMap	
+HtsNode	hmisc/wrappers/treesitter.html#HtsNode	treesitter: HtsNode	
+kind	hmisc/wrappers/treesitter.html#kind,HtsNode[N,K]	treesitter: kind[N, K](node: HtsNode[N, K]): K	
+strVal	hmisc/wrappers/treesitter.html#strVal,HtsNode[N,K]	treesitter: strVal[N, K](node: HtsNode[N, K]): string	
+toHtsNode	hmisc/wrappers/treesitter.html#toHtsNode,N,ptr.string,bool,bool	treesitter: toHtsNode[N, K](node: N; base: ptr string; generated: bool = false;\n                storePtr: bool = true): HtsNode[N, K]	
+isNamed	hmisc/wrappers/treesitter.html#isNamed,HtsNode[N,K]	treesitter: isNamed[N, K](node: HtsNode[N, K]): bool	
+startPoint	hmisc/wrappers/treesitter.html#startPoint,HtsNode[N,K]	treesitter: startPoint[N, K](node: HtsNode[N, K]): TSPoint	
+endPoint	hmisc/wrappers/treesitter.html#endPoint,HtsNode[N,K]	treesitter: endPoint[N, K](node: HtsNode[N, K]): TSPoint	
+startByte	hmisc/wrappers/treesitter.html#startByte,HtsNode[N,K]	treesitter: startByte[N, K](node: HtsNode[N, K]): int	
+endByte	hmisc/wrappers/treesitter.html#endByte,HtsNode[N,K]	treesitter: endByte[N, K](node: HtsNode[N, K]): int	
+slice	hmisc/wrappers/treesitter.html#slice,HtsNode[N,K]	treesitter: slice[N, K](node: HtsNode[N, K]): Slice[int]	
+`[]`	hmisc/wrappers/treesitter.html#[],string,HtsNode[N,K]	treesitter: `[]`[N, K](str: string; node: HtsNode[N, K]): string	
+childName	hmisc/wrappers/treesitter.html#childName,HtsNode[N,K],int	treesitter: childName[N, K](node: HtsNode[N, K]; idx: int): string	
+contains	hmisc/wrappers/treesitter.html#contains,HtsNode[N,K],string	treesitter: contains[N, K](node: HtsNode[N, K]; name: string): bool	
+toGenerated	hmisc/wrappers/treesitter.html#toGenerated,HtsNode[N,K],bool	treesitter: toGenerated[N, K](node: HtsNode[N, K]; doConvert: bool = true): HtsNode[N, K]	
+newTree	hmisc/wrappers/treesitter.html#newTree,K,varargs[HtsNode[N,K]]	treesitter: newTree[N, K](kind: K; subnodes: varargs[HtsNode[N, K]]): HtsNode[N, K]	
+`$`	hmisc/wrappers/treesitter.html#$,HtsNode[N,K]	treesitter: `$`[N, K](node: HtsNode[N, K]): string	
+isNil	hmisc/wrappers/treesitter.html#isNil,HtsNode[N,K]	treesitter: isNil[N, K](node: HtsNode[N, K]): bool	
+zzzz	hmisc/wrappers/treesitter.html#zzzz,HtsNode[N,K]	treesitter: zzzz[N, K](node: HtsNode[N, K]): string	
+asgn	hmisc/wrappers/treesitter.html#asgn,Option[TSNode],Option[TSNode]	treesitter: asgn(target: var Option[TSNode]; other: Option[TSNode])	
+add	hmisc/wrappers/treesitter.html#add,HtsNode[N,K],	treesitter: add[N, K](node: var HtsNode[N, K]; other: HtsNode[N, K] | seq[HtsNode[N, K]])	
+getTs	hmisc/wrappers/treesitter.html#getTs,HtsNode[N,K]	treesitter: getTs[N, K](node: HtsNode[N, K]): N	
+getBase	hmisc/wrappers/treesitter.html#getBase,HtsNode[N,K]	treesitter: getBase[N, K](node: HtsNode[N, K]): string	
+len	hmisc/wrappers/treesitter.html#len,HtsNode[N,K],bool	treesitter: len[N, K](node: HtsNode[N, K]; unnamed: bool = false): int	
+has	hmisc/wrappers/treesitter.html#has,HtsNode[N,K],int	treesitter: has[N, K](node: HtsNode[N, K]; idx: int): bool	
+has	hmisc/wrappers/treesitter.html#has,HtsNode[N,K],string	treesitter: has[N, K](node: HtsNode[N, K]; name: string): bool	
+high	hmisc/wrappers/treesitter.html#high,HtsNode[N,K],bool	treesitter: high[N, K](node: HtsNode[N, K]; unnamed: bool = false): int	
+`[]`	hmisc/wrappers/treesitter.html#[],HtsNode[N,K],IndexTypes,bool,bool	treesitter: `[]`[N, K](node: HtsNode[N, K]; idx: IndexTypes; unnamed: bool = false;\n           generated: bool = false): HtsNode[N, K]	
+`[]`	hmisc/wrappers/treesitter.html#[],HtsNode[N,K],SliceTypes	treesitter: `[]`[N, K](node: var HtsNode[N, K]; slice: SliceTypes): var seq[HtsNode[N, K]]	
+`[]`	hmisc/wrappers/treesitter.html#[],HtsNode[N,K],SliceTypes,bool,bool	treesitter: `[]`[N, K](node: HtsNode[N, K]; slice: SliceTypes; generated: bool = false;\n           unnamed: bool = false): seq[HtsNode[N, K]]	
+`[]`	hmisc/wrappers/treesitter.html#[],HtsNode[N,K],string,bool	treesitter: `[]`[N, K](node: HtsNode[N, K]; name: string; generated: bool = false): HtsNode[\n    N, K]	
+`[]`	hmisc/wrappers/treesitter.html#[],HtsNode[N,K],int,	treesitter: `[]`[N, K](node: HtsNode[N, K]; idx: int; kind: K | set[K]): HtsNode[N, K]	
+`{}`	hmisc/wrappers/treesitter.html#{},HtsNode[N,K],IndexTypes	treesitter: `{}`[N, K](node: HtsNode[N, K]; idx: IndexTypes): HtsNode[N, K]	
+`{}`	hmisc/wrappers/treesitter.html#{},HtsNode[N,K],SliceTypes	treesitter: `{}`[N, K](node: HtsNode[N, K]; idx: SliceTypes): seq[HtsNode[N, K]]	
+`[]=`	hmisc/wrappers/treesitter.html#[]=,HtsNode[N,K],IndexTypes,HtsNode[N,K]	treesitter: `[]=`[N, K](node: var HtsNode[N, K]; idx: IndexTypes; other: HtsNode[N, K])	
+instFramed	hmisc/wrappers/treesitter.html#instFramed.m,untyped	treesitter: instFramed(decl: untyped): untyped	
+pairs	hmisc/wrappers/treesitter.html#pairs.i,HtsNode[N,K],SliceTypes,bool,bool	treesitter: pairs[N, K](node: HtsNode[N, K]; slice: SliceTypes = 0 .. high(int);\n            generated: bool = false; unnamed: bool = false): (int, HtsNode[N, K])	
+items	hmisc/wrappers/treesitter.html#items.i,HtsNode[N,K],SliceTypes,bool,bool	treesitter: items[N, K](node: HtsNode[N, K]; slice: SliceTypes = 0 .. high(int);\n            generated: bool = false; unnamed: bool = false): HtsNode[N, K]	
+toHtsTree	hmisc/wrappers/treesitter.html#toHtsTree,N,ptr.string,bool,bool	treesitter: toHtsTree[N, K](node: N; base: ptr string; unnamed: bool = false;\n                storePtr: bool = true): HtsNode[N, K]	
+newHtsTree	hmisc/wrappers/treesitter.html#newHtsTree,K,string	treesitter: newHtsTree[N, K](kind: K; val: string): HtsNode[N, K]	
+treeRepr	hmisc/wrappers/treesitter.html#treeRepr,N,string,int,TsKindMap[K],bool,HDisplayOpts	treesitter: treeRepr[N, K](node: N; base: string = &quot;&quot;; langLen: int = 0;\n               kindMap: TsKindMap[K] = default(array[K, TsBaseNodeKind]);\n               unnamed: bool = false; opts: HDisplayOpts = defaultHDisplay): ColoredText	

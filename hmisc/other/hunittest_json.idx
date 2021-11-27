@@ -1,0 +1,3 @@
+JsonContext	hmisc/other/hunittest_json.html#JsonContext	hunittest_json: JsonContext	
+report	hmisc/other/hunittest_json.html#report.e,JsonContext,TestReport	hunittest_json: report(ctx: JsonContext; report: TestReport)	
+newJsonContext	hmisc/other/hunittest_json.html#newJsonContext	hunittest_json: newJsonContext(): JsonContext	

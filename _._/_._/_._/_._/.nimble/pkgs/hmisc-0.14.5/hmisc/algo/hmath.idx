@@ -1,0 +1,8 @@
+sumjoin	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hmath.html#sumjoin,openArray[int],int	hmath: sumjoin(a: openArray[int]; sep: int): int	
+cumsumjoin	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hmath.html#cumsumjoin,openArray[int],int,bool,bool	hmath: cumsumjoin(a: openArray[int]; sep: int; addFirst: bool = false;\n           dropLast: bool = false): seq[int]	
+`..+`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hmath.html#..+,int,int	hmath: `..+`(start: int; offset: int): Slice[int]	
+order	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hmath.html#order,Num,Num	hmath: order[Num](a, b: Num): (Num, Num)	
+clampLow	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hmath.html#clampLow,T,T	hmath: clampLow[T](x, minval: T): T	
+modiv	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hmath.html#modiv,int,int	hmath: modiv(a, b: int): tuple[val, rem: int]	
+max	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hmath.html#max,openArray[T],T	hmath: max[T](x: openArray[T]; default: T): T	
+setMax	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/algo/hmath.html#setMax,T,T	hmath: setMax[T](a: var T; b: T): void	

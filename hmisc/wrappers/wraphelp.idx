@@ -1,0 +1,30 @@
+closureToCdecl	hmisc/wrappers/wraphelp.html#closureToCdecl,C	wraphelp: closureToCdecl[C: proc](c: C): auto	
+splitClosure	hmisc/wrappers/wraphelp.html#splitClosure,C	wraphelp: splitClosure[C: proc](c: C): auto	
+cchar16	hmisc/wrappers/wraphelp.html#cchar16	wraphelp: cchar16	
+cchar32	hmisc/wrappers/wraphelp.html#cchar32	wraphelp: cchar32	
+cwchar	hmisc/wrappers/wraphelp.html#cwchar	wraphelp: cwchar	
+nullptr_t	hmisc/wrappers/wraphelp.html#nullptr_t	wraphelp: nullptr_t	
+hcgen	hmisc/wrappers/wraphelp.html#hcgen.t,static[string]	wraphelp: hcgen(arg: static[string])	
+hcedit	hmisc/wrappers/wraphelp.html#hcedit.t,static[string]	wraphelp: hcedit(arg: static[string])	
+UArray	hmisc/wrappers/wraphelp.html#UArray	wraphelp: UArray	
+PUarray	hmisc/wrappers/wraphelp.html#PUarray	wraphelp: PUarray	
+`or`	hmisc/wrappers/wraphelp.html#or,T,T	wraphelp: `or`[T: enum](lhs: T; rhs: T): uint	
+`and`	hmisc/wrappers/wraphelp.html#and,T,T	wraphelp: `and`[T: enum](lhs: T; rhs: T): uint	
+`not`	hmisc/wrappers/wraphelp.html#not,T	wraphelp: `not`[T: enum](lhs: T): uint	
+`+`	hmisc/wrappers/wraphelp.html#+.t,ptr.T,SomeInteger	wraphelp: `+`[T](p: ptr T; offset: SomeInteger): ptr T	
+`+=`	hmisc/wrappers/wraphelp.html#+=.t,ptr.T,SomeInteger	wraphelp: `+=`[T](p: ptr T; offset: SomeInteger)	
+`-`	hmisc/wrappers/wraphelp.html#-.t,ptr.T,SomeInteger	wraphelp: `-`[T](p: ptr T; offset: SomeInteger): ptr T	
+`-=`	hmisc/wrappers/wraphelp.html#-=.t,ptr.T,SomeInteger	wraphelp: `-=`[T](p: ptr T; offset: SomeInteger)	
+`[]`	hmisc/wrappers/wraphelp.html#[].t,ptr.T,SomeInteger	wraphelp: `[]`[T](p: ptr T; offset: SomeInteger): T	
+`[]=`	hmisc/wrappers/wraphelp.html#[]=.t,ptr.T,SomeInteger,T	wraphelp: `[]=`[T](p: ptr T; offset: SomeInteger; val: T)	
+allocPUarray	hmisc/wrappers/wraphelp.html#allocPUarray,Natural	wraphelp: allocPUarray[T](size: Natural): PUarray[T]	
+allocPUarray	hmisc/wrappers/wraphelp.html#allocPUarray,array[R,T]	wraphelp: allocPUarray[T, R](elements: array[R, T]): PUarray[T]	
+deallocPUarray	hmisc/wrappers/wraphelp.html#deallocPUarray,PUarray[T]	wraphelp: deallocPUarray[T](arr: PUarray[T])	
+toPUarray	hmisc/wrappers/wraphelp.html#toPUarray.t,ptr.T	wraphelp: toPUarray[T](p: ptr T): PUarray[T]	
+toPtr	hmisc/wrappers/wraphelp.html#toPtr.t,PUarray[T]	wraphelp: toPtr[T](p: PUarray[T]): ptr T	
+toPtr	hmisc/wrappers/wraphelp.html#toPtr.t,ref.T	wraphelp: toPtr[T](r: ref T): ptr T	
+toPUarray	hmisc/wrappers/wraphelp.html#toPUarray.t,ref.T	wraphelp: toPUarray[T](r: ref T): PUarray[T]	
+items	hmisc/wrappers/wraphelp.html#items.i,PUarray[T],int	wraphelp: items[T](arr: PUarray[T]; size: int): T	
+pairs	hmisc/wrappers/wraphelp.html#pairs.i,PUarray[T],int	wraphelp: pairs[T](arr: PUarray[T]; size: int): (int, T)	
+subArrayPtr	hmisc/wrappers/wraphelp.html#subArrayPtr.t,PUarray[T],SomeInteger	wraphelp: subArrayPtr[T](arr: PUarray[T]; idx: SomeInteger): PUarray[T]	
+setcast	hmisc/wrappers/wraphelp.html#setcast,set[E]	wraphelp: setcast[I: uint8 | uint16 | uint32 | uint64; E](s: set[E]): I	

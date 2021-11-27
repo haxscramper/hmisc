@@ -1,0 +1,40 @@
+ArgumentError	hmisc/core/exceptions.html#ArgumentError	exceptions: ArgumentError	
+EnvironmentAssertionError	hmisc/core/exceptions.html#EnvironmentAssertionError	exceptions: EnvironmentAssertionError	
+GetterError	hmisc/core/exceptions.html#GetterError	exceptions: GetterError	
+SetterError	hmisc/core/exceptions.html#SetterError	exceptions: SetterError	
+NilArgumentError	hmisc/core/exceptions.html#NilArgumentError	exceptions: NilArgumentError	
+NoneArgumentError	hmisc/core/exceptions.html#NoneArgumentError	exceptions: NoneArgumentError	
+ParseError	hmisc/core/exceptions.html#ParseError	exceptions: ParseError	
+LogicError	hmisc/core/exceptions.html#LogicError	exceptions: LogicError	
+UnexpectedKindError	hmisc/core/exceptions.html#UnexpectedKindError	exceptions: UnexpectedKindError	
+ImplementError	hmisc/core/exceptions.html#ImplementError	exceptions: ImplementError	
+ImplementBaseError	hmisc/core/exceptions.html#ImplementBaseError	exceptions: ImplementBaseError	
+ImplementKindError	hmisc/core/exceptions.html#ImplementKindError	exceptions: ImplementKindError	
+GlobalSubstring	hmisc/core/exceptions.html#GlobalSubstring	exceptions: GlobalSubstring	
+ErrorAnnotation	hmisc/core/exceptions.html#ErrorAnnotation	exceptions: ErrorAnnotation	
+InstantiationInfo	hmisc/core/exceptions.html#InstantiationInfo	exceptions: InstantiationInfo	
+CodeError	hmisc/core/exceptions.html#CodeError	exceptions: CodeError	
+newLogicError	hmisc/core/exceptions.html#newLogicError,varargs[string,]	exceptions: newLogicError(msg: varargs[string, `$`]): ref LogicError	
+logicAssert	hmisc/core/exceptions.html#logicAssert.t,untyped,string	exceptions: logicAssert(cond: untyped; msg: string): untyped	
+newArgumentError	hmisc/core/exceptions.html#newArgumentError,varargs[string,]	exceptions: newArgumentError(msg: varargs[string, `$`]): ref ArgumentError	
+newEnvironmentAssertionError	hmisc/core/exceptions.html#newEnvironmentAssertionError,varargs[string,]	exceptions: newEnvironmentAssertionError(msg: varargs[string, `$`]): ref EnvironmentAssertionError	
+assertArg	hmisc/core/exceptions.html#assertArg.t,untyped,bool,string	exceptions: assertArg(arg: untyped; cond: bool; msg: string = &quot;&quot;): untyped	
+newGetterError	hmisc/core/exceptions.html#newGetterError,varargs[string,]	exceptions: newGetterError(msg: varargs[string, `$`]): ref GetterError	
+newHException	hmisc/core/exceptions.html#newHException,typedesc[T],varargs[string,]	exceptions: newHException[T: object](ex: typedesc[T]; msg: varargs[string, `$`]): ref T	
+assertHasIdx	hmisc/core/exceptions.html#assertHasIdx.t,untyped,int,string,untyped	exceptions: assertHasIdx(item: untyped; access: int; msg: string = &quot;&quot;;\n             exception: untyped = GetterError): untyped	
+newSetterError	hmisc/core/exceptions.html#newSetterError,varargs[string,]	exceptions: newSetterError(msg: varargs[string, `$`]): ref SetterError	
+newImplementError	hmisc/core/exceptions.html#newImplementError,varargs[string,]	exceptions: newImplementError(msgs: varargs[string, `$`]): ref ImplementError	
+raiseImplementError	hmisc/core/exceptions.html#raiseImplementError.t,string	exceptions: raiseImplementError(errMsg: string)	
+prepareMsg	hmisc/core/exceptions.html#prepareMsg,string	exceptions: prepareMsg(userMsg: string): string	
+assertKind	hmisc/core/exceptions.html#assertKind.t,untyped,untyped,string	exceptions: assertKind(inExpr, inExpected: untyped; onFail: string = &quot;&quot;)	
+assertRef	hmisc/core/exceptions.html#assertRef.t,typed,string	exceptions: assertRef(expr: typed; onFail: string = &quot;&quot;): untyped	
+assertOption	hmisc/core/exceptions.html#assertOption.t,untyped,string	exceptions: assertOption(expr: untyped; onFail: string = &quot;&quot;): untyped	
+getOr	hmisc/core/exceptions.html#getOr,Option[T],string	exceptions: getOr[T](opt: Option[T]; onFail: string): T	
+getOr	hmisc/core/exceptions.html#getOr,Table[K,V],K,string	exceptions: getOr[K, V](table: Table[K, V]; key: K; onFail: string): V	
+assertRefFields	hmisc/core/exceptions.html#assertRefFields.t,T,string	exceptions: assertRefFields[T](item: T; onFail: string = &quot;string&quot;)	
+newImplementKindError	hmisc/core/exceptions.html#newImplementKindError,T,varargs[string,]	exceptions: newImplementKindError[T](node: T; msg: varargs[string, `$`]): ref ImplementKindError	
+newImplementBaseError	hmisc/core/exceptions.html#newImplementBaseError,T,string	exceptions: newImplementBaseError[T](obj: T; name: string): ref ImplementBaseError	
+newUnexpectedKindError	hmisc/core/exceptions.html#newUnexpectedKindError,T,varargs[string,]	exceptions: newUnexpectedKindError[T](expr: T; userMsg: varargs[string, `$`]): ref UnexpectedKindError	
+newParseError	hmisc/core/exceptions.html#newParseError,varargs[string,]	exceptions: newParseError(userMsg: varargs[string, `$`]): ref ParseError	
+newUnexpectedKindError	hmisc/core/exceptions.html#newUnexpectedKindError,varargs[string,]	exceptions: newUnexpectedKindError(userMsg: varargs[string, `$`]): ref UnexpectedKindError	
+canImport	hmisc/core/exceptions.html#canImport.t,untyped	exceptions: canImport(x: untyped): untyped	

@@ -1,0 +1,180 @@
+TSTree	hmisc/wrappers/treesitter_core.html#TSTree	treesitter_core: TSTree	
+PtsTree	hmisc/wrappers/treesitter_core.html#PtsTree	treesitter_core: PtsTree	
+TSLanguage	hmisc/wrappers/treesitter_core.html#TSLanguage	treesitter_core: TSLanguage	
+PtsLanguage	hmisc/wrappers/treesitter_core.html#PtsLanguage	treesitter_core: PtsLanguage	
+TSParser	hmisc/wrappers/treesitter_core.html#TSParser	treesitter_core: TSParser	
+PtsParser	hmisc/wrappers/treesitter_core.html#PtsParser	treesitter_core: PtsParser	
+TSInput	hmisc/wrappers/treesitter_core.html#TSInput	treesitter_core: TSInput	
+PtsInput	hmisc/wrappers/treesitter_core.html#PtsInput	treesitter_core: PtsInput	
+TSFieldId	hmisc/wrappers/treesitter_core.html#TSFieldId	treesitter_core: TSFieldId	
+TSSymbol	hmisc/wrappers/treesitter_core.html#TSSymbol	treesitter_core: TSSymbol	
+PTsTreeCursor	hmisc/wrappers/treesitter_core.html#PTsTreeCursor	treesitter_core: PTsTreeCursor	
+TSTreeCursor	hmisc/wrappers/treesitter_core.html#TSTreeCursor	treesitter_core: TSTreeCursor	
+TSNode	hmisc/wrappers/treesitter_core.html#TSNode	treesitter_core: TSNode	
+PtsRange	hmisc/wrappers/treesitter_core.html#PtsRange	treesitter_core: PtsRange	
+TSRange	hmisc/wrappers/treesitter_core.html#TSRange	treesitter_core: TSRange	
+TSInputEncoding	hmisc/wrappers/treesitter_core.html#TSInputEncoding	treesitter_core: TSInputEncoding	
+TSPoint	hmisc/wrappers/treesitter_core.html#TSPoint	treesitter_core: TSPoint	
+TSLexer	hmisc/wrappers/treesitter_core.html#TSLexer	treesitter_core: TSLexer	
+TSLogger	hmisc/wrappers/treesitter_core.html#TSLogger	treesitter_core: TSLogger	
+TSInputEdit	hmisc/wrappers/treesitter_core.html#TSInputEdit	treesitter_core: TSInputEdit	
+TSQueryCapture	hmisc/wrappers/treesitter_core.html#TSQueryCapture	treesitter_core: TSQueryCapture	
+TSQuery	hmisc/wrappers/treesitter_core.html#TSQuery	treesitter_core: TSQuery	
+TSQueryCursor	hmisc/wrappers/treesitter_core.html#TSQueryCursor	treesitter_core: TSQueryCursor	
+TSQueryMatch	hmisc/wrappers/treesitter_core.html#TSQueryMatch	treesitter_core: TSQueryMatch	
+TSSymbolType	hmisc/wrappers/treesitter_core.html#TSSymbolType	treesitter_core: TSSymbolType	
+TSQueryPredicateStepType	hmisc/wrappers/treesitter_core.html#TSQueryPredicateStepType	treesitter_core: TSQueryPredicateStepType	
+TSQueryPredicateStep	hmisc/wrappers/treesitter_core.html#TSQueryPredicateStep	treesitter_core: TSQueryPredicateStep	
+TSQueryError	hmisc/wrappers/treesitter_core.html#TSQueryError	treesitter_core: TSQueryError	
+TSFieldMapEntry	hmisc/wrappers/treesitter_core.html#TSFieldMapEntry	treesitter_core: TSFieldMapEntry	
+TSFieldMapSlice	hmisc/wrappers/treesitter_core.html#TSFieldMapSlice	treesitter_core: TSFieldMapSlice	
+TSSymbolMetadata	hmisc/wrappers/treesitter_core.html#TSSymbolMetadata	treesitter_core: TSSymbolMetadata	
+ts_parser_parse	hmisc/wrappers/treesitter_core.html#ts_parser_parse,PtsParser,PtsTree,PtsInput	treesitter_core: ts_parser_parse(self: PtsParser; oldTree: PtsTree; input: PtsInput): PtsTree	
+ts_parser_new	hmisc/wrappers/treesitter_core.html#ts_parser_new	treesitter_core: ts_parser_new(): PtsParser	
+ts_parser_delete	hmisc/wrappers/treesitter_core.html#ts_parser_delete,PtsParser	treesitter_core: ts_parser_delete(parser: PtsParser)	
+ts_parser_set_language	hmisc/wrappers/treesitter_core.html#ts_parser_set_language,PtsParser,PtsLanguage	treesitter_core: ts_parser_set_language(self: PtsParser; language: PtsLanguage): bool	
+ts_parser_language	hmisc/wrappers/treesitter_core.html#ts_parser_language,PtsParser	treesitter_core: ts_parser_language(self: PtsParser): PtsLanguage	
+ts_parser_set_included_ranges	hmisc/wrappers/treesitter_core.html#ts_parser_set_included_ranges,PtsParser,PtsRange,uint32	treesitter_core: ts_parser_set_included_ranges(self: PtsParser; ranges: PtsRange; length: uint32)	
+ts_parser_included_ranges	hmisc/wrappers/treesitter_core.html#ts_parser_included_ranges,PtsParser,ptr.uint32	treesitter_core: ts_parser_included_ranges(self: PtsParser; length: ptr uint32): ptr TSRange	
+ts_parser_parse_string	hmisc/wrappers/treesitter_core.html#ts_parser_parse_string,PtsParser,PtsTree,cstring,uint32	treesitter_core: ts_parser_parse_string(self: PtsParser; old_tree: PtsTree; inString: cstring;\n                       length: uint32): PtsTree	
+ts_parser_parse_string_encoding	hmisc/wrappers/treesitter_core.html#ts_parser_parse_string_encoding,PtsParser,PtsTree,cstring,uint32,TSInputEncoding	treesitter_core: ts_parser_parse_string_encoding(self: PtsParser; old_tree: PtsTree;\n                                string: cstring; length: uint32;\n                                encoding: TSInputEncoding): PtsTree	
+ts_parser_reset	hmisc/wrappers/treesitter_core.html#ts_parser_reset,PtsParser	treesitter_core: ts_parser_reset(self: PtsParser)	
+ts_parser_set_timeout_micros	hmisc/wrappers/treesitter_core.html#ts_parser_set_timeout_micros,PtsParser,uint64	treesitter_core: ts_parser_set_timeout_micros(self: PtsParser; timeout: uint64)	
+ts_parser_timeout_micros	hmisc/wrappers/treesitter_core.html#ts_parser_timeout_micros,PtsParser	treesitter_core: ts_parser_timeout_micros(self: PtsParser): uint64	
+ts_parser_cancellation_flag	hmisc/wrappers/treesitter_core.html#ts_parser_cancellation_flag,PtsParser	treesitter_core: ts_parser_cancellation_flag(self: PtsParser): ptr uint	
+ts_parser_set_logger	hmisc/wrappers/treesitter_core.html#ts_parser_set_logger,PtsParser,TSLogger	treesitter_core: ts_parser_set_logger(self: PtsParser; logger: TSLogger)	
+ts_parser_logger	hmisc/wrappers/treesitter_core.html#ts_parser_logger,PtsParser	treesitter_core: ts_parser_logger(self: PtsParser): TSLogger	
+ts_parser_print_dot_graphs	hmisc/wrappers/treesitter_core.html#ts_parser_print_dot_graphs,PtsParser,cint	treesitter_core: ts_parser_print_dot_graphs(self: PtsParser; file: cint)	
+ts_parser_halt_on_error	hmisc/wrappers/treesitter_core.html#ts_parser_halt_on_error,PtsParser,bool	treesitter_core: ts_parser_halt_on_error(self: PtsParser; halt: bool)	
+ts_tree_copy	hmisc/wrappers/treesitter_core.html#ts_tree_copy,PtsTree	treesitter_core: ts_tree_copy(self: PtsTree): PtsTree	
+ts_tree_delete	hmisc/wrappers/treesitter_core.html#ts_tree_delete,PtsTree	treesitter_core: ts_tree_delete(self: PtsTree)	
+ts_tree_root_node	hmisc/wrappers/treesitter_core.html#ts_tree_root_node,PtsTree	treesitter_core: ts_tree_root_node(self: PtsTree): TSNode	
+ts_tree_language	hmisc/wrappers/treesitter_core.html#ts_tree_language,PtsTree	treesitter_core: ts_tree_language(a1: PtsTree): ptr TSLanguage	
+ts_tree_edit	hmisc/wrappers/treesitter_core.html#ts_tree_edit,PtsTree,ptr.TSInputEdit	treesitter_core: ts_tree_edit(self: PtsTree; edit: ptr TSInputEdit)	
+ts_tree_get_changed_ranges	hmisc/wrappers/treesitter_core.html#ts_tree_get_changed_ranges,PtsTree,PtsTree,ptr.uint32	treesitter_core: ts_tree_get_changed_ranges(old_tree: PtsTree; new_tree: PtsTree;\n                           length: ptr uint32): ptr TSRange	
+ts_tree_print_dot_graph	hmisc/wrappers/treesitter_core.html#ts_tree_print_dot_graph,PtsTree,File	treesitter_core: ts_tree_print_dot_graph(a1: PtsTree; a2: File)	
+ts_node_type	hmisc/wrappers/treesitter_core.html#ts_node_type,TSNode	treesitter_core: ts_node_type(a1: TSNode): cstring	
+ts_node_symbol	hmisc/wrappers/treesitter_core.html#ts_node_symbol,TSNode	treesitter_core: ts_node_symbol(a1: TSNode): TSSymbol	
+ts_node_start_byte	hmisc/wrappers/treesitter_core.html#ts_node_start_byte,TSNode	treesitter_core: ts_node_start_byte(a1: TSNode): uint32	
+ts_node_start_point	hmisc/wrappers/treesitter_core.html#ts_node_start_point,TSNode	treesitter_core: ts_node_start_point(a1: TSNode): TSPoint	
+ts_node_end_byte	hmisc/wrappers/treesitter_core.html#ts_node_end_byte,TSNode	treesitter_core: ts_node_end_byte(a1: TSNode): uint32	
+ts_node_end_point	hmisc/wrappers/treesitter_core.html#ts_node_end_point,TSNode	treesitter_core: ts_node_end_point(a1: TSNode): TSPoint	
+ts_node_string	hmisc/wrappers/treesitter_core.html#ts_node_string,TSNode	treesitter_core: ts_node_string(a1: TSNode): cstring	
+ts_node_is_null	hmisc/wrappers/treesitter_core.html#ts_node_is_null,TSNode	treesitter_core: ts_node_is_null(a1: TSNode): bool	
+ts_node_is_named	hmisc/wrappers/treesitter_core.html#ts_node_is_named,TSNode	treesitter_core: ts_node_is_named(a1: TSNode): bool	
+ts_node_is_missing	hmisc/wrappers/treesitter_core.html#ts_node_is_missing,TSNode	treesitter_core: ts_node_is_missing(a1: TSNode): bool	
+ts_node_is_extra	hmisc/wrappers/treesitter_core.html#ts_node_is_extra,TSNode	treesitter_core: ts_node_is_extra(a1: TSNode): bool	
+ts_node_has_changes	hmisc/wrappers/treesitter_core.html#ts_node_has_changes,TSNode	treesitter_core: ts_node_has_changes(a1: TSNode): bool	
+ts_node_has_error	hmisc/wrappers/treesitter_core.html#ts_node_has_error,TSNode	treesitter_core: ts_node_has_error(a1: TSNode): bool	
+ts_node_parent	hmisc/wrappers/treesitter_core.html#ts_node_parent,TSNode	treesitter_core: ts_node_parent(a1: TSNode): TSNode	
+ts_node_child	hmisc/wrappers/treesitter_core.html#ts_node_child,TSNode,uint32	treesitter_core: ts_node_child(a1: TSNode; a2: uint32): TSNode	
+ts_node_child_count	hmisc/wrappers/treesitter_core.html#ts_node_child_count,TSNode	treesitter_core: ts_node_child_count(a1: TSNode): uint32	
+ts_node_named_child	hmisc/wrappers/treesitter_core.html#ts_node_named_child,TSNode,uint32	treesitter_core: ts_node_named_child(a1: TSNode; a2: uint32): TSNode	
+ts_node_named_child_count	hmisc/wrappers/treesitter_core.html#ts_node_named_child_count,TSNode	treesitter_core: ts_node_named_child_count(a1: TSNode): uint32	
+ts_node_child_by_field_name	hmisc/wrappers/treesitter_core.html#ts_node_child_by_field_name,TSNode,cstring,uint32	treesitter_core: ts_node_child_by_field_name(self: TSNode; field_name: cstring;\n                            field_name_length: uint32): TSNode	
+ts_node_child_by_field_id	hmisc/wrappers/treesitter_core.html#ts_node_child_by_field_id,TSNode,TSFieldId	treesitter_core: ts_node_child_by_field_id(a1: TSNode; a2: TSFieldId): TSNode	
+ts_node_field_name_for_child	hmisc/wrappers/treesitter_core.html#ts_node_field_name_for_child,TSNode,uint32	treesitter_core: ts_node_field_name_for_child(node: TSNode; idx: uint32): cstring	
+ts_node_next_sibling	hmisc/wrappers/treesitter_core.html#ts_node_next_sibling,TSNode	treesitter_core: ts_node_next_sibling(a1: TSNode): TSNode	
+ts_node_prev_sibling	hmisc/wrappers/treesitter_core.html#ts_node_prev_sibling,TSNode	treesitter_core: ts_node_prev_sibling(a1: TSNode): TSNode	
+ts_node_next_named_sibling	hmisc/wrappers/treesitter_core.html#ts_node_next_named_sibling,TSNode	treesitter_core: ts_node_next_named_sibling(a1: TSNode): TSNode	
+ts_node_prev_named_sibling	hmisc/wrappers/treesitter_core.html#ts_node_prev_named_sibling,TSNode	treesitter_core: ts_node_prev_named_sibling(a1: TSNode): TSNode	
+ts_node_first_child_for_byte	hmisc/wrappers/treesitter_core.html#ts_node_first_child_for_byte,TSNode,uint32	treesitter_core: ts_node_first_child_for_byte(a1: TSNode; a2: uint32): TSNode	
+ts_node_first_named_child_for_byte	hmisc/wrappers/treesitter_core.html#ts_node_first_named_child_for_byte,TSNode,uint32	treesitter_core: ts_node_first_named_child_for_byte(a1: TSNode; a2: uint32): TSNode	
+ts_node_descendant_for_byte_range	hmisc/wrappers/treesitter_core.html#ts_node_descendant_for_byte_range,TSNode,uint32,uint32	treesitter_core: ts_node_descendant_for_byte_range(a1: TSNode; a2: uint32; a3: uint32): TSNode	
+ts_node_descendant_for_point_range	hmisc/wrappers/treesitter_core.html#ts_node_descendant_for_point_range,TSNode,TSPoint,TSPoint	treesitter_core: ts_node_descendant_for_point_range(a1: TSNode; a2: TSPoint; a3: TSPoint): TSNode	
+ts_node_named_descendant_for_byte_range	hmisc/wrappers/treesitter_core.html#ts_node_named_descendant_for_byte_range,TSNode,uint32,uint32	treesitter_core: ts_node_named_descendant_for_byte_range(a1: TSNode; a2: uint32; a3: uint32): TSNode	
+ts_node_named_descendant_for_point_range	hmisc/wrappers/treesitter_core.html#ts_node_named_descendant_for_point_range,TSNode,TSPoint,TSPoint	treesitter_core: ts_node_named_descendant_for_point_range(a1: TSNode; a2: TSPoint; a3: TSPoint): TSNode	
+ts_node_edit	hmisc/wrappers/treesitter_core.html#ts_node_edit,ptr.TSNode,ptr.TSInputEdit	treesitter_core: ts_node_edit(a1: ptr TSNode; a2: ptr TSInputEdit)	
+ts_node_eq	hmisc/wrappers/treesitter_core.html#ts_node_eq,TSNode,TSNode	treesitter_core: ts_node_eq(a1: TSNode; a2: TSNode): bool	
+ts_tree_cursor_new	hmisc/wrappers/treesitter_core.html#ts_tree_cursor_new,TSNode	treesitter_core: ts_tree_cursor_new(a1: TSNode): TSTreeCursor	
+ts_tree_cursor_delete	hmisc/wrappers/treesitter_core.html#ts_tree_cursor_delete,PTsTreeCursor	treesitter_core: ts_tree_cursor_delete(a1: PTsTreeCursor)	
+ts_tree_cursor_reset	hmisc/wrappers/treesitter_core.html#ts_tree_cursor_reset,PTsTreeCursor,TSNode	treesitter_core: ts_tree_cursor_reset(a1: PTsTreeCursor; a2: TSNode)	
+ts_tree_cursor_current_node	hmisc/wrappers/treesitter_core.html#ts_tree_cursor_current_node,PTsTreeCursor	treesitter_core: ts_tree_cursor_current_node(a1: PTsTreeCursor): TSNode	
+ts_tree_cursor_current_field_name	hmisc/wrappers/treesitter_core.html#ts_tree_cursor_current_field_name,PTsTreeCursor	treesitter_core: ts_tree_cursor_current_field_name(a1: PTsTreeCursor): cstring	
+ts_tree_cursor_current_field_id	hmisc/wrappers/treesitter_core.html#ts_tree_cursor_current_field_id,PTsTreeCursor	treesitter_core: ts_tree_cursor_current_field_id(a1: PTsTreeCursor): TSFieldId	
+ts_tree_cursor_goto_parent	hmisc/wrappers/treesitter_core.html#ts_tree_cursor_goto_parent,PTsTreeCursor	treesitter_core: ts_tree_cursor_goto_parent(a1: PTsTreeCursor): bool	
+ts_tree_cursor_goto_next_sibling	hmisc/wrappers/treesitter_core.html#ts_tree_cursor_goto_next_sibling,PTsTreeCursor	treesitter_core: ts_tree_cursor_goto_next_sibling(a1: PTsTreeCursor): bool	
+ts_tree_cursor_goto_first_child	hmisc/wrappers/treesitter_core.html#ts_tree_cursor_goto_first_child,PTsTreeCursor	treesitter_core: ts_tree_cursor_goto_first_child(a1: PTsTreeCursor): bool	
+ts_tree_cursor_goto_first_child_for_byte	hmisc/wrappers/treesitter_core.html#ts_tree_cursor_goto_first_child_for_byte,PTsTreeCursor,uint32	treesitter_core: ts_tree_cursor_goto_first_child_for_byte(a1: PTsTreeCursor; a2: uint32): int64	
+ts_tree_cursor_copy	hmisc/wrappers/treesitter_core.html#ts_tree_cursor_copy,PTsTreeCursor	treesitter_core: ts_tree_cursor_copy(a1: PTsTreeCursor): TSTreeCursor	
+ts_query_new	hmisc/wrappers/treesitter_core.html#ts_query_new,ptr.TSLanguage,cstring,uint32,ptr.uint32,ptr.TSQueryError	treesitter_core: ts_query_new(language: ptr TSLanguage; source: cstring; source_len: uint32;\n             error_offset: ptr uint32; error_type: ptr TSQueryError): ptr TSQuery	
+ts_query_delete	hmisc/wrappers/treesitter_core.html#ts_query_delete,ptr.TSQuery	treesitter_core: ts_query_delete(a1: ptr TSQuery)	
+ts_query_pattern_count	hmisc/wrappers/treesitter_core.html#ts_query_pattern_count,ptr.TSQuery	treesitter_core: ts_query_pattern_count(a1: ptr TSQuery): uint32	
+ts_query_capture_count	hmisc/wrappers/treesitter_core.html#ts_query_capture_count,ptr.TSQuery	treesitter_core: ts_query_capture_count(a1: ptr TSQuery): uint32	
+ts_query_string_count	hmisc/wrappers/treesitter_core.html#ts_query_string_count,ptr.TSQuery	treesitter_core: ts_query_string_count(a1: ptr TSQuery): uint32	
+ts_query_start_byte_for_pattern	hmisc/wrappers/treesitter_core.html#ts_query_start_byte_for_pattern,ptr.TSQuery,uint32	treesitter_core: ts_query_start_byte_for_pattern(a1: ptr TSQuery; a2: uint32): uint32	
+ts_query_predicates_for_pattern	hmisc/wrappers/treesitter_core.html#ts_query_predicates_for_pattern,ptr.TSQuery,uint32,ptr.uint32	treesitter_core: ts_query_predicates_for_pattern(self: ptr TSQuery; pattern_index: uint32;\n                                length: ptr uint32): ptr TSQueryPredicateStep	
+ts_query_capture_name_for_id	hmisc/wrappers/treesitter_core.html#ts_query_capture_name_for_id,ptr.TSQuery,uint32,ptr.uint32	treesitter_core: ts_query_capture_name_for_id(a1: ptr TSQuery; id: uint32; length: ptr uint32): cstring	
+ts_query_string_value_for_id	hmisc/wrappers/treesitter_core.html#ts_query_string_value_for_id,ptr.TSQuery,uint32,ptr.uint32	treesitter_core: ts_query_string_value_for_id(a1: ptr TSQuery; id: uint32; length: ptr uint32): cstring	
+ts_query_disable_capture	hmisc/wrappers/treesitter_core.html#ts_query_disable_capture,ptr.TSQuery,cstring,uint32	treesitter_core: ts_query_disable_capture(a1: ptr TSQuery; a2: cstring; a3: uint32)	
+ts_query_disable_pattern	hmisc/wrappers/treesitter_core.html#ts_query_disable_pattern,ptr.TSQuery,uint32	treesitter_core: ts_query_disable_pattern(a1: ptr TSQuery; a3: uint32)	
+ts_query_cursor_new	hmisc/wrappers/treesitter_core.html#ts_query_cursor_new	treesitter_core: ts_query_cursor_new(): ptr TSQueryCursor	
+ts_query_cursor_delete	hmisc/wrappers/treesitter_core.html#ts_query_cursor_delete,ptr.TSQueryCursor	treesitter_core: ts_query_cursor_delete(a1: ptr TSQueryCursor)	
+ts_query_cursor_exec	hmisc/wrappers/treesitter_core.html#ts_query_cursor_exec,ptr.TSQueryCursor,ptr.TSQuery,TSNode	treesitter_core: ts_query_cursor_exec(a1: ptr TSQueryCursor; a2: ptr TSQuery; a3: TSNode)	
+ts_query_cursor_set_byte_range	hmisc/wrappers/treesitter_core.html#ts_query_cursor_set_byte_range,ptr.TSQueryCursor,uint32,uint32	treesitter_core: ts_query_cursor_set_byte_range(a1: ptr TSQueryCursor; a2: uint32; a3: uint32)	
+ts_query_cursor_set_point_range	hmisc/wrappers/treesitter_core.html#ts_query_cursor_set_point_range,ptr.TSQueryCursor,TSPoint,TSPoint	treesitter_core: ts_query_cursor_set_point_range(a1: ptr TSQueryCursor; a2: TSPoint; a3: TSPoint)	
+ts_query_cursor_next_match	hmisc/wrappers/treesitter_core.html#ts_query_cursor_next_match,ptr.TSQueryCursor,ptr.TSQueryMatch	treesitter_core: ts_query_cursor_next_match(a1: ptr TSQueryCursor; match: ptr TSQueryMatch): bool	
+ts_query_cursor_remove_match	hmisc/wrappers/treesitter_core.html#ts_query_cursor_remove_match,ptr.TSQueryCursor,uint32	treesitter_core: ts_query_cursor_remove_match(a1: ptr TSQueryCursor; id: uint32)	
+ts_query_cursor_next_capture	hmisc/wrappers/treesitter_core.html#ts_query_cursor_next_capture,ptr.TSQueryCursor,ptr.TSQueryMatch,ptr.uint32	treesitter_core: ts_query_cursor_next_capture(a1: ptr TSQueryCursor; match: ptr TSQueryMatch;\n                             capture_index: ptr uint32): bool	
+ts_language_symbol_count	hmisc/wrappers/treesitter_core.html#ts_language_symbol_count,ptr.TSLanguage	treesitter_core: ts_language_symbol_count(a1: ptr TSLanguage): uint32	
+ts_language_symbol_name	hmisc/wrappers/treesitter_core.html#ts_language_symbol_name,ptr.TSLanguage,TSSymbol	treesitter_core: ts_language_symbol_name(a1: ptr TSLanguage; a2: TSSymbol): cstring	
+ts_language_symbol_for_name	hmisc/wrappers/treesitter_core.html#ts_language_symbol_for_name,ptr.TSLanguage,cstring,uint32,bool	treesitter_core: ts_language_symbol_for_name(self: ptr TSLanguage; string: cstring;\n                            length: uint32; is_named: bool): TSSymbol	
+ts_language_field_count	hmisc/wrappers/treesitter_core.html#ts_language_field_count,ptr.TSLanguage	treesitter_core: ts_language_field_count(a1: ptr TSLanguage): uint32	
+ts_language_field_name_for_id	hmisc/wrappers/treesitter_core.html#ts_language_field_name_for_id,ptr.TSLanguage,TSFieldId	treesitter_core: ts_language_field_name_for_id(a1: ptr TSLanguage; a2: TSFieldId): cstring	
+ts_language_field_id_for_name	hmisc/wrappers/treesitter_core.html#ts_language_field_id_for_name,ptr.TSLanguage,cstring,uint32	treesitter_core: ts_language_field_id_for_name(a1: ptr TSLanguage; a2: cstring; a3: uint32): TSFieldId	
+ts_language_symbol_type	hmisc/wrappers/treesitter_core.html#ts_language_symbol_type,ptr.TSLanguage,TSSymbol	treesitter_core: ts_language_symbol_type(a1: ptr TSLanguage; a2: TSSymbol): TSSymbolType	
+ts_language_version	hmisc/wrappers/treesitter_core.html#ts_language_version,ptr.TSLanguage	treesitter_core: ts_language_version(a1: ptr TSLanguage): uint32	
+nodeString	hmisc/wrappers/treesitter_core.html#nodeString,N	treesitter_core: nodeString[N: distinct](node: N): string	
+isNamed	hmisc/wrappers/treesitter_core.html#isNamed,N	treesitter_core: isNamed[N: distinct](node: N): bool	
+isMissing	hmisc/wrappers/treesitter_core.html#isMissing,N	treesitter_core: isMissing[N: distinct](node: N): bool	
+isExtra	hmisc/wrappers/treesitter_core.html#isExtra,N	treesitter_core: isExtra[N: distinct](node: N): bool	
+isNil	hmisc/wrappers/treesitter_core.html#isNil,TSNode	treesitter_core: isNil(node: TSNode): bool	
+hasChanges	hmisc/wrappers/treesitter_core.html#hasChanges,N	treesitter_core: hasChanges[N: distinct](node: N): bool	
+hasError	hmisc/wrappers/treesitter_core.html#hasError,N	treesitter_core: hasError[N: distinct](node: N): bool	
+parent	hmisc/wrappers/treesitter_core.html#parent,N	treesitter_core: parent[N: distinct](node: N): N	
+child	hmisc/wrappers/treesitter_core.html#child,N,int	treesitter_core: child[N: distinct](node: N; a2: int): N	
+childCount	hmisc/wrappers/treesitter_core.html#childCount,N	treesitter_core: childCount[N: distinct](node: N): int	
+namedChild	hmisc/wrappers/treesitter_core.html#namedChild,N,int	treesitter_core: namedChild[N: distinct](node: N; a2: int): N	
+namedChildCount	hmisc/wrappers/treesitter_core.html#namedChildCount,N	treesitter_core: namedChildCount[N: distinct](node: N): int	
+startPoint	hmisc/wrappers/treesitter_core.html#startPoint,N	treesitter_core: startPoint[N: distinct](node: N): TSPoint	
+startByte	hmisc/wrappers/treesitter_core.html#startByte,N	treesitter_core: startByte[N: distinct](node: N): int	
+endByte	hmisc/wrappers/treesitter_core.html#endByte,N	treesitter_core: endByte[N: distinct](node: N): int	
+slice	hmisc/wrappers/treesitter_core.html#slice,N	treesitter_core: slice[N: distinct](node: N): Slice[int]	
+endPoint	hmisc/wrappers/treesitter_core.html#endPoint,N	treesitter_core: endPoint[N: distinct](node: N): TSPoint	
+startLine	hmisc/wrappers/treesitter_core.html#startLine,N	treesitter_core: startLine[N: distinct](node: N): int	
+endLine	hmisc/wrappers/treesitter_core.html#endLine,N	treesitter_core: endLine[N: distinct](node: N): int	
+startColumn	hmisc/wrappers/treesitter_core.html#startColumn,N	treesitter_core: startColumn[N: distinct](node: N): int	
+endColumn	hmisc/wrappers/treesitter_core.html#endColumn,N	treesitter_core: endColumn[N: distinct](node: N): int	
+childName	hmisc/wrappers/treesitter_core.html#childName,N,int	treesitter_core: childName[N: distinct](node: N; idx: int): string	
+fieldNames	hmisc/wrappers/treesitter_core.html#fieldNames,N	treesitter_core: fieldNames[N: distinct](node: N): seq[string]	
+`[]`	hmisc/wrappers/treesitter_core.html#[],N,,bool	treesitter_core: `[]`[N: distinct](node: N; idx: int | BackwardsIndex; unnamed: bool = false): N	
+`[]`	hmisc/wrappers/treesitter_core.html#[],N,Slice[int],bool	treesitter_core: `[]`[N: distinct](node: N; slice: Slice[int]; unnamed: bool = false): seq[N]	
+`[]`	hmisc/wrappers/treesitter_core.html#[],N,HSlice[int,BackwardsIndex],bool	treesitter_core: `[]`[N: distinct](node: N; slice: HSlice[int, BackwardsIndex];\n                  unnamed: bool = false): seq[N]	
+`{}`	hmisc/wrappers/treesitter_core.html#{},N,int	treesitter_core: `{}`[N: distinct](node: N; idx: int): N	
+`[]`	hmisc/wrappers/treesitter_core.html#[],N,string,bool	treesitter_core: `[]`[N: distinct](node: N; name: string; check: bool = true): N	
+has	hmisc/wrappers/treesitter_core.html#has,N,string	treesitter_core: has[N: distinct](node: N; name: string): bool	
+contains	hmisc/wrappers/treesitter_core.html#contains,N,string	treesitter_core: contains[N: distinct](node: N; name: string): bool	
+items	hmisc/wrappers/treesitter_core.html#items.i,N,bool	treesitter_core: items[N: distinct](node: N; unnamed: bool = false): N	
+pairs	hmisc/wrappers/treesitter_core.html#pairs.i,N,bool	treesitter_core: pairs[N: distinct](node: N; unnamed: bool = false): (int, N)	
+`[]`	hmisc/wrappers/treesitter_core.html#[],string,N	treesitter_core: `[]`[N: distinct](s: string; node: N): string	
+childByFieldName	hmisc/wrappers/treesitter_core.html#childByFieldName,N,string,int	treesitter_core: childByFieldName[N: distinct](self: N; fieldName: string; fieldNameLength: int): TSNode	
+hrkBlank	hmisc/wrappers/treesitter_core.html#hrkBlank	HtsRuleKind.hrkBlank	
+hrkSeq	hmisc/wrappers/treesitter_core.html#hrkSeq	HtsRuleKind.hrkSeq	
+hrkRepeat	hmisc/wrappers/treesitter_core.html#hrkRepeat	HtsRuleKind.hrkRepeat	
+hrkRepeat1	hmisc/wrappers/treesitter_core.html#hrkRepeat1	HtsRuleKind.hrkRepeat1	
+hrkString	hmisc/wrappers/treesitter_core.html#hrkString	HtsRuleKind.hrkString	
+hrkRegex	hmisc/wrappers/treesitter_core.html#hrkRegex	HtsRuleKind.hrkRegex	
+hrkChoice	hmisc/wrappers/treesitter_core.html#hrkChoice	HtsRuleKind.hrkChoice	
+hrkSymbol	hmisc/wrappers/treesitter_core.html#hrkSymbol	HtsRuleKind.hrkSymbol	
+HtsRuleKind	hmisc/wrappers/treesitter_core.html#HtsRuleKind	treesitter_core: HtsRuleKind	
+HtsRule	hmisc/wrappers/treesitter_core.html#HtsRule	treesitter_core: HtsRule	
+HtsRegexKind	hmisc/wrappers/treesitter_core.html#HtsRegexKind	treesitter_core: HtsRegexKind	
+HtsRegex	hmisc/wrappers/treesitter_core.html#HtsRegex	treesitter_core: HtsRegex	
+tsChoice	hmisc/wrappers/treesitter_core.html#tsChoice,varargs[HtsRule[K]]	treesitter_core: tsChoice[K](args: varargs[HtsRule[K]]): HtsRule[K]	
+tsSeq	hmisc/wrappers/treesitter_core.html#tsSeq,varargs[HtsRule[K]]	treesitter_core: tsSeq[K](args: varargs[HtsRule[K]]): HtsRule[K]	
+tsSymbol	hmisc/wrappers/treesitter_core.html#tsSymbol,K	treesitter_core: tsSymbol[K](arg: K): HtsRule[K]	
+tsString	hmisc/wrappers/treesitter_core.html#tsString,string	treesitter_core: tsString[K](arg: string): HtsRule[K]	
+tsRegex	hmisc/wrappers/treesitter_core.html#tsRegex,string	treesitter_core: tsRegex[K](arg: string): HtsRule[K]	
+tsRepeat	hmisc/wrappers/treesitter_core.html#tsRepeat,HtsRule[K]	treesitter_core: tsRepeat[K](arg: HtsRule[K]): HtsRule[K]	
+tsRepeat1	hmisc/wrappers/treesitter_core.html#tsRepeat1,HtsRule[K]	treesitter_core: tsRepeat1[K](arg: HtsRule[K]): HtsRule[K]	
+tsBlank	hmisc/wrappers/treesitter_core.html#tsBlank	treesitter_core: tsBlank[K](): HtsRule[K]	

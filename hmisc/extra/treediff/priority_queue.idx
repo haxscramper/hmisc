@@ -1,0 +1,14 @@
+PriorityTreeQueue	hmisc/extra/treediff/priority_queue.html#PriorityTreeQueue	priority_queue: PriorityTreeQueue	
+currentPriority	hmisc/extra/treediff/priority_queue.html#currentPriority,PriorityTreeQueue	priority_queue: currentPriority(this: PriorityTreeQueue): int	
+setMinimumPriority	hmisc/extra/treediff/priority_queue.html#setMinimumPriority,PriorityTreeQueue,int	priority_queue: setMinimumPriority(this: PriorityTreeQueue; minimumPriority: int): void	
+setPriorityCalculator	hmisc/extra/treediff/priority_queue.html#setPriorityCalculator,PriorityTreeQueue,proc(Tree)	priority_queue: setPriorityCalculator(this: PriorityTreeQueue;\n                      priorityCalculator: proc (tree: Tree): int): void	
+getMinimumPriority	hmisc/extra/treediff/priority_queue.html#getMinimumPriority,PriorityTreeQueue	priority_queue: getMinimumPriority(this: PriorityTreeQueue): int	
+len	hmisc/extra/treediff/priority_queue.html#len,PriorityTreeQueue	priority_queue: len(this: PriorityTreeQueue): int	
+add	hmisc/extra/treediff/priority_queue.html#add,PriorityTreeQueue,Tree	priority_queue: add(this: PriorityTreeQueue; t: Tree): void	
+newPriorityTreeQueue	hmisc/extra/treediff/priority_queue.html#newPriorityTreeQueue,Tree,int,proc(Tree)	priority_queue: newPriorityTreeQueue(root: Tree; minimumPriority: int;\n                     priorityCalculator: proc (tree: Tree): int): PriorityTreeQueue	
+pop	hmisc/extra/treediff/priority_queue.html#pop,PriorityTreeQueue	priority_queue: pop(this: PriorityTreeQueue): seq[Tree]	
+open	hmisc/extra/treediff/priority_queue.html#open,PriorityTreeQueue,Tree	priority_queue: open(this: PriorityTreeQueue; tree: Tree): void	
+popOpen	hmisc/extra/treediff/priority_queue.html#popOpen,PriorityTreeQueue	priority_queue: popOpen(this: PriorityTreeQueue): seq[Tree]	
+isEmpty	hmisc/extra/treediff/priority_queue.html#isEmpty,PriorityTreeQueue	priority_queue: isEmpty(this: PriorityTreeQueue): bool	
+clear	hmisc/extra/treediff/priority_queue.html#clear,PriorityTreeQueue	priority_queue: clear(this: PriorityTreeQueue): void	
+synchronize	hmisc/extra/treediff/priority_queue.html#synchronize,PriorityTreeQueue,PriorityTreeQueue	priority_queue: synchronize(q1: PriorityTreeQueue; q2: PriorityTreeQueue): void	

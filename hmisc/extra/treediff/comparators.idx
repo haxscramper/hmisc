@@ -1,0 +1,21 @@
+MappingComparators	hmisc/extra/treediff/comparators.html#MappingComparators	comparators: MappingComparators	
+FullMappingComparator	hmisc/extra/treediff/comparators.html#FullMappingComparator	comparators: FullMappingComparator	
+SiblingsSimilarityMappingComparator	hmisc/extra/treediff/comparators.html#SiblingsSimilarityMappingComparator	comparators: SiblingsSimilarityMappingComparator	
+ParentsSimilarityMappingComparator	hmisc/extra/treediff/comparators.html#ParentsSimilarityMappingComparator	comparators: ParentsSimilarityMappingComparator	
+PositionInParentsSimilarityMappingComparator	hmisc/extra/treediff/comparators.html#PositionInParentsSimilarityMappingComparator	comparators: PositionInParentsSimilarityMappingComparator	
+AbsolutePositionDistanceMappingComparator	hmisc/extra/treediff/comparators.html#AbsolutePositionDistanceMappingComparator	comparators: AbsolutePositionDistanceMappingComparator	
+newSiblingsSimilarityMappingComparator	hmisc/extra/treediff/comparators.html#newSiblingsSimilarityMappingComparator,MappingStore	comparators: newSiblingsSimilarityMappingComparator(ms: MappingStore): SiblingsSimilarityMappingComparator	
+newParentsSimilarityMappingComparator	hmisc/extra/treediff/comparators.html#newParentsSimilarityMappingComparator	comparators: newParentsSimilarityMappingComparator(): ParentsSimilarityMappingComparator	
+newPositionInParentsSimilarityMappingComparator	hmisc/extra/treediff/comparators.html#newPositionInParentsSimilarityMappingComparator	comparators: newPositionInParentsSimilarityMappingComparator(): PositionInParentsSimilarityMappingComparator	
+newAbsolutePositionDistanceMappingComparator	hmisc/extra/treediff/comparators.html#newAbsolutePositionDistanceMappingComparator	comparators: newAbsolutePositionDistanceMappingComparator(): AbsolutePositionDistanceMappingComparator	
+newFullMappingComparator	hmisc/extra/treediff/comparators.html#newFullMappingComparator,MappingStore	comparators: newFullMappingComparator(ms: MappingStore): FullMappingComparator	
+commonDescendantsNb	hmisc/extra/treediff/comparators.html#commonDescendantsNb,SiblingsSimilarityMappingComparator,Tree,Tree	comparators: commonDescendantsNb(this: SiblingsSimilarityMappingComparator; src: Tree;\n                    dst: Tree): int	
+cmp	hmisc/extra/treediff/comparators.html#cmp,SiblingsSimilarityMappingComparator,Mapping,Mapping	comparators: cmp(this: SiblingsSimilarityMappingComparator; m1: Mapping; m2: Mapping): int	
+cmp	hmisc/extra/treediff/comparators.html#cmp,ParentsSimilarityMappingComparator,Mapping,Mapping	comparators: cmp(this: ParentsSimilarityMappingComparator; m1: Mapping; m2: Mapping): int	
+posVector	hmisc/extra/treediff/comparators.html#posVector,PositionInParentsSimilarityMappingComparator,Tree	comparators: posVector(this: PositionInParentsSimilarityMappingComparator; src: Tree): seq[\n    float]	
+distance	hmisc/extra/treediff/comparators.html#distance,PositionInParentsSimilarityMappingComparator,Mapping	comparators: distance(this: PositionInParentsSimilarityMappingComparator; m: Mapping): float	
+cmp	hmisc/extra/treediff/comparators.html#cmp,PositionInParentsSimilarityMappingComparator,Mapping,Mapping	comparators: cmp(this: PositionInParentsSimilarityMappingComparator; m1: Mapping; m2: Mapping): int	
+absolutePositionDistance	hmisc/extra/treediff/comparators.html#absolutePositionDistance,AbsolutePositionDistanceMappingComparator,Tree,Tree	comparators: absolutePositionDistance(this: AbsolutePositionDistanceMappingComparator;\n                         src: Tree; dst: Tree): int	
+cmp	hmisc/extra/treediff/comparators.html#cmp,AbsolutePositionDistanceMappingComparator,Mapping,Mapping	comparators: cmp(this: AbsolutePositionDistanceMappingComparator; m1: Mapping; m2: Mapping): int	
+cmp	hmisc/extra/treediff/comparators.html#cmp,FullMappingComparator,Mapping,Mapping	comparators: cmp(this: FullMappingComparator; m1: Mapping; m2: Mapping): int	
+sort	hmisc/extra/treediff/comparators.html#sort,seq[T],Cmp	comparators: sort[T; Cmp: object or ref object](sequence: var seq[T]; cmpObject: Cmp)	

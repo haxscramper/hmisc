@@ -1,0 +1,127 @@
+htoContent	hmisc/hasts/hext_template.html#htoContent	HxTokenKind.htoContent	
+htoStmtOpen	hmisc/hasts/hext_template.html#htoStmtOpen	HxTokenKind.htoStmtOpen	
+htoStmtOpenStrip	hmisc/hasts/hext_template.html#htoStmtOpenStrip	HxTokenKind.htoStmtOpenStrip	
+htoStmtClose	hmisc/hasts/hext_template.html#htoStmtClose	HxTokenKind.htoStmtClose	
+htoStmtCloseStrip	hmisc/hasts/hext_template.html#htoStmtCloseStrip	HxTokenKind.htoStmtCloseStrip	
+htoExprOpen	hmisc/hasts/hext_template.html#htoExprOpen	HxTokenKind.htoExprOpen	
+htoExprClose	hmisc/hasts/hext_template.html#htoExprClose	HxTokenKind.htoExprClose	
+htoCommentOpen	hmisc/hasts/hext_template.html#htoCommentOpen	HxTokenKind.htoCommentOpen	
+htoCommentClose	hmisc/hasts/hext_template.html#htoCommentClose	HxTokenKind.htoCommentClose	
+htoForKwd	hmisc/hasts/hext_template.html#htoForKwd	HxTokenKind.htoForKwd	
+htoEndForKwd	hmisc/hasts/hext_template.html#htoEndForKwd	HxTokenKind.htoEndForKwd	
+htoWhileKwd	hmisc/hasts/hext_template.html#htoWhileKwd	HxTokenKind.htoWhileKwd	
+htoEndWhileKwd	hmisc/hasts/hext_template.html#htoEndWhileKwd	HxTokenKind.htoEndWhileKwd	
+htoIfKwd	hmisc/hasts/hext_template.html#htoIfKwd	HxTokenKind.htoIfKwd	
+htoElseKwd	hmisc/hasts/hext_template.html#htoElseKwd	HxTokenKind.htoElseKwd	
+htoElifKwd	hmisc/hasts/hext_template.html#htoElifKwd	HxTokenKind.htoElifKwd	
+htoEndIfKwd	hmisc/hasts/hext_template.html#htoEndIfKwd	HxTokenKind.htoEndIfKwd	
+htoCaseKwd	hmisc/hasts/hext_template.html#htoCaseKwd	HxTokenKind.htoCaseKwd	
+htoOfKwd	hmisc/hasts/hext_template.html#htoOfKwd	HxTokenKind.htoOfKwd	
+htoEndCaseKwd	hmisc/hasts/hext_template.html#htoEndCaseKwd	HxTokenKind.htoEndCaseKwd	
+htoRawKwd	hmisc/hasts/hext_template.html#htoRawKwd	HxTokenKind.htoRawKwd	
+htoEndRawKwd	hmisc/hasts/hext_template.html#htoEndRawKwd	HxTokenKind.htoEndRawKwd	
+htoMacroKwd	hmisc/hasts/hext_template.html#htoMacroKwd	HxTokenKind.htoMacroKwd	
+htoEndMacroKwd	hmisc/hasts/hext_template.html#htoEndMacroKwd	HxTokenKind.htoEndMacroKwd	
+htoExtendsKwd	hmisc/hasts/hext_template.html#htoExtendsKwd	HxTokenKind.htoExtendsKwd	
+htoEndKwd	hmisc/hasts/hext_template.html#htoEndKwd	HxTokenKind.htoEndKwd	
+htoInKwd	hmisc/hasts/hext_template.html#htoInKwd	HxTokenKind.htoInKwd	
+htoBlockKwd	hmisc/hasts/hext_template.html#htoBlockKwd	HxTokenKind.htoBlockKwd	
+htoEndBlockKwd	hmisc/hasts/hext_template.html#htoEndBlockKwd	HxTokenKind.htoEndBlockKwd	
+htoIdent	hmisc/hasts/hext_template.html#htoIdent	HxTokenKind.htoIdent	
+htoIntLit	hmisc/hasts/hext_template.html#htoIntLit	HxTokenKind.htoIntLit	
+htoStrLit	hmisc/hasts/hext_template.html#htoStrLit	HxTokenKind.htoStrLit	
+htoFloatLit	hmisc/hasts/hext_template.html#htoFloatLit	HxTokenKind.htoFloatLit	
+htoBoolLit	hmisc/hasts/hext_template.html#htoBoolLit	HxTokenKind.htoBoolLit	
+htoDot	hmisc/hasts/hext_template.html#htoDot	HxTokenKind.htoDot	
+htoLPar	hmisc/hasts/hext_template.html#htoLPar	HxTokenKind.htoLPar	
+htoRPar	hmisc/hasts/hext_template.html#htoRPar	HxTokenKind.htoRPar	
+htoLCurly	hmisc/hasts/hext_template.html#htoLCurly	HxTokenKind.htoLCurly	
+htoRCurly	hmisc/hasts/hext_template.html#htoRCurly	HxTokenKind.htoRCurly	
+htoLBrace	hmisc/hasts/hext_template.html#htoLBrace	HxTokenKind.htoLBrace	
+htoRBrace	hmisc/hasts/hext_template.html#htoRBrace	HxTokenKind.htoRBrace	
+htoComma	hmisc/hasts/hext_template.html#htoComma	HxTokenKind.htoComma	
+htoColon	hmisc/hasts/hext_template.html#htoColon	HxTokenKind.htoColon	
+htoSemicolon	hmisc/hasts/hext_template.html#htoSemicolon	HxTokenKind.htoSemicolon	
+htoMacro	hmisc/hasts/hext_template.html#htoMacro	HxTokenKind.htoMacro	
+htoEndMacro	hmisc/hasts/hext_template.html#htoEndMacro	HxTokenKind.htoEndMacro	
+htoSetKwd	hmisc/hasts/hext_template.html#htoSetKwd	HxTokenKind.htoSetKwd	
+htoEndSetKwd	hmisc/hasts/hext_template.html#htoEndSetKwd	HxTokenKind.htoEndSetKwd	
+htoEof	hmisc/hasts/hext_template.html#htoEof	HxTokenKind.htoEof	
+HxTokenKind	hmisc/hasts/hext_template.html#HxTokenKind	hext_template: HxTokenKind	
+htoEndKinds	hmisc/hasts/hext_template.html#htoEndKinds	hext_template: htoEndKinds	
+htoAllKinds	hmisc/hasts/hext_template.html#htoAllKinds	hext_template: htoAllKinds	
+htoKwdKinds	hmisc/hasts/hext_template.html#htoKwdKinds	hext_template: htoKwdKinds	
+htoDelimKinds	hmisc/hasts/hext_template.html#htoDelimKinds	hext_template: htoDelimKinds	
+htoColorMap	hmisc/hasts/hext_template.html#htoColorMap	hext_template: htoColorMap	
+hnoContent	hmisc/hasts/hext_template.html#hnoContent	HxNodeKind.hnoContent	
+hnoStmtList	hmisc/hasts/hext_template.html#hnoStmtList	HxNodeKind.hnoStmtList	
+hnoExpr	hmisc/hasts/hext_template.html#hnoExpr	HxNodeKind.hnoExpr	
+hnoDotExpr	hmisc/hasts/hext_template.html#hnoDotExpr	HxNodeKind.hnoDotExpr	
+hnoStmt	hmisc/hasts/hext_template.html#hnoStmt	HxNodeKind.hnoStmt	
+hnoFor	hmisc/hasts/hext_template.html#hnoFor	HxNodeKind.hnoFor	
+hnoWhile	hmisc/hasts/hext_template.html#hnoWhile	HxNodeKind.hnoWhile	
+hnoIf	hmisc/hasts/hext_template.html#hnoIf	HxNodeKind.hnoIf	
+hnoElifBranch	hmisc/hasts/hext_template.html#hnoElifBranch	HxNodeKind.hnoElifBranch	
+hnoCase	hmisc/hasts/hext_template.html#hnoCase	HxNodeKind.hnoCase	
+hnoOfBranch	hmisc/hasts/hext_template.html#hnoOfBranch	HxNodeKind.hnoOfBranch	
+hnoMacro	hmisc/hasts/hext_template.html#hnoMacro	HxNodeKind.hnoMacro	
+hnoSet	hmisc/hasts/hext_template.html#hnoSet	HxNodeKind.hnoSet	
+hnoSetBlock	hmisc/hasts/hext_template.html#hnoSetBlock	HxNodeKind.hnoSetBlock	
+hnoIdent	hmisc/hasts/hext_template.html#hnoIdent	HxNodeKind.hnoIdent	
+hnoSym	hmisc/hasts/hext_template.html#hnoSym	HxNodeKind.hnoSym	
+hnoCall	hmisc/hasts/hext_template.html#hnoCall	HxNodeKind.hnoCall	
+HxNodeKind	hmisc/hasts/hext_template.html#HxNodeKind	hext_template: HxNodeKind	
+HxTok	hmisc/hasts/hext_template.html#HxTok	hext_template: HxTok	
+HxLexer	hmisc/hasts/hext_template.html#HxLexer	hext_template: HxLexer	
+HxTree	hmisc/hasts/hext_template.html#HxTree	hext_template: HxTree	
+HxNode	hmisc/hasts/hext_template.html#HxNode	hext_template: HxNode	
+HxNodeObj	hmisc/hasts/hext_template.html#HxNodeObj	hext_template: HxNodeObj	
+newHextLexer	hmisc/hasts/hext_template.html#newHextLexer	hext_template: newHextLexer(): HxLexer	
+lexHext	hmisc/hasts/hext_template.html#lexHext,string	hext_template: lexHext(str: string): seq[HxTok]	
+parseHext	hmisc/hasts/hext_template.html#parseHext,HxLexer	hext_template: parseHext(lexer: var HxLexer): HxTree	
+parseHext	hmisc/hasts/hext_template.html#parseHext,string	hext_template: parseHext(str: string): HxTree	
+hextMinTypeId	hmisc/hasts/hext_template.html#hextMinTypeId	hext_template: hextMinTypeId	
+hvkInt	hmisc/hasts/hext_template.html#hvkInt	HextValueKind.hvkInt	
+hvkStr	hmisc/hasts/hext_template.html#hvkStr	HextValueKind.hvkStr	
+hvkFloat	hmisc/hasts/hext_template.html#hvkFloat	HextValueKind.hvkFloat	
+hvkBool	hmisc/hasts/hext_template.html#hvkBool	HextValueKind.hvkBool	
+hvkRecord	hmisc/hasts/hext_template.html#hvkRecord	HextValueKind.hvkRecord	
+hvkSeq	hmisc/hasts/hext_template.html#hvkSeq	HextValueKind.hvkSeq	
+hvkRefBox	hmisc/hasts/hext_template.html#hvkRefBox	HextValueKind.hvkRefBox	
+HextValueKind	hmisc/hasts/hext_template.html#HextValueKind	hext_template: HextValueKind	
+hopForLoop	hmisc/hasts/hext_template.html#hopForLoop	HextOpKind.hopForLoop	
+hopStmtList	hmisc/hasts/hext_template.html#hopStmtList	HextOpKind.hopStmtList	
+hopLoadIdentFromCtx	hmisc/hasts/hext_template.html#hopLoadIdentFromCtx	HextOpKind.hopLoadIdentFromCtx	
+HextOpKind	hmisc/hasts/hext_template.html#HextOpKind	hext_template: HextOpKind	
+HextTypeIdRange	hmisc/hasts/hext_template.html#HextTypeIdRange	hext_template: HextTypeIdRange	
+HextUserTypeIdRange	hmisc/hasts/hext_template.html#HextUserTypeIdRange	hext_template: HextUserTypeIdRange	
+HextValue	hmisc/hasts/hext_template.html#HextValue	hext_template: HextValue	
+HextProc	hmisc/hasts/hext_template.html#HextProc	hext_template: HextProc	
+HextProcMap	hmisc/hasts/hext_template.html#HextProcMap	hext_template: HextProcMap	
+HextAstCtx	hmisc/hasts/hext_template.html#HextAstCtx	hext_template: HextAstCtx	
+`[]=`	hmisc/hasts/hext_template.html#[]=,HextProcMap[T,UC],string,HextProc[T,UC]	hext_template: `[]=`[T, UC](map: var HextProcMap[T, UC]; name: string; val: HextProc[T, UC])	
+unboxValue	hmisc/hasts/hext_template.html#unboxValue,HextValue[T],static[int]	hext_template: unboxValue[T](val: HextValue[T]; idx: static[int]): auto	
+boxIdOf	hmisc/hasts/hext_template.html#boxIdOf,typedesc[HextValue[T]],typedesc[HextBaseType]	hext_template: boxIdOf[T](target: typedesc[HextValue[T]]; valType: typedesc[HextBaseType]): int	
+unboxValue	hmisc/hasts/hext_template.html#unboxValue,HextValue[T],typedesc[Out]	hext_template: unboxValue[T, Out](val: HextValue[T]; target: typedesc[Out]): Out	
+hextVal	hmisc/hasts/hext_template.html#hextVal,int	hext_template: hextVal[T](arg: int): HextValue[T]	
+hextVal	hmisc/hasts/hext_template.html#hextVal,string	hext_template: hextVal[T](arg: string): HextValue[T]	
+hextVal	hmisc/hasts/hext_template.html#hextVal,bool	hext_template: hextVal[T](arg: bool): HextValue[T]	
+hextVal	hmisc/hasts/hext_template.html#hextVal,float	hext_template: hextVal[T](arg: float): HextValue[T]	
+boxValue	hmisc/hasts/hext_template.html#boxValue,typedesc[HextValue[T]],HextBaseType	hext_template: boxValue[T](target: typedesc[HextValue[T]]; value: HextBaseType): HextValue[T]	
+boxValue	hmisc/hasts/hext_template.html#boxValue,typedesc[HextValue[T]],seq[V]	hext_template: boxValue[T, V](target: typedesc[HextValue[T]]; value: seq[V]): HextValue[T]	
+boxValue	hmisc/hasts/hext_template.html#boxValue,typedesc[HextValue[T]],T,HextTypeIdRange	hext_template: boxValue[T](target: typedesc[HextValue[T]]; value: T; boxId: HextTypeIdRange): HextValue[\n    T]	
+boxedType	hmisc/hasts/hext_template.html#boxedType,HextProcMap[T,UC]	hext_template: boxedType[T, UC](map: HextProcMap[T, UC]): T	
+contextType	hmisc/hasts/hext_template.html#contextType,HextProcMap[T,UC]	hext_template: contextType[T, UC](map: HextProcMap[T, UC]): UC	
+items	hmisc/hasts/hext_template.html#items.i,HextValue[T]	hext_template: items[T](val: HextValue[T]): HextValue[T]	
+wrap	hmisc/hasts/hext_template.html#wrap.m,HextProcMap[T,UC],untyped,untyped	hext_template: wrap[T, UC](map: HextProcMap[T, UC]; sig, name: untyped): untyped	
+pushScope	hmisc/hasts/hext_template.html#pushScope,HextAstCtx[T,UC]	hext_template: pushScope[T, UC](ctx: var HextAstCtx[T, UC])	
+popScope	hmisc/hasts/hext_template.html#popScope,HextAstCtx[T,UC]	hext_template: popScope[T, UC](ctx: var HextAstCtx[T, UC])	
+`[]=`	hmisc/hasts/hext_template.html#[]=,HextAstCtx[T,UC],string,HextValue[T]	hext_template: `[]=`[T, UC](ctx: var HextAstCtx[T, UC]; varname: string; value: HextValue[T])	
+`[]=`	hmisc/hasts/hext_template.html#[]=,HextAstCtx[T,UC],string,In	hext_template: `[]=`[T, UC, In](ctx: var HextAstCtx[T, UC]; varname: string; value: In)	
+`[]`	hmisc/hasts/hext_template.html#[],HextAstCtx[T,UC],string	hext_template: `[]`[T, UC](ctx: var HextAstCtx[T, UC]; varname: string): HextValue[T]	
+evalAst	hmisc/hasts/hext_template.html#evalAst,T,HextOpKind,HextAstCtx[V,UC]	hext_template: evalAst[T, V, UC](ast: T; op: HextOpKind; ctx: var HextAstCtx[V, UC]): HextValue[\n    V]	
+newHextAstCtx	hmisc/hasts/hext_template.html#newHextAstCtx,UC,openArray[]	hext_template: newHextAstCtx[V, UC](user: UC;\n                     initValues: openArray[(string, HextValue[V])] = @[]): HextAstCtx[\n    V, UC]	
+write	hmisc/hasts/hext_template.html#write,Stream,HextValue[T]	hext_template: write[T](stream: Stream; value: HextValue[T])	
+evalAst	hmisc/hasts/hext_template.html#evalAst,HxTree,HextAstCtx[V,UC]	hext_template: evalAst[V, UC](node: HxTree; ctx: var HextAstCtx[V, UC]): HextValue[V]	
+evalHext	hmisc/hasts/hext_template.html#evalHext,HxTree,Uc,openArray[]	hext_template: evalHext[T, Uc](node: HxTree; stream: Uc;\n                initValues: openArray[(string, HextValue[T])] = @[])	
+evalHext	hmisc/hasts/hext_template.html#evalHext,string,Uc,openArray[]	hext_template: evalHext[T, Uc](text: string; stream: Uc;\n                initValues: openArray[(string, HextValue[T])] = @[])	

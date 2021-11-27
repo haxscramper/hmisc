@@ -1,0 +1,46 @@
+RtedMatcher	hmisc/extra/treediff/rted_matcher.html#RtedMatcher	rted_matcher: RtedMatcher	
+LabelDictionary	hmisc/extra/treediff/rted_matcher.html#LabelDictionary	rted_matcher: LabelDictionary	
+newLabelDictionary	hmisc/extra/treediff/rted_matcher.html#newLabelDictionary	rted_matcher: newLabelDictionary(): LabelDictionary	
+store	hmisc/extra/treediff/rted_matcher.html#store,LabelDictionary,string	rted_matcher: store(this: LabelDictionary; label: string): int	
+read	hmisc/extra/treediff/rted_matcher.html#read,LabelDictionary,int	rted_matcher: read(this: LabelDictionary; labelID: int): string	
+isNewLabelsAllowed	hmisc/extra/treediff/rted_matcher.html#isNewLabelsAllowed,LabelDictionary	rted_matcher: isNewLabelsAllowed(this: LabelDictionary): bool	
+setNewLabelsAllowed	hmisc/extra/treediff/rted_matcher.html#setNewLabelsAllowed,LabelDictionary,bool	rted_matcher: setNewLabelsAllowed(this: LabelDictionary; newLabelsAllowed: bool): void	
+RtedAlgorithm	hmisc/extra/treediff/rted_matcher.html#RtedAlgorithm	rted_matcher: RtedAlgorithm	
+InfoTree	hmisc/extra/treediff/rted_matcher.html#InfoTree	rted_matcher: InfoTree	
+enumeration	hmisc/extra/treediff/rted_matcher.html#enumeration,seq[T]	rted_matcher: enumeration[T](s: var seq[T]): Enumeration[T]	
+gatherInfo	hmisc/extra/treediff/rted_matcher.html#gatherInfo,InfoTree,Tree,int	rted_matcher: gatherInfo(this: InfoTree; inTree: Tree; postorder: int): int	
+postTraversalProcessing	hmisc/extra/treediff/rted_matcher.html#postTraversalProcessing,InfoTree	rted_matcher: postTraversalProcessing(this: InfoTree): void	
+newInfoTree	hmisc/extra/treediff/rted_matcher.html#newInfoTree,Tree,LabelDictionary	rted_matcher: newInfoTree(inputTree: Tree; ld: LabelDictionary): InfoTree	
+getSize	hmisc/extra/treediff/rted_matcher.html#getSize,InfoTree	rted_matcher: getSize(this: InfoTree): int	
+ifNodeOfType	hmisc/extra/treediff/rted_matcher.html#ifNodeOfType,InfoTree,int,RtedPath	rted_matcher: ifNodeOfType(this: InfoTree; postorder: int; jtype: RtedPath): bool	
+getNodeTypeArray	hmisc/extra/treediff/rted_matcher.html#getNodeTypeArray,InfoTree,RtedPath	rted_matcher: getNodeTypeArray(this: InfoTree; jtype: RtedPath): seq[bool]	
+getInfo	hmisc/extra/treediff/rted_matcher.html#getInfo,InfoTree,RtedFlags,int	rted_matcher: getInfo(this: InfoTree; infoCode: RtedFlags; nodesPostorder: int): int	
+getInfoArray	hmisc/extra/treediff/rted_matcher.html#getInfoArray,InfoTree,RtedFlags	rted_matcher: getInfoArray(this: InfoTree; infoCode: RtedFlags): seq[int]	
+getNodeRelSubtrees	hmisc/extra/treediff/rted_matcher.html#getNodeRelSubtrees,InfoTree,RtedPath,int	rted_matcher: getNodeRelSubtrees(this: InfoTree; pathType: RtedPath; nodePostorder: int): seq[\n    int]	
+getPath	hmisc/extra/treediff/rted_matcher.html#getPath,InfoTree,RtedPath	rted_matcher: getPath(this: InfoTree; pathType: RtedPath): seq[int]	
+getCurrentNode	hmisc/extra/treediff/rted_matcher.html#getCurrentNode,InfoTree	rted_matcher: getCurrentNode(this: InfoTree): int	
+setCurrentNode	hmisc/extra/treediff/rted_matcher.html#setCurrentNode,InfoTree,int	rted_matcher: setCurrentNode(this: InfoTree; postorder: int): void	
+setSwitched	hmisc/extra/treediff/rted_matcher.html#setSwitched,InfoTree,bool	rted_matcher: setSwitched(this: InfoTree; value: bool): void	
+isSwitched	hmisc/extra/treediff/rted_matcher.html#isSwitched,InfoTree	rted_matcher: isSwitched(this: InfoTree): bool	
+newRtedAlgorithm	hmisc/extra/treediff/rted_matcher.html#newRtedAlgorithm,float,float,float	rted_matcher: newRtedAlgorithm(delCost: float; insCost: float; matchCost: float): RtedAlgorithm	
+setDeltaValue	hmisc/extra/treediff/rted_matcher.html#setDeltaValue,RtedAlgorithm,int,int,float,bool	rted_matcher: setDeltaValue(this: RtedAlgorithm; a: int; b: int; value: float; switched: bool): void	
+setDeltaBitValue	hmisc/extra/treediff/rted_matcher.html#setDeltaBitValue,RtedAlgorithm,int,int,int,bool	rted_matcher: setDeltaBitValue(this: RtedAlgorithm; a: int; b: int; value: int; switched: bool): void	
+treeEditDist	hmisc/extra/treediff/rted_matcher.html#treeEditDist,RtedAlgorithm,InfoTree,InfoTree,int,int	rted_matcher: treeEditDist(this: RtedAlgorithm; it1: InfoTree; it2: InfoTree; i: int; j: int): void	
+treeEditDistRev	hmisc/extra/treediff/rted_matcher.html#treeEditDistRev,RtedAlgorithm,InfoTree,InfoTree,int,int	rted_matcher: treeEditDistRev(this: RtedAlgorithm; it1: InfoTree; it2: InfoTree; i: int;\n                j: int): void	
+spfL	hmisc/extra/treediff/rted_matcher.html#spfL,RtedAlgorithm,InfoTree,InfoTree	rted_matcher: spfL(this: RtedAlgorithm; it1: InfoTree; it2: InfoTree): float	
+spfR	hmisc/extra/treediff/rted_matcher.html#spfR,RtedAlgorithm,InfoTree,InfoTree	rted_matcher: spfR(this: RtedAlgorithm; it1: InfoTree; it2: InfoTree): float	
+jOfI	hmisc/extra/treediff/rted_matcher.html#jOfI,RtedAlgorithm,InfoTree,int,int,int,int,RtedPath,int	rted_matcher: jOfI(this: RtedAlgorithm; it: InfoTree; aI: int; aSubtreeWeight: int;\n     aSubtreeRevPre: int; aSubtreePre: int; aStrategy: RtedPath; treeSize: int): int	
+computeIJTable	hmisc/extra/treediff/rted_matcher.html#computeIJTable,RtedAlgorithm,InfoTree,int,int,int,RtedPath,int	rted_matcher: computeIJTable(this: RtedAlgorithm; it: InfoTree; subtreePreorder: int;\n               subtreeRevPreorder: int; subtreeSize: int; aStrategy: RtedPath;\n               treeSize: int): void	
+computePeriod	hmisc/extra/treediff/rted_matcher.html#computePeriod,RtedAlgorithm,InfoTree,int,int,InfoTree,RtedPath	rted_matcher: computePeriod(this: RtedAlgorithm; it1: InfoTree; aVp: int; aNextVp: int;\n              it2: InfoTree; aStrategy: RtedPath): void	
+spfH	hmisc/extra/treediff/rted_matcher.html#spfH,RtedAlgorithm,InfoTree,InfoTree,seq[int]	rted_matcher: spfH(this: RtedAlgorithm; it1: InfoTree; it2: InfoTree; heavyPath: seq[int]): float	
+computeDistUsingStrArray	hmisc/extra/treediff/rted_matcher.html#computeDistUsingStrArray,RtedAlgorithm,InfoTree,InfoTree	rted_matcher: computeDistUsingStrArray(this: RtedAlgorithm; it1: InfoTree; it2: InfoTree): float	
+nonNormalizedTreeDist	hmisc/extra/treediff/rted_matcher.html#nonNormalizedTreeDist,RtedAlgorithm	rted_matcher: nonNormalizedTreeDist(this: RtedAlgorithm): float	
+init	hmisc/extra/treediff/rted_matcher.html#init,RtedAlgorithm,Tree,Tree	rted_matcher: init(this: RtedAlgorithm; src: Tree; dst: Tree): void	
+computeOptimalStrategy	hmisc/extra/treediff/rted_matcher.html#computeOptimalStrategy,RtedAlgorithm	rted_matcher: computeOptimalStrategy(this: RtedAlgorithm): void	
+setCustomCosts	hmisc/extra/treediff/rted_matcher.html#setCustomCosts,RtedAlgorithm,float,float,float	rted_matcher: setCustomCosts(this: RtedAlgorithm; costDel: float; costIns: float;\n               costMatch: float): void	
+setCustomStrategy	hmisc/extra/treediff/rted_matcher.html#setCustomStrategy,RtedAlgorithm,seq[seq[RtedPath]]	rted_matcher: setCustomStrategy(this: RtedAlgorithm; strategyArray: seq[seq[RtedPath]]): void	
+setCustomStrategy	hmisc/extra/treediff/rted_matcher.html#setCustomStrategy,RtedAlgorithm,RtedPath,bool	rted_matcher: setCustomStrategy(this: RtedAlgorithm; strategy: RtedPath; ifSwitch: bool): void	
+forestDist	hmisc/extra/treediff/rted_matcher.html#forestDist,RtedAlgorithm,InfoTree,InfoTree,int,int,seq[seq[float]],seq[seq[float]]	rted_matcher: forestDist(this: RtedAlgorithm; ted1: InfoTree; ted2: InfoTree; i: int; j: int;\n           treedist: var seq[seq[float]]; forestdist: var seq[seq[float]]): void	
+computeEditMapping	hmisc/extra/treediff/rted_matcher.html#computeEditMapping,RtedAlgorithm	rted_matcher: computeEditMapping(this: RtedAlgorithm): Deque[seq[int]]	
+match	hmisc/extra/treediff/rted_matcher.html#match.e,RtedMatcher,Tree,Tree,MappingStore	rted_matcher: match(this: RtedMatcher; src: Tree; dst: Tree; mappings: MappingStore): MappingStore	
+newRtedMatcher	hmisc/extra/treediff/rted_matcher.html#newRtedMatcher	rted_matcher: newRtedMatcher(): RtedMatcher	

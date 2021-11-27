@@ -1,0 +1,73 @@
+XmlSerializer	hmisc/hasts/xml_serde.html#XmlSerializer	xml_serde: XmlSerializer	
+XmlDeserializer	hmisc/hasts/xml_serde.html#XmlDeserializer	xml_serde: XmlDeserializer	
+writeInd	hmisc/hasts/xml_serde.html#writeInd,XmlSerializer	xml_serde: writeInd(writer`gensym0: var XmlSerializer)	
+writeIndent	hmisc/hasts/xml_serde.html#writeIndent,XmlSerializer	xml_serde: writeIndent(writer`gensym0: var XmlSerializer)	
+space	hmisc/hasts/xml_serde.html#space,XmlSerializer	xml_serde: space(writer`gensym0: var XmlSerializer)	
+line	hmisc/hasts/xml_serde.html#line,XmlSerializer,int	xml_serde: line(writer`gensym0: var XmlSerializer; repeat`gensym0: int = 1)	
+indent	hmisc/hasts/xml_serde.html#indent,XmlSerializer	xml_serde: indent(writer`gensym0: var XmlSerializer)	
+dedent	hmisc/hasts/xml_serde.html#dedent,XmlSerializer	xml_serde: dedent(writer`gensym0: var XmlSerializer)	
+close	hmisc/hasts/xml_serde.html#close,XmlSerializer	xml_serde: close(writer`gensym0: var XmlSerializer)	
+readAll	hmisc/hasts/xml_serde.html#readAll,XmlSerializer	xml_serde: readAll(writer`gensym0: var XmlSerializer): string	
+writeRaw	hmisc/hasts/xml_serde.html#writeRaw,XmlSerializer,	xml_serde: writeRaw(writer`gensym0: var XmlSerializer;\n         text`gensym0: varargs[string, `$`])	
+newXmlSerializer	hmisc/hasts/xml_serde.html#newXmlSerializer	xml_serde: newXmlSerializer(stream`gensym0: Stream | File | AbsFile): XmlSerializer	
+newXmlSerializer	hmisc/hasts/xml_serde.html#newXmlSerializer_2	xml_serde: newXmlSerializer(): XmlSerializer	
+`$`	hmisc/hasts/xml_serde.html#$,XmlDeserializer	xml_serde: `$`(p: XmlDeserializer): string	
+newXmlDeserializer	hmisc/hasts/xml_serde.html#newXmlDeserializer,string,bool	xml_serde: newXmlDeserializer(arg: string; traceNext: bool = false): XmlDeserializer	
+loadPrimitive	hmisc/hasts/xml_serde.html#loadPrimitive.t,HXmlParser,typed,string,untyped,untyped	xml_serde: loadPrimitive(stream: var HXmlParser; target: typed; tag: string;\n              loadAttr: untyped; loadField: untyped): untyped	
+loadEnumWithPrefix	hmisc/hasts/xml_serde.html#loadEnumWithPrefix,HXmlParser,E,string,string	xml_serde: loadEnumWithPrefix[E](r: var HXmlParser; kind: var E; tag, prefix: string)	
+toXmlString	hmisc/hasts/xml_serde.html#toXmlString,Option[T]	xml_serde: toXmlString[T](item: Option[T]): string	
+toXmlString	hmisc/hasts/xml_serde.html#toXmlString,string	xml_serde: toXmlString(item: string): string	
+toXmlString	hmisc/hasts/xml_serde.html#toXmlString	xml_serde: toXmlString(item: enum | bool | float): string	
+toXmlString	hmisc/hasts/xml_serde.html#toXmlString,SomeInteger	xml_serde: toXmlString(item: SomeInteger): string	
+xmlAttribute	hmisc/hasts/xml_serde.html#xmlAttribute,,string,Option[T]	xml_serde: xmlAttribute[T](writer; key: string; value: Option[T])	
+xmlAttribute	hmisc/hasts/xml_serde.html#xmlAttribute,,string,	xml_serde: xmlAttribute(writer; key: string; value: SomeInteger | bool | float | enum)	
+xmlAttribute	hmisc/hasts/xml_serde.html#xmlAttribute,,string,HSlice[A,B]	xml_serde: xmlAttribute[A, B](writer; key: string; value: HSlice[A, B])	
+writeXml	hmisc/hasts/xml_serde.html#writeXml,,,string	xml_serde: writeXml(writer; value: string | SomeInteger | bool | SomeFloat | enum;\n         tag: string)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,bool,string	xml_serde: loadXml(reader; target: var bool; tag: string)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,I,string	xml_serde: loadXml[I: SomeUnsignedInt](reader; target: var I; tag: string)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,I,string_2	xml_serde: loadXml[I: SomeSignedInt](reader; target: var I; tag: string)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,char,string	xml_serde: loadXml(reader; target: var char; tag: string)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,SomeFloat,string	xml_serde: loadXml(reader; target: var SomeFloat; tag: string)	
+writeXmlItems	hmisc/hasts/xml_serde.html#writeXmlItems,,T,string	xml_serde: writeXmlItems[T](writer; values: T; tag: string)	
+writeXml	hmisc/hasts/xml_serde.html#writeXml,,seq[T],string	xml_serde: writeXml[T](writer; values: seq[T]; tag: string)	
+loadXmlItems	hmisc/hasts/xml_serde.html#loadXmlItems.t,XmlDeserializer,Res,string,untyped	xml_serde: loadXmlItems[T, Res](reader: var XmlDeserializer; target: var Res; tag: string;\n                     insertCall: untyped)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,seq[T],string	xml_serde: loadXml[T](reader; target: var seq[T]; tag: string)	
+readXmlKeyValues	hmisc/hasts/xml_serde.html#readXmlKeyValues,,Res,string	xml_serde: readXmlKeyValues[K, V, Res](reader; target: var Res; tag: string)	
+writeXmlKeyValues	hmisc/hasts/xml_serde.html#writeXmlKeyValues,,Res,string	xml_serde: writeXmlKeyValues[K, V, Res](writer; target: Res; tag: string)	
+wrapRefWrite	hmisc/hasts/xml_serde.html#wrapRefWrite.t,,T,string,untyped	xml_serde: wrapRefWrite[T](writer; target: T; tag: string; body: untyped): untyped	
+wrapRefLoad	hmisc/hasts/xml_serde.html#wrapRefLoad.t,,T,string,untyped	xml_serde: wrapRefLoad[T](writer; target: T; tag: string; body: untyped): untyped	
+writeXml	hmisc/hasts/xml_serde.html#writeXml,,OrderedTable[K,V],string	xml_serde: writeXml[K, V](writer; table: OrderedTable[K, V]; tag: string)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,OrderedTable[A,B],string	xml_serde: loadXml[A, B](reader; target: var OrderedTable[A, B]; tag: string)	
+writeXml	hmisc/hasts/xml_serde.html#writeXml,,Table[K,V],string	xml_serde: writeXml[K, V](writer; table: Table[K, V]; tag: string)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,Table[A,B],string	xml_serde: loadXml[A, B](reader; target: var Table[A, B]; tag: string)	
+writeXml	hmisc/hasts/xml_serde.html#writeXml,,TableRef[K,V],string	xml_serde: writeXml[K, V](writer; table: TableRef[K, V]; tag: string)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,TableRef[A,B],string	xml_serde: loadXml[A, B](reader; target: var TableRef[A, B]; tag: string)	
+writeXml	hmisc/hasts/xml_serde.html#writeXml,,OrderedTableRef[K,V],string	xml_serde: writeXml[K, V](writer; table: OrderedTableRef[K, V]; tag: string)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,OrderedTableRef[A,B],string	xml_serde: loadXml[A, B](reader; target: var OrderedTableRef[A, B]; tag: string)	
+writeXml	hmisc/hasts/xml_serde.html#writeXml,,array[R,V],string	xml_serde: writeXml[R, V](writer; table: array[R, V]; tag: string)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,array[R,V],string	xml_serde: loadXml[R, V](reader; target: var array[R, V]; tag: string)	
+writeXml	hmisc/hasts/xml_serde.html#writeXml,,Option[T],string	xml_serde: writeXml[T](writer; opt: Option[T]; tag: string)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,Option[T],string	xml_serde: loadXml[T](reader; target: var Option[T]; tag: string)	
+writeXml	hmisc/hasts/xml_serde.html#writeXml,,Slice[int],string	xml_serde: writeXml(writer; value: Slice[int]; tag: string)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,Slice[int],string	xml_serde: loadXml(reader; target: var Slice[int]; tag: string)	
+writeXml	hmisc/hasts/xml_serde.html#writeXml,,set[E],string	xml_serde: writeXml[E: enum](writer; values: set[E]; tag: string)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,E,string	xml_serde: loadXml[E: enum](reader; target: var E; tag: string)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,set[E],string	xml_serde: loadXml[E](reader; target: var set[E]; tag: string)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml.t,,seq[T],string,T,untyped	xml_serde: loadXml[T](reader; target: var seq[T]; tag: string; mixedStr: T;\n           fieldAsgn: untyped)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,string,string	xml_serde: loadXml(reader; target: var string; tag: string)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,AbsFile,string	xml_serde: loadXml(reader; target: var AbsFile; tag: string)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,XmlNode,string	xml_serde: loadXml(reader; target: var XmlNode; tag: string)	
+isDiscriminantField	hmisc/hasts/xml_serde.html#isDiscriminantField.m,typed,static[string]	xml_serde: isDiscriminantField(obj: typed; name: static[string]): untyped	
+writeXml	hmisc/hasts/xml_serde.html#writeXml,,T,string	xml_serde: writeXml[T: object](writer; target: T; tag: string)	
+writeXml	hmisc/hasts/xml_serde.html#writeXml,,T,string_2	xml_serde: writeXml[T: tuple](writer; target: T; tag: string)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,T,string	xml_serde: loadXml[T: object](reader; target: var T; tag: string)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,T,string_2	xml_serde: loadXml[T: tuple](reader; target: var T; tag: string)	
+writeXml	hmisc/hasts/xml_serde.html#writeXml,,T,string_3	xml_serde: writeXml[T: ref object](writer; target: T; tag: string)	
+writeXml	hmisc/hasts/xml_serde.html#writeXml,,T,string_4	xml_serde: writeXml[T: ref tuple](writer; target: T; tag: string)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,T,string_3	xml_serde: loadXml[T: ref object](reader; target: var T; tag: string)	
+loadXml	hmisc/hasts/xml_serde.html#loadXml,,T,string_4	xml_serde: loadXml[T: ref tuple](reader; target: var T; tag: string)	
+loadXmlDistinct	hmisc/hasts/xml_serde.html#loadXmlDistinct,,T,string	xml_serde: loadXmlDistinct[T: distinct](reader; target: var T; tag: string)	
+writeXmlDistinct	hmisc/hasts/xml_serde.html#writeXmlDistinct,,T,string	xml_serde: writeXmlDistinct[T: distinct](writer; target: T; tag: string)	
+xmlSerdeFor	hmisc/hasts/xml_serde.html#xmlSerdeFor.t,untyped,untyped,untyped	xml_serde: xmlSerdeFor(TypeName, readerCall, writerCall: untyped): untyped	
+fromXml	hmisc/hasts/xml_serde.html#fromXml,string,typedesc[T],string	xml_serde: fromXml[T](text: string; target: typedesc[T]; tag: string): T	
+toXml	hmisc/hasts/xml_serde.html#toXml,T,string	xml_serde: toXml[T](obj: T; tag: string): string	

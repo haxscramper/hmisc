@@ -1,0 +1,86 @@
+Layout	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#Layout	blockfmt: Layout	
+LytSolution	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#LytSolution	blockfmt: LytSolution	
+bkText	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#bkText	LytBlockKind.bkText	
+bkLine	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#bkLine	LytBlockKind.bkLine	
+bkChoice	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#bkChoice	LytBlockKind.bkChoice	
+bkStack	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#bkStack	LytBlockKind.bkStack	
+bkWrap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#bkWrap	LytBlockKind.bkWrap	
+bkVerb	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#bkVerb	LytBlockKind.bkVerb	
+bkEmpty	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#bkEmpty	LytBlockKind.bkEmpty	
+LytBlockKind	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#LytBlockKind	blockfmt: LytBlockKind	
+LytStr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#LytStr	blockfmt: LytStr	
+LytBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#LytBlock	blockfmt: LytBlock	
+LytOptions	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#LytOptions	blockfmt: LytOptions	
+OutConsole	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#OutConsole	blockfmt: OutConsole	
+len	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#len,LytStr	blockfmt: len(s: LytStr): int	
+treeRepr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#treeRepr,Layout,int	blockfmt: treeRepr(self: Layout; level: int = 0): ColoredText	
+treeRepr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#treeRepr,LytSolution,int	blockfmt: treeRepr(self: LytSolution; level: int = 0): ColoredText	
+printOn	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#printOn,Layout,OutConsole	blockfmt: printOn(self: Layout; buf: var OutConsole)	
+write	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#write,,Layout,int	blockfmt: write(stream: Stream | File; self: Layout; indent: int = 0)	
+debugOn	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#debugOn,Layout,string	blockfmt: debugOn(self: Layout; buf: var string): void	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#$,LayoutElement	blockfmt: `$`(le: LayoutElement): string	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#$,Layout	blockfmt: `$`(lt: Layout): string	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#$,LytSolution	blockfmt: `$`(sln: LytSolution): string	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#$,Option[LytSolution]	blockfmt: `$`(sln: Option[LytSolution]): string	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#$,LytBlock	blockfmt: `$`(blc: LytBlock): string	
+treeRepr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#treeRepr,LytBlock	blockfmt: treeRepr(inBl: LytBlock): string	
+len	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#len,LytBlock	blockfmt: len(blc: LytBlock): int	
+textLen	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#textLen,LytBlock	blockfmt: textLen(b: LytBlock): int	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#[],LytBlock,int	blockfmt: `[]`(blc: LytBlock; idx: int): LytBlock	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#[],LytBlock,int_2	blockfmt: `[]`(blc: var LytBlock; idx: int): var LytBlock	
+items	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#items.i,LytBlock	blockfmt: items(blc: LytBlock): LytBlock	
+pairs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#pairs.i,LytBlock	blockfmt: pairs(blc: LytBlock): (int, LytBlock)	
+mitems	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#mitems.i,LytBlock	blockfmt: mitems(blc: var LytBlock): var LytBlock	
+mpairs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#mpairs.i,LytBlock	blockfmt: mpairs(blc: var LytBlock): (int, var LytBlock)	
+makeBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#makeBlock,LytBlockKind,int	blockfmt: makeBlock(kind: LytBlockKind; breakMult: int = 1): LytBlock	
+makeTextBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#makeTextBlock,string,int	blockfmt: makeTextBlock(text: string; breakMult: int = 1): LytBlock	
+makeEmptyBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#makeEmptyBlock	blockfmt: makeEmptyBlock(): LytBlock	
+filterEmpty	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#filterEmpty,openArray[LytBlock]	blockfmt: filterEmpty(blocks: openArray[LytBlock]): seq[LytBlock]	
+makeTextBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#makeTextBlock,,int,bool	blockfmt: makeTextBlock(text: ColoredString | ColoredLine | ColoredRuneLine | string;\n              breakMult: int = 1; breaking: bool = false): LytBlock	
+makeTextBlocks	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#makeTextBlocks,openArray[string]	blockfmt: makeTextBlocks(text: openArray[string]): seq[LytBlock]	
+isEmpty	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#isEmpty,LytBlock	blockfmt: isEmpty(bl: LytBlock): bool	
+findSingle	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#findSingle.t,typed,typed	blockfmt: findSingle(elems: typed; targetKind: typed): untyped	
+convertBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#convertBlock,LytBlock,LytBlockKind	blockfmt: convertBlock(bk: LytBlock; newKind: LytBlockKind): LytBlock	
+flatten	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#flatten,LytBlock,set[LytBlockKind]	blockfmt: flatten(bl: LytBlock; kind: set[LytBlockKind]): LytBlock	
+makeChoiceBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#makeChoiceBlock,openArray[LytBlock],int,bool	blockfmt: makeChoiceBlock(elems: openArray[LytBlock]; breakMult: int = 1;\n                compact: bool = defaultCompact): LytBlock	
+makeLineBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#makeLineBlock,openArray[LytBlock],int,bool	blockfmt: makeLineBlock(elems: openArray[LytBlock]; breakMult: int = 1;\n              compact: bool = defaultCompact): LytBlock	
+makeIndentBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#makeIndentBlock,LytBlock,int,int	blockfmt: makeIndentBlock(blc: LytBlock; indent: int; breakMult: int = 1): LytBlock	
+makeStackBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#makeStackBlock,openArray[LytBlock],int,bool	blockfmt: makeStackBlock(elems: openArray[LytBlock]; breakMult: int = 1;\n               compact: bool = defaultCompact): LytBlock	
+makeWrapBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#makeWrapBlock,openArray[LytBlock],int,string	blockfmt: makeWrapBlock(elems: openArray[LytBlock]; breakMult: int = 1; sep: string = &quot;, &quot;): LytBlock	
+makeVerbBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#makeVerbBlock,openArray[S],bool,bool,int	blockfmt: makeVerbBlock[S: string | ColoredString | ColoredLine | ColoredRuneLine](\n    textLines: openArray[S]; breaking: bool = true; firstNl: bool = false;\n    breakMult: int = 1): LytBlock	
+makeTextOrStackTextBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#makeTextOrStackTextBlock,,bool,bool,int	blockfmt: makeTextOrStackTextBlock(text: string | ColoredString | ColoredLine |\n    seq[ColoredLine] |\n    ColoredText; breaking: bool = false; firstNl: bool = false;\n                         breakMult: int = 1): LytBlock	
+makeForceLinebreak	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#makeForceLinebreak,string	blockfmt: makeForceLinebreak(text: string = &quot;&quot;): LytBlock	
+makeLineCommentBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#makeLineCommentBlock,string,string	blockfmt: makeLineCommentBlock(text: string; prefix: string = &quot;# &quot;): LytBlock	
+add	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#add,LytBlock,varargs[LytBlock],bool	blockfmt: add(target: var LytBlock; other: varargs[LytBlock];\n    compact: bool = defaultCompact)	
+makeAlignedGrid	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#makeAlignedGrid,seq[seq[LytBlock]],openArray[tuple[int,int,StringAlignDirection]]	blockfmt: makeAlignedGrid(blocks: seq[seq[LytBlock]]; aligns: openArray[\n    tuple[leftPad, rightPad: int, direction: StringAlignDirection]]): LytBlock	
+makeAlignedGrid	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#makeAlignedGrid,seq[seq[LytBlock]],openArray[StringAlignDirection]	blockfmt: makeAlignedGrid(blocks: seq[seq[LytBlock]];\n                aligns: openArray[StringAlignDirection]): LytBlock	
+doOptLayout	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#doOptLayout,LytBlock,Option[LytSolution],LytOptions	blockfmt: doOptLayout(self: var LytBlock; rest: var Option[LytSolution]; opts: LytOptions): Option[\n    LytSolution]	
+defaultFormatOpts	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#defaultFormatOpts	blockfmt: defaultFormatOpts	
+blkLine	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#blkLine	LytBuilderKind.blkLine	
+blkStack	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#blkStack	LytBuilderKind.blkStack	
+blkText	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#blkText	LytBuilderKind.blkText	
+blkIndent	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#blkIndent	LytBuilderKind.blkIndent	
+blkSpace	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#blkSpace	LytBuilderKind.blkSpace	
+blkChoice	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#blkChoice	LytBuilderKind.blkChoice	
+blkEmpty	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#blkEmpty	LytBuilderKind.blkEmpty	
+blkWrap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#blkWrap	LytBuilderKind.blkWrap	
+LytBuilderKind	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#LytBuilderKind	blockfmt: LytBuilderKind	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#[],static[LytBuilderKind],seq[LytBlock],string	blockfmt: `[]`(b: static[LytBuilderKind]; s: seq[LytBlock]; sep: string = &quot;, &quot;): LytBlock	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#[],static[LytBuilderKind],LytBlock,varargs[LytBlock]	blockfmt: `[]`(b: static[LytBuilderKind]; bl: LytBlock; args: varargs[LytBlock]): LytBlock	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#[],static[LytBuilderKind],,bool	blockfmt: `[]`(b: static[LytBuilderKind];\n     a: string | ColoredString | ColoredLine | seq[ColoredLine] | ColoredText;\n     breaking: bool = false): LytBlock	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#[],static[LytBuilderKind],int	blockfmt: `[]`(b: static[LytBuilderKind]; tlen: int = 1): LytBlock	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#[],static[LytBuilderKind],int,LytBlock	blockfmt: `[]`(b: static[LytBuilderKind]; i: int; bl: LytBlock): LytBlock	
+`&amp;?`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#&?,LytBlock,tuple[bool,LytBlock]	blockfmt: `&amp;?`(bl: LytBlock; added: tuple[condOk: bool, bl: LytBlock]): LytBlock	
+`??`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#??,LytBlock,bool	blockfmt: `??`(bl: LytBlock; condOk: bool): LytBlock	
+`??`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#??,tuple[LytBlock,LytBlock],bool	blockfmt: `??`(blocks: tuple[ok, fail: LytBlock]; condOk: bool): LytBlock	
+condOr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#condOr,bool,LytBlock,LytBlock	blockfmt: condOr(cond: bool; ok: LytBlock; fail: LytBlock = makeEmptyBlock()): LytBlock	
+join	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#join,LytBlock,LytBlock,bool	blockfmt: join(blocks: LytBlock; sep: LytBlock; vertLines: bool = true): LytBlock	
+join	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#join,seq[LytBlock],LytBlock,LytBlockKind	blockfmt: join(blocks: seq[LytBlock]; sep: LytBlock; direction: LytBlockKind): LytBlock	
+addItBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#addItBlock.t,LytBlock,typed,untyped,LytBlock	blockfmt: addItBlock(res: LytBlock; item: typed; expr: untyped; join: LytBlock): untyped	
+joinItBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#joinItBlock.t,LytBlockKind,typed,untyped,LytBlock	blockfmt: joinItBlock(direction: LytBlockKind; item: typed; expr: untyped; join: LytBlock): untyped	
+joinItLine	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#joinItLine.t,typed,untyped,LytBlock	blockfmt: joinItLine(item: typed; expr: untyped; join: LytBlock): untyped	
+toLayouts	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#toLayouts,LytBlock,LytOptions	blockfmt: toLayouts(bl: LytBlock; opts: LytOptions = defaultFormatOpts): seq[Layout]	
+toString	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#toString,LytBlock,int,LytOptions	blockfmt: toString(bl: LytBlock; rightMargin: int = 80;\n         opts: LytOptions = defaultFormatOpts): ColoredText	
+codegenRepr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#codegenRepr,LytBlock,int	blockfmt: codegenRepr(inBl: LytBlock; indent: int = 0): string	
+pyCodegenRepr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#pyCodegenRepr,LytBlock,int,string,bool,bool,bool,bool	blockfmt: pyCodegenRepr(inBl: LytBlock; indent: int = 0; nimpref: string = &quot;&quot;;\n              prelude: bool = false; colortext: bool = false;\n              colored: bool = false; makeTextOrVerb: bool = false): string	
+initBlockFmtDSL	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/other/blockfmt.html#initBlockFmtDSL.t	blockfmt: initBlockFmtDSL()	

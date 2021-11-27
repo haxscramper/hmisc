@@ -1,0 +1,10 @@
+Trie	hmisc/types/htrie.html#Trie	htrie: Trie	
+`[]`	hmisc/types/htrie.html#[],Trie[Key,Val],openArray[Key]	htrie: `[]`[Key, Val](trie: Trie[Key, Val]; path: openArray[Key]): Val	
+`[]`	hmisc/types/htrie.html#[],Trie[Key,Val],openArray[Key]_2	htrie: `[]`[Key, Val](trie: var Trie[Key, Val]; path: openArray[Key]): var Val	
+`[]=`	hmisc/types/htrie.html#[]=,Trie[Key,Val],openArray[Key],Val	htrie: `[]=`[Key, Val](trie: var Trie[Key, Val]; path: openArray[Key]; val: Val)	
+prefixHasValue	hmisc/types/htrie.html#prefixHasValue,Trie[Key,Val],openArray[Key]	htrie: prefixHasValue[Key, Val](trie: Trie[Key, Val]; path: openArray[Key]): bool	
+prefixedValues	hmisc/types/htrie.html#prefixedValues.i,Trie[Key,Val],openArray[Key],bool	htrie: prefixedValues[Key, Val](trie: Trie[Key, Val]; path: openArray[Key];\n                         topDown: bool = true): Val	
+paths	hmisc/types/htrie.html#paths,Trie[Key,Val]	htrie: paths[Key, Val](trie: Trie[Key, Val]): seq[seq[Key]]	
+contains	hmisc/types/htrie.html#contains,Trie[Key,Val],openArray[Key]	htrie: contains[Key, Val](trie: Trie[Key, Val]; path: openArray[Key]): bool	
+merge	hmisc/types/htrie.html#merge,Trie[Key,Val],Trie[Key,Val]	htrie: merge[Key, Val](trie: var Trie[Key, Val]; other: Trie[Key, Val]): void	
+merge	hmisc/types/htrie.html#merge,Trie[Key,Val],Trie[Key,Val]_2	htrie: merge[Key, Val](trie: Trie[Key, Val]; other: Trie[Key, Val]): Trie[Key, Val]	

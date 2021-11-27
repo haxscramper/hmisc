@@ -1,0 +1,54 @@
+disjointIter	hmisc/algo/halgorithm.html#disjointIter.m,typed	halgorithm: disjointIter(x: typed): untyped	
+LenIndexable	hmisc/algo/halgorithm.html#LenIndexable	halgorithm: LenIndexable	
+rmpairs	hmisc/algo/halgorithm.html#rmpairs.i,LenIndexable[T]	halgorithm: rmpairs[T](s: var LenIndexable[T]): (int, var T)	
+ritems	hmisc/algo/halgorithm.html#ritems.i,LenIndexable[T]	halgorithm: ritems[T](s: var LenIndexable[T]): var T	
+ritems	hmisc/algo/halgorithm.html#ritems.i,Slice[int]	halgorithm: ritems(slice: Slice[int]): int	
+rpairs	hmisc/algo/halgorithm.html#rpairs.i,T	halgorithm: rpairs[T](s: T): auto	
+rfind	hmisc/algo/halgorithm.html#rfind,T,Q	halgorithm: rfind[T, Q](s: T; item: Q): int	
+rfindByKind	hmisc/algo/halgorithm.html#rfindByKind,T,	halgorithm: rfindByKind[T; K: enum](s: T; kind: K | set[K]): auto	
+ritems	hmisc/algo/halgorithm.html#ritems.i,openArray[T]	halgorithm: ritems[T](s: openArray[T]): T	
+rmitems	hmisc/algo/halgorithm.html#rmitems.i,seq[T]	halgorithm: rmitems[T](s: var seq[T]): var T	
+itemsIsFirst	hmisc/algo/halgorithm.html#itemsIsFirst.i,T	halgorithm: itemsIsFirst[T](s: T): auto	
+mitemsIsFirst	hmisc/algo/halgorithm.html#mitemsIsFirst.i,seq[T]	halgorithm: mitemsIsFirst[T](s: var seq[T]): (bool, var T)	
+mitemsIsLast	hmisc/algo/halgorithm.html#mitemsIsLast.i,seq[T]	halgorithm: mitemsIsLast[T](s: var seq[T]): (bool, var T)	
+itemsIsLast	hmisc/algo/halgorithm.html#itemsIsLast.i,T	halgorithm: itemsIsLast[T](s: T): auto	
+itemsIsFirstLast	hmisc/algo/halgorithm.html#itemsIsFirstLast.i,LenIndexable[T]	halgorithm: itemsIsFirstLast[T](s: LenIndexable[T]): tuple[isFirst, isLast: bool, val: T]	
+zip	hmisc/algo/halgorithm.html#zip.i,LenIndexable[T1],LenIndexable[T2],LenIndexable[T3],LenIndexable[T4],LenIndexable[T5]	halgorithm: zip[T1, T2, T3, T4, T5](s1: LenIndexable[T1]; s2: LenIndexable[T2];\n                        s3: LenIndexable[T3]; s4: LenIndexable[T4];\n                        s5: LenIndexable[T5]): tuple[v1: T1, v2: T2, v3: T3,\n    v4: T4, v5: T5]	
+emptySeq	hmisc/algo/halgorithm.html#emptySeq	halgorithm: emptySeq[T](): seq[T]	
+enumerate	hmisc/algo/halgorithm.html#enumerate,openArray[T]	halgorithm: enumerate[T](s: openArray[T]): seq[(int, T)]	
+splitList	hmisc/algo/halgorithm.html#splitList,openArray[T]	halgorithm: splitList[T](s: openArray[T]): (T, seq[T])	
+last	hmisc/algo/halgorithm.html#last.t,seq[T]	halgorithm: last[T](stack: var seq[T]): var T	
+last	hmisc/algo/halgorithm.html#last.t,seq[T]_2	halgorithm: last[T](stack: seq[T]): T	
+last2	hmisc/algo/halgorithm.html#last2.t,seq[seq[T]]	halgorithm: last2[T](stack: var seq[seq[T]]): var T	
+last2	hmisc/algo/halgorithm.html#last2.t,seq[seq[T]]_2	halgorithm: last2[T](stack: seq[seq[T]]): T	
+matchWith	hmisc/algo/halgorithm.html#matchWith,K,seq[tuple[seq[K],V]]	halgorithm: matchWith[K, V](val: K; tbl: seq[tuple[k: seq[K], v: V]]): Option[V]	
+isSubseq	hmisc/algo/halgorithm.html#isSubseq,openArray[T],openArray[T]	halgorithm: isSubseq[T](subseq, inseq: openArray[T]): bool	
+dropSubseq	hmisc/algo/halgorithm.html#dropSubseq,openArray[T],openArray[T]	halgorithm: dropSubseq[T](inseq, subseq: openArray[T]): seq[T]	
+dropLongestSubseq	hmisc/algo/halgorithm.html#dropLongestSubseq,seq[T],seq[seq[T]]	halgorithm: dropLongestSubseq[T](inseq: seq[T]; subseqs: seq[seq[T]]): seq[T]	
+dropLongestSubseq	hmisc/algo/halgorithm.html#dropLongestSubseq,string,seq[string]	halgorithm: dropLongestSubseq(inseq: string; inseqs: seq[string]): string	
+dropSubstr	hmisc/algo/halgorithm.html#dropSubstr,string,string	halgorithm: dropSubstr(instr, substr: string): string	
+dropLowerPrefix	hmisc/algo/halgorithm.html#dropLowerPrefix,sinkstring	halgorithm: dropLowerPrefix(str: sink string): string	
+`==`	hmisc/algo/halgorithm.html#==,Option[T],T	halgorithm: `==`[T](opt: Option[T]; val: T): bool	
+`==`	hmisc/algo/halgorithm.html#==,,	halgorithm: `==`[A, B](tpl: (Option[A], Option[B]); tpl1: (A, B)): bool	
+ifSomeIt	hmisc/algo/halgorithm.html#ifSomeIt.t,Option[T],untyped	halgorithm: ifSomeIt[T](opt: Option[T]; predicate: untyped): bool	
+getSome	hmisc/algo/halgorithm.html#getSome.t,Option[T],untyped	halgorithm: getSome[T](opt: Option[T]; injected: untyped): bool	
+mapSomeIt	hmisc/algo/halgorithm.html#mapSomeIt.t,Option[T],untyped	halgorithm: mapSomeIt[T](opt: Option[T]; expr: untyped): untyped	
+MarkTable	hmisc/algo/halgorithm.html#MarkTable	halgorithm: MarkTable	
+nextVal	hmisc/algo/halgorithm.html#nextVal,set[E]	halgorithm: nextVal[E](used: var set[E]): E	
+getMark	hmisc/algo/halgorithm.html#getMark,MarkTable[K,E],K	halgorithm: getMark[K, E](marks: var MarkTable[K, E]; value: K): E	
+nextRandVal	hmisc/algo/halgorithm.html#nextRandVal,set[E]	halgorithm: nextRandVal[E](used: var set[E]): E	
+getRandMark	hmisc/algo/halgorithm.html#getRandMark,MarkTable[K,E],K	halgorithm: getRandMark[K, E](marks: var MarkTable[K, E]; value: K): E	
+mapChar	hmisc/algo/halgorithm.html#mapChar,char,static[openArray[tuple[char,Cat]]]	halgorithm: mapChar[Cat: enum](ch: char; map: static[openArray[tuple[key: char, val: Cat]]]): Cat	
+snkNoNormalization	hmisc/algo/halgorithm.html#snkNoNormalization	StrNormalizationKind.snkNoNormalization	
+snkNimNormalize	hmisc/algo/halgorithm.html#snkNimNormalize	StrNormalizationKind.snkNimNormalize	
+snkFullNormalize	hmisc/algo/halgorithm.html#snkFullNormalize	StrNormalizationKind.snkFullNormalize	
+snkCaseNormalize	hmisc/algo/halgorithm.html#snkCaseNormalize	StrNormalizationKind.snkCaseNormalize	
+StrNormalizationKind	hmisc/algo/halgorithm.html#StrNormalizationKind	halgorithm: StrNormalizationKind	
+EnumParseError	hmisc/algo/halgorithm.html#EnumParseError	halgorithm: EnumParseError	
+normalize	hmisc/algo/halgorithm.html#normalize,string,StrNormalizationKind	halgorithm: normalize(str: string; kind: StrNormalizationKind): string	
+parseEnum	hmisc/algo/halgorithm.html#parseEnum,array[E,string],string,StrNormalizationKind,bool	halgorithm: parseEnum[E: enum](map: array[E, string]; str: string;\n                   normalize: StrNormalizationKind = snkNimNormalize;\n                   optionalPrefix: bool = true): E	
+curry1	hmisc/algo/halgorithm.html#curry1,proc(A,B),A	halgorithm: curry1[A, B, C](arg: proc (a: A; b: B): C; a: A): proc (b: B): C	
+curry2	hmisc/algo/halgorithm.html#curry2,proc(A,B),B	halgorithm: curry2[A, B, C](arg: proc (a: A; b: B): C; b: B): proc (a: A): C	
+matchProc1	hmisc/algo/halgorithm.html#matchProc1.t,untyped	halgorithm: matchProc1[A, B](pr: untyped): proc (a: A): B	
+matchProc2	hmisc/algo/halgorithm.html#matchProc2.t,untyped	halgorithm: matchProc2[A, B, C](pr: untyped): proc (a: A; b: B): C	
+matchCurry2	hmisc/algo/halgorithm.html#matchCurry2.t,typed,B,untyped	halgorithm: matchCurry2[B](tA: typed; val: B; pr: untyped): untyped	

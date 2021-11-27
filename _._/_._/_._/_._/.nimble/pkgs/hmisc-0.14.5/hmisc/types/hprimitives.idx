@@ -1,0 +1,83 @@
+colNoColor	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#colNoColor	hprimitives: colNoColor	
+StrBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#StrBlock	hprimitives: StrBlock	
+toBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#toBlock,string	hprimitives: toBlock(s: string): StrBlock	
+toBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#toBlock,seq[string]	hprimitives: toBlock(s: seq[string]): StrBlock	
+height	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#height,StrBlock	hprimitives: height(s: StrBlock): int	
+width	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#width,StrBlock	hprimitives: width(s: StrBlock): int	
+RuneSeq	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#RuneSeq	hprimitives: RuneSeq	
+RuneBlock	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#RuneBlock	hprimitives: RuneBlock	
+toRunes	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#toRunes,StrBlock	hprimitives: toRunes(s: StrBlock): RuneBlock	
+toRune	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#toRune.c,char	hprimitives: toRune(c: char): Rune	
+whitespaceRune	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#whitespaceRune	hprimitives: whitespaceRune	
+emptyRune	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#emptyRune	hprimitives: emptyRune	
+ArrSize	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#ArrSize	hprimitives: ArrSize	
+size1x1	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#size1x1	hprimitives: size1x1	
+width	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#width,ArrSize	hprimitives: width(size: ArrSize): int	
+height	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#height,ArrSize	hprimitives: height(size: ArrSize): int	
+makeArrSize	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#makeArrSize,int,int	hprimitives: makeArrSize(w, h: int): ArrSize	
+makeArrSize	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#makeArrSize	hprimitives: makeArrSize(widthHeight: (int, int)): ArrSize	
+ArrRange	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#ArrRange	hprimitives: ArrRange	
+makeArrRange	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#makeArrRange,int,int	hprimitives: makeArrRange(a, b: int): ArrRange	
+toRange	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#toRange,int,int	hprimitives: toRange(a, b: int): ArrRange	
+toArrRange	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#toArrRange,int,int	hprimitives: toArrRange(a, b: int): ArrRange	
+hash	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#hash,ArrRange	hprimitives: hash(r: ArrRange): Hash	
+decRight	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#decRight,ArrRange,int	hprimitives: decRight(r: ArrRange; diff: int = 1): ArrRange	
+incLeft	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#incLeft,ArrRange,int	hprimitives: incLeft(r: ArrRange; diff: int = 1): ArrRange	
+contains	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#contains,ArrRange,int	hprimitives: contains(r: ArrRange; item: int): bool	
+middles	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#middles,ArrRange	hprimitives: middles(r: ArrRange): int	
+isPoint	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#isPoint,ArrRange	hprimitives: isPoint(r: ArrRange): bool	
+unpack	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#unpack,ArrRange	hprimitives: unpack(r: ArrRange): (int, int)	
+point	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#point,ArrRange	hprimitives: point(r: ArrRange): int	
+sumjoin	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#sumjoin,openArray[int],ArrRange,int	hprimitives: sumjoin(a: openArray[int]; r: ArrRange; sep: int): int	
+isValid	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#isValid,ArrRange	hprimitives: isValid(r: ArrRange): bool	
+overlap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#overlap,ArrRange,ArrRange	hprimitives: overlap(r1, r2: ArrRange): ArrRange	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#$,ArrRange	hprimitives: `$`(r: ArrRange): string	
+len	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#len,ArrRange	hprimitives: len(r: ArrRange): int	
+contains	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#contains,Slice[int],ArrRange	hprimitives: contains(sl: Slice[int]; arr: ArrRange): bool	
+hasOverlap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#hasOverlap,ArrRange,ArrRange	hprimitives: hasOverlap(a, b: ArrRange): bool	
+geCmpPositions	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#geCmpPositions,ArrRange,ArrRange	hprimitives: geCmpPositions(lhs, rhs: ArrRange): bool	
+geqCmpPositions	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#geqCmpPositions,ArrRange,ArrRange	hprimitives: geqCmpPositions(lhs, rhs: ArrRange): bool	
+leCmpPositions	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#leCmpPositions,ArrRange,ArrRange	hprimitives: leCmpPositions(lhs, rhs: ArrRange): bool	
+leqCmpPositions	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#leqCmpPositions,ArrRange,ArrRange	hprimitives: leqCmpPositions(lhs, rhs: ArrRange): bool	
+items	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#items.i,ArrRange	hprimitives: items(r: ArrRange): int	
+items	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#items.i	hprimitives: items(r: (ArrRange, ArrRange)): (int, int)	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#[].i,seq[T],ArrRange	hprimitives: `[]`[T](s: seq[T]; r: ArrRange): T	
+inrange	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#inrange.i,seq[int],ArrRange,int,int	hprimitives: inrange(s: seq[int]; r: ArrRange; lDiff, rDiff: int = 0): int	
+ArrPos	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#ArrPos	hprimitives: ArrPos	
+makeArrPos	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#makeArrPos,int,int	hprimitives: makeArrPos(row, col: int): ArrPos	
+makeArrPos	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#makeArrPos	hprimitives: makeArrPos(pos: (int, int)): ArrPos	
+toPos	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#toPos,int,int	hprimitives: toPos(row, col: int): ArrPos	
+isValid	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#isValid,ArrPos	hprimitives: isValid(pos: ArrPos): bool	
+expandSize	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#expandSize,ArrPos,ArrSize	hprimitives: expandSize(pos: ArrPos; size: ArrSize): ArrSize	
+shiftRC	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#shiftRC,ArrPos,int,int	hprimitives: shiftRC(pos: ArrPos; dRow: int = 1; dCol: int = 1): ArrPos	
+shiftRc	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#shiftRc,ArrPos,(int, int)	hprimitives: shiftRc(pos: ArrPos; dRC: (int, int) = (1, 1)): ArrPos	
+shiftC	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#shiftC,ArrPos,int	hprimitives: shiftC(pos: ArrPos; dCol: int = 1): ArrPos	
+shiftR	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#shiftR,ArrPos,int	hprimitives: shiftR(pos: ArrPos; dRow: int = 1): ArrPos	
+toArrPos	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#toArrPos.c	hprimitives: toArrPos(pos: (int, int)): ArrPos	
+toArrSize	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#toArrSize,ArrPos	hprimitives: toArrSize(pos: ArrPos): ArrSize	
+unpack	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#unpack,ArrPos	hprimitives: unpack(pos: ArrPos): tuple[row, col: int]	
+rpLeft	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#rpLeft	RelPos.rpLeft	
+rpRight	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#rpRight	RelPos.rpRight	
+rpBottom	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#rpBottom	RelPos.rpBottom	
+rpTop	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#rpTop	RelPos.rpTop	
+RelPos	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#RelPos	hprimitives: RelPos	
+toDiffRC	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#toDiffRC,RelPos	hprimitives: toDiffRC(rp: RelPos): (int, int)	
+ArrRect	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#ArrRect	hprimitives: ArrRect	
+makeArrRect	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#makeArrRect,,int,int	hprimitives: makeArrRect(pos: (int, int); w, h: int): ArrRect	
+makeArrRect	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#makeArrRect,,ArrSize	hprimitives: makeArrRect(pos: (int, int); size: ArrSize): ArrRect	
+makeArrRect	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#makeArrRect,ArrPos,ArrSize	hprimitives: makeArrRect(pos: ArrPos; size: ArrSize): ArrRect	
+rowRange	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#rowRange,ArrRect	hprimitives: rowRange(rect: ArrRect): ArrRange	
+colRange	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#colRange,ArrRect	hprimitives: colRange(rect: ArrRect): ArrRange	
+itercells	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#itercells.i,ArrRect	hprimitives: itercells(rect: ArrRect): (int, int)	
+rowRange	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#rowRange,ArrPos,ArrSize	hprimitives: rowRange(pos: ArrPos; size: ArrSize): ArrRange	
+colRange	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#colRange,ArrPos,ArrSize	hprimitives: colRange(pos: ArrPos; size: ArrSize): ArrRange	
+TreePath	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#TreePath	hprimitives: TreePath	
+rootTreePath	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#rootTreePath	hprimitives: rootTreePath	
+pathTail	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#pathTail,TreePath	hprimitives: pathTail(path: TreePath): TreePath	
+`&amp;`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#&,TreePath,int	hprimitives: `&amp;`(path: TreePath; newIdx: int): TreePath	
+followPath	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#followPath,T,TreePath	hprimitives: followPath[T](node: T; path: TreePath): T	
+followPathPtr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#followPathPtr,T,TreePath	hprimitives: followPathPtr[T](node: T; path: TreePath): ptr T	
+followPathPtr	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#followPathPtr,T,TreePath_2	hprimitives: followPathPtr[T](node: var T; path: TreePath): ptr T	
+EqCmpProc	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#EqCmpProc	hprimitives: EqCmpProc	
+ScoreProc	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#ScoreProc	hprimitives: ScoreProc	
+ScoreCmpProc	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hprimitives.html#ScoreCmpProc	hprimitives: ScoreCmpProc	

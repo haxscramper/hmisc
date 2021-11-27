@@ -1,0 +1,27 @@
+toString	hmisc/hasts/openscad_ast.html#toString,ScadNode	openscad_ast: toString(node: ScadNode): string	
+makeScadComment	hmisc/hasts/openscad_ast.html#makeScadComment,string	openscad_ast: makeScadComment(text: string): ScadNode	
+makeScadInclude	hmisc/hasts/openscad_ast.html#makeScadInclude,string	openscad_ast: makeScadInclude(path: string): ScadNode	
+makeScadVar	hmisc/hasts/openscad_ast.html#makeScadVar,string,string	openscad_ast: makeScadVar(name, defValue: string): ScadNode	
+makeScadModule	hmisc/hasts/openscad_ast.html#makeScadModule,string,openArray[ScadNode],varargs[tuple[string,string]]	openscad_ast: makeScadModule(name: string; body: openArray[ScadNode];\n               args: varargs[tuple[key, val: string]]): ScadNode	
+makeGroup	hmisc/hasts/openscad_ast.html#makeGroup,openArray[ScadNode],GroupModeType	openscad_ast: makeGroup(elements: openArray[ScadNode]; gType: GroupModeType = gmtRegular): ScadNode	
+makeGroupWith	hmisc/hasts/openscad_ast.html#makeGroupWith,ScadNode,openArray[ScadNode],bool	openscad_ast: makeGroupWith(node: ScadNode; other: openArray[ScadNode]; reverse: bool = false): ScadNode	
+addComment	hmisc/hasts/openscad_ast.html#addComment,ScadNode,string	openscad_ast: addComment(node: ScadNode; comment: string): ScadNode	
+wrapComment	hmisc/hasts/openscad_ast.html#wrapComment,ScadNode,string	openscad_ast: wrapComment(node: ScadNode; comment: string): ScadNode	
+makeScad	hmisc/hasts/openscad_ast.html#makeScad,string,varargs[tuple[string,string]]	openscad_ast: makeScad(name: string; params: varargs[tuple[key, val: string]]): ScadNode	
+makeScadTree	hmisc/hasts/openscad_ast.html#makeScadTree,string,openArray[ScadNode],varargs[tuple[string,string]]	openscad_ast: makeScadTree(name: string; children: openArray[ScadNode];\n             params: varargs[tuple[key, val: string]]): ScadNode	
+setColor	hmisc/hasts/openscad_ast.html#setColor,ScadNode,float,float,float,float	openscad_ast: setColor(node: ScadNode; r = 0.0; g = 0.0; b = 0.0; a = 1.0): ScadNode	
+setColor	hmisc/hasts/openscad_ast.html#setColor,ScadNode,string,float	openscad_ast: setColor(node: ScadNode; colorname: string; a = 1.0): ScadNode	
+scadOperator	hmisc/hasts/openscad_ast.html#scadOperator,ScadNode,string,varargs[tuple[string,string]]	openscad_ast: scadOperator(node: ScadNode; name: string;\n             params: varargs[tuple[key, val: string]]): ScadNode	
+scadTranslate	hmisc/hasts/openscad_ast.html#scadTranslate,ScadNode,float,float,float	openscad_ast: scadTranslate(node: ScadNode; x = 0.0; y = 0.0; z = 0.0): ScadNode	
+scadTranslate	hmisc/hasts/openscad_ast.html#scadTranslate,ScadNode,string	openscad_ast: scadTranslate(node: ScadNode; pos: string): ScadNode	
+scadTranslate	hmisc/hasts/openscad_ast.html#scadTranslate,ScadNode,Vec3	openscad_ast: scadTranslate(node: ScadNode; pos: Vec3): ScadNode	
+scadTranslate	hmisc/hasts/openscad_ast.html#scadTranslate,ScadNode,Vec	openscad_ast: scadTranslate(node: ScadNode; pos: Vec): ScadNode	
+scadRotate	hmisc/hasts/openscad_ast.html#scadRotate,ScadNode,,float,float,float	openscad_ast: scadRotate(node: ScadNode; angle: float | string; x = 0.0; y = 0.0; z = 1.0): ScadNode	
+scadSubtract	hmisc/hasts/openscad_ast.html#scadSubtract,ScadNode,varargs[ScadNode]	openscad_ast: scadSubtract(node: ScadNode; subtract: varargs[ScadNode]): ScadNode	
+scadSubtract	hmisc/hasts/openscad_ast.html#scadSubtract,ScadNode,seq[ScadNode],string	openscad_ast: scadSubtract(node: ScadNode; subtract: seq[ScadNode]; traceColor: string): ScadNode	
+scadSubtract	hmisc/hasts/openscad_ast.html#scadSubtract,ScadNode,ScadNode,string	openscad_ast: scadSubtract(node: ScadNode; subtract: ScadNode; traceColor: string): ScadNode	
+scadUnion	hmisc/hasts/openscad_ast.html#scadUnion,ScadNode,varargs[ScadNode]	openscad_ast: scadUnion(node: ScadNode; subtract: varargs[ScadNode]): ScadNode	
+`$`	hmisc/hasts/openscad_ast.html#$,Size3	openscad_ast: `$`(size: Size3): string	
+makeCube	hmisc/hasts/openscad_ast.html#makeCube,Size3,bool	openscad_ast: makeCube(size: Size3; center: bool = false): ScadNode	
+makeCube	hmisc/hasts/openscad_ast.html#makeCube,Size3,Vec3	openscad_ast: makeCube(size: Size3; center: Vec3): ScadNode	
+makeCube	hmisc/hasts/openscad_ast.html#makeCube,float,float,float	openscad_ast: makeCube(w, d, h: float): ScadNode	

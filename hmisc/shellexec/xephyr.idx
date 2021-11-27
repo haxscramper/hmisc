@@ -1,0 +1,11 @@
+xephyrf_hostCursor	hmisc/shellexec/xephyr.html#xephyrf_hostCursor	XephyrCommandFlag.xephyrf_hostCursor	
+xephyrf_Resizeable	hmisc/shellexec/xephyr.html#xephyrf_Resizeable	XephyrCommandFlag.xephyrf_Resizeable	
+xephurf_noHostGrab	hmisc/shellexec/xephyr.html#xephurf_noHostGrab	XephyrCommandFlag.xephurf_noHostGrab	
+xephyrf_Retro	hmisc/shellexec/xephyr.html#xephyrf_Retro	XephyrCommandFlag.xephyrf_Retro	
+xephyrf_SwCursor	hmisc/shellexec/xephyr.html#xephyrf_SwCursor	XephyrCommandFlag.xephyrf_SwCursor	
+XephyrCommandFlag	hmisc/shellexec/xephyr.html#XephyrCommandFlag	xephyr: XephyrCommandFlag	
+xephyrCommandStrings	hmisc/shellexec/xephyr.html#xephyrCommandStrings	xephyr: xephyrCommandStrings	
+toShellCmd	hmisc/shellexec/xephyr.html#toShellCmd,XephyrCommand	xephyr: toShellCmd(cmd: XephyrCommand): ShellCmd	
+start	hmisc/shellexec/xephyr.html#start,XephyrCommand	xephyr: start(cmd: XephyrCommand): Process	
+findXephyr	hmisc/shellexec/xephyr.html#findXephyr	xephyr: findXephyr(): Option[(Pid, seq[string])]	
+withXephyr	hmisc/shellexec/xephyr.html#withXephyr.t,untyped	xephyr: withXephyr(body: untyped): untyped	

@@ -1,0 +1,156 @@
+Map	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#Map	hmap: Map	
+MapRef	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#MapRef	hmap: MapRef	
+initMap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#initMap,int	hmap: initMap[A, B](initialSize = 0): Map[A, B]	
+toMap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#toMap,openArray[]	hmap: toMap[A, B](pairs: openArray[(A, B)]): Map[A, B]	
+getOrDefault	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#getOrDefault,Map[A,B],A	hmap: getOrDefault[A, B](t: Map[A, B]; x: A): B	
+getOrDefault	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#getOrDefault,Map[A,B],A,B	hmap: getOrDefault[A, B](t: Map[A, B]; x: A; default: B): B	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#[],Map[A,B],A	hmap: `[]`[A, B](t: Map[A, B]; x: A): B	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#[],Map[A,B],A_2	hmap: `[]`[A, B](t: var Map[A, B]; x: A): var B	
+hasKey	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#hasKey,Map[A,B],A	hmap: hasKey[A, B](t: Map[A, B]; x: A): bool	
+contains	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#contains,Map[A,B],A	hmap: contains[A, B](t: Map[A, B]; x: A): bool	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#[]=,Map[A,B],A,B	hmap: `[]=`[A, B](t: var Map[A, B]; key: A; val: B)	
+hasKeyOrPut	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#hasKeyOrPut,Map[A,B],A,B	hmap: hasKeyOrPut[A, B](t: var Map[A, B]; key: A; val: B): bool	
+mgetOrPut	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#mgetOrPut,Map[A,B],A,B	hmap: mgetOrPut[A, B](t: var Map[A, B]; key: A; val: B): var B	
+del	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#del,Map[A,B],A	hmap: del[A, B](t: var Map[A, B]; key: A)	
+pop	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#pop,Map[A,B],A,B	hmap: pop[A, B](t: var Map[A, B]; key: A; val: var B): bool	
+take	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#take,Map[A,B],A,B	hmap: take[A, B](t: var Map[A, B]; key: A; val: var B): bool	
+clear	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#clear,Map[A,B]	hmap: clear[A, B](t: var Map[A, B])	
+len	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#len,Map[A,B]	hmap: len[A, B](t: Map[A, B]): int	
+keys	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#keys.i,Map[A,B]	hmap: keys[A, B](t: Map[A, B]): A	
+keysFrom	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#keysFrom.i,Map[A,B],A	hmap: keysFrom[A, B](b: Map[A, B]; fromKey: A): A	
+keysBetween	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#keysBetween.i,Map[A,B],A,A	hmap: keysBetween[A, B](b: Map[A, B]; fromKey: A; toKey: A): A	
+values	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#values.i,Map[A,B]	hmap: values[A, B](t: Map[A, B]): B	
+mvalues	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#mvalues.i,Map[A,B]	hmap: mvalues[A, B](t: var Map[A, B]): var B	
+valuesFrom	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#valuesFrom.i,Map[A,B],A	hmap: valuesFrom[A, B](b: Map[A, B]; fromKey: A): B	
+valuesBetween	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#valuesBetween.i,Map[A,B],A,A	hmap: valuesBetween[A, B](b: Map[A, B]; fromKey: A; toKey: A): B	
+pairs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#pairs.i,Map[A,B]	hmap: pairs[A, B](t: Map[A, B]): (A, B)	
+mpairs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#mpairs.i,Map[A,B]	hmap: mpairs[A, B](t: var Map[A, B]): (A, var B)	
+pairsFrom	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#pairsFrom.i,Map[A,B],A	hmap: pairsFrom[A, B](b: Map[A, B]; fromKey: A): tuple[key: A, val: B]	
+pairsBetween	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#pairsBetween.i,Map[A,B],A,A	hmap: pairsBetween[A, B](b: Map[A, B]; fromKey: A; toKey: A): tuple[key: A, val: B]	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#$,Map[A,B]	hmap: `$`[A, B](t: Map[A, B]): string	
+`==`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#==,Map[A,B],Map[A,B]	hmap: `==`[A, B](a, b: Map[A, B]): bool	
+newMap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#newMap	hmap: newMap[A, B](): MapRef[A, B]	
+newMap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#newMap,openArray[]	hmap: newMap[A, B](pairs: openArray[(A, B)]): MapRef[A, B]	
+newMapFrom	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#newMapFrom,A,proc(B)	hmap: newMapFrom[A, B, C](collection: A; index: proc (x: B): C): MapRef[C, B]	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#[],MapRef[A,B],A	hmap: `[]`[A, B](t: MapRef[A, B]; key: A): var B	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#[]=,MapRef[A,B],A,B	hmap: `[]=`[A, B](t: MapRef[A, B]; key: A; val: B)	
+hasKey	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#hasKey,MapRef[A,B],A	hmap: hasKey[A, B](t: MapRef[A, B]; key: A): bool	
+contains	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#contains,MapRef[A,B],A	hmap: contains[A, B](t: MapRef[A, B]; key: A): bool	
+hasKeyOrPut	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#hasKeyOrPut,MapRef[A,B],A,B	hmap: hasKeyOrPut[A, B](t: var MapRef[A, B]; key: A; val: B): bool	
+getOrDefault	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#getOrDefault,MapRef[A,B],A	hmap: getOrDefault[A, B](t: MapRef[A, B]; key: A): B	
+getOrDefault	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#getOrDefault,MapRef[A,B],A,B	hmap: getOrDefault[A, B](t: MapRef[A, B]; key: A; default: B): B	
+mgetOrPut	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#mgetOrPut,MapRef[A,B],A,B	hmap: mgetOrPut[A, B](t: MapRef[A, B]; key: A; val: B): var B	
+len	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#len,MapRef[A,B]	hmap: len[A, B](t: MapRef[A, B]): int	
+del	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#del,MapRef[A,B],A	hmap: del[A, B](t: MapRef[A, B]; key: A)	
+pop	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#pop,MapRef[A,B],A,B	hmap: pop[A, B](t: MapRef[A, B]; key: A; val: var B): bool	
+take	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#take,MapRef[A,B],A,B	hmap: take[A, B](t: MapRef[A, B]; key: A; val: var B): bool	
+clear	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#clear,MapRef[A,B]	hmap: clear[A, B](t: MapRef[A, B])	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#$,MapRef[A,B]	hmap: `$`[A, B](t: MapRef[A, B]): string	
+`==`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#==,MapRef[A,B],MapRef[A,B]	hmap: `==`[A, B](s, t: MapRef[A, B]): bool	
+keys	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#keys.i,MapRef[A,B]	hmap: keys[A, B](t: MapRef[A, B]): A	
+values	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#values.i,MapRef[A,B]	hmap: values[A, B](t: MapRef[A, B]): B	
+mvalues	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#mvalues.i,MapRef[A,B]	hmap: mvalues[A, B](t: MapRef[A, B]): var B	
+pairs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#pairs.i,MapRef[A,B]	hmap: pairs[A, B](t: MapRef[A, B]): (A, B)	
+mpairs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#mpairs.i,MapRef[A,B]	hmap: mpairs[A, B](t: MapRef[A, B]): (A, var B)	
+OrderedMap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#OrderedMap	hmap: OrderedMap	
+OrderedMapRef	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#OrderedMapRef	hmap: OrderedMapRef	
+initOrderedMap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#initOrderedMap,int	hmap: initOrderedMap[A, B](initialSize = 64): OrderedMap[A, B]	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#[]=,OrderedMap[A,B],A,B	hmap: `[]=`[A, B](t: var OrderedMap[A, B]; k: A; v: B)	
+toOrderedMap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#toOrderedMap,openArray[]	hmap: toOrderedMap[A, B](pairs: openArray[(A, B)]): OrderedMap[A, B]	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#[],OrderedMap[A,B],A	hmap: `[]`[A, B](t: OrderedMap[A, B]; key: A): B	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#[],OrderedMap[A,B],A_2	hmap: `[]`[A, B](t: var OrderedMap[A, B]; key: A): var B	
+hasKey	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#hasKey,OrderedMap[A,B],A	hmap: hasKey[A, B](t: OrderedMap[A, B]; key: A): bool	
+contains	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#contains,OrderedMap[A,B],A	hmap: contains[A, B](t: OrderedMap[A, B]; key: A): bool	
+hasKeyOrPut	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#hasKeyOrPut,OrderedMap[A,B],A,B	hmap: hasKeyOrPut[A, B](t: var OrderedMap[A, B]; key: A; val: B): bool	
+getOrDefault	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#getOrDefault,OrderedMap[A,B],A	hmap: getOrDefault[A, B](t: OrderedMap[A, B]; key: A): B	
+getOrDefault	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#getOrDefault,OrderedMap[A,B],A,B	hmap: getOrDefault[A, B](t: OrderedMap[A, B]; key: A; default: B): B	
+mgetOrPut	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#mgetOrPut,OrderedMap[A,B],A,B	hmap: mgetOrPut[A, B](t: var OrderedMap[A, B]; key: A; val: B): var B	
+len	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#len,OrderedMap[A,B]	hmap: len[A, B](t: OrderedMap[A, B]): int	
+add	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#add,OrderedMap[A,B],A,B	hmap: add[A, B](t: var OrderedMap[A, B]; key: A; val: B)	
+del	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#del,OrderedMap[A,B],A	hmap: del[A, B](t: var OrderedMap[A, B]; key: A)	
+delete	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#delete,OrderedMap[A,B],A	hmap: delete[A, B](t: var OrderedMap[A, B]; key: A)	
+pop	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#pop,OrderedMap[A,B],A,B	hmap: pop[A, B](t: var OrderedMap[A, B]; key: A; val: var B): bool	
+clear	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#clear,OrderedMap[A,B]	hmap: clear[A, B](t: var OrderedMap[A, B])	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#$,OrderedMap[A,B]	hmap: `$`[A, B](t: OrderedMap[A, B]): string	
+`==`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#==,OrderedMap[A,B],OrderedMap[A,B]	hmap: `==`[A, B](s, t: OrderedMap[A, B]): bool	
+pairs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#pairs.i,OrderedMap[A,B]	hmap: pairs[A, B](t: OrderedMap[A, B]): (A, B)	
+mpairs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#mpairs.i,OrderedMap[A,B]	hmap: mpairs[A, B](t: var OrderedMap[A, B]): (A, var B)	
+keys	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#keys.i,OrderedMap[A,B]	hmap: keys[A, B](t: OrderedMap[A, B]): A	
+values	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#values.i,OrderedMap[A,B]	hmap: values[A, B](t: OrderedMap[A, B]): B	
+mvalues	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#mvalues.i,OrderedMap[A,B]	hmap: mvalues[A, B](t: var OrderedMap[A, B]): var B	
+newOrderedMap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#newOrderedMap,int	hmap: newOrderedMap[A, B](initialSize = 64): OrderedMapRef[A, B]	
+newOrderedMap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#newOrderedMap,openArray[]	hmap: newOrderedMap[A, B](pairs: openArray[(A, B)]): OrderedMapRef[A, B]	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#[],OrderedMapRef[A,B],A	hmap: `[]`[A, B](t: OrderedMapRef[A, B]; key: A): var B	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#[]=,OrderedMapRef[A,B],A,B	hmap: `[]=`[A, B](t: OrderedMapRef[A, B]; key: A; val: B)	
+hasKey	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#hasKey,OrderedMapRef[A,B],A	hmap: hasKey[A, B](t: OrderedMapRef[A, B]; key: A): bool	
+contains	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#contains,OrderedMapRef[A,B],A	hmap: contains[A, B](t: OrderedMapRef[A, B]; key: A): bool	
+hasKeyOrPut	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#hasKeyOrPut,OrderedMapRef[A,B],A,B	hmap: hasKeyOrPut[A, B](t: var OrderedMapRef[A, B]; key: A; val: B): bool	
+getOrDefault	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#getOrDefault,OrderedMapRef[A,B],A	hmap: getOrDefault[A, B](t: OrderedMapRef[A, B]; key: A): B	
+getOrDefault	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#getOrDefault,OrderedMapRef[A,B],A,B	hmap: getOrDefault[A, B](t: OrderedMapRef[A, B]; key: A; default: B): B	
+mgetOrPut	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#mgetOrPut,OrderedMapRef[A,B],A,B	hmap: mgetOrPut[A, B](t: OrderedMapRef[A, B]; key: A; val: B): var B	
+len	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#len,OrderedMapRef[A,B]	hmap: len[A, B](t: OrderedMapRef[A, B]): int	
+del	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#del,OrderedMapRef[A,B],A	hmap: del[A, B](t: OrderedMapRef[A, B]; key: A)	
+delete	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#delete,OrderedMapRef[A,B],A	hmap: delete[A, B](t: OrderedMapRef[A, B]; key: A)	
+pop	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#pop,OrderedMapRef[A,B],A,B	hmap: pop[A, B](t: OrderedMapRef[A, B]; key: A; val: var B): bool	
+clear	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#clear,OrderedMapRef[A,B]	hmap: clear[A, B](t: OrderedMapRef[A, B])	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#$,OrderedMapRef[A,B]	hmap: `$`[A, B](t: OrderedMapRef[A, B]): string	
+`==`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#==,OrderedMapRef[A,B],OrderedMapRef[A,B]	hmap: `==`[A, B](s, t: OrderedMapRef[A, B]): bool	
+keys	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#keys.i,OrderedMapRef[A,B]	hmap: keys[A, B](t: OrderedMapRef[A, B]): A	
+values	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#values.i,OrderedMapRef[A,B]	hmap: values[A, B](t: OrderedMapRef[A, B]): B	
+mvalues	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#mvalues.i,OrderedMapRef[A,B]	hmap: mvalues[A, B](t: OrderedMapRef[A, B]): var B	
+pairs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#pairs.i,OrderedMapRef[A,B]	hmap: pairs[A, B](t: OrderedMapRef[A, B]): (A, B)	
+mpairs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#mpairs.i,OrderedMapRef[A,B]	hmap: mpairs[A, B](t: OrderedMapRef[A, B]): (A, var B)	
+CountMap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#CountMap	hmap: CountMap	
+CountMapRef	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#CountMapRef	hmap: CountMapRef	
+initCountMap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#initCountMap,int	hmap: initCountMap[A](initialSize = 64): CountMap[A]	
+toCountMap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#toCountMap,openArray[A]	hmap: toCountMap[A](keys: openArray[A]): CountMap[A]	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#[],CountMap[A],A	hmap: `[]`[A](t: CountMap[A]; key: A): int	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#[]=,CountMap[A],A,int	hmap: `[]=`[A](t: var CountMap[A]; key: A; val: int)	
+inc	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#inc,CountMap[A],A,Positive	hmap: inc[A](t: var CountMap[A]; key: A; val: Positive = 1)	
+smallest	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#smallest,CountMap[A]	hmap: smallest[A](t: CountMap[A]): tuple[key: A, val: int]	
+largest	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#largest,CountMap[A]	hmap: largest[A](t: CountMap[A]): tuple[key: A, val: int]	
+hasKey	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#hasKey,CountMap[A],A	hmap: hasKey[A](t: CountMap[A]; key: A): bool	
+contains	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#contains,CountMap[A],A	hmap: contains[A](t: CountMap[A]; key: A): bool	
+getOrDefault	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#getOrDefault,CountMap[A],A,int	hmap: getOrDefault[A](t: CountMap[A]; key: A; default: int = 0): int	
+len	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#len,CountMap[A]	hmap: len[A](t: CountMap[A]): int	
+del	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#del,CountMap[A],A	hmap: del[A](t: var CountMap[A]; key: A)	
+pop	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#pop,CountMap[A],A,int	hmap: pop[A](t: var CountMap[A]; key: A; val: var int): bool	
+clear	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#clear,CountMap[A]	hmap: clear[A](t: var CountMap[A])	
+merge	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#merge,CountMap[A],CountMap[A]	hmap: merge[A](s: var CountMap[A]; t: CountMap[A])	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#$,CountMap[A]	hmap: `$`[A](t: CountMap[A]): string	
+`==`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#==,CountMap[A],CountMap[A]	hmap: `==`[A](s, t: CountMap[A]): bool	
+pairs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#pairs.i,CountMap[A]	hmap: pairs[A](t: CountMap[A]): (A, int)	
+mpairs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#mpairs.i,CountMap[A]	hmap: mpairs[A](t: var CountMap[A]): (A, var int)	
+keys	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#keys.i,CountMap[A]	hmap: keys[A](t: CountMap[A]): A	
+values	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#values.i,CountMap[A]	hmap: values[A](t: CountMap[A]): int	
+mvalues	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#mvalues.i,CountMap[A]	hmap: mvalues[A](t: var CountMap[A]): var int	
+newCountMap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#newCountMap,int	hmap: newCountMap[A](initialSize = 64): CountMapRef[A]	
+newCountMap	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#newCountMap,openArray[A]	hmap: newCountMap[A](keys: openArray[A]): CountMapRef[A]	
+`[]`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#[],CountMapRef[A],A	hmap: `[]`[A](t: CountMapRef[A]; key: A): int	
+`[]=`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#[]=,CountMapRef[A],A,int	hmap: `[]=`[A](t: CountMapRef[A]; key: A; val: int)	
+inc	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#inc,CountMapRef[A],A,int	hmap: inc[A](t: CountMapRef[A]; key: A; val = 1)	
+smallest	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#smallest,CountMapRef[A]	hmap: smallest[A](t: CountMapRef[A]): (A, int)	
+largest	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#largest,CountMapRef[A]	hmap: largest[A](t: CountMapRef[A]): (A, int)	
+hasKey	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#hasKey,CountMapRef[A],A	hmap: hasKey[A](t: CountMapRef[A]; key: A): bool	
+contains	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#contains,CountMapRef[A],A	hmap: contains[A](t: CountMapRef[A]; key: A): bool	
+getOrDefault	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#getOrDefault,CountMapRef[A],A,int	hmap: getOrDefault[A](t: CountMapRef[A]; key: A; default: int): int	
+len	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#len,CountMapRef[A]	hmap: len[A](t: CountMapRef[A]): int	
+del	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#del,CountMapRef[A],A	hmap: del[A](t: CountMapRef[A]; key: A)	
+pop	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#pop,CountMapRef[A],A,int	hmap: pop[A](t: CountMapRef[A]; key: A; val: var int): bool	
+clear	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#clear,CountMapRef[A]	hmap: clear[A](t: CountMapRef[A])	
+merge	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#merge,CountMapRef[A],CountMapRef[A]	hmap: merge[A](s, t: CountMapRef[A])	
+`$`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#$,CountMapRef[A]	hmap: `$`[A](t: CountMapRef[A]): string	
+`==`	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#==,CountMapRef[A],CountMapRef[A]	hmap: `==`[A](s, t: CountMapRef[A]): bool	
+keys	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#keys.i,CountMapRef[A]	hmap: keys[A](t: CountMapRef[A]): A	
+values	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#values.i,CountMapRef[A]	hmap: values[A](t: CountMapRef[A]): int	
+mvalues	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#mvalues.i,CountMapRef[A]	hmap: mvalues[A](t: CountMapRef[A]): var int	
+pairs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#pairs.i,CountMapRef[A]	hmap: pairs[A](t: CountMapRef[A]): (A, int)	
+mpairs	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#mpairs.i,CountMapRef[A]	hmap: mpairs[A](t: CountMapRef[A]): (A, var int)	
+mvaluesFrom	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#mvaluesFrom.i,Map[A,B],A	hmap: mvaluesFrom[A, B](b: Map[A, B]; fromKey: A): var B	
+mvaluesBetween	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#mvaluesBetween.i,Map[A,B],A,A	hmap: mvaluesBetween[A, B](b: Map[A, B]; fromKey: A; toKey: A): B	
+mpairsFrom	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#mpairsFrom.i,Map[A,B],A	hmap: mpairsFrom[A, B](b: Map[A, B]; fromKey: A): tuple[key: A, val: var B]	
+mpairsBetween	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#mpairsBetween.i,Map[A,B],A,A	hmap: mpairsBetween[A, B](b: Map[A, B]; fromKey: A; toKey: A): tuple[key: A,\n    val: var B]	
+firstPair	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#firstPair,Map[A,B]	hmap: firstPair[A, B](table: Map[A, B]): tuple[key: A, val: B]	
+lastPair	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#lastPair,Map[A,B]	hmap: lastPair[A, B](table: Map[A, B]): tuple[key: A, val: B]	
+valuesBefore	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#valuesBefore.i,Map[A,B],A,bool	hmap: valuesBefore[A, B](b: Map[A, B]; fromKey: A; withKey: bool = false): B	
+pairsBefore	_._/_._/_._/_._/.nimble/pkgs/hmisc-0.14.5/hmisc/types/hmap.html#pairsBefore.i,Map[A,B],A,bool	hmap: pairsBefore[A, B](b: Map[A, B]; fromKey: A; withKey: bool = false): tuple[\n    key: B, val: B]	

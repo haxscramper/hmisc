@@ -1,0 +1,33 @@
+PriorityCalculator	hmisc/extra/treediff/subtree_matcher.html#PriorityCalculator	subtree_matcher: PriorityCalculator	
+AbstractSubtreeMatcher	hmisc/extra/treediff/subtree_matcher.html#AbstractSubtreeMatcher	subtree_matcher: AbstractSubtreeMatcher	
+CliqueSubtreeMatcher	hmisc/extra/treediff/subtree_matcher.html#CliqueSubtreeMatcher	subtree_matcher: CliqueSubtreeMatcher	
+HungarianSubtreeMatcher	hmisc/extra/treediff/subtree_matcher.html#HungarianSubtreeMatcher	subtree_matcher: HungarianSubtreeMatcher	
+GreedySubtreeMatcher	hmisc/extra/treediff/subtree_matcher.html#GreedySubtreeMatcher	subtree_matcher: GreedySubtreeMatcher	
+MappingComparator	hmisc/extra/treediff/subtree_matcher.html#MappingComparator	subtree_matcher: MappingComparator	
+CliqueComparator	hmisc/extra/treediff/subtree_matcher.html#CliqueComparator	subtree_matcher: CliqueComparator	
+MultiMappingComparator	hmisc/extra/treediff/subtree_matcher.html#MultiMappingComparator	subtree_matcher: MultiMappingComparator	
+newAbstractSubtreeMatcher	hmisc/extra/treediff/subtree_matcher.html#newAbstractSubtreeMatcher,PriorityCalculator	subtree_matcher: newAbstractSubtreeMatcher(calc: PriorityCalculator): AbstractSubtreeMatcher	
+newHungarianSubtreeMatcher	hmisc/extra/treediff/subtree_matcher.html#newHungarianSubtreeMatcher,PriorityCalculator	subtree_matcher: newHungarianSubtreeMatcher(calc: PriorityCalculator): HungarianSubtreeMatcher	
+newGreedySubtreeMatcher	hmisc/extra/treediff/subtree_matcher.html#newGreedySubtreeMatcher,PriorityCalculator	subtree_matcher: newGreedySubtreeMatcher(calc: PriorityCalculator): GreedySubtreeMatcher	
+newCliqueSubtreeMatcher	hmisc/extra/treediff/subtree_matcher.html#newCliqueSubtreeMatcher,PriorityCalculator	subtree_matcher: newCliqueSubtreeMatcher(calc: PriorityCalculator): CliqueSubtreeMatcher	
+getMaxTreeSize	hmisc/extra/treediff/subtree_matcher.html#getMaxTreeSize,AbstractSubtreeMatcher	subtree_matcher: getMaxTreeSize(this: AbstractSubtreeMatcher): int	
+sim	hmisc/extra/treediff/subtree_matcher.html#sim,HungarianSubtreeMatcher,Tree,Tree	subtree_matcher: sim(this: HungarianSubtreeMatcher; src: Tree; dst: Tree): float	
+cost	hmisc/extra/treediff/subtree_matcher.html#cost,HungarianSubtreeMatcher,Tree,Tree	subtree_matcher: cost(this: HungarianSubtreeMatcher; src: Tree; dst: Tree): float	
+impact	hmisc/extra/treediff/subtree_matcher.html#impact,MultiMappingComparator,MultiMappingStore	subtree_matcher: impact(this: MultiMappingComparator; m: MultiMappingStore): int	
+cmp	hmisc/extra/treediff/subtree_matcher.html#cmp,MultiMappingComparator,MultiMappingStore,MultiMappingStore	subtree_matcher: cmp(this: MultiMappingComparator; m1: MultiMappingStore; m2: MultiMappingStore): int	
+minDepth	hmisc/extra/treediff/subtree_matcher.html#minDepth,CliqueComparator,tuple[seq[Tree],seq[Tree]]	subtree_matcher: minDepth(this: CliqueComparator; trees: tuple[first, second: seq[Tree]]): int	
+size	hmisc/extra/treediff/subtree_matcher.html#size,CliqueComparator,tuple[seq[Tree],seq[Tree]]	subtree_matcher: size(this: CliqueComparator; trees: tuple[first, second: seq[Tree]]): int	
+cmp	hmisc/extra/treediff/subtree_matcher.html#cmp,CliqueComparator,tuple[seq[Tree],seq[Tree]],tuple[seq[Tree],seq[Tree]]	subtree_matcher: cmp(this: CliqueComparator; l1: tuple[first, second: seq[Tree]];\n    l2: tuple[first, second: seq[Tree]]): int	
+numberOfCommonDescendants	hmisc/extra/treediff/subtree_matcher.html#numberOfCommonDescendants,MappingComparator,Tree,Tree	subtree_matcher: numberOfCommonDescendants(this: MappingComparator; src: Tree; dst: Tree): int	
+jaccardSimilarity	hmisc/extra/treediff/subtree_matcher.html#jaccardSimilarity,MappingComparator,Tree,Tree	subtree_matcher: jaccardSimilarity(this: MappingComparator; src: Tree; dst: Tree): float	
+sims	hmisc/extra/treediff/subtree_matcher.html#sims,MappingComparator,Tree,Tree	subtree_matcher: sims(this: MappingComparator; src: Tree; dst: Tree): seq[float]	
+newMappingComparator	hmisc/extra/treediff/subtree_matcher.html#newMappingComparator,MappingStore,seq[Mapping]	subtree_matcher: newMappingComparator(matcherMappings: MappingStore; mappings: seq[Mapping]): MappingComparator	
+cmp	hmisc/extra/treediff/subtree_matcher.html#cmp,MappingComparator,Mapping,Mapping	subtree_matcher: cmp(this: MappingComparator; m1: Mapping; m2: Mapping): int	
+match	hmisc/extra/treediff/subtree_matcher.html#match.e,AbstractSubtreeMatcher,Tree,Tree,MappingStore	subtree_matcher: match(this: AbstractSubtreeMatcher; src: Tree; dst: Tree; mappings: MappingStore): MappingStore	
+retainBestMapping	hmisc/extra/treediff/subtree_matcher.html#retainBestMapping,AbstractSubtreeMatcher,seq[Mapping],HashSet[Tree],HashSet[Tree]	subtree_matcher: retainBestMapping(this: AbstractSubtreeMatcher; mappingList: var seq[Mapping];\n                  srcIgnored: var HashSet[Tree]; dstIgnored: var HashSet[Tree]): void	
+getMinPriority	hmisc/extra/treediff/subtree_matcher.html#getMinPriority,AbstractSubtreeMatcher	subtree_matcher: getMinPriority(this: AbstractSubtreeMatcher): int	
+setMinPriority	hmisc/extra/treediff/subtree_matcher.html#setMinPriority,AbstractSubtreeMatcher,int	subtree_matcher: setMinPriority(this: AbstractSubtreeMatcher; minPriority: int): void	
+filterMappings	hmisc/extra/treediff/subtree_matcher.html#filterMappings.e,GreedySubtreeMatcher,MultiMappingStore	subtree_matcher: filterMappings(this: GreedySubtreeMatcher; multiMappings: MultiMappingStore): void	
+filterMappings	hmisc/extra/treediff/subtree_matcher.html#filterMappings.e,HungarianSubtreeMatcher,MultiMappingStore	subtree_matcher: filterMappings(this: HungarianSubtreeMatcher; multiMappings: MultiMappingStore): void	
+fromClique	hmisc/extra/treediff/subtree_matcher.html#fromClique,CliqueSubtreeMatcher,tuple[seq[Tree],seq[Tree]]	subtree_matcher: fromClique(this: CliqueSubtreeMatcher; clique: tuple[first, second: seq[Tree]]): seq[\n    Mapping]	
+filterMappings	hmisc/extra/treediff/subtree_matcher.html#filterMappings.e,CliqueSubtreeMatcher,MultiMappingStore	subtree_matcher: filterMappings(this: CliqueSubtreeMatcher; multiMappings: MultiMappingStore): void	

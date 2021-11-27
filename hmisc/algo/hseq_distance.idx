@@ -1,0 +1,68 @@
+zeroEqualCmp	hmisc/algo/hseq_distance.html#zeroEqualCmp,T,T	hseq_distance: zeroEqualCmp[T](x, y: T): int	
+longestCommonSubsequence	hmisc/algo/hseq_distance.html#longestCommonSubsequence,seq[T],seq[T],proc(T,T)	hseq_distance: longestCommonSubsequence[T](x, y: seq[T]; itemCmp: proc (a, b: T): bool {.\n    closure.} = (proc (x, y: T): bool =\n  x == y)): seq[tuple[matches: seq[T], xIndex, yIndex: seq[int]]]	
+longestCommonSubsequenceForStringStartsWith	hmisc/algo/hseq_distance.html#longestCommonSubsequenceForStringStartsWith,seq[string],seq[string]	hseq_distance: longestCommonSubsequenceForStringStartsWith(a, b: seq[string]): seq[\n    tuple[matches: seq[string], xIndex, yIndex: seq[int]]]	
+byCharSimilarityScore	hmisc/algo/hseq_distance.html#byCharSimilarityScore,string,string,range[]	hseq_distance: byCharSimilarityScore(x, y: string; emptyScore: range[0.0 .. 100.0] = 100.0): range[\n    0.0 .. 100.0]	
+byWordSimilarityScore	hmisc/algo/hseq_distance.html#byWordSimilarityScore,string,string,range[]	hseq_distance: byWordSimilarityScore(x, y: string; emptyScore: range[0.0 .. 100.0] = 100.0): range[\n    0.0 .. 100.0]	
+FuzzyMatchRes	hmisc/algo/hseq_distance.html#FuzzyMatchRes	hseq_distance: FuzzyMatchRes	
+fuzzyMatch	hmisc/algo/hseq_distance.html#fuzzyMatch,openArray[T],openArray[T],proc(openArray[T],openArray[T],seq[int]),EqCmpProc[T]	hseq_distance: fuzzyMatch[T](patt, other: openArray[T]; matchScore: proc (\n    patt, other: openArray[T]; matches: seq[int]): int; eqCmp: EqCmpProc[T]): FuzzyMatchRes	
+fuzzyMatch	hmisc/algo/hseq_distance.html#fuzzyMatch,openArray[T],openArray[T],proc(openArray[T],openArray[T],seq[int])	hseq_distance: fuzzyMatch[T](patt, other: openArray[T]; matchScore: proc (\n    patt, other: openArray[T]; matches: seq[int]): int): FuzzyMatchRes	
+fuzzyMatch	hmisc/algo/hseq_distance.html#fuzzyMatch,string,string,proc(string,string,seq[int])	hseq_distance: fuzzyMatch(patt, other: string;\n           matchScore: proc (patt, other: string; matches: seq[int]): int): FuzzyMatchRes	
+fuzzyMatch	hmisc/algo/hseq_distance.html#fuzzyMatch,string,string,seq[]	hseq_distance: fuzzyMatch(patt, other: string; scores: seq[(set[char], int)]): FuzzyMatchRes	
+lekNone	hmisc/algo/hseq_distance.html#lekNone	LevEditKind.lekNone	
+lekUnchanged	hmisc/algo/hseq_distance.html#lekUnchanged	LevEditKind.lekUnchanged	
+lekInsert	hmisc/algo/hseq_distance.html#lekInsert	LevEditKind.lekInsert	
+lekReplace	hmisc/algo/hseq_distance.html#lekReplace	LevEditKind.lekReplace	
+lekDelete	hmisc/algo/hseq_distance.html#lekDelete	LevEditKind.lekDelete	
+LevEditKind	hmisc/algo/hseq_distance.html#LevEditKind	hseq_distance: LevEditKind	
+LevEdit	hmisc/algo/hseq_distance.html#LevEdit	hseq_distance: LevEdit	
+getPos	hmisc/algo/hseq_distance.html#getPos,LevEdit[T]	hseq_distance: getPos[T](edit: LevEdit[T]): int	
+apply	hmisc/algo/hseq_distance.html#apply,seq[T],LevEdit[T]	hseq_distance: apply[T](str: var seq[T]; op: LevEdit[T])	
+levenshteinDistance	hmisc/algo/hseq_distance.html#levenshteinDistance,seq[T],seq[T]	hseq_distance: levenshteinDistance[T](str1, str2: seq[T]): tuple[distance: int,\n    operations: seq[LevEdit[T]]]	
+dekDelete	hmisc/algo/hseq_distance.html#dekDelete	DiffEditKind.dekDelete	
+dekInsert	hmisc/algo/hseq_distance.html#dekInsert	DiffEditKind.dekInsert	
+dekKeep	hmisc/algo/hseq_distance.html#dekKeep	DiffEditKind.dekKeep	
+DiffEditKind	hmisc/algo/hseq_distance.html#DiffEditKind	hseq_distance: DiffEditKind	
+dskDelete	hmisc/algo/hseq_distance.html#dskDelete	DiffShiftKind.dskDelete	
+dskInsert	hmisc/algo/hseq_distance.html#dskInsert	DiffShiftKind.dskInsert	
+dskKeep	hmisc/algo/hseq_distance.html#dskKeep	DiffShiftKind.dskKeep	
+dskEmpty	hmisc/algo/hseq_distance.html#dskEmpty	DiffShiftKind.dskEmpty	
+DiffShiftKind	hmisc/algo/hseq_distance.html#DiffShiftKind	hseq_distance: DiffShiftKind	
+DiffEdit	hmisc/algo/hseq_distance.html#DiffEdit	hseq_distance: DiffEdit	
+ShiftedDiff	hmisc/algo/hseq_distance.html#ShiftedDiff	hseq_distance: ShiftedDiff	
+myersDiff	hmisc/algo/hseq_distance.html#myersDiff,openArray[T],openArray[T],EqCmpProc[T]	hseq_distance: myersDiff[T](aSeq, bSeq: openArray[T]; itemCmp: EqCmpProc[T] =\n  when compiles(proc (x, y: T): bool = x == y):\n    cmpProc(x, y: T): bool\n    cmpProc\n   else:\n    nil): seq[DiffEdit]	
+shiftDiffed	hmisc/algo/hseq_distance.html#shiftDiffed,seq[DiffEdit],openArray[T],openArray[T]	hseq_distance: shiftDiffed[T](diff: seq[DiffEdit]; oldSeq, newSeq: openArray[T]): ShiftedDiff	
+Align	hmisc/algo/hseq_distance.html#Align	hseq_distance: Align	
+AlignSeq	hmisc/algo/hseq_distance.html#AlignSeq	hseq_distance: AlignSeq	
+AlignGroup	hmisc/algo/hseq_distance.html#AlignGroup	hseq_distance: AlignGroup	
+AlignElem	hmisc/algo/hseq_distance.html#AlignElem	hseq_distance: AlignElem	
+toString	hmisc/algo/hseq_distance.html#toString,Align[T],int,string	hseq_distance: toString[T](align: Align[T]; gapSize: int = 1; gapString: string = &quot;∅&quot;): string	
+toString	hmisc/algo/hseq_distance.html#toString,Align[AlignElem[T]],int,string	hseq_distance: toString[T](align: Align[AlignElem[T]]; gapSize: int = 1;\n            gapString: string = &quot;∅&quot;): string	
+needlemanWunschAlign	hmisc/algo/hseq_distance.html#needlemanWunschAlign,seq[T],seq[T],int,proc(T,T)	hseq_distance: needlemanWunschAlign[T](seq1, seq2: seq[T]; gapPenalty: int;\n                        matchScore: proc (a, b: T): int): AlignSeq[T]	
+affineGapAlign	hmisc/algo/hseq_distance.html#affineGapAlign,seq[T],seq[T],int,int,proc(T,T)	hseq_distance: affineGapAlign[T](seq1, seq2: seq[T]; gapOpenPenalty: int = -2;\n                  gapExtPenalty: int = -1; matchScore: proc (a, b: T): int): seq[\n    seq[Node]]	
+sortAlignments	hmisc/algo/hseq_distance.html#sortAlignments,seq[T],seq[T],seq[seq[Node]],proc(AlignSeq[T])	hseq_distance: sortAlignments[T](seq1, seq2: seq[T]; paths: seq[seq[Node]];\n                  scoreFunc: proc (align: AlignSeq[T]): int): seq[AlignSeq[T]]	
+allAlign	hmisc/algo/hseq_distance.html#allAlign.i,seq[T],seq[T],int,int,ScoreCmpProc[T]	hseq_distance: allAlign[T](seq1, seq2: seq[T]; gapOpenPenalty: int = -2;\n            gapExtPenalty: int = -1; matchScore: ScoreCmpProc[T]): AlignSeq[T]	
+bestAlign	hmisc/algo/hseq_distance.html#bestAlign,seq[T],seq[T],ScoreProc[AlignSeq[T]],int,int,ScoreCmpProc[T]	hseq_distance: bestAlign[T](seq1, seq2: seq[T]; alignQualityScore: ScoreProc[AlignSeq[T]];\n             gapOpenPenalty: int = -2; gapExtPenalty: int = -1; matchScore: ScoreCmpProc[\n    T] = (proc (a, b: T): int =\n  if a == b:\n    0\n   else: -1)): AlignSeq[T]	
+firstAlign	hmisc/algo/hseq_distance.html#firstAlign,seq[T],seq[T],int,int,ScoreCmpProc[T]	hseq_distance: firstAlign[T](seq1, seq2: seq[T]; gapOpenPenalty: int = -2;\n              gapExtPenalty: int = -1; matchScore: ScoreCmpProc[T]): AlignSeq[T]	
+toAlignSeq	hmisc/algo/hseq_distance.html#toAlignSeq,openArray[T]	hseq_distance: toAlignSeq[T](inSeq: openArray[T]): Align[T]	
+alignToGroup	hmisc/algo/hseq_distance.html#alignToGroup,AlignGroup[T],,ScoreCmpProc[T],int,int,int,ScoreProc[T]	hseq_distance: alignToGroup[T](group: AlignGroup[T]; seqN: seq[T] | Align[T];\n                matchScore: ScoreCmpProc[T]; gapToGapPenalty: int = -1;\n                gapOpenPenalty: int = -2; gapExtPenalty: int = -1;\n                gapToItemPenalty: ScoreProc[T]): Align[T]	
+bartonSternbergAlign	hmisc/algo/hseq_distance.html#bartonSternbergAlign,seq[seq[char]],ScoreCmpProc[char],ScoreProc[char],int,int,int	hseq_distance: bartonSternbergAlign(seqs: seq[seq[char]]; matchScore: ScoreCmpProc[char];\n                     gapToItemPenalty: ScoreProc[char];\n                     gapOpenPenalty: int = -2; gapToGapPenalty: int = -2;\n                     realignIterations: int = 2): seq[Align[char]]	
+align	hmisc/algo/hseq_distance.html#align,openArray[T],openArray[T],int,int,ScoreCmpProc[T]	hseq_distance: align[T](seq1, seq2: openArray[T]; gapOpenPenalty: int = -2;\n         gapExtPenalty: int = -1; matchScore: ScoreCmpProc[T] = zeroEqualCmp[T]): AlignSeq[\n    T]	
+globmatch	hmisc/algo/hseq_distance.html#globmatch,string,string,bool,bool	hseq_distance: globmatch(text, glob: string; useDotglob: bool = false;\n          caseInsensetive: bool = false): bool	
+gitignoreGlobMatch	hmisc/algo/hseq_distance.html#gitignoreGlobMatch,string,string,bool,bool	hseq_distance: gitignoreGlobMatch(text, glob: string; useDotglob: bool = false;\n                   caseInsensetive: bool = false): bool	
+GitGlob	hmisc/algo/hseq_distance.html#GitGlob	hseq_distance: GitGlob	
+`**`	hmisc/algo/hseq_distance.html#**,string	hseq_distance: `**`(str: string): GitGlob	
+`*!`	hmisc/algo/hseq_distance.html#*!,string	hseq_distance: `*!`(str: string): GitGlob	
+`$`	hmisc/algo/hseq_distance.html#$,GitGlob	hseq_distance: `$`(glob: GitGlob): string	
+toGitGlob	hmisc/algo/hseq_distance.html#toGitGlob,string	hseq_distance: toGitGlob(str: string): GitGlob	
+match	hmisc/algo/hseq_distance.html#match,GitGlob,string	hseq_distance: match(glob: GitGlob; str: string): bool	
+accept	hmisc/algo/hseq_distance.html#accept,GitGlob,string,bool	hseq_distance: accept(glob: GitGlob; str: string; invert: bool = false): bool	
+accept	hmisc/algo/hseq_distance.html#accept,seq[GitGlob],string,bool	hseq_distance: accept(globs: seq[GitGlob]; str: string; invert: bool = false): bool	
+ggkWord	hmisc/algo/hseq_distance.html#ggkWord	GenGlobPartKind.ggkWord	
+ggkDotAnchor	hmisc/algo/hseq_distance.html#ggkDotAnchor	GenGlobPartKind.ggkDotAnchor	
+ggkSeparator	hmisc/algo/hseq_distance.html#ggkSeparator	GenGlobPartKind.ggkSeparator	
+ggkAnyStar	hmisc/algo/hseq_distance.html#ggkAnyStar	GenGlobPartKind.ggkAnyStar	
+ggkAnyOne	hmisc/algo/hseq_distance.html#ggkAnyOne	GenGlobPartKind.ggkAnyOne	
+ggkTest	hmisc/algo/hseq_distance.html#ggkTest	GenGlobPartKind.ggkTest	
+GenGlobPartKind	hmisc/algo/hseq_distance.html#GenGlobPartKind	hseq_distance: GenGlobPartKind	
+gitignoreGlobMatch	hmisc/algo/hseq_distance.html#gitignoreGlobMatch,seq[B],seq[G],proc(B,G),bool	hseq_distance: gitignoreGlobMatch[B, G](text: seq[B]; glob: seq[G];\n                         eqCmp: proc (text: B; glob: G): bool;\n                         useDotglob: bool = false): bool	
+Parameters	hmisc/algo/hseq_distance.html#parameters	  Parameters	
