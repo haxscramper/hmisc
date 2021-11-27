@@ -206,7 +206,7 @@ proc `$`(val: TestValue): string =
 
 
 proc newTestLogger*(): HLogger =
-  let pref = "     ] "
+  let pref = "       "
   result = HLogger(
     logPrefix: toMapArray({
       logTrace:  toWhite(pref & "[trace]").format(),

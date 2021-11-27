@@ -628,10 +628,8 @@ proc makeJoinedCode*(runs: seq[NimRun]): string =
 proc skipFileLineCol*(str: var PosStr): tuple[file: AbsFile, line, column: int] =
   result.file = str.asStrSlice(str.skipTo('(')).AbsFile()
   str.skip("(")
-  echov str
   result.line = str.asStrSlice(str.skipTo(',')).parseInt()
   str.skip(", ")
-  echov str
   result.column = str.asStrSlice(str.skipTo(')')).parseInt()
   str.skip(")")
 
@@ -639,9 +637,7 @@ proc skipKindDeclaredIn*(str: var PosStr):
   tuple[kind: string, file: AbsFile, line, column: int] =
 
   str.skip("[")
-  echov str
   str.space()
-  echov str
 
   result.kind = str.asStrSlice(str.skipTo(' '))
   str.skip(" declared in ")
@@ -660,17 +656,12 @@ proc parseAmbiguousCall*(text: string): NimReport =
     if i == 1:
       msg.skip(" and ")
 
-    echov msg
     let name = msg.asStrSlice():
-      echov msg
       msg.skipTo('[')
-      echov msg
       if msg["[]"]:
-        echov msg
         msg.next(2)
         msg.skipUntil('[')
 
-      echov msg
       msg.back()
 
     msg.skip(' ')
@@ -762,7 +753,7 @@ proc parseGccReport(report: string): NimReport =
 
   while report[idx] in {' ', '\n'}: inc idx
 
-  while report[idx] == '[':
+  while idx < report.len and report[idx] == '[':
     if report[idx .. idx + 1] == "[]":
       inc idx, 3
 
@@ -772,7 +763,7 @@ proc parseGccReport(report: string): NimReport =
       inc idx
       diags.add tmp
 
-  if report[idx .. ^1].startsWith("/bin/ld"):
+  if idx < report.len and report[idx .. ^1].startsWith("/bin/ld"):
     result = initPosStr(report[idx .. ^1]).asVar().parseLdReport()
 
   else:
@@ -1001,8 +992,10 @@ proc register(state: var NimReportState, report: NimReport) =
 
 
 proc reportError*(
-    l: HLogger, report: NimReport,
-    dump: NimState, state: NimReportState
+    l: HLogger,
+    report: NimReport,
+    dump: NimState,
+    state: NimReportState = NimReportState()
   ) =
 
   var hadInstOf = false
@@ -1037,8 +1030,35 @@ proc reportError*(
         l.info k2.name
         l.info " match for ", report.matchFor
 
+      of neOverloadFail:
+        l.err "No matching function"
+        let ctx = report.overloadContext
+        l.info ctx.expression
+
+        for alt in ctx.alts:
+          l.debug alt.signature
+          l.info alt.argumentFail
+          if alt.isOfType.canGet(argType):
+            l.debug "But expression is of type "
+            l.debug argType
+
+      of neLdFail:
+        l.err "Linker exited with error"
+        l.err report.ldReport.message
+
+      of neGccFail:
+        let (diags, compile) = report.gccReport
+        l.err "Compiler command exited with error"
+        for group in diags:
+          for diag in group:
+            l.err diag.message
+            for loc in diag.locations:
+              l.dump loc.caret.line
+              l.dump loc.caret.file
+              l.dump loc.caret.column
+
       else:
-        discard
+        l.debug report.error
 
 
 proc getCompileReportFor*(

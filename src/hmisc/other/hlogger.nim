@@ -191,8 +191,12 @@ proc logImpl*(
 
     else:
       logger.lastLogFile = position[0]
-      indent.add toLink(
-        position, filePrefix |<< logger.leftAlignFiles)
+      if $$CI == 1:
+        indent.add $position
+
+      else:
+        indent.add toLink(
+          position, filePrefix |<< logger.leftAlignFiles)
 
     logger.lastLogLine = position[1]
 
