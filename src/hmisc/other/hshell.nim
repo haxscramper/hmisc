@@ -263,8 +263,12 @@ const
 
 func initShellCmdConf*(): ShellCmdConf = discard
 
-func isOk*(shellRes: ShellResult): bool =
-  shellRes.resultOk
+func isOk*(
+    shellRes: ShellResult,
+    allowedCodes: seq[int] = @[]
+  ): bool =
+
+  shellRes.resultOk or shellRes.execResult.code in allowedCodes
 
 func getStdout*(err: ShellError): string = err.outstr
 func getStderr*(err: ShellError): string = err.errstr

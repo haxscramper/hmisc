@@ -560,7 +560,9 @@ func initNimRunConf*(dump: NimDump): NimRunConf =
   NimRunConf(
     dump: dump,
     parallelCompile: 4,
-    randomPattern: "????_????_????"
+    randomPattern: "????_????_????",
+    parseCompilation: true,
+    parseExecution: true
   )
 
 func incl*(conf: var NimRunConf, flag: NimFlag) =
@@ -584,30 +586,29 @@ proc getRandomFile*(conf: NimRunConf, prefix, suffix: string): AbsFile =
   getRandomFile(conf, conf.tempDir, prefix, suffix)
 
 
-proc makeCmd(
-    conf: NimRun,
-    dump: NimDump,
-  ): ShellCmd =
-
+proc makeCmd(run: NimRun, conf: NimRunConf): ShellCmd =
+  let dump = conf.dump
   var cmd = shellCmd(nim)
 
   cmd.arg "compile"
-  for flag in conf.cell.flags:
+  for flag in run.cell.flags:
     if flag.canGet(state):
       cmd.opt($flag, if state: "on" else: "off")
 
-  for (key, value) in conf.cell.defines:
+  for (key, value) in run.cell.defines:
     if value.canGet(value):
       cmd.opt("define", key & "=" & value)
 
     else:
       cmd.opt("define", key)
 
+  if conf.parseExecution:
+    cmd.opt("define", "hmiscUnittestOut=json")
 
   with cmd:
-    opt("gc", $conf.cell.gc)
-    opt("backend", $conf.cell.backend)
-    opt("out", $conf.outfile)
+    opt("gc", $run.cell.gc)
+    opt("backend", $run.cell.backend)
+    opt("out", $run.outfile)
     opt("unitsep", "on")
 
     opt("verbosity", "0")
@@ -625,12 +626,12 @@ proc makeCmd(
   #   cmd.opt("hints", "on")
   #   cmd.opt("processing", "filenames")
 
-  cmd.opt("nimcache", $getNewTempDir(conf.file.name(), getAppTempDir()))
+  cmd.opt("nimcache", $getNewTempDir(run.file.name(), getAppTempDir()))
 
   for p in dump.paths:
     cmd.opt("path", p)
 
-  cmd.arg conf.file
+  cmd.arg run.file
 
   return cmd
 
@@ -1183,6 +1184,8 @@ proc skipKinds*(
 
 type
   NimRunResultKind* = enum
+    nrrkNone
+
     nrrkFailedCompilation
     nrrkFailedExecution
     nrrkSuccess
@@ -1226,7 +1229,7 @@ iterator compileRuns*(
 
   var cmds: seq[(ShellCmd, NimRun)]
   for it in runs:
-    let cmd = makeCmd(it, conf.dump)
+    let cmd = makeCmd(it, conf)
     cmds.add(cmd, it)
 
   for (res, run) in runShellResult(
@@ -1252,7 +1255,7 @@ proc invokeCompiled*(
   ): NimRunResult =
 
   result = NimRunResult(run: run, compileRes: compile)
-  if not compile.isOk():
+  if not compile.isOk(@[-1]):
     result.kind = nrrkFailedCompilation
     if conf.parseCompilation:
       result.compileReports = compile.getCompileReports(run)
@@ -1261,12 +1264,13 @@ proc invokeCompiled*(
     let run = makeRunCmd(run)
     if conf.parseExecution:
       let execResult = shellResult(run)
-      if execResult.isOk():
-        result.kind = nrrkSuccess
+      result.kind =
+        if execResult.isOk():
+          nrrkSuccess
+        else:
+          nrrkFailedExecution
 
-      else:
-        result.kind = nrrkFailedExecution
-        result.runReports = parseRunReports(execResult)
+      result.runReports = parseRunReports(execResult)
 
     else:
       try:
@@ -1445,6 +1449,9 @@ proc formatRun*(run: NimRunResult, dump: NimDump): ColoredText =
 
     of nrrkSuccess:
       add "Test execution succeded"
+
+    of nrrkNone:
+      raise newUnexpectedKindError(run.kind)
 
   endResult()
 
