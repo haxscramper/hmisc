@@ -1008,3 +1008,73 @@ iterator interpolatedExprs*(s: string):
     else:
       break
     i = j
+
+
+
+
+func findLineRange*(
+    base: string,
+    start: Slice[int],
+    around: (int, int) = (0, 0)
+  ): Slice[int] =
+  result = start
+
+  var
+    before = around[0]
+    after = around[1]
+
+  while result.a > 0 and base[result.a] != '\n':
+    dec result.a
+
+  while before > 0:
+    dec result.a
+    while result.a > 0 and base[result.a] != '\n':
+      dec result.a
+
+    dec before
+
+  if result.a < 0: result.a = 0
+  if base[result.a] == '\n':
+    inc result.a
+
+
+  while result.b < base.len and base[result.b] != '\n':
+    inc result.b
+
+  while after > 0:
+    inc result.b
+    while result.b < base.len and base[result.b] != '\n':
+      inc result.b
+
+    dec after
+
+  if result.b > base.high: result.b = base.high
+  if base[result.b] == '\n': dec result.b
+
+
+
+func lineTextAround*(
+    base: string, charRange: Slice[int], around: (int, int) = (1, 1)):
+  tuple[text: string, startPos, endPos: int] =
+  var slice = base.findLineRange(charRange, around)
+  result.text = base[slice]
+  result.startPos = charRange.a - slice.a
+  result.endPos = result.startPos + (charRange.b - charRange.a)
+
+func linesAround*(
+    base: string, line: int, around: (int, int) = (1, 1)):
+  seq[string] =
+
+  var
+    currLine = 1
+    pos = 0
+
+  while pos < base.len and currLine < line:
+    if base[pos] == '\n': inc currLine
+    inc pos
+
+  let (text, _, _) = lineTextAround(base, pos .. pos, around)
+  if line == 1 and around[0] > 0:
+    result &= @[""]
+
+  result &= text.split('\n')

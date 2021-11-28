@@ -42,7 +42,7 @@ Error: execution of an external program failed: 'gcc   -o -ldl'
 """)
 
 
-suite "Runner":
+suite "Compiled":
   let dir = getTestTempDir()
   mkDir dir
   let l = getTestLogger()
@@ -51,10 +51,11 @@ suite "Runner":
   proc reports(text: string): seq[NimReport] =
     let file = dir.getTempFile("???????.nim")
     file.writeFile(text)
-    var conf = NimRunConf(dump: dump)
+    var conf = dump.initNimRunConf()
     conf.excl nrfHints
 
-    getCompileReportFor(file, conf).skipKinds()
+    getCompileReportsFor(file, conf)[0].reports.skipKinds()
+
 
   test "Correct code reports":
     let rep = reports("echo 12")
@@ -104,3 +105,38 @@ impl():
 """)
 
     l.reportError(rep[0], dump)
+
+suite "Runner":
+  let
+    dir = getTestTempDir()
+    l = getTestLogger()
+    dump = getCwdNimDump()
+
+  mkDir dir
+
+  proc runReports(text: string): NimRunResult =
+    var conf = dump.initNimRunConf()
+    conf.randomPattern = "test"
+    conf.excl nrfHints
+    conf.parseCompilation = true
+    conf.parseExecution = true
+
+    let file = conf.getRandomFile(dir, "file", ".nim")
+
+    file.writeFile(
+      "import hmisc/preludes/unittest\n" & text)
+
+
+    return getRunReportsFor(file, conf)[0]
+
+  test "Test run reports":
+    let report = runReports():
+      """
+suite "Test suite":
+  test "First test":
+    check:
+      12 == 22
+      12 == 12
+"""
+
+    echo report.formatRun(dump)

@@ -1790,6 +1790,16 @@ proc toLayouts*(
       bl.kind
     )
 
+  case bl.kind:
+    of bkStack, bkChoice, bkLine:
+      assert 0 < bl.elements.len
+
+    of bkWrap:
+      assert 0 < bl.wrapElements.len
+
+    else:
+      discard
+
   var bl = bl
   let sln = none(LytSolution).withResIt do:
     bl.doOptLayout(it, opts)

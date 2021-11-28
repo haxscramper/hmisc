@@ -1107,6 +1107,8 @@ when cbackend:
       beforeStart: proc(cmd: ShellCmd, data: T) = nil
     ): tuple[res: ShellResult, data: T] =
 
+    assert 0 < maxPool
+
     var processList: seq[Process] = newSeq[Process](maxPool)
     var commandMap: seq[int] = newSeq[int](maxPool)
 

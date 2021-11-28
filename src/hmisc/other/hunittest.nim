@@ -488,6 +488,7 @@ method report(context: TestContext, report: TestReport) =
             echo pOk
 
           context.failCount = 0
+          context.lastTest = none TestReport
 
         of trkSuiteStart:
           context.lastSuite = some report

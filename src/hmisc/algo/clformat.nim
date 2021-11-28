@@ -1465,10 +1465,16 @@ template coloredResult*(): untyped =
       discard
 
   template add(arg: untyped): untyped {.used.} = outPtr[].add arg
-  template add(arg1, arg2: untyped): untyped {.used.} = outPtr[].add(arg1, arg2)
+  template add(arg1, arg2: untyped): untyped {.used.} =
+    outPtr[].add(arg1, arg2)
+
+
   template addIndent(level: int, sep: int = 2): untyped {.used.} =
     outPtr[].addIndent(level, sep)
 
+  template addi(ind: int, arg: untyped): untyped {.used.} =
+    outPtr[].addIndent(ind, 2)
+    outPtr[].add(arg)
 
 func joinPrefix*(
     level: int, idx: seq[int],

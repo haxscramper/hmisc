@@ -4,20 +4,26 @@ import ../algo/[hlex_base, lexcast]
 import std/[sequtils, streams, parsecfg, sets]
 import pkg/jsony
 
-export hlogger
+export hlogger, colorstring
 
 
 type
   NimFlag* = enum
+    ## Extra nim configuration options
     nrfStrictFuncs = "strictFuncs"
     nrfHints = "hints"
+    nrfThreads = "threads" ## Enable or disable threads
+    nrfPanics = "panics" ## Enable or disable panics in the code
 
-  NimGc = enum
+  NimGc* = enum
+    ## Nim garbage collectors
     ngcRefc = "refc"
     ngcArc = "arc"
     ngcOrc = "orc"
+    ngcNone = "none"
 
-  NimBackend = enum
+  NimBackend* = enum
+    ## Target backends to compile code to
     nbC = "c"
     nbJs = "js"
     nbCpp = "cpp"
@@ -28,22 +34,33 @@ type
     backend*: NimBackend ## Target backend to compile to
     gc*: NimGc ## Garbage collector to use when testing
     flags*: array[NimFlag, Option[bool]] ## Additional compilation flags
-    defines*: seq[string] ## Additional compilation defines
+    defines*: seq[tuple[key: string, value: Option[string]]] ## Additional
+    ## compilation defines. `value` is added as `key=<value>` to the passed
+    ## compiler flag. Value is not quoted.
+
+    extraFlags*: seq[string]
 
     # hints*: set[NimHint]
     # warnings*: set[NimWarning]
 
   NimRun* = object
-    cell*: NimMatrixCell
+    ## Configuration of the single execution
+    cell*: NimMatrixCell ## Full configuration of the runner matrix cell.
+                         ## Contains all necessary options for configurin
+                         ## nim compiler to produce `outFile`
     # flags: set[NimFlag]
     # gc: NimGc
     # backend: NimBackend
     file: AbsFile
+    joinedFrom: seq[AbsFile]
     outFile: AbsFile
     tmpDir: AbsDir
 
-    spec: Option[NimTestSpec]
-    runFlags*: seq[ShellCmdPart]
+    spec: Option[NimTestSpec] ## Optional testament test configuration
+    runFlags*: seq[ShellCmdPart] ## Command-line flags for the program
+                                 ## execution that were either deduced from
+                                 ## the test specification or provided via
+                                 ## some other means
 
   NimHint* = enum
     nfSuccess                    = "Success"
@@ -200,7 +217,7 @@ type
     timeout*: float
     debugInfo*: string
 
-  NimState* = object
+  NimDump* = object
     ## Current configuration of the nim compiler
     paths*: seq[AbsDir] ## Dependency paths
     hints*: set[NimHint]
@@ -209,19 +226,26 @@ type
 
   NimRunConf* = object
     ## Global test configuration
-    dump*: NimState ## Compiler environment configuration state
+    dump*: NimDump ## Compiler environment configuration state
 
     hints*: seq[NimHint] ## Set of hints to enable during compilation
     flags*: array[NimFlag, Option[bool]]
     warnings*: seq[NimWarning] ## Set of warnings to enable during compilation
     globalMatrix*: seq[NimMatrixCell] ## List of global CI matrix cells.
+    extraFlags*: seq[string]
 
+    defines*: seq[tuple[key: string, value: Option[string]]]
     tempDir*: AbsDir ## Temporary directory to write compiled test
                      ## binaries, cache and other intermediate files to.
 
     parallelCompile*: int ## Number of parallel compilation jobs
     parseCompilation*: bool ## Parse compiler messages or pass the output directly
     parseExecution*: bool ## Parse unit test execution result or pass the output directly
+
+    randomPattern*: string ## Pattern for random file name generation. Uses
+    ## `?` as a character replacement pattern. Note that this is only a
+    ## part of a file name - full one might be constructed based on the
+    ## multiple parameters.
 
 
   NimReportKind* = enum
@@ -515,7 +539,7 @@ proc parseSpec*(
   #   result.err = reDisabled
 
 
-proc getCwdNimDump*(file: string = "-"): NimState =
+proc getCwdNimDump*(file: string = "-"): NimDump =
   let j = shellCmd(nim, dump, "dump.format" = "json", $file).
     evalShellStdout().
     parseJson()
@@ -532,15 +556,37 @@ proc getCwdNimDump*(file: string = "-"): NimState =
 
   result.nimblePath = query["nimble"][0].asStr().AbsDir()
 
+func initNimRunConf*(dump: NimDump): NimRunConf =
+  NimRunConf(
+    dump: dump,
+    parallelCompile: 4,
+    randomPattern: "????_????_????"
+  )
+
 func incl*(conf: var NimRunConf, flag: NimFlag) =
   conf.flags[flag] = some true
 
 func excl*(conf: var NimRunConf, flag: NimFlag) =
   conf.flags[flag] = some false
 
+func define*(conf: var NimRunConf, value: string) =
+  conf.defines.add(value, none string)
+
+proc getRandomFile*(
+    conf: NimRunConf,
+    dir: AbsDir,
+    prefix, suffix: string
+  ): AbsFile =
+
+  result = dir.getTempFile(prefix & conf.randomPattern & suffix)
+
+proc getRandomFile*(conf: NimRunConf, prefix, suffix: string): AbsFile =
+  getRandomFile(conf, conf.tempDir, prefix, suffix)
+
+
 proc makeCmd(
     conf: NimRun,
-    dump: NimState,
+    dump: NimDump,
   ): ShellCmd =
 
   var cmd = shellCmd(nim)
@@ -549,6 +595,14 @@ proc makeCmd(
   for flag in conf.cell.flags:
     if flag.canGet(state):
       cmd.opt($flag, if state: "on" else: "off")
+
+  for (key, value) in conf.cell.defines:
+    if value.canGet(value):
+      cmd.opt("define", key & "=" & value)
+
+    else:
+      cmd.opt("define", key)
+
 
   with cmd:
     opt("gc", $conf.cell.gc)
@@ -638,22 +692,40 @@ proc extractSpec(s: string, filename: AbsFile): string =
   else:
     result = ""
 
-proc runFromFile*(file: AbsFile): NimRun =
-  result = NimRun(
-    file: file,
-    outfile: file.withExt("out")
-  )
-
+proc runsFromFile*(file: AbsFile, conf: NimRunConf): seq[NimRun] =
+  var spec: Option[NimTestSpec]
   let text = file.readFile()
   if text.startsWith("discard"):
-    result.spec = some text.extractSpec(file).parseSpec(file)
+    spec = some text.extractSpec(file).parseSpec(file)
+
+  # TODO parse spec configuration to generate multiple matrix values
+
+  var run = NimRun(
+    file: file,
+    outfile: file.withExt("out"),
+    spec: spec
+  )
+
+
+  for define in conf.defines:
+    run.cell.defines.add define
+
+  run.cell.extraFlags.add conf.extraFlags
+
+  result.add run
 
 
 
-proc runsFromDir*(dir: AbsDir, first: seq[AbsFile] = @[]): seq[NimRun] =
+
+proc runsFromDir*(
+    dir: AbsDir,
+    conf: NimRunConf,
+    first: seq[AbsFile] = @[]
+  ): seq[NimRun] =
+
   for file in first & toSeq(walkDir(dir, AbsFile, exts = @["nim"])):
     if file.name().startsWith("t"):
-      result.add runFromFile(file)
+      result.add runsFromFile(file, conf)
 
 proc getJoinable*(runs: seq[NimRun]): tuple[joinable, standalone: seq[NimRun]] =
   for run in runs:
@@ -981,7 +1053,7 @@ proc parseNimReport*(report: string): NimReport =
         describeStrPos(report, err.pos),
         ". Error message was \"", $err.msg, "\"")[])
 
-proc getReports(res: ShellResult, run: NimRun): seq[NimReport] =
+proc getCompileReports(res: ShellResult, run: NimRun): seq[NimReport] =
   for part in res.getStderr().split("\31"):
     if part.strip().len() > 0:
       var report = parseNimReport(part)
@@ -1033,11 +1105,10 @@ proc register(state: var NimReportState, report: NimReport) =
 
 
 
-
 proc reportError*(
     l: HLogger,
     report: NimReport,
-    dump: NimState,
+    dump: NimDump,
     state: NimReportState = NimReportState()
   ) =
 
@@ -1103,17 +1174,6 @@ proc reportError*(
       else:
         l.debug report.error
 
-
-proc getCompileReportFor*(
-    file: AbsFile,
-    conf: NimRunConf
-  ): seq[NimReport] =
-
-  let run = runFromFile(file)
-  let cmd = makeCmd(run, conf.dump)
-  let res = shellResult(cmd)
-  return res.getReports(run)
-
 proc skipKinds*(
     reports: sink seq[NimReport],
     kind: set[NimReportKind] = {nrHint, nrWarning}
@@ -1130,25 +1190,33 @@ type
   NimRunResult* = object
     run*: NimRun
     compileRes*: ShellResult
+    compileReports*: seq[NimReport]
     msg*: string
     kind*: NimRunResultKind
     runReports*: seq[TestReport]
 
+
+
 proc joinedRunsFromDir*(
     dir: AbsDir,
-    first: seq[AbsFile],
-    conf: NimRunConf
+    conf: NimRunConf,
+    first: seq[AbsFile] = @[],
   ): seq[NimRun] =
 
   let
-    runs = runsFromDir(dir, first)
+    runs = runsFromDir(dir, conf, first)
     (joined, standalone) = runs.getJoinable()
-    res = conf.tempDir /. "joined.nim"
+    res = conf.getRandomFile("tmp_joined", ".nim")
     code = makeJoinedCode(joined)
 
   res.writeFile(code)
 
-  result.add NimRun(file: res, outfile: res.withExt("out"))
+  var merged = runsFromFile(res, conf)
+  for it in mitems(merged):
+    for run in joined:
+      it.joinedFrom.add run.file
+
+  result.add merged
   result.add standalone
 
 iterator compileRuns*(
@@ -1156,8 +1224,13 @@ iterator compileRuns*(
     conf: NimRunConf
   ): tuple[run: NimRun, compile: ShellResult] =
 
+  var cmds: seq[(ShellCmd, NimRun)]
+  for it in runs:
+    let cmd = makeCmd(it, conf.dump)
+    cmds.add(cmd, it)
+
   for (res, run) in runShellResult(
-    runs.mapIt((makeCmd(it, conf.dump), it)),
+    cmds,
     maxPool = conf.parallelCompile
   ):
     yield (run, res)
@@ -1169,6 +1242,7 @@ proc makeRunCmd*(run: NimRun): ShellCmd =
 
 proc parseRunReports*(res: ShellResult): seq[TestReport] =
   for line in res.getStdout().splitLines():
+    echov line
     result.add fromJson(line, TestReport)
 
 proc invokeCompiled*(
@@ -1180,6 +1254,8 @@ proc invokeCompiled*(
   result = NimRunResult(run: run, compileRes: compile)
   if not compile.isOk():
     result.kind = nrrkFailedCompilation
+    if conf.parseCompilation:
+      result.compileReports = compile.getCompileReports(run)
 
   else:
     let run = makeRunCmd(run)
@@ -1201,12 +1277,24 @@ proc invokeCompiled*(
         result.kind = nrrkFailedExecution
 
 
+proc getRunReportsFor*(file: AbsFile, conf: NimRunConf): seq[NimRunResult] =
+  for (run, compile) in runsFromFile(file, conf).compileRuns(conf):
+    result.add invokeCompiled(run, compile, conf)
+
+proc getCompileReportsFor*(
+    file: AbsFile,
+    conf: NimRunConf
+  ): seq[tuple[run: NimRun, reports: seq[NimReport]]] =
+
+  for (run, compile) in runsFromFile(file, conf).compileRuns(conf):
+    result.add(run, compile.getCompileReports(run))
+
 
 when false:
   proc processRunResult(
       run: NimRun,
       runRes: ShellResult,
-      dump: NimState,
+      dump: NimDump,
       l: HLogger,
       parseRun: bool = true
     ): NimRunResult =
@@ -1214,7 +1302,7 @@ when false:
     var state: NimReportState
 
     if parseRun:
-      let reports = getReports(runRes, run)
+      let reports = getCompileReports(runRes, run)
 
       if reports.anyIt(it of nrError):
         result = some NimRunFailDesc(msg: "Compilation failed")
@@ -1244,9 +1332,128 @@ when false:
       result.get().run = run
       result.get().compileRes = runRes
 
+
+proc formatReport*(
+    report: NimReport,
+    dump: NimDump,
+    state: NimReportState,
+  ): ColoredText =
+
+  coloredResult()
+
+  case report.kind:
+    of nrUnparsed:
+      add "Unparsed compiled output:\n"
+      add indent(report.reportText, 2)
+      add "\n"
+      if report.parseFail.canGet(err):
+        add "Parse failed due to an error\n  "
+        add err.msg
+        add "\n"
+
+    of nrHint:
+      add "Hint ..."
+
+    of nrWarning:
+      add "Warning ..."
+
+    of nrError:
+      case report.error:
+        of neCannotOpen:
+          add "Cannot open imported path\n"
+          addi 1, "List of known import paths:\n"
+          for path in dump.paths:
+            addi 2, hshow(path)
+            add "\n"
+
+          addi 1, "Nimble path\n"
+          addi 2, hshow(dump.nimblePath)
+          add "\n"
+
+
+        # of neAmbiguousCall:
+        #   let (k1, k2) = (report.definedAlts[0], report.definedAlts[1])
+        #   let m = max(k1.name.len, k2.name.len)
+        #   l.err "ambiguous call"
+        #   l.info k1.name
+        #   l.info k2.name
+        #   l.info " match for ", report.matchFor
+
+        # of neOverloadFail:
+        #   l.err "No matching function"
+        #   let ctx = report.overloadContext
+        #   l.info ctx.expression
+
+        #   for alt in ctx.alts:
+        #     l.debug alt.signature
+        #     l.info alt.argumentFail
+        #     if alt.isOfType.canGet(argType):
+        #       l.debug "But expression is of type "
+        #       l.debug argType
+
+        # of neLdFail:
+        #   l.err "Linker exited with error"
+        #   l.err report.ldReport.message
+
+        # of neGccFail:
+        #   let (diags, compile) = report.gccReport
+        #   l.err "Compiler command exited with error"
+        #   for group in diags:
+        #     for diag in group:
+        #       l.err diag.message
+        #       for loc in diag.locations:
+        #         l.dump loc.caret.line
+        #         l.dump loc.caret.file
+        #         l.dump loc.caret.column
+
+        else:
+          add $report.error
+          # l.debug report.error
+
+
+  # var hadInstOf = false
+  # for part in report.parts:
+  #   hadInstOf = true
+  #   if part of {nrpInstOf}:
+  #     l.logLines(part)
+
+  # if hadInstOf:
+  #   l.info "---------------"
+
+  # for part in report.parts:
+  #   if not(part of {nrpInstOf}):
+  #     l.logLines(part)
+
+  # if report of nrError:
+
+  endResult()
+
+proc formatRun*(run: NimRunResult, dump: NimDump): ColoredText =
+  coloredResult()
+
+  case run.kind:
+    of nrrkFailedCompilation:
+      add "Compilation failed"
+      var state: NimReportState
+      pprint run.compileReports
+      for report in run.compileReports:
+        state.register(report)
+        add formatReport(report, dump, state)
+
+    of nrrkFailedExecution:
+      add "Test execution failed"
+
+    of nrrkSuccess:
+      add "Test execution succeded"
+
+  endResult()
+
+
+
+
 # proc runTestDir*(
 #     dir: AbsDir,
-#     dump: NimState,
+#     dump: NimDump,
 #     first: seq[AbsFile] = @[],
 #     l: HLogger = newTermLogger(),
 #   ): bool =
