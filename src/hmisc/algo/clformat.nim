@@ -1355,9 +1355,20 @@ func hShow*[A, B](
 
   "[" & hshow(slice.a, opts) & ":" & hshow(slice.b, opts) & "]"
 
-func hshow*[T](s: seq[T], opts: HDisplayOpts = defaultHDisplay): ColoredText =
+func hshowItems*[T](
+    expr: T,
+    opts: HDisplayOpts = defaultHDisplay): seq[ColoredText] =
+
+  for item in items(expr):
+    result.add hshow(item, opts)
+
+func joinBracket*(
+    values: seq[ColoredText],
+    opts: HDisplayOpts = defaultHDisplay
+  ): ColoredText =
+
   result.add CharBrace.doubleSquare.left
-  for idx, item in pairs(s):
+  for idx, item in pairs(values):
     if idx > 0:
       if dfUseCommas in opts.flags:
         result.add ", "
@@ -1365,9 +1376,31 @@ func hshow*[T](s: seq[T], opts: HDisplayOpts = defaultHDisplay): ColoredText =
       else:
         result.add " "
 
-    result.add hshow(item, opts)
-
+    result.add item
   result.add CharBrace.doubleSquare.right
+
+
+
+
+func hshow*[T](s: seq[T], opts: HDisplayOpts = defaultHDisplay): ColoredText =
+  hshowItems(s, opts).joinBracket(opts)
+
+func hshow*[R, V](
+  s: array[R, V], opts: HDisplayOpts = defaultHDisplay): ColoredText =
+  hshowItems(s, opts).joinBracket(opts)
+
+func hshow*[E: enum, V](
+    s: array[E, Option[V]],
+    opts: HDisplayOpts = defaultHDisplay
+  ): ColoredText =
+
+  var buf: seq[ColoredText]
+  for key, val in pairs(s):
+    if val.isSome():
+      buf.add hshow(key, opts) & ": " & hshow(val.get(), opts)
+
+  return joinBracket(buf)
+
 
 import std/sequtils
 

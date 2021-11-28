@@ -23,6 +23,12 @@ suite "Parser":
     echo parseAmbiguousCall(
       "ambiguous call; both oswrap.currentSourceDir() [template declared in /src/hmisc/other/oswrap.nim(518, 10)] and gold.currentSourceDir() [template declared in /hmisc/core/gold.nim(152, 10)] match for: ()")
 
+  test "Unparseable report":
+    let rep = parseNimReport("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ???")
+
+    check rep.kind == nrUnparsed
+
+
   test "wrong bin/ld":
     let report = parseNimReport("""
 []
@@ -45,7 +51,10 @@ suite "Runner":
   proc reports(text: string): seq[NimReport] =
     let file = dir.getTempFile("???????.nim")
     file.writeFile(text)
-    getCompileReportFor(file, dump, hints = off).skipKinds()
+    var conf = NimRunConf(dump: dump)
+    conf.excl nrfHints
+
+    getCompileReportFor(file, conf).skipKinds()
 
   test "Correct code reports":
     let rep = reports("echo 12")

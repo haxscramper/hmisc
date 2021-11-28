@@ -1,7 +1,12 @@
 import std/[parseutils, strutils]
 import hmisc/core/all
+import pkg/jsony
 
 proc dumpHook*(s: var string, c: cstring) = dumpHook(s, $c)
+proc parseHook*(s: string, i: var int, res: var cstring) =
+  var tmp: string
+  parseHook(s, i, tmp)
+  res = cstring(tmp)
 
 proc dumpHook*[I](s: var string, ins: set[I]) =
   s.add "["

@@ -191,7 +191,7 @@ proc logImpl*(
 
     else:
       logger.lastLogFile = position[0]
-      if $$CI == 1:
+      if $$CI == true:
         indent.add $position
 
       else:

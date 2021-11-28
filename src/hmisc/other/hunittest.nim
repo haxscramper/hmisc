@@ -116,12 +116,12 @@ type
 
   TestValue = object
     context: TestValueContext
-    case kind: TestValueKind
+    case kind*: TestValueKind
       of tvkString, tvkStringified, tvkTypename:
         str: string
 
   TestReport* = object
-    location* {.requiresinit.}: TestLocation
+    location*: TestLocation
     msg*: string
     case failKind*: TestFailKind
       of tfkStructDiff, tfkStructEq:

@@ -370,6 +370,9 @@ func arg*(cmd: var ShellCmd, arg: string | AnyPath) =
 
 func arg*(cmd: var ShellCmd, arg: int) = cmd.arg($arg)
 
+func add*(cmd: var ShellCmd, part: ShellCmdPart) =
+  cmd.opts.add part
+
 func `-`*(cmd: var ShellCmd, fl: string) =
   ## Add flag for command
   cmd.flag fl

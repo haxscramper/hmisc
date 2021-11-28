@@ -111,7 +111,7 @@ type
     annotation*: ColoredText
     path*: PPrintPath
     treeId*: int
-    styling* {.requiresinit.}: PrintStyling
+    styling*: PrintStyling
     treeType*: PPrintType
     size*: int
     height*: int

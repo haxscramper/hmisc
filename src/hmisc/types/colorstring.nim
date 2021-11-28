@@ -348,7 +348,7 @@ type
 
   ColoredRune* = object
     rune*: Rune
-    styling* {.requiresinit.}: PrintStyling
+    styling*: PrintStyling
 
   ColoredText* = object
     runes*: seq[ColoredRune]
