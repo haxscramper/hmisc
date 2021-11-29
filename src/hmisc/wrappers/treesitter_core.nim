@@ -1010,7 +1010,7 @@ type
 
   HtsRegex*[K] = ref object
 
-func tsChoice*[K](args: varargs[HtsRule[K]]): HtsRule[K] =
+proc tsChoice*[K](args: varargs[HtsRule[K]]): HtsRule[K] =
   HtsRule[K](kind: hrkChoice, members: @args)
 
 proc tsSeq*[K](args: varargs[HtsRule[K]]): HtsRule[K] =
