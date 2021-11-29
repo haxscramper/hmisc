@@ -91,6 +91,8 @@ type
       # hset: HashSet[int]
     ]
 
+    fBitSet: set[uint8]
+
     case kind1*: range[0 .. 3]:
       of 0:
         fVar: ImVariant
@@ -129,6 +131,7 @@ type
 
 proc makeTorture*(): ImTorture =
   result = ImTorture(
+    fBitSet: {0u8, 1, 3, 4, 255},
     used: @[
       ImTorture(kind1: 0),
       ImTorture(kind1: 1),

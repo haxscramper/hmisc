@@ -1,129 +1,102 @@
-import
-  std/[enumerate, strutils, tables, with, strtabs, options, streams]
+import std/[streams, parsejson, json]
+import hmisc/core/all
 
-import
-  ../core/all,
-  ../types/colorstring,
-  ../other/[oswrap, rx],
-  ../algo/[hlex_base, hparse_base]
-
-export hparse_base
-
+import ./base_writer
 
 type
-  JsonTokenKind* = enum
-    jtkLCurly
-    jtkRCurly
-    jtkString
-    jtkNumber
-    jtkColon
-    jtkComma
-    jtkKey
-    jtkLBrace
-    jtkRBrace
-    jtkFloat
-    jtkEof
+  JsonWriter* = object of RootObj
+    base*: BaseWriter
 
-  JsonTok = HsTok[JsonTokenKind]
-
-  JsonReader* = object
-    str: PosStr
-    tok: JsonTok
-
-  JsonWriter* = object
-    stream: Stream
-    indentBuf: string
+genBaseWriterProcs(JsonWriter)
 
 using
-  w: var JsonWriter
-  r: var JsonReader
+  writer: var JsonWriter
 
-proc close*(w: var JsonWriter) = w.stream.close()
+proc write*(writer; event: JsonEventKind) =
+  writer.writeRaw():
+    case event:
+      of jsonTrue: "true"
+      of jsonFalse: "false"
+      of jsonNull: "null"
+      of jsonObjectStart: "{"
+      of jsonObjectEnd: "}"
+      of jsonArrayStart: "["
+      of jsonArrayEnd: "]"
+      else: raise newUnexpectedKindError(event)
 
-proc `=destroy`*(w: var JsonWriter) = discard
+proc write*(writer; tk: TokKind) =
+  writer.writeRaw():
+    case tk:
+      of tkTrue: "true"
+      of tkFalse: "false"
+      of tkNull: "null"
+      of tkCurlyLe: "{"
+      of tkCurlyRi: "}"
+      of tkBracketLe: "["
+      of tkBracketRi: "]"
+      of tkColon: ":"
+      of tkComma: ","
+      else: raise newUnexpectedKindError(tk)
 
-proc newJsonWriter*(stream: Stream): JsonWriter =
-  JsonWriter(stream: stream)
+proc comma*(writer) = writer.writeRaw(", ")
+proc colon*(writer) = writer.writeRaw(": ")
 
-proc newJsonWriter*(file: AbsFile): JsonWriter =
-  newJsonWriter(newFileStream(file, fmWrite))
+proc writeField*(writer; name: string) =
+  writer.writeRaw(escapeJson(name))
+  writer.writeRaw(": ")
 
-proc newJsonWriter*(file: File): JsonWriter =
-  newJsonWriter(newFileStream(file))
+proc writeStr*(writer; text: string) =
+  writer.writeRaw(escapeJson(text))
 
-proc write*(w; str: string) = w.stream.write(str)
-proc space*(w) = w.write(" ")
-proc line*(w) = w.write("\n")
-proc indent*(w) = w.indentBuf.add "  "
-proc dedent*(w) =
-  w.indentBuf.setLen(max(w.indentBuf.len - 2, 0))
+proc newJsonParser*(
+    text: string,
+    filename: string = "<text>"
+  ): JsonParser =
 
-proc writeInd*(w) = w.write(w.indentBuf)
+  open(result, newStringStream(text), filename)
+  next(result)
 
-proc kind*(r: JsonReader): JsonTokenKind = r.tok.kind
-proc finished*(r): bool = r.str.finished()
+proc getStr*(parser: JsonParser): string = parser.str()
 
-proc next*(r) =
-  if r.str.finished():
-    r.tok = initEOF(r.str, jtkEOF)
+proc currentEventToStr*(parser: JsonParser): string =
+  result.add $parser.kind
+  result.add " "
+  result.add $parser.tok
+  result.add " "
+  result.add():
+    case parser.kind:
+      of jsonError:       errorMsg(parser)
+      of jsonEof:         "[EOF]"
+      of jsonString:      parser.getStr()
+      of jsonInt:         parser.str()
+      of jsonFloat:       parser.str()
+      of jsonTrue:        "true"
+      of jsonFalse:       "false"
+      of jsonNull:        "null"
+      of jsonObjectStart: "{"
+      of jsonObjectEnd:   "}"
+      of jsonArrayStart:  "["
+      of jsonArrayEnd:    "]"
 
-  else:
-    case r.str[0]:
-      of IntegerStartChars:
-        r.tok = initTok(r.str, r.str.popDigit(), jtkNumber)
+proc displayAt*(parser: JsonParser): string =
+  result = $parser.getFilename() & "(" & $parser.getLine &
+    ":" & $parser.getColumn & ") "
+  result.add currentEventToStr(parser)
 
-      of '\"':
-        r.tok = initTok(r.str, r.str.popStringLit(), jtkString)
-        if r.str[':']:
-          r.tok.kind = jtkKey
+var p = newJsonParser("[1,2,3]")
 
-      of '{', '}', '[', ']', ':', ',':
-        r.tok = initCharTok(r.str, {
-          '}': jtkRCurly,
-          '{': jtkLCurly,
-          ']': jtkRBrace,
-          '[': jtkLBrace,
-          ',': jtkComma,
-          ':': jtkColon
-        })
+iterator eventsUntil*(
+    p: var JsonParser,
+    endTok: set[TokKind]): JsonEventKind =
 
-      of Whitespace:
-        r.str.skipWhile(Whitespace)
-        r.next()
+  while p.tok notin endTok:
+    yield p.kind()
+    p.next()
 
-      else:
-        raise newUnexpectedCharError(r.str)
+iterator eventsUntil*(
+    p: var JsonParser,
+    endTok: set[JsonEventKind]): JsonEventKind =
 
-proc newJsonReader*(s: Stream): JsonReader =
-  result = JsonReader(str: initPosStr(s))
-  result.next()
-
-proc newJsonReader*(s: string): JsonReader =
-  newJsonReader(newStringStream(s))
-
-
-
-proc jsonTokens*(str: string): seq[JsonTok] =
-  var r = newJsonReader(str)
-  while not r.finished():
-    r.next()
-    result.add r.tok
-
-
-proc writeJson*(w; val: SomeInteger | string | SomeFloat | enum | bool) =
-  w.write($val)
-
-proc loadJson*(r; val: var SomeInteger) =
-  r.assertKind({jtkNumber})
-  val = parseInt(r.tok.str)
-  r.next()
-
-proc loadJson*(r; val: var string) =
-  r.assertKind({jtkString, jtkKey})
-  val = r.tok.str
-  r.next()
-
-proc loadJson*[E: enum](r; val: var E) =
-  r.assertKind({jtkString, jtkKey})
-  val = parseEnum[E](r.tok.str)
-  r.next()
+  while p.kind notin endTok:
+    yield p.kind()
+    p.next()

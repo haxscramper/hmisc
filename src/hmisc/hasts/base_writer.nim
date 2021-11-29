@@ -1,4 +1,4 @@
-import std/[streams, macros, strutils]
+import std/[streams, macros, strutils, tables]
 import ../other/oswrap
 
 type
@@ -74,3 +74,30 @@ macro genBaseWriterProcs*(wtype: untyped{nkIdent}): untyped =
       `wtype`(base: newBaseWriter(stream))
 
     proc `newn`*(): `wtype` = `wtype`(base: newBaseWriter())
+
+
+type
+  SerdeState* = object
+    ptrs: Table[int, pointer] ## Table ID to implementations
+    refs: Table[int, int] ## Refs to IDs
+
+proc knownId*(state: var SerdeState, id: int): bool =
+  id in state.ptrs
+
+proc knownRef*[T](state: var SerdeState, target: ref T): bool =
+  cast[int](target) in state.refs
+
+proc getRefId*[T](state: var SerdeState, target: ref T): int =
+  let mem = cast[int](target)
+  if mem in state.refs:
+    return state.refs[mem]
+
+  else:
+    result = len(state.refs)
+    state.refs[mem] = result
+
+proc getRef*[T](state: SerdeState, id: int): T =
+  cast[T](state.ptrs[id])
+
+proc setRef*[T](state: var SerdeState, value: T, id: int) =
+  state.ptrs[id] = cast[pointer](value)

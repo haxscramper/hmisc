@@ -1,7 +1,8 @@
 import
   ./xml_ast,
   ../core/all,
-  ./base_writer
+  ./base_writer,
+  ./serde_macros
 
 export xml_ast
 
@@ -17,16 +18,11 @@ import
   ]
 
 type
-  XmlState = object
-    ptrs: Table[int, pointer] ## Table ID to implementations
-    refs: Table[int, int] ## Refs to IDs
-
-
   XmlSerializer* = object of XmlWriter
-    state: XmlState
+    state: SerdeState
 
   XmlDeserializer* = object of HXmlParser
-    state: XmlState
+    state: SerdeState
 
 using
   writer: var XmlSerializer
@@ -146,8 +142,6 @@ proc writeXmlItems*[T](writer; values: T, tag: string) =
     writer.writeXml(it, tag)
 
 
-proc writeXml*[T](writer; values: seq[T], tag: string) =
-  writeXmlItems(writer, values, tag)
 
 template loadXmlItems*[T, Res](
     reader: var XmlDeserializer,
@@ -165,6 +159,8 @@ template loadXmlItems*[T, Res](
     # insertCall(target, tmp)
     # target.add tmp
 
+proc writeXml*[T](writer; values: seq[T], tag: string) =
+  writeXmlItems(writer, values, tag)
 
 proc loadXml*[T](reader; target: var seq[T], tag: string) =
   var tmp: T
@@ -194,17 +190,6 @@ proc writeXmlKeyValues*[K, V, Res](writer; target: Res, tag: string) =
     writer.xmlEnd(tag)
 
 
-proc knownRef[T](state: var XmlState, target: ref T): bool =
-  cast[int](target) in state.refs
-
-proc getRefId[T](state: var XmlState, target: ref T): int =
-  let mem = cast[int](target)
-  if mem in state.refs:
-    return state.refs[mem]
-
-  else:
-    result = len(state.refs)
-    state.refs[mem] = result
 
 const xmlRefId = "id"
 
@@ -213,8 +198,6 @@ proc readRefId(reader): int =
   loadXml(reader, id, xmlRefId)
   return id
 
-proc knownId(state: var XmlState, id: int): bool =
-  id in state.ptrs
 
 template wrapRefWrite*[T](
     writer; target: T, tag: string, body: untyped): untyped =
@@ -431,33 +414,6 @@ proc loadXml*(reader; target: var AbsFile, tag: string) =
 proc loadXml*(reader; target: var XmlNode, tag: string) =
   parseXsdAnyType(target, reader, tag)
 
-macro isDiscriminantField*(obj: typed, name: static[string]): untyped =
-  proc auxImpl(f: NimNode): NimNode =
-    case f.kind:
-      of nnkSym: f.getTypeImpl()
-      of nnkTupleConstr, nnkObjectTy, nnkTupleTy: f
-      of nnkBracketExpr: auxImpl(f[0])
-      else: raise newUnexpectedKindError(f, treeRepr(f))
-
-  proc fieldList(impl: NimNode): seq[string] =
-    case impl.kind:
-      of nnkBracketExpr: result = impl[1].auxImpl().fieldList()
-      of nnkTupleConstr, nnkIdentDefs, nnkTupleTy: discard
-      of nnkObjectTy: result = fieldList(impl[2])
-      of nnkOfBranch: result = fieldList(impl[^1])
-      of nnkElse: result = fieldList(impl[0])
-      of nnkRecList:
-        for node in items(impl):
-          result.add fieldList(node)
-
-      of nnkRecCase:
-        result.add impl[0][0].strVal()
-        for sub in items(impl[1..^1]):
-          result.add fieldList(sub)
-
-      else: raise newUnexpectedKindError(impl, impl.treeRepr())
-
-  return newLit(name in obj.auxImpl().fieldList())
 
 
 
