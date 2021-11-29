@@ -1013,7 +1013,7 @@ type
 func tsChoice*[K](args: varargs[HtsRule[K]]): HtsRule[K] =
   HtsRule[K](kind: hrkChoice, members: @args)
 
-func tsSeq*[K](args: varargs[HtsRule[K]]): HtsRule[K] =
+proc tsSeq*[K](args: varargs[HtsRule[K]]): HtsRule[K] =
   HtsRule[K](kind: hrkSeq, members: @args)
 
 
