@@ -61,6 +61,10 @@ func mfound*[F, E](s: var string, found: F, expected: E) =
 func mfound*[F, E](found: F, expected: E): string =
   mfound(result, found, expected)
 
+func mjoin*(args: varargs[string, `$`]): string =
+  for arg in items(args):
+    result.add arg
+
 func toPluralNoun*(
     noun: string, count: int,
     addNum: bool = true,

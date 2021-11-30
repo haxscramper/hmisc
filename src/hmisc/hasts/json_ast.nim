@@ -41,6 +41,14 @@ proc write*(writer; tk: TokKind) =
 proc comma*(writer) = writer.writeRaw(", ")
 proc colon*(writer) = writer.writeRaw(": ")
 
+proc sepComma*(writer; first, multiline: bool) =
+  if not first:
+    writer.comma()
+
+  if multiline:
+    writer.line()
+    writer.writeIndent()
+
 proc writeField*(writer; name: string) =
   writer.writeRaw(escapeJson(name))
   writer.writeRaw(": ")
@@ -77,6 +85,29 @@ proc currentEventToStr*(parser: JsonParser): string =
       of jsonObjectEnd:   "}"
       of jsonArrayStart:  "["
       of jsonArrayEnd:    "]"
+
+proc skipBalanced*(parser: var JsonParser) =
+  var found = false
+  var count = 0
+  while not found:
+    case kind(parser):
+      of jsonString, jsonNull, jsonFalse, jsonTrue, jsonInt, jsonFloat:
+        found = count == 0
+
+      of jsonArrayStart, jsonObjectStart:
+        inc count
+
+      of jsonArrayEnd, jsonObjectEnd:
+        dec count
+        found = count == 0
+
+      of jsonError:
+        raiseParseErr(parser, "")
+
+      of jsonEof:
+        found = true
+
+    next(parser)
 
 proc displayAt*(parser: JsonParser): string =
   result = $parser.getFilename() & "(" & $parser.getLine &

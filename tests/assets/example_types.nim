@@ -31,6 +31,12 @@ type
 
   ImEnumArray* = array[ImEnumKey, string]
 
+  ImRequiresField* = object
+    id* {.requiresinit.}: int
+
+  ImRequires* {.requiresinit.} = object
+    value*: int
+
   ImRef* = ref object
     fInt*: int
     fFloat*: float
@@ -91,7 +97,12 @@ type
       # hset: HashSet[int]
     ]
 
-    fBitSet: set[uint8]
+    fRequires1*: ImRequiresField
+    fRequires2*: ImRequires
+    fIarrayOffset*: array[2 .. 12, int]
+    fIarray*: array[4, int]
+
+    fBitSet*: set[uint8]
 
     case kind1*: range[0 .. 3]:
       of 0:
@@ -129,14 +140,23 @@ type
         ff32*: float32
         ff64*: float64
 
+proc default*(t: typedesc[ImRequiresField]): ImRequiresField =
+  ImRequiresField(id: 123)
+
+proc default*(t: typedesc[ImRequires]): ImRequires =
+  ImRequires(value: 123)
+
 proc makeTorture*(): ImTorture =
   result = ImTorture(
     fBitSet: {0u8, 1, 3, 4, 255},
+    fRequires1: default(ImRequiresField), fRequires2: default(ImRequires),
     used: @[
-      ImTorture(kind1: 0),
-      ImTorture(kind1: 1),
-      ImTorture(kind1: 2),
+      ImTorture(kind1: 0, fRequires1: default(ImRequiresField), fRequires2: ImRequires(value: 12)),
+      ImTorture(kind1: 1, fRequires1: default(ImRequiresField), fRequires2: ImRequires(value: 23)),
+      ImTorture(kind1: 2, fRequires1: default(ImRequiresField), fRequires2: ImRequires(value: 45)),
       ImTorture(
+        fRequires1: default(ImRequiresField),
+        fRequires2: default(ImRequires),
         kind1: 3,
         fu8: 0,
         fi8: 1,
@@ -157,8 +177,9 @@ proc makeTorture*(): ImTorture =
     kind1: 2,
     kind2: true,
     kind3: One,
-    fRef: ImRef(
-    )
+    fRef: ImRef()
   )
 
   result.used.add result
+
+func `$`*(i: ImRef): string = $(i[])

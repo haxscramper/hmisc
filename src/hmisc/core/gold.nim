@@ -354,8 +354,18 @@ macro dumpTyped*(a: typed): untyped =
 
   result = a
 
-func asgnAux[T](t: var T, s: T) = t = s
+func asgnAux*[T](target: var T, source: T) =
+  ## Helper assignment procedure, performs `target = source` operation
+  ## without any additional checks. This can be used in order to
+  ##
+  ## - Assing discriminant field under `cast(uncheckedAssign)` without
+  ##   having to temporarily disable bound checking
+  ## - Assign to the embedded supertype of the object. In that
+  ##   case assignment is done over a section of an object -
+  ##   `asgnAux[Base](<derived>, <base>)` makes it possible to
+  ##   "promote" a base object by copying it's fields to derived one.
+  target = source
 
 template setKind*[V](target, source: V) =
   {.cast(uncheckedAssign).}:
-    asgnAux(target, source)
+    asgnAux[V](target, source)

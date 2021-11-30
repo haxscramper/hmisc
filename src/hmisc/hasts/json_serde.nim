@@ -5,17 +5,61 @@ import std/[
   tables, with, strutils
 ]
 
-
+## Serialization and deserialization for nim types. Similar to the
+## https://github.com/treeform/jsony in terms of the API, but mainly
+## focused on supporting more complicated serialization cases, such as
+## objects without default values (jsony currently cannot handle
+## `{.requiresinit.}` data), cyclic data, object variants with more than
+## one discriminant etc.
+##
+## Implementation is based on the `std/parsejson` and certainly not as
+## performant as `jsony` which can operates directly on string buffer.
+## Current serialization perfrmance is comparable to the `std/json`. Use of
+## event-based lexer from the stdlib allows to provide higher-level API for
+## user-defined parsers - you don't need to manually skip quotes, spaces,
+## colon tokens and so on, and can instead use high-level operations such
+## as `kind()`, `str()`, `getInt()`. Same applies to the writer -
+## `writeField()`, `writeIndent()` (possible to implement JSON writer that
+## creates a pretty-printed output).
+##
+##
+## Deserialization has several configuration options that allow to either
+## ignore or raise exception when unexpected field is encountered, provide
+## different ways of serializing key-value pairs (either using json arrays
+## or via objects).
 
 type
   JsonSerdeError* = object of ParseError
+    ## Base type for all json serde errors (general json parsing errors are
+    ## reported using types defined in `std/parsejson` and/or `json_ast`
+    ## modules)
+    whenUsing*: string ## Name of the type for which serialization or
+                       ## deserialization operation was performed.
+
+  JsonSerdeUnknownFieldError* = object of JsonSerdeError
+    ## Json deserialization error raised when input data contains unknown
+    ## field and json deserializer options does not contain
+    ## `jsonIgnoreUnknownFields`
+    field*: string ## Unexpected field name found
+
+  JsonSerdeUnexpectedTypeError* = object of JsonSerdeError
+    ## Json deserialization error raise when parser contains unexpected
+    ## type at point.
+    foundKind*: JsonEventKind
 
   JsonSerializer* = object of JsonWriter
+    ## Json serializer object
     state: SerdeState
 
+  JsonDeserializerOptions* = enum
+    ## Runtime configuration for the json deserializer
+    jsoIgnoreUnknownFields ## Ignore all unknown fields found
+
   JsonDeserializer* = object of JsonParser
+    ## Json deserializer object
     sstate: SerdeState
     traceNext: bool
+    options: set[JsonDeserializerOptions]
 
 using
   reader: var JsonDeserializer
@@ -23,9 +67,13 @@ using
 
 genBaseWriterProcs(JsonSerializer)
 
+const
+  defaultJsonDeserializerOptions* = {jsoIgnoreUnknownFields}
+
 proc `$`*(p: JsonDeserializer): string = p.displayAt()
 
 proc next*(reader) =
+  ## Get new parser event. If error is found exception is raised
   parsejson.next(reader)
   if reader.traceNext:
     echo reader.displayAt()
@@ -33,40 +81,69 @@ proc next*(reader) =
   if reader.kind == jsonError:
     raiseParseErr(reader, "err")
 
-proc asgnAux*[V](target: var V, source: V) =
-  target = source
 
 proc newJsonDeserializer*(
-    arg: string, traceNext: bool = false): JsonDeserializer =
+    arg: string,
+    traceNext: bool = false,
+    options: set[JsonDeserializerOptions] = defaultJsonDeserializerOptions
+  ): JsonDeserializer =
+
   asgnAux[JsonParser](result, newJsonParser(arg))
   result.traceNext = traceNext
+  result.options = options
 
-template expectAt*(
-    reader; at: set[JsonEventKind], procname: string
-  ): untyped {.dirty.} =
-  bind kind, getLine, getColumn, displayAt
-  {.line: instantiationInfo(fullPaths = true).}:
-    if kind(reader) notin at:
-      when not defined(nimdoc):
-        raise (ref JsonSerdeError)(
-          msg:
-            "Invalid curent parser event kind for '" &
-              procname & "'. Expected any of " &
-              $at & ", but found " &
-              $reader.kind() &
-              " at " & displayAt(reader),
-          line: parsejson.getLine(reader),
-          column: parsejson.getColumn(reader)
-        )
+# template expectAt*(
+#     reader; at: set[JsonEventKind], procname: string
+#   ): untyped {.dirty.} =
+#   bind kind, getLine, getColumn, displayAt
+#   {.line: instantiationInfo(fullPaths = true).}:
+#     if kind(reader) notin at:
+#       when not defined(nimdoc):
+#         raise (ref JsonSerdeError)(
+#           msg:
+#             "Invalid curent parser event kind for '" &
+#               procname & "'. Expected any of " &
+#               $at & ", but found " &
+#               $reader.kind() &
+#               " at " & displayAt(reader),
+#           line: parsejson.getLine(reader),
+#           column: parsejson.getColumn(reader)
+#         )
 
-proc skip(reader; at: set[JsonEventKind], procname: string) =
-  expectAt(reader, at, procname)
+proc expectAt*[Parsing](
+    reader;
+    kinds: set[JsonEventKind],
+    parsing: typedesc[Parsing]
+  ) =
+
+  if kind(reader) notin kinds:
+    raise (ref JsonSerdeUnexpectedTypeError)(
+      msg: mjoin(
+        "Unexpected json event type when parsing ",
+        mq($Parsing),
+        ". Found ", kind(reader), ", but expected ",
+        $kinds
+      ),
+      line: getLine(reader),
+      column: getColumn(reader),
+      whenUsing: $Parsing,
+      foundKind: kind(reader)
+    )
+
+
+proc skip*[Parsing](
+    reader;
+    at: set[JsonEventKind],
+    parsing: typedesc[Parsing],
+  ) =
+
+  expectAt(reader, at, parsing)
   reader.next()
 
 #==========================  Basic datatype IO  ==========================#
 
 proc loadJson*(reader; target: var bool) =
-  expectAt(reader, {jsonTrue, jsonFalse}, "loadJson(bool)")
+  expectAt(reader, {jsonTrue, jsonFalse}, bool)
   target = reader.kind == jsonTrue
   reader.next()
 
@@ -79,17 +156,17 @@ proc writeJson*(writer; target: bool) =
 
 proc loadJson*[I: SomeUnsignedInt](reader; target: var I) =
   target = I(reader.str().parseBiggestUInt())
-  reader.skip({jsonInt}, "loadJson(SomeUnsignedInt)")
+  reader.skip({jsonInt}, I)
 
 proc loadJson*[I: SomeSignedInt](reader; target: var I) =
   target = I(reader.str().parseBiggestInt())
-  reader.skip({jsonInt}, "loadJson(SomeSignedInt)")
+  reader.skip({jsonInt}, I)
 
 proc writeJson*(writer; target: SomeInteger) =
   writer.writeRaw($target)
 
 proc loadJson*[T: SomeFloat](reader; target: var T) =
-  expectAt(reader, {jsonFloat}, "loadJson(float)")
+  expectAt(reader, {jsonFloat}, T)
   target = T(getFloat(reader))
   reader.next()
 
@@ -97,7 +174,7 @@ proc writeJson*(writer; target: SomeFloat) =
   writer.writeRaw($target)
 
 proc loadJson*(reader; target: var string) =
-  expectAt(reader, {jsonString}, "loadJson(string)")
+  expectAt(reader, {jsonString}, string)
   target = reader.str()
   reader.next()
 
@@ -105,7 +182,7 @@ proc writeJson*(writer; target: string) =
   writer.writeStr(target)
 
 proc loadJson*(reader; target: var char) =
-  expectAt(reader, {jsonString}, "loadJson(char)")
+  expectAt(reader, {jsonString}, char)
   target = reader.str()[0]
   reader.next()
 
@@ -118,22 +195,30 @@ proc readRefId(reader): int =
   loadJson(reader, id)
   return id
 
+const jsonRefidField = "__refid"
+
 template wrapRefWrite*[T](
-    writer; target: T, body: untyped): untyped =
+    writer; target: T,
+    checkCycles: bool = true,
+    body: untyped
+  ): untyped =
 
   bind getRefId, writeField, comma
   if isNil(target):
     writer.write jsonNull
 
+  elif not checkCycles:
+    body
+
   elif knownRef(writer.state, target):
     writer.write jsonObjectStart
-    writeField(writer, "refid")
+    writeField(writer, jsonRefidField)
     writeJson(writer, getRefId(writer.state, target))
     writer.write jsonObjectEnd
 
   else:
     writer.write jsonObjectStart
-    writeField(writer, "refid")
+    writeField(writer, jsonRefidField)
     writeJson(writer, getRefId(writer.state, target))
     comma(writer)
     writeField(writer, "value")
@@ -141,145 +226,220 @@ template wrapRefWrite*[T](
     writer.write jsonObjectEnd
 
 template wrapRefLoad*[T](
-    writer; target: T, body: untyped): untyped =
+    writer;
+    target: T,
+    checkCycles: bool = true,
+    body: untyped
+  ): untyped =
   ## Wrap implementation of the ref type serialization.
   bind readRefId, knownId, getRef, setRef
-  const name = "wrapRefLoad(" & $typeof(T) & ")"
   if reader.kind == jsonNull:
     target = nil
-    skip(reader, {jsonNull}, name)
+    skip(reader, {jsonNull}, typeof(T))
+
+  elif not checkCycles:
+    new(target)
+    body
 
   else:
-    skip(reader, {jsonObjectStart}, name)
-    skip(reader, {jsonString}, name)
+    skip(reader, {jsonObjectStart}, typeof(T))
+    skip(reader, {jsonString}, typeof(T))
     let id = readRefId(reader)
 
     if knownId(reader.sstate, id):
       target = getRef[T](reader.sstate, id)
 
     else:
-      skip(reader, {jsonString}, name)
+      skip(reader, {jsonString}, typeof(T))
       new(target)
       setRef(reader.sstate, target, id)
       body
 
-    skip(reader, {jsonObjectEnd}, name)
+    skip(reader, {jsonObjectEnd}, typeof(T))
+
+func toJsonField*(t: SomeInteger | string | SomeFloat): string =
+  ## Convert value to a json field
+  $t
+
+# func fromJsonField*(field: string, target: var SomeUnsignedInteger) =
+#   tar
+
+proc jsonRenameField*[T](target: var T, field: var string) =
+  ## Default implementation of the json field rename hook. Implement this
+  ## procedure for your type in order to perform field name conversion.
+  ## Default implementation does not modify passed string
+  discard
+
+proc jsonPostLoad*[T](target: var T) =
+  ## Default implementation of the post load hook. Implement this procedure
+  ## for your type in order to execute trigger after each new object is
+  ## loaded. Default implementation does nothing.
+  discard
+
+proc jsonDefaultValue*[T](t: typedesc[T]): T =
+  ## Create a default value for a passed type. Default implementation calls
+  ## `default()` and most likely wont have to be overriden direcly, unless
+  ## there are some specific setup needed for reading data with json.
+  mixin default
+  default(T)
 
 #==========================  Built-in generics  ==========================#
 
-proc readJsonKeyValues*[K, V, Res](reader; target: var Res) =
+proc loadJsonPairs*[K, V, Res](
+    reader;
+    target: var Res,
+  ) =
+
   mixin loadJson
-  reader.skip({jsonArraystart}, "readJsonKeyValues()")
+  reader.skip({jsonArraystart}, Res)
   while kind(reader) in {jsonArrayStart} or
         reader.tok in {tkComma}:
-    reader.skip({jsonArrayStart}, "readJsonKeyValues()")
-    var key: K = default(K)
+    reader.skip({jsonArrayStart}, Res)
+    var key: K = jsonDefaultValue(K)
     loadJson(reader, key)
 
-    var val: V = default(V)
+    var val: V = jsonDefaultValue(V)
     loadJson(reader, val)
 
-    reader.skip({jsonArrayEnd}, "readJsonKeyValues()")
+    reader.skip({jsonArrayEnd}, Res)
     target[key] = val
 
-  reader.skip({jsonArrayEnd}, "readJsonKeyValues()")
+  reader.skip({jsonArrayEnd}, Res)
 
-proc writeJsonKeyValues*[K, V, Res](writer; target: Res) =
+proc writeJsonPairs*[Res](
+    writer;
+    target: Res,
+    multiline: bool = false,
+    arrayPairs: static[bool] = true
+  ) =
+  ## - @arg{arrayPairs} :: Map sequence of pairs to array of pairs.
+  ##  `[[key1, val1], [key2, val2]]`. If set to false type must
+  ##  implement `toJsonField`
   mixin writeJson
-  writer.write jsonArrayStart
+  writer.write tern(arrayPairs, jsonArrayStart, jsonObjectStart)
   var first = true
+  if multiline:
+    writer.indent()
+
   for key, value in pairs(target):
-    if not first:
-      writer.comma()
+    writer.sepComma(first, multiline)
 
     first = false
 
-    writer.write jsonArrayStart
-    writer.writeJson(key)
-    writer.comma()
+    when arrayPairs:
+      writer.write jsonArrayStart
+      writer.writeJson(key)
+      writer.comma()
+    else:
+      writer.writeField toJsonField(key)
+
     writer.writeJson(value)
-    writer.write jsonArrayEnd
 
-  writer.write jsonArrayEnd
+    when arrayPairs:
+      writer.write jsonArrayEnd
 
-proc writeJsonItems*[T](writer; values: T) =
+  if multiline:
+    writer.dedent()
+    writer.line()
+
+  writer.write tern(arrayPairs, jsonArrayEnd, jsonObjectEnd)
+
+proc writeJsonItems*[T](writer; values: T, multiline: bool = false) =
   mixin writeJson
   var first = true
   writer.write jsonArrayStart
-  for it in items(values):
-    if not first:
-      writer.comma()
+  if multiline:
+    writer.indent()
 
-    first = false
+  for it in items(values):
+    writer.sepComma(first, multiline)
+
     writer.writeJson(it)
+    first = false
+
+  if multiline:
+    writer.dedent()
+    writer.line()
 
   writer.write jsonArrayEnd
 
-template loadJsonItems*(
+template loadJsonItems*[T](
     reader: var JsonDeserializer,
     tmp, insertCall: untyped
   ) =
 
   mixin loadJson
-  skip(reader, {jsonArrayStart}, "loadJsonItems()")
+  skip(reader, {jsonArrayStart}, typedesc(T))
   while kind(reader) != jsonArrayEnd:
     loadJson(reader, tmp)
     insertCall
 
-  skip(reader, {jsonArrayEnd}, "loadJsonItems()")
+  skip(reader, {jsonArrayEnd}, typedesc(T))
 
 proc writeJson*[T](writer; values: seq[T]) =
   writeJsonItems(writer, values)
 
 proc loadJson*[T](reader; target: var seq[T]) =
-  var tmp: T = default(T)
-  loadJsonItems(reader, tmp):
+  var tmp: T = jsonDefaultValue(T)
+  loadJsonItems[seq[T]](reader, tmp):
     add(target, tmp)
 
 
 # ~~~~ Ordered Table ~~~~ #
 
 proc writeJson*[K, V](writer; table: OrderedTable[K, V]) =
-  writeJsonKeyValues[K, V, OrderedTable[K, V]](writer, table)
+  writeJsonPairs[OrderedTable[K, V]](writer, table)
 
 proc loadJson*[A, B](reader; target: var OrderedTable[A, B]) =
-  readJsonKeyValues[A, B, OrderedTable[A, B]](reader, target)
+  loadJsonPairs[A, B, OrderedTable[A, B]](reader, target)
 
 # ~~~~ Table ~~~~ #
 
 proc writeJson*[K, V](writer; table: Table[K, V]) =
-  writeJsonKeyValues[K, V, Table[K, V]](writer, table)
+  writeJsonPairs[Table[K, V]](writer, table)
 
 proc loadJson*[A, B](reader; target: var Table[A, B]) =
-  readJsonKeyValues[A, B, Table[A, B]](reader, target)
+  loadJsonPairs[A, B, Table[A, B]](reader, target)
 
 # ~~~~ Table ref ~~~~ #
 
 proc writeJson*[K, V](writer; table: TableRef[K, V]) =
   wrapRefWrite(writer, table):
-    writeJsonKeyValues[K, V, TableRef[K, V]](writer, table)
+    writeJsonPairs[TableRef[K, V]](writer, table)
 
 proc loadJson*[A, B](reader; target: var TableRef[A, B]) =
   wrapRefLoad(reader, target):
-    readJsonKeyValues[A, B, TableRef[A, B]](reader, target)
+    loadJsonPairs[A, B, TableRef[A, B]](reader, target)
 
 # ~~~~ Oredered table ref ~~~~ #
 
 proc writeJson*[K, V](writer; table: OrderedTableRef[K, V]) =
   wrapRefWrite(writer, table):
-    writeJsonKeyValues[K, V, OrderedTableRef[K, V]](writer, table)
+    writeJsonPairs[OrderedTableRef[K, V]](writer, table)
 
 proc loadJson*[A, B](reader; target: var OrderedTableRef[A, B]) =
   wrapRefLoad(reader, target):
-    readJsonKeyValues[A, B, OrderedTableRef[A, B]](reader, target)
+    loadJsonPairs[A, B, OrderedTableRef[A, B]](reader, target)
 
 # ~~~~ Array ~~~~ #
 
 proc writeJson*[R, V](writer; table: array[R, V]) =
-  writeJsonKeyValues[R, V, array[R, V]](writer, table)
+  writeJsonItems[array[R, V]](writer, table)
 
 proc loadJson*[R, V](reader; target: var array[R, V]) =
-  readJsonKeyValues[R, V, array[R, V]](reader, target)
+  var idx = low(R)
+  var tmp = jsonDefaultValue(V)
+  var isLast = false
+  loadJsonItems[array[R, V]](reader, tmp):
+    assert not isLast
+    # echov "loadeding", tmp, "to", idx
+    # assert idx != high(R)
+
+    target[idx] = tmp
+    if idx != high(R):
+      idx = succ(idx)
+    else:
+      isLast = true
 
 # ~~~~ Option ~~~~ #
 
@@ -293,10 +453,10 @@ proc writeJson*[T](writer; opt: Option[T]) =
 proc loadJson*[T](reader; target: var Option[T]) =
   mixin loadJson
   if reader.kind == jsonNull:
-    reader.skip({jsonNull}, "loadJson(Option[T])")
+    reader.skip({jsonNull}, typeof(Option[T]))
 
   else:
-    var tmp: T = default(T)
+    var tmp: T = jsonDefaultValue(T)
     loadJson(reader, tmp)
     target = some(tmp)
 
@@ -305,7 +465,7 @@ proc writeJson*[E](writer; values: set[E]) =
 
 proc loadJson*[E](reader; target: var set[E]) =
   var tmp: E
-  loadJsonItems(reader, tmp):
+  loadJsonItems[set[E]](reader, tmp):
     target.incl tmp
 
 proc loadJson*[E: enum](reader; target: var E) =
@@ -318,11 +478,22 @@ proc writeJson*[E: enum](writer; target: E) =
 
 #===============================  Objects  ===============================#
 
-proc storeFields[T](writer; target: T, asArray: bool = false) =
+proc writeJsonFields[T](
+    writer;
+    target: T,
+    asArray: bool = false,
+    multiline: bool = false
+  ) =
+
   var first = true
+
+  if multiline:
+    writer.indent()
+
   for name, field in fieldPairs(target):
     when isDiscriminantField(T, name):
-      if not first: writer.comma()
+      writer.sepComma(first, multiline)
+
       first = false
       if not asArray: writeField(writer, name)
 
@@ -330,86 +501,129 @@ proc storeFields[T](writer; target: T, asArray: bool = false) =
 
   for name, field in fieldPairs(target):
     when not isDiscriminantField(T, name):
-      if not first: writer.comma()
+      writer.sepComma(first, multiline)
+
       first = false
       if not asArray: writeField(writer, name)
       writeJson(writer, field)
 
-proc storeObject[T](writer; target: T, asArray: bool = false) =
+  if multiline:
+    writer.dedent()
+    writer.line()
+
+proc writeJsonObject*[T](
+    writer;
+    target: T,
+    asArray: bool = false,
+    multiline: bool = false
+  ) =
+
   when target is ref:
     wrapRefWrite(writer, target):
-      storeObject(writer, target[])
+      writeJsonObject(writer, target[], asArray, multiline)
 
   else:
     writer.write tern(asArray, jsonArrayStart, jsonObjectStart)
-    storeFields(writer, target)
+    writeJsonFields(writer, target, asArray, multiline)
     writer.write tern(asArray, jsonArrayEnd, jsonObjectEnd)
 
-proc loadFields[T](reader; target: var T, asArray: bool = false) =
+proc loadFields*[T](reader; target: var T, asArray: bool = false) =
+  mixin jsonRenameField
   {.cast(uncheckedAssign).}:
-    var first = true
-    var tmpField: string
-    for name, field in fieldPairs(target):
-      when isDiscriminantField(T, name):
-        if not asArray:
-          loadJson(reader, tmpField)
+    if asArray:
+      block fieldRead:
+        for name, field in fieldPairs(target):
+          loadJson(reader, field)
+          if kind(reader) == jsonArrayEnd:
+            break fieldRead
 
-        loadJson(reader, field)
-        first = false
+    else:
+      while kind(reader) != jsonObjectEnd:
+        var knownField = false
+        var tmpField: string
+        loadJson(reader, tmpField)
+        jsonRenameField(target, tmpField)
 
-    for name, field in fieldPairs(target):
-      when not isDiscriminantField(T, name):
-        if not asArray:
-          loadJson(reader, tmpField)
+        for name, field in fieldPairs(target):
+          if not knownField and
+             isDiscriminantField(T, name) and
+             tmpField == name:
+            loadJson(reader, field)
+            knownField = true
 
-        loadJson(reader, field)
-        first = false
+        for name, field in fieldPairs(target):
+          if not knownField and
+             not isDiscriminantField(T, name) and
+             tmpField == name:
+            loadJson(reader, field)
+            knownField = true
+
+        if not knownField:
+          if jsoIgnoreUnknownFields in reader.options:
+            reader.skipBalanced()
+
+          else:
+            raise (ref JsonSerdeUnknownFieldError)(
+              msg: "Found unexpected field '" & tmpField &
+                "' during parsing of the " & $typeof(T),
+              field: tmpField,
+              line: getLine(reader),
+              column: getColumn(reader)
+            )
 
 
-proc loadObject[T](
-    reader; target: var T, asArray: bool = false) =
-  const name = "loadObject(" & $typeof(T) & ")"
+
+
+proc loadJsonObject*[T](
+    reader;
+    target: var T,
+    asArray: bool = false
+  ) =
+
   when target is ref:
-    expectAt(reader, {jsonObjectStart, jsonNull, jsonArrayStart}, name)
+    expectAt(reader, {jsonObjectStart, jsonNull, jsonArrayStart}, T)
     wrapRefLoad(reader, target):
-      loadObject(reader, target[])
+      loadJsonObject(reader, target[], asArray = asArray)
 
   else:
-    skip(reader, tern(asArray, {jsonArrayStart}, {jsonObjectStart}), name)
-    loadFields(reader, target)
-    skip(reader, tern(asArray, {jsonArrayEnd}, {jsonObjectEnd}), name)
+    skip(reader, tern(asArray, {jsonArrayStart}, {jsonObjectStart}), T)
+    loadFields(reader, target, asArray = asArray)
+    skip(reader, tern(asArray, {jsonArrayEnd}, {jsonObjectEnd}), T)
+
+    jsonPostLoad(target)
 
 
 
 proc writeJson*[T: object](writer; target: T) =
-  storeObject(writer, target)
+  writeJsonObject(writer, target)
 
 proc loadJson*[T: object](reader; target: var T) =
-  loadObject(reader, target)
+  loadJsonObject(reader, target)
 
 proc writeJson*[T: tuple](writer; target: T) =
-  storeObject(writer, target)
+  writeJsonObject(writer, target, asArray = not isNamedTuple(T))
 
 proc loadJson*[T: tuple](reader; target: var T) =
-  loadObject(reader, target)
+  loadJsonObject(reader, target, asArray = not isNamedTuple(T))
 
 proc writeJson*[T: ref object](writer; target: T) =
-  storeObject(writer, target)
-
-proc writeJson*[T: ref tuple](writer; target: T) =
-  storeObject(writer, target)
+  writeJsonObject(writer, target)
 
 proc loadJson*[T: ref object](reader; target: var T) =
-  loadObject(reader, target)
+  loadJsonObject(reader, target)
+
+proc writeJson*[T: ref tuple](writer; target: T) =
+  writeJsonObject(writer, target, asArray = not isNamedTuple(T))
 
 proc loadJson*[T: ref tuple](reader; target: var T) =
-  loadObject(reader, target)
+  loadJsonObject(reader, target, asArray = not isNamedTuple(T))
+
 
 #==============================  Distinct  ===============================#
 
 proc loadJsonDistinct*[T: distinct](reader; target: var T) =
   type Base = distinctBase(T)
-  var base: Base = default(Base)
+  var base: Base = jsonDefaultValue(Base)
   loadJson(reader, base)
   target = T(base)
 
@@ -431,12 +645,24 @@ template jsonSerdeFor*(TypeName, readerCall, writerCall: untyped): untyped =
 proc fromJson*[T](
     text: string,
     target: typedesc[T],
-    traceNext: bool = false
+    options: set[JsonDeserializerOptions] = defaultJsonDeserializerOptions,
+    traceNext: bool = false,
   ): T =
-  var reader = newJsonDeserializer(text, traceNext = traceNext)
+  var reader = newJsonDeserializer(
+    text,
+    traceNext = traceNext,
+    options = options
+  )
+
   loadJson(reader, result)
 
 proc toJson*[T](obj: T): string =
   var writer = newJsonSerializer()
   writeJson(writer, obj)
   return writer.readAll()
+
+template withItWriter*(body: untyped): untyped =
+  block:
+    var it {.inject.} = newJsonSerializer()
+    body
+    it.readAll()
