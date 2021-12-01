@@ -354,7 +354,7 @@ macro dumpTyped*(a: typed): untyped =
 
   result = a
 
-func asgnAux*[T](target: var T, source: T) =
+func asgnAux*[T](target: var T, source: sink T) =
   ## Helper assignment procedure, performs `target = source` operation
   ## without any additional checks. This can be used in order to
   ##

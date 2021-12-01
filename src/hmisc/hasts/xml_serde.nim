@@ -14,7 +14,8 @@ import
     with,
     macros,
     strutils,
-    typetraits
+    typetraits,
+    streams
   ]
 
 type
@@ -34,13 +35,13 @@ proc `$`*(p: XmlDeserializer): string = p.displayAt()
 
 proc newXmlDeserializer*(
     arg: string, traceNext: bool = false): XmlDeserializer =
-  let r = newHXmlParser(arg, traceNext)
-
-  return XmlDeserializer(
-    base: r.base,
-    traceNext: r.traceNext,
-    file: r.file
+  var tmp = newHXmlParser(arg, traceNext)
+  result = XmlDeserializer(
+    base: tmp.base,
+    traceNext: tmp.traceNext,
+    file: tmp.file
   )
+
 
 template loadPrimitive*(
     stream: var HXmlParser, target: typed, tag: string,
@@ -143,9 +144,9 @@ proc writeXmlItems*[T](writer; values: T, tag: string) =
 
 
 
-template loadXmlItems*[T, Res](
+template loadXmlItems*[T](
     reader: var XmlDeserializer,
-    target: var Res,
+    tmp: var T,
     tag: string,
     insertCall: untyped
   ) =
@@ -153,21 +154,18 @@ template loadXmlItems*[T, Res](
   mixin loadXml
   while reader.kind in {xmlElementOpen, xmlElementStart} and
         reader.elementName() == tag:
-    # var tmp {.inject.}: T
     loadXml(reader, tmp, tag)
     insertCall
-    # insertCall(target, tmp)
-    # target.add tmp
 
 proc writeXml*[T](writer; values: seq[T], tag: string) =
   writeXmlItems(writer, values, tag)
 
 proc loadXml*[T](reader; target: var seq[T], tag: string) =
   var tmp: T
-  loadXmlItems[T, seq[T]](reader, target, tag):
+  loadXmlItems[T](reader, tmp, tag):
     add(target, tmp)
 
-proc readXmlKeyValues*[K, V, Res](reader; target: var Res, tag: string) =
+proc loadXmlPairs*[K, V, Res](reader; target: var Res, tag: string) =
   mixin loadXml
   while reader.kind in {xmlElementOpen, xmlElementStart} and
         reader.elementName() == tag:
@@ -179,7 +177,7 @@ proc readXmlKeyValues*[K, V, Res](reader; target: var Res, tag: string) =
     reader.skipElementEnd(tag)
     target[key] = val
 
-proc writeXmlKeyValues*[K, V, Res](writer; target: Res, tag: string) =
+proc writeXmlPairs*[K, V, Res](writer; target: Res, tag: string) =
   mixin writeXml
   for key, value in pairs(target):
     writer.xmlStart(tag)
@@ -232,14 +230,14 @@ template wrapRefLoad*[T](
     skipOpen(reader, tag)
     let id = readRefId(reader)
     if knownId(reader.state, id):
-      target = cast[T](reader.state.ptrs[id])
+      target = getRef[T](reader.state, id)
       skipClose(reader)
       skipElementEnd(reader, tag)
 
     else:
       if reader.kind == xmlElementClose: reader.next()
       new(target)
-      reader.state.ptrs[id] = cast[pointer](target)
+      setRef(reader.state, target, id)
       body
       skipElementEnd(reader, tag)
 
@@ -247,46 +245,46 @@ template wrapRefLoad*[T](
 # ~~~~ Ordered Table ~~~~ #
 
 proc writeXml*[K, V](writer; table: OrderedTable[K, V], tag: string) =
-  writeXmlKeyValues[K, V, OrderedTable[K, V]](writer, table, tag)
+  writeXmlPairs[K, V, OrderedTable[K, V]](writer, table, tag)
 
 proc loadXml*[A, B](reader; target: var OrderedTable[A, B], tag: string) =
-  readXmlKeyValues[A, B, OrderedTable[A, B]](reader, target, tag)
+  loadXmlPairs[A, B, OrderedTable[A, B]](reader, target, tag)
 
 # ~~~~ Table ~~~~ #
 
 proc writeXml*[K, V](writer; table: Table[K, V], tag: string) =
-  writeXmlKeyValues[K, V, Table[K, V]](writer, table, tag)
+  writeXmlPairs[K, V, Table[K, V]](writer, table, tag)
 
 proc loadXml*[A, B](reader; target: var Table[A, B], tag: string) =
-  readXmlKeyValues[A, B, Table[A, B]](reader, target, tag)
+  loadXmlPairs[A, B, Table[A, B]](reader, target, tag)
 
 # ~~~~ Table ref ~~~~ #
 
 proc writeXml*[K, V](writer; table: TableRef[K, V], tag: string) =
   wrapRefWrite(writer, table, tag):
-    writeXmlKeyValues[K, V, TableRef[K, V]](writer, table, tag)
+    writeXmlPairs[K, V, TableRef[K, V]](writer, table, tag)
 
 proc loadXml*[A, B](reader; target: var TableRef[A, B], tag: string) =
   wrapRefLoad(reader, target, tag):
-    readXmlKeyValues[A, B, TableRef[A, B]](reader, target, tag)
+    loadXmlPairs[A, B, TableRef[A, B]](reader, target, tag)
 
 # ~~~~ Oredered table ref ~~~~ #
 
 proc writeXml*[K, V](writer; table: OrderedTableRef[K, V], tag: string) =
   wrapRefWrite(writer, table, tag):
-    writeXmlKeyValues[K, V, OrderedTableRef[K, V]](writer, table, tag)
+    writeXmlPairs[K, V, OrderedTableRef[K, V]](writer, table, tag)
 
 proc loadXml*[A, B](reader; target: var OrderedTableRef[A, B], tag: string) =
   wrapRefLoad(reader, target, tag):
-    readXmlKeyValues[A, B, OrderedTableRef[A, B]](reader, target, tag)
+    loadXmlPairs[A, B, OrderedTableRef[A, B]](reader, target, tag)
 
 # ~~~~ Array ~~~~ #
 
 proc writeXml*[R, V](writer; table: array[R, V], tag: string) =
-  writeXmlKeyValues[R, V, array[R, V]](writer, table, tag)
+  writeXmlPairs[R, V, array[R, V]](writer, table, tag)
 
 proc loadXml*[R, V](reader; target: var array[R, V], tag: string) =
-  readXmlKeyValues[R, V, array[R, V]](reader, target, tag)
+  loadXmlPairs[R, V, array[R, V]](reader, target, tag)
 
 # ~~~~ Option ~~~~ #
 
@@ -324,20 +322,14 @@ proc loadXml*(reader; target: var Slice[int], tag: string) =
       loadXml(target.b, "b")
       skipClose()
 
-proc writeXml*[E: enum](writer; values: set[E], tag: string) =
-  writer.xmlStart(tag)
-  writer.indent()
-  if 0 < len(values):
-    writer.writeIndent()
+proc writeXml*[E](writer; values: set[E], tag: string) =
+  writeXmlItems(writer, values, tag)
 
-  for item in values:
-    writer.xmlOpen("item")
-    writer.xmlAttribute("val", $item)
-    writer.xmlCloseEnd()
+proc loadXml*[E](reader; target: var set[E], tag: string) =
+  var tmp: E = default(E)
+  loadXmlItems(reader, tmp, tag):
+    target.incl tmp
 
-
-  writer.dedent()
-  writer.xmlEnd(tag)
 
 proc loadXml*[E: enum](reader; target: var E, tag: string) =
   if reader.atAttr():
@@ -351,15 +343,6 @@ proc loadXml*[E: enum](reader; target: var E, tag: string) =
     reader.skipEnd(tag)
 
 
-proc loadXml*[E](reader; target: var set[E], tag: string) =
-  reader.skipElementStart(tag)
-  while reader.elementName() == "item":
-    reader.next()
-    assert reader.attrKey() == "val"
-    target.incl parseEnum[E](reader.attrValue())
-    reader.next()
-
-  reader.skipElementEnd(tag)
 
 
 
@@ -445,7 +428,7 @@ proc storeFields[T](writer; target: T, tag: string) =
     dedent(writer)
 
 
-proc storeObject[T](writer; target: T, tag: string) =
+proc storeXmlObject[T](writer; target: T, tag: string) =
   when target is ref:
     wrapRefWrite(writer, target, tag):
       storeFields(writer, target[], tag)
@@ -455,7 +438,7 @@ proc storeObject[T](writer; target: T, tag: string) =
     storeFields(writer, target, tag)
     xmlEnd(writer, tag)
 
-proc loadFields[T](reader; target: var T, tag: string) =
+proc loadXmlFields[T](reader; target: var T, tag: string) =
   {.cast(uncheckedAssign).}:
     for name, field in fieldPairs(target):
       when isDiscriminantField(T, name):
@@ -473,47 +456,47 @@ proc loadFields[T](reader; target: var T, tag: string) =
         loadXml(reader, field, name)
 
 
-proc loadObject[T](reader; target: var T, tag: string) =
+proc loadXmlObject[T](reader; target: var T, tag: string) =
   assert reader.kind in {xmlElementOpen, xmlElementStart}, $reader
   when target is ref:
     wrapRefLoad(reader, target, tag):
-      loadFields(reader, target[], tag)
+      loadXmlFields(reader, target[], tag)
 
   else:
-    let op = reader.kind == xmlElementOpen
-    if op:
+    if reader.kind == xmlElementOpen:
       skipOpen(reader, tag)
+
     else:
       skipElementStart(reader, tag)
 
-    loadFields(reader, target, tag)
+    loadXmlFields(reader, target, tag)
     skipEnd(reader, tag)
 
 
 
 proc writeXml*[T: object](writer; target: T, tag: string) =
-  storeObject(writer, target, tag)
+  storeXmlObject(writer, target, tag)
 
 proc writeXml*[T: tuple](writer; target: T, tag: string) =
-  storeObject(writer, target, tag)
+  storeXmlObject(writer, target, tag)
 
 proc loadXml*[T: object](reader; target: var T, tag: string) =
-  loadObject(reader, target, tag)
+  loadXmlObject(reader, target, tag)
 
 proc loadXml*[T: tuple](reader; target: var T, tag: string) =
-  loadObject(reader, target, tag)
+  loadXmlObject(reader, target, tag)
 
 proc writeXml*[T: ref object](writer; target: T, tag: string) =
-  storeObject(writer, target, tag)
+  storeXmlObject(writer, target, tag)
 
 proc writeXml*[T: ref tuple](writer; target: T, tag: string) =
-  storeObject(writer, target, tag)
+  storeXmlObject(writer, target, tag)
 
 proc loadXml*[T: ref object](reader; target: var T, tag: string) =
-  loadObject(reader, target, tag)
+  loadXmlObject(reader, target, tag)
 
 proc loadXml*[T: ref tuple](reader; target: var T, tag: string) =
-  loadObject(reader, target, tag)
+  loadXmlObject(reader, target, tag)
 
 
 proc loadXmlDistinct*[T: distinct](reader; target: var T, tag: string) =
@@ -536,8 +519,14 @@ template xmlSerdeFor*(TypeName, readerCall, writerCall: untyped): untyped =
     writerCall(writer, target, tag)
 
 
-proc fromXml*[T](text: string, target: typedesc[T], tag: string): T =
-  var reader = newXmlDeserializer(text)
+proc fromXml*[T](
+    text: string,
+    target: typedesc[T],
+    tag: string,
+    traceNext: bool = false
+  ): T =
+
+  var reader = newXmlDeserializer(text, traceNext)
   loadXml(reader, result, tag)
 
 proc toXml*[T](obj: T, tag: string): string =

@@ -5,6 +5,14 @@ import std/[
   tables, with, strutils
 ]
 
+type
+  SerdeFlags* = enum
+    SerAttr ## Field is an attribute (currently triggered only in XML
+            ## serde)
+    SerSkip ## Skip field serialization
+
+template Serde*(args: varargs[SerdeFlags]) {.pragma.}
+
 ## Serialization and deserialization for nim types. Similar to the
 ## https://github.com/treeform/jsony in terms of the API, but mainly
 ## focused on supporting more complicated serialization cases, such as
@@ -199,7 +207,7 @@ const jsonRefidField = "__refid"
 
 template wrapRefWrite*[T](
     writer; target: T,
-    checkCycles: bool = true,
+    isAcyclic: bool = false,
     body: untyped
   ): untyped =
 
@@ -207,7 +215,7 @@ template wrapRefWrite*[T](
   if isNil(target):
     writer.write jsonNull
 
-  elif not checkCycles:
+  elif isAcyclic:
     body
 
   elif knownRef(writer.state, target):
@@ -228,7 +236,7 @@ template wrapRefWrite*[T](
 template wrapRefLoad*[T](
     writer;
     target: T,
-    checkCycles: bool = true,
+    isAcyclic: bool = false,
     body: untyped
   ): untyped =
   ## Wrap implementation of the ref type serialization.
@@ -237,7 +245,7 @@ template wrapRefLoad*[T](
     target = nil
     skip(reader, {jsonNull}, typeof(T))
 
-  elif not checkCycles:
+  elif isAcyclic:
     new(target)
     body
 
@@ -492,20 +500,27 @@ proc writeJsonFields[T](
 
   for name, field in fieldPairs(target):
     when isDiscriminantField(T, name):
-      writer.sepComma(first, multiline)
+      if SerSkip notin getCustomPragmaValuesSet(
+        field, Serde, default(set[SerdeFlags])
+      ):
 
-      first = false
-      if not asArray: writeField(writer, name)
+        writer.sepComma(first, multiline)
 
-      writeJson(writer, field)
+        first = false
+        if not asArray: writeField(writer, name)
+
+        writeJson(writer, field)
 
   for name, field in fieldPairs(target):
     when not isDiscriminantField(T, name):
-      writer.sepComma(first, multiline)
+      if SerSkip notin getCustomPragmaValuesSet(
+        field, Serde, default(set[SerdeFlags])
+      ):
+        writer.sepComma(first, multiline)
 
-      first = false
-      if not asArray: writeField(writer, name)
-      writeJson(writer, field)
+        first = false
+        if not asArray: writeField(writer, name)
+        writeJson(writer, field)
 
   if multiline:
     writer.dedent()
@@ -515,11 +530,12 @@ proc writeJsonObject*[T](
     writer;
     target: T,
     asArray: bool = false,
-    multiline: bool = false
+    multiline: bool = false,
+    isAcyclic: bool = false
   ) =
 
   when target is ref:
-    wrapRefWrite(writer, target):
+    wrapRefWrite(writer, target, isAcyclic):
       writeJsonObject(writer, target[], asArray, multiline)
 
   else:
@@ -577,12 +593,13 @@ proc loadFields*[T](reader; target: var T, asArray: bool = false) =
 proc loadJsonObject*[T](
     reader;
     target: var T,
-    asArray: bool = false
+    asArray: bool = false,
+    isAcyclic: bool = false
   ) =
 
   when target is ref:
     expectAt(reader, {jsonObjectStart, jsonNull, jsonArrayStart}, T)
-    wrapRefLoad(reader, target):
+    wrapRefLoad(reader, target, isAcyclic):
       loadJsonObject(reader, target[], asArray = asArray)
 
   else:

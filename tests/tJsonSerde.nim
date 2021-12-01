@@ -138,6 +138,13 @@ suite "User hooks":
     check:
       f.field == 12
 
+  test "Serialization pragmas":
+    type
+      SerObj = object
+        field1 {.Serde(SerSkip).}: int
+        field2: int
+
+    check toJson(SerObj()) == "{\"field2\": 0}"
 
 suite "Error reporting":
   test "Allow unknown fields":

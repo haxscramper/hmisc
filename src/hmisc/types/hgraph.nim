@@ -563,6 +563,9 @@ proc removeEdge*[N, E](graph: var HGraph[N, E], edge: HEdge) =
   # FIXME
   graph.structure.ingoingIndex.del graph.target(edge).id
 
+  graph.structure.edgeMap.del edge.id
+
+
 proc newHGraphForRef*[T: ref](t: T): HGraph[T, NoProperty] =
   var graph = newHGraph[T, NoProperty]()
 
@@ -857,8 +860,8 @@ proc topologicalOrdering*[N, E](graph: HGraph[N, E]): seq[HNode] =
     let node = noincoming.pop
     result.add node
     for outEdge in graph.outEdges(node):
-      graph.removeEdge(outEdge)
       let target = graph.target(outEdge)
+      graph.removeEdge(outEdge)
       if graph.inDeg(target) == 0:
         noincoming.incl target
 

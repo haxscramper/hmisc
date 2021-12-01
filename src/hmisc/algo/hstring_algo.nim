@@ -1078,3 +1078,21 @@ func linesAround*(
     result &= @[""]
 
   result &= text.split('\n')
+
+func numerateLines*(text: string): string =
+  let split = splitLines(text)
+  let ind =
+    case split.len:
+      of 0 .. 9: 1
+      of 10 .. 99: 2
+      of 100 .. 999: 3
+      of 1000 .. 9999: 4
+      of 10000 .. 99999: 5
+      else: 7
+
+  for idx, line in split:
+    if idx > 0:
+      result.add "\n"
+
+    result.add align($(idx + 1), ind)
+    result.add line

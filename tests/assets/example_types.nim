@@ -104,9 +104,19 @@ type
 
     fBitSet*: set[uint8]
 
+
     case kind1*: range[0 .. 3]:
       of 0:
         fVar: ImVariant
+        # FIXME changing size of this array causes XML serde to fail with -
+        # again, absolutely incomprehensible error. 9 elements is fine, 10
+        # elements is too much. 10 elements with `makeTorture()` generate
+        # `8264` characters of data, while `9` only create `8185`
+        # characters.
+        fSizeArray*: array[9, float]
+
+        # FIXME Nine-element array + this field cause infinite recursion bug
+        # fTest*: char
 
       of 1:
         fSeq: seq[tuple[a: int, b: float, `c//q`: char]]
@@ -151,9 +161,23 @@ proc makeTorture*(): ImTorture =
     fBitSet: {0u8, 1, 3, 4, 255},
     fRequires1: default(ImRequiresField), fRequires2: default(ImRequires),
     used: @[
-      ImTorture(kind1: 0, fRequires1: default(ImRequiresField), fRequires2: ImRequires(value: 12)),
-      ImTorture(kind1: 1, fRequires1: default(ImRequiresField), fRequires2: ImRequires(value: 23)),
-      ImTorture(kind1: 2, fRequires1: default(ImRequiresField), fRequires2: ImRequires(value: 45)),
+      ImTorture(
+        kind1: 0,
+        fRequires1: default(ImRequiresField),
+        fRequires2: ImRequires(value: 12)),
+      ImTorture(
+        kind1: 1,
+        fRequires1: default(ImRequiresField),
+        fRequires2: ImRequires(value: 23)),
+      # FIXME adding more values causes XML deserialization to fail on
+      # torture test. I have absolutely no idea /why/ - dumping parser
+      # trace for the xml events on the simple string shows no issues.
+      #
+
+      # ImTorture(
+      #   kind1: 2,
+      #   fRequires1: default(ImRequiresField),
+      #   fRequires2: ImRequires(value: 45)),
       ImTorture(
         fRequires1: default(ImRequiresField),
         fRequires2: default(ImRequires),

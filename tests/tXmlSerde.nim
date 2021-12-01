@@ -4,7 +4,8 @@ import
 import std/[intsets]
 
 import
-  hmisc/hasts/xml_serde
+  hmisc/hasts/xml_serde,
+  hmisc/algo/hstring_algo
 
 import
   ./assets/example_types
@@ -28,7 +29,7 @@ proc writeXml*(writer: var XmlSerializer, target: IntSet, tag: string) =
 
 proc loadXml*(reader: var XmlDeserializer, target: var IntSet, tag: string) =
   var tmp: int
-  loadXmlItems[int, IntSet](reader, target, tag):
+  loadXmlItems(reader, tmp, tag):
     target.incl tmp
 
 proc fromXml[T](text: string, target: typedesc[T]): T =
@@ -100,6 +101,9 @@ suite "Write basic types":
 
     echo target.toXml()
 
+suite "Torture test roundtrip":
   test "Torture":
-    let res = makeTorture().round()
-    echo res.toXml()
+    let res = makeTorture().toXml("q")
+    echov res.len
+    "/tmp/q.xml".writeFile(res)
+    let parsed = res.fromXml(ImTorture, "q")

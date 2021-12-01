@@ -1,4 +1,5 @@
 import std/[
+  strformat,
   xmltree,
   xmlparser,
   enumerate,
@@ -137,11 +138,47 @@ proc strVal*(parser: HXmlParser): string =
     echo "  ? ", parser.currentEventToStr(), " -> ", result
 
 
+proc traceParse*(parser: var HXmlParser) =
+  proc strVal(parser: XmlParser, ind: var int): string =
+    result = &"{parser.getLine:>3}:{parser.getColumn:<3}" & "|  ".repeat(clamp(ind, 0, high(int)))
+    case parser.kind:
+      of {xmlAttribute}:
+        result &= parser.attrKey() & " " & parser.attrValue()
+      of xmlCharData, xmlWhitespace, xmlComment, xmlCData, xmlSpecial:
+        result &= parser.charData()
+
+      of xmlElementStart:
+        result &= "<" & parser.elementName() & ">"
+        inc ind
+
+      of xmlElementOpen:
+        result &= "<" & parser.elementName()
+        inc ind
+
+      of xmlElementClose:
+        result &= ">"
+
+      of xmlElementEnd:
+        result &= "</" & parser.elementName() & ">"
+        dec ind
+
+      else:
+        discard
+
+  var ind = 0
+  while true:
+    next(parser.base)
+    echo alignLeft(($parser.kind)[3..^1], 15), " ", strVal(parser.base, ind)
+    if parser.base.kind == xmlEof:
+      return
+
+
 proc next*(parser: var HXmlParser) =
+  next(parser.base)
+
   if parser.traceNext:
     echo "> ", parser.displayAt()
 
-  next(parser.base)
 
 
 proc errorAt*(parser: var HXmlParser): string =
