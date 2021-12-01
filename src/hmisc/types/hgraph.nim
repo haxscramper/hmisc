@@ -689,6 +689,17 @@ iterator nodes*[N, E](graph: HGraph[N, E]): HNode =
   for node in items(graph.structure.nodeSet):
     yield node
 
+iterator edgePairs*[N, E](graph: HGraph[N, E]): (HEdge, E) =
+  ## Iterate over all edges in graph
+  for edge, _ in pairs(graph.structure.edgeMap):
+    let edge = HEdge(id: edge)
+    yield (edge, graph[edge])
+
+iterator nodePairs*[N, E](graph: HGraph[N, E]): (HNode, N) =
+  ## Iterate over all nodes in graph
+  for node in items(graph.structure.nodeSet):
+    yield (node, graph[node])
+
 proc nodeSet*[N, E](graph: HGraph[N, E]): HNodeSet =
   graph.structure.nodeSet
 

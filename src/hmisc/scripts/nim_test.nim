@@ -1,8 +1,8 @@
 import ../preludes/cli_app
 import ../other/[hjson, hlogger, hunittest, jsony_converters]
 import ../algo/[hlex_base, lexcast]
+import ../hasts/[json_serde, json_serde_extra]
 import std/[sequtils, streams, parsecfg, sets]
-import pkg/jsony
 
 export hlogger, colorstring
 
@@ -876,7 +876,8 @@ proc parseGccReport(report: string): NimReport =
 
     else:
       var tmp: seq[GccReport]
-      parseHook(report, idx, tmp)
+      raise newImplementError()
+      # parseHook(report, idx, tmp)
       inc idx
       diags.add tmp
 
@@ -1245,8 +1246,8 @@ proc makeRunCmd*(run: NimRun): ShellCmd =
 
 proc parseRunReports*(res: ShellResult): seq[TestReport] =
   for line in res.getStdout().splitLines():
-    echov line
-    result.add fromJson(line, TestReport)
+    if 0 < len(line):
+      result.add fromJson(line, TestReport)
 
 proc invokeCompiled*(
     run: NimRun,
@@ -1375,60 +1376,8 @@ proc formatReport*(
           add "\n"
 
 
-        # of neAmbiguousCall:
-        #   let (k1, k2) = (report.definedAlts[0], report.definedAlts[1])
-        #   let m = max(k1.name.len, k2.name.len)
-        #   l.err "ambiguous call"
-        #   l.info k1.name
-        #   l.info k2.name
-        #   l.info " match for ", report.matchFor
-
-        # of neOverloadFail:
-        #   l.err "No matching function"
-        #   let ctx = report.overloadContext
-        #   l.info ctx.expression
-
-        #   for alt in ctx.alts:
-        #     l.debug alt.signature
-        #     l.info alt.argumentFail
-        #     if alt.isOfType.canGet(argType):
-        #       l.debug "But expression is of type "
-        #       l.debug argType
-
-        # of neLdFail:
-        #   l.err "Linker exited with error"
-        #   l.err report.ldReport.message
-
-        # of neGccFail:
-        #   let (diags, compile) = report.gccReport
-        #   l.err "Compiler command exited with error"
-        #   for group in diags:
-        #     for diag in group:
-        #       l.err diag.message
-        #       for loc in diag.locations:
-        #         l.dump loc.caret.line
-        #         l.dump loc.caret.file
-        #         l.dump loc.caret.column
-
         else:
           add $report.error
-          # l.debug report.error
-
-
-  # var hadInstOf = false
-  # for part in report.parts:
-  #   hadInstOf = true
-  #   if part of {nrpInstOf}:
-  #     l.logLines(part)
-
-  # if hadInstOf:
-  #   l.info "---------------"
-
-  # for part in report.parts:
-  #   if not(part of {nrpInstOf}):
-  #     l.logLines(part)
-
-  # if report of nrError:
 
   endResult()
 
@@ -1455,40 +1404,13 @@ proc formatRun*(run: NimRunResult, dump: NimDump): ColoredText =
 
   endResult()
 
+proc runTestDir*(
+    dir: AbsDir,
+    conf: NimRunConf,
+    first: seq[AbsFile] = @[],
+  ): bool =
 
-
-
-# proc runTestDir*(
-#     dir: AbsDir,
-#     dump: NimDump,
-#     first: seq[AbsFile] = @[],
-#     l: HLogger = newTermLogger(),
-#   ): bool =
-
-#   block joined_items:
-#     l.info "Running joined tests"
-#     if processRunResult(
-#         run,
-#         shellResult(makeCmd(run, dump, hints = hints)),
-#         dump,
-#         l,
-#         parseRun
-#       ).canGet(fail):
-
-#       fails.add fail
-
-#   if standalone.len == 0:
-#     l.info "No standalone files"
-
-#   else:
-#     l.info "Running separate files"
-#     var failCount = maxfail
-#     for (res, run) in runShellResult(
-#       standalone.mapIt((makeCmd(it, dump, hints = hints), it)), maxPool = 2):
-#       if processRunResult(run, res, dump, l, parseRun).canGet(fail):
-#         fails.add fail
-
-#   for fail in fails:
-#     reportRunFail(fail, l)
-
-#   return fails.len == 0
+  let runs = runsFromDir(dir, conf = conf, first = first)
+  var results: seq[NimRunResult]
+  for (run, compile) in compileRuns(runs, conf):
+    results.add invokeCompiled(run, compile, conf)

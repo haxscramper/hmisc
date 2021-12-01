@@ -108,7 +108,7 @@ type
     tvkStringified
     tvkTypename
 
-  TestValueContext = enum
+  TestValueContext* = enum
     tvcNone
     tvcEqCompare
     tvcParameter
@@ -125,7 +125,7 @@ type
     msg*: string
     case failKind*: TestFailKind
       of tfkStructDiff, tfkStructEq:
-        structDiff*: It[PPrintTree]
+        structDiff*: PPrintTree
 
       of tfkException, tfkUnexpectedExceptionRaised:
         exception*: ref Exception
@@ -186,19 +186,19 @@ func allBackends(conf: TestConf): bool =
   let b = conf.backends
   b.len == 0 or ((tbC in b) and (tbCpp in b) or (tbJs in b) or (tbNims in b))
 
-proc addValue(ctx: TestContext, name: string, value: TestValue) =
+proc addValue*(ctx: TestContext, name: string, value: TestValue) =
   ctx.contextValues.add((name, value))
 
-proc removeValue(ctx: TestContext, name: string) =
+proc removeValue*(ctx: TestContext, name: string) =
   discard ctx.contextValues.pop()
 
-proc testValue(str: string, context: TestValueContext): TestValue =
+proc testValue*(str: string, context: TestValueContext): TestValue =
   TestValue(str: str, kind: tvkString, context: context)
 
-proc testValue[T](str: T, context: TestValueContext): TestValue =
+proc testValue*[T](str: T, context: TestValueContext): TestValue =
   TestValue(str: $str, kind: tvkStringified, context: context)
 
-proc testValue[T](str: typedesc[T], context: TestValueContext): TestValue =
+proc testValue*[T](str: typedesc[T], context: TestValueContext): TestValue =
   TestValue(str: $str, kind: tvkTypename, context: context)
 
 proc `$`(val: TestValue): string =

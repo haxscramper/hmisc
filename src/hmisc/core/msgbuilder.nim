@@ -12,11 +12,12 @@ proc msep*(ms: var string, s: string, expr: bool) =
     ms.add s
 
 func mq*[T](item: T): string = "‘" & $item & "‘"
-func mkind*[E: enum](item: E): string = "‘" & toGreenStr($item) & "‘"
 func mq1*[T](item: T): string = "‘" & toGreenStr($item) & "‘"
 
 func wrapSplit(text, before, after: string): string =
   text.split(" ").mapIt(before & it & after).join(" ")
+
+func mkind*[E: enum](item: E): string = "‘" & toGreenStr($item) & "‘"
 
 func mcode*(str: string): string =
   wrapSplit(str, "\e[4m", "\e[24m")

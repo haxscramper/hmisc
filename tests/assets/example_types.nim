@@ -84,6 +84,8 @@ type
   ImTorture* = ref object
     used*: seq[ImTorture]
     opt*: Option[ImTorture]
+    fCstring*: cstring
+    fString*: string
     ftables*: tuple[
       tab: Table[string, string],
       otab: OrderedTable[string, string],

@@ -1,4 +1,5 @@
-import ./hunittest, jsony
+import ./hunittest
+import ../hasts/[json_ast, json_serde, json_serde_extra]
 import ./jsony_converters
 
 import

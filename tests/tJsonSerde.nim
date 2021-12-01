@@ -41,6 +41,7 @@ suite "Basic types":
     check:
       round((1, 2)) == (1, 2)
       round((a: 12, b: "sfad")) == (a: 12, b: "sfad")
+      round([(a: 12)]) == [(a: 12)]
 
   test "Object":
     type
@@ -52,10 +53,10 @@ suite "Basic types":
 
 suite "Roundtrip tests":
   test "Serialize primitives":
-    echo toJson(12)
-
-  test "Serialize tuples":
-    echo toJson((1, 2, "3"))
+    check:
+      toJson(12) == "12"
+      toJson((1, 2, "3")) == "[1, 2, \"3\"]"
+      toJson([(a: 12)]) == "[{\"a\": 12}]"
 
   test "Variant objects":
     type
@@ -76,7 +77,8 @@ suite "Roundtrip tests":
           of true:
             f23: float
 
-    echo toJson(Var(kind: true))
+    check toJson(Var(kind: true)) ==
+      "{\"kind\": true, \"kind1\": false, \"f2\": 0.0, \"str\": \"\", \"f12\": 0}"
 
 
   test "Serialize objects":
@@ -86,7 +88,6 @@ suite "Roundtrip tests":
         f2: float
 
     let start = Obj(f1: 123, f2: 0.12)
-    echo start.toJson()
     check:
       structdiff start, start.round()
 
@@ -122,6 +123,17 @@ suite "Roundtrip tests":
 
   test "Mutliline object":
     echo withItWriter(it.writeJsonObject((a: 12, b: "123", c: [1,2,3,4]), false, true))
+
+import hmisc/hasts/json_serde_extra
+
+suite "Roundtrip hunittest types":
+  test "Default report":
+    let report2 = round(TestReport())
+
+  test "Roundtrip with strs":
+    let report = round(TestReport(
+      strs: @[
+        (expr: "test str report", value: testValue(123, tvcNone))]))
 
 type
   HookObj = object
@@ -169,18 +181,25 @@ suite "Error reporting":
       err.whenUsing == "string"
 
 
+import hmisc/types/hgraph
 
-# # from jsony import nil
+jsonSerdeFor(HEdgeId, loadJsonDistinct, writeJsonDistinct)
+jsonSerdeFor(HNodeId, loadJsonDistinct, writeJsonDistinct)
 
-# suite "Bench":
-#   type
-#     Obj = object
-#       values: array[256, (int, int)]
+proc writeJson[N, E](writer: var JsonSerializer, graph: HGraph[N, E]) =
+  let ml = true
 
-#   timeIt "json_serde":
-#     let text = json_serde.toJson(Obj())
-#     let value = json_serde.fromJson(text, Obj)
+  writer.wrap(jsonObjectStart, ml):
+    writeField(writer, "nodes", ml)
+    writeJsonTwoElementIterator(writer, nodePairs(graph), ml)
+    sepComma(writer, false, ml)
 
-#   timeIt "jsony":
-#     let text = jsony.toJson(Obj())
-#     let value = jsony.fromJson(text, Obj)
+    writeField(writer, "edges", ml)
+    writeJsonTwoElementIterator(writer, edgePairs(graph), ml)
+
+suite "Serialize hgraph":
+  test "Simple graph":
+    var graph = newHGraph[int, string]()
+    discard graph.addOrGetEdge({(0, 1) : "e1", (1, 2) : "e2"})
+
+    echo toJson(graph)

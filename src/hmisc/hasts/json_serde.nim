@@ -5,6 +5,8 @@ import std/[
   tables, with, strutils
 ]
 
+export json_ast, JsonEventKind
+
 type
   SerdeFlags* = enum
     SerAttr ## Field is an attribute (currently triggered only in XML
@@ -128,7 +130,7 @@ proc expectAt*[Parsing](
     raise (ref JsonSerdeUnexpectedTypeError)(
       msg: mjoin(
         "Unexpected json event type when parsing ",
-        mq($Parsing),
+        mq1($Parsing),
         ". Found ", kind(reader), ", but expected ",
         $kinds
       ),
@@ -188,6 +190,14 @@ proc loadJson*(reader; target: var string) =
 
 proc writeJson*(writer; target: string) =
   writer.writeStr(target)
+
+proc loadJson*(reader; target: var cstring) =
+  var tmp: string
+  loadJson(reader, tmp)
+  target = allocCstringArray([tmp])[0]
+
+proc writeJson*(writer; value: cstring) =
+  writer.writeStr($value)
 
 proc loadJson*(reader; target: var char) =
   expectAt(reader, {jsonString}, char)
@@ -314,6 +324,38 @@ proc loadJsonPairs*[K, V, Res](
 
   reader.skip({jsonArrayEnd}, Res)
 
+template writeJsonTwoElementIterator*[T](
+    writer;
+    target: iterable[T],
+    multiline: bool = false,
+    arrayPairs: static[bool] = true
+  ): untyped =
+
+  bind sepComma
+  mixin writeJson
+  var first = true
+  wrap(
+    writer,
+    tern(arrayPairs, jsonArrayStart, jsonObjectStart),
+    multiline
+  ):
+    for key, value in target:
+      sepComma(writer, first, multiline)
+
+      first = false
+
+      when arrayPairs:
+        writer.write jsonArrayStart
+        writer.writeJson(key)
+        writer.comma()
+      else:
+        writeField(writer, toJsonField(key))
+
+      writer.writeJson(value)
+
+      when arrayPairs:
+        writer.write jsonArrayEnd
+
 proc writeJsonPairs*[Res](
     writer;
     target: Res,
@@ -323,53 +365,19 @@ proc writeJsonPairs*[Res](
   ## - @arg{arrayPairs} :: Map sequence of pairs to array of pairs.
   ##  `[[key1, val1], [key2, val2]]`. If set to false type must
   ##  implement `toJsonField`
-  mixin writeJson
-  writer.write tern(arrayPairs, jsonArrayStart, jsonObjectStart)
-  var first = true
-  if multiline:
-    writer.indent()
+  writeJsonTwoElementIterator(writer, pairs(target), multiline, arrayPairs)
 
-  for key, value in pairs(target):
-    writer.sepComma(first, multiline)
-
-    first = false
-
-    when arrayPairs:
-      writer.write jsonArrayStart
-      writer.writeJson(key)
-      writer.comma()
-    else:
-      writer.writeField toJsonField(key)
-
-    writer.writeJson(value)
-
-    when arrayPairs:
-      writer.write jsonArrayEnd
-
-  if multiline:
-    writer.dedent()
-    writer.line()
-
-  writer.write tern(arrayPairs, jsonArrayEnd, jsonObjectEnd)
 
 proc writeJsonItems*[T](writer; values: T, multiline: bool = false) =
   mixin writeJson
   var first = true
-  writer.write jsonArrayStart
-  if multiline:
-    writer.indent()
 
-  for it in items(values):
-    writer.sepComma(first, multiline)
+  wrap(writer, jsonArrayStart, multiline):
+    for it in items(values):
+      writer.sepComma(first, multiline)
 
-    writer.writeJson(it)
-    first = false
-
-  if multiline:
-    writer.dedent()
-    writer.line()
-
-  writer.write jsonArrayEnd
+      writer.writeJson(it)
+      first = false
 
 template loadJsonItems*[T](
     reader: var JsonDeserializer,
@@ -492,9 +500,6 @@ proc writeJsonFields[T](
 
   var first = true
 
-  if multiline:
-    writer.indent()
-
   for name, field in fieldPairs(target):
     when isDiscriminantField(T, name):
       if SerSkip notin getCustomPragmaValuesSet(
@@ -519,9 +524,6 @@ proc writeJsonFields[T](
         if not asArray: writeField(writer, name)
         writeJson(writer, field)
 
-  if multiline:
-    writer.dedent()
-    writer.line()
 
 proc writeJsonObject*[T](
     writer;
@@ -536,9 +538,8 @@ proc writeJsonObject*[T](
       writeJsonObject(writer, target[], asArray, multiline)
 
   else:
-    writer.write tern(asArray, jsonArrayStart, jsonObjectStart)
-    writeJsonFields(writer, target, asArray, multiline)
-    writer.write tern(asArray, jsonArrayEnd, jsonObjectEnd)
+    wrap(writer, tern(asArray, jsonArrayStart, jsonObjectStart), multiline):
+      writeJsonFields(writer, target, asArray, multiline)
 
 proc loadFields*[T](reader; target: var T, asArray: bool = false) =
   mixin jsonRenameField

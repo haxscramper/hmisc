@@ -41,15 +41,39 @@ proc write*(writer; tk: TokKind) =
 proc comma*(writer) = writer.writeRaw(", ")
 proc colon*(writer) = writer.writeRaw(": ")
 
+template wrap*(
+    writer;
+    element: JsonEventKind,
+    multiline: bool = false,
+    body: untyped
+  ): untyped =
+
+  write(writer, element)
+  if multiline:
+    indent(writer)
+    line(writer)
+
+  body
+
+  if multiline:
+    line(writer)
+    dedent(writer)
+    writeIndent(writer)
+
+  write(writer, if element == jsonArrayStart: jsonArrayEnd else: jsonObjectEnd)
+
+
 proc sepComma*(writer; first, multiline: bool) =
   if not first:
     writer.comma()
 
   if multiline:
-    writer.line()
+    if not first:
+      writer.line()
     writer.writeIndent()
 
-proc writeField*(writer; name: string) =
+proc writeField*(writer; name: string, indent: bool = false) =
+  if indent: writeIndent(writer)
   writer.writeRaw(escapeJson(name))
   writer.writeRaw(": ")
 

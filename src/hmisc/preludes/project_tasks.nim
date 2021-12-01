@@ -1,10 +1,12 @@
 import
-  ../scripts/nim_test,
-  ../other/[oswrap, hshell, hargparse, hlogger],
-  ../algo/[hseq_distance]
+  hmisc/core/all,
+  hmisc/scripts/nim_test,
+  hmisc/other/[oswrap, hshell, hargparse, hlogger],
+  hmisc/algo/[hseq_distance],
+  hmisc/hasts/json_serde
+
 
 import std/[os, strutils, strformat, sequtils, exitprocs]
-import pkg/[jsony]
 
 type
   NimbleVer* = object
