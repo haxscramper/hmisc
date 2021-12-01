@@ -1,7 +1,7 @@
 import
   hmisc/preludes/unittest
 
-import std/[intsets]
+import std/[intsets, strutils]
 
 import
   hmisc/hasts/xml_serde,
@@ -25,11 +25,11 @@ proc add*(cy: var ImCyclic, other: ImCyclic) =
 
 
 proc writeXml*(writer: var XmlSerializer, target: IntSet, tag: string) =
-  writeXmlItems(writer, target, tag)
+  writeXmlItems(writer, target, tag, "item")
 
 proc loadXml*(reader: var XmlDeserializer, target: var IntSet, tag: string) =
   var tmp: int
-  loadXmlItems(reader, tmp, tag):
+  loadXmlItems(reader, tmp, tag, "item"):
     target.incl tmp
 
 proc fromXml[T](text: string, target: typedesc[T]): T =
@@ -47,10 +47,19 @@ proc round[T](obj: T): T =
 
 suite "Write basic types":
   test "Serialize primitives":
-    echo toXml(12)
+    check toXml(12) == "<main>12</main>\n"
 
   test "Serialize tuples":
-    echo toXml((1, 2, "3"))
+    check strdiff(
+      toXml((1, 2, "3")),
+      """
+<main>
+  <Field0>1</Field0>
+  <Field1>2</Field1>
+  <Field2>3</Field2>
+</main>
+"""
+    )
 
   test "Variant objects":
     type
@@ -70,7 +79,14 @@ suite "Write basic types":
           of true:
             f23: float
 
-    echo toXml(Var(kind: true))
+    check strdiff(
+      toXml(Var(kind: true)),
+      """
+<main kind="true" kind1="false">
+  <f2>0.0</f2>
+  <f12>0</f12>
+</main>
+""")
 
 
   test "Serialize objects":
@@ -95,15 +111,40 @@ suite "Write basic types":
     one.add two
 
     let wrote = one.toXml()
-    echo wrote
 
     let target = wrote.fromXml(ImCyclic)
-
-    echo target.toXml()
+    check strdiff(wrote, target.toXml())
 
 suite "Torture test roundtrip":
+  test "8k+ roundtrip":
+    let item = toXml(@[(12, 2)])
+    check strdiff(item, """
+<main>
+  <item>
+    <Field0>12</Field0>
+    <Field1>2</Field1>
+  </item>
+</main>
+""")
+
+    let itemStr = """
+<item>
+  <Field0>12</Field0>
+  <Field1>2</Field1>
+</item>
+"""
+
+    block:
+      let full = "<main>\n" & repeat(itemStr, 8200 div len(itemStr)) & "</main>"
+      let values = fromXml(full, seq[(int, int)])
+
+    # block:
+    #   let full = "<main>\n" & repeat(itemStr, 8400 div len(itemStr)) & "</main>"
+    #   # let tmp = full.len
+    #   let values = fromXml(full, seq[(int, int)])
+
+
   test "Torture":
     let res = makeTorture().toXml("q")
-    echov res.len
-    "/tmp/q.xml".writeFile(res)
+    let tmp = res.len
     let parsed = res.fromXml(ImTorture, "q")

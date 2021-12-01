@@ -516,7 +516,6 @@ method report(context: TestContext, report: TestReport) =
       msg.add " in "
       msg.add toGreen(&"{filename}:{line}")
 
-
       case report.failKind:
         of tfkStructDiff:
           msg.add " - structural comparison mismatch"
@@ -535,6 +534,7 @@ method report(context: TestContext, report: TestReport) =
           echo ""
 
         of tfkStrDiff:
+          echov "showing strdiff"
           let
             s1 = report.strs[0].value.str
             s2 = report.strs[1].value.str

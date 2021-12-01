@@ -137,55 +137,94 @@ proc loadXml*(reader; target: var SomeFloat, tag: string) =
 
 #==========================  Built-in generics  ==========================#
 
-proc writeXmlItems*[T](writer; values: T, tag: string) =
+proc writeXmlItems*[T](
+    writer;
+    values: T,
+    listTag: string,
+    itemTag: string = "item"
+  ) =
   mixin writeXml
+  writer.xmlStart(listTag)
+  writer.indent()
   for it in items(values):
-    writer.writeXml(it, tag)
+    writer.writeXml(it, itemTag)
 
-
+  writer.dedent()
+  writer.xmlEnd(listTag)
 
 template loadXmlItems*[T](
     reader: var XmlDeserializer,
     tmp: var T,
-    tag: string,
+    listTag: string,
+    itemTag: string = "item",
     insertCall: untyped
   ) =
 
   mixin loadXml
+  reader.skipStart(listTag)
   while reader.kind in {xmlElementOpen, xmlElementStart} and
-        reader.elementName() == tag:
-    loadXml(reader, tmp, tag)
+        reader.elementName() == itemTag:
+    loadXml(reader, tmp, itemTag)
     insertCall
 
+  reader.skipEnd(listTag)
+
 proc writeXml*[T](writer; values: seq[T], tag: string) =
-  writeXmlItems(writer, values, tag)
+  writeXmlItems(writer, values, tag, "item")
 
 proc loadXml*[T](reader; target: var seq[T], tag: string) =
   var tmp: T
-  loadXmlItems[T](reader, tmp, tag):
+  loadXmlItems[T](reader, tmp, tag, "item"):
     add(target, tmp)
 
-proc loadXmlPairs*[K, V, Res](reader; target: var Res, tag: string) =
+proc loadXmlPairs*[K, V, Res](
+    reader;
+    target: var Res,
+    list: string,
+    itemTag: string = "item",
+    keyTag: string = "key",
+    valueTag: string = "value"
+  ) =
+
   mixin loadXml
+  reader.skipStart(list)
   while reader.kind in {xmlElementOpen, xmlElementStart} and
-        reader.elementName() == tag:
+        reader.elementName() == itemTag:
+
+    reader.skipElementStart(itemTag)
+
     var key: K = default(K)
+    loadXml(reader, key, keyTag)
+
     var val: V = default(V)
-    reader.skipElementStart(tag)
-    loadXml(reader, key, "key")
-    loadXml(reader, val, "value")
-    reader.skipElementEnd(tag)
+    loadXml(reader, val, valueTag)
+
+    reader.skipElementEnd(itemTag)
     target[key] = val
 
-proc writeXmlPairs*[K, V, Res](writer; target: Res, tag: string) =
+  reader.skipEnd(list)
+
+proc writeXmlPairs*[K, V, Res](
+    writer;
+    target: Res,
+    tag: string,
+    itemTag: string = "item",
+    keyTag: string = "key",
+    valueTag: string = "value"
+  ) =
   mixin writeXml
+  writer.xmlStart(tag)
+  writer.indent()
   for key, value in pairs(target):
-    writer.xmlStart(tag)
+    writer.xmlStart(itemTag)
     writer.indent()
-    writer.writeXml(key, "key")
-    writer.writeXml(value, "value")
+    writer.writeXml(key, keyTag)
+    writer.writeXml(value, valueTag)
     writer.dedent()
-    writer.xmlEnd(tag)
+    writer.xmlEnd(itemTag)
+
+  writer.dedent()
+  writer.xmlEnd(tag)
 
 
 
@@ -281,10 +320,19 @@ proc loadXml*[A, B](reader; target: var OrderedTableRef[A, B], tag: string) =
 # ~~~~ Array ~~~~ #
 
 proc writeXml*[R, V](writer; table: array[R, V], tag: string) =
-  writeXmlPairs[R, V, array[R, V]](writer, table, tag)
+  writeXmlItems[array[R, V]](writer, table, tag, "item")
 
 proc loadXml*[R, V](reader; target: var array[R, V], tag: string) =
-  loadXmlPairs[R, V, array[R, V]](reader, target, tag)
+  var idx = low(R)
+  var tmp = default(V)
+  var isLast = false
+  loadXmlItems[V](reader, tmp, tag, "item"):
+    assert not isLast
+    target[idx] = tmp
+    if idx != high(R):
+      idx = succ(idx)
+    else:
+      isLast = true
 
 # ~~~~ Option ~~~~ #
 
@@ -323,11 +371,11 @@ proc loadXml*(reader; target: var Slice[int], tag: string) =
       skipClose()
 
 proc writeXml*[E](writer; values: set[E], tag: string) =
-  writeXmlItems(writer, values, tag)
+  writeXmlItems(writer, values, tag, "item")
 
 proc loadXml*[E](reader; target: var set[E], tag: string) =
   var tmp: E = default(E)
-  loadXmlItems(reader, tmp, tag):
+  loadXmlItems(reader, tmp, tag, "item"):
     target.incl tmp
 
 

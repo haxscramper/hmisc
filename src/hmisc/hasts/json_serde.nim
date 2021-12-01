@@ -440,9 +440,6 @@ proc loadJson*[R, V](reader; target: var array[R, V]) =
   var isLast = false
   loadJsonItems[array[R, V]](reader, tmp):
     assert not isLast
-    # echov "loadeding", tmp, "to", idx
-    # assert idx != high(R)
-
     target[idx] = tmp
     if idx != high(R):
       idx = succ(idx)
