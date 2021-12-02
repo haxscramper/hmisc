@@ -20,8 +20,8 @@ elif hmiscUnittestOut == "json":
   import ../other/hunittest_json
   setTestContext(newJsonContext())
 
-
-startHax()
+else:
+  startHax()
 
 export all, hunittest, hcoverage, hpprint, oswrap
 

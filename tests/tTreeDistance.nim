@@ -27,8 +27,8 @@ suite "Diff SQL":
     let tree1 = treeFromRefAst(sql1, isToken, getLabel)
     let tree2 = treeFromRefAst(sql2, isToken, getLabel)
 
-    echo tree1.treeRepr()
-    echo tree2.treeRepr()
+    show tree1.treeRepr()
+    show tree2.treeRepr()
 
     let matcher = newLcsMatcher()
 
@@ -36,7 +36,7 @@ suite "Diff SQL":
       tree1, tree2, matcher, newEditScriptGenerator())
 
     for action in edit.editScript:
-      echo action
+      show action
 
 
 testFileEnded()

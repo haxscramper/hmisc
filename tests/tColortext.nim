@@ -14,7 +14,7 @@ import
 startHax()
 
 suite "Colortext c++":
-  echo colorizeToStr(
+  show colorizeToStr(
     "int main () { /* Long comment */ }",
     cppStyleMap,
     "c++"
@@ -22,31 +22,34 @@ suite "Colortext c++":
 
 suite "Full printouts":
   test "Named colors":
+    var buf: string
     for base in 0 .. (ord(high(TermColor8Bit)) -
                       ord(low(TermColor8Bit))) div 4:
       for color in 0 .. 3:
         let color = TermColor8Bit(color + base * 4)
-        stdout.write to8BitBg("##", color), " "
-        stdout.write to8Bit(strutils.alignLeft($color, 20), color)
+        buf.add $to8BitBg("##", color)
+        buf.add " "
+        buf.add $to8Bit(strutils.alignLeft($color, 20), color)
 
-      stdout.write "\n"
+      buf.add "\n"
 
-    echo "done"
-
+    show buf
 
   test "Color table":
+    var buf: string
     for gray in 0 .. 23:
-      stdout.write to8BitBg(&"[{gray}]", gray)
+      buf.add $to8BitBg(&"[{gray}]", gray)
 
-    stdout.write("\n")
+    buf.add "\n"
 
     for r in 0 .. 5:
       for g in 0 .. 5:
         for b in 0 .. 5:
-          stdout.write to8BitBg(&"[{r} {g} {b}]", r, g, b)
-        stdout.write("\n")
-      stdout.write("\n")
+          buf.add $to8BitBg(&"[{r} {g} {b}]", r, g, b)
+        buf.add "\n"
+      buf.add "\n"
 
+    show buf
 
 suite "Close colors":
   test "Complementary":
@@ -260,26 +263,29 @@ suite "clformat":
       describeChar("б"[1])
 
   test "не-ASCII":
-    echo hshow("юникод\n\n")
-    echo toColoredText("юникод")
-    echo toColoredText("юникод\n")
-    echo toYellow("векторная диаграмма")
-    echo toYellow("векторная диаграмма\n")
-    echo "Расчет смещения" + fgYellow
-    echo "Расчет смещения\n" + fgGreen
+    show:
+      hshow("юникод\n\n")
+      toColoredText("юникод")
+      toColoredText("юникод\n")
+      toYellow("векторная диаграмма")
+      toYellow("векторная диаграмма\n")
+      "Расчет смещения" + fgYellow
+      "Расчет смещения\n" + fgGreen
 
     block:
       var c: ColoredText
       c.add toYellow("___AAA___")
       c.add toYellow("___ЖЖЖ___")
 
-      echo c
-      echo c.runes
+      show:
+        c
+        c.runes
 
       c.add toYellow("___QQQ___\n")
       c.add toYellow("___ГГГ___\n")
 
-      echo c
-      echo c.runes
+      show:
+        c
+        c.runes
 
 testFileEnded()

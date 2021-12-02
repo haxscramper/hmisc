@@ -17,18 +17,18 @@ suite "Pathwrap":
     check AbsDir("/a/b/c") /../ 2 /../ RelDir("hello") == AbsDir("/hello")
 
   test "A":
-    echo getNewTempDir()
+    show getNewTempDir()
 
     for path in toAbsDir("/tmp").walkDir():
       case path.kind:
         of pcDir:
-          echo path
+          show path
         else:
           discard
 
   test "dirs":
     for dir in parentDirs(cwd()):
-      echo dir
+      show dir
 
   test "Os errros":
     try:
@@ -52,24 +52,27 @@ suite "Pathwrap":
     check AbsDir("/a/b/c/d").relativePath(AbsDir("/a/b/c")) == RelDir("d")
 
   test "Relative depth":
-    check relativeUpCount(AbsFile("/a/b.txt"), AbsDir("/a")) == 0
-    check relativeUpCount(AbsFile("/a/b/b.txt"), AbsDir("/a")) == 1
+    check:
+      relativeUpCount(AbsFile("/a/b.txt"), AbsDir("/a")) == 0
+      relativeUpCount(AbsFile("/a/b/b.txt"), AbsDir("/a")) == 1
+      relativeUpCount(AbsFile("/a.txt"), AbsFile("/b.txt")) == 0
+      relativeUpCount(AbsFile("/tmp/a.txt"), AbsFile("/tmp/b.txt")) == 0
+
     expect PathError:
       check relativeUpCount(AbsDir("/a/b"), AbsFile("/b.txt")) == -1
-    check relativeUpCount(AbsFile("/a.txt"), AbsFile("/b.txt")) == 0
-    check relativeUpCount(AbsFile("/tmp/a.txt"), AbsFile("/tmp/b.txt")) == 0
 
   test "Import split":
     let base = AbsDir("/tmp")
     template rs(p1, p2: string): untyped =
       importSplit(base / RelFile(p1), base / RelFile(p2))
 
-    check rs("tmp/a.nim", "tmp/b.nim") == (0, @["b.nim"])
-    check rs("tmp/a.nim", "b.nim") == (1, @["b.nim"])
-    check rs("a.nim", "tmp/b.nim") == (0, @["tmp", "b.nim"])
-    check rs("a.nim", "b.nim") == (0, @["b.nim"])
-    check rs("a", "b") == (0, @["b"])
-    check rs("a", "a") == (0, @["a"])
+    check:
+      rs("tmp/a.nim", "tmp/b.nim") == (0, @["b.nim"])
+      rs("tmp/a.nim", "b.nim") == (1, @["b.nim"])
+      rs("a.nim", "tmp/b.nim") == (0, @["tmp", "b.nim"])
+      rs("a.nim", "b.nim") == (0, @["b.nim"])
+      rs("a", "b") == (0, @["b"])
+      rs("a", "a") == (0, @["a"])
     # let (d, p) = relativeSplit(
     #   base / RelFile("tmp/a.nim"),
     #   base / RelFile("tmp/b.nim"))
@@ -107,15 +110,9 @@ Not that is looks particulatly pretty though
           file "config.nims":
             """switch("path", "$projectDir/../src")"""
 
-
-      try:
-        execShell(ShelLExpr "ls -R")
-
-      except ShellError:
-        discard
-
-      doAssert readFile(&"{name}.nimble") == "author = haxscramper\nsecond line"
-      doAssert readFile("loop") == "0123456789"
+      check:
+        readFile(&"{name}.nimble") == "author = haxscramper\nsecond line"
+        readFile("loop") == "0123456789"
 
 
 suite "Shell":
@@ -129,12 +126,12 @@ suite "Shell":
     # cmd["nice"]
 
   test "OS":
-    echo getCurrentOs()
-    static:
-      echo getCurrentOs()
+    show getCurrentOs()
+    const os = getCurrentOs()
+    show os
 
     # when not isPackageInstalled("hunspell"):
-    #   echo "Install hunspell using ", getInstallCmd("hunspell")
+    #   show "Install hunspell using ", getInstallCmd("hunspell")
 
     # static:
     #   let missing = getMissingDependencies({
@@ -142,22 +139,23 @@ suite "Shell":
     #   })
 
     #   for (pkg, cmd) in missing:
-    #     echo "Missing ", pkg, ", install it using ", cmd
+    #     show "Missing ", pkg, ", install it using ", cmd
 
 
 suite "User directories":
   test "xdg":
-    echo getUserConfigDir()
-    echo getAppConfigDir()
+    show:
+      getUserConfigDir()
+      getAppConfigDir()
 
-    echo getUserCacheDir()
-    echo getAppCacheDir()
+      getUserCacheDir()
+      getAppCacheDir()
 
-    echo getUserDataDir()
-    echo getAppDataDir()
+      getUserDataDir()
+      getAppDataDir()
 
-    echo getUserRuntimeDir()
-    echo getAppRuntimeDir()
+      getUserRuntimeDir()
+      getAppRuntimeDir()
 
 suite "Env wrap":
   test "get/set/exists":

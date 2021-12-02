@@ -45,9 +45,12 @@ suite "Output generation":
 
     show treeRepr(tree)
 
-    evalHext(tree, newFileStream(stdout), {
+    var buf = newStringStream()
+    evalHext(tree, buf, {
       "seq": boxValue(HextValue[int], @[1,2,3,4,4])
     })
+    buf.setPosition(0)
+    check buf.readAll() == " <<1>>  <<2>>  <<3>>  <<4>>  <<4>> "
 
 type
   DocDb = ref object
@@ -101,9 +104,9 @@ suite "haxdoc query emulation":
   test "Generate documentation listing":
     const genTemplate = """
 {% for entry in db %}
-name: {{entry.name}}
-kind: {{entry.kind}}
-doc: {{entry.doc}}
+name: [{{entry.name}}]
+kind: [{{entry.kind}}]
+doc: [{{entry.doc}}]
 {% end %}
 """
 
@@ -115,8 +118,19 @@ doc: {{entry.doc}}
       doc: "hello"
     )
 
-    evalHext(tree, newFileStream(stdout), {
+    var stream = newStringStream()
+    evalHext(tree, stream, {
       "db": boxValue(DValue, db)
     })
+
+    stream.setPosition(0)
+
+    check stream.readAll() == """
+
+name: [test]
+kind: []
+doc: [0]
+
+"""
 
 testFileEnded()

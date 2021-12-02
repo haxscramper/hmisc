@@ -15,14 +15,6 @@ import
   hmisc/types/colorstring,
   hmisc/preludes/unittest
 
-startHax()
-
-
-proc ruler(step: int = 10) =
-  for rep in countdown(
-    ((terminalWidth() - 5) div step) * step, step, step):
-    echo repeat("-", rep), "| ", rep
-
 suite "PPrint simple":
   test "Get tree":
     let tree = toPPrintTree(12)
@@ -30,22 +22,20 @@ suite "PPrint simple":
 var op = defaultPPrintConf
 op.colored = false
 
-import benchy
-
 suite "PPrint data":
   test "Simple types":
-    pprint 12
-    pprint "test"
-    pprint 0 + 190
-    pprint (1, 2)
-    pprint @[1,2,3,4,4]
-    pprint (a: 123)
+    show:
+     pstring 12
+     pstring "test"
+     pstring 0 + 190
+     pstring (1, 2)
+     pstring @[1,2,3,4,4]
+     pstring (a: 123)
 
   test "Layout selection":
     for num in [1, 2]:
       for margin in [4, 10]:
-        echo "num: ", num, ", margin: ", margin
-        pprint toSeq(0 .. num), margin
+        show $pstring(toSeq(0 .. num), margin, conf = op)
 
   test "Nested seq":
     let val = mapIt(
@@ -174,10 +164,11 @@ suite "Colored printing":
   #   echo tree.pstringing()
 
   test "Base pprint":
-    pprint 12
-    pprint [1, 2, 3, 4]
-    pprint ["hello"]
-    pprint ("123", 0.3, nil)
+    show:
+      pstring(12)
+      pstring([1, 2, 3, 4])
+      pstring(["hello"])
+      pstring(("123", 0.3, nil))
 
 
 suite "Deeply nested types":
@@ -237,9 +228,9 @@ suite "Other tests":
       pstring(%12)
 
   test "Larger types colored":
-    pprint PPrintConf(), force = {
+    show $pstring(PPrintConf(), force = {
       matchField("format_policy"): forceStack()
-    }, ignore = matchField("cpack")
+    }, ignore = matchField("cpack"))
 
   test "Cyclic objects":
     type
@@ -274,7 +265,7 @@ suite "Extra features":
       ExtraType = object
         name: string
 
-    pprint(
+    show $pstring(
       ExtraType(),
       extraFields = @[
         pprintExtraField(ExtraType, "nameLen", newPPrintConst($it.name.len))
@@ -293,7 +284,7 @@ suite "Extra features":
       HsTok[En](isSlice: true, baseStr: str, finish: 2),
     ]
 
-    pprint(
+    let pstr = pstring(
       tokens,
       ignore = matchField("baseStr"),
       force = { matchType"HsTok": forceLine() },
@@ -305,31 +296,18 @@ suite "Extra features":
       ]
     )
 
+    show $pstr
 
 suite "Tree pprint":
   test "Simple type":
-    echo pptree(12).objectTreeRepr()
+    show $pptree(12).objectTreeRepr()
 
   test "With fields":
-    echo pptree((a: 12, b: 12)).objectTreeRepr()
-    echo pptree((a: 12, b: (c: 12, q: "string"))).objectTreeRepr()
+    show:
+      $pptree((a: 12, b: 12)).objectTreeRepr()
+      $pptree((a: 12, b: (c: 12, q: "string"))).objectTreeRepr()
 
   test "Sequence":
-    echo pptree(@[(a: 12), (a: 24)]).objectTreeRepr()
-
-  test "Conver to json":
-    when false: # WIP, will do this after fixing some issues with jsony API
-      let j = pptree(@[12, 1]).toJson()
-      let t = j.fromJson(PPrintTree)
-      echo t.objectTreeRepr()
-
-
-when false:
-  # TODO test this
-  pprint(
-    tokens,
-    ignore = matchField("baseStr"),
-    force = { matchType("HsTok"): forceLine() }
-  )
+    show $pptree(@[(a: 12), (a: 24)]).objectTreeRepr()
 
 testFileEnded()

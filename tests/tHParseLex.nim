@@ -635,7 +635,7 @@ suite "Primitives":
         str.pos == 0
         str.column == 0
 
-      str.goToEof()
+      str.skipToEof()
       check:
         str[] == '3'
         str.pos == 3

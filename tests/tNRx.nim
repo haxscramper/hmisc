@@ -15,22 +15,23 @@ suite "NRX":
     check toStr(*nrx('0', '9')) == r"[0-9]*"
     let r1 = nrx("wer") | nrx("wor")
     check toStr(?r1) == "(wer|wor)?"
-    echo treeRepr(?r1)
-    echo lispRepr(r1)
+    show:
+      treeRepr(?r1)
+      lispRepr(r1)
 
-    echo toConstStr(nrx("Hello"))
+      toConstStr(nrx("Hello"))
 
-    echo toStr(group(
-      nrx("Hello"),
-      group(nrx('a') | nrx('b'))
-    ))
+      toStr(group(
+        nrx("Hello"),
+        group(nrx('a') | nrx('b'))
+      ))
 
     block:
-      echo "aa" =~ group(nrx("aa"))
+      show "aa" =~ group(nrx("aa"))
       check matches[0] == ""
 
     block:
-      echo "aa" =~ capture(nrx("aa"))
+      show "aa" =~ capture(nrx("aa"))
       check matches[0] == "aa"
 
     block:

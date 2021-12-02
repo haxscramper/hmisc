@@ -140,14 +140,14 @@ proc getCommonInfix[N, T](
 
         else:
           dec cnt
-          lex.advance()
+          lex.next()
 
       of etkComma, etkExprClose:
         break
 
       of etkLPar:
         if lex[+1].kind == ctx[etkRPar]:
-          lex.advance(2)
+          lex.next(2)
 
         else:
           result.add((parseCommonExpr(lex, ctx), false))
@@ -157,7 +157,7 @@ proc getCommonInfix[N, T](
 
       of etkDot:
         let head = result.pop()[0]
-        lex.advance()
+        lex.next()
         let body = parseCommonExpr(lex, ctx)
         result.add((newHTree(ctx[enkDotExpr], @[head, body]), false))
 
@@ -198,7 +198,7 @@ proc parseCommonCall[N, T](
   while not lex[ctx[etkRPar]]:
     result.add foldCommonInfix(lex, ctx)
     if lex[ctx[etkComma]]:
-      lex.advance()
+      lex.next()
 
   lex.skip(ctx[etkRPar])
 
@@ -218,7 +218,7 @@ proc parseCommonBrack[N, T](
   while not lex[ctx[etkRBrack]]:
     result.add parseCommonExpr(lex, ctx)
     if ctx[lex[].kind] == etkComma:
-      lex.advance()
+      lex.next()
 
   lex.skip(ctx[etkRBrack])
 

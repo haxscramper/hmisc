@@ -13,7 +13,7 @@ requires "jsony >= 1.0.4"
 requires "unicodedb >= 0.9.0"
 
 task test, "Run tests":
-  exec "nim r tests/runall.nim test " & currentSourcePath()
+  exec "nim c -r tests/runall.nim test " & currentSourcePath()
 
 task docgen, "Generate documentation":
   exec "nim c -r tests/runall.nim doc " & currentSourcePath()

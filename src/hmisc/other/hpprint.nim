@@ -791,7 +791,6 @@ proc arrayEnumToPPrintTree[ArrKey, ArrValue](
   result = newPPrintTree(
     ptkMapping, conf.getId(entry), path, conf)
 
-  echov path
   for key, val in pairs(entry):
     when ArrKey is (StaticParam[enum] or static[enum] or enum):
       when key is range:

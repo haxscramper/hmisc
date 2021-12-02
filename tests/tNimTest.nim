@@ -9,7 +9,7 @@ suite "Parser":
       asVar().
       skipFileLineCol()
 
-    echo str
+    show str
 
   test "Declared in":
     let decl = initPosStr(
@@ -17,10 +17,10 @@ suite "Parser":
       asVar().
       skipKindDeclaredIn()
 
-    echo decl
+    show decl
 
   test "call":
-    echo parseAmbiguousCall(
+    show parseAmbiguousCall(
       "ambiguous call; both oswrap.currentSourceDir() [template declared in /src/hmisc/other/oswrap.nim(518, 10)] and gold.currentSourceDir() [template declared in /hmisc/core/gold.nim(152, 10)] match for: ()")
 
   test "Unparseable report":
@@ -139,4 +139,4 @@ suite "Test suite":
       12 == 12
 """
 
-    echo report.formatRun(dump)
+    show report.formatRun(dump)

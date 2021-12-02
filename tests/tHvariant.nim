@@ -75,10 +75,9 @@ suite "Variant":
 
   test "IterTypes":
     for field in fields(typeTuple(toVar2[int, float](12))):
-      echo typeof field
+      show typeof field
 
     for field in fields(typeTuple(toVar3[int, float, string](12))):
-      echo typeof field
-
+      show typeof field
 
 testFileEnded()

@@ -745,7 +745,7 @@ proc loggerErrConverter*(
 
   state.get().warn(stream.readLine())
 
-proc prettyShellCmd*(cmd: ShellCmd): ColoredText =
+proc alignedShellCmd*(cmd: ShellCmd): ColoredText =
   result = clt(cmd.bin)
   let max = 80
 
@@ -770,7 +770,7 @@ proc prettyShellCmd*(cmd: ShellCmd): ColoredText =
 proc logShellCmd(
     logger: HLogger, pos: (string, int, int), shellCmd: ShellCmd) =
   infoImpl(logger, pos, @["Running shell", "'" & shellCmd.bin & "'"])
-  debugImpl(logger, pos, @[$shellCmd.prettyShellCmd()])
+  debugImpl(logger, pos, @[$shellCmd.alignedShellCmd()])
 
 
 proc execShell*(

@@ -3,6 +3,7 @@ import
   hmisc/scripts/nim_test,
   hmisc/other/[oswrap, hshell, hargparse, hlogger],
   hmisc/algo/[hseq_distance],
+  hmisc/types/[colorstring],
   hmisc/hasts/json_serde
 
 
@@ -99,13 +100,14 @@ case app.getCmdName():
       cmd = app.getCmd()
       parseRun = cmd.getOpt("parse-errors") as bool
 
-    if not runTestDir(
-      dir,
-      getCwdNimDump(),
-      1,
-      parseRun = parseRun,
-      hints = parseRun
-    ):
+    var conf = getCwdNimDump().initNimRunConf()
+
+    let runs = runTestDir(dir, conf)
+
+    for run in runs:
+      echo formatRun(run, conf.dump)
+
+    if hasErrors(runs):
       setProgramResult(1)
 
   of "doc":

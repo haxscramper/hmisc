@@ -127,18 +127,22 @@ proc expectAt*[Parsing](
   ) =
 
   if kind(reader) notin kinds:
-    raise (ref JsonSerdeUnexpectedTypeError)(
-      msg: mjoin(
-        "Unexpected json event type when parsing ",
-        mq1($Parsing),
-        ". Found ", kind(reader), ", but expected ",
-        $kinds
-      ),
-      line: getLine(reader),
-      column: getColumn(reader),
-      whenUsing: $Parsing,
-      foundKind: kind(reader)
-    )
+    if kind(reader) == jsonError:
+      raiseParseErr(reader, errorMsg(reader))
+
+    else:
+      raise (ref JsonSerdeUnexpectedTypeError)(
+        msg: mjoin(
+          "Unexpected json event type when parsing ",
+          mq1($Parsing),
+          ". Found ", kind(reader), ", but expected ",
+          $kinds
+        ),
+        line: getLine(reader),
+        column: getColumn(reader),
+        whenUsing: $Parsing,
+        foundKind: kind(reader)
+      )
 
 
 proc skip*[Parsing](

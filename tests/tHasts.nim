@@ -332,8 +332,13 @@ suite "SQL schema visualization":
 
 suite "Latex writer":
   test "Simple escapes":
-    var w = newLatexWriter(stdout)
+    var w = newLatexWriter()
     w.cmd "begin", ["table"]
     w.cmd "end", ["table"]
+
+    check w.readAll() == """
+\begin{table}
+\end{table}
+"""
 
 testFileEnded()

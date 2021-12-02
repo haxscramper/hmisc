@@ -41,7 +41,7 @@ suite "XML selectors":
           node2.kind == xnElement and
           node1.tag == node2.tag))
 
-    echo res
+    show res
 
 
 suite "SQL selectors":
@@ -60,11 +60,11 @@ suite "SQL selectors":
       ], cmLeaf)])
 
     let res = query.exec(sql, ctx)
-    echo res[0].treeRepr()
+    show res[0].treeRepr()
 
   test "Predicate selector":
     let sql = parseSql("SELECT * FROM table;")
     let res = ctx.predicate(it.kind == nkIdent).query().exec(sql, ctx)
-    echo res
+    show res
 
-    echo sql.execWithCtx(ctx, ctx.predicate(it.kind == nkIdent))
+    show sql.execWithCtx(ctx, ctx.predicate(it.kind == nkIdent))

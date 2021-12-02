@@ -103,26 +103,26 @@ suite "Roundtrip tests":
     one.add two
 
     let wrote = one.toJson()
-    echo wrote
+    show wrote
 
     let target = wrote.fromJson(ImCyclic)
 
-    echo target.toJson()
+    show target.toJson()
 
   test "Torture":
     let res = makeTorture().round()
 
-    echo withItWriter(it.writeJsonObject(res, multiline = true))
+    show withItWriter(it.writeJsonObject(res, multiline = true))
     # check structdiff(res, makeTorture())
 
   test "Writer vertical items":
-    echo withItWriter(it.writeJsonItems(@[1, 2, 3, 4], true))
+    show withItWriter(it.writeJsonItems(@[1, 2, 3, 4], true))
 
   test "Writer kv-pairs":
-    echo withItWriter(it.writeJsonPairs(@[1,2,3,4], true, false))
+    show withItWriter(it.writeJsonPairs(@[1,2,3,4], true, false))
 
   test "Mutliline object":
-    echo withItWriter(it.writeJsonObject((a: 12, b: "123", c: [1,2,3,4]), false, true))
+    show withItWriter(it.writeJsonObject((a: 12, b: "123", c: [1,2,3,4]), false, true))
 
 import hmisc/hasts/json_serde_extra
 
@@ -202,4 +202,4 @@ suite "Serialize hgraph":
     var graph = newHGraph[int, string]()
     discard graph.addOrGetEdge({(0, 1) : "e1", (1, 2) : "e2"})
 
-    echo toJson(graph)
+    show toJson(graph)

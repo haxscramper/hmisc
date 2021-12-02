@@ -318,7 +318,7 @@ proc parseHxStmtList(lexer: var HxLexer): HxTree =
           of htoSetKwd: result.add parseSetStmt(lexer).wrap(hnoStmt)
           of htoEndKinds, htoElseKwd: break
           else:
-            lexer.advance()
+            lexer.next()
             raise newUnexpectedTokenError(lexer)
 
       of htoContent:

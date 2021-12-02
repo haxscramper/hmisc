@@ -20,8 +20,9 @@ converter toSeq2D*[T](s: seq[seq[T]]): Seq2d[T] =
 suite "Drawing":
   test "test":
     block:
-      withBufEcho:
-        newTermText((0, 0), toRunes @["222"]).render(buf)
+      var buf = newBuf()
+      newTermText((0, 0), toRunes @["222"]).render(buf)
+      show buf
 
     if false:
       var buf = newBuf()

@@ -726,26 +726,13 @@ func copySubStructure*[N, E](
   for node in nodes:
     result.structure.addNode(node)
 
-  # for edge in edges(result):
-  #   if edge.id.int == 2950:
-  #     echov "readded edge"
-
   if inferEdges:
     for edge in graph.edges():
       let source = graph.source(edge)
       let target = graph.target(edge)
 
-      # if edge.id.int == 2950:
-      #   echov "edge"
-      #   echov target in nodes
-      #   echov source in nodes
-
       if target in nodes and source in nodes:
         result.structure.addEdge(source, target, edge)
-
-  # for edge in edges(result):
-  #   if edge.id.int == 2950:
-  #     echov "readded edge"
 
   for edge in edges:
     let source = graph.source(edge)
@@ -1156,7 +1143,6 @@ proc extendOutgoing*[N, E, V](
 
   var toDel: seq[int]
   for idx, (group, _) in pairs(existingGroups):
-    echo group
     if len(group * result) > 0:
       result.incl group
       toDel.add idx

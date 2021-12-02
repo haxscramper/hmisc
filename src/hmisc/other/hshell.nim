@@ -1319,38 +1319,23 @@ proc shellResult*(
         discard
 
     else:
-      # let outStream = pid.outputStream
-      var line = ""
+      var
+        stdoutBuf: string
+        stderrBuf: string
 
-      let inStream = pid.inputStream
+      let
+        outStream = pid.outputStream()
+        errStream = pid.errorStream()
 
       while pid.running:
-        discard
-        # let ch = outStream.readChar()
-        # if ch notin {'\x00', '\n'}:
-        #   line.add ch
+        stdoutBuf.add outStream.readAll()
+        stderrBuf.add errStream.readAll()
 
-        # else:
-        #   if outLineCount > maxOutLines:
-        #     discard
-
-        #   else:
-        #     if reprintOut:
-        #       stdout.write line, nl
-
-        #     else:
-        #       result.execResult.stdout &= line & nl
-
-        #     inc outLineCount
-        #   # WARNING remove trailing newline on the stdout
-        #   line.setLen 0
-
-        # except IOError, OSError:
-        #   assert outStream.isNil
-        #   echo "process died" # NOTE possible place to raise exception
+      stdoutBuf.add outStream.readAll()
+      stderrBuf.add errStream.readAll()
 
       var outLineCount = 0
-      for line in pid.outputStream.readAll().splitLines():
+      for line in stdoutBuf.splitLines():
         if outLineCount < maxOutLines:
           if reprintOut:
             stdout.write line, nl
@@ -1361,7 +1346,7 @@ proc shellResult*(
           inc outLineCount
 
       var errLineCount = 0
-      for line in pid.errorStream.readAll().splitLines():
+      for line in stderrBuf.splitLines():
         if errLineCount < maxErrorLines:
           if reprintOut:
             stderr.write line, nl

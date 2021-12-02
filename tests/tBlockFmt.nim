@@ -19,7 +19,7 @@ suite "Block formatting":
     check V[T["*"], C[T["a"], T["b"]]].toString() == clt("*\na")
 
   test "Aligned grid":
-    echo makeAlignedGrid(
+    show makeAlignedGrid(
       @[
         @[T["test"], T[" = "], T["value"]],
         @[T["tes123t"], T[" = "], T["value"]]
@@ -29,7 +29,7 @@ suite "Block formatting":
       ]
     ).toString()
 
-    echo makeAlignedGrid(
+    show makeAlignedGrid(
       @[
         @[T["version*:"], T["cuint"], T[""]],
         @[
@@ -44,8 +44,8 @@ suite "Block formatting":
     ).toString()
 
 
-    echo toString(T["1231" + fgRed]).toString(true)
-    echo toString(T["1231" + fgRed]).toString(false)
+    show toString(T["1231" + fgRed]).toString(true)
+    show toString(T["1231" + fgRed]).toString(false)
 
 
   # test "Choice":
@@ -119,15 +119,15 @@ suite "Block formatting":
 suite "Block compaction":
   let r = codegenRepr
 
-  echo r H[T["qwe"], T["1111"]]
+  show r H[T["qwe"], T["1111"]]
 
-  echo r H[
+  show r H[
     H[T["name: "]],
     T["nim_gprof"],
     T[", "],
     H[T["altNames: "]]]
 
-  echo r H[T["123"]]
+  show r H[T["123"]]
 
 
 suite "Line layouts":
@@ -148,7 +148,7 @@ suite "Line layouts":
               V[T["Anything associated with\nnormal " &
                 "operation and without\nany particular importance"]]]]]]]]]]
 
-    echo bl.toString()
+    show bl.toString()
 
 
 
@@ -164,29 +164,29 @@ suite "Paper examples":
                 V[T["More information that\nusers"]]]]],
           T[" "]]]]]]
 
-    echo bl.toString()
+    show bl.toString()
 
 
   test "6.2 function name wrap":
-    echo toString(H[
+    show toString(H[
       H[T["FnName"], T["("]],
       W[mapIt(1 .. 10, T[&"argument{it}"])],
       T[")"]
     ], 50)
 
-    echo toString(H[
+    show toString(H[
       H[T["FnName"], T["("]],
       W[mapIt(1 .. 10, T[&"argument{it}"])],
       T[")"]
     ], 30)
 
-    echo toString(H[
+    show toString(H[
       H[T["AVeryLongAndDescriptiveFunctionName"], T["("]],
       W[mapIt(1 .. 10, T[&"argument{it}"])],
       T[")"]
     ], 50)
 
-    echo toString(C[
+    show toString(C[
       H[
         H[T["AVeryLongAndDescriptiveFunctionName"], T["("]],
         W[mapIt(1 .. 10, T[&"argument{it}"])],
@@ -217,13 +217,13 @@ suite "Edge case layouts":
       T[")"]
     ]
 
-    echo toString(bl)
+    show toString(bl)
 
 
   test "Choice stack vs line":
 
     if true:
-      echo toString(
+      show toString(
         H[
           T["proc ("],
           V[T["arg1: int"], T["arg2: int"], T["arg3: int"]].join(T[", "]),
@@ -232,7 +232,7 @@ suite "Edge case layouts":
       )
 
     if true:
-      echo toString(
+      show toString(
         H[
           T["proc ("],
           C[
@@ -244,7 +244,7 @@ suite "Edge case layouts":
 
 
     if true:
-      echo toString(
+      show toString(
         H[
           T["proc ("],
           C[
@@ -268,7 +268,7 @@ suite "Edge case layouts":
           T[")"]
         ]
 
-        echo toString(bl)
+        show toString(bl)
 
 suite "WIP testing":
   test "A:":
@@ -279,8 +279,8 @@ suite "WIP testing":
 
 
     # wipeNewlined()
-    echo pyCodegenRepr(line)
-    echo treeRepr(line)
-    echo toString(line)
+    show pyCodegenRepr(line)
+    show treeRepr(line)
+    show toString(line)
 
 testFileEnded()

@@ -40,9 +40,10 @@ type
 
     showCoverage: seq[TestCoverageWant]
 
-  TestLocation = object
-    line, column: int
-    file: string
+  TestLocation* = object
+    line*: int 
+    column*: int
+    file*: string
 
   TestFailKind* = enum
     tfkNone
@@ -993,7 +994,7 @@ macro astdiff*(ast: typed, match: untyped, loc: TestLocation): untyped =
 
   if match.kind == nnkIdent:
     result = quote do:
-      echo validateAst(`match`, `ast`)
+      show validateAst(`match`, `ast`)
       checkOk(`loc`, `exprStr`)
 
   else:

@@ -13,13 +13,14 @@ import
 suite "Values from/before":
   test "Values before":
     let map = toMap({1: 1, 2: 2, 3: 3})
-    echo "before 2: ", toSeq(map.valuesBefore(2))
-    echo "from 2: ", toSeq(map.valuesFrom(2))
-    echo "before -1: ", toSeq(map.valuesBefore(-1))
-    echo "before 3: ", toSeq(map.valuesBefore(3))
-    echo "before 3 with key: ", toSeq(map.valuesBefore(3, true))
-    echo "before 4: ", toSeq(map.valuesBefore(4))
-    echo "from -2: ", toSeq(map.valuesFrom(-2))
+    show:
+      toSeq(map.valuesBefore(2))
+      toSeq(map.valuesFrom(2))
+      toSeq(map.valuesBefore(-1))
+      toSeq(map.valuesBefore(3))
+      toSeq(map.valuesBefore(3, true))
+      toSeq(map.valuesBefore(4))
+      toSeq(map.valuesFrom(-2))
 
 suite "Smallest/largets pair":
   test "main":

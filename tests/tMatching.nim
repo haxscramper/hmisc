@@ -17,41 +17,10 @@ import hmisc/macros/matching
 {.push hint[ConvFromXtoItselfNotNeeded]: off.}
 {.push hint[CondTrue]: off.}
 
-import unittest
-
-template assertEq(a, b: untyped): untyped =
-  block:
-    let
-      aval = a
-      bval = b
-
-    if aval != bval:
-      raiseAssert("Comparison failed in " &
-        $instantiationInfo() &
-        " [a: " & $aval & "] [b: " & $bval & "] ")
+import hmisc/preludes/unittest
 
 template testFail(str: string = ""): untyped =
   doAssert false #, "Fail on " & $instantiationInfo() & ": " & str
-
-template multitest(name: string, body: untyped): untyped =
-  test name:
-    block:
-      body
-
-    block:
-      static:
-        body
-
-template multitestSince(
-  name: string,
-  minStaticVersion: static[(int,int, int)],
-  body: untyped): untyped =
-
-  when (NimMajor, NimMinor, NimPatch) >= minStaticVersion:
-    multitest(name, body)
-  else:
-    test name:
-      body
 
 template t(body: untyped): untyped =
   block:
@@ -62,7 +31,7 @@ template t(body: untyped): untyped =
       )
     )
 
-
+template assertEq(a, b: untyped): untyped = check(a == b)
 
 suite "Issue tests":
   test "Duplicated unpacking":
@@ -98,8 +67,11 @@ suite "Issue tests":
         of O1: o1: int
         of O2: o2: Option[string]
 
+    var str = "default"
     case O(kind:O2,o2:some[string]("hello world")):
-      of O2(o2:Some(@mystring)): echo mystring
+      of O2(o2:Some(@mystring)): str = mystring
+
+    doAssert str == "hello world"
 
   test "Support qualified variant selectors with matching? #83":
     type
@@ -312,15 +284,19 @@ suite "Matching":
         testFail()
 
 
-    assertEq "hehe", case (true, false):
-           of (true, _): "hehe"
-           else: "2222"
+    check "hehe" == (
+      case (true, false):
+        of (true, _): "hehe"
+        else: "2222"
+    )
 
     doAssert (a: 12) ?= (a: 12)
-    assertEq "hello world", case (a: 12, b: 12):
-           of (a: 12, b: 22): "nice"
-           of (a: 12, b: _): "hello world"
-           else: "default value"
+    check "hello world" == (
+      case (a: 12, b: 12):
+        of (a: 12, b: 22): "nice"
+        of (a: 12, b: _): "hello world"
+        else: "default value"
+    )
 
     doAssert (a: 22, b: 90) ?= (a: 22, b: 90)
     block:
@@ -337,22 +313,28 @@ suite "Matching":
         else:
           raiseAssert("#[ not possible ! ]#")
 
-      assertEq res, "default fallback"
+      check res == "default fallback"
 
-    assertEq "000", case %{"hello" : %"world"}:
-           of {"999": _}: "nice"
-           of {"hello": _}: "000"
-           else: "discard"
+    check "000" == (
+      case %{"hello" : %"world"}:
+        of {"999": _}: "nice"
+        of {"hello": _}: "000"
+        else: "discard"
+    )
 
-    assertEq 1, case [(1, 3), (3, 4)]:
-                  of [(1, _), _]: 1
-                  else: 999
+    check 1 == (
+      case [(1, 3), (3, 4)]:
+        of [(1, _), _]: 1
+        else: 999
+    )
 
-    assertEq 2, case (true, false):
-                  of (true, true) | (false, false): 3
-                  else: 2
+    check 2 == (
+      case (true, false):
+        of (true, true) | (false, false): 3
+        else: 2
+    )
 
-  multitest "Len test":
+  test "Len test":
     macro e(body: untyped): untyped =
       case body:
         of Bracket([Bracket(len: in {1 .. 3})]):
@@ -369,7 +351,7 @@ suite "Matching":
     discard e([3, 4])
 
 
-  multitest "Regular objects":
+  test "Regular objects":
     type
       A1 = object
         f1: int
@@ -380,11 +362,13 @@ suite "Matching":
       else:
         testFail()
 
-    assertEq 10, case A1(f1: 90):
-                   of (f1: 20): 80
-                   else: 10
+    check 10 == (
+      case A1(f1: 90):
+        of (f1: 20): 80
+        else: 10
+    )
 
-  multitest "Private fields":
+  test "Private fields":
     type
       A2 = object
         hidden: float
@@ -415,7 +399,7 @@ suite "Matching":
           fl: int
 
 
-  multitest "Case objects":
+  test "Case objects":
     case Obj2():
       of EE():
         discard
@@ -481,7 +465,7 @@ suite "Matching":
     for item in o.eee:
       yield item
 
-  multitest "Object items":
+  test "Object items":
     case Obj2(kind: enEE, eee: @[Obj2(), Obj2()]):
       of [_, _]:
         discard
@@ -505,7 +489,7 @@ suite "Matching":
 
 
 
-  multitest "Variable binding":
+  test "Variable binding":
     when false: # NOTE compilation error test
       case (1, 2):
         of ($a, $a, $a, $a):
@@ -513,28 +497,34 @@ suite "Matching":
         else:
           testFail()
 
-    assertEq "122", case (a: 12, b: 2):
-                      of (a: @a, b: @b): $a & $b
-                      else: "✠ ♰ ♱ ☩ ☦ ☨ ☧ ⁜ ☥"
+    check "122" == (
+      case (a: 12, b: 2):
+        of (a: @a, b: @b): $a & $b
+        else: "✠ ♰ ♱ ☩ ☦ ☨ ☧ ⁜ ☥"
+    )
 
-    assertEq 12, case (a: 2, b: 10):
-                   of (a: @a, b: @b): a + b
-                   else: 89
+    check 12 == (
+      case (a: 2, b: 10):
+        of (a: @a, b: @b): a + b
+        else: 89
+    )
 
-    assertEq 1, case (1, (3, 4, ("e", (9, 2)))):
-      of (@a, _): a
-      of (_, (@a, @b, _)): a + b
-      of (_, (_, _, (_, (@c, @d)))): c * d
-      else: 12
+    check 1 == (
+      case (1, (3, 4, ("e", (9, 2)))):
+        of (@a, _): a
+        of (_, (@a, @b, _)): a + b
+        of (_, (_, _, (_, (@c, @d)))): c * d
+        else: 12
+    )
 
     proc tupleOpen(a: (bool, int)): int =
       case a:
         of (true, @capture): capture
         else: -90
 
-    assertEq 12, tupleOpen((true, 12))
+    check 12 == tupleOpen((true, 12))
 
-  multitest "Infix":
+  test "Infix":
     macro a(): untyped  =
       case newPar(ident "1", ident "2"):
         of Par([@ident1, @ident2]):
@@ -545,7 +535,7 @@ suite "Matching":
 
     a()
 
-  multitest "Iflet 2":
+  test "Iflet 2":
     macro ifLet2(head: untyped,  body: untyped): untyped =
       case head[0]:
         of Asgn([@lhs is Ident(), @rhs]):
@@ -564,7 +554,7 @@ suite "Matching":
 
 
   when (NimMajor, NimMinor, NimPatch) >= (1, 2, 0):
-    multitest "min":
+    test "min":
       macro min1(args: varargs[untyped]): untyped =
         let tmp = genSym(nskVar, "minResult")
         result = makeTree(NimNode):
@@ -613,17 +603,21 @@ suite "Matching":
       doAssert min1("a", "b", "c", "d") == "a"
       doAssert min2("a", "b", "c", "d") == "a"
 
-  multitest "Alternative":
-    assertEq "matched", case (a: 12, c: 90):
-      of (a: 12 | 90, c: _): "matched"
-      else: "not matched"
+  test "Alternative":
+    check "matched" == (
+      case (a: 12, c: 90):
+        of (a: 12 | 90, c: _): "matched"
+        else: "not matched"
+    )
 
-    assertEq 12, case (a: 9):
-                  of (a: 9 | 12): 12
-                  else: 666
+    check 12 == (
+      case (a: 9):
+        of (a: 9 | 12): 12
+        else: 666
+    )
 
 
-  multitest "Set":
+  test "Set":
     case [3]:
       of [{2, 3}]: discard
       else: testFail()
@@ -633,12 +627,15 @@ suite "Matching":
     "hello".assertMatch([all @ident in {'a' .. 'z'}])
     "hello:".assertMatch([pref in {'a' .. 'z'}, opt {':', '-'}])
 
-  multitest "Match assertions":
-    [1,2,3].assertMatch([all @res]); assertEq res, @[1,2,3]
-    [1,2,3].assertMatch([all @res2]); assertEq res2, @[1,2,3]
+  test "Match assertions":
+    [1,2,3].assertMatch([all @res])
+    check res == @[1,2,3]
+
+    [1,2,3].assertMatch([all @res2])
+    check res2 == @[1,2,3]
     [1,2,3].assertMatch([@first, all @other])
-    assertEq first, 1
-    assertEq other, @[2, 3]
+    check first == 1
+    check other == @[2, 3]
 
 
     block: [@first, all @other] := [1,2,3]
@@ -656,7 +653,7 @@ suite "Matching":
       block: [all 1] := [1,1,1]
       block: doAssert [all 1] ?= [1,1,1]
       block: doAssert not ([all 1] ?= [1,2,3])
-      block: [opt @a or 12] := `@`[int]([]); assertEq a, 12
+      block: [opt @a or 12] := `@`[int]([]); check a == 12
       block: [opt(@a or 12)] := [1]; assertEq a, 1
       block: [opt @a] := [1]; assertEq a, some(1)
       block: [opt @a] := `@`[int]([]); assertEq  a, none(int)
@@ -748,7 +745,7 @@ suite "Matching":
     else:
       discard
 
-  multitest "More examples":
+  test "More examples":
     func butLast(a: seq[int]): int =
       case a:
         of []: raiseAssert(
@@ -776,7 +773,7 @@ suite "Matching":
 
     assertEq butLastGen(@["1", "2"]), "1"
 
-  multitest "Use in generics":
+  test "Use in generics":
     func hello[T](a: seq[T]): T =
       [@head, .._] := a
       return head
@@ -832,7 +829,7 @@ suite "Matching":
     expect MatchError:
       exception()
 
-  multitest "Box reimplementation":
+  test "Box reimplementation":
     type
       TypeKind = enum tkString, tkInt, tkFloat
       VNType = object
@@ -848,7 +845,7 @@ suite "Matching":
 
           return VNType(intVal: val1 - val2, kind: tkInt)
 
-  multitest "Decision matrix":
+  test "Decision matrix":
     proc test1(str, arg: string): bool = str == arg
     proc test2(str, arg: string): bool = str == arg
 
@@ -863,7 +860,7 @@ suite "Matching":
         testFail()
 
 
-  multitest "One-or-more":
+  test "One-or-more":
     case [1]:
       of [@a]: assertEq a, 1
       else: testFail()
@@ -894,7 +891,7 @@ suite "Matching":
       else:
         testFail()
 
-  multitest "Optional matches":
+  test "Optional matches":
     case [1,2,3,4]:
       of [pref @a is (1 | 2), _, opt @a or 5]:
         assertEq a, @[1,2,4]
@@ -909,7 +906,7 @@ suite "Matching":
         doAssert a is seq[int]
         assertEq a, @[2, 2]
 
-  multitest "Tree construction":
+  test "Tree construction":
     macro testImpl(): untyped =
       let node = makeTree(NimNode):
         IfStmt[
@@ -920,15 +917,15 @@ suite "Matching":
 
 
       IfStmt[ElifBranch[@head, Call[@call, @arg]]] := node
-      assertEq head, ident("true")
-      assertEq call, ident("echo")
-      assertEq arg, newLit("12")
+      doAssert head == ident("true")
+      doAssert call == ident("echo")
+      doAssert arg == newLit("12")
 
       block:
         let input = "hello"
         # expandMacros:
         Ident(str: @output) := makeTree(NimNode, Ident(str: input))
-        assertEq output, input
+        doAssert output == input
 
 
     testImpl()
@@ -951,7 +948,7 @@ suite "Matching":
     for sn in node.subn:
       yield sn
 
-  multitest "Match assertions custom type; treeRepr syntax":
+  test "Match assertions custom type; treeRepr syntax":
     HtmlNode(kind: htmlBase).assertMatch:
       Base()
 
@@ -979,8 +976,7 @@ suite "Matching":
           Base()
 
 
-  multitestSince "Tree builder custom type", (1, 4, 0):
-
+  test "Tree builder custom type":
     discard makeTree(HtmlNode, Base())
     discard makeTree(HtmlNode, base())
     discard makeTree(HtmlNode, base([link()]))
@@ -1019,8 +1015,7 @@ suite "Matching":
       base:
         link()
 
-
-  multitest "Tree construction sequence operators":
+  test "Tree construction sequence operators":
     block:
       let inTree = makeTree(HtmlNode):
         base:
@@ -1039,7 +1034,7 @@ suite "Matching":
 
 
 
-  multitest "withItCall":
+  test "withItCall":
     macro withItCall(head: typed, body: untyped): untyped =
       result = newStmtList()
       result.add quote do:
@@ -1067,7 +1062,7 @@ suite "Matching":
       it.add 99
 
 
-  multitest "Examples from documentation":
+  test "Examples from documentation":
     block: [@a] := [1]; doAssert (a is int) and (a == 1)
     block:
       {"key" : @val} := {"key" : "val"}.toTable()
@@ -1184,7 +1179,7 @@ suite "Matching":
       doAssert val == @[2, 13, 12]
 
 
-  multitest "Generic types":
+  test "Generic types":
     type
       GenKind = enum
         ptkToken
@@ -1240,7 +1235,7 @@ suite "Matching":
 
 
 
-  multitest "Nested objects":
+  test "Nested objects":
     type
       Lvl3 = object
         f3: float
@@ -1262,7 +1257,7 @@ suite "Matching":
       else:
         testFail()
 
-  multitest "Nested key access":
+  test "Nested key access":
     let val = (@[1,2,3], @[3,4,5])
 
     case val:
@@ -1378,7 +1373,7 @@ suite "Matching":
       (fld.call(): _) := 12
 
 
-  multitest "Use in templates":
+  test "Use in templates":
     template match1(a: typed): untyped =
       [@nice, @hh69] := a
 
@@ -1397,7 +1392,7 @@ suite "Matching":
       fld3: int
 
 
-  multitest "Ref object field matching":
+  test "Ref object field matching":
     case (fld3: 12):
       of (fld3: @subf):
         discard
@@ -1412,7 +1407,7 @@ suite "Matching":
       else:
         testFail()
 
-  multitest "Ref object in maps, subfields and sequences":
+  test "Ref object in maps, subfields and sequences":
     block:
       @[SubRoot(), Root()].assertMatch([any of SubRoot()])
 
@@ -1497,7 +1492,7 @@ suite "Matching":
     var pt: ptr RegType = nil
     doAssert not matches(pt, of RegType())
 
-  multitest "Custom object unpackers":
+  test "Custom object unpackers":
     type
       Point = object
         x: int
@@ -1583,7 +1578,7 @@ suite "Gara tests":
         of ctFix:
           fix: string
 
-  multitest "Capturing":
+  test "Capturing":
     let a = 2
     case [a]: ## Wrap in `[]` to trigger `match` macro, otherwise it
               ## will be treated as regular case match.
@@ -1593,7 +1588,7 @@ suite "Gara tests":
         testFail()
 
 
-  multitest "Object":
+  test "Object":
     let a = Rectangle(a: 2, b: 0)
 
     case a:
@@ -1604,7 +1599,7 @@ suite "Gara tests":
       else :
         testFail()
 
-  multitest "Subpattern":
+  test "Subpattern":
     let repo = Repo(
       name: "ExampleDB",
       author: Author(
@@ -1728,7 +1723,7 @@ suite "Gara tests":
       else:
         fail()
 
-  multitest "Custom unpackers":
+  test "Custom unpackers":
     let repo = Repo(
       name: "ExampleDB",
       author: Author(
@@ -1814,7 +1809,7 @@ suite "Gara tests":
       of (tokens: [_, _, _, _, @token]):
         assertEq token, "org"
 
-  multitest "if":
+  test "if":
     let b = @[4, 0]
 
     case b:
@@ -1823,7 +1818,7 @@ suite "Gara tests":
       else:
         testFail()
 
-  multitest "unification":
+  test "unification":
     let b = @["nim", "nim", "c++"]
 
     var res = ""
@@ -1831,7 +1826,7 @@ suite "Gara tests":
       of [@x, @x, @x]: discard
       of [@x, @x, _]: res = x
 
-    assertEq res, "nim"
+    doAssert res == "nim"
 
 
 
@@ -1839,21 +1834,21 @@ suite "Gara tests":
       of [@x, @x, @x]:
         testFail()
       of [@x, @x, _]:
-        assertEq x, "nim"
+        doAssert x == "nim"
       else:
         testFail()
 
-  multitest "option":
+  test "option":
     let a = some[int](3)
 
     case a:
       of Some(@i):
-        assertEq i, 3
+        doAssert i == 3
       else:
         testFail()
 
 
-  multitest "nameless tuple":
+  test "nameless tuple":
     let a = ("a", "b")
 
     case a:
@@ -1862,11 +1857,11 @@ suite "Gara tests":
       of ("a", "c"):
         testFail()
       of ("a", @c):
-        assertEq c, "b"
+        doAssert c == "b"
       else:
         testFail()
 
-  multitest "ref":
+  test "ref":
     type
       Node = ref object
         name: string
@@ -1876,7 +1871,7 @@ suite "Gara tests":
 
     case node:
       of (name: @name):
-        assertEq name, "2"
+        doAssert name == "2"
       else:
         testFail()
 
@@ -1888,7 +1883,7 @@ suite "Gara tests":
       else:
         discard
 
-  multitest "weird integers":
+  test "weird integers":
     let a = 4
 
     case [a]:
@@ -1897,7 +1892,7 @@ suite "Gara tests":
       else:
         testFail()
 
-  multitest "dot access":
+  test "dot access":
     let a = Rectangle(b: 4)
 
     case a:
@@ -1906,19 +1901,19 @@ suite "Gara tests":
       else:
         testFail()
 
-  multitest "arrays":
+  test "arrays":
     let a = [1, 2, 3, 4]
 
     case a:
       of [1, @a, 3, @b, 5]:
         testFail()
       of [1, @a, 3, @b]:
-        assertEq a, 2
-        assertEq b, 4
+        doAssert a == 2
+        doAssert b == 4
       else:
         testFail()
 
-  multitest "bool":
+  test "bool":
     let a = Rectangle(a: 0, b: 0)
 
     if a.matches((b: 0)):
@@ -1928,7 +1923,7 @@ suite "Gara tests":
       testFail()
 
 suite "More tests":
-  multitest "String len":
+  test "String len":
     let s = "test string"
 
     case [s]
@@ -1938,7 +1933,7 @@ suite "More tests":
       else:
         testFail()
 
-  multitest "Matching boolean tables":
+  test "Matching boolean tables":
     case (true, false, false):
       of (true, false, false):
         discard
@@ -1964,7 +1959,7 @@ suite "More tests":
         testFail("Pattern failed")
 
 
-  multitest "Enumparse":
+  test "Enumparse":
     type
       Dir1 = enum
         dirUp
@@ -2148,13 +2143,13 @@ suite "More tests":
     for line in splitLines("# a|#+ b :|#+ begin_txt :", {'|'}):
       case line:
         of ["#+", @name.startsWith("begin"), .._]:
-          assertEq name, "begin_txt"
+          doAssert name == "begin_txt"
 
         of ["#+", @name, .._]:
-          assertEq name, "b"
+          doAssert name == "b"
 
         of ["#", @name, .._]:
-          assertEq name, "a"
+          doAssert name == "a"
 
         else:
           testFail()
@@ -2225,7 +2220,7 @@ suite "More tests":
     for it in a1.third:
       yield it
 
-  multitestSince "AST-AST conversion using pattern matching", (1, 2, 0):
+  test "AST-AST conversion using pattern matching":
     func convert(a1: Ast1): Ast2 =
       case a1:
         of First1(first: @value):
@@ -2482,7 +2477,7 @@ suite "Article examples":
 
 
 
-  multitest "Optional object field matches":
+  test "Optional object field matches":
     type
       Obj90 = object
         field1: Option[int]
@@ -2802,7 +2797,7 @@ mail:x:8:12::/var/spool/mail:/usr/bin/nologin
     proc testProc1(arg1: int) {.unpackProc.} =
       discard
 
-  multitest "Flow macro":
+  test "Flow macro":
     type
       FlowStageKind = enum
         fskMap
@@ -3033,7 +3028,7 @@ suite "Tests":
       else:
         testFail()
 
-  multitest "Assuming v2 as":
+  test "Assuming v2 as":
     macro asssuming_v1(arg: untyped): untyped =
       arg.assertMatch:
 

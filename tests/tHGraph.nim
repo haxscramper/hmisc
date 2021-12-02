@@ -46,11 +46,13 @@ suite "Graph API":
       (1, 1): "1 -> 1"
     })
 
-    let components = graph.connectedComponents()
-    echo $components
+    let
+      components = graph.connectedComponents()
+      cycles = graph.findCycles(ignoreSelf = true)
 
-    let cycles = graph.findCycles(ignoreSelf = true)
-    echo cycles
+    show:
+      $components
+      cycles
 
   test "Find cycles with multiedges":
     var graph = newHGraph[string, string]()
@@ -138,7 +140,7 @@ suite "Graph API":
     }, ((it[0], it[1]), &"{it[0]} -> {it[1]}")))
 
     let cycles = graph.findCycles()
-    echo cycles.len()
+    show cycles.len()
     graph.
       dotRepr(
         baseGraph = some makeDotGraph(dgpRecords),
@@ -152,16 +154,16 @@ suite "Graph API":
     let node2 = graph.addNode("test2")
     let edge = graph.addEdge(node1, node2, 190)
 
-    echo graph
+    show graph
 
     for node in graph.depthFirst(node1):
-      echo graph[node]
+      show graph[node]
 
     for node in graph.topologicalOrdering():
-      echo graph[node]
+      show graph[node]
 
     let dotRepr = graph.dotRepr()
-    echo dotRepr
+    show dotRepr
 
   test "Graph coloring":
     var graph = newHGraph[int, int]()
@@ -172,7 +174,7 @@ suite "Graph API":
     })
 
     let colorMap = graph.colorizeDSatur()
-    echo $colorMap.colorMap
+    show $colorMap.colorMap
 
   test "Build graph from ref type":
     let graph = newHGraphForRef(RefT(
@@ -218,7 +220,7 @@ suite "Graph DB API":
   var query = newQuery()
   let resultNodes = query.start(start).outNodes().run(graph)
   for res in resultNodes:
-    echo res.kind
+    show res.kind
 
 suite "Graph sets":
   test "Hashing":
@@ -235,9 +237,9 @@ suite "Graph sets":
 
     for part in graph.connectedComponents():
       let extended = graph.extendOutgoing(part)
-      echo extended
+      show extended
 
-    echo graph.dotRepr()
+    show graph.dotRepr()
 
   test "Extend outgoing with cluster merging":
      var graph = newHGraph[int, int]()

@@ -2,7 +2,7 @@ import ../preludes/cli_app
 import ../other/[hjson, hlogger, hunittest, jsony_converters]
 import ../algo/[hlex_base, lexcast]
 import ../hasts/[json_serde, json_serde_extra]
-import std/[sequtils, streams, parsecfg, sets]
+import std/[sequtils, streams, parsecfg, sets, algorithm]
 
 export hlogger, colorstring
 
@@ -724,9 +724,13 @@ proc runsFromDir*(
     first: seq[AbsFile] = @[]
   ): seq[NimRun] =
 
+  var files: seq[AbsFile]
   for file in first & toSeq(walkDir(dir, AbsFile, exts = @["nim"])):
     if file.name().startsWith("t"):
-      result.add runsFromFile(file, conf)
+      files.add file
+
+  for file in sortedByIt(files, string(it)):
+    result.add runsFromFile(file, conf)
 
 proc getJoinable*(runs: seq[NimRun]): tuple[joinable, standalone: seq[NimRun]] =
   for run in runs:
@@ -1213,6 +1217,8 @@ proc joinedRunsFromDir*(
     res = conf.getRandomFile("tmp_joined", ".nim")
     code = makeJoinedCode(joined)
 
+  echov "joined test files into", res
+
   res.writeFile(code)
 
   var merged = runsFromFile(res, conf)
@@ -1245,9 +1251,12 @@ proc makeRunCmd*(run: NimRun): ShellCmd =
     result.add flag
 
 proc parseRunReports*(res: ShellResult): seq[TestReport] =
+  var activeLocation: TestLocation
   for line in res.getStdout().splitLines():
     if 0 < len(line):
       result.add fromJson(line, TestReport)
+      activeLocation = result.last().location
+
 
 proc invokeCompiled*(
     run: NimRun,
@@ -1262,7 +1271,9 @@ proc invokeCompiled*(
       result.compileReports = compile.getCompileReports(run)
 
   else:
+    echov run.file
     let run = makeRunCmd(run)
+    echov run
     if conf.parseExecution:
       let execResult = shellResult(run)
       result.kind =
@@ -1381,6 +1392,15 @@ proc formatReport*(
 
   endResult()
 
+proc formatReport*(rep: TestReport): ColoredText =
+  coloredResult()
+
+  add $rep.kind
+  add " "
+  add $rep.location
+
+  endResult()
+
 proc formatRun*(run: NimRunResult, dump: NimDump): ColoredText =
   coloredResult()
 
@@ -1395,6 +1415,9 @@ proc formatRun*(run: NimRunResult, dump: NimDump): ColoredText =
 
     of nrrkFailedExecution:
       add "Test execution failed"
+      for report in run.runReports:
+        add "\n"
+        add formatReport(report)
 
     of nrrkSuccess:
       add "Test execution succeded"
@@ -1404,13 +1427,17 @@ proc formatRun*(run: NimRunResult, dump: NimDump): ColoredText =
 
   endResult()
 
+proc hasErrors*(runs: seq[NimRunResult]): bool =
+  for run in runs:
+    if run of {nrrkFailedCompilation, nrrkFailedExecution}:
+      return true
+
 proc runTestDir*(
     dir: AbsDir,
     conf: NimRunConf,
     first: seq[AbsFile] = @[],
-  ): bool =
+  ): seq[NimRunResult] =
 
   let runs = runsFromDir(dir, conf = conf, first = first)
-  var results: seq[NimRunResult]
   for (run, compile) in compileRuns(runs, conf):
-    results.add invokeCompiled(run, compile, conf)
+    result.add invokeCompiled(run, compile, conf)

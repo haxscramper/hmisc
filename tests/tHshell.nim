@@ -152,7 +152,6 @@ suite "Hshell":
         it.expr shAnd(shellCmd(echo, 2), shellCmd(echo, 1))
 
     check cmd1.evalShellStdout() == "2\n1"
-    execShell(cmd1)
 
   test "Operators":
     var cmd = &&[

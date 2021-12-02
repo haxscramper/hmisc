@@ -7,10 +7,11 @@ import
 
 suite "Clformat colored formatting":
   test "hshow string":
-    echo hshow("")
-    echo hshow("test")
-    echo hshow("\n\n\n\n")
-    echo hshow("test\n\n\n\n")
+    show:
+      hshow("")
+      hshow("test")
+      hshow("\n\n\n\n")
+      hshow("test\n\n\n\n")
 
 when false:
   suite "Parser correctness":
