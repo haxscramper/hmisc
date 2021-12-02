@@ -235,6 +235,20 @@ iterator pairs*[I](s: set[I]): (int, I) =
     yield (idx, val)
     inc idx
 
+func quoteLiteral*(str: string): string =
+  result.add "\""
+  for ch in str:
+    result.add case ch:
+      of '"': "\\\""
+      of '\n': "\\n"
+      of '\t': "\\t"
+      of '\r': "\\r"
+      of '\\': "\\\\"
+      else: $ch
+
+  result.add "\""
+
+
 macro lit3*(str: static[string]): untyped =
   ## Dedent static string literals
   newLit(dedent(str))

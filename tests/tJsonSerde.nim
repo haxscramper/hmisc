@@ -2,7 +2,8 @@
 import
   hmisc/preludes/unittest
 
-import std/[intsets]
+import
+  std/[intsets, streams, sequtils, strutils]
 
 import
   hmisc/hasts/json_serde
@@ -111,18 +112,23 @@ suite "Roundtrip tests":
 
   test "Torture":
     let res = makeTorture().round()
-
-    show withItWriter(it.writeJsonObject(res, multiline = true))
-    # check structdiff(res, makeTorture())
+    let val = withItWriter(it.writeJsonObject(res, multiline = true))
 
   test "Writer vertical items":
-    show withItWriter(it.writeJsonItems(@[1, 2, 3, 4], true))
+    check:
+      strdiff(
+        withItWriter(it.writeJsonItems(@[1, 2, 3, 4], true)),
+        "[\n  1, \n  2, \n  3, \n  4\n]"
+      )
+      strdiff(
+        withItWriter(it.writeJsonPairs(@[1,2,3,4], true, false)),
+        "{\n  \"0\": 1, \n  \"1\": 2, \n  \"2\": 3, \n  \"3\": 4\n}"
+      )
 
-  test "Writer kv-pairs":
-    show withItWriter(it.writeJsonPairs(@[1,2,3,4], true, false))
-
-  test "Mutliline object":
-    show withItWriter(it.writeJsonObject((a: 12, b: "123", c: [1,2,3,4]), false, true))
+      strdiff(
+        withItWriter(it.writeJsonObject((a: 12, b: "123", c: [1,2,3,4]), false, true)),
+        "{\n  \"a\": 12, \n  \"b\": \"123\", \n  \"c\": [1, 2, 3, 4]\n}"
+      )
 
 import hmisc/hasts/json_serde_extra
 

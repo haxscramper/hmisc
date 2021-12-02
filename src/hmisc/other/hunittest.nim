@@ -486,7 +486,8 @@ method report(context: TestContext, report: TestReport) =
             echo pFail
 
           else:
-            echo pOk
+            discard
+            # echo pOk
 
           context.failCount = 0
           context.lastTest = none TestReport

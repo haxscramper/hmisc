@@ -2678,8 +2678,10 @@ proc parseJson*(file: AnyFile): JsonNode =
 
 
 proc newFileStream*(
-  filename: AbsFile | RelFile;
-  mode: FileMode = fmRead; bufSize: int = -1): owned FileStream =
+    filename: AbsFile | RelFile;
+    mode: FileMode = fmRead; 
+    bufSize: int = -1
+  ): owned FileStream =
 
   case mode:
     of fmRead:

@@ -254,6 +254,8 @@ type
     nrWarning ## Compilation warning
     nrError ## Compilation error
     nrUnparsed ## Report could not be parsed
+    nrSkip ## Empty report. Right now only produced by gcc diagnostics data
+           ## (it always runs, but most of the time succesfully).
 
   NimReportPartKind* = enum
     ## Single part of the nim compile report
@@ -322,6 +324,9 @@ type
     fixit*: seq[NimFixit]
 
     case kind*: NimReportKind
+      of nrSkip:
+        discard
+
       of nrUnparsed:
         reportText*: string
         parseFail*: Option[ParseError]
@@ -699,14 +704,11 @@ proc runsFromFile*(file: AbsFile, conf: NimRunConf): seq[NimRun] =
   if text.startsWith("discard"):
     spec = some text.extractSpec(file).parseSpec(file)
 
-  # TODO parse spec configuration to generate multiple matrix values
-
   var run = NimRun(
     file: file,
     outfile: file.withExt("out"),
     spec: spec
   )
-
 
   for define in conf.defines:
     run.cell.defines.add define
@@ -842,6 +844,7 @@ proc parseExecutionOf(str: var PosStr): seq[string] =
     str.skip("compiler program '")
     let slice = str.asSlice():
       str.skipToEol()
+      if str.atEof(): str.back()
       while str[Digits]:
         str.back()
 
@@ -874,31 +877,41 @@ proc parseGccReport(report: string): NimReport =
 
   while report[idx] in {' ', '\n'}: inc idx
 
-  while idx < report.len and report[idx] == '[':
-    if report[idx .. idx + 1] == "[]":
-      inc idx, 3
+  var other: seq[string]
+
+  for line in splitLines(report):
+    if line == "[]":
+      discard
+
+    elif line.startsWith("["):
+      diags.add fromJson(line, seq[GccReport])
+
+    elif line == "":
+      discard
 
     else:
-      var tmp: seq[GccReport]
-      raise newImplementError()
-      # parseHook(report, idx, tmp)
-      inc idx
-      diags.add tmp
+      other.add line
 
-  if idx < report.len and report[idx .. ^1].startsWith(ldNames):
-    result = initPosStr(report[idx .. ^1]).asVar().parseLdReport()
+  let post = other.join("\n")
+  if post.startsWith(ldNames):
+    result = initPosStr(post).asVar().parseLdReport()
 
   else:
-    result = NimReport(kind: nrError, error: neGccFail)
-    result.gccReport.diags = diags
+    if 0 < len(diags) or 0 < len(post):
+      result = NimReport(kind: nrError, error: neGccFail)
+      result.gccReport.diags = diags
 
-    while idx < report.len and report[idx] in {' ', '\n'}: inc idx
+      if 0 < len(post):
+        if idx < report.len:
+          result.gccReport.compile = post.
+            initPosStr().
+            asVar().
+            parseExecutionOf()
 
-    if idx < report.len:
-      result.gccReport.compile = report[idx .. ^1].
-        initPosStr().
-        asVar().
-        parseExecutionOf()
+
+    else:
+      result = NimReport(kind: nrSkip)
+
 
 
 proc parseOverloadAlts(text: string): NimReport =
@@ -1063,9 +1076,7 @@ proc getCompileReports(res: ShellResult, run: NimRun): seq[NimReport] =
   for part in res.getStderr().split("\31"):
     if part.strip().len() > 0:
       var report = parseNimReport(part)
-      if report of nrError and
-         report.error == neGccFail and
-         report.gccReport.diags.len == 0:
+      if report of nrSkip:
         discard
 
       else:
@@ -1194,6 +1205,7 @@ type
     nrrkFailedCompilation
     nrrkFailedExecution
     nrrkSuccess
+    nrrkFailedTests
 
   NimRunResult* = object
     run*: NimRun
@@ -1258,6 +1270,22 @@ proc parseRunReports*(res: ShellResult): seq[TestReport] =
       activeLocation = result.last().location
 
 
+proc hasFail*(reports: seq[TestReport]): bool =
+  var skippedTest = false
+  for rep in items(reports):
+    case rep.kind:
+      of {trkTestSkip}: skippedTest = true
+      of {trkTestStart, trkTestEnd}: skippedTest = false
+      of {trkTestFail, trkCheckFail}:
+        if not skippedTest:
+          return true
+
+      of {trkSuiteFail}:
+        return true
+
+      else:
+        discard
+
 proc invokeCompiled*(
     run: NimRun,
     compile: ShellResult,
@@ -1271,9 +1299,7 @@ proc invokeCompiled*(
       result.compileReports = compile.getCompileReports(run)
 
   else:
-    echov run.file
     let run = makeRunCmd(run)
-    echov run
     if conf.parseExecution:
       let execResult = shellResult(run)
       result.kind =
@@ -1291,6 +1317,9 @@ proc invokeCompiled*(
 
       except ShellError:
         result.kind = nrrkFailedExecution
+
+  if hasFail(result.runReports):
+    result.kind = nrrkFailedTests
 
 
 proc getRunReportsFor*(file: AbsFile, conf: NimRunConf): seq[NimRunResult] =
@@ -1358,6 +1387,9 @@ proc formatReport*(
   coloredResult()
 
   case report.kind:
+    of nrSkip:
+      discard
+
     of nrUnparsed:
       add "Unparsed compiled output:\n"
       add indent(report.reportText, 2)
@@ -1401,8 +1433,47 @@ proc formatReport*(rep: TestReport): ColoredText =
 
   endResult()
 
+type
+  NimRunStat* = object
+    events*: array[TestReportKind, int]
+
+func `+`*(s1: sink NimRunStat, s2: NimRunStat): NimRunStat =
+  result = s1
+  for idx, _ in mpairs(s1.events):
+    result.events[idx] += s2.events[idx]
+
+func `[]`*(stat: NimRunStat, event: TestReportKind): int =
+  stat.events[event]
+
+func statReports*(stat: var NimRunStat, reports: seq[TestReport]) =
+  for rep in items(reports):
+    inc stat.events[rep.kind]
+
+proc formatStat*(stat: NimRunStat): ColoredText =
+  clfmt("""
+Tests
+  executed: {$stat[trkTestStart] + fgCyan}
+  passed  : {$stat[trkTestOk] + fgGreen}
+  skipped : {$stat[trkTestSkip] + fgYellow}
+  failed  : {$stat[trkTestFail] + fgRed}
+  -- {"12\n2\n3\n45"}
+
+Suits
+  executed: {$stat[trkSuiteStart] + fgCyan}
+  passed  : {$stat[trkSuiteEnd] + fgGreen}
+  failed  : {$stat[trkSuiteFail] + fgRed}
+
+Checks
+  executed: {$(stat[trkCheckOk] + stat[trkCheckFail]) + fgCyan}
+  passed  : {$stat[trkCheckOk] + fgGreen}
+  faile   : {$stat[trkCheckFail] + fgRed}
+
+""", true)
+
 proc formatRun*(run: NimRunResult, dump: NimDump): ColoredText =
   coloredResult()
+
+  var total: NimRunStat
 
   case run.kind:
     of nrrkFailedCompilation:
@@ -1413,17 +1484,21 @@ proc formatRun*(run: NimRunResult, dump: NimDump): ColoredText =
         state.register(report)
         add formatReport(report, dump, state)
 
-    of nrrkFailedExecution:
+    of nrrkFailedExecution, nrrkFailedTests:
       add "Test execution failed"
       for report in run.runReports:
         add "\n"
         add formatReport(report)
+
+      total.statReports(run.runReports)
 
     of nrrkSuccess:
       add "Test execution succeded"
 
     of nrrkNone:
       raise newUnexpectedKindError(run.kind)
+
+  add formatStat(total) 
 
   endResult()
 

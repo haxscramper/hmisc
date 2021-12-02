@@ -1,8 +1,19 @@
-import ./json_ast, ./serde_macros, ./base_writer
+import
+  ./json_ast,
+  ./serde_macros,
+  ./base_writer
+
+import hmisc/other/oswrap
+
 import hmisc/core/all
 import std/[
-  parsejson, typetraits, macros,
-  tables, with, strutils
+  parsejson,
+  typetraits,
+  macros,
+  tables,
+  with,
+  strutils,
+  streams
 ]
 
 export json_ast, JsonEventKind
@@ -93,7 +104,7 @@ proc next*(reader) =
 
 
 proc newJsonDeserializer*(
-    arg: string,
+    arg: string | Stream | File | AbsFile,
     traceNext: bool = false,
     options: set[JsonDeserializerOptions] = defaultJsonDeserializerOptions
   ): JsonDeserializer =
@@ -545,7 +556,7 @@ proc writeJsonObject*[T](
     wrap(writer, tern(asArray, jsonArrayStart, jsonObjectStart), multiline):
       writeJsonFields(writer, target, asArray, multiline)
 
-proc loadFields*[T](reader; target: var T, asArray: bool = false) =
+proc loadJsonFields*[T](reader; target: var T, asArray: bool = false) =
   mixin jsonRenameField
   {.cast(uncheckedAssign).}:
     if asArray:
@@ -606,7 +617,7 @@ proc loadJsonObject*[T](
 
   else:
     skip(reader, tern(asArray, {jsonArrayStart}, {jsonObjectStart}), T)
-    loadFields(reader, target, asArray = asArray)
+    loadJsonFields(reader, target, asArray = asArray)
     skip(reader, tern(asArray, {jsonArrayEnd}, {jsonObjectEnd}), T)
 
     jsonPostLoad(target)
@@ -675,10 +686,28 @@ proc fromJson*[T](
 
   loadJson(reader, result)
 
+proc fromJson*[T](
+    stream: Stream,
+    target: typedesc[T],
+    options: set[JsonDeserializerOptions] = defaultJsonDeserializerOptions,
+    traceNext: bool = false,
+  ): T =
+  var reader = newJsonDeserializer(
+    stream,
+    traceNext = traceNext,
+    options = options
+  )
+
+  loadJson(reader, result)
+
 proc toJson*[T](obj: T): string =
   var writer = newJsonSerializer()
   writeJson(writer, obj)
   return writer.readAll()
+
+proc toJson*[T](obj: T, stream: Stream) =
+  var writer = newJsonSerializer(stream)
+  writeJson(writer, obj)
 
 template withItWriter*(body: untyped): untyped =
   block:

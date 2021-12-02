@@ -415,6 +415,7 @@ proc `[]`*(
   ## Check three next positions against pattern
   str[0, patt1] and str[1, patt2] and str[2, patt3]
 
+proc atEof*(str): bool = str['\x00']
 
 proc `@`*(str): seq[char] =
   ## Return all characters left in the base input string. Used for
@@ -832,29 +833,30 @@ proc next*(
   if step < 0:
     for diff in 0 ..< -step:
       var byteCount = 1
-      if not byteAdvance:
-        var pos = str.pos
+      if str.pos < len(str.baseStr[]):
+        if not byteAdvance:
+          var pos = str.pos
 
-        if str.baseStr[][pos] in Utf8Continuations:
-          dec byteCount
+          if str.baseStr[][pos] in Utf8Continuations:
+            dec byteCount
 
-        elif str.baseStr[][pos] in Utf8Starts:
-          # At the start of utf8 rune, need to advance backwards to the
-          # previous one
-          dec pos
+          elif str.baseStr[][pos] in Utf8Starts:
+            # At the start of utf8 rune, need to advance backwards to the
+            # previous one
+            dec pos
 
-        while str.baseStr[][pos] in Utf8Continuations:
-          # Search backwards until start of the utf is not found
-          inc byteCount
-          dec pos
+          while str.baseStr[][pos] in Utf8Continuations:
+            # Search backwards until start of the utf is not found
+            inc byteCount
+            dec pos
 
 
-      if str.baseStr[][str.pos] == '\n':
-        dec str.line
-        # TODO correct column number (scan backwards until next newline/SOF)
+        if str.baseStr[][str.pos] == '\n':
+          dec str.line
+          # TODO correct column number (scan backwards until next newline/SOF)
 
-      else:
-        dec str.column
+        else:
+          dec str.column
 
       if str.isSlice:
         if (str.pos - byteCount) < str.slices[str.sliceIdx].start:

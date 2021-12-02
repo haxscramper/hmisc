@@ -13,6 +13,13 @@ suite "Clformat colored formatting":
       hshow("\n\n\n\n")
       hshow("test\n\n\n\n")
 
+  test "Colored text formatting":
+    let text = clfmt("""
+-- {"12\n12"}
+""", true)
+
+    show text
+
 when false:
   suite "Parser correctness":
     test "String literals":

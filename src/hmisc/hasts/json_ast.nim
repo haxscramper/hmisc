@@ -1,5 +1,6 @@
 import std/[streams, parsejson, json]
 import hmisc/core/all
+import hmisc/other/oswrap
 
 import ./base_writer
 
@@ -86,6 +87,22 @@ proc newJsonParser*(
   ): JsonParser =
 
   open(result, newStringStream(text), filename)
+  next(result)
+
+proc newJsonParser*(file: AbsFile): JsonParser =
+  open(result, newFileStream(file), file.string)
+  next(result)
+
+proc newJsonParser*(file: File, name: string = "<file>"): JsonParser =
+  open(result, newFileStream(file), name)
+  next(result)
+
+proc newJsonParser*(
+    stream: Stream,
+    name: string = "<stream>"
+  ): JsonParser =
+
+  open(result, stream, name)
   next(result)
 
 proc getStr*(parser: JsonParser): string = parser.str()

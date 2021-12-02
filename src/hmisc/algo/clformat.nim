@@ -1,5 +1,5 @@
 import
-  std/[strutils, tables, enumerate, strformat, sequtils, unicode]
+  std/[strutils, tables, enumerate, strformat, sequtils, unicode, parseutils]
 
 import
   ./hseq_mapping,
@@ -1475,6 +1475,196 @@ template coloredResult*(): untyped =
   template addi(ind: int, arg: untyped): untyped {.used.} =
     outPtr[].addIndent(ind, 2)
     outPtr[].add(arg)
+
+proc addAfter(
+    target: var ColoredText, 
+    prefix: string, 
+    text: ColoredText,
+    repeatPrefix: bool = false
+  ) =
+
+  var prefixPart = high(prefix)
+  while prefixPart < len(prefix) and
+        prefix[prefixPart] != '\n' and
+        1 < prefixPart:
+    dec prefixPart
+
+  if repeatPrefix:
+    for line in lines(text):
+      target.add prefix[prefixPart .. ^1]
+      target.add line
+      target.add "\n"
+
+  else:
+    target.add indentBody(text, runeLen(prefix[prefixPart .. ^1]) + 1)
+
+proc addAfter(
+    target: var ColoredText,
+    prefix: string,
+    text: string,
+    repeatPrefix: bool = false
+  ) =
+
+  addAfter(target, prefix, clt(text), repeatPrefix)
+
+proc strformatImpl(
+    f: string; 
+    openChar, closeChar: char,
+    initCall: NimNode,
+    specDelimitChar: char         = '@',
+    useAddAfter: bool             = false,
+    useAddAfterRepeatPrefix: bool = false
+  ): NimNode =
+  if openChar == specDelimitChar or closeChar == specDelimitChar:
+    error "openChar and closeChar must not be equal to the delimiter character."
+
+  echo "123"
+
+  var i = 0
+  let res = genSym(nskVar, "fmtRes")
+  result = newNimNode(nnkStmtListExpr)
+  result.add newVarStmt(res, initCall)
+  let after = bindSym"addAfter"
+  var strlit = ""
+  var lastUsedStrLit = ""
+  while i < f.len:
+    if f[i] == openChar:
+      inc i
+      if f[i] == openChar:
+        inc i
+        strlit.add openChar
+      else:
+        if strlit.len > 0:
+          result.add newCall(bindSym"add", res, newLit(strlit))
+          lastUsedStrLit = strLit
+          strlit = ""
+
+        var subexpr = ""
+        var inParens = 0
+        var inSingleQuotes = false
+        var inDoubleQuotes = false
+        template notEscaped:bool = f[i-1]!='\\'
+        while i < f.len and f[i] != closeChar and (f[i] != specDelimitChar or inParens != 0):
+          case f[i]:
+            of '\\':
+              if i < f.len-1 and f[i+1] in {openChar,closeChar,specDelimitChar}: inc i
+            of '\'':
+              if not inDoubleQuotes and notEscaped: inSingleQuotes = not inSingleQuotes
+            of '\"':
+              if notEscaped: inDoubleQuotes = not inDoubleQuotes
+            of '(':
+              if not (inSingleQuotes or inDoubleQuotes): inc inParens
+            of ')':
+              if not (inSingleQuotes or inDoubleQuotes): dec inParens
+            of '=':
+              let start = i
+              inc i
+              i += f.skipWhitespace(i)
+
+              if f[i] == closeChar or f[i] == specDelimitChar:
+                result.add newCall(bindSym"add", res, newLit(subexpr & f[start ..< i]))
+
+              else:
+                subexpr.add f[start ..< i]
+
+              continue
+
+            else:
+              discard
+
+          subexpr.add f[i]
+          inc i
+
+        var x: NimNode
+        try:
+          x = parseExpr(subexpr)
+        except ValueError as e:
+          error("could not parse `$#` in `$#`.\n$#" % [subexpr, f, e.msg])
+
+        var options = ""
+        if f[i] == specDelimitChar:
+          inc i
+          while i < f.len and f[i] != closeChar:
+            options.add f[i]
+            inc i
+        if f[i] == closeChar:
+          inc i
+        else:
+          doAssert false, "invalid format string: missing '}'"
+
+        if useAddAfter:
+          result.add newCall(
+            bindSym("addAfter", brOpen),
+            res                             #[ target ]#,
+            newLit(lastUsedStrLit)          #[ prefix ]#,
+            newCall(             #[ text ]#
+              bindSym("formatValue", brOpen), x, newLit(options)),
+            newLit(useAddAfterRepeatPrefix) #[ repeatPrefix ]#
+          )
+
+        else:
+          result.add newCall(
+            bindSym("formatValue", brOpen), res, x, newLit(options))
+
+
+
+    elif f[i] == closeChar:
+      if i<f.len-1 and f[i+1] == closeChar:
+        strlit.add closeChar
+        inc i, 2
+
+      else:
+        doAssert false, "invalid format string: '$1' instead of '$1$1'" % $closeChar
+        inc i
+
+    else:
+      strlit.add f[i]
+      inc i
+
+  if strlit.len > 0:
+    result.add newCall(bindSym"add", res, newLit(strlit))
+
+  result.add res
+
+  echo repr(result)
+
+
+
+proc newColoredTextOfCap*(cap: int): ColoredText = discard
+
+proc formatValue*(result: var ColoredText, value: ColoredText, spec: string) =
+  result.add value
+
+proc formatValue*(result: var ColoredText, value: string, spec: string) =
+  result.add value
+
+proc formatValue*(value: ColoredText, spec: string): ColoredText =
+  formatValue(result, value, spec)
+
+proc formatValue*(value: string, spec: string): string =
+  formatValue(result, value, spec)
+
+macro clfmt*(
+    pattern: static[string],
+    addAfter: static[bool] = false,
+    openChar: static[char] = '{',
+    closeChar: static[char] = '}'
+  ): untyped =
+
+  let expectedGrowth =
+    when defined(useNimRtl):
+      0
+
+    else:
+      count(pattern, openChar) * 10
+
+  result = strformatImpl(
+    pattern,
+    openChar,
+    closeChar,
+    newCall(bindSym"newColoredTextOfCap", newLit(pattern.len + expectedGrowth)),
+    useAddAfter = addAfter,
+  )
 
 func joinPrefix*(
     level: int, idx: seq[int],

@@ -20,8 +20,12 @@ suite "Parser":
     show decl
 
   test "call":
-    show parseAmbiguousCall(
+    let rep = parseAmbiguousCall(
       "ambiguous call; both oswrap.currentSourceDir() [template declared in /src/hmisc/other/oswrap.nim(518, 10)] and gold.currentSourceDir() [template declared in /hmisc/core/gold.nim(152, 10)] match for: ()")
+
+    check:
+      rep.kind == nrError
+      rep.error == neAmbiguousCall
 
   test "Unparseable report":
     let rep = parseNimReport("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ???")
@@ -59,21 +63,7 @@ suite "Compiled":
 
   test "Correct code reports":
     let rep = reports("echo 12")
-
-    pprint rep
-
     check rep.len == 0
-
-  test "Failed linker":
-    discard
-    # let rep = reports("{.passl: \"-lsomeRandomLibThatIsCertainlyDoesNotExist\".}")[0]
-
-    # check:
-    #   rep.kind == nrError
-    #   rep.error == neLdFail
-    #   "-lsomeRandomLibThatIsCertainlyDoesNotExist" in rep.ldReport.message
-
-    # l.reportError(rep, dump)
 
   test "Failed C codegen":
     let rep = reports("{.emit: \"???\".}")[0]
