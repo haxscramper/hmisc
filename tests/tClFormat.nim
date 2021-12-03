@@ -68,12 +68,12 @@ suite "CL formatting directives":
   test "Integer formatting":
     skip()
     check:
-      $clfmt("{1000:,sep='#'}")             == "1#000"
-      $clfmt("{1000:<6, sep='-', pad='_'}") == "_1-000"
-      $clfmt("{1000:<7, sep='.', sign}")    == " +1.000"
+      # $clfmt("{1000:,sep='#'}")             == "1#000"
+      # $clfmt("{1000:<6, sep='-', pad='_'}") == "_1-000"
+      # $clfmt("{1000:<7, sep='.', sign}")    == " +1.000"
       $clfmt("{10:,roman}")                 == "X"
       $clfmt("{1000:,eng}")                 == "1K"
-      $clfmt("{1000:,scientific}")          == "1+3E" # ?
+      # $clfmt("{1000:,scientific}")          == "1+3E" # ?
       $clfmt("{1000:,word=file, text}")     == "one thousand files"
       $clfmt("{12:,text,word=test}")             == "twelve tests"
       $clfmt("{1000:,eng, word=file}")      == "1K files"

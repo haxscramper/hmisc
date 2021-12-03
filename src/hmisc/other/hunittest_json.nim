@@ -7,9 +7,11 @@ import
 
 type
   JsonContext* = ref object of TestContext
+    inSkipTest: bool
 
 method report*(ctx: JsonContext, report: TestReport) =
   echo toJson(report)
+  ctx.updateState(report)
 
 proc newJsonContext*(): JsonContext =
   JsonContext()

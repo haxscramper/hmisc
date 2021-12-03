@@ -1,7 +1,7 @@
 import
   hmisc/preludes/cli_app,
   hmisc/other/[hjson, hlogger, hunittest, jsony_converters],
-  hmisc/algo/[hlex_base, lexcast, clformat_interpolate],
+  hmisc/algo/[hlex_base, lexcast, clformat_interpolate, hseq_distance],
   hmisc/hasts/[json_serde, json_serde_extra]
 
 import std/[sequtils, streams, parsecfg, sets, algorithm]
@@ -235,6 +235,7 @@ type
     warnings*: seq[NimWarning] ## Set of warnings to enable during compilation
     globalMatrix*: seq[NimMatrixCell] ## List of global CI matrix cells.
     extraFlags*: seq[string]
+    megatest*: bool
 
     defines*: seq[tuple[key: string, value: Option[string]]]
     tempDir*: AbsDir ## Temporary directory to write compiled test
@@ -250,6 +251,9 @@ type
     ## multiple parameters.
 
     reportEvent*: proc(event: NimRunnerEvent)
+
+    fileGlobs*: seq[GitGlob]
+    testArguments*: seq[string]
 
 
   NimReportKind* = enum
@@ -330,12 +334,14 @@ type
     nrekRunningFile
     nrekFinishedExecution
     nrekJoined
+    nrekIgnoreFile
 
   NimRunnerEvent* = object
     case kind*: NimRunnerEventKind
       of nrekCompiledFile,
          nrekRunningFile,
-         nrekFinishedExecution:
+         nrekFinishedExecution,
+         nrekIgnoreFile:
         file*: AbsFile
 
       of nrekJoined:
@@ -587,10 +593,12 @@ proc getCwdNimDump*(file: string = "-"): NimDump =
 
   result.nimblePath = query["nimble"][0].asStr().AbsDir()
 
-func initNimRunConf*(dump: NimDump): NimRunConf =
+func initNimRunConf*(dump: NimDump, tempDir: AbsDir): NimRunConf =
   NimRunConf(
     dump: dump,
-    parallelCompile: 4,
+    tempDir: tempDir,
+    megatest: true,
+    parallelCompile: 6,
     randomPattern: "????_????_????",
     parseCompilation: true,
     parseExecution: true,
@@ -756,14 +764,27 @@ proc runsFromDir*(
   var files: seq[AbsFile]
   for file in first & toSeq(walkDir(dir, AbsFile, exts = @["nim"])):
     if file.name().startsWith("t"):
-      files.add file
+      let fileRel = file.string.dropPrefix(dir.string).string
+      if conf.fileGlobs.accept(fileRel):
+        files.add file
+
+      else:
+        conf.reportEvent(NimRunnerEvent(
+          kind: nrekIgnoreFile, file: file))
+
 
   for file in sortedByIt(files, string(it)):
     result.add runsFromFile(file, conf)
 
-proc getJoinable*(runs: seq[NimRun]): tuple[joinable, standalone: seq[NimRun]] =
+
+proc getJoinable*(runs: seq[NimRun], conf: NimRunConf):
+    tuple[joinable, standalone: seq[NimRun]] =
+
   for run in runs:
-    if (?run.spec and run.spec.get().joinable) or not(?run.spec):
+    if conf.megatest and (
+       (?run.spec and run.spec.get().joinable) or
+       not(?run.spec)
+    ):
       result.joinable.add run
 
     else:
@@ -1128,7 +1149,7 @@ proc logLines*(l: HLogger, part: NimReportPart) =
 
 
 type
-  NimReportState = object
+  NimReportState* = object
     importParts: seq[NimReportPart]
 
 
@@ -1148,75 +1169,6 @@ proc register(state: var NimReportState, report: NimReport) =
           discard state.importParts.pop()
 
 
-
-proc reportError*(
-    l: HLogger,
-    report: NimReport,
-    dump: NimDump,
-    state: NimReportState = NimReportState()
-  ) =
-
-  var hadInstOf = false
-  for part in report.parts:
-    hadInstOf = true
-    if part of {nrpInstOf}:
-      l.logLines(part)
-
-  if hadInstOf:
-    l.info "---------------"
-
-  for part in report.parts:
-    if not(part of {nrpInstOf}):
-      l.logLines(part)
-
-  if report of nrError:
-    case report.error:
-      of neCannotOpen:
-        l.pdump dump.paths
-        l.pdump dump.nimblePath
-
-        if false:
-          for idx, part in state.importParts:
-            if not part.isToplevel:
-              echo "  ".repeat(idx - 1), "↳", part.target
-
-      of neAmbiguousCall:
-        let (k1, k2) = (report.definedAlts[0], report.definedAlts[1])
-        let m = max(k1.name.len, k2.name.len)
-        l.err "ambiguous call"
-        l.info k1.name
-        l.info k2.name
-        l.info " match for ", report.matchFor
-
-      of neOverloadFail:
-        l.err "No matching function"
-        let ctx = report.overloadContext
-        l.info ctx.expression
-
-        for alt in ctx.alts:
-          l.debug alt.signature
-          l.info alt.argumentFail
-          if alt.isOfType.canGet(argType):
-            l.debug "But expression is of type "
-            l.debug argType
-
-      of neLdFail:
-        l.err "Linker exited with error"
-        l.err report.ldReport.message
-
-      of neGccFail:
-        let (diags, compile) = report.gccReport
-        l.err "Compiler command exited with error"
-        for group in diags:
-          for diag in group:
-            l.err diag.message
-            for loc in diag.locations:
-              l.dump loc.caret.line
-              l.dump loc.caret.file
-              l.dump loc.caret.column
-
-      else:
-        l.debug report.error
 
 proc skipKinds*(
     reports: sink seq[NimReport],
@@ -1243,6 +1195,29 @@ type
     runReports*: seq[TestReport]
 
 
+proc createJoined*(runs: seq[NimRun], conf: NimRunConf): seq[NimRun] =
+  let
+    (joined, standalone) = runs.getJoinable(conf)
+
+  if 0 < len(joined):
+    let
+      res = conf.getRandomFile("tmp_joined", ".nim")
+      code = makeJoinedCode(joined)
+
+    res.writeFile(code)
+
+    var merged = runsFromFile(res, conf)
+    for it in mitems(merged):
+      for run in joined:
+        it.joinedFrom.add run.file
+
+    conf.reportEvent(NimRunnerEvent(
+      kind: nrekJoined, joined: merged[0].joinedFrom))
+
+    result.add merged
+
+  result.add standalone
+
 
 proc joinedRunsFromDir*(
     dir: AbsDir,
@@ -1250,23 +1225,7 @@ proc joinedRunsFromDir*(
     first: seq[AbsFile] = @[],
   ): seq[NimRun] =
 
-  let
-    runs = runsFromDir(dir, conf, first)
-    (joined, standalone) = runs.getJoinable()
-    res = conf.getRandomFile("tmp_joined", ".nim")
-    code = makeJoinedCode(joined)
-
-  echov "joined test files into", res
-
-  res.writeFile(code)
-
-  var merged = runsFromFile(res, conf)
-  for it in mitems(merged):
-    for run in joined:
-      it.joinedFrom.add run.file
-
-  result.add merged
-  result.add standalone
+  runsFromDir(dir, conf, first).createJoined(conf)
 
 iterator compileRuns*(
     runs: seq[NimRun],
@@ -1324,7 +1283,7 @@ proc invokeCompiled*(
   ): NimRunResult =
 
   result = NimRunResult(run: run, compileRes: compile)
-  if not compile.isOk(@[-1]):
+  if not compile.isOk(@[-1, 0]):
     result.kind = nrrkFailedCompilation
     if conf.parseCompilation:
       result.compileReports = compile.getCompileReports(run)
@@ -1465,6 +1424,10 @@ proc formatReport*(
 
   endResult()
 
+const
+  nimTestAlign = (18, '[', ']')
+
+
 proc formatEvent*(event: NimRunnerEvent): ColoredText =
   coloredResult()
 
@@ -1475,20 +1438,28 @@ proc formatEvent*(event: NimRunnerEvent): ColoredText =
       raise newUnexpectedKindError(event)
 
     of nrekCompiledFile:
-      add "[compiled] " |>> ind
+      add ("compiled" |<> nimTestAlign) + fgYellow
+      add " "
+      add $event.file
+
+    of nrekIgnoreFile:
+      add ("ignore" |<> nimTestAlign) + fgCyan
+      add " "
       add $event.file
 
     of nrekRunningFile:
-      add "[running] " |>> ind
+      add ("running" |<> nimTestAlign) + fgCyan
+      add " "
       add $event.file
 
     of nrekFinishedExecution:
-      add "[finished] " |>> ind
+      add ("finished" |<> nimTestAlign) + fgGreen
+      add " "
       add $event.file
 
     of nrekJoined:
-      add "[joined]" |>> ind
-      add "\n"
+      add "joined" |<> nimTestAlign
+      add " \n"
       for file in event.joined:
         add "    - "
         add $file
@@ -1502,17 +1473,53 @@ proc formatEvent*(event: NimRunnerEvent): ColoredText =
 proc formatReport*(rep: TestReport): ColoredText =
   coloredResult()
 
+  let align = (12, '[', ']')
+
   case rep.kind:
     of trkCheckOk:
-      add "[ CHECK-OK ] " + fgGreen
+      add ("TEST" |<> align) + fgGreen
 
     of trkCheckFail:
       add formatCheckFail(rep)
+
+    of trkTestSkip:
+      add ("SKIP" |<> align) + fgYellow
+      add " "
+      add rep.name
+
+    of trkSuiteFail:
+      add ("SUITE" |<> align) + fgRed
+      add " "
+      add rep.name
 
     else:
       add $rep.kind
       add " "
       add $rep.location
+
+  if rep of trkFailKinds:
+    add " "
+    add hshow(rep.failKind)
+
+    if rep.failKind == tfkException:
+      let e = rep.exception
+      add "\n\n"
+      add "  Exception was raised during execution"
+      add "  name = "
+      add ($e.name + fgCyan)
+      add "\n"
+      add "  trace = \n"
+      let maxp = maxIt(e.getStackTraceEntries(), len(it.procname))
+
+      for tr in e.getStackTraceEntries():
+        add "    "
+        add ($tr.procname |<< maxp) + fgCyan
+        add " "
+        add $tr.filename
+        add ":"
+        add hshow(tr.line)
+        add "\n"
+
 
   endResult()
 
@@ -1525,6 +1532,7 @@ func `+`*(s1: sink NimRunStat, s2: NimRunStat): NimRunStat =
   result = s1
   for idx, _ in mpairs(s1.events):
     result.events[idx] += s2.events[idx]
+    result.store[idx].add s2.store[idx]
 
 func `[]`*(stat: NimRunStat, event: TestReportKind): int =
   stat.events[event]
@@ -1577,25 +1585,27 @@ proc formatInlineStat*(stat: NimRunStat, fg: ForegroundColor): ColoredText =
   endResult()
 
 proc formatStat*(stat: NimRunStat): ColoredText =
+  let p = "" |<> (nimTestAlign[0], '.', '[', ']')
   clfmt("""
-Tests
-  executed: {stat[trkTestStart]:,fg-cyan}
-  passed  : {stat[trkTestOk]:,fg-green}
-  skipped : {stat[trkTestSkip]:,fg-yellow}
-  - {formatReport(stat.store[trkTestskip]):,indent}
-  failed  : {stat[trkTestFail]:,fg-red}
-  - {formatReport(stat.store[trkTestFail]):,indent}
-
-Suits
-  executed: {stat[trkSuiteStart]:,fg-cyan}
-  passed  : {stat[trkSuiteEnd]:,fg-green}
-  failed  : {stat[trkSuiteFail]:,fg-red}
-
-Checks
-  executed: {(stat[trkCheckOk] + stat[trkCheckFail]):,fg-cyan}
-  passed  : {stat[trkCheckOk]:,fg-green}
-  failed  : {stat[trkCheckFail]:,fg-red}
-  - {formatReport(stat.store[trkCheckFail]):,indent}
+{p} Tests
+{p}   executed: {stat[trkTestStart]:,fg-cyan}
+{p}   passed  : {stat[trkTestOk]:,fg-green}
+{p}   skipped : {stat[trkTestSkip]:,fg-yellow}
+{p}   - {formatReport(stat.store[trkTestskip]):,indent}
+{p}   failed  : {stat[trkTestFail]:,fg-red}
+{p}   - {formatReport(stat.store[trkTestFail]):,indent}
+{p}
+{p} Suits
+{p}   executed: {stat[trkSuiteStart]:,fg-cyan}
+{p}   passed  : {stat[trkSuiteEnd]:,fg-green}
+{p}   failed  : {stat[trkSuiteFail]:,fg-red}
+{p}   - {formatReport(stat.store[trkSuiteFail]):,indent}
+{p}
+{p} Checks
+{p}   executed: {(stat[trkCheckOk] + stat[trkCheckFail]):,fg-cyan}
+{p}   passed  : {stat[trkCheckOk]:,fg-green}
+{p}   failed  : {stat[trkCheckFail]:,fg-red}
+{p}   - {formatReport(stat.store[trkCheckFail]):,indent}
 
 """)
 
@@ -1603,8 +1613,8 @@ proc formatRun*(runs: seq[NimRunResult], dump: NimDump): ColoredText =
   coloredResult()
 
   var total: NimRunStat
+  let align = nimTestAlign
 
-  let align = (18, '[', ']')
   let nameW = maxIt(runs, it.run.file.name().len()) + 2
 
   for run in runs:
@@ -1664,6 +1674,6 @@ proc runTestDir*(
     first: seq[AbsFile] = @[],
   ): seq[NimRunResult] =
 
-  let runs = runsFromDir(dir, conf = conf, first = first)
+  let runs = runsFromDir(dir, conf = conf, first = first).createJoined(conf)
   for (run, compile) in compileRuns(runs, conf):
     result.add invokeCompiled(run, compile, conf)

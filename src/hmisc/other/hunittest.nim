@@ -98,8 +98,8 @@ type
     trkMergedFileEnded
 
 const
-  trkSectionKinds = { trkTestStart .. trkSuiteFail }
-  trkFailKinds = { trkSuiteFail, trkTestFail, trkExpectFail, trkCheckFail }
+  trkSectionKinds* = { trkTestStart .. trkSuiteFail }
+  trkFailKinds* = { trkSuiteFail, trkTestFail, trkExpectFail, trkCheckFail }
 
 type
   TestMatchFail = tuple[path, expected, got: string]
@@ -418,8 +418,7 @@ proc formatCheckFail*(report: TestReport): ColoredText =
         add "but expected\n\n"
         add "  "
         add s2.indentBody(2)
-        add ""
-        add ""
+        add "\n"
 
       else:
         add " "
@@ -436,6 +435,56 @@ proc formatCheckFail*(report: TestReport): ColoredText =
         add "\n"
 
   endResult()
+
+
+
+proc updateState*(context: TestContext, report: TestReport) =
+  if report.failKind == tfkException and context.skipAfterException:
+    context.skipNext = true
+
+  if report.failKind == tfkManualFail and context.skipAfterManual:
+    context.skipNext = true
+
+  if report.kind == trkCheckFail and context.skipAfterCheckFail:
+    context.skipNext = true
+
+  case report.kind:
+    of trkTestSkip:
+      context.lastTest.get().skipped = true
+
+    of trkSectionKinds:
+      let name = report.conf.name
+      case report.kind:
+        of trkFailKinds:
+          if report.kind == trkTestFail:
+            context.lastSuite.get().nestedFail.add report
+
+        of trkSuiteEnd:
+          if context.lastSuite.get().nestedFail.len > 0:
+            context.hasFailed.add context.lastSuite.get()
+
+        of trkTestStart:
+          context.lastTest = some report
+
+        of trkTestEnd:
+          if context.failCount > 0 and
+             not context.lastTest.get().skipped:
+            context.lastSuite.get().nestedFail.add report
+
+          context.failCount = 0
+          context.lastTest = none TestReport
+
+        of trkSuiteStart:
+          context.lastSuite = some report
+
+        else:
+          discard
+
+    of trkCheckFail:
+      inc context.failCount
+
+    else:
+      discard
 
 
 
@@ -460,15 +509,6 @@ method report(context: TestContext, report: TestReport) =
 
   if report.kind != trkTimeStats:
     context.shownHeader = false
-
-  if report.failKind == tfkException and context.skipAfterException:
-    context.skipNext = true
-
-  if report.failKind == tfkManualFail and context.skipAfterManual:
-    context.skipNext = true
-
-  if report.kind == trkCheckFail and context.skipAfterCheckFail:
-    context.skipNext = true
 
   case report.kind:
     of trkFileStarted:
@@ -558,7 +598,6 @@ method report(context: TestContext, report: TestReport) =
       echo toYellow("[SKIP]" |>> width), " ",
        context.lastTest.get().conf.name
 
-      context.lastTest.get().skipped = true
 
     of trkExpectFail:
       if report.failKind == tfkNoExceptionRaised:
@@ -566,16 +605,6 @@ method report(context: TestContext, report: TestReport) =
 
       elif report.failKind == tfkUnexpectedExceptionRaised:
         echo pFail, " unexpected - wanted ", report.wanted, ", but got"
-        # echov report.kind
-        # echov report.failKind
-        # assertRef report.exception
-        # logStackTrace(
-        #   getTestLogger(),
-        #   report.exception,
-        #   showError = true,
-        #   source = context.sourceOnError,
-        #   skipFirst = 2
-        # )
 
     of trkSectionKinds:
       let name = report.conf.name
@@ -587,34 +616,19 @@ method report(context: TestContext, report: TestReport) =
           else:
             echo pFail, name, " ", report.msg
 
-          if report.kind == trkTestFail:
-            context.lastSuite.get().nestedFail.add report
-
         of trkSuiteEnd:
           echo pSuite, name
 
-          if context.lastSuite.get().nestedFail.len > 0:
-            context.hasFailed.add context.lastSuite.get()
-
         of trkTestStart:
-          context.lastTest = some report
           echo pRun, name
 
         of trkTestEnd:
           if context.failCount > 0 and
              not context.lastTest.get().skipped:
-            context.lastSuite.get().nestedFail.add report
             echo pFail
 
-          else:
-            discard
-            # echo pOk
-
-          context.failCount = 0
-          context.lastTest = none TestReport
-
         of trkSuiteStart:
-          context.lastSuite = some report
+          discard
 
         else:
           echo pOk, name
@@ -632,7 +646,6 @@ method report(context: TestContext, report: TestReport) =
 
 
     of trkCheckFail:
-      inc context.failCount
       echo formatCheckFail(report).indent(width)
 
   if report.kind in { trkTestEnd, trkSuiteEnd }:
@@ -666,6 +679,7 @@ method report(context: TestContext, report: TestReport) =
       if nocover == 0:
         echo pad, "full coverage"
 
+  updateState(context, report)
 
 
 

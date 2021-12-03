@@ -59,11 +59,12 @@ suite "Simple configuration":
 
   test "Narrow sequence":
     skip()
-    check @[1, 2, 3, 4].pstring(6, conf = op) == lit3"""
-      - 1
-      - 2
-      - 3
-      - 4"""
+    if false:
+      check @[1, 2, 3, 4].pstring(6, conf = op) == lit3"""
+        - 1
+        - 2
+        - 3
+        - 4"""
 
   test "Wide sequence":
     check @[1, 2, 3].pstring(conf = op) == "[1, 2, 3]"
@@ -189,30 +190,32 @@ suite "Deeply nested types":
 
   test "Narrow 4x4 seq":
     skip()
-    check @[
-      @[1, 2, 3, 4],
-      @[5, 6, 7, 8],
-      @[9, 1, 2, 3],
-      @[4, 5, 6, 7],
-    ].pstring(20, conf = op) == lit3"""
-      - [1, 2, 3, 4]
-      - [5, 6, 7, 8]
-      - [9, 1, 2, 3]
-      - [4, 5, 6, 7]"""
+    if false:
+      check @[
+        @[1, 2, 3, 4],
+        @[5, 6, 7, 8],
+        @[9, 1, 2, 3],
+        @[4, 5, 6, 7],
+      ].pstring(20, conf = op) == lit3"""
+        - [1, 2, 3, 4]
+        - [5, 6, 7, 8]
+        - [9, 1, 2, 3]
+        - [4, 5, 6, 7]"""
 
 
   test "Super narrow 2x2 seq":
     skip()
-    check @[
-      @[1, 2, 4],
-      @[5, 6, 8],
-    ].pstring(7, conf = op) == lit3"""
-      - - 1
-        - 2
-        - 4
-      - - 5
-        - 6
-        - 8"""
+    if false:
+      check @[
+        @[1, 2, 4],
+        @[5, 6, 8],
+      ].pstring(7, conf = op) == lit3"""
+        - - 1
+          - 2
+          - 4
+        - - 5
+          - 6
+          - 8"""
 
 suite "Other tests":
   test "primitive types colored":

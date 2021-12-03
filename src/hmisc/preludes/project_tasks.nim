@@ -58,7 +58,12 @@ app.add cmd(
     opt("parse-errors",
          "Parse compilation errors",
          default = cliDefault(toCliValue(true), "true"),
-         check = cliCheckFor(bool))])
+         check = cliCheckFor(bool)),
+    opt("ignore",
+        "Only run tests from files with matching pattern",
+        default = cliDefault(toCliValue(newSeq[string]()), ""),
+        check = cliCheckFor(seq[string]))
+])
 
 block:
   app.add cmd("doc", "Generate project-wide documentation", @[
@@ -107,27 +112,31 @@ case app.getCmdName():
       cmd = app.getCmd()
       parseRun = cmd.getOpt("parse-errors") as bool
 
-    var conf = getCwdNimDump().initNimRunConf()
+    let tmp = getAppTempDir()
+    var conf = getCwdNimDump().initNimRunConf(tmp)
     conf.reportEvent = hook
+    conf.megatest = false
 
-    const cache = on
+    for ignore in cmd.getOpt("ignore") as seq[string]:
+      conf.fileGlobs.add toGitGlob(ignore)
 
+    const cache = off
+
+    mkDir tmp
+    let cacheFile = tmp.getTempFile("cache.json")
 
     let runs =
       if cache:
-        let tmp = getAppTempDir()
-        mkDir tmp
-        let cache = tmp.getTempFile("cache.json")
-        if exists(cache):
-          fromJson(cache, seq[NimRunResult])
+        if exists(cacheFile):
+          fromJson(cacheFile, seq[NimRunResult])
 
         else:
-          let runs = runTestDir(dir, conf)
-          toJson(runs, cache)
-          runs
+          runTestDir(dir, conf)
 
       else:
         runTestDir(dir, conf)
+
+    toJson(runs, cacheFile)
 
     echo formatRun(runs, conf.dump)
 

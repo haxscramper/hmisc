@@ -437,6 +437,14 @@ proc loadXml*(reader; target: var string, tag: string) =
 
     reader.skipElementEnd(tag)
 
+proc loadXml*(reader; target: var cstring, tag: string) =
+  var tmp: string
+  loadXml(reader, tmp, tag)
+  target = allocCstringArray([tmp])[0]
+
+proc writeXml*(writer; value: cstring, tag: string) =
+  writeXml(writer, $value, tag)
+
 proc loadXml*(reader; target: var AbsFile, tag: string) =
   var tmp: string
   loadXml(reader, tmp, tag)

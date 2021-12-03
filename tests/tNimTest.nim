@@ -51,11 +51,11 @@ suite "Compiled":
   mkDir dir
   let l = getTestLogger()
 
-  let dump = getCwdNimDump()
+  let dump = currentSourcePath().getCwdNimDump()
   proc reports(text: string): seq[NimReport] =
     let file = dir.getTempFile("???????.nim")
     file.writeFile(text)
-    var conf = dump.initNimRunConf()
+    var conf = dump.initNimRunConf(dir)
     conf.excl nrfHints
 
     getCompileReportsFor(file, conf)[0].reports.skipKinds()
@@ -72,8 +72,7 @@ suite "Compiled":
     check:
       diag.kind == "error"
       diag.message == "expected identifier or ‘(’ before ‘?’ token"
-
-    l.reportError(rep, dump)
+      rep.error == neGccFail
 
   test "Invalid syntax":
     let rep = reports("proc test(): int\n  echo 12")[0]
@@ -94,21 +93,21 @@ impl():
 
 """)
 
-    l.reportError(rep[0], dump)
+    check rep[0].error == neOverloadFail
 
 suite "Runner":
   let
     dir = getTestTempDir()
     l = getTestLogger()
-    dump = getCwdNimDump()
+    dump = currentSourcePath().getCwdNimDump()
 
   mkDir dir
 
   proc hook(event: NimRunnerEvent) =
-    echov event.formatEvent()
+    show event.formatEvent()
 
   proc runReports(text: string): NimRunResult =
-    var conf = dump.initNimRunConf()
+    var conf = dump.initNimRunConf(dir)
     conf.reportEvent = hook
     conf.randomPattern = "test"
     conf.excl nrfHints
@@ -134,3 +133,11 @@ suite "Test suite":
 """
 
     show formatRun(@[report], dump)
+
+  test "Failed test compilation":
+    let report = runReports():
+      """
+;asdflkkffjasdf
+"""
+
+    check report.kind == nrrkFailedCompilation
