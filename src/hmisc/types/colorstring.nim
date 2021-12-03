@@ -402,6 +402,9 @@ const defaultPrintStyling* = initPrintStyling()
 func default*(rune: typedesc[ColoredRune]): ColoredRune =
   ColoredRune(styling: defaultPrintStyling)
 
+func default*(styling: typedesc[PrintStyling]): PrintStyling =
+  PrintStyling(use8Bit: false, fg: fgDefault, bg: bgDefault)
+
 func initStyleBg*(term: TermColor8Bit): PrintStyling {.inline.} =
   PrintStyling(use8Bit: true, bg8: term)
 
@@ -721,8 +724,20 @@ wrapSeqContainer(
 func isNewline*(rune: ColoredRune): bool = rune.rune == Rune(int('\n'))
 func toLower*(text: sink ColoredText): ColoredText =
   result = text
-  for rune in mitems(text.runes):
+  for rune in mitems(result.runes):
     rune.rune = toLower(rune.rune)
+
+func toUpper*(text: sink ColoredText): ColoredText =
+  result = text
+  for rune in mitems(result.runes):
+    rune.rune = toUpper(rune.rune)
+
+func toDashed*(text: sink ColoredText): ColoredText =
+  result = text
+  for rune in mitems(result.runes):
+    if rune.rune in [uc" ", uc"_"]:
+      rune.rune = uc"-"
+
 
 func alignLeft*(
     text: sink ColoredText, length: int, padding: ColoredRune = clr(' ')
