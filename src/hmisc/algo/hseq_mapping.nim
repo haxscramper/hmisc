@@ -1,5 +1,4 @@
-import sequtils, strutils, macros
-import algorithm
+import std/[sequtils, macros, algorithm]
 export algorithm
 
 proc nthType1*[T1, T2](a: (T1, T2)): T1 =

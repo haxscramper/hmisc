@@ -11,7 +11,6 @@ import std/[
   typetraits,
   macros,
   tables,
-  with,
   strutils,
   streams
 ]

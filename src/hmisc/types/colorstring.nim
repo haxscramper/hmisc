@@ -5,11 +5,10 @@ import std/[
 ]
 
 import
-  ../macros/[traceif, wrapfields]
+  ../macros/[wrapfields]
 
 import
-  ../core/[all, colored],
-  ../algo/[htemplates]
+  ../core/[all, colored]
 
 export toLink
 

@@ -1,4 +1,4 @@
-import sugar, sequtils, macros
+import std/[sequtils, macros]
 
 # TODO avoid unnecessary copying with these templates by checking whether
 # `let value = expr` can be optimized to `it[]` hack.

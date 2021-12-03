@@ -14,8 +14,10 @@ import std/[
 
 import
   ../core/[all, code_errors],
-  ../algo/[hmath, halgorithm, hseq_mapping, htemplates,
-           hstring_algo, clformat],
+  ../algo/[
+    halgorithm, hseq_mapping, htemplates,
+    hstring_algo, clformat
+  ],
   ../types/[colorstring, hmap]
 
 export StringAlignDirection

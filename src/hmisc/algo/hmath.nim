@@ -1,6 +1,6 @@
 ## Small helper math utilities
 
-import math, sequtils
+import std/[math]
 
 func sumjoin*(a: openarray[int], sep: int): int =
   a.sum() + (if a.len > 0: ((a.len - 1) * sep) else: 0)

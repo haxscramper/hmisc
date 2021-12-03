@@ -1,7 +1,7 @@
 import
   std/[
     strutils, tables, enumerate, strformat,
-    sequtils, unicode, parseutils, math
+    sequtils, unicode, math
   ]
 
 import

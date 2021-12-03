@@ -1,9 +1,5 @@
 import ./hunittest
 import ../hasts/[json_ast, json_serde, json_serde_extra]
-import ./jsony_converters
-
-import
-  std/algorithm
 
 type
   JsonContext* = ref object of TestContext

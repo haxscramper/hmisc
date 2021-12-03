@@ -124,13 +124,13 @@ suite "Runner":
 
   test "Test run reports":
     let report = runReports():
-      """
-suite "Test suite":
-  test "First test":
-    check:
-      12 == 22
-      12 == 12
-"""
+      lit3"""
+        suite "Test suite":
+          test "First test":
+            check:
+              12 == 22
+              12 == 12
+        """
 
     show formatRun(@[report], dump)
 

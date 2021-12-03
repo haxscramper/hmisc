@@ -1,9 +1,9 @@
 import std/[ json, options, tables, strutils, macros,
-             sequtils, enumerate, unittest ]
+             sequtils ]
 
 export json except items
 
-import ../macros/[cl_logic, introspection]
+import ../macros/[introspection]
 
 ##[
 
@@ -77,4 +77,3 @@ func `%`*(c: char): JsonNode = %($c)
 template unref(val: untyped): untyped =
   when val is ref: val[]
   else: val
-

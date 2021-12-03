@@ -1,4 +1,4 @@
-import std/[options, strutils, strformat, macros, os]
+import std/[options, strutils, macros, os]
 
 ## Most important templates and additional overloads that I use in
 ## absoltely all parts of the code.

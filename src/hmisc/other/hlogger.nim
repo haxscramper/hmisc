@@ -8,8 +8,8 @@ import
 
 import
   std/[
-    macros, strtabs, strutils, enumerate, strformat,
-    options, sequtils, tables, parseutils
+    macros, strtabs, strutils, strformat,
+    options, sequtils, tables
   ]
 
 # - TODO :: `traceIf` implementation for logger with dumps for all conditional

@@ -4,7 +4,7 @@ import std/[
 ]
 
 import
-  ../core/[exceptions, debug, gold],
+  ../core/[exceptions, gold],
   ./hseq_distance
 
 

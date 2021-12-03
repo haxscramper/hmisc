@@ -1,6 +1,6 @@
 import
   hmisc/preludes/cli_app,
-  hmisc/other/[hjson, hlogger, hunittest, jsony_converters],
+  hmisc/other/[hjson, hlogger, hunittest],
   hmisc/algo/[hlex_base, lexcast, clformat_interpolate, hseq_distance],
   hmisc/hasts/[json_serde, json_serde_extra]
 
@@ -102,6 +102,8 @@ type
     nfDeclaredLoc                = "DeclaredLoc"
 
   NimWarning* = enum
+    nwNone = "none"
+
     nwCannotOpenFile        = "CannotOpenFile"
     nwOctalEscape           = "OctalEscape"
     nwXIsNeverRead          = "XIsNeverRead"
@@ -1283,10 +1285,13 @@ proc invokeCompiled*(
   ): NimRunResult =
 
   result = NimRunResult(run: run, compileRes: compile)
-  if not compile.isOk(@[-1, 0]):
+  if conf.parseCompilation:
+    result.compileReports = compile.getCompileReports(run)
+
+
+  if not compile.isOk(@[-1, 0]) or
+     anyIt(result.compileReports, it of nrError):
     result.kind = nrrkFailedCompilation
-    if conf.parseCompilation:
-      result.compileReports = compile.getCompileReports(run)
 
   else:
     conf.reportEvent(NimRunnerEvent(
@@ -1377,6 +1382,18 @@ when false:
       result.get().run = run
       result.get().compileRes = runRes
 
+proc formatPart*(part: NimReportPart): ColoredText =
+  coloredResult()
+
+  add hshow(part.file)
+  add ":"
+  add hshow(part.line)
+  add ":"
+  add hshow(part.column)
+  add " "
+  add part.text
+
+  endResult()
 
 proc formatReport*(
     report: NimReport,
@@ -1400,10 +1417,15 @@ proc formatReport*(
         add "\n"
 
     of nrHint:
-      add "Hint ..."
+      add "Hint ...\n"
 
     of nrWarning:
-      add "Warning ..."
+      add "Warning " + fgYellow
+      add "\n"
+
+      for part in report.parts:
+        add formatPart(part)
+        add "\n"
 
     of nrError:
       case report.error:
@@ -1623,11 +1645,12 @@ proc formatRun*(runs: seq[NimRunResult], dump: NimDump): ColoredText =
     case run.kind:
       of nrrkFailedCompilation:
         add ("COMP-FAIL" |<> align) + fgYellow
+        add "\n"
         var state: NimReportState
-        pprint run.compileReports
         for report in run.compileReports:
           state.register(report)
-          add formatReport(report, dump, state)
+          if not (report of nrHint):
+            add formatReport(report, dump, state)
 
       of nrrkFailedExecution:
         add ("EXEC-FAIL" |<> align) + fgRed

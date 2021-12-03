@@ -1,14 +1,13 @@
 import std/[
   macros, tables, intsets, hashes, sequtils,
-  sets, enumerate, algorithm, strutils
+  sets, algorithm, strutils
 ]
 
 import
   ../core/all,
   ../types/[colorstring, rev_set_table],
   ../other/[oswrap],
-  ../algo/hstring_algo,
-  ../macros/nim_ast_aux
+  ../algo/hstring_algo
 
 type
   CovProcId = distinct int

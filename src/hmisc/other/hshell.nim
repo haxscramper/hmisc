@@ -22,7 +22,6 @@ import std/[strutils, strformat, sequtils, options,
 import
   ../core/[all, code_errors],
   ../algo/hlex_base,
-  ../algo/htemplates,
   ../types/colorstring
 
 from std/os import quoteShell

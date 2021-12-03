@@ -19,13 +19,15 @@
 
 # {.experimental: "caseStmtMacros".}
 
-import std/[strutils, macros, random, hashes, json, math,
-            strformat, sequtils, options, streams]
+import std/[
+  strutils, macros, random, hashes, json,
+  strformat, sequtils, options, streams
+]
 
 import ../algo/[hstring_algo, hseq_distance, halgorithm, clformat]
 import ../macros/hmacro_utils
 import ../types/colorstring
-import ../core/[all, code_errors]
+import ../core/[all]
 
 from os import nil
 
@@ -46,7 +48,7 @@ export os.quoteShell, os.joinPath
 const cbackend* = not (defined(nimscript) or defined(js))
 
 when cbackend:
-  import times, pathnorm, posix, parseopt
+  import times, pathnorm, posix
 
 
 ## Os wrapper with more typesafe operations for envrionment variables,
@@ -2679,7 +2681,7 @@ proc parseJson*(file: AnyFile): JsonNode =
 
 proc newFileStream*(
     filename: AbsFile | RelFile;
-    mode: FileMode = fmRead; 
+    mode: FileMode = fmRead;
     bufSize: int = -1
   ): owned FileStream =
 

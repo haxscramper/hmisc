@@ -1,7 +1,6 @@
-import std/macros, pkg/benchy
+import std/macros
 
 import ../wrappers/wraphelp
-import ../core/all
 
 type
   ProcBox* = object

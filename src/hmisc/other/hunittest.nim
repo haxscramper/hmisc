@@ -488,7 +488,7 @@ proc updateState*(context: TestContext, report: TestReport) =
 
 
 
-method report(context: TestContext, report: TestReport) =
+method report(context: TestContext, report: TestReport) {.base.} =
   let (file, line, column) = (
     report.location.file,
     report.location.line,

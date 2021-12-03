@@ -1,5 +1,5 @@
 import std/[unicode]
-import ./json_serde, ./json_ast
+import ./json_serde
 import hmisc/other/oswrap
 
 

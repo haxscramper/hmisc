@@ -1,6 +1,6 @@
 import std/[
   math, strutils, sequtils, random, macros, options, strformat,
-  parseutils, algorithm, sugar, wordwrap, tables
+  parseutils, algorithm, sugar, tables
 ]
 
 

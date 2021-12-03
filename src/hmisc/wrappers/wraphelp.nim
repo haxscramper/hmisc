@@ -1,9 +1,7 @@
 import
-  std/[macros, sequtils, strutils, parseutils]
+  std/[macros]
 
-import ../macros/argpass
-
-import ../core/[all, code_errors]
+import ../core/[all]
 
 macro closureToCdeclImpl(c: typed): untyped =
   discard
