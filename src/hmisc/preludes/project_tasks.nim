@@ -4,7 +4,7 @@ import
   hmisc/other/[oswrap, hshell, hargparse, hlogger],
   hmisc/algo/[hseq_distance],
   hmisc/types/[colorstring],
-  hmisc/hasts/json_serde
+  hmisc/hasts/[json_serde, json_serde_extra]
 
 
 import std/[os, strutils, strformat, sequtils, exitprocs]
@@ -38,6 +38,10 @@ type
     backend*: string
 
 startHax()
+
+jsonSerdeFor(ShellVar, loadJsonDistinct, writeJsonDistinct)
+jsonSerdeFor(ShellExpr, loadJsonDistinct, writeJsonDistinct)
+jsonSerdeFor(ShellGlob, loadJsonDistinct, writeJsonDistinct)
 
 var app = newCliApp(
   "project_tasks",
@@ -93,6 +97,9 @@ proc check() =
   sh ["nimble", "docgen"]
 
 
+proc hook(event: NimRunnerEvent) =
+  echo formatEvent(event)
+
 case app.getCmdName():
   of "test":
     let
@@ -101,11 +108,28 @@ case app.getCmdName():
       parseRun = cmd.getOpt("parse-errors") as bool
 
     var conf = getCwdNimDump().initNimRunConf()
+    conf.reportEvent = hook
 
-    let runs = runTestDir(dir, conf)
+    const cache = on
 
-    for run in runs:
-      echo formatRun(run, conf.dump)
+
+    let runs =
+      if cache:
+        let tmp = getAppTempDir()
+        mkDir tmp
+        let cache = tmp.getTempFile("cache.json")
+        if exists(cache):
+          fromJson(cache, seq[NimRunResult])
+
+        else:
+          let runs = runTestDir(dir, conf)
+          toJson(runs, cache)
+          runs
+
+      else:
+        runTestDir(dir, conf)
+
+    echo formatRun(runs, conf.dump)
 
     if hasErrors(runs):
       setProgramResult(1)

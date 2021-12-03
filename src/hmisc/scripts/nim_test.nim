@@ -1,7 +1,9 @@
-import ../preludes/cli_app
-import ../other/[hjson, hlogger, hunittest, jsony_converters]
-import ../algo/[hlex_base, lexcast]
-import ../hasts/[json_serde, json_serde_extra]
+import
+  hmisc/preludes/cli_app,
+  hmisc/other/[hjson, hlogger, hunittest, jsony_converters],
+  hmisc/algo/[hlex_base, lexcast, clformat_interpolate],
+  hmisc/hasts/[json_serde, json_serde_extra]
+
 import std/[sequtils, streams, parsecfg, sets, algorithm]
 
 export hlogger, colorstring
@@ -247,6 +249,8 @@ type
     ## part of a file name - full one might be constructed based on the
     ## multiple parameters.
 
+    reportEvent*: proc(event: NimRunnerEvent)
+
 
   NimReportKind* = enum
     ## Type of the single nim compile entry report
@@ -318,6 +322,28 @@ type
     line*: Option[int]
     column*: Option[int]
     message*: string
+
+  NimRunnerEventKind* = enum
+    nrekNone
+
+    nrekCompiledFile
+    nrekRunningFile
+    nrekFinishedExecution
+    nrekJoined
+
+  NimRunnerEvent* = object
+    case kind*: NimRunnerEventKind
+      of nrekCompiledFile,
+         nrekRunningFile,
+         nrekFinishedExecution:
+        file*: AbsFile
+
+      of nrekJoined:
+        joined*: seq[AbsFile]
+
+      else:
+        discard
+
 
   NimReport* = object
     parts*: seq[NimReportPart]
@@ -567,7 +593,8 @@ func initNimRunConf*(dump: NimDump): NimRunConf =
     parallelCompile: 4,
     randomPattern: "????_????_????",
     parseCompilation: true,
-    parseExecution: true
+    parseExecution: true,
+    reportEvent: proc(event: NimRunnerEvent) = discard
   )
 
 func incl*(conf: var NimRunConf, flag: NimFlag) =
@@ -1255,6 +1282,10 @@ iterator compileRuns*(
     cmds,
     maxPool = conf.parallelCompile
   ):
+    conf.reportEvent(NimRunnerEvent(
+      kind: nrekCompiledFile,
+      file: run.file))
+
     yield (run, res)
 
 proc makeRunCmd*(run: NimRun): ShellCmd =
@@ -1299,9 +1330,16 @@ proc invokeCompiled*(
       result.compileReports = compile.getCompileReports(run)
 
   else:
-    let run = makeRunCmd(run)
+    conf.reportEvent(NimRunnerEvent(
+      kind: nrekRunningFile, file: run.file))
+
+    let cmd = makeRunCmd(run)
     if conf.parseExecution:
-      let execResult = shellResult(run)
+      let execResult = shellResult(cmd)
+
+      conf.reportEvent(NimRunnerEvent(
+        kind: nrekFinishedExecution, file: run.file))
+
       result.kind =
         if execResult.isOk():
           nrrkSuccess
@@ -1312,11 +1350,14 @@ proc invokeCompiled*(
 
     else:
       try:
-        execShell(run)
+        execShell(cmd)
         result.kind = nrrkSuccess
 
       except ShellError:
         result.kind = nrrkFailedExecution
+
+      conf.reportEvent(NimRunnerEvent(
+        kind: nrekFinishedExecution, file: run.file))
 
   if hasFail(result.runReports):
     result.kind = nrrkFailedTests
@@ -1424,18 +1465,61 @@ proc formatReport*(
 
   endResult()
 
+proc formatEvent*(event: NimRunnerEvent): ColoredText =
+  coloredResult()
+
+  let ind = 12
+
+  case event.kind:
+    of nrekNone:
+      raise newUnexpectedKindError(event)
+
+    of nrekCompiledFile:
+      add "[compiled] " |>> ind
+      add $event.file
+
+    of nrekRunningFile:
+      add "[running] " |>> ind
+      add $event.file
+
+    of nrekFinishedExecution:
+      add "[finished] " |>> ind
+      add $event.file
+
+    of nrekJoined:
+      add "[joined]" |>> ind
+      add "\n"
+      for file in event.joined:
+        add "    - "
+        add $file
+        add "\n"
+
+
+
+
+  endResult()
+
 proc formatReport*(rep: TestReport): ColoredText =
   coloredResult()
 
-  add $rep.kind
-  add " "
-  add $rep.location
+  case rep.kind:
+    of trkCheckOk:
+      add "[ CHECK-OK ] " + fgGreen
+
+    of trkCheckFail:
+      add formatCheckFail(rep)
+
+    else:
+      add $rep.kind
+      add " "
+      add $rep.location
 
   endResult()
 
 type
   NimRunStat* = object
     events*: array[TestReportKind, int]
+    store*: array[TestReportKind, seq[TestReport]]
 
 func `+`*(s1: sink NimRunStat, s2: NimRunStat): NimRunStat =
   result = s1
@@ -1448,57 +1532,124 @@ func `[]`*(stat: NimRunStat, event: TestReportKind): int =
 func statReports*(stat: var NimRunStat, reports: seq[TestReport]) =
   for rep in items(reports):
     inc stat.events[rep.kind]
+    stat.store[rep.kind].add rep
+
+proc formatReport*(stat: seq[TestReport]): ColoredText =
+  coloredResult()
+  if len(stat) == 0:
+    add "none"
+
+  else:
+    for report in items(stat):
+      add formatReport(report)
+      add "\n"
+
+  endResult()
+
+proc formatInlineStat*(stat: NimRunStat, fg: ForegroundColor): ColoredText =
+  coloredResult()
+
+  add "test " + fg
+  add $stat[trkTestOk] + fgGreen
+  add "/"
+  add $stat[trkTestSkip] + fgYellow
+  add "/"
+  add $stat[trkTestFail] + fgRed
+  add "/"
+  add $stat[trkTestStart] + fgCyan
+  result = result.alignLeft(15)
+
+  add "suite " + fg
+  add $stat[trkSuiteFail] + fgRed
+  add "/"
+  add $stat[trkSuiteEnd] + fgGreen
+  add "/"
+  add $stat[trkSuiteStart] + fgCyan
+  result = result.alignLeft(30)
+
+  add "check " + fg
+  add $stat[trkCheckFail] + fgRed
+  add "/"
+  add $stat[trkCheckOk] + fgGreen
+  add "/"
+  add $(stat[trkCheckOk] + stat[trkCheckFail]) + fgCyan
+
+  endResult()
 
 proc formatStat*(stat: NimRunStat): ColoredText =
   clfmt("""
 Tests
-  executed: {$stat[trkTestStart] + fgCyan}
-  passed  : {$stat[trkTestOk] + fgGreen}
-  skipped : {$stat[trkTestSkip] + fgYellow}
-  failed  : {$stat[trkTestFail] + fgRed}
-  -- {"12\n2\n3\n45"}
+  executed: {stat[trkTestStart]:,fg-cyan}
+  passed  : {stat[trkTestOk]:,fg-green}
+  skipped : {stat[trkTestSkip]:,fg-yellow}
+  - {formatReport(stat.store[trkTestskip]):,indent}
+  failed  : {stat[trkTestFail]:,fg-red}
+  - {formatReport(stat.store[trkTestFail]):,indent}
 
 Suits
-  executed: {$stat[trkSuiteStart] + fgCyan}
-  passed  : {$stat[trkSuiteEnd] + fgGreen}
-  failed  : {$stat[trkSuiteFail] + fgRed}
+  executed: {stat[trkSuiteStart]:,fg-cyan}
+  passed  : {stat[trkSuiteEnd]:,fg-green}
+  failed  : {stat[trkSuiteFail]:,fg-red}
 
 Checks
-  executed: {$(stat[trkCheckOk] + stat[trkCheckFail]) + fgCyan}
-  passed  : {$stat[trkCheckOk] + fgGreen}
-  faile   : {$stat[trkCheckFail] + fgRed}
+  executed: {(stat[trkCheckOk] + stat[trkCheckFail]):,fg-cyan}
+  passed  : {stat[trkCheckOk]:,fg-green}
+  failed  : {stat[trkCheckFail]:,fg-red}
+  - {formatReport(stat.store[trkCheckFail]):,indent}
 
-""", true)
+""")
 
-proc formatRun*(run: NimRunResult, dump: NimDump): ColoredText =
+proc formatRun*(runs: seq[NimRunResult], dump: NimDump): ColoredText =
   coloredResult()
 
   var total: NimRunStat
 
-  case run.kind:
-    of nrrkFailedCompilation:
-      add "Compilation failed"
-      var state: NimReportState
-      pprint run.compileReports
-      for report in run.compileReports:
-        state.register(report)
-        add formatReport(report, dump, state)
+  let align = (18, '[', ']')
+  let nameW = maxIt(runs, it.run.file.name().len()) + 2
 
-    of nrrkFailedExecution, nrrkFailedTests:
-      add "Test execution failed"
-      for report in run.runReports:
+  for run in runs:
+    var tmp: NimRunStat
+    tmp.statReports(run.runReports)
+    case run.kind:
+      of nrrkFailedCompilation:
+        add ("COMP-FAIL" |<> align) + fgYellow
+        var state: NimReportState
+        pprint run.compileReports
+        for report in run.compileReports:
+          state.register(report)
+          add formatReport(report, dump, state)
+
+      of nrrkFailedExecution:
+        add ("EXEC-FAIL" |<> align) + fgRed
+        add " "
+        add (run.run.file.name() |<< nameW) + fgRed
+        add " "
+        add formatInlineStat(tmp, fgRed)
         add "\n"
-        add formatReport(report)
 
-      total.statReports(run.runReports)
+      of nrrkFailedTests:
+        add ("TEST-FAIL" |<> align) + fgRed
+        add " "
+        add (run.run.file.name() |<< nameW) + fgRed
+        add " "
+        add formatInlineStat(tmp, fgRed)
+        add "\n"
 
-    of nrrkSuccess:
-      add "Test execution succeded"
 
-    of nrrkNone:
-      raise newUnexpectedKindError(run.kind)
+      of nrrkSuccess:
+        add ("OK-SUCCESS" |<> align) + fgGreen
+        add " "
+        add (run.run.file.name() |<< nameW)
+        add " "
+        add formatInlineStat(tmp, fgDefault)
+        add "\n"
 
-  add formatStat(total) 
+      of nrrkNone:
+        raise newUnexpectedKindError(run.kind)
+
+    total = total + tmp
+
+  add formatStat(total)
 
   endResult()
 

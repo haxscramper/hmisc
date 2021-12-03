@@ -41,7 +41,7 @@ type
     showCoverage: seq[TestCoverageWant]
 
   TestLocation* = object
-    line*: int 
+    line*: int
     column*: int
     file*: string
 
@@ -318,6 +318,127 @@ proc showCoverage*(
 func toShortString(loc: TestLocation): string =
   &"{AbsFile(loc.file).name()}:{loc.line}"
 
+proc formatCheckFail*(report: TestReport): ColoredText =
+  coloredResult()
+
+  let (dir, filename, expr) = splitFile(AbsFile report.location.file)
+
+  add toYellow("[CHECK FAIL]")
+  add " in "
+  add toGreen(&"{filename}:{report.location.line}")
+
+  case report.failKind:
+    of tfkStructDiff:
+      add " - structural comparison mismatch"
+      add "\n\n"
+      add report.structDiff.pstring().indent(3)
+      add "\n\n"
+
+    of tfkMatchDiff:
+      add " - pattern matchig fail"
+      add "\n\n"
+      for (path, expected, got) in report.paths:
+        add "  expected "
+        add toGreen(expected.formatStringified())
+        add " at '"
+        add path
+        add "', but got "
+        add toRed(got.formatStringified())
+
+      add "\n"
+
+    of tfkStrDiff:
+      let
+        s1 = report.strs[0].value.str
+        s2 = report.strs[1].value.str
+        text1 = s1.split("\n")
+        text2 = s2.split("\n")
+
+      let formatted = myersDiff(text1, text2).
+        shiftDiffed(text1, text2).
+        formatDiffed(text1, text2)
+
+      add " - string mismatch\n"
+      add toGreen(report.strs[0].expr)
+      add " != "
+      add toGreen(report.strs[1].expr)
+      add "\n\n"
+
+      add formatted
+      add "\n"
+
+      if s1.len < s2.len:
+        add " new text added"
+        for idx, ch in s1:
+          if s2[idx] != ch:
+            add "mismatch at "
+            add $idx
+            add ". old was: "
+            add $ch
+            add ", new is "
+            add $s2[idx]
+            add "\n"
+
+        add "added\n"
+        add "'"
+        add hshow(s2[s1.len .. ^1])
+        add "'"
+
+      if s1.len > s2.len:
+        add "text removed"
+        add "\n"
+        for idx, ch in s2:
+          if s1[idx] != ch:
+            add "mismatch at "
+            add $idx
+            add ". new is: "
+            add $ch
+            add ", old was "
+            add $s2[idx]
+            add "\n"
+
+        add "removed\n"
+        add "'"
+        add hshow(s1[s2.len .. ^1])
+        add "'"
+        add "\n"
+
+    else:
+      if report.failKind == tfkOpCheck:
+        let
+          s1 = report.strs[0][1].str.formatStringified()
+          s2 = report.strs[1][1].str.formatStringified()
+
+        add " - "
+        add toGreen(report.strs[0][0])
+        add " was \n\n"
+        add "  "
+        add s1.indentBody(2)
+        add "\n\n"
+        add "but expected\n\n"
+        add "  "
+        add s2.indentBody(2)
+        add ""
+        add ""
+
+      else:
+        add " "
+        add $report.failKind
+        add "\n"
+        let exprWidth  = report.strs.maxIt(it.expr.len)
+        for (expr, value) in report.strs:
+          add "  "
+          add toGreen(expr |<< exprWidth)
+          add " was '"
+          add $value
+          add "'\n"
+
+        add "\n"
+
+  endResult()
+
+
+
 method report(context: TestContext, report: TestReport) =
   let (file, line, column) = (
     report.location.file,
@@ -512,88 +633,7 @@ method report(context: TestContext, report: TestReport) =
 
     of trkCheckFail:
       inc context.failCount
-      var msg: ColoredText
-      msg.add pad
-      msg.add toYellow("[CHECK FAIL]")
-      msg.add " in "
-      msg.add toGreen(&"{filename}:{line}")
-
-      case report.failKind:
-        of tfkStructDiff:
-          msg.add " - structural comparison mismatch"
-          echo msg, "\n"
-          echo report.structDiff.pstring().indent(width + 3), "\n"
-
-        of tfkMatchDiff:
-          msg.add " - pattern matchig fail"
-          echo msg, "\n"
-          for (path, expected, got) in report.paths:
-            echo pad, "  expected ",
-              toGreen(expected.formatStringified()), " at '", path,
-              "', but got ",
-              toRed(got.formatStringified())
-
-          echo ""
-
-        of tfkStrDiff:
-          echov "showing strdiff"
-          let
-            s1 = report.strs[0].value.str
-            s2 = report.strs[1].value.str
-            text1 = s1.split("\n")
-            text2 = s2.split("\n")
-
-          let formatted = myersDiff(text1, text2).
-            shiftDiffed(text1, text2).
-            formatDiffed(text1, text2)
-
-          echo msg, " - string mismatch\n"
-          echo pad, toGreen(report.strs[0].expr), " != ",
-            toGreen(report.strs[1].expr), "\n"
-
-          echo formatted.indent(pad.len)
-          echo ""
-
-          if s1.len < s2.len:
-            echo pad, " new text added"
-            for idx, ch in s1:
-              if s2[idx] != ch:
-                echo pad, "mismatch at ", idx, ". old was: ", ch,
-                  ", new is ", s2[idx]
-
-            echo pad, "added"
-            echo pad, "'", hshow(s2[s1.len .. ^1]), "'"
-
-          if s1.len > s2.len:
-            echo pad, "text removed"
-            for idx, ch in s2:
-              if s1[idx] != ch:
-                echo pad, "mismatch at ", idx, ". new is: ", ch, ", old was ", s2[idx]
-
-            echo pad, "removed"
-            echo pad, "'", hshow(s1[s2.len .. ^1]), "'"
-
-
-        else:
-          if report.failKind == tfkOpCheck:
-            let
-              s1 = report.strs[0][1].str.formatStringified()
-              s2 = report.strs[1][1].str.formatStringified()
-
-            echo msg, " - ", toGreen(report.strs[0][0]), " was \n"
-            echo pad, "  ", s1.indentBody(pad.len + 2), "\n"
-            echo pad, "but expected\n"
-            echo pad, "  ", s2.indentBody(pad.len + 2), ""
-            echo ""
-
-          else:
-            echo msg, " ", report.failKind, "\n"
-            let exprWidth  = report.strs.maxIt(it.expr.len)
-            for (expr, value) in report.strs:
-              echo pad, "  ", toGreen(expr |<< exprWidth),
-                " was '", value, "'"
-
-            echo ""
+      echo formatCheckFail(report).indent(width)
 
   if report.kind in { trkTestEnd, trkSuiteEnd }:
     if context.failCount > 0 or context.hasFailed.len > 0:

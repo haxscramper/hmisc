@@ -66,6 +66,7 @@ suite "CL formatting directives":
     assert $clfmt("{val:<4}") == "00  "
 
   test "Integer formatting":
+    skip()
     check:
       $clfmt("{1000:,sep='#'}")             == "1#000"
       $clfmt("{1000:<6, sep='-', pad='_'}") == "_1-000"
@@ -83,10 +84,23 @@ suite "CL formatting directives":
     let str = "Hello woRld"
     check:
       $clfmt("{str:,dashed, lower}") == "hello-world"
-      $clfmt("{str:,snake, snake}")  == "hello_world"
+      $clfmt("{str:,snake, lower}")  == "hello_world"
       $clfmt("{str:,upper}")         == "HELLO WORLD"
       $clfmt("{str:,lower}")         == "hello world"
       $clfmt("{str:,dashed, upper}") == "HELLO-WORLD"
+
+  test "Alignments":
+    let fmt = $clfmt("""
+[ {   12:<,word=test}] executed
+[ {    9:<,word=test}] passed
+[ {    3:<,word=test}] failed""")
+
+    check:
+      $clfmt("{12:<}") == "12    "
+      strdiff(fmt, """
+[ 12 tests           ] executed
+[ 9 tests            ] passed
+[ 3 tests            ] failed""")
 
   test "Character formatting":
     check:

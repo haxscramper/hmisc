@@ -557,7 +557,7 @@ proc writeJsonObject*[T](
       writeJsonFields(writer, target, asArray, multiline)
 
 proc loadJsonFields*[T](reader; target: var T, asArray: bool = false) =
-  mixin jsonRenameField
+  mixin jsonRenameField, loadJson
   {.cast(uncheckedAssign).}:
     if asArray:
       block fieldRead:
@@ -584,6 +584,7 @@ proc loadJsonFields*[T](reader; target: var T, asArray: bool = false) =
           if not knownField and
              not isDiscriminantField(T, name) and
              tmpField == name:
+
             loadJson(reader, field)
             knownField = true
 
@@ -613,9 +614,11 @@ proc loadJsonObject*[T](
   when target is ref:
     expectAt(reader, {jsonObjectStart, jsonNull, jsonArrayStart}, T)
     wrapRefLoad(reader, target, isAcyclic):
-      loadJsonObject(reader, target[], asArray = asArray)
+      loadJsonObject(
+        reader, target[], asArray = asArray, isAcyclic = isAcyclic)
 
   else:
+    target = jsonDefaultValue(T)
     skip(reader, tern(asArray, {jsonArrayStart}, {jsonObjectStart}), T)
     loadJsonFields(reader, target, asArray = asArray)
     skip(reader, tern(asArray, {jsonArrayEnd}, {jsonObjectEnd}), T)
@@ -687,7 +690,7 @@ proc fromJson*[T](
   loadJson(reader, result)
 
 proc fromJson*[T](
-    stream: Stream,
+    stream: Stream | AbsFile | File,
     target: typedesc[T],
     options: set[JsonDeserializerOptions] = defaultJsonDeserializerOptions,
     traceNext: bool = false,
@@ -705,7 +708,7 @@ proc toJson*[T](obj: T): string =
   writeJson(writer, obj)
   return writer.readAll()
 
-proc toJson*[T](obj: T, stream: Stream) =
+proc toJson*[T](obj: T, stream: Stream | File | AbsFile) =
   var writer = newJsonSerializer(stream)
   writeJson(writer, obj)
 

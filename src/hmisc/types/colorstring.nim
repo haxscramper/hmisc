@@ -747,6 +747,21 @@ func alignLeft*(
   if result.len < length:
     result.runes.add padding.repeat(length - result.len)
 
+func alignCenter*(
+    text: sink ColoredText, length: int, padding: ColoredRune = clr(' ')
+  ): ColoredText =
+
+
+  if result.len < length:
+    let
+      diff = length - text.len
+      left = diff div 2
+      right = diff - left
+
+    result.runes.add padding.repeat(left)
+    result.add text.runes
+    result.runes.add padding.repeat(right)
+
 func alignRight*(
     text: ColoredText, length: int, padding: ColoredRune = clr(' ')
   ): ColoredText =

@@ -104,8 +104,12 @@ suite "Runner":
 
   mkDir dir
 
+  proc hook(event: NimRunnerEvent) =
+    echov event.formatEvent()
+
   proc runReports(text: string): NimRunResult =
     var conf = dump.initNimRunConf()
+    conf.reportEvent = hook
     conf.randomPattern = "test"
     conf.excl nrfHints
     conf.parseCompilation = true
@@ -129,4 +133,4 @@ suite "Test suite":
       12 == 12
 """
 
-    show report.formatRun(dump)
+    show formatRun(@[report], dump)

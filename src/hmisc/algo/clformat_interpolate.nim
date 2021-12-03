@@ -32,6 +32,9 @@ type
     sepRune*: Rune
     word*: Option[(string, string)]
     base*: StandardFormatSpecifier
+    placeholderLen*: int
+    exprLen*: int
+    formatLen*: int
 
   ClformatPart* = object
     case isExpr*: bool
@@ -113,6 +116,7 @@ func parseClformatSpec*(spec: string): ClformatSpec =
           of "blue": fgBlue
           of "green": fgGreen
           of "yellow": fgYellow
+          of "cyan": fgCyan
           else:
             raise newUnexpectedKindError(key[3 .. ^1])
 
@@ -125,6 +129,7 @@ func parseClformatSpec*(spec: string): ClformatSpec =
           of "blue": bgBlue
           of "green": bgGreen
           of "yellow": bgYellow
+          of "cyan": bgCyan
           else:
             raise newUnexpectedKindError(key[3 .. ^1])
 
@@ -292,17 +297,22 @@ proc strformatImpl(
 
   for part in splitClformatParts(str, openChar, closeChar, specDelimitChar):
     if part.isExpr:
-      var x: NimNode
+      var expr: NimNode
       try:
-        x = parseExpr(part.expr)
+        expr = parseExpr(part.expr)
       except ValueError as e:
         error("could not parse `$#` in `$#`.\n$#" % [part.expr, str, e.msg])
+
+      var spec = parseClformatSpec(part.format)
+      spec.formatLen = runeLen(part.format)
+      spec.exprLen = runeLEn(part.expr)
+      spec.placeholderLen = spec.formatLen + spec.exprLen + 3
 
       result.add newCall(
         bindSym("formatValue", brOpen),
         res,
-        x,
-        newLit(parseClformatSpec(part.format)))
+        expr,
+        newLit(spec))
 
     else:
       result.add newCall(bindSym"add", res, newLit(part.text))
@@ -326,7 +336,7 @@ proc formatValue*(
 
   elif clfSnake in spec.flags:
     for rune in mitems(value.runes):
-      if rune.rune in [uc"-", uc"_"]:
+      if rune.rune in [uc"-", uc"_", uc" "]:
         rune.rune = uc"_"
 
   if clfNamed in spec.flags:
@@ -353,12 +363,22 @@ proc formatValue*(
       rune.styling = styling
 
   if spec.base.align != '\x00':
+    let width =
+      if spec.base.minimumWidth == 0:
+        spec.placeholderLen
+
+      else:
+        spec.base.minimumWidth
+
     case spec.base.align:
       of '<':
-        value = alignLeft(value, spec.base.minimumWidth, clr(spec.base.fill))
+        value = alignLeft(value, width, clr(spec.base.fill))
+
+      of '^':
+        value = alignCenter(value, width, clr(spec.base.fill))
 
       of '>':
-        value = alignRight(value, spec.base.minimumWidth, clr(spec.base.fill))
+        value = alignRight(value, width, clr(spec.base.fill))
 
       else:
         raise newUnexpectedKindError(spec.base.align)

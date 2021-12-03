@@ -370,10 +370,19 @@ proc `|<<`*(str: string, align: (int, char)): string =
 proc `|>>`*(str: string, align: (int, char)): string =
   align(str, align[0], align[1])
 
-proc `|<>`*(str: string, align: (int, char, char)): string =
-  result.add align[2]
-  result.add center(str, align[0] - 2, align[1])
-  result.add align[2]
+proc `|<>`*(
+    str: string, align: tuple[width: int, wrapl, wrapr: char]): string =
+
+  result.add align.wrapl
+  result.add center(str, align.width - 2, ' ')
+  result.add align.wrapr
+
+proc `|<>`*(
+    str: string, align: tuple[width: int, pad, wrapl, wrapr: char]): string =
+
+  result.add align.wrapl
+  result.add center(str, align.width - 2, align.pad)
+  result.add align.wrapr
 
 
 
