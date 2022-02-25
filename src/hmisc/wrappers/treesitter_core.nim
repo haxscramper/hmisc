@@ -968,11 +968,9 @@ iterator pairs*[N: distinct](node: N, unnamed: bool = false): (int, N) =
 func `[]`*[N: distinct](s: string, node: N): string =
   s[node.slice()]
 
-func childByFieldName*[N: distinct](
-  self: N; fieldName: string; fieldNameLength: int
-): TSNode =
+func childByFieldName*[N: distinct](self: N; fieldName: string): TSNode =
   ts_node_child_by_field_name(
-    TSNode(self), fieldName.cstring, fieldNameLength.uint32)
+    TSNode(self), fieldName.cstring, fieldName.len.uint32)
 
 type
   HtsRuleKind* = enum

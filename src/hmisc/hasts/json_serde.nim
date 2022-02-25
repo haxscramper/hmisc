@@ -516,20 +516,16 @@ proc writeJsonFields[T](
 
   for name, field in fieldPairs(target):
     when isDiscriminantField(T, name):
-      if SerSkip notin getCustomPragmaValuesSet(
-        field, Serde, default(set[SerdeFlags])
-      ):
+      writer.sepComma(first, multiline)
 
-        writer.sepComma(first, multiline)
+      first = false
+      if not asArray: writeField(writer, name)
 
-        first = false
-        if not asArray: writeField(writer, name)
-
-        writeJson(writer, field)
+      writeJson(writer, field)
 
   for name, field in fieldPairs(target):
     when not isDiscriminantField(T, name):
-      if SerSkip notin getCustomPragmaValuesSet(
+      when SerSkip notin getCustomPragmaValuesSet(
         field, Serde, default(set[SerdeFlags])
       ):
         writer.sepComma(first, multiline)

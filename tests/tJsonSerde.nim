@@ -209,3 +209,10 @@ suite "Serialize hgraph":
     discard graph.addOrGetEdge({(0, 1) : "e1", (1, 2) : "e2"})
 
     show toJson(graph)
+
+type
+  Obj = object
+    data {.Serde(SerSkip).}: pointer
+
+suite "Skip fields that cannot be serialized":
+  let data = Obj().toJson()

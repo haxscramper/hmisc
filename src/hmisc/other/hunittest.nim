@@ -7,8 +7,10 @@ import
 
 export tables
 
+import hmatching
+
 import
-  ../macros/[nim_ast_aux, ast_spec, matching],
+  ../macros/[nim_ast_aux, ast_spec],
   ../algo/[hseq_distance, htemplates, halgorithm, clformat],
   ../other/[hpprint],
   ../core/[all, code_errors],

@@ -511,6 +511,11 @@ func `[]`*[N, K](
 
   if node.isGenerated:
     if name notin node.names:
+      if node.original.isSome():
+        let child = childByFieldName(node.original.get(), name)
+        if not isNil(child):
+          return toHtsNode[N, K](N(child), node.base)
+
       var msg = "No subnode named '" & name & "' for node kind '" &
         $node.kind & "'. Available names - "
 
@@ -538,11 +543,16 @@ func `[]`*[N, K](
     result, kind,
     "Child node at index " & $idx & " for node kind " & $node.kind)
 
+
 func `{}`*[N, K](node: HtsNode[N, K], idx: IndexTypes): HtsNode[N, K] =
   `[]`(node, idx, unnamed = true)
 
 func `{}`*[N, K](node: HtsNode[N, K], idx: SliceTypes): seq[HtsNode[N, K]] =
   `[]`(node, idx, unnamed = true)
+
+func `{}`*[N, K](node: HtsNode[N, K], idx: string): HtsNode[N, K] =
+  `[]`(node, idx)
+
 
 func `[]=`*[N, K](
     node: var HtsNode[N, K], idx: IndexTypes, other: HtsNode[N, K]) =

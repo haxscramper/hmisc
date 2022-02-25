@@ -2,6 +2,13 @@ type
   SliceTypes* = Slice[int] | Slice[BackwardsIndex] | HSlice[int, BackwardsIndex]
   IndexTypes* = int | BackwardsIndex
 
+proc normalizeIndex*(idx: IndexTypes, base: int): int =
+  result = when idx is int: idx else: base - idx.int
+
+  
+proc normalizeSlice*(slice: SliceTypes, base: int): Slice[int] =
+  result.a = when slice.a is int: slice.a else: base - slice.a.int
+  result.b = when slice.b is int: slice.b else: base - slice.b.int
 
 proc startFor*(slice: SliceTypes, base: int): int =
   when slice.a is int:
