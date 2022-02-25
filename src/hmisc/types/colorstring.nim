@@ -1080,6 +1080,7 @@ func add*(outStr: var string, newStr: string, styling: PrintStyling) =
   template push(expr: string): untyped = outStr.add expr
   if styleUnderscore in styling.style: push ansiEsc(4)
   if styleItalic in styling.style: push ansiEsc(3)
+  if styleBright in styling.style: push ansiEsc(1)
 
   var added = false
 

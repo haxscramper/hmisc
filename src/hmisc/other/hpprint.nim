@@ -16,8 +16,11 @@ import
     algo/hseq_distance,
     algo/halgorithm,
     algo/clformat,
-    algo/procbox
   ]
+
+import ../algo/procbox
+
+export colorstring
 
 type
   PPrintType* = object
@@ -778,10 +781,14 @@ proc objectToPprintTree*[
       if res.kind notin {ptkIgnored}:
         result.elements.add((name, res))
 
-  for (pattern, impl) in conf.extraFields:
-    if pattern.matches(path):
-      result.elements.add impl.callAs(
-        proc(e: T): (string, PPrintTree), entry)
+  when nimvm:
+    discard
+
+  else:
+    for (pattern, impl) in conf.extraFields:
+      if pattern.matches(path):
+        result.elements.add impl.callAs(
+          proc(e: T): (string, PPrintTree), entry)
 
 
 proc arrayEnumToPPrintTree[ArrKey, ArrValue](
@@ -1208,22 +1215,23 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
               valueBlock
           )
 
-      let open = condOr(
-        hasName,
-        T[@[
-          toColored(
-            tree.treeType.head & visitedAt, fgGreen + bgDefault, conf.colored),
-          toColored("(")]],
-        T["("]
-      )
+      proc makeOpen(): LytBlock =
+        condOr(
+          hasName,
+          T[@[
+            toColored(
+              tree.treeType.head & visitedAt, fgGreen + bgDefault, conf.colored),
+            toColored("(")]],
+          T["("]
+        )
 
       let forceStack = false
 
       if hasLine and not isAnnotation:
-        line = H[open.deepCopy(), line, T[")"]]
+        line = H[makeOpen(), line, T[")"]]
 
       if (hasStack or forceStack) and not isAnnotation:
-        stack = V[open, I[2, stack]]
+        stack = V[makeOpen(), I[2, stack]]
 
       if hasLine and (hasStack or forceStack):
         result = C[line, stack]
@@ -1481,8 +1489,21 @@ proc treeDiff*(t1, t2: PPrintTree): Option[PPrintTree] =
             ))
 
 
+        of ptkList:
+          if t1.elements.len != t2.elements.len:
+            hasDiff = true
+            t1 = newPPrintAnnotation(colored(
+              "len mismatch - \n",
+              "lhs: ", $t1.elements.len + fgGreen, "\n",
+              "rhs: ", $t2.elements.len + fgRed, "\n"
+            ))
+
+          var idx = 0
+          while idx < min(t1.elements.len, t2.elements.len):
+            aux(t1.elements[idx].value, t2.elements[idx].value)
+
         of ptkIgnored, ptkVisited, ptkNil, ptkAnnotation,
-           ptkTuple, ptkList, ptkMapping, ptkNamedTuple:
+           ptkTuple, ptkMapping, ptkNamedTuple:
           raise newImplementKindError(t1)
 
 
@@ -1493,6 +1514,14 @@ proc treeDiff*(t1, t2: PPrintTree): Option[PPrintTree] =
   aux(diff, t2)
   if hasDiff:
     return some diff
+
+proc ppdiff*[T](obj1, obj2: T) =
+  let tree1 = toPPrintTree(obj1)
+  let tree2 = toPPrintTree(obj2)
+
+  let diff = treeDiff(tree1, tree2)
+  if diff.isSome():
+    echo pstring(diff.get())
 
 proc objectTreeRepr*(
     tree: PPrintTree,

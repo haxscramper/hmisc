@@ -383,3 +383,20 @@ func asgnAux*[T](target: var T, source: sink T) =
 template setKind*[V](target, source: V) =
   {.cast(uncheckedAssign).}:
     asgnAux[V](target, source)
+
+template byaddr*(lhs, typ, ex) =
+  when typ is typeof(nil):
+    when compiles(addr(ex)):
+      let tmp = addr(ex)
+
+    else:
+      let tmp = unsafeAddr(ex)
+
+  else:
+    when compiles(addr(ex)):
+      let tmp: ptr typ = addr(ex)
+
+    else:
+      let tmp: ptr typ = unsafeaddr(ex)
+
+  template lhs: untyped = tmp[]

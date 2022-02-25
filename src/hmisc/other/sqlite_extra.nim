@@ -78,6 +78,23 @@ proc newTable*(
 
   return sql(r)
 
+proc newTableWithInsert*(
+    db: DbConn,
+    table: string,
+    columns: openArray[((string, int), string)],
+    extra: string = ""
+  ): string =
+
+  var cols: seq[(string, string)]
+  var insert: seq[(string, int)]
+  for (key, val) in columns:
+    cols.add((key[0], val))
+    insert.add(key)
+
+  db.exec sql(&"drop table if exists {table}")
+
+  db.exec newTable(table, cols, extra)
+  result = newInsert(table, insert)
 
 proc beginTransaction*(db: DbConn) = db.exec(sql"begin transaction")
 proc endTransaction*(db: DbConn) = db.exec(sql"end transaction")
@@ -97,3 +114,63 @@ proc doExec*(sq: DbConn, prep: SqlPrepared) =
   reset(prep)
 
 export db_sqlite
+
+
+template withPrepared(conn: DbConn, prepCode: SqlPrepared, body: untyped): untyped =
+  block:
+    var prep {.inject.} = prepCode
+    body
+    finalize(prep)
+
+template withPrepared(
+    conn: DbConn, prepCode: string,
+    prepName: untyped,
+    body: untyped
+  ): untyped =
+
+  block:
+    var prepName {.inject.} = conn.prepare(prepCode)
+    body
+    finalize(prepName)
+
+template withPrepared(conn: DbConn, prepCode: string, body: untyped): untyped =
+  withPrepared(conn, prepCode, prep, body)
+
+proc writeTable*[K, V](conn: DbConn, table: Table[K, V], tabname, keyname, valname: string) =
+  withPrepared(conn, conn.newTableWithInsert(tabname, {
+    (keyname, 1): sq(K),
+    (valname, 2): sq(V)
+  })):
+    for key, val in pairs(table):
+      prep.bindParam(1, key)
+      prep.bindParam(2, val)
+      conn.doExec(prep)
+
+proc readTable*[K, V, T](
+    conn: DbConn, table: var Table[K, V], tabname: string, rows: typedesc[T]
+  ) =
+
+  for (key, val) in conn.typedRows(tabname, T):
+    table[key] = val
+
+
+proc writeTable*[K, V](
+    conn: DbConn, table: Table[K, seq[V]],
+    tabname, keyname, valname: string
+  ) =
+
+  withPrepared(conn, conn.newTableWithInsert(tabname, {
+    (keyname, 1): sq(K),
+    (valname, 2): sq(V)
+  })):
+    for key, val in pairs(table):
+      for item in val:
+        prep.bindParam(1, key)
+        prep.bindParam(2, val)
+        conn.doExec(prep)
+
+proc readTable*[K, V, T](
+    conn: DbConn, table: var Table[K, seq[V]], tabname: string, rows: typedesc[T]
+  ) =
+  for (key, val) in conn.typedRows(tabname, T):
+    table.mgetOrPut(key).add val

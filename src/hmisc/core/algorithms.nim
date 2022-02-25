@@ -182,23 +182,6 @@ template findIt*(s: typed, op: untyped): int =
 
   result
 
-template byaddr1*(lhs, typ, ex) =
-  when typ is typeof(nil):
-    when compiles(addr(ex)):
-      let tmp = addr(ex)
-
-    else:
-      let tmp = unsafeAddr(ex)
-
-  else:
-    when compiles(addr(ex)):
-      let tmp: ptr typ = addr(ex)
-
-    else:
-      let tmp: ptr typ = unsafeaddr(ex)
-
-  template lhs: untyped = tmp[]
-
 func takesOnlyMutable*[T](v: var T) = discard
 template isMutable*(v: typed): untyped = compiles(takesOnlyMutable(v))
 

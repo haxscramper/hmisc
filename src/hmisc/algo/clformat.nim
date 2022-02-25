@@ -1749,7 +1749,7 @@ func joinc*(text: seq[ColoredText], sep: string): ColoredText =
 
     result.add item
 
-func getEditVisual*[T](
+proc getEditVisual*[T](
     src, target: seq[T],
     ops: seq[LevEdit],
     conv: proc(t: T): string,
@@ -1787,7 +1787,7 @@ func getEditVisual*[T](
         add targetBuf
         add "]"
 
-func stringEditMessage*(
+proc stringEditMessage*(
     source, target: string,
     detailed: bool = true,
     windowSize: int = 4,
@@ -1807,7 +1807,36 @@ func stringEditMessage*(
 
   return edit
 
-func stringMismatchMessage*(
+type
+  StringMismatchCandidate = object
+    distance: int
+    edits: seq[LevEdit[char]]
+    target: string
+
+proc stringMismatchCandidates*(
+    input: string,
+    expected: openarray[string]
+  ): seq[StringMismatchCandidate] =
+
+  var results: seq[tuple[
+    edits: tuple[distance: int, operations: seq[LevEdit[char]]],
+    target: string
+  ]]
+
+  for str in expected:
+    if str == input:
+      return @[]
+
+    else:
+      let (distance, edits) = levenshteinDistance(input.toSeq(), str.toSeq())
+      result.add StringMismatchCandidate(
+        distance: distance,
+        edits: edits,
+        target: str
+      )
+
+
+proc stringMismatchMessage*(
     input: string,
     expected: openarray[string],
     colored: bool = true,
@@ -1821,31 +1850,17 @@ func stringMismatchMessage*(
   if expected.len == 0:
     return clt("No matching alternatives")
 
-  var results: seq[tuple[
-    edits: tuple[distance: int, operations: seq[LevEdit[char]]],
-    target: string
-  ]]
 
-  for str in expected:
-    if str == input:
-      return
-
-    else:
-      results.add (
-        levenshteinDistance(input.toSeq(), str.toSeq()),
-        str
-      )
-
-  results = sortedByIt(results, it.edits.distance)
+  var results = stringMismatchCandidates(input, expected).
+    sortedByIt(it.distance)
 
   let best = results[0]
 
-  if best.edits.distance > int(input.len.float * 0.8):
+  if best.distance > int(input.len.float * 0.8):
     result = &"No close matches to {toRed(input, colored)}, possible " &
       namedItemListing(
         clt("alternative"),
-        results[0 .. min(results.high, 3)].mapIt(
-          it.target.toYellow().wrap("''")),
+        results[0 .. min(results.high, 3)].mapIt(it.target.toYellow()),
         clt("or")
       )
 
@@ -1853,11 +1868,11 @@ func stringMismatchMessage*(
     result = clt(&"Did you mean to use '{toYellow(best.target, colored)}'?")
 
     if fixSuggestion:
-      if best.edits.operations.len < min(3, input.len div 2):
+      if best.edits.len < min(3, input.len div 2):
         result &= " (" & getEditVisual(
           toSeq(input),
           toSeq(best.target),
-          best.edits.operations,
+          best.edits,
           dollar[char]
         ) & ")"
 

@@ -437,6 +437,16 @@ func len*[N, K](
 func has*[N, K](node: HtsNode[N, K], idx: int): bool =
   0 <= idx and idx < node.len()
 
+func has*[N, K](node: HtsNode[N, K], path: openarray[int]): bool =
+  var now = node
+  result = true
+  for item in path:
+    if now.has(item):
+      now = now[item]
+
+    else:
+      return false
+
 func has*[N, K](node: HtsNode[N, K], name: string): bool =
   if node.isGenerated:
     name in node.names
@@ -638,6 +648,11 @@ func toHtsTree*[N, K](
 func newHtsTree*[N, K](kind: K, val: string): HtsNode[N, K] =
   HtsNode[N, K](isGenerated: true, nodeKind: kind, tokenStr: val)
 
+proc inLines*[N](node: N, lrange: Slice[int]): bool =
+  let start = node.startPoint()
+  let finish = node.endPoint()
+  return (start.row.int in lrange) or (finish.row.int in lrange)
+
 proc treeRepr*[N, K](
     node: N,
     base: string = "",
@@ -684,128 +699,129 @@ proc treeRepr*[N, K](
       nodeIdx: int
     ) =
 
+    if node.isNil():
+      add "  ".repeat(level)
+      add "<nil>".toRed()
+      return
+
     when isHts:
       if node.isGenerated and
          node.original.isSome():
         assertRef node.original.get(), $node.kind
 
-    if node.isNil():
-      add "  ".repeat(level)
-      add "<nil>".toRed()
+
+    if pathIndexed:
+      for item in path:
+        add "["
+        add $item
+        add "]"
+
+      add " "
 
     else:
-      if pathIndexed:
-        for item in path:
+      add "  ".repeat(level)
+
+      if indexed:
+        if level > 0:
           add "["
-          add $item
-          add "]"
-
-        add " "
-
-      else:
-        add "  ".repeat(level)
-
-        if indexed:
-          if level > 0:
-            add "["
-            add $idx
-            add "] "
-
-          else:
-            add "   "
-
-        add ($node.kind())[langLen ..^ 1], tern(
-          node.isNamed(),
-          fgGreen + bgDefault,
-          fgYellow + bgDefault
-        )
-
-        add " "
-
-        if name.len > 0:
-          add "<"
-          add name, fgCyan + bgDefault
-          add "("
-          add $nodeIdx
-          add ")> "
-
-
-        let hasRange =
-          when isHts:
-            node.isGenerated and node.original.isSome()
-
-          else:
-            true
-
-        if hasRange:
-          let
-            startPoint = startPoint(node)
-            endPoint = endPoint(node)
-
-          add $startPoint.row, numStyle
-          add ":"
-          add $startPoint.column, numStyle
-
-          if endPoint.row == startPoint.row:
-            add ".."
-            add $endPoint.column, numStyle
-            add " "
-
-          else:
-            add "-"
-            add $endPoint.row, numStyle
-            add ":"
-            add $endPoint.column, numStyle
-
-
-        if node.len(unnamed) == 0:
-          let
-            text =
-              when isHts:
-                node.strVal().split("\n")
-
-              else:
-                base[node.slice()].split("\n")
-
-            style = baseColorMap[`kindMap`[node.kind]]
-
-          if text.len > 1:
-            for idx, line in text:
-              add "\n"
-              add getIndent(level + 1)
-              add line, style
-
-          else:
-            add $text[0], style
-
+          add $idx
+          add "] "
 
         else:
-          if level + 1 < `maxDepth`:
-            var namedIdx = 0
-            for idx, subn in pairs(node, unnamed = true):
-              if idx < opts.maxlen:
-                if subn.isNamed() or unnamed:
-                  add "\n"
-                  subn.aux(
-                    level + 1, node.childName(idx),
-                    idx = namedIdx, path & namedIdx, nodeIdx = idx)
+          add "   "
 
-                  inc namedIdx
+      add ($node.kind())[langLen ..^ 1], tern(
+        node.isNamed(),
+        fgGreen + bgDefault,
+        fgYellow + bgDefault
+      )
 
-              else:
+      add " "
+
+      if name.len > 0:
+        add "<"
+        add name, fgCyan + bgDefault
+        add "("
+        add $nodeIdx
+        add ")> "
+
+
+      let hasRange =
+        when isHts:
+          node.isGenerated and node.original.isSome()
+
+        else:
+          true
+
+      if hasRange:
+        let
+          startPoint = startPoint(node)
+          endPoint = endPoint(node)
+
+        add $startPoint.row, numStyle
+        add ":"
+        add $startPoint.column, numStyle
+
+        if endPoint.row == startPoint.row:
+          add ".."
+          add $endPoint.column, numStyle
+          add " "
+
+        else:
+          add "-"
+          add $endPoint.row, numStyle
+          add ":"
+          add $endPoint.column, numStyle
+
+
+      if node.len(unnamed) == 0:
+        let
+          text =
+            when isHts:
+              node.strVal().split("\n")
+
+            else:
+              base[node.slice()].split("\n")
+
+          style = baseColorMap[`kindMap`[node.kind]]
+
+        if text.len > 1:
+          for idx, line in text:
+            add "\n"
+            add getIndent(level + 1)
+            add line, style
+
+        else:
+          add $text[0], style
+
+
+      else:
+        if level + 1 < `maxDepth`:
+          var namedIdx = 0
+          for idx, subn in pairs(node, unnamed = true):
+            if idx < opts.maxlen:
+              if subn.isNamed() or unnamed:
                 add "\n"
-                add getIndent(level + 1)
-                add " + ("
-                add toPluralNoun(
-                  toColoredText("hidden node"),
-                  node.len(unnamed = true) - opts.maxLen)
-                add ")"
+                subn.aux(
+                  level + 1, node.childName(idx),
+                  idx = namedIdx, path & namedIdx, nodeIdx = idx)
 
-                break
+                inc namedIdx
 
-          else:
-            add " ... ("
-            add toPluralNoun(toColoredText("subnode"), node.len())
-            add ")"
+            else:
+              add "\n"
+              add getIndent(level + 1)
+              add " + ("
+              add toPluralNoun(
+                toColoredText("hidden node"),
+                node.len(unnamed = true) - opts.maxLen)
+              add ")"
+
+              break
+
+        else:
+          add " ... ("
+          add toPluralNoun(toColoredText("subnode"), node.len())
+          add ")"
 
   aux(node, 0, "", 0, @[], 0)
