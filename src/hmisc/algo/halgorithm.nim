@@ -152,9 +152,6 @@ func splitList*[T](s: openarray[T]): (T, seq[T]) =
   (s[0], s[1..^1])
 
 
-template last*[T](stack: var seq[T]): var T = stack[^1]
-template last*[T](stack: seq[T]): T = stack[^1]
-
 template last2*[T](stack: var seq[seq[T]]): var T = stack[^1][^1]
 template last2*[T](stack: seq[seq[T]]): T = stack[^1][^1]
 

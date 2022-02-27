@@ -7,7 +7,7 @@ packageName = "hmisc"
 installExt  = @["nim", "rst"]
 binDir      = "bin"
 
-requires "nim >= 1.4.8"
+requires "nim >= 1.6.0"
 requires "benchy >= 0.0.1"
 requires "jsony >= 1.0.4"
 requires "unicodedb >= 0.9.0"
