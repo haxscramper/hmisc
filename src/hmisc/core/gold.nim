@@ -14,6 +14,12 @@ template tern*(predicate: bool, tBranch: untyped, fBranch: untyped): untyped =
     block:
       if predicate: tBranch else: fBranch
 
+template ternIt*(expr, predicate, tBranch, fBranch: untyped): untyped =
+  {.line: instantiationInfo(fullPaths = true).}:
+    block:
+      let it {.inject.} = expr
+      if predicate: tBranch else: fBranch
+
 template inWhile*(expr, body: untyped): untyped =
   while expr:
     body
@@ -350,11 +356,20 @@ macro importx*(imports: untyped): untyped =
 
     result.add infix
 
-proc postInc*[T](value: var T): T =
+
+proc postDec*[T](value: var T): T {.discardable.} =
+  result = value
+  dec value
+
+proc preDec*[T](value: var T): T {.discardable.} =
+  dec value
+  value
+
+proc postInc*[T](value: var T): T {.discardable.} =
   result = value
   inc value
 
-proc preInc*[T](value: var T): T =
+proc preInc*[T](value: var T): T {.discardable.} =
   inc value
   value
 
@@ -378,6 +393,10 @@ func asgnAux*[T](target: var T, source: sink T) =
   ##   case assignment is done over a section of an object -
   ##   `asgnAux[Base](<derived>, <base>)` makes it possible to
   ##   "promote" a base object by copying it's fields to derived one.
+  ##
+  ## .. note:: When using for embedded supertype assignments, generic
+  ##      parameter **must** be supplied, otherwise object slicing
+  ##      won't kick in. So `asgnAux[Base](Derived, Base)`
   target = source
 
 template setKind*[V](target, source: V) =
