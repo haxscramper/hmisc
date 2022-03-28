@@ -2,8 +2,17 @@
 import
   ./blockfmt,
   std/[
-    typetraits, options, unicode, sets, segfaults,
-    json, strformat, tables, strutils, sequtils
+    typetraits,
+    options,
+    unicode,
+    sets,
+    segfaults,
+    json,
+    strformat,
+    tables,
+    strutils,
+    sequtils,
+    enumutils
   ],
   ".."/[
     core/all,
@@ -100,8 +109,9 @@ type
     colored*: bool
     sortBySize*: bool
     alignSmallFields*: bool
+    smallFieldMax*: int
     alignSmallGrids*: bool
-
+    elaborateEnumStrings*: bool
 
 const
   ptkObjectKinds* = {
@@ -791,6 +801,13 @@ proc objectToPprintTree*[
           proc(e: T): (string, PPrintTree), entry)
 
 
+proc pprintConst*[E: enum](e: E): string =
+  result = $e
+  if ' ' in result:
+    result = "'" & result & "'"
+
+proc pprintConst*[T: not enum](e: T): string = $e
+
 proc arrayEnumToPPrintTree[ArrKey, ArrValue](
     entry: array[ArrKey, ArrValue], conf: var PPrintConf, path: PPrintPath
   ): PPrintTree =
@@ -821,13 +838,13 @@ proc arrayEnumToPPrintTree[ArrKey, ArrValue](
         #   (range[0 .. 3], int)[0])
         # ```
 
-        let keyName = directEnumName(key)
+        let keyName = pprintConst(key) # directEnumName(key)
 
       else:
-        let keyName = directEnumName(key)
+        let keyName = pprintConst(key) # directEnumName(key)
 
     else:
-      let keyName = $key
+      let keyName = pprintConst(key)
 
     var res = toPPrintTree(
       val, conf, path & pathElem(ppkKey, keyName))
@@ -895,7 +912,10 @@ proc simpleConstToPPrintTree[T](
       let val = $distinctBase(entry)
 
     else:
-      when compiles($entry):
+      when compiles(pprintConst(entry)):
+        let val = pprintConst(entry)
+
+      elif compiles($entry):
         let val = $entry
 
       else:
@@ -1080,10 +1100,9 @@ proc toPprintTree*[T](
 
     elif entry is enum:
       proc toEnumString(x: enum): string {.magic: "EnumToStr", noSideEffect.}
-
-      var val: string = $entry
-
-      if toEnumString(entry) != val:
+      var val = pprintConst(entry)
+      # let sym = symbolName(entry)
+      if conf.elaborateEnumStrings:
         val.add " ("
         val.add toEnumString(entry)
         if entry == low(T): val.add ", low"
@@ -1103,6 +1122,7 @@ proc toPprintTree*[T](
     else:
       result = simpleConstToPPrintTree(entry, conf, path)
 
+  # assertRef(result)
   updateCounts(result, conf.sortBySize)
   result.treeType = newPPrintType(T)
   when entry is ref or entry is ptr:
@@ -1163,8 +1183,8 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
 
       var maxName = 0
       for idx, (name, value) in tree.elements:
-        if conf.alignSmallFields and value.size < 6:
-          maxName = max(maxName, name.len + (
+        if conf.alignSmallFields and value.size < conf.smallFieldMax:
+          maxName = max(maxName, name.len + 2 + (
             if value.treeType.isCommonType() or not conf.showTypes:
               0
 
@@ -1183,6 +1203,7 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
 
 
         var resName: ColoredLine
+        # resName.add $maxName
         if hasFields:
           resName.add toColored(name)
 
@@ -1330,6 +1351,7 @@ const defaultPPrintConf* = PPrintConf(
   formatOpts: defaultFormatOpts,
   maxStackHeightChoice: 5,
   minLineHeightChoice: 2,
+  smallFieldMax: 12,
   minLineSizeChoice: 6,
   colored: true,
   sortBySize: false,

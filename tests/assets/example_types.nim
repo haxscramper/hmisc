@@ -81,7 +81,13 @@ const singleEnum* = One
 const enumSet* = {Two, Three}
 
 type
+  EnLargeRange = enum
+    enSmall = 0x00_00_01
+    enLarge = 0xFF_FF_FF
+
   ImTorture* = ref object
+    enLargeRange*: EnLargeRange
+
     used*: seq[ImTorture]
     opt*: Option[ImTorture]
     fCstring*: cstring
