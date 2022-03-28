@@ -1453,13 +1453,13 @@ template pprinte*(
     {.noSideEffect.}:
       let iinfo = instantiationInfo(fullpaths = true)
       var line = " [" & toLink(iinfo, strutils.align($iinfo.line, 4)) & "] "
-      let pref = "\e[32m" & astToStr(obj) & "\e[39m: "
+      let pref = "\e[32m" & astToStr(obj) & "\e[39m:\n"
 
       echo line, pref, pstring(
         obj, rightMargin, force, ignore,
         conf = pconf,
         extraFields = extraFieldsIn
-      )
+      ).indent(4)
 
 
 import std/macros
