@@ -1440,6 +1440,28 @@ proc pprint*[T](
     extraFields = extraFields
   )
 
+template pprinte*(
+    obj: untyped,
+    rightMargin: int = getRightMargin(),
+    force: openarray[(PPrintMatch, PPrintLytChoice)] = @[],
+    ignore: PPrintMatch = PPrintMatch(),
+    pconf: PPrintConf = defaultPPrintConf,
+    extraFieldsIn: seq[PPrintExtraField] = @[]
+  ): untyped =
+  bind align, toLink
+  {.line: instantiationInfo(fullPaths = true).}:
+    {.noSideEffect.}:
+      let iinfo = instantiationInfo(fullpaths = true)
+      var line = " [" & toLink(iinfo, strutils.align($iinfo.line, 4)) & "] "
+      let pref = "\e[32m" & astToStr(obj) & "\e[39m: "
+
+      echo line, pref, pstring(
+        obj, rightMargin, force, ignore,
+        conf = pconf,
+        extraFields = extraFieldsIn
+      )
+
+
 import std/macros
 
 
