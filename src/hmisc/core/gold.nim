@@ -38,6 +38,15 @@ template dowhile*(expr, body: untyped): untyped =
     while expr:
       body
 
+template withNewIt*(T: typedesc, body: untyped): untyped =
+  block:
+    var it {.inject.}: ref T
+    new(it)
+    block:
+      body
+    it
+
+
 template withIt*(val, body: untyped): untyped =
   ## Copy `val` to `it`, execute body and then return `it`.
   ##
@@ -361,7 +370,7 @@ proc postDec*[T](value: var T): T {.discardable.} =
   result = value
   dec value
 
-proc preDec*[T](value: var T): T {.discardable.} =
+proc preDec*[T](value: var T): var T {.discardable.} =
   dec value
   value
 
@@ -369,7 +378,7 @@ proc postInc*[T](value: var T): T {.discardable.} =
   result = value
   inc value
 
-proc preInc*[T](value: var T): T {.discardable.} =
+proc preInc*[T](value: var T): var T {.discardable.} =
   inc value
   value
 

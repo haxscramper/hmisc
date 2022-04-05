@@ -1,3 +1,6 @@
+# TODO error location - file, line, column (if possible) for unexpected
+# JSOn events.
+
 import
   ./json_ast,
   ./serde_macros,
@@ -320,23 +323,37 @@ proc jsonDefaultValue*[T](t: typedesc[T]): T =
 proc loadJsonPairs*[K, V, Res](
     reader;
     target: var Res,
+    arrayPairs: static[bool] = true
   ) =
 
   mixin loadJson
-  reader.skip({jsonArraystart}, Res)
-  while kind(reader) in {jsonArrayStart} or
-        reader.tok in {tkComma}:
+  when arrayPairs:
     reader.skip({jsonArrayStart}, Res)
-    var key: K = jsonDefaultValue(K)
-    loadJson(reader, key)
+    while kind(reader) in {jsonArrayStart} or
+          reader.tok in {tkComma}:
+      reader.skip({jsonArrayStart}, Res)
+      var key: K = jsonDefaultValue(K)
+      loadJson(reader, key)
 
-    var val: V = jsonDefaultValue(V)
-    loadJson(reader, val)
+      var val: V = jsonDefaultValue(V)
+      loadJson(reader, val)
+
+      reader.skip({jsonArrayEnd}, Res)
+      target[key] = val
 
     reader.skip({jsonArrayEnd}, Res)
-    target[key] = val
 
-  reader.skip({jsonArrayEnd}, Res)
+  else:
+    reader.skip({jsonObjectStart}, Res)
+    while kind(reader) notin {jsonObjectEnd}:
+      var key: K = jsonDefaultValue(K)
+      loadJson(reader, key)
+
+      var val: V = jsonDefaultValue(V)
+      loadJson(reader, val)
+      target[key] = val
+
+    reader.skip({jsonObjectEnd}, Res)
 
 template writeJsonTwoElementIterator*[T](
     writer;

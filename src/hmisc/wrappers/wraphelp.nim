@@ -42,6 +42,7 @@ proc `or`*[T: enum](lhs: T, rhs: T): uint = lhs.ord() or rhs.ord()
 proc `and`*[T: enum](lhs: T, rhs: T): uint = lhs.ord() and rhs.ord()
 proc `not`*[T: enum](lhs: T): uint = not lhs.ord()
 
+
 template `+`*[T](p: ptr T, offset: SomeInteger): ptr T =
   cast[ptr type(p[])](cast[ByteAddress](p) +% int(offset) * sizeof(p[]))
 
@@ -59,6 +60,14 @@ template `[]`*[T](p: ptr T, offset: SomeInteger): T =
 
 template `[]=`*[T](p: ptr T, offset: SomeInteger, val: T) =
   (p + offset)[] = val
+
+func inc*[T](p: var ptr T, count: int = 1) =
+  p = p + (sizeof(T) * count)
+
+func dec*[T](p: var ptr T, count: int = 1) =
+  p = p - (sizeof(T) * count)
+
+
 
 proc allocPUarray*[T](size: Natural): PUarray[T] =
   cast[PUarray[T]](alloc(size * sizeof(T)))

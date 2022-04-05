@@ -1,7 +1,7 @@
 import
   std/[
     strutils, tables, enumerate, strformat,
-    sequtils, unicode, math
+    sequtils, unicode, math, parseutils
   ]
 
 import
@@ -38,6 +38,13 @@ type
     dfWithRanges
     dfSpellEmptyStrings
 
+    dfUseBin
+    dfUseDecimal
+    dfUseHex
+
+    dfTrimPrefixZeros
+    dfSplitNumbers
+
     dfUseCommas
     dfUseQuotes
 
@@ -55,7 +62,8 @@ type
 const defaultHDisplay* = HDisplayOpts(
   flags: {
     dfColored, dfPositionIndexed, dfSpellEmptyStrings,
-    dfUseCommas, dfUseQuotes
+    dfUseCommas, dfUseQuotes,
+    dfTrimPrefixZeros
   },
   dropPrefix: true,
   newlineBeforeMulti: true,
@@ -1412,9 +1420,60 @@ func hShow*(ch: char, opts: HDisplayOpts = defaultHDisplay): ColoredText =
 func hshow*(b: bool, opts: HDisplayOpts = defaultHDisplay): ColoredText =
   if b: $b + fgGreen else: $b + fgRed
 
+proc partition*[T](arr: openarray[T], stride: int, tail: bool = true): seq[seq[T]] =
+  let h = arr.len
+  if tail:
+    let offset = (h mod stride)
+    if offset != 0:
+      result.add arr[0 ..< offset]
+
+    for i in 0 ..< (h div stride):
+      result.add arr[(offset + (i * stride)) ..< (((i + 1) * stride) + offset)]
+
+  else:
+    for i in 0 ..< (h div stride):
+      result.add arr[(i * stride) ..< ((i + 1) * stride)]
+
+    if h mod stride != 0:
+      result.add arr[(h div stride) * stride .. ^1]
+
+func toBin*(x: SomeUnsignedInt, len: Positive): string =
+  var
+    mask = BiggestUInt 1
+    shift = BiggestUInt 0
+  assert(len > 0)
+  result = newString(len)
+  for j in countdown(len-1, 0):
+    result[j] = chr(int((BiggestUInt(x) and mask) shr shift) + ord('0'))
+    inc shift
+    mask = mask shl BiggestUInt(1)
+
 func hShow*(
     ch: SomeInteger, opts: HDisplayOpts = defaultHDisplay): ColoredText =
-  $ch + fgCyan
+  var tmp = ""
+  var part = 3
+  if dfUseBin in opts:
+    tmp = toBin(ch, sizeof(ch) * 8)
+    part = 8
+
+  elif dfUseHex in opts:
+    tmp = toHex(ch)
+    part = 2
+
+  else:
+    tmp = $ch
+
+  if dfTrimPrefixZeros in opts:
+    tmp = tmp[skipWhile(tmp, { '0' }) .. ^1]
+    if len(tmp) == 0:
+      tmp = "0"
+
+  if dfSplitNumbers in opts:
+    tmp = tmp.partition(part, true).mapIt(join(it, "")).join("_")
+
+  result = tmp + fgCyan
+
+
 
 func hshow*(i: BackwardsIndex, opts: HDisplayOpts = defaultHDisplay): ColoredText =
   toCyan("^" & $i.int, opts.colored)
