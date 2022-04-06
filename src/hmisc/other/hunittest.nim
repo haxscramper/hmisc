@@ -20,8 +20,6 @@ import
   ./hcoverage
 
 
-
-
 type
   TestBackend = enum tbC, tbCpp, tbJs, tbNims
 
@@ -169,6 +167,7 @@ type
     startTime: float
     sourceOnError: bool
     failCount: int
+    displayOpts: HDisplayOpts
 
     lastSuite: Option[TestReport]
     lastTest: Option[TestReport]
@@ -238,7 +237,11 @@ proc newTestLogger*(): HLogger =
 
 
 proc newTestContext*(): TestContext =
-  TestContext(sourceOnError: true, logger: newTestLogger())
+  TestContext(
+    sourceOnError: true,
+    logger: newTestLogger(),
+    displayOpts: hdisplay()
+  )
 
 proc getTestGlobs(): seq[TestGlob] =
   for param in paramStrs():
@@ -264,6 +267,9 @@ proc getTestContext(): TestContext =
     context.globs = getTestGlobs()
 
   return context
+
+proc setTestContextDisplayOpts*(opts: HDisplayOpts) =
+  getTestContext().displayOpts = opts
 
 proc getTestLogger*(): HLogger =
   getTestContext().logger
@@ -408,8 +414,8 @@ proc formatCheckFail*(report: TestReport): ColoredText =
     else:
       if report.failKind == tfkOpCheck:
         let
-          s1 = report.strs[0][1].str.formatStringified()
-          s2 = report.strs[1][1].str.formatStringified()
+          s1 = report.strs[0][1].str
+          s2 = report.strs[1][1].str
 
         add " - "
         add toGreen(report.strs[0][0])
@@ -1696,8 +1702,8 @@ proc buildCheck(expr: NimNode): NimNode =
           block:
             {.line: `line`.}:
               let
-                `lhsId` = `lhs`
-                `rhsId` = `rhs`
+                `lhsId` = hshow(`lhs`, testContext.displayOpts)
+                `rhsId` = hshow(`rhs`, testContext.displayOpts)
 
               if not (`doOp`):
                 `report`(testContext, checkFailed(`loc`, {
@@ -1707,7 +1713,6 @@ proc buildCheck(expr: NimNode): NimNode =
 
               else:
                 `report`(testContext, `checkOk`(`loc`, `exprStr`))
-
 
     else:
       if expr.kind in { nnkCall, nnkCommand } and
