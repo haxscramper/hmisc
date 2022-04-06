@@ -219,9 +219,23 @@ func toMapArray*[K, V](map: openarray[(set[K], V)]): array[K, V] =
     for k in items(keySet):
       result[k] = v
 
+func toSparseMapArray*[K, V](map: openarray[(K, V)]): array[K, Option[V]] =
+  for (k, v) in map:
+    result[k] = some v
+
+func toSparseMapArray*[K, V](map: openarray[(set[K], V)]): array[K, Option[V]] =
+  for (k, v) in map:
+    for k in k:
+      result[k] = some v
+
 func toKeySet*[K, V](map: openarray[(K, V)]): set[K] =
   for (k, v) in map:
     result.incl k
+
+func toKeySet*[K, V](map: array[K, Option[V]]): set[K] =
+  for k, v in pairs(map):
+    if v.isSome():
+      result.incl k
 
 func toValSet*[K, V](map: openarray[(K, V)]): set[V] =
   for (k, v) in map:
