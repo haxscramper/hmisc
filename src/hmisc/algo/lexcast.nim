@@ -15,17 +15,48 @@ type
 
 const defaultLexcastOpts* = LexcastOpts()
 
-proc lcast*(
+proc setSign(i: var SomeInteger, pos: bool) =
+  # echov i, pos
+  when i is SomeUnsignedInt:
+    if not pos:
+      i = (high(typeof(i)) - i) + 1
+
+  else:
+    if (pos and i < 0) or (not pos and 0 < i):
+      i = -i
+
+    # when (i is uint8) or
+    #      (i is uint16) or
+    #      (i is uint32) or
+    #      (i is uint64):
+    # i = -i
+
+
+
+
+
+
+proc lcast*[I: SomeInteger](
     s: string,
-    t: var SomeInteger,
+    t: var I,
     opts: LexcastOpts = defaultLexcastOpts
   ) =
-  try:
-    t = parseInt(s)
-  except ValueError:
-    raise newException(
-      LexcastError,
-      &"Cannot parse '{s}' as integer value")
+  let offs = (if s[0] in { '-', '+' }: 1 else: 0)
+  let neg = s[0] in {'-'}
+  if 2 < s.len and s[offs] in {'0'} and s[offs + 1] in {'x', 'X'}:
+    let parsed = parseHex(s, t, start = 2 + offs)
+    # FIXME raise exception if number of parsed digits does not match with
+    # full input length.
+    setSign(t, not neg)
+
+  else:
+    try:
+      t = I(parseInt(s))
+
+    except ValueError:
+      raise newException(
+        LexcastError,
+        &"Cannot parse '{s}' as integer value")
 
 proc lcast*(
     s: string,

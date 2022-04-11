@@ -1531,6 +1531,49 @@ func joinBracket*(
 func hshow*[T](s: seq[T], opts: HDisplayOpts = defaultHDisplay): ColoredText =
   hshowItems(s, opts).joinBracket(opts)
 
+func hshow*[T: tuple](t: T, opts: HDisplayOpts = defaultHDisplay): ColoredText =
+  result.add "("
+  var first = true
+  for name, item in fieldPairs(t):
+    if not first:
+      result.add ", "
+
+    first = false
+    result.add hshow(item, opts)
+
+  result.add ")"
+
+func hshow*[T: object](t: T, opts: HDisplayOpts = defaultHDisplay): ColoredText =
+  result.add "("
+  var first = true
+  for name, item in fieldPairs(t):
+    if not first:
+      result.add ", "
+
+    first = false
+    result.add name
+    result.add ": "
+    result.add hshow(item, opts)
+
+  result.add ")"
+
+func hshow*[T](it: ref T, opts: HDisplayOpts = defaultHDisplay): ColoredText =
+  if isNil(it):
+    toRed("<nil>")
+
+  else:
+    hshow(it[], opts)
+
+func hshow*[T](it: ptr T, opts: HDisplayOpts = defaultHDisplay): ColoredText =
+  if isNil(it):
+    toRed("<nil>")
+
+  else:
+    hshow(it[], opts)
+
+func hshow*[T: proc](it: T, opts: HDisplayOpts = defaultHDisplay): ColoredText =
+  clt($typeof(it))
+
 func hshow*[R, V](
   s: array[R, V], opts: HDisplayOpts = defaultHDisplay): ColoredText =
   hshowItems(s, opts).joinBracket(opts)

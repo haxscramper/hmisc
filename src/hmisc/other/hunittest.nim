@@ -1702,17 +1702,22 @@ proc buildCheck(expr: NimNode): NimNode =
           block:
             {.line: `line`.}:
               let
-                `lhsId` = hshow(`lhs`, testContext.displayOpts)
-                `rhsId` = hshow(`rhs`, testContext.displayOpts)
+                `lhsId` = `lhs`
+                `rhsId` = `rhs`
 
               if not (`doOp`):
                 `report`(testContext, checkFailed(`loc`, {
-                  `lhsLit`: `testValue`($`lhsId`, `context`),
-                  `rhsLit`: `testValue`($`rhsId`, `context`),
+                  `lhsLit`: `testValue`(hshow(
+                    `lhsId`, testContext.displayOpts), `context`),
+
+                  `rhsLit`: `testValue`(hshow(
+                    `rhsId`, testContext.displayOpts), `context`),
                 }, tfkOpCheck, `exprStr`, checkOp = `opLit`))
 
               else:
                 `report`(testContext, `checkOk`(`loc`, `exprStr`))
+
+        # echo result.repr
 
     else:
       if expr.kind in { nnkCall, nnkCommand } and

@@ -818,4 +818,20 @@ suite "Strparser":
       toTuple[string]("~||(test.tmp.pl||test1.sh)") ==
       ("test.tmp.pl", "test1.sh"))
 
+import hmisc/algo/lexcast
+
+suite "Lexcast":
+  test "Integer parsing":
+    check:
+      lexcast[uint8]("0xAB") == 0xAB'u8
+      lexcast[int]("0xAB") == 0xAB
+      lexcast[uint8]("0x12") == 0x12'u8
+      lexcast[uint16]("0xABCD") == 0xABCD'u16
+      lexcast[int8]("-0xB") == -0xB'i8
+      lexcast[uint8]("-0xAB") == ((high(uint8) - 0xAB) + 1)
+      lexcast[uint8]("-0x12") == 0xEE'u8
+
+      uint16(lexcast[uint8]("0x12")) + uint16(0xEE'u8) == 0x100u16
+
+
 testFileEnded()
