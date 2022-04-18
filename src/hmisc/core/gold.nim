@@ -428,3 +428,5 @@ template byaddr*(lhs, typ, ex) =
       let tmp: ptr typ = unsafeaddr(ex)
 
   template lhs: untyped = tmp[]
+
+template pcast*[T](arg: untyped): untyped = cast[ptr T](arg)

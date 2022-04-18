@@ -93,8 +93,10 @@ type
     visited: CountTable[int]
     confId*: int
 
+    showErrorTrace*: bool
     ignorePaths*: PPrintMatch
     stringPaths*: PPrintMatch
+    overridePaths*: seq[PPrintExtraField]
     forceLayouts*: seq[PPrintLytForce]
     extraFields*: seq[PPrintExtraField]
     idFields*: seq[(PPrintMatch, string)] ## `path pattern` -> `id field`
@@ -211,7 +213,8 @@ template pprintExtraField*(
   (
     matchType(astToStr(typename)),
     toProcBox(
-      proc(it {.inject.}: typename): (string, PPrintTree) = (fieldName, body)
+      proc(it {.inject.}: typename): (string, PPrintTree) {.closure.} =
+        return (fieldName, body)
     )
   )
 
@@ -222,9 +225,24 @@ template pprintExtraField*(
   (
     matchType(typename),
     toProcBox(
-      proc(it {.inject.}: argtype): (string, PPrintTree) = (fieldName, body)
+      proc(it {.inject.}: argtype): (string, PPrintTree) {.closure.} =
+        return (fieldName, body)
     )
   )
+
+template pprintOverride*(
+    argtype: untyped, match: PPrintMatch, body: untyped): untyped =
+  (
+    match,
+    toProcBox(
+      proc(
+        it {.inject.}: argtype,
+        conf: var PPrintConf,
+        path: PPrintPath): PPrintTree {.closure.} =
+        body
+    )
+  )
+
 
 
 func `$`*(part: PPrintGlobPart): string =
@@ -465,6 +483,24 @@ proc newPPrintError*[T](
       "error [!" & msg & "!]",
       $typeof(value),
       0, fgRed + bgDefault, path)
+
+proc newPPrintError*[T](
+  value: T, path: PPrintPath, err: ref Exception, conf: var PPrintConf): PPrintTree =
+
+  var msg = err.msg
+  if conf.showErrorTrace:
+    for entry in err.trace:
+      if entry.line in [-10, -100]:
+        break
+
+      msg.addf("\n$#($#): $#", entry.filename, entry.line, entry.procname)
+
+    msg.add "\n -- " & $err.name
+
+  else:
+    msg.add " -- " & $err.name
+
+  return newPPrintError(value, path, msg, conf)
 
 
 
@@ -714,6 +750,9 @@ template postInst(): untyped =
       dec instDepth
 
 
+proc getCurrentExceptionName*(): string =
+  $getCurrentException().name
+
 proc objectToPprintTree*[
     T: object or ptr object or ref object or tuple or ptr tuple or ref tuple
   ](
@@ -774,11 +813,9 @@ proc objectToPprintTree*[
         if res.kind notin {ptkIgnored}:
           result.elements.add((name, res))
 
-      except:
+      except Exception as ex:
         result.elements.add((name, newPPrintError(
-          entry, path, getCurrentExceptionMsg(), conf)))
-
-
+          entry, path, ex, conf)))
 
   else:
     for name, value in fieldPairs(entry):
@@ -797,8 +834,7 @@ proc objectToPprintTree*[
   else:
     for (pattern, impl) in conf.extraFields:
       if pattern.matches(path):
-        result.elements.add impl.callAs(
-          proc(e: T): (string, PPrintTree), entry)
+        result.elements.add callAs[proc(e: T): (string, PPrintTree)](impl,entry)
 
 
 proc pprintConst*[E: enum](e: E): string =
@@ -944,7 +980,19 @@ proc toPprintTree*[L, H](
 proc toPprintTree*[T](
     entry: T, conf: var PPrintConf, path: PPrintPath): PPrintTree =
 
-  if conf.stringPaths.matches(path) and
+  var overrideTriggered = false
+  for (pattern, impl) in conf.overridePaths:
+    if pattern.matches(path):
+      result = callAs[proc(entry: T, conf: var PPrintConf, path: PPrintPath): PPrintTree](
+        impl, entry, conf, path)
+
+      overrideTriggered = true
+      break
+
+  if overrideTriggered:
+    discard
+
+  elif conf.stringPaths.matches(path) and
      not isNilEntry(entry):
     when compiles($entry):
       result = newPPrintConst(

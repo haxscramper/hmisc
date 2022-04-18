@@ -3,11 +3,34 @@ import
 
 import ../core/[all]
 
-macro closureToCdeclImpl(c: typed): untyped =
-  discard
+macro closureToCdeclImpl(c: typed, addEnv: static[bool]): untyped =
+  var ty = c.getTypeImpl()
+  if addEnv:
+    ty[0].add nnkIdentDefs.newTree(
+      ident"env",
+      ident"pointer",
+      newEmptyNode()
+    )
+
+  if ty[^1].kind == nnkEmpty:
+    ty[^1] = nnkPragma.newTree(ident"cdecl")
+
+  elif ty[^1].kind == nnkPragma:
+    ty[^1].add ident"cdecl"
+
+  else:
+    error(ty.treeRepr(), ty)
+
+  # echo ty.repr()
+  return ty
 
 func closureToCdecl*[C: proc {.closure.}](c: C): auto =
-  closureToCdeclImpl(c)
+  var tmp: closureToCdeclImpl(c, true)
+  return tmp
+
+func nimcallToCdecl*[C: proc](c: C): auto =
+  var tmp: closureToCdeclImpl(c, false)
+  return tmp
 
 func splitClosure*[C: proc {.closure.}](c: C): auto =
   return (impl: cast[typeof(closureToCdecl(c))](rawProc(c)), env: rawEnv(c))
