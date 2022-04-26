@@ -43,11 +43,22 @@ proc lcast*[I: SomeInteger](
   ) =
   let offs = (if s[0] in { '-', '+' }: 1 else: 0)
   let neg = s[0] in {'-'}
-  if 2 < s.len and s[offs] in {'0'} and s[offs + 1] in {'x', 'X'}:
-    let parsed = parseHex(s, t, start = 2 + offs)
+  if 2 < s.len and
+     s[offs] in {'0'} and
+     s[offs + 1] in {'x', 'X', 'b', 'B', 'o', 'O'}:
+
+    let parsed = 
+      if s[offs + 1] in {'x', 'X'}:
+        parseHex(s, t, start = 2 + offs)
+      elif s[offs + 1] in {'b', 'B'}:
+        parseBin(s, t, start = 2 + offs)
+      else:
+        parseOct(s, t, start = 2 + offs)
+
     # FIXME raise exception if number of parsed digits does not match with
     # full input length.
     setSign(t, not neg)
+
 
   else:
     try:
