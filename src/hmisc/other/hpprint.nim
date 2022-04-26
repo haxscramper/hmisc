@@ -489,7 +489,7 @@ proc newPPrintError*[T](
 
   var msg = err.msg
   if conf.showErrorTrace:
-    for entry in err.trace:
+    for entry in getStackTraceEntries(err):
       if entry.line in [-10, -100]:
         break
 

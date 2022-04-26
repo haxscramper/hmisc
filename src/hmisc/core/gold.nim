@@ -215,6 +215,7 @@ template last2*(s: seq): untyped = s[^1][^1]
 template first*(s: seq): untyped = s[0]
 template clear*(s: seq): untyped = s.setlen(0)
 template empty*(s: seq): bool = len(s) == 0
+func empty*(s: string): bool = len(s) == 0
 
 template `?`*[T](s: seq[T]): bool = len(s) > 0
 template `?`*(s: string): bool = len(s) > 0

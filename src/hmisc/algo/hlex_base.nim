@@ -306,11 +306,32 @@ proc runeAt*(str; idx: int = 0): Rune =
       var i = str.pos + idx
       fastRuneAt(str.baseStr[], i, result)
 
+
+proc setLineInfo*(error: ref ParseError, str: PosStr) =
+  ## Set positional information to lexer error from string
+  error.column = str.column
+  error.line = str.line
+
 proc setLineInfo*(error: ref HLexerError, str: PosStr) =
   ## Set positional information to lexer error from string
   error.column = str.column
   error.line = str.line
   error.pos = str.pos
+
+proc describeAtPosition*(str: PosStr): string =
+  var e = ""
+  e.madd "at ", str.line, ":", str.column
+  if notNil(str.baseStr) and str.pos < str.baseStr[].len:
+    e.madd ". Lookahead characters (from pos = ", str.pos, ") ['"
+
+    for ch in str.pos .. min(str.baseStr[].high, str.pos + 10):
+      e.msep("', '", str.pos < ch)
+      e.madd describeChar(
+        str.baseStr[][ch], hdisplay(verbosity = dvMinimal))
+
+    e.madd "'])"
+
+  return e
 
 proc newUnexpectedCharError*(
     str;
@@ -339,16 +360,7 @@ proc newUnexpectedCharError*(
   if parsing.len > 0:
     e.madd " while parsing ", parsing
 
-  e.madd " at ", str.line, ":", str.column
-  if notNil(str.baseStr) and str.pos < str.baseStr[].len:
-    e.madd ". Lookahead characters (from pos = ", str.pos, ") ['"
-
-    for ch in str.pos .. min(str.baseStr[].high, str.pos + 10):
-      e.msep("', '", str.pos < ch)
-      e.madd describeChar(
-        str.baseStr[][ch], hdisplay(verbosity = dvMinimal))
-
-    e.madd "'])"
+  e.add " "
 
   result.msg = e
 
