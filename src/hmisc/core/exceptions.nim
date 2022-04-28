@@ -251,10 +251,10 @@ func getOr*[K, V](table: Table[K, V], key: K, onFail: string): V =
       ) & " - " & onFail)
 
 template assertRefFields*[T](
-    item: T, onFail: string = "string") {.dirty.} =
+    item: T, onFail: string = "") {.dirty.} =
 
   for name, field in fieldPairs(
-    when item is ref or item is ptr:
+    when (item is ref) or (item is ptr):
       assertRef item
       item[]
 
@@ -268,7 +268,7 @@ template assertRefFields*[T](
         if isNil(field):
           raise newException(
             NilArgumentError, "Field '" & name &
-              "' of object type '" & $typeof(item) & "'. " & onFail)
+              "' of object type '" & $typeof(item) & " is nil'. " & onFail)
 
 
 proc prepareMsg(msgs: varargs[string]): string =

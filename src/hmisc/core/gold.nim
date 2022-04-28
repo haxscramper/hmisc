@@ -430,4 +430,5 @@ template byaddr*(lhs, typ, ex) =
 
   template lhs: untyped = tmp[]
 
-template pcast*[T](arg: untyped): untyped = cast[ptr T](arg)
+template pcast*[T](arg: ptr or ref): untyped =
+  cast[ptr T](arg)
