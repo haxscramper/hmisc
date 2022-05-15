@@ -1,5 +1,18 @@
 #+title: readme
 
+I don't want to call this library officially "deprecated", but I haven't
+been paying as much attention to the code quality and/or in recent times. I
+think everything up until version ~0.14.4~ can be considered "mostly
+reliable" - so if you are looking to use this library, I would advise you
+to pin dependency to this version.
+
+Maybe in the future I will return to working on this library - for now I
+don't think I have the energy required to constantly fight nim
+documentation generator, write unit testing framework and test runner and
+so on.
+
+------
+
 Collection of miscellaneous helper algorithms and types. Over time this
 library accumulated a lot of functionality, not all of this is necessary
 and almost everything was made on case-by-case basis instead of being
