@@ -406,7 +406,6 @@ proc writeJsonItems*[T](writer; values: T, multiline: bool = false) =
   wrap(writer, jsonArrayStart, multiline):
     for it in items(values):
       writer.sepComma(first, multiline)
-
       writer.writeJson(it)
       first = false
 
@@ -494,6 +493,7 @@ proc writeJson*[T](writer; opt: Option[T]) =
   else:
     writer.write jsonNull
 
+
 proc loadJson*[T](reader; target: var Option[T]) =
   mixin loadJson
   if reader.kind == jsonNull:
@@ -503,6 +503,19 @@ proc loadJson*[T](reader; target: var Option[T]) =
     var tmp: T = jsonDefaultValue(T)
     loadJson(reader, tmp)
     target = some(tmp)
+
+
+proc loadJson*[T: proc](reader; target: var T) =
+  target = nil
+
+proc writeJson*[T: proc](writer; opt: T) =
+  if isNil(opt):
+    writer.write jsonTrue
+
+  else:
+    writer.write jsonNull
+
+
 
 proc writeJson*[E](writer; values: set[E]) =
   writeJsonItems(writer, values)
@@ -631,6 +644,7 @@ proc loadJsonObject*[T](
 
   else:
     target = jsonDefaultValue(T)
+    # echov reader
     skip(reader, tern(asArray, {jsonArrayStart}, {jsonObjectStart}), T)
     loadJsonFields(reader, target, asArray = asArray)
     skip(reader, tern(asArray, {jsonArrayEnd}, {jsonObjectEnd}), T)
@@ -646,19 +660,29 @@ proc loadJson*[T: object](reader; target: var T) =
   loadJsonObject(reader, target)
 
 proc writeJson*[T: tuple](writer; target: T) =
-  writeJsonObject(writer, target, asArray = not isNamedTuple(T))
+  writeJsonObject(
+    writer,
+    target,
+    asArray = not isNamedTuple(T))
 
 proc loadJson*[T: tuple](reader; target: var T) =
-  loadJsonObject(reader, target, asArray = not isNamedTuple(T))
+  loadJsonObject(
+    reader,
+    target,
+    asArray = not isNamedTuple(T))
 
 proc writeJson*[T: ref object](writer; target: T) =
-  writeJsonObject(writer, target)
+  writeJsonObject(
+    writer, target)
 
 proc loadJson*[T: ref object](reader; target: var T) =
   loadJsonObject(reader, target)
 
 proc writeJson*[T: ref tuple](writer; target: T) =
-  writeJsonObject(writer, target, asArray = not isNamedTuple(T))
+  writeJsonObject(
+    writer,
+    target,
+    asArray = not isNamedTuple(T))
 
 proc loadJson*[T: ref tuple](reader; target: var T) =
   loadJsonObject(reader, target, asArray = not isNamedTuple(T))

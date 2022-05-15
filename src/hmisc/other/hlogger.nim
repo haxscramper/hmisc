@@ -301,6 +301,14 @@ template openScope*(logger: HLogger, kind: HLogScopeKind, name: string) =
   let (file, line, column) = instantiationInfo(fullPaths = true)
   openScope(logger, kind, file, line, column, name)
 
+func popScopes*(logger: HLogger): seq[HLogScope] =
+  if 1 < logger.scopes.len():
+    result = logger.scopes[2 .. ^1]
+    logger.scopes.setLen(1)
+
+func addScopes*(logger: HLogger, scopes: seq[HLogScope]) =
+  logger.scopes.add scopes
+
 func initLogScope*(kind: HLogScopeKind): HLogScope =
   HLogScope(kind: kind)
 
@@ -599,7 +607,15 @@ method log*(ex: ref Exception, logger: HLogger) {.base.} =
       logger.err line
 
   else:
-    logger.err ex.msg
+    var maxMsgWidth: int
+    for line in splitLines(ex.msg):
+      maxMsgWidth = max(maxMsgWidth, termLen(line))
+
+    if terminalWidth() < maxMsgWidth + logger.indentLen():
+      echo ex.msg
+
+    else:
+      logger.err ex.msg
 
 
 import ./hshell

@@ -361,7 +361,7 @@ proc newUnexpectedCharError*(
     e.madd " while parsing ", parsing
 
   e.add " "
-
+  e.add str.describeAtPosition()
   result.msg = e
 
 proc `[]`*(str; slice: HSlice[int, BackwardsIndex]): string {.inline.} =

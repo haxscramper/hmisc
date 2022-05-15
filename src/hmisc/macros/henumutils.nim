@@ -24,5 +24,5 @@ func symbolName*[T: enum](a: T): string =
 
   else:
     for (value, name) in names:
-      if value == ord(a):
+      if T(value) == a:
         return name

@@ -23,9 +23,8 @@ import
 export StringAlignDirection
 export clformat.`$`, clformat.toString
 
-const
-  infty = 1024 * 1024 * 1024 * 1024
-  defaultCompact: bool = true
+const infty = high(int)
+const defaultCompact: bool = true
 
 func inf(a: int): bool = (infty - 4096 <= a) and (a <= infty + 4096)
 

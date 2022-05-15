@@ -1203,6 +1203,9 @@ proc paramStrs*(addBin: bool = false): seq[string] =
     if i > 0 or addBin:
       result.add paramStr(i, true)
 
+proc getCommandLineParams*(addBin: bool = false): seq[string] =
+  paramStrs(addBin)
+
 template `$$`*(v: untyped): untyped = ShellVar(astToStr(v))
 proc getEnv*(key: ShellVar; default = ""): string =
   ## Retrieves the environment variable of name key.

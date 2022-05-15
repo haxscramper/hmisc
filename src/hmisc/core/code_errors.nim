@@ -465,77 +465,82 @@ proc getFileName*(f: string): string =
 
 template pprintStackTrace*(ex: ref Exception = nil): untyped =
   mixin toGreen, toDefault, toYellow, getFileName, splitFile
-  {.cast(noSideEffect).}:
-    {.line: instantiationInfo(fullPaths = true).}:
-      block:
-        let e = if isNil(ex): getCurrentException() else: ex
-        let stackEntries =
-          if not isNil(e):
-            e.getStackTraceEntries()
+  proc impl() =
+    {.cast(noSideEffect).}:
+      {.line: instantiationInfo(fullPaths = true).}:
+        block:
+          let e = if isNil(ex): getCurrentException() else: ex
+          let stackEntries =
+            if not isNil(e):
+              e.getStackTraceEntries()
+            else:
+              getStackTraceEntries()
+
+
+
+          let choosenim = getHomeDir() & ".choosenim"
+          when nimvm:
+            discard
           else:
-            getStackTraceEntries()
+            echo ""
+            if not isNil(e):
+              printSeparator("Exception")
+            else:
+              printSeparator("Stacktrace")
+
+            echo ""
+
+          var fileW = 0
+          for tr in stackEntries:
+            let (_, name, ext) = ($tr.filename).splitFile()
+            fileW = max(name.len, fileW)
 
 
+          var foundErr: bool = false
+          for idx, tr in stackEntries:
+            let filename: string = $tr.filename
 
-        let choosenim = getHomeDir() & ".choosenim"
-        when nimvm:
-          discard
-        else:
-          echo ""
-          if not isNil(e):
-            printSeparator("Exception")
-          else:
-            printSeparator("Stacktrace")
+            let prefix =
+              if not filename.startsWith(choosenim):
+                if startsWith($tr.procname, "expect") or
+                   startsWith($tr.procname, "assert"):
+                  "\e[34m(asr) \e[39m"
 
-          echo ""
-
-        var fileW = 0
-        for tr in stackEntries:
-          let (_, name, ext) = ($tr.filename).splitFile()
-          fileW = max(name.len, fileW)
-
-
-        var foundErr: bool = false
-        for idx, tr in stackEntries:
-          let filename: string = $tr.filename
-
-          let prefix =
-            if not filename.startsWith(choosenim):
-              if startsWith($tr.procname, "expect") or
-                 startsWith($tr.procname, "assert"):
-                "\e[34m(asr) \e[39m"
+                else:
+                  "\e[32m(usr) \e[39m"
 
               else:
-                "\e[32m(usr) \e[39m"
-
-            else:
-              "(sys) "
+                "(sys) "
 
 
-          let (_, name, ext) = filename.splitFile()
-          var filePref = toLink(
-            ($tr.filename, tr.line, 0), strutils.alignLeft($name, fileW))
+            let (_, name, ext) = filename.splitFile()
+            var filePref = toLink(
+              ($tr.filename, tr.line, 0), strutils.alignLeft($name, fileW))
 
-          if (not foundErr) and idx + 1 < stackEntries.len:
-            let next = stackEntries[idx + 1]
-            let nextFile = $next.filename
-            if startsWith(nextFile, choosenim) or
-               startsWith($next.procname, "expect") or
-               startsWith($next.procname, "assert"):
-              filePref = toRedStr(filePref)
-              foundErr = true
+            if (not foundErr) and idx + 1 < stackEntries.len:
+              let next = stackEntries[idx + 1]
+              let nextFile = $next.filename
+              if startsWith(nextFile, choosenim) or
+                 startsWith($next.procname, "expect") or
+                 startsWith($next.procname, "assert"):
+                filePref = toRedStr(filePref)
+                foundErr = true
 
-          echo(
-            prefix & (filePref) & " :" &
-              $(strutils.alignLeft($tr.line, 4)) &
-              " " &
-              toYellowStr($tr.procname))
+            echo(
+              prefix & (filePref) & " :" &
+                $(strutils.alignLeft($tr.line, 4)) &
+                " " &
+                toYellowStr($tr.procname))
 
-        # let idx = e.msg.find('(')
-        echo ""
-        if e != nil:
-          echo e.msg
+          # let idx = e.msg.find('(')
+          echo ""
+          if e != nil:
+            echo e.msg
 
+  try:
+    impl()
+  except ValueError:
+    discard
 
 template haxStackTrace*(): untyped =
   when nimvm:

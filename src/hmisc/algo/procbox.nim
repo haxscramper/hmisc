@@ -40,6 +40,16 @@ proc toProcBox*[T: proc](pr: T): ProcBox =
   else:
     result.impl = cast[pointer](pr)
 
+proc splitProc*[I: proc](pr: I): auto =
+  when isClosure[I]():
+    let impl = cast[typeof(closureToCdecl(pr))](rawProc(pr))
+    return (impl, rawEnv(pr))
+
+  else:
+    let impl = cast[typeof(nimcallToCdecl(pr))](pr)
+    return (impl, pointer(nil))
+
+
 template callAs*[Impl](box: ProcBox, args: varargs[untyped]): untyped =
   {.line: instantiationInfo(fullPaths = true).}:
     bind isClosure

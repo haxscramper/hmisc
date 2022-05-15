@@ -232,6 +232,7 @@ type
     ## Global test configuration
     dump*: NimDump ## Compiler environment configuration state
 
+    fullSeal*: bool
     hints*: seq[NimHint] ## Set of hints to enable during compilation
     flags*: array[NimFlag, Option[bool]]
     warnings*: seq[NimWarning] ## Set of warnings to enable during compilation
@@ -356,7 +357,7 @@ type
   NimReport* = object
     parts*: seq[NimReportPart]
     fixit*: seq[NimFixit]
-
+    original*: string
     case kind*: NimReportKind
       of nrSkip:
         discard
@@ -655,11 +656,7 @@ proc makeCmd(run: NimRun, conf: NimRunConf): ShellCmd =
 
     opt("verbosity", "0")
 
-    opt("nimblePath", dump.nimblePath)
-
-    flag("skipUserCfg")
-    flag("skipParentCfg")
-    flag("skipProjCfg")
+  with cmd:
     opt("showAllMismatches", "on")
     opt("cc", "gcc")
     opt("passc", "-fdiagnostics-format=json")
@@ -670,8 +667,15 @@ proc makeCmd(run: NimRun, conf: NimRunConf): ShellCmd =
 
   cmd.opt("nimcache", $getNewTempDir(run.file.name(), getAppTempDir()))
 
-  for p in dump.paths:
-    cmd.opt("path", p)
+  if conf.fullSeal:
+    with cmd:
+      opt("nimblePath", dump.nimblePath)
+      flag("skipUserCfg")
+      flag("skipParentCfg")
+      flag("skipProjCfg")
+
+    for p in dump.paths:
+      cmd.opt("path", p)
 
   cmd.arg run.file
 
@@ -963,7 +967,6 @@ proc parseGccReport(report: string): NimReport =
       result = NimReport(kind: nrSkip)
 
 
-
 proc parseOverloadAlts(text: string): NimReport =
   result = NimReport(kind: nrError, error: neOverloadFail)
   var str = initPosStr(text)
@@ -1107,9 +1110,11 @@ proc parseNimReportImpl(report: string): NimReport =
           part.kind.setKind nrpTracePart
 
 
+
 proc parseNimReport*(report: string): NimReport =
   try:
     result = parseNimReportImpl(report)
+    result.original = report
 
   except UnexpectedCharError as err:
     result = NimReport(
@@ -1258,6 +1263,7 @@ proc parseRunReports*(res: ShellResult): seq[TestReport] =
   var activeLocation: TestLocation
   for line in res.getStdout().splitLines():
     if 0 < len(line):
+      echo line
       result.add fromJson(line, TestReport)
       activeLocation = result.last().location
 
@@ -1428,21 +1434,24 @@ proc formatReport*(
         add "\n"
 
     of nrError:
-      case report.error:
-        of neCannotOpen:
-          add "Cannot open imported path\n"
-          addi 1, "List of known import paths:\n"
-          for path in dump.paths:
-            addi 2, hshow(path)
+      add report.original
+
+      if false:
+        case report.error:
+          of neCannotOpen:
+            add "Cannot open imported path\n"
+            addi 1, "List of known import paths:\n"
+            for path in dump.paths:
+              addi 2, hshow(path)
+              add "\n"
+
+            addi 1, "Nimble path\n"
+            addi 2, hshow(dump.nimblePath)
             add "\n"
 
-          addi 1, "Nimble path\n"
-          addi 2, hshow(dump.nimblePath)
-          add "\n"
 
-
-        else:
-          add $report.error
+          else:
+            add $report.error
 
   endResult()
 
@@ -1494,6 +1503,9 @@ proc formatEvent*(event: NimRunnerEvent): ColoredText =
 
 proc formatReport*(rep: TestReport): ColoredText =
   coloredResult()
+
+  add rep.msg
+  return
 
   let align = (12, '[', ']')
 
@@ -1651,6 +1663,8 @@ proc formatRun*(runs: seq[NimRunResult], dump: NimDump): ColoredText =
           state.register(report)
           if not (report of nrHint):
             add formatReport(report, dump, state)
+
+        add "\n"
 
       of nrrkFailedExecution:
         add ("EXEC-FAIL" |<> align) + fgRed

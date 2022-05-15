@@ -243,6 +243,11 @@ const
     kvSep: "="
   )
 
+  NospaceShellCmdConf* = ShellCmdConf(
+    flagConf: ccRegularFlags,
+    kvSep: ""
+  )
+
   SpaceShellCmdConf* = ShellCmdConf(
     flagConf: ccRegularFlags,
     kvSep: " "
@@ -371,6 +376,10 @@ func arg*(cmd: var ShellCmd, arg: string | AnyPath) =
   cmd.opts.add ShellCmdPart(
     kind: cpkArgument, argument: arg.getStr())
 
+func arg*(cmd: var ShellCmd, args: openarray[string]) =
+  for arg in args:
+    cmd.arg(arg)
+
 func arg*(cmd: var ShellCmd, arg: int) = cmd.arg($arg)
 
 func add*(cmd: var ShellCmd, part: ShellCmdPart) =
@@ -463,6 +472,10 @@ func makeGnuShellCmd*(bin: string): ShellCmd =
   ## for command line interface `link
   ## <https://www.gnu.org/prep/standards/html_node/Command_002dLine-Interfaces.html>`_
   result.conf = GnuShellCmdConf
+  result.bin = bin
+
+func makeNospaceShellCmd*(bin: string): ShellCmd =
+  result.conf = NoSpaceShellCmdConf
   result.bin = bin
 
 func makeFileShellCmd*(

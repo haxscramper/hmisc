@@ -7,6 +7,11 @@ type NoValue* = distinct char
 
 template Attr*() {.pragma.}
 
+
+const
+  isoDateFmtSecZone* = "yyyy-MM-dd'T'HH:mm:sszzz"
+  isoDateFmtMsec* = "yyyy-MM-dd'T'HH:mm:ss'.'fff"
+
 template tern*(predicate: bool, tBranch: untyped, fBranch: untyped): untyped =
   ## Shorthand for inline if/else. Allows use of conditions in strformat,
   ## simplifies use in expressions. Less picky with formatting
@@ -157,12 +162,14 @@ template asExpr*(arg: untyped): untyped = arg
 proc asSet*[E: enum](en: E): set[E] = {en}
 proc asSet*[E: enum](en: set[E]): set[E] = en
 
-template currIInfo*(): untyped =
-  instantiationInfo(fullpaths = true)
+type InstInfo* = typeof(instantiationInfo())
 
-template curIDir*(): untyped =
+template currIInfo*(full: bool = true, depth: int = -2): untyped =
+  instantiationInfo(depth, fullpaths = full)
+
+template curIDir*(full: bool = true, depth: int = -2): untyped =
   bind splitFile
-  splitFile(instantiationInfo(fullPaths = true).filename).dir
+  splitFile(instantiationInfo(depth, fullPaths = full).filename).dir
 
 template currentSourceDir*(): untyped =
   bind parentDir

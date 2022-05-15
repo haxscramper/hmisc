@@ -292,6 +292,29 @@ template globalTick*(name: untyped): untyped =
     inc name
     name
 
+template echoFile*(name: string, args: varargs[string, `$`]): untyped =
+  ## For debug purposes. Create file `name` and write arguments to it.
+  ## First time template is called the file is created (or re-created if
+  ## already exists from previous runs), on subsequent runs data is
+  ## appended to a file.
+  ##
+  ## Intended to be used to provide additional debugging output channels,
+  ## for data that would otherwise clutter main program output.
+  mixin unpackVarargs
+  block:
+    var wasCleaned {.global.}: bool = false
+    var file =
+      if wasCleaned:
+        open(name, fmAppend)
+
+      else:
+        wasCleaned = true
+        open(name, fmWrite)
+
+    let text = join(args, "")
+    file.writeLine(text)
+    file.close()
+
 template here*(expr: untyped = ""): string =
   let (file, column, _) = instantiationInfo()
   file & ":" & $column & $expr

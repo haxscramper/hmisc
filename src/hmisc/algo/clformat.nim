@@ -1454,10 +1454,14 @@ func hShow*(
   var part = 3
   if dfUseBin in opts:
     tmp = toBin(ch, sizeof(ch) * 8)
+    if len(tmp) == 0:
+      tmp = "0"
     part = 8
 
   elif dfUseHex in opts:
     tmp = toHex(ch)
+    if len(tmp) == 0:
+      tmp = "0"
     part = 2
 
   else:
