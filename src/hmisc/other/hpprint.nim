@@ -954,6 +954,15 @@ proc simpleConstToPPrintTree[T](
       elif compiles($entry):
         let val = $entry
 
+      elif entry is ptr:
+        when entry[] is SomeInteger:
+          let val = $entry[] & "..(ptr to " & $typeof(entry[]) & ")"
+          style = bgDefault + fgBlue
+
+        else:
+          style = fgRed + bgDefault
+          let val = "<not convertible " & $typeof(entry) & ">"
+
       else:
         style = fgRed + bgDefault
         let val = "<not convertible " & $typeof(entry) & ">"
@@ -1216,6 +1225,9 @@ proc toPPrintBlock*(tree: PPrintTree, conf: PPrintConf): LytBlock =
       ""
 
   case tree.kind:
+    of ptkIgnored:
+      result = S[]
+
     of ptkConst:
       result = T[toColored(tree.strVal, tree.styling, conf.colored)]
 
@@ -1422,7 +1434,7 @@ proc pptree*[T](obj: T, conf: PPrintConf = defaultPPrintConf): PPrintTree =
   pptree(obj, asVar conf)
 
 proc ppblock*[T](obj: T, conf: PPrintConf = defaultPPrintConf): LytBlock =
-  ppblock(obj, asVar conv)
+  ppblock(obj, asVar conf)
 
 proc ppblock*(
     obj: PPrintTree,

@@ -26,8 +26,8 @@ Most useful parts of the library are probably
 3. ~hmisc/core/gold~ or ~hmisc/core/all~ - these contain my
    import-everywhere templates, procedures and macros.
 
-In addition to the general helpers library also contains forks of some of
-the fusion modules - specifically ~hmisc/types/hmap~ is a fork of
+In addition to the general helpers, the library also contains forks of some
+of the fusion modules - specifically ~hmisc/types/hmap~ is a fork of
 ~fusion/btreetables~ with saner type naming (no more type clashes all over
 the place) and couple helper routines. I also copied ~fusion/matching~
 back, since fusion can be considered effective dead and deprecated - not

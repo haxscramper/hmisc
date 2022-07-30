@@ -23,7 +23,7 @@ import
 export StringAlignDirection
 export clformat.`$`, clformat.toString
 
-const infty = high(int)
+const infty = high(int) div 2
 const defaultCompact: bool = true
 
 func inf(a: int): bool = (infty - 4096 <= a) and (a <= infty + 4096)

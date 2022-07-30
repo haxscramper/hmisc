@@ -281,16 +281,18 @@ template echove*(body: untyped): untyped =
   res
 
 template globalTick*(): untyped =
-  block:
-    var tick {.global.}: int = -1
-    inc tick
-    tick
+  {.cast(noSideEffect).}:
+    block:
+      var tick {.global.}: int = -1
+      inc tick
+      tick
 
 template globalTick*(name: untyped): untyped =
-  block:
-    var name {.global, exportc.}: int = -1
-    inc name
-    name
+  {.cast(noSideEffect).}:
+    block:
+      var name {.global, exportc.}: int = -1
+      inc name
+      name
 
 template echoFile*(name: string, args: varargs[string, `$`]): untyped =
   ## For debug purposes. Create file `name` and write arguments to it.

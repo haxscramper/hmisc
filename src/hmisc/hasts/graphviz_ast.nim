@@ -124,12 +124,10 @@ converter toDotNodeId*(ids: seq[seq[int]]): seq[DotNodeId] =
   # defer: debugecho result
   ids.mapIt(DotNodeId(path: it))
 
-
 func quoteGraphviz*(str: string): string =
   result.add '"'
   for idx, ch in pairs(str):
     if ch in {'\'', '"'}:
-
       result.add "\\"
 
     elif ch in {'\\'} and (
@@ -826,7 +824,7 @@ func toString(record: RecordField, align: DotNodeLabelAlign): string =
       toString(it, align)).join("|") & "}"
 
   else:
-    let text = record.text.split("\n").join($align) & $align
+    let text = record.text.split({'\n'}).join($align) & $align
     &"<{record.id}>{text}"
 
 func toTree(node: DotNode, idshift: int, level: int = 0): DotTree =
