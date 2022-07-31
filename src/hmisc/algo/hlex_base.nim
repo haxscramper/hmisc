@@ -1100,15 +1100,50 @@ proc skipPast*(str; chars: char) {.inline.} = skipPast(str, {chars})
 
 
 
+
+proc isEmptyLine*(str): bool =
+  ## Check string is positioned on the empty line - `\n____\n` where `_` is
+  ## any horizontal space character. Check can be executed at any position
+  ## on the line.
+  var before = 0
+  while str[before, HorizontalSpace]:
+    dec before
+
+  # `?_____`
+  if str[before] notin Newline:
+    return false
+
+  var after = 0
+  while str[after, HorizontalSpace]:
+    inc after
+
+  # `____?`
+  if str[after] notin Newline:
+    return false
+
+  # `\n____\n`
+  return true
+
+
 proc skipToEOL*(str) =
   ## Skip to the end of current line. After parsing cursor is positioned on
   ## the last character in the string, or closest newline.
   str.skipUntil(Newline, including = true)
 
 proc skipPastEOL*(str) =
+  ## Skip past the end of the line - that is, for `111\n2222` put cursor at
+  ## the first `2` on the second line.
   str.skipUntil(Newline, including = true)
   if ?str and str['\n']:
     str.next()
+
+proc trySkipEmptyLine*(str): bool =
+  ## If string is positioned on the empty line skip it, and return `true`.
+  ## Otherwise return `false`
+  result = isEmptyLine(str)
+  if result:
+    skipPastEOL(str)
+
 
 proc skipBeforeEOL*(str) =
   str.skipBefore(Newline)
@@ -1214,8 +1249,14 @@ proc startsWith*(str; skip: set[char], search: string): bool =
   result = str[pos, search]
 
 proc getIndent*(str): int =
+  ## Get number of horizontal spaces starting from the current position.
+  ## NOTE: if string is positioned on the newline or any other vertical
+  ## space indentation is considered to be zero. `"\n____text" -> 0`, but
+  ## `"____test" -> 4`
   while str[result, HorizontalSpace]:
     inc result
+
+
 
 proc hasIndent*(str; indent: int, exactIndent: bool = false): bool =
   if not ?str:

@@ -343,6 +343,17 @@ template initTok*[K](
     str: $inStr,
     isSlice: false)
 
+
+proc initFakeTok*[K](str: HsTok[K], kind: K): HsTok[K] =
+  result = HsTok[K](
+    kind: kind,
+    isFake: true,
+    isSlice: false,
+    line: str.line,
+    column: str.column,
+    offset: str.offset
+  )
+
 proc initFakeTok*[K](str: PosStr, kind: K): HsTok[K] =
   result = HsTok[K](
     kind: kind,
@@ -483,6 +494,8 @@ proc initCharTok*[Cat: enum](
   initTok(ch, mapChar(ch, map))
 
 proc initPosStr*[K](tok: HsTok[K]): PosStr =
+  ## Create positional string from token using provided positional
+  ## information abd base string data.
   if tok.isFake:
     raise newArgumentError(
       "Cannot create new positional string from fake token")
