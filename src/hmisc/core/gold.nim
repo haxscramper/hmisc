@@ -4,6 +4,9 @@ import std/[options, strutils, macros, os]
 ## absoltely all parts of the code.
 
 type NoValue* = distinct char
+func `<=`*(n1, n2: NoValue): bool = true
+func `$`*(n: NoValue): string = "<no-value>"
+
 
 template Attr*() {.pragma.}
 
@@ -439,3 +442,11 @@ template byaddr*(lhs, typ, ex) =
 
 template pcast*[T](arg: ptr or ref): untyped =
   cast[ptr T](arg)
+
+func sum*[T](thing: openarray[T], default: T): T =
+  if thing.len() == 0:
+    return default
+
+  else:
+    for item in thing:
+      result = result + item

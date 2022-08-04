@@ -1178,6 +1178,9 @@ proc skipToEof*(
       while str.baseStr[][str.pos] in Utf8Continuations:
         dec str.pos
 
+proc skipPastEof*(str; byteAdvance: bool = false) =
+  skipToEof(str, byteAdvance)
+  str.next()
 
 proc goToEof*(
     str; byteAdvance: bool = false; rightShift: int = 0) {.
@@ -1240,6 +1243,16 @@ proc popUntil*(str; chars: set[char] | char): string {.inline.} =
     str.skipUntil({chars})
 
   return str.popRange()
+
+proc hasAhead*(str; chars: set[char]): bool =
+  var pos = 0
+  while str.hasNxt(pos):
+    if str[pos] in chars:
+      return true
+
+    inc pos
+
+  return false
 
 proc startsWith*(str; skip: set[char], search: string): bool =
   var pos = 0
@@ -1347,7 +1360,9 @@ proc popIdentSlice*(str; chars: set[char] = IdentChars): PosStr =
 proc skipBalancedSlice*(
     str; openChars, closeChars: set[char],
     endChars: set[char] = Newline,
-    doRaise: bool = true) =
+    doRaise: bool = true,
+    allowEscape: bool = true
+  ) =
 
   var
     fullCount = 0
@@ -1361,7 +1376,11 @@ proc skipBalancedSlice*(
     raise err
 
   while ?str:
-    if str[] in openChars:
+    if str['\\'] and allowEscape:
+      str.next()
+      str.next()
+
+    elif str[] in openChars:
       inc fullCount
       inc count[str.pop()]
 

@@ -346,14 +346,33 @@ proc formatCheckFail*(report: TestReport): ColoredText =
       add " - pattern matchig fail"
       add "\n\n"
       for (path, expected, got) in report.paths:
-        add "  expected "
-        add toGreen(expected.formatStringified())
-        add " at '"
-        add path
-        add "', but got "
-        add toRed(got.formatStringified())
+        let fmtExpected =  expected.formatStringified()
+        let fmtGot = got.formatStringified()
 
-      add "\n"
+        if '\n' in fmtExpected or '\n' in fmtGot:
+          add "expected\n----------\n"
+          for line in splitLines(fmtExpected):
+            add ">"
+            add toGreen(line)
+            add "<\n"
+          add "----------\n"
+          add "at '"
+          add path
+          add "', but got\n----------\n"
+          for line in splitLines(fmtGot):
+            add ">"
+            add toRed(line)
+            add "<\n"
+
+        else:
+          add "  expected "
+          add toGreen(fmtExpected)
+          add " at '"
+          add path
+          add "', but got "
+          add toRed(fmtGot)
+
+        add "\n"
 
     of tfkStrDiff:
       let
@@ -1154,7 +1173,7 @@ macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
   proc itemCmp(path, value: NimNode): NimNode =
     let pathLit = path.pathLit()
     case value.kind:
-      of litKinds - nnkPrefix, nnkIdent:
+      of litKinds - nnkPrefix, nnkTripleStrLit, nnkIdent:
         if value.eqIdent("_"):
           result = newEmptyNode()
 
@@ -1174,6 +1193,9 @@ macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
 
       of nnkPar, nnkTupleConstr:
         result = aux(value, path)
+
+      of nnkCommand:
+        assertNodeKindNot(value, {nnkCommand})
 
       else:
         raise newImplementKindError(value, value.treeRepr())

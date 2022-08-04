@@ -73,11 +73,10 @@ type
     enum | char | uint8 | uint16 | int8 |
     int16 | bool | NoValue
   ] = ref object
-
+    ## Store common types of the lexer state
     flagStack: seq[Flag]
     flagSet: array[Flag, int]
-    indent: int
-    indentLevels: int
+    indent: seq[int] ## Indentation steps encountered by the lexer state
 
   HsLexerStateSimple* = HsLexerState[NoValue]
 
@@ -200,63 +199,78 @@ proc newUnexpectedTokenError*[K](
     result.msg = $buf
 
 
+func `$`*[F](state: HsLexerState[F]): string =
+  &"[ind: {state.indent}, set: {state.flagSet}, stack: {state.flagStack}]"
+
 proc expectKind*[K](lex: var HsLexer[HsTok[K]], kind: set[K] | K) =
   if not(lex[] of kind):
     raise newUnexpectedTokenError(lex, asSet(kind))
 
-func getIndent*[F](state: HsLexerState[F]): int = state.indent
-func setIndent*[F](state: var HsLexerState[F], ind: int) =
-  state.indent = ind
+func getIndent*[F](state: HsLexerState[F]): int =
+  ## Get total indentation level from the state
+  state.indent.sum(0)
+
+func popIndent*[F](state: var HsLexerState[F]): int =
+  ## Pop one indentation level from the lexer state
+  state.indent.pop()
+
+func hasIndent*[F](state: HsLexerState[F]): bool =
+  ## Check if state has any indentation levels stored
+  return 0 < state.indent.len()
+
+func addIndent*[F](state: var HsLexerState[F], indent: int) =
+  ## Add one indentation level to the state
+  state.indent.add(indent)
 
 func clearIndent*[F](state: var HsLexerState[F]) =
-  state.indent = 0
-  state.indentLevels = 0
+  ## Clear all indentation levels from the state
+  state.indent.clear()
 
-func getIndentLevels*[F](state: HsLexerState[F]): int = state.indentLevels
+func getIndentLevels*[F](state: HsLexerState[F]): int =
+  ## get number of the separate indentation levels
+  state.indent.len()
 
 func clear*[F](state: var HsLexerState[F]) =
+  ## Clear flag stack and all indentation levels in the lexer
   state.flagStack = @[]
-  state.indent = 0
-  state.indentLevels = 0
+  state.clearIndent()
   for val in mitems(state.flagSet):
     val = 0
 
 proc skipIndent*[F](
-    state: var HsLexerState[F],
-    str: var PosStr
-  ): LexerIndentKind =
+    state: var HsLexerState[F], str: var PosStr): seq[LexerIndentKind] =
+  ## Skip all indentation levels in the lexer - consume leading whitespaces
+  ## and calculate list of the indentation level changes.
+  ##
+  ## NOTE: indentation calculations are independent from the actual column
+  ## values and are only based on the actual spaces used in the input.
   if str[Newline]:
     str.next()
 
-  if not str[{' '}]:
-    if state.indent == 0:
-      result = likSameIndent
+  var skip = 0
+  while str[skip] in HorizontalSpace:
+    inc skip
 
-    else:
-      result = likDecIndent
-      state.indentLevels = 0
-      state.indent = 0
+  str.advance(skip)
+  if str[Newline]:
+    result.add likEmptyLine
 
   else:
-    str.skipWhile({' '})
-    if str['\n']:
-      result = likEmptyLine
-      return
+    let now = state.getIndent()
+    if skip == now:
+      result.add likSameIndent
 
-    elif state.indent > str.column:
-      dec state.indentLevels
-      result = likDecIndent
+    elif now < skip:
+      result.add likIncIndent
+      # add single indentation level
+      state.addIndent(skip - now)
 
-    elif state.indent < str.column:
-      inc state.indentLevels
-      result = likIncIndent
-
-    else:
-      result = likSameIndent
-
-    state.indent = str.column
-
-
+    elif skip < now:
+      # indentation level decreased from the current one - pop all
+      # indentation levels until it will be the same.
+      while skip < state.getIndent():
+        discard state.popIndent()
+        result.add likDecIndent
 
 proc lineCol*[K](tok: HsTok[K]): LineCol {.inline.} =
   (line: tok.line, column: tok.column)
@@ -344,22 +358,24 @@ template initTok*[K](
     isSlice: false)
 
 
-proc initFakeTok*[K](str: HsTok[K], kind: K): HsTok[K] =
+proc initFakeTok*[K](str: HsTok[K], kind: K, text: string = ""): HsTok[K] =
   result = HsTok[K](
     kind: kind,
     isFake: true,
     isSlice: false,
+    str: text,
     line: str.line,
     column: str.column,
     offset: str.offset
   )
 
-proc initFakeTok*[K](str: PosStr, kind: K): HsTok[K] =
+proc initFakeTok*[K](str: PosStr, kind: K, text: string = ""): HsTok[K] =
   result = HsTok[K](
     kind: kind,
     isFake: true,
     isSlice: false,
     line: str.line,
+    str: text,
     column: str.column,
     offset: str.pos
   )
@@ -421,6 +437,9 @@ template addInitTok*[K](
     kind: K,
     body: untyped
   ): untyped =
+  ## Create string slice using `body`, wrap it via `asSlice` and then
+  ## `initTok` with created slice. Used as
+  ## `result.addInitTok(str, <kind>): <logic>`
 
   add(res, initTok(str, kind, asSlice(str, body)))
 
