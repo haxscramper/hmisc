@@ -1,6 +1,6 @@
 import std/[
   streams, strscans, strutils, strformat, macros, segfaults,
-  sequtils, unicode, strutils, parseutils
+  sequtils, unicode, strutils, parseutils, options
 ]
 
 import
@@ -1548,16 +1548,43 @@ macro scanSlice*(str; pattern: varargs[untyped]): untyped =
 
     return nnkBracketExpr.newTree(str, at)
 
-  proc genSkip(part: NimNode, requires: bool = false): NimNode =
+  proc genSkip(
+      part: NimNode,
+      requires: bool = false,
+      action: Option[NimNode] = none(NimNode)): NimNode =
+
+    proc withAction(node: NimNode): NimNode =
+      nnkStmtList.newTree(
+        node,
+        if action.isSome(): action.get() else: newEmptyNode()
+      )
+
     let part = splitPattern(part)
     case part.kind:
       of nnkCharLit, nnkStrLit, nnkCurly, nnkIdent:
         result = newCall(tern(requires, "skip", "trySkip"), str, part)
 
+      of nnkInfix:
+        case part[0].strVal():
+          of "->":
+            result = genSkip(part[1], requires, some(part[2]))
+
+          else:
+            raise newImplementKindError(part[0].strVal())
+
       of nnkPrefix:
         case part[0].strVal():
           of "*":
-            result = nnkWhileStmt.newTree(isAt(part[1]), newCall("next", str))
+            result = nnkWhileStmt.newTree(
+              isAt(part[1]),
+              withAction(newCall("next", str))
+            )
+
+          of "?":
+            result = nnkIfStmt.newTree(nnkElifBranch.newTree(
+              isAt(part[1]),
+              withAction(newCall("next", str))
+            ))
 
           of "\\":
             assertNodeKind(part[1], {nnkIdent, nnkSym})
