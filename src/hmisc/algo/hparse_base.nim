@@ -251,7 +251,7 @@ proc skipIndent*[F](
   while str[skip] in HorizontalSpace:
     inc skip
 
-  str.advance(skip)
+  str.next(skip)
   if str[Newline]:
     result.add likEmptyLine
 
@@ -357,6 +357,24 @@ template initTok*[K](
     str: $inStr,
     isSlice: false)
 
+
+proc initFakeTok*[K](
+    kind: K,
+    text: string = "",
+    line: int = 0,
+    column: int = 0,
+    offset: int = 0
+  ): HsTok[K] =
+
+  result = HsTok[K](
+    kind: kind,
+    isFake: true,
+    isSlice: false,
+    str: text,
+    line: line,
+    column: column,
+    offset: offset
+  )
 
 proc initFakeTok*[K](str: HsTok[K], kind: K, text: string = ""): HsTok[K] =
   result = HsTok[K](

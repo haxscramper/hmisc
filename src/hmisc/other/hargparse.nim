@@ -556,7 +556,7 @@ func setDisabled*(desc: CliDesc, disabled: string) =
         discard
 
   if not isNil(desc.check):
-    static: {.warning: "Hack, ensure there are no nil checks later".}
+    # HACK Hack, ensure there are no nil checks later
     aux(desc.check)
 
 

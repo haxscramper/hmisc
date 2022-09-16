@@ -1,6 +1,16 @@
 import std/[
-  streams, strscans, strutils, strformat, macros, segfaults,
-  sequtils, unicode, strutils, parseutils, options
+  streams,
+  strscans,
+  strutils,
+  strformat,
+  macros,
+  segfaults,
+  sequtils,
+  unicode,
+  strutils,
+  parseutils,
+  options,
+  re
 ]
 
 import
@@ -23,6 +33,9 @@ Multiple helper procedures are provided to deal with majority of common use
 cases, which allows for rapid prototyping.
 
 ]##
+
+func rei*(str: string): Regex =
+  re(str, {reStudy, reIgnoreCase})
 
 type
   PosStrSlice* = object
@@ -413,10 +426,14 @@ proc `[]`*(str; patt: char|set[char]|string): bool {.inline.} =
   ##   to avoid infinite loops at the end of input.
   str[0, patt]
 
+
+
 proc `[]`*(str; patt: openarray[string]): bool =
   for test in items(patt):
     if str[test]:
       return true
+
+
 
 proc `[]`*(str; patt1, patt2: char | set[char] | string): bool {.inline.} =
   ## Check two next positions against pattern
@@ -780,6 +797,18 @@ proc getAll*(str: PosStr): string =
 
   else:
     result = str.baseStr[]
+
+proc `[]`*(str; patt: Regex): bool =
+  ## Check if string matches regex pattern starting with current position.
+  let pos =
+    tern(
+      str.isSlice,
+      str.getAll().find(patt, start = str.pos),
+      str.baseStr[].find(patt, start = str.pos)
+    )
+
+  return pos == str.pos
+
 
 proc strVal*(str: PosStr): string = getAll(str)
 proc strValNorm*(str: PosStr): string = getAll(str).normalize()
@@ -1261,6 +1290,14 @@ proc startsWith*(str; skip: set[char], search: string): bool =
 
   result = str[pos, search]
 
+proc startsWith*(str; skip: set[char], search: set[char]): bool =
+  ## Check if the string starts with `skip` characters followed by `search`
+  var pos = 0
+  while str[pos, skip]:
+    inc pos
+
+  result = str[pos] in search
+
 proc getIndent*(str): int =
   ## Get number of horizontal spaces starting from the current position.
   ## NOTE: if string is positioned on the newline or any other vertical
@@ -1555,13 +1592,14 @@ macro scanSlice*(str; pattern: varargs[untyped]): untyped =
 
     proc withAction(node: NimNode): NimNode =
       nnkStmtList.newTree(
-        node,
-        if action.isSome(): action.get() else: newEmptyNode()
+        if action.isSome(): action.get() else: newEmptyNode(),
+        node
       )
 
     let part = splitPattern(part)
     case part.kind:
-      of nnkCharLit, nnkStrLit, nnkCurly, nnkIdent:
+      of nnkCharLit, nnkStrLit,
+         nnkCurly, nnkIdent, nnkRStrLit:
         result = newCall(tern(requires, "skip", "trySkip"), str, part)
 
       of nnkInfix:
