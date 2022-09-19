@@ -1398,11 +1398,21 @@ proc skipBalancedSlice*(
     str; openChars, closeChars: set[char],
     endChars: set[char] = Newline,
     doRaise: bool = true,
-    allowEscape: bool = true
+    allowEscape: bool = true,
+    skippedStart: bool = false,
+    consumeLast: bool = true
   ) =
+  ## - `consumeLast` - what to do with the wrapping tokens of a balanced
+  ##   range. By default they are also skipped, but if lexer needs to
+  ##   handle this case separately you can set this argument to false.
+  ##   `{test}_` - if true will stop AT `_`, otherwise stop at `}`
+  ## - `skippedStart` - whether opening brace had already been skipped
+  ##   by the wrapping lexer logic. Can be used to provide custom handling
+  ##   for the opening element. Together with `consumeLast` allow for
+  ##   a fully custom handling of the outermost wrapping braces.
 
   var
-    fullCount = 0
+    fullCount = if skippedStart: 1 else: 0
     count: array[char, int]
 
   template unbalanced() {.dirty.} =
@@ -1423,7 +1433,8 @@ proc skipBalancedSlice*(
 
     elif str[] in closeChars:
       dec fullCount
-      dec count[str.pop()]
+      if 0 < fullCount or consumeLast:
+        dec count[str.pop()]
 
       if fullCount == 0:
         return

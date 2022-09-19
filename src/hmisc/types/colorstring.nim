@@ -1900,6 +1900,12 @@ func join*(
       result.add sep
     result.add val
 
+func join*(
+    strs: openarray[ColoredText], sep: ColoredText): ColoredText =
+  for idx, val in strs:
+    if idx > 0:
+      result.add sep
+    result.add val
 
 
 

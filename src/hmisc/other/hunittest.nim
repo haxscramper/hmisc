@@ -1173,7 +1173,8 @@ macro matchdiff*(obj, match: untyped, loc: static[TestLocation]): untyped =
   proc itemCmp(path, value: NimNode): NimNode =
     let pathLit = path.pathLit()
     case value.kind:
-      of litKinds - nnkPrefix, nnkTripleStrLit, nnkIdent:
+      of litKinds - nnkPrefix, nnkTripleStrLit,
+         nnkIdent, nnkRStrLit:
         if value.eqIdent("_"):
           result = newEmptyNode()
 
@@ -1760,9 +1761,10 @@ proc buildCheck(expr: NimNode): NimNode =
         result = quote do:
           block:
             {.line: `line`.}:
-              if not(`expr`):
+              let res = `expr`
+              if not(res):
                 `report`(testContext, `checkFailed`(
-                  `loc`, {"expr": `testValue`(`lit`, tvcNone)},
+                  `loc`, {"expr": `testValue`(res, tvcNone)},
                   tfkPredicateFail,
                   `exprStr`
                 ))

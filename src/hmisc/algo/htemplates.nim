@@ -65,15 +65,21 @@ template mapIt1*(s, op: untyped): untyped =
   res
 
 
-template maxIt*(s: untyped, op: untyped): untyped =
+
+template maxIt*(s: untyped, default: untyped, op: untyped): untyped =
   ## Maximize value for all elements in sequence
   type OutType = getIterOpType(s, op)
-  var res: OutType = low(OutType)
+  var res: OutType = default
   for it {.inject.} in s:
     let val = op
     if val > res:
       res = val
   res
+
+template maxIt*(s: untyped, op: untyped): untyped =
+  ## Maximize value for all elements in sequence
+  type OutType = getIterOpType(s, op)
+  maxIt(s, low(OutType), op)
 
 
 template minIt*(s: untyped, op: untyped): untyped =
