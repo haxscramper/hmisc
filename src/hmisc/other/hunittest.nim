@@ -245,16 +245,17 @@ proc newTestContext*(): TestContext =
 
 proc getTestGlobs(): seq[TestGlob] =
   for param in paramStrs():
-    let split = param.split("::")
-    result.add TestGlob(
-      suiteGlob: toGitGlob(split[0]),
-      testGlob: toGitGlob(
-        if split.len > 1 and split[1].len > 0:
-          split[1]
-        else:
-          "*"
+    if not param.empty():
+      let split = param.split("::")
+      result.add TestGlob(
+        suiteGlob: toGitGlob(split[0]),
+        testGlob: toGitGlob(
+          if split.len > 1 and split[1].len > 0:
+            split[1]
+          else:
+            "*"
+        )
       )
-    )
 
 var context {.threadvar.}: TestContext
 
