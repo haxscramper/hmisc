@@ -1709,13 +1709,13 @@ func hShow*(
     if '\n' in str:
       var str = toYellow(str)
       let onlyTail = str.onlyTailNewline()
-      if onlyTail and dfUseQuotes in opts:
+      if dfUseQuotes in opts:
         result.add toYellow("\"")
 
       result.add str
       replaceTailNewlines(result, uc"⮒" + (fgRed + bgDefault))
 
-      if onlyTail and dfUseQuotes in opts:
+      if dfUseQuotes in opts:
         result.add toYellow("\"")
 
 
